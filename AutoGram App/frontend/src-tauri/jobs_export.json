@@ -1,0 +1,47 @@
+[
+    {
+        "id": 15,
+        "job_name": "3D Donghua",
+        "profile_name": "Lavender",
+        "source_entity_id": "-1003214112048_5",
+        "target_entity_id": "-1004468191168",
+        "transfer_mode": "Instant Clone",
+        "config_json": "{\"source\":\"-1003214112048_5\",\"destination\":\"-1004468191168\",\"sourceName\":\"#Gudang [TD] \u203a Donghua 3D\",\"destName\":\"#Gudang - Donghua 3D [TD]\",\"session\":\"Lavender\",\"mode\":\"Instant Clone\",\"media\":\"all\",\"dupAction\":\"Skip\",\"limit\":5,\"size_min\":0,\"size_max\":null,\"autoFallback\":true,\"fetchDirection\":\"Oldest First\",\"captionRule\":\"Keep Original\",\"albumHandling\":\"Follow Source\",\"delayMin\":2,\"delayMax\":5,\"startDate\":null,\"endDate\":null,\"jobName\":\"3D Donghua\",\"dryRun\":true}",
+        "created_at": "2026-07-11 16:10:09",
+        "status": "COMPLETED",
+        "processed_messages": 5,
+        "total_messages": 5,
+        "last_processed_id": 15,
+        "last_execution_id": 13
+    },
+    {
+        "id": 3,
+        "job_name": "Test Dry Run",
+        "profile_name": "Lavender",
+        "source_entity_id": "-1003214112048",
+        "target_entity_id": "-1004468191168",
+        "transfer_mode": "Instant Clone",
+        "config_json": "{\"source\": \"-1003214112048\", \"destination\": \"-1004468191168\", \"session\": \"Lavender\", \"mode\": \"Instant Clone\", \"media\": \"all\", \"dupAction\": \"Skip\", \"limit\": 5, \"size_min\": 0, \"size_max\": 0, \"autoFallback\": true, \"fetchDirection\": \"Oldest First\", \"captionRule\": \"Keep Original\", \"albumHandling\": \"Follow Source\", \"delayMin\": 2, \"delayMax\": 5, \"dry_run\": true}",
+        "created_at": "2026-07-11 14:25:14",
+        "status": "FAILED",
+        "processed_messages": 0,
+        "total_messages": 0,
+        "last_processed_id": 0,
+        "last_execution_id": 1
+    },
+    {
+        "id": 2,
+        "job_name": "Test Dry Run",
+        "profile_name": "Lavender",
+        "source_entity_id": "-1003214112048",
+        "target_entity_id": "-1004468191168",
+        "transfer_mode": "Instant Clone",
+        "config_json": "{\"source\": \"-1003214112048\", \"destination\": \"-1004468191168\", \"session\": \"Lavender\", \"mode\": \"Instant Clone\", \"media\": \"all\", \"dupAction\": \"Skip\", \"limit\": 5, \"size_min\": 0, \"size_max\": 0, \"autoFallback\": true, \"fetchDirection\": \"Oldest First\", \"captionRule\": \"Keep Original\", \"albumHandling\": \"Follow Source\", \"delayMin\": 2, \"delayMax\": 5, \"dry_run\": true}",
+        "created_at": "2026-07-11 14:24:56",
+        "status": null,
+        "processed_messages": null,
+        "total_messages": null,
+        "last_processed_id": null,
+        "last_execution_id": null
+    }
+]

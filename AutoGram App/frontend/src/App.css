@@ -1,0 +1,182 @@
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 860px) {
+  .grid-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.responsive-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .responsive-row {
+    flex-direction: row;
+  }
+}
+
+/* Modern CSS Grid for Forms */
+.form-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+}
+
+.grid-2-cols {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+}
+
+.grid-3-cols {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+}
+
+.col-span-full {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .grid-2-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .grid-3-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  padding: 24px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.execution-panel {
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(30, 32, 45, 0.7), rgba(15, 17, 26, 0.9));
+  border-left: 4px solid var(--primary);
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-safe);
+  text-align: left;
+}
+
+.sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.sidebar-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* App Layout Structure */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+@media (min-width: 768px) {
+  .app-layout {
+    flex-direction: row;
+  }
+}
+
+.app-sidebar {
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.app-sidebar nav {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .app-sidebar {
+    width: 260px;
+    height: 100vh;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    padding: 24px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 32px; /* Jarak antara Header dan Navigasi */
+    flex-shrink: 0;
+  }
+  .app-sidebar nav {
+    flex-direction: column;
+  }
+}
+
+/* Fix default React boilerplate styles */
+#root {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+@media (max-width: 767px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .sidebar-btn span {
+    display: none;
+  }
+}

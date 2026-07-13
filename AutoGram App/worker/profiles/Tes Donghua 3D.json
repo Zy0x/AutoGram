@@ -1,0 +1,19 @@
+{
+    "session_name": "Lavender",
+    "api_id": "33766959",
+    "api_hash": "af9b30740b44d2f23e5df01052754604",
+    "source": "-1003214112048",
+    "source_name": "#Gudang [TD]",
+    "source_topic_id": 5,
+    "dest": "-1004468191168",
+    "dest_name": "#Gudang - Donghua 3D [TD]",
+    "transfer_mode": "Clean Copy",
+    "duplicate_action": "Skip",
+    "limit": 5,
+    "throttle": true,
+    "media_filter": "Semua",
+    "min_size_mb": 0,
+    "max_size_mb": 0,
+    "caption_rule": "Keep Original",
+    "dry_run": false
+}

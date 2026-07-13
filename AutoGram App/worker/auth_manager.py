@@ -1,0 +1,191 @@
+import argparse
+import asyncio
+import json
+import sys
+import os
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+from telethon.errors import (
+    SessionPasswordNeededError, 
+    PhoneCodeInvalidError, 
+    PasswordHashInvalidError,
+    FloodWaitError,
+    PhoneCodeExpiredError,
+    ApiIdInvalidError
+)
+import sqlite3
+
+# Import DB and Encryption
+from database.queries import save_session, get_session, get_all_sessions, delete_session
+from core.encryption import encrypt_data, decrypt_data
+
+def get_client_and_string(session_name, api_id, api_hash):
+    session_data = get_session(session_name)
+    if session_data and session_data['session_string']:
+        try:
+            decrypted_str = decrypt_data(session_data['session_string'])
+            string_session = StringSession(decrypted_str)
+        except Exception as e:
+            string_session = StringSession()
+    else:
+        string_session = StringSession()
+        
+    client = TelegramClient(string_session, int(api_id), api_hash)
+    return client, string_session
+
+def save_client_session(session_name, client):
+    session_str = client.session.save()
+    encrypted_str = encrypt_data(session_str)
+    save_session(session_name, encrypted_str, status='active')
+
+async def send_code(session_name, phone, api_id, api_hash):
+    client, _ = get_client_and_string(session_name, api_id, api_hash)
+    
+    try:
+        await asyncio.wait_for(client.connect(), timeout=15.0)
+        
+        if await client.is_user_authorized():
+            print(json.dumps({"status": "already_authorized"}))
+            return
+            
+        sent = await client.send_code_request(phone)
+        save_client_session(session_name, client)
+        print(json.dumps({"status": "code_sent", "phone_code_hash": sent.phone_code_hash}))
+    except TimeoutError:
+        print(json.dumps({"error": "timeout"}))
+    except FloodWaitError as e:
+        print(json.dumps({"error": "flood_wait", "seconds": e.seconds}))
+    except ApiIdInvalidError:
+        print(json.dumps({"error": "invalid_api_id"}))
+    except sqlite3.OperationalError:
+        print(json.dumps({"error": "db_locked"}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+    finally:
+        await client.disconnect()
+
+async def sign_in(session_name, phone, code, phone_code_hash, api_id, api_hash):
+    client, _ = get_client_and_string(session_name, api_id, api_hash)
+    
+    try:
+        await asyncio.wait_for(client.connect(), timeout=15.0)
+        await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
+        save_client_session(session_name, client)
+        print(json.dumps({"status": "success"}))
+    except SessionPasswordNeededError:
+        save_client_session(session_name, client)
+        print(json.dumps({"status": "2fa_required"}))
+    except PhoneCodeInvalidError:
+        print(json.dumps({"error": "invalid_otp"}))
+    except PhoneCodeExpiredError:
+        print(json.dumps({"error": "code_expired"}))
+    except TimeoutError:
+        print(json.dumps({"error": "timeout"}))
+    except FloodWaitError as e:
+        print(json.dumps({"error": "flood_wait", "seconds": e.seconds}))
+    except sqlite3.OperationalError:
+        print(json.dumps({"error": "db_locked"}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+    finally:
+        await client.disconnect()
+
+async def sign_in_2fa(session_name, password, api_id, api_hash):
+    client, _ = get_client_and_string(session_name, api_id, api_hash)
+    
+    try:
+        await asyncio.wait_for(client.connect(), timeout=15.0)
+        await client.sign_in(password=password)
+        save_client_session(session_name, client)
+        print(json.dumps({"status": "success"}))
+    except PasswordHashInvalidError:
+        print(json.dumps({"error": "invalid_password"}))
+    except TimeoutError:
+        print(json.dumps({"error": "timeout"}))
+    except FloodWaitError as e:
+        print(json.dumps({"error": "flood_wait", "seconds": e.seconds}))
+    except sqlite3.OperationalError:
+        print(json.dumps({"error": "db_locked"}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+    finally:
+        await client.disconnect()
+
+async def list_sessions_action(api_id, api_hash):
+    if not api_id or not api_hash:
+        print(json.dumps({"sessions": []}))
+        return
+        
+    db_sessions = get_all_sessions()
+    valid_sessions = []
+    
+    for sess in db_sessions:
+        session_name = sess['name']
+        client, _ = get_client_and_string(session_name, api_id, api_hash)
+        
+        try:
+            await client.connect()
+            authorized = await client.is_user_authorized()
+            
+            if authorized:
+                status = "active"
+                try:
+                    me = await client.get_me()
+                    if not me:
+                        status = "expired"
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "auth" in err_str or "deactivated" in err_str or "revoke" in err_str or "unregistered" in err_str:
+                        status = "expired"
+                    else:
+                        status = "error"
+                        
+                valid_sessions.append({"name": session_name, "status": status})
+            else:
+                delete_session(session_name)
+            
+            await client.disconnect()
+        except Exception as e:
+            valid_sessions.append({"name": session_name, "status": "error"})
+            
+    print(json.dumps({"sessions": valid_sessions}))
+
+async def delete_session_action(session_name):
+    try:
+        delete_session(session_name)
+        old_path = os.path.join(os.path.dirname(__file__), 'sessions', f"{session_name}.session")
+        if os.path.exists(old_path):
+            os.remove(old_path)
+        print(json.dumps({"status": "success", "message": f"Session {session_name} deleted"}))
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--action', choices=['send-code', 'sign-in', 'sign-in-2fa', 'list-sessions', 'delete-session'], required=True)
+    parser.add_argument('--api-id', required=False)
+    parser.add_argument('--api-hash', required=False)
+    parser.add_argument('--session', required=False)
+    parser.add_argument('--phone', required=False)
+    parser.add_argument('--code', required=False)
+    parser.add_argument('--hash', required=False)
+    parser.add_argument('--password', required=False)
+    
+    args = parser.parse_args()
+    
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(line_buffering=True)
+        
+    if args.action == 'list-sessions':
+        asyncio.run(list_sessions_action(args.api_id, args.api_hash))
+    elif args.action == 'delete-session':
+        asyncio.run(delete_session_action(args.session))
+    elif args.action == 'send-code':
+        asyncio.run(send_code(args.session, args.phone, args.api_id, args.api_hash))
+    elif args.action == 'sign-in':
+        asyncio.run(sign_in(args.session, args.phone, args.code, args.hash, args.api_id, args.api_hash))
+    elif args.action == 'sign-in-2fa':
+        asyncio.run(sign_in_2fa(args.session, args.password, args.api_id, args.api_hash))
+
+if __name__ == '__main__':
+    main()
