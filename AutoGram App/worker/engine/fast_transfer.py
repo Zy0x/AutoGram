@@ -493,6 +493,57 @@ async def fast_upload_file(
     return InputFile(id=file_id, parts=part_count, name=name, md5_checksum=md5_digest.hex())
 
 
+def _generate_local_thumb(path: str) -> Optional[str]:
+    """
+    Generate a local thumbnail JPEG for the given file (image or video)
+    and return the path to the generated JPEG.
+    """
+    import os
+    import tempfile
+    
+    ext = os.path.splitext(path)[1].lower()
+    IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
+    VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".webm", ".3gp", ".m4v"}
+    
+    if ext not in IMAGE_EXTS and ext not in VIDEO_EXTS:
+        return None
+        
+    try:
+        # Create a temp file for output jpeg
+        fd, out_path = tempfile.mkstemp(suffix=".jpg")
+        os.close(fd)
+        
+        # If it's an image, use PIL to resize it under 90KB and max 320px
+        if ext in IMAGE_EXTS:
+            from PIL import Image
+            with Image.open(path) as img:
+                img.thumbnail((320, 320))
+                if img.mode not in ("RGB", "L"):
+                    img = img.convert("RGB")
+                img.save(out_path, "JPEG", quality=85)
+            return out_path
+            
+        # If it's a video, use _ffmpeg_frame_from_file_sync to extract first frame
+        if ext in VIDEO_EXTS:
+            from engine.drive_fs import _ffmpeg_frame_from_file_sync
+            res = _ffmpeg_frame_from_file_sync(path, out_path, max_edge=320, partial=False)
+            if res and os.path.isfile(out_path) and os.path.getsize(out_path) > 0:
+                return out_path
+    except Exception as e:
+        try:
+            print(f"[fast_transfer] _generate_local_thumb failed for {path}: {e}", flush=True)
+        except Exception:
+            pass
+            
+    # Cleanup if failed
+    try:
+        if os.path.isfile(out_path):
+            os.remove(out_path)
+    except Exception:
+        pass
+    return None
+
+
 async def fast_send_file(
     client: TelegramClient,
     entity,
@@ -507,77 +558,95 @@ async def fast_send_file(
     Upload with parallel parts then send_file with the handle (no second upload).
     Falls back to client.send_file if parallel path fails.
     """
-    file_size = os.path.getsize(path)
-    if file_size < CONCURRENT_MIN_BYTES:
-        return await client.send_file(
-            entity,
-            path,
-            progress_callback=progress_callback,
-            **{k: v for k, v in send_kwargs.items() if v is not None},
-        )
+    local_thumb = None
+    try:
+        local_thumb = _generate_local_thumb(path)
+    except Exception:
+        pass
 
     try:
-        from engine.media_meta import build_send_attributes
+        if local_thumb and "thumb" not in send_kwargs:
+            send_kwargs["thumb"] = local_thumb
 
-        force_doc = bool(send_kwargs.get("force_document"))
-        attrs, mime = build_send_attributes(
-            path,
-            force_document=force_doc,
-            supports_streaming=bool(send_kwargs.get("supports_streaming", True)),
-        )
-        if send_kwargs.get("attributes"):
-            attrs = send_kwargs.get("attributes")
-        if send_kwargs.get("mime_type"):
-            mime = send_kwargs.get("mime_type")
+        file_size = os.path.getsize(path)
+        if file_size < CONCURRENT_MIN_BYTES:
+            return await client.send_file(
+                entity,
+                path,
+                progress_callback=progress_callback,
+                **{k: v for k, v in send_kwargs.items() if v is not None},
+            )
 
-        handle = await fast_upload_file(
-            client,
-            path,
-            workers=workers,
-            part_size_kb=MAX_PART_KB,
-            file_name=os.path.basename(path),
-            progress_callback=progress_callback,
-            upload_policy=upload_policy,
-        )
-        kw = {
-            "force_document": send_kwargs.get("force_document"),
-            "caption": send_kwargs.get("caption"),
-            "silent": send_kwargs.get("silent"),
-            "supports_streaming": send_kwargs.get("supports_streaming"),
-            "reply_to": send_kwargs.get("reply_to"),
-            "schedule": send_kwargs.get("schedule"),
-            "spoiler": send_kwargs.get("spoiler"),
-            "attributes": attrs or None,
-            "mime_type": mime,
-            "file_name": send_kwargs.get("file_name", os.path.basename(path)),
-        }
-        return await client.send_file(
-            entity,
-            handle,
-            **{k: v for k, v in kw.items() if v is not None},
-        )
-    except TypeError:
-        sk = {k: v for k, v in send_kwargs.items() if v is not None and k != "spoiler"}
-        handle = await fast_upload_file(
-            client,
-            path,
-            workers=workers,
-            progress_callback=progress_callback,
-            upload_policy=upload_policy,
-        )
-        return await client.send_file(entity, handle, file_name=send_kwargs.get("file_name", os.path.basename(path)), **sk)
-    except Exception as exc:
-        if _is_nonretryable_file_parts_error(exc):
-            # A native Telethon retry would calculate the same illegal part
-            # count and upload gigabytes again before failing identically.
-            raise
-        return await client.send_file(
-            entity,
-            path,
-            part_size_kb=MAX_PART_KB,
-            progress_callback=progress_callback,
-            **{k: v for k, v in send_kwargs.items() if v is not None},
-        )
+        try:
+            from engine.media_meta import build_send_attributes
+
+            force_doc = bool(send_kwargs.get("force_document"))
+            attrs, mime = build_send_attributes(
+                path,
+                force_document=force_doc,
+                supports_streaming=bool(send_kwargs.get("supports_streaming", True)),
+            )
+            if send_kwargs.get("attributes"):
+                attrs = send_kwargs.get("attributes")
+            if send_kwargs.get("mime_type"):
+                mime = send_kwargs.get("mime_type")
+
+            handle = await fast_upload_file(
+                client,
+                path,
+                workers=workers,
+                part_size_kb=MAX_PART_KB,
+                file_name=os.path.basename(path),
+                progress_callback=progress_callback,
+                upload_policy=upload_policy,
+            )
+            kw = {
+                "force_document": send_kwargs.get("force_document"),
+                "caption": send_kwargs.get("caption"),
+                "silent": send_kwargs.get("silent"),
+                "supports_streaming": send_kwargs.get("supports_streaming"),
+                "reply_to": send_kwargs.get("reply_to"),
+                "schedule": send_kwargs.get("schedule"),
+                "spoiler": send_kwargs.get("spoiler"),
+                "thumb": send_kwargs.get("thumb"),
+                "attributes": attrs or None,
+                "mime_type": mime,
+                "file_name": send_kwargs.get("file_name", os.path.basename(path)),
+            }
+            return await client.send_file(
+                entity,
+                handle,
+                **{k: v for k, v in kw.items() if v is not None},
+            )
+        except TypeError:
+            sk = {k: v for k, v in send_kwargs.items() if v is not None and k != "spoiler"}
+            handle = await fast_upload_file(
+                client,
+                path,
+                workers=workers,
+                progress_callback=progress_callback,
+                upload_policy=upload_policy,
+            )
+            return await client.send_file(entity, handle, file_name=send_kwargs.get("file_name", os.path.basename(path)), **sk)
+        except Exception as exc:
+            if _is_nonretryable_file_parts_error(exc):
+                # A native Telethon retry would calculate the same illegal part
+                # count and upload gigabytes again before failing identically.
+                raise
+            return await client.send_file(
+                entity,
+                path,
+                part_size_kb=MAX_PART_KB,
+                progress_callback=progress_callback,
+                **{k: v for k, v in send_kwargs.items() if v is not None},
+            )
+    finally:
+        if local_thumb:
+            try:
+                if os.path.isfile(local_thumb):
+                    os.remove(local_thumb)
+            except Exception:
+                pass
 
 
 def _getfile_limit(remain: int, part_size: int) -> int:
