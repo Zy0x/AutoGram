@@ -699,6 +699,22 @@ export async function driveCreateTopic(creds: DriveCredentials, chatId: number, 
   ]);
 }
 
+export async function driveDeleteTopic(creds: DriveCredentials, chatId: number, topicId: number) {
+  if (await ensureWarmDriveSession(creds)) {
+    return driveSessionCallFor(creds, 'delete_topic', {
+      folder_id: chatId,
+      topic_id: topicId,
+    });
+  }
+  return runDrive(creds, [
+    '--drive-action',
+    'delete-topic',
+    ...folderArg(chatId),
+    '--options-json',
+    JSON.stringify({ topic_id: topicId }),
+  ]);
+}
+
 export async function driveThumbnail(
   creds: DriveCredentials,
   messageId: number,

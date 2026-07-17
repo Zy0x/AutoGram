@@ -41,6 +41,7 @@ import {
   driveMediaStats,
   driveListTopics,
   driveCreateTopic,
+  driveDeleteTopic,
   driveDeleteBatch,
   driveRename,
   driveRenameFolder,
@@ -975,7 +976,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   }, [session, sessions]);
 
   const loadTopicsForPeer = useCallback(
-    async (chatId: number | null, chatMeta?: DriveChat | null) => {
+    async (chatId: number | null, chatMeta?: DriveChat | null, force = false) => {
       const requestSeq = ++topicsRequestSeqRef.current;
       const isCurrent = () =>
         requestSeq === topicsRequestSeqRef.current && activePeerRef.current === chatId;
@@ -987,10 +988,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         topicFilterRef.current = null;
         return;
       }
+      if (force) {
+        topicsCacheRef.current.delete(chatId);
+      }
       const meta = chatMeta ?? chats.find((c) => c.id === chatId) ?? null;
       const now = Date.now();
-      let cached = topicsCacheRef.current.get(chatId);
-      if (!cached) {
+      let cached = force ? null : topicsCacheRef.current.get(chatId);
+      if (!cached && !force) {
         try {
           const persisted = loadDriveTopicsSnapshot(localStorage, creds.session, chatId, now);
           if (persisted) {
@@ -1015,7 +1019,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         return;
       }
       // Render a recent memory/persistent snapshot immediately, then revalidate.
-      if (cached && now - cached.ts < 5 * 60_000) {
+      if (cached && now - cached.ts < 5 * 60_000 && !force) {
         if (!isCurrent()) return;
         setTopics(cached.topics);
         setIsForumChat(cached.is_forum);
@@ -2990,13 +2994,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             // Invalidate local topics cache
             topicsCacheRef.current.delete(activePeerId);
             
-            // Reload topics list
-            await loadTopicsForPeer(activePeerId);
+            // Reload topics list forcing refresh
+            await loadTopicsForPeer(activePeerId, null, true);
             
             if (res?.topic_id != null) {
               setTopicFilter(res.topic_id);
               topicFilterRef.current = res.topic_id;
               setStatusText(`Topik siap: ${name}`);
+              refreshFiles();
             } else {
               setStatusText(`Topik "${name}" berhasil dibuat.`);
             }
@@ -3007,6 +3012,52 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         })();
       },
     });
+  };
+
+  const handleDeleteTopic = (topicId: number, topicTitle: string) => {
+    if (!creds) {
+      setError('Session / API belum siap.');
+      return;
+    }
+    if (activePeerId == null) {
+      setError('Pilih grup terlebih dahulu.');
+      return;
+    }
+    setError(null);
+    
+    // Import and show native confirmation dialog
+    void (async () => {
+      try {
+        const { ask } = await import('@tauri-apps/plugin-dialog');
+        const yes = await ask(
+          `Apakah Anda yakin ingin menghapus topik "${topicTitle}"?\n\nTindakan ini juga akan menghapus seluruh riwayat pesan dan media di dalam topik tersebut secara permanen.`,
+          { title: 'Hapus Topik', kind: 'warning', okLabel: 'Hapus Permanen', cancelLabel: 'Batal' }
+        );
+        if (!yes) return;
+        
+        setStatusText(`Menghapus topik "${topicTitle}"…`);
+        try {
+          await ensureDriveSession(creds);
+        } catch {
+          /* ignore */
+        }
+        await driveDeleteTopic(creds, activePeerId, topicId);
+        
+        // Force reload topics list
+        await loadTopicsForPeer(activePeerId, null, true);
+        
+        // If deleted topic was selected, clear the filter and refresh files
+        if (topicFilterRef.current === topicId || topicFilter === topicId) {
+          setTopicFilter(null);
+          topicFilterRef.current = null;
+          refreshFiles();
+        }
+        setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
+      } catch (e: any) {
+        setError(e?.message || 'Gagal menghapus topik');
+        setStatusText('Siap');
+      }
+    })();
   };
 
   const applyFolderListPatch = useCallback((folder: DriveFolder | null | undefined) => {
@@ -5735,6 +5786,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             topicFilter={topicFilter}
             onTopicFilter={handleTopicFilter}
             onAddTopic={handleCreateTopic}
+            onDeleteTopic={handleDeleteTopic}
             topicsLoading={topicsLoading}
             onOpenTools={() => {
               setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'copy');

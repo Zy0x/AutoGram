@@ -32,6 +32,7 @@ from engine.drive_fs import (
     _list_topics_on,
     invalidate_topics_cache,
     _get_create_forum_topic_cls,
+    _get_delete_forum_topic_cls,
     _resolve_peer,
     _scan_folders_on,
     _fetch_thumb_data_url,
@@ -250,6 +251,21 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             "chat_id": int(folder_id),
             "topic_id": topic_id,
             "title": str(title),
+        }
+
+    if cmd in ("delete_topic", "delete-topic"):
+        raw_tid = req.get("topic_id") or req.get("topicId")
+        if folder_id is None or raw_tid is None:
+            raise ValueError("folder_id and topic_id are required for delete_topic")
+
+        DeleteCls = _get_delete_forum_topic_cls()
+        peer = await _resolve_peer(client, int(folder_id))
+        await client(DeleteCls(channel=peer, top_msg_id=int(raw_tid)))
+        invalidate_topics_cache(int(folder_id))
+        return {
+            "status": "success",
+            "chat_id": int(folder_id),
+            "topic_id": int(raw_tid),
         }
 
     if cmd in ("list_chats", "list-chats"):
@@ -759,6 +775,10 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
         "set-folder-parent",
         "reparent_folder",
         "reparent-folder",
+        "create_topic",
+        "create-topic",
+        "delete_topic",
+        "delete-topic",
     }
     BACKGROUND = {
         "scan_folders",

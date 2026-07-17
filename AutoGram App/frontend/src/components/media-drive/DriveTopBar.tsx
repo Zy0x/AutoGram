@@ -22,7 +22,10 @@ import {
   ChevronRight,
   Pin,
   PinOff,
+  Copy,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   DriveGridZoom,
   DriveMediaFilter,
@@ -95,6 +98,7 @@ type Props = {
   topicFilter?: DriveTopicFilter;
   onTopicFilter?: (t: DriveTopicFilter) => void;
   onAddTopic?: () => void;
+  onDeleteTopic?: (topicId: number, title: string) => void;
   topicsLoading?: boolean;
   /** Open Drive power tools (dup/rename/copy/filter/space) */
   onOpenTools?: () => void;
@@ -155,6 +159,7 @@ export function DriveTopBar({
   topicFilter = null,
   onTopicFilter,
   onAddTopic,
+  onDeleteTopic,
   topicsLoading,
   onOpenTools,
   toolsActive,
@@ -170,6 +175,25 @@ export function DriveTopBar({
 }: Props) {
   // Always show filter bar for forum groups (at least "Semua media")
   const showTopics = !!isForum;
+
+  const [topicContextMenu, setTopicContextMenu] = useState<{
+    x: number;
+    y: number;
+    topicId: number;
+    title: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!topicContextMenu) return;
+    const handleClose = () => setTopicContextMenu(null);
+    window.addEventListener('click', handleClose);
+    window.addEventListener('contextmenu', handleClose);
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('contextmenu', handleClose);
+    };
+  }, [topicContextMenu]);
+
   const zoomLevel = DRIVE_GRID_ZOOM_LEVELS[gridZoom] || DRIVE_GRID_ZOOM_LEVELS[2];
   const canZoomOut = gridZoom > MIN_GRID_ZOOM;
   const canZoomIn = gridZoom < MAX_GRID_ZOOM;
@@ -561,6 +585,15 @@ export function DriveTopBar({
                 type="button"
                 className={`td-topic-pill ${topicFilter === t.id ? 'active' : ''} ${t.closed ? 'is-closed' : ''}`}
                 onClick={() => onTopicFilter?.(t.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setTopicContextMenu({
+                    x: e.clientX,
+                    y: e.clientY,
+                    topicId: t.id,
+                    title: t.title,
+                  });
+                }}
                 title={t.closed ? `${t.title} (ditutup)` : t.title}
               >
                 {t.title}
@@ -679,7 +712,72 @@ export function DriveTopBar({
               ))}
             </div>
           </div>
-        </div>
+      </div>
+      {topicContextMenu &&
+        createPortal(
+          <div
+            className="td-confirm-overlay context-menu-overlay"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 99999,
+              background: 'transparent',
+            }}
+            onClick={() => setTopicContextMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setTopicContextMenu(null);
+            }}
+          >
+            <div
+              className="drive-context-menu"
+              style={{
+                position: 'fixed',
+                top: topicContextMenu.y,
+                left: topicContextMenu.x,
+                zIndex: 100000,
+                background: 'var(--td-bg-card, #1e293b)',
+                border: '1px solid var(--td-border, #334155)',
+                borderRadius: '8px',
+                padding: '4px',
+                minWidth: '160px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.5)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setTopicContextMenu(null);
+                  void navigator.clipboard.writeText(String(topicContextMenu.topicId));
+                }}
+              >
+                <Copy size={14} />
+                <span>Salin ID Topik</span>
+              </button>
+              {onDeleteTopic && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    const { topicId, title } = topicContextMenu;
+                    setTopicContextMenu(null);
+                    onDeleteTopic(topicId, title);
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Hapus Topik</span>
+                </button>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     </header>
   );

@@ -5564,6 +5564,87 @@ def _get_create_forum_topic_cls():
     return _CreateForumTopicRequest
 
 
+def _make_delete_forum_topic_cls():
+    """
+    Dynamically build TLRequest subclass for channels.deleteTopicHistory
+    (constructor 0x34435f2d). Needed because Telethon 1.44 does not include
+    DeleteTopicHistoryRequest.
+
+    TL schema:
+        channels.deleteTopicHistory#34435f2d channel:InputChannel top_msg_id:int
+            = messages.AffectedHistory
+    """
+    import struct
+    from telethon.tl.tlobject import TLRequest
+
+    class DeleteTopicHistoryRequest(TLRequest):
+        CONSTRUCTOR_ID = 0x34435F2D
+        SUBCLASS_OF_ID = 0xB45C69D1  # AffectedHistory
+
+        def __init__(self, channel, top_msg_id: int):
+            self.channel = channel
+            self.top_msg_id = int(top_msg_id)
+
+        def _bytes(self) -> bytes:
+            return (
+                struct.pack("<I", self.CONSTRUCTOR_ID)
+                + self.channel._bytes()
+                + struct.pack("<i", self.top_msg_id)
+            )
+
+        @classmethod
+        def from_reader(cls, reader):
+            raise NotImplementedError("Read path not needed")
+
+    return DeleteTopicHistoryRequest
+
+
+_DeleteTopicHistoryRequest = None
+
+
+def _get_delete_forum_topic_cls():
+    global _DeleteTopicHistoryRequest
+    if _DeleteTopicHistoryRequest is not None:
+        return _DeleteTopicHistoryRequest
+    try:
+        from telethon.tl.functions.channels import DeleteTopicHistoryRequest
+        _DeleteTopicHistoryRequest = DeleteTopicHistoryRequest
+    except ImportError:
+        _DeleteTopicHistoryRequest = _make_delete_forum_topic_cls()
+    return _DeleteTopicHistoryRequest
+
+
+async def delete_topic(
+    *,
+    session_name: str,
+    api_id: int,
+    api_hash: str,
+    chat_id: int,
+    topic_id: int,
+) -> Dict[str, Any]:
+    """Delete a forum topic (and its message history) from the group."""
+    setup_emitter(None, None)
+    client = await _connect(session_name, api_id, api_hash)
+    try:
+        peer = await _resolve_peer(client, chat_id)
+        DeleteCls = _get_delete_forum_topic_cls()
+        # top_msg_id is the thread root message ID, which equals the topic_id
+        await client(DeleteCls(channel=peer, top_msg_id=int(topic_id)))
+        invalidate_topics_cache(chat_id)
+        out = {
+            "status": "success",
+            "chat_id": int(chat_id),
+            "topic_id": int(topic_id),
+        }
+        _json_out(out)
+        return out
+    except Exception as e:
+        out = {"status": "error", "error": str(e)}
+        _json_out(out)
+        return out
+    finally:
+        await client.disconnect()
+
 
 async def create_topic(
     *,
@@ -7842,6 +7923,19 @@ async def run_drive_action(
                 api_hash=api_hash,
                 chat_id=int(folder_id),
                 title=str(title),
+            )
+        if act in ("delete-topic", "drive-delete-topic"):
+            raw_tid = opts.get("topic_id") or opts.get("topicId") or message_id
+            if folder_id is None or raw_tid is None:
+                out = {"status": "error", "error": "folder_id and topic_id are required"}
+                _json_out(out)
+                return out
+            return await delete_topic(
+                session_name=session_name,
+                api_id=api_id,
+                api_hash=api_hash,
+                chat_id=int(folder_id),
+                topic_id=int(raw_tid),
             )
         if act in ("list-topics", "drive-list-topics"):
             if folder_id is None:
