@@ -3024,40 +3024,38 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       return;
     }
     setError(null);
-    
-    // Import and show native confirmation dialog
-    void (async () => {
-      try {
-        const { ask } = await import('@tauri-apps/plugin-dialog');
-        const yes = await ask(
-          `Apakah Anda yakin ingin menghapus topik "${topicTitle}"?\n\nTindakan ini juga akan menghapus seluruh riwayat pesan dan media di dalam topik tersebut secara permanen.`,
-          { title: 'Hapus Topik', kind: 'warning', okLabel: 'Hapus Permanen', cancelLabel: 'Batal' }
-        );
-        if (!yes) return;
-        
-        setStatusText(`Menghapus topik "${topicTitle}"…`);
-        try {
-          await ensureDriveSession(creds);
-        } catch {
-          /* ignore */
-        }
-        await driveDeleteTopic(creds, activePeerId, topicId);
-        
-        // Force reload topics list
-        await loadTopicsForPeer(activePeerId, null, true);
-        
-        // If deleted topic was selected, clear the filter and refresh files
-        if (topicFilterRef.current === topicId || topicFilter === topicId) {
-          setTopicFilter(null);
-          topicFilterRef.current = null;
-          refreshFiles();
-        }
-        setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
-      } catch (e: any) {
-        setError(e?.message || 'Gagal menghapus topik');
-        setStatusText('Siap');
-      }
-    })();
+    setConfirmDlg({
+      kind: 'delete',
+      entity: 'topic',
+      names: [topicTitle],
+      onConfirm: () => {
+        void (async () => {
+          try {
+            setStatusText(`Menghapus topik "${topicTitle}"…`);
+            try {
+              await ensureDriveSession(creds);
+            } catch {
+              /* ignore */
+            }
+            await driveDeleteTopic(creds, activePeerId, topicId);
+            
+            // Force reload topics list
+            await loadTopicsForPeer(activePeerId, null, true);
+            
+            // If deleted topic was selected, clear the filter and refresh files
+            if (topicFilterRef.current === topicId || topicFilter === topicId) {
+              setTopicFilter(null);
+              topicFilterRef.current = null;
+              refreshFiles();
+            }
+            setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
+          } catch (e: any) {
+            setError(e?.message || 'Gagal menghapus topik');
+            setStatusText('Siap');
+          }
+        })();
+      },
+    });
   };
 
   const applyFolderListPatch = useCallback((folder: DriveFolder | null | undefined) => {
