@@ -186,11 +186,18 @@ export function DriveTopBar({
   useEffect(() => {
     if (!topicContextMenu) return;
     const handleClose = () => setTopicContextMenu(null);
-    window.addEventListener('click', handleClose);
-    window.addEventListener('contextmenu', handleClose);
+    let removeListeners: (() => void) | undefined;
+    const t = window.setTimeout(() => {
+      window.addEventListener('click', handleClose);
+      window.addEventListener('contextmenu', handleClose);
+      removeListeners = () => {
+        window.removeEventListener('click', handleClose);
+        window.removeEventListener('contextmenu', handleClose);
+      };
+    }, 50);
     return () => {
-      window.removeEventListener('click', handleClose);
-      window.removeEventListener('contextmenu', handleClose);
+      window.clearTimeout(t);
+      removeListeners?.();
     };
   }, [topicContextMenu]);
 
@@ -587,6 +594,7 @@ export function DriveTopBar({
                 onClick={() => onTopicFilter?.(t.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   setTopicContextMenu({
                     x: e.clientX,
                     y: e.clientY,
