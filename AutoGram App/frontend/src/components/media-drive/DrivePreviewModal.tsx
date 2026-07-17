@@ -414,6 +414,29 @@ export function DrivePreviewModal({
   /** Live drag flag for cursor (grabbing) without waiting for zoom class */
   const [isDragging, setIsDragging] = useState(false);
 
+  const [srcOverride, setSrcOverride] = useState<string | null>(null);
+  const [prevFileId, setPrevFileId] = useState(file.id);
+
+  if (file.id !== prevFileId) {
+    setPrevFileId(file.id);
+    setDataUrl(null);
+    setPath(null);
+    setStreamUrl(null);
+    setStreamId(null);
+    setMime(null);
+    setPoster(null);
+    setError(null);
+    setSrcOverride(null);
+    setLoading(true);
+    setHasVideoFrame(false);
+    setTextBody(null);
+    setPreviewKind(null);
+    setBufferPct(0);
+    setStreamDone(false);
+    setPlayerHint(null);
+    setSeekWarn(null);
+  }
+
   const durationLabel = formatDriveDuration(driveFileDurationSeconds(file));
   const kindLabel = formatDriveKindLabel(file);
   const displayName = driveFileDisplayName(file);
@@ -1075,7 +1098,7 @@ export function DrivePreviewModal({
     return list;
   }, [mediaSrc, streamUrl, dataUrl, path, isVideo, poster, gridThumb]);
 
-  const [srcOverride, setSrcOverride] = useState<string | null>(null);
+
   const activeSrc = srcOverride || mediaSrc;
 
   // Reset override when file/sources change
@@ -2230,7 +2253,7 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {!loading && error && !mediaSrc && !textBody && !pdfSrc && (
+          {!loading && error && (
             <div className="drive-empty drive-error">
               <p>{error}</p>
               <button
@@ -2305,7 +2328,7 @@ export function DrivePreviewModal({
               }
             >
               <img
-                key={activeSrc || file.id}
+                key={`${file.id}-${srcOverride || 'primary'}`}
                 src={activeSrc!}
                 alt={displayName}
                 className="drive-preview-media drive-preview-img"
@@ -2376,7 +2399,7 @@ export function DrivePreviewModal({
               )}
               <video
                 ref={videoRef}
-                key={`${activeSrc || file.id}:${quality}`}
+                key={`${file.id}-${srcOverride || 'primary'}:${quality}`}
                 src={activeSrc!}
                 poster={poster || gridThumb || undefined}
                 controls
