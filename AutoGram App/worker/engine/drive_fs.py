@@ -4417,8 +4417,8 @@ async def _fetch_thumb_data_url_impl(
         else:
             raw_cap = min(int(prof["video_raw_cap"]), 900 * 1024)
         # Accept medium TG layers for lean Jelas (encode path makes them look clear)
-        min_accept_bytes = 6 * 1024 if qname == "sharp" else 8 * 1024
-        min_accept_edge = 200 if qname == "sharp" else 0
+        min_accept_bytes = 1024
+        min_accept_edge = 0
 
         raw: Optional[bytes] = None
         sizes = _collect_telegram_thumbs(msg)
@@ -4479,7 +4479,7 @@ async def _fetch_thumb_data_url_impl(
                     if _accept_thumb_payload(data):
                         raw = data
                         break
-                    if data and 4 * 1024 <= len(data) <= raw_cap:
+                    if data and 16 <= len(data) <= raw_cap:
                         if best_soft is None or len(data) > len(best_soft):
                             best_soft = data
                 # Lean Jelas: use best TG layer even if slightly soft (encode path)
