@@ -1,0 +1,32 @@
+{
+  "name": "drop-index",
+  "description": "Drop an index for the provided database and collection.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "indexName": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "classic",
+          "search"
+        ]
+      }
+    },
+    "required": [
+      "database",
+      "collection",
+      "indexName",
+      "type"
+    ]
+  }
+}

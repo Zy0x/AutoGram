@@ -90,6 +90,29 @@ def _adaptive_prepare_slots(opts: "StudioOptions", item_count: int) -> int:
     return 2 if ram >= 4 * 1024**3 and vram >= int(1.5 * 1024**3) else 1
 
 
+def _patch_session_wal(session_file: str) -> None:
+    """
+    Apply WAL journal mode and high busy_timeout to Telethon's session SQLite file
+    so concurrent access from drive_serve + media_studio doesn't cause
+    'database is locked' errors. Safe to call on non-existent file (no-op).
+    """
+    db_path = session_file + ".session" if not session_file.endswith(".session") else session_file
+    if not os.path.isfile(db_path):
+        return
+    try:
+        import sqlite3 as _sqlite3
+        conn = _sqlite3.connect(db_path, timeout=5.0)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA busy_timeout=15000;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 async def _wait_if_transfer_paused(event_name: str = "StudioPaused") -> None:
     """Soft-pause between files: UI writes worker/temp/drive_pause.txt."""
     from engine.path_policy import is_transfer_paused
@@ -689,6 +712,8 @@ async def _send_one(
     msg = None
     try:
         async def _send_with_retry(send_func, *args, **kwargs):
+            import sqlite3 as _sqlite3
+            db_lock_attempts = 0
             while True:
                 try:
                     return await send_func(*args, **kwargs)
@@ -701,6 +726,12 @@ async def _send_one(
                         await asyncio.sleep(min(5, remaining))
                     emit_event("FloodWaitResolved", status="RESUMING", index=item.index)
                     kwargs.pop("spoiler", None)
+                except _sqlite3.OperationalError as e:
+                    if "locked" in str(e).lower() and db_lock_attempts < 8:
+                        db_lock_attempts += 1
+                        await asyncio.sleep(0.5 + db_lock_attempts * 0.4)
+                        continue
+                    raise
 
         if uploaded_handle is not None:
             try:
@@ -856,6 +887,8 @@ async def _send_album(
         send_kwargs["spoiler"] = True
 
     try:
+        import sqlite3 as _sqlite3
+        _album_db_lock_attempts = 0
         while True:
             try:
                 msg = await client.send_file(
@@ -881,6 +914,12 @@ async def _send_album(
                     await asyncio.sleep(min(5, remaining))
                 emit_event("FloodWaitResolved", status="RESUMING")
                 send_kwargs.pop("spoiler", None)
+            except _sqlite3.OperationalError as e:
+                if "locked" in str(e).lower() and _album_db_lock_attempts < 8:
+                    _album_db_lock_attempts += 1
+                    await asyncio.sleep(0.5 + _album_db_lock_attempts * 0.4)
+                    continue
+                raise
 
         ids: List[Optional[int]] = []
         if isinstance(msg, list):
@@ -1532,6 +1571,9 @@ async def run_media_studio(
 
     session_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sessions")
     session_file = os.path.join(session_dir, session_name)
+    # Enable WAL mode + high busy_timeout on Telethon's session SQLite so that
+    # concurrent drive-serve reads don't cause "database is locked" during upload.
+    _patch_session_wal(session_file)
     # P0: retry connect on SQLite session lock (drive-serve handoff race)
     client = TelegramClient(session_file, int(api_id), str(api_hash))
     last_conn: Optional[Exception] = None
@@ -1559,6 +1601,7 @@ async def run_media_studio(
                     error=str(e),
                 )
                 await asyncio.sleep(0.35 + attempt * 0.3)
+                _patch_session_wal(session_file)
                 client = TelegramClient(session_file, int(api_id), str(api_hash))
                 continue
             raise

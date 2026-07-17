@@ -1,0 +1,16 @@
+{
+  "name": "atlas-local-connect-deployment",
+  "description": "Connect to a MongoDB Atlas Local deployment",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "deploymentName": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deploymentName"
+    ]
+  }
+}

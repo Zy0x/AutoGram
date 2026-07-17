@@ -1,0 +1,144 @@
+{
+  "ok": true,
+  "sameBrightness": true,
+  "idle": {
+    "label": "idle",
+    "mediaDnd": false,
+    "isMediaDndShell": false,
+    "sidebar": {
+      "bg": "rgb(23, 33, 43)",
+      "opacity": "1",
+      "filter": "none",
+      "boxShadow": "rgba(0, 0, 0, 0.45) 8px 0px 32px 0px"
+    },
+    "mainOpacity": "1",
+    "rows": [
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "color(srgb 1 0.682353 0 / 0.18)",
+        "border": "0px none",
+        "cls": "td-folder-row active"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0px none",
+        "cls": "td-folder-row   is-drive-root"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0px none",
+        "cls": "td-folder-row   is-drive-root"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0px none",
+        "cls": "td-folder-row  is-nested is-drive-folder"
+      }
+    ],
+    "hasHint": false,
+    "cards": 6,
+    "connected": true
+  },
+  "forced": {
+    "label": "forced-dnd",
+    "mediaDnd": true,
+    "isMediaDndShell": true,
+    "sidebar": {
+      "bg": "rgb(23, 33, 43)",
+      "opacity": "1",
+      "filter": "none",
+      "boxShadow": "none"
+    },
+    "mainOpacity": "1",
+    "rows": [
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "color(srgb 1 0.682353 0 / 0.18)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row active dnd-ready"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row is-drive-root dnd-ready"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row is-drive-root dnd-ready"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row is-nested is-drive-folder dnd-ready"
+      }
+    ],
+    "hasHint": false,
+    "cards": 6,
+    "connected": true
+  },
+  "real": {
+    "label": "real-drag",
+    "mediaDnd": true,
+    "isMediaDndShell": true,
+    "sidebar": {
+      "bg": "rgb(23, 33, 43)",
+      "opacity": "1",
+      "filter": "none",
+      "boxShadow": "none"
+    },
+    "mainOpacity": "1",
+    "rows": [
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row active dnd-ready dnd-self"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row   is-drive-root dnd-ready"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "rgba(0, 0, 0, 0)",
+        "border": "0.8px solid",
+        "cls": "td-folder-row   is-drive-root dnd-ready"
+      },
+      {
+        "opacity": "1",
+        "filter": "none",
+        "bg": "color(srgb 0.129725 0.235922 0.391529)",
+        "border": "1.6px solid",
+        "cls": "td-folder-row  is-nested is-drive-folder is-drop-over dnd-ready"
+      }
+    ],
+    "hasHint": true,
+    "cards": 6,
+    "connected": true
+  },
+  "shots": {
+    "idle": "reports/screenshots/remote-check-idle.png",
+    "forced": "reports/screenshots/remote-check-dnd-forced.png",
+    "live": "reports/screenshots/remote-check-dnd-live.png"
+  }
+}

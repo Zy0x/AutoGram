@@ -1,0 +1,54 @@
+{
+  "name": "list_network_requests",
+  "description": "List all requests for the currently selected page since the last navigation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pageSize": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "description": "Maximum number of requests to return. When omitted, returns all requests."
+      },
+      "pageIdx": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Page number to return (0-based). When omitted, returns the first page."
+      },
+      "resourceTypes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "document",
+            "stylesheet",
+            "image",
+            "media",
+            "font",
+            "script",
+            "texttrack",
+            "xhr",
+            "fetch",
+            "prefetch",
+            "eventsource",
+            "websocket",
+            "manifest",
+            "signedexchange",
+            "ping",
+            "cspviolationreport",
+            "preflight",
+            "fedcm",
+            "other"
+          ]
+        },
+        "description": "Filter requests to only return requests of the specified resource types. When omitted or empty, returns all requests."
+      },
+      "includePreservedRequests": {
+        "type": "boolean",
+        "default": false,
+        "description": "Set to true to return the preserved requests over the last 3 navigations."
+      }
+    },
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

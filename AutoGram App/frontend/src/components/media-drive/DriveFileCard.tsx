@@ -12,7 +12,7 @@ import {
   type DriveFile,
 } from '../../lib/driveTypes';
 import { usePointerDragPrime } from '../../lib/pointerDragPrime';
-import { getCachedThumb, requestThumb } from '../../lib/thumbBatcher';
+import { getCachedThumb, forceRetryThumb, requestThumb } from '../../lib/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
@@ -117,18 +117,34 @@ function DriveFileCardInner({
       if (hit === null) {
         const t = window.setTimeout(() => {
           const again = getCachedThumb(folderId, file.id);
-          if (again === undefined) {
+          if (again === undefined || again === null) {
+            // Bypass softFailAt cache — force a fresh network request
             setThumbFailed(false);
             setThumbLoading(true);
-            void requestThumb(creds, folderId, file.id, {
-              priority: 'visible',
-              signal: controller.signal,
-            }).then((url) => {
+            forceRetryThumb(creds, folderId, file.id);
+            // forceRetryThumb enqueues a fresh request; result arrives via
+            // the next render that finds the key in memCache / resolves the promise.
+            // Schedule a follow-up read so the component updates once cache is warm.
+            window.setTimeout(() => {
               if (controller.signal.aborted) return;
-              setThumb(url);
-              setThumbFailed(!url);
-              setThumbLoading(false);
-            });
+              const warm = getCachedThumb(folderId, file.id);
+              if (warm !== undefined) {
+                setThumb(warm);
+                setThumbFailed(!warm);
+                setThumbLoading(false);
+              } else {
+                // Still not ready — do a full requestThumb to get the promise
+                void requestThumb(creds, folderId, file.id, {
+                  priority: 'visible',
+                  signal: controller.signal,
+                }).then((url) => {
+                  if (controller.signal.aborted) return;
+                  setThumb(url);
+                  setThumbFailed(!url);
+                  setThumbLoading(false);
+                });
+              }
+            }, 2000);
           }
         }, 4500);
         return () => {

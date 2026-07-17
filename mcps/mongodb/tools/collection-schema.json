@@ -1,0 +1,28 @@
+{
+  "name": "collection-schema",
+  "description": "Describe the schema for a collection",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "sampleSize": {
+        "default": 50,
+        "type": "number"
+      },
+      "responseBytesLimit": {
+        "default": 1048576,
+        "type": "number"
+      }
+    },
+    "required": [
+      "database",
+      "collection"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "lighthouse_audit",
+  "description": "Get Lighthouse score and reports for accessibility, SEO, best practices, and agentic browsing. This excludes performance. For performance audits, run performance_start_trace",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": [
+          "navigation",
+          "snapshot"
+        ],
+        "default": "navigation",
+        "description": "\"navigation\" reloads & audits. \"snapshot\" analyzes current state."
+      },
+      "device": {
+        "type": "string",
+        "enum": [
+          "desktop",
+          "mobile"
+        ],
+        "default": "desktop",
+        "description": "Device to emulate."
+      },
+      "outputDirPath": {
+        "type": "string",
+        "description": "Directory for reports. If omitted, uses temporary files."
+      }
+    },
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

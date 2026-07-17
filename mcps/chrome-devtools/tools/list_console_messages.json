@@ -1,0 +1,59 @@
+{
+  "name": "list_console_messages",
+  "description": "List all console messages for the currently selected page since the last navigation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pageSize": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "description": "Maximum number of messages to return. When omitted, returns all messages."
+      },
+      "pageIdx": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Page number to return (0-based). When omitted, returns the first page."
+      },
+      "types": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "log",
+            "debug",
+            "info",
+            "error",
+            "warn",
+            "dir",
+            "dirxml",
+            "table",
+            "trace",
+            "clear",
+            "startGroup",
+            "startGroupCollapsed",
+            "endGroup",
+            "assert",
+            "profile",
+            "profileEnd",
+            "count",
+            "timeEnd",
+            "verbose",
+            "issue"
+          ]
+        },
+        "description": "Filter messages to only return messages of the specified resource types. When omitted or empty, returns all messages."
+      },
+      "includePreservedMessages": {
+        "type": "boolean",
+        "default": false,
+        "description": "Set to true to return the preserved messages over the last 3 navigations."
+      },
+      "serviceWorkerId": {
+        "type": "string",
+        "description": "Filter messages to only return messages of the specified service worker."
+      }
+    },
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

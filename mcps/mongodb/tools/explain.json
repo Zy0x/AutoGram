@@ -1,0 +1,273 @@
+{
+  "name": "explain",
+  "description": "Returns statistics describing the execution of the winning plan chosen by the query optimizer for the evaluated method",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "method": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "const": "aggregate"
+                },
+                "arguments": {
+                  "type": "object",
+                  "properties": {
+                    "pipeline": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "$vectorSearch": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "exact": {
+                                        "default": false,
+                                        "type": "boolean"
+                                      },
+                                      "index": {
+                                        "type": "string"
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      },
+                                      "numCandidates": {
+                                        "type": "number"
+                                      },
+                                      "limit": {
+                                        "default": 10,
+                                        "type": "number"
+                                      },
+                                      "filter": {
+                                        "type": "object",
+                                        "properties": {},
+                                        "additionalProperties": {}
+                                      },
+                                      "queryVector": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "number"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "index",
+                                      "path",
+                                      "queryVector"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "exact": {
+                                        "default": false,
+                                        "type": "boolean"
+                                      },
+                                      "index": {
+                                        "type": "string"
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      },
+                                      "numCandidates": {
+                                        "type": "number"
+                                      },
+                                      "limit": {
+                                        "default": 10,
+                                        "type": "number"
+                                      },
+                                      "filter": {
+                                        "type": "object",
+                                        "properties": {},
+                                        "additionalProperties": {}
+                                      },
+                                      "query": {
+                                        "type": "object",
+                                        "properties": {
+                                          "text": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "text"
+                                        ]
+                                      },
+                                      "model": {
+                                        "type": "string",
+                                        "enum": [
+                                          "voyage-4",
+                                          "voyage-4-large",
+                                          "voyage-4-lite",
+                                          "voyage-code-3"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "index",
+                                      "path",
+                                      "query"
+                                    ]
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "$vectorSearch"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {},
+                            "additionalProperties": {}
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "pipeline"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "arguments"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "const": "find"
+                },
+                "arguments": {
+                  "type": "object",
+                  "properties": {
+                    "filter": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    },
+                    "projection": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    },
+                    "limit": {
+                      "default": 10,
+                      "type": "number"
+                    },
+                    "sort": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "const": 1
+                          },
+                          {
+                            "type": "number",
+                            "const": -1
+                          },
+                          {
+                            "type": "string",
+                            "const": "asc"
+                          },
+                          {
+                            "type": "string",
+                            "const": "desc"
+                          },
+                          {
+                            "type": "string",
+                            "const": "ascending"
+                          },
+                          {
+                            "type": "string",
+                            "const": "descending"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "$meta": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "$meta"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "arguments"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "const": "count"
+                },
+                "arguments": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "arguments"
+              ]
+            }
+          ]
+        }
+      },
+      "verbosity": {
+        "default": "queryPlanner",
+        "type": "string",
+        "enum": [
+          "queryPlanner",
+          "queryPlannerExtended",
+          "executionStats",
+          "allPlansExecution"
+        ]
+      }
+    },
+    "required": [
+      "database",
+      "collection",
+      "method"
+    ]
+  }
+}

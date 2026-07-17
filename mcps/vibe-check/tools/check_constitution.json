@@ -1,0 +1,19 @@
+{
+  "name": "check_constitution",
+  "description": "Return the current constitution rules for this session",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sessionId": {
+        "type": "string",
+        "examples": [
+          "session-123"
+        ]
+      }
+    },
+    "required": [
+      "sessionId"
+    ],
+    "additionalProperties": false
+  }
+}

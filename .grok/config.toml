@@ -1,0 +1,55 @@
+# AutoGram project-scoped Grok config (committed with the repo).
+# MCP secrets should use ${ENV_VAR} — do not hardcode tokens here.
+
+[mcp]
+# Larger tool results for browser/devtools dumps
+max_output_bytes = 40000
+
+[features]
+lsp_tools = true
+
+# --- Recommended MCP pack (from Antigravity Intelligent Agent Pack) ---
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+enabled = true
+
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp"
+enabled = true
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+enabled = true
+startup_timeout_sec = 120
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+enabled = true
+startup_timeout_sec = 120
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+enabled = true
+startup_timeout_sec = 120
+
+[mcp_servers.memory]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory"]
+enabled = true
+startup_timeout_sec = 120
+
+[mcp_servers.vibe-check]
+command = "npx"
+args = ["-y", "@pv-bhat/vibe-check-mcp", "start", "--stdio"]
+enabled = true
+startup_timeout_sec = 120
+
+[mcp_servers.filesystem-project]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "F:/AutoGram"]
+enabled = true
+startup_timeout_sec = 120

@@ -1,0 +1,266 @@
+{
+  "name": "create-index",
+  "description": "Create an index for a collection",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "definition": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "classic"
+                },
+                "keys": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 1
+                      },
+                      {
+                        "type": "number",
+                        "const": -1
+                      },
+                      {
+                        "type": "string",
+                        "const": "2d"
+                      },
+                      {
+                        "type": "string",
+                        "const": "2dsphere"
+                      },
+                      {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      {
+                        "type": "string",
+                        "const": "geoHaystack"
+                      },
+                      {
+                        "type": "string",
+                        "const": "hashed"
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "keys"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "vectorSearch"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "filter"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "path"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "vector"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "numDimensions": {
+                            "default": 1024,
+                            "type": "number"
+                          },
+                          "similarity": {
+                            "default": "euclidean",
+                            "type": "string",
+                            "enum": [
+                              "cosine",
+                              "euclidean",
+                              "dotProduct"
+                            ]
+                          },
+                          "quantization": {
+                            "default": "none",
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "scalar",
+                              "binary"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "path"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "autoEmbed"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "model": {
+                            "type": "string",
+                            "enum": [
+                              "voyage-4",
+                              "voyage-4-large",
+                              "voyage-4-lite",
+                              "voyage-code-3"
+                            ]
+                          },
+                          "modality": {
+                            "type": "string",
+                            "enum": [
+                              "text"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "path",
+                          "model",
+                          "modality"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "fields"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "search"
+                },
+                "analyzer": {
+                  "default": "lucene.standard",
+                  "type": "string"
+                },
+                "mappings": {
+                  "type": "object",
+                  "properties": {
+                    "dynamic": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fields": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "autocomplete",
+                              "boolean",
+                              "date",
+                              "document",
+                              "embeddedDocuments",
+                              "geo",
+                              "number",
+                              "objectId",
+                              "string",
+                              "token",
+                              "uuid"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "additionalProperties": {}
+                      }
+                    }
+                  }
+                },
+                "numPartitions": {
+                  "default": "1",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "const": "1"
+                    },
+                    {
+                      "type": "string",
+                      "const": "2"
+                    },
+                    {
+                      "type": "string",
+                      "const": "4"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "mappings"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "required": [
+      "database",
+      "collection",
+      "definition"
+    ]
+  }
+}

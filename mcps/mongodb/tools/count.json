@@ -1,0 +1,25 @@
+{
+  "name": "count",
+  "description": "Gets the number of documents in a MongoDB collection using db.collection.count() and query as an optional filter parameter",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "query": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {}
+      }
+    },
+    "required": [
+      "database",
+      "collection"
+    ]
+  }
+}

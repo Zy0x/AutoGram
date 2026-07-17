@@ -1,0 +1,337 @@
+{
+  "generatedAt": "2026-07-14T18:36:30.362Z",
+  "total": 30,
+  "passed": 30,
+  "failed": 0,
+  "successRate": 100,
+  "fundamentalScore": 100,
+  "healthScore": 100,
+  "logFile": "F:\\AutoGram\\remote-automation-suite\\reports\\logs\\2026-07-15_02-36-19_execution.log",
+  "results": [
+    {
+      "id": "health_cdp",
+      "suite": "fundamental",
+      "pass": true,
+      "detail": {
+        "score": 100,
+        "results": [
+          {
+            "id": "health_cdp",
+            "pass": true,
+            "detail": "CDP reachable"
+          },
+          {
+            "id": "health_vite",
+            "pass": true,
+            "detail": "Vite reachable"
+          },
+          {
+            "id": "health_runner_mem",
+            "pass": true,
+            "detail": {
+              "heapMB": 9
+            }
+          }
+        ]
+      },
+      "t": "2026-07-14T18:36:19.911Z"
+    },
+    {
+      "id": "health_vite",
+      "suite": "fundamental",
+      "pass": true,
+      "detail": {
+        "score": 100,
+        "results": [
+          {
+            "id": "health_cdp",
+            "pass": true,
+            "detail": "CDP reachable"
+          },
+          {
+            "id": "health_vite",
+            "pass": true,
+            "detail": "Vite reachable"
+          },
+          {
+            "id": "health_runner_mem",
+            "pass": true,
+            "detail": {
+              "heapMB": 9
+            }
+          }
+        ]
+      },
+      "t": "2026-07-14T18:36:19.912Z"
+    },
+    {
+      "id": "connect_page",
+      "suite": "fundamental",
+      "pass": true,
+      "detail": {
+        "url": "http://localhost:1420/"
+      },
+      "t": "2026-07-14T18:36:20.331Z"
+    },
+    {
+      "id": "heartbeat",
+      "suite": "fundamental",
+      "pass": true,
+      "detail": {
+        "note": "interval armed"
+      },
+      "t": "2026-07-14T18:36:20.332Z"
+    },
+    {
+      "id": "shell_present",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 1
+      },
+      "t": "2026-07-14T18:36:21.067Z"
+    },
+    {
+      "id": "session_select",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "selects": 1
+      },
+      "t": "2026-07-14T18:36:21.073Z"
+    },
+    {
+      "id": "toolbar_compact",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "bar": 1,
+        "tools": 2
+      },
+      "t": "2026-07-14T18:36:21.077Z"
+    },
+    {
+      "id": "location_search",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 1
+      },
+      "t": "2026-07-14T18:36:21.080Z"
+    },
+    {
+      "id": "section_toggle",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "before": "true",
+        "mid": "false",
+        "after": "true",
+        "c": 2
+      },
+      "t": "2026-07-14T18:36:21.828Z"
+    },
+    {
+      "id": "file_cards_or_empty_state",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "cards": 6
+      },
+      "t": "2026-07-14T18:36:21.833Z"
+    },
+    {
+      "id": "media_filter_pills",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 4
+      },
+      "t": "2026-07-14T18:36:21.835Z"
+    },
+    {
+      "id": "file_search_topbar",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 1,
+        "ph": "Cari file di lokasi ini… (Ctrl+F)"
+      },
+      "t": "2026-07-14T18:36:21.839Z"
+    },
+    {
+      "id": "ctrl_k_focus_location",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "focused": true
+      },
+      "t": "2026-07-14T18:36:21.984Z"
+    },
+    {
+      "id": "ctrl_f_focus_file_search",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "focused": true
+      },
+      "t": "2026-07-14T18:36:22.155Z"
+    },
+    {
+      "id": "saved_messages_row",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 1
+      },
+      "t": "2026-07-14T18:36:22.159Z"
+    },
+    {
+      "id": "shortcuts_hint",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "n": 1,
+        "t": "Ctrl+K lokasi · Ctrl+F file · Ctrl+A pilih · Esc"
+      },
+      "t": "2026-07-14T18:36:22.163Z"
+    },
+    {
+      "id": "recents_or_current",
+      "suite": "media_studio",
+      "pass": true,
+      "detail": {
+        "rec": 1,
+        "saved": 1
+      },
+      "t": "2026-07-14T18:36:22.167Z"
+    },
+    {
+      "id": "dnd_prime_ghost",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "note": "drag completed without throw"
+      },
+      "t": "2026-07-14T18:36:25.850Z"
+    },
+    {
+      "id": "dnd_hover_target",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "hover": "drive:-1004468191168",
+        "dest": "drive:-1004468191168",
+        "last": "drive:-1004468191168"
+      },
+      "t": "2026-07-14T18:36:25.852Z"
+    },
+    {
+      "id": "dnd_confirm_dialog",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "mid": {
+          "confirm": true,
+          "text": "Kirim media ke chat?File akan dikirim → #Gudang - Donghua 3D.SD NEGERI BELITUNG SELATAN 7.pdf Pindahhapus sumber Salinsu",
+          "lastKey": "drive:-1004468191168",
+          "kind": "move"
+        }
+      },
+      "t": "2026-07-14T18:36:25.853Z"
+    },
+    {
+      "id": "dnd_esc_dismiss",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "gone": true
+      },
+      "t": "2026-07-14T18:36:26.258Z"
+    },
+    {
+      "id": "dnd_no_dropkey_overlap",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "overlaps": []
+      },
+      "t": "2026-07-14T18:36:26.261Z"
+    },
+    {
+      "id": "dnd_same_location_no_dialog",
+      "suite": "dragdrop",
+      "pass": true,
+      "detail": {
+        "confirm": false,
+        "lastKey": null,
+        "body": ""
+      },
+      "t": "2026-07-14T18:36:28.958Z"
+    },
+    {
+      "id": "escape_clears_overlays",
+      "suite": "navigation",
+      "pass": true,
+      "detail": {
+        "open": false
+      },
+      "t": "2026-07-14T18:36:29.145Z"
+    },
+    {
+      "id": "search_filter_zero",
+      "suite": "navigation",
+      "pass": true,
+      "detail": {
+        "n": 0
+      },
+      "t": "2026-07-14T18:36:29.612Z"
+    },
+    {
+      "id": "search_filter_match",
+      "suite": "navigation",
+      "pass": true,
+      "detail": {
+        "token": "Saved",
+        "n": 1
+      },
+      "t": "2026-07-14T18:36:29.936Z"
+    },
+    {
+      "id": "xss_search_input_safe",
+      "suite": "security_edge",
+      "pass": true,
+      "detail": {
+        "executed": false
+      },
+      "t": "2026-07-14T18:36:30.218Z"
+    },
+    {
+      "id": "rapid_escape_stable",
+      "suite": "security_edge",
+      "pass": true,
+      "detail": {
+        "shell": 1
+      },
+      "t": "2026-07-14T18:36:30.355Z"
+    },
+    {
+      "id": "shell_query_budget",
+      "suite": "performance",
+      "pass": true,
+      "detail": {
+        "ms": 2
+      },
+      "t": "2026-07-14T18:36:30.359Z"
+    },
+    {
+      "id": "no_serious_page_errors",
+      "suite": "performance",
+      "pass": true,
+      "detail": {
+        "serious": []
+      },
+      "t": "2026-07-14T18:36:30.360Z"
+    }
+  ]
+}

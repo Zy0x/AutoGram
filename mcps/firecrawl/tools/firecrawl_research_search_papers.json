@@ -1,0 +1,41 @@
+{
+  "name": "firecrawl_research_search_papers",
+  "description": "Primary entry point for finding research papers by topic across AI/ML, computer science, math, physics, biomedical, life sciences, and clinical literature. Semantic (HyDE) search over indexed paper metadata and abstracts; returns ranked papers with paper id, title, authors, and abstract. The query should be a natural-language research topic or question. Run SEVERAL distinct framings of the question (sibling domains, rival methods, dataset or benchmark names, conditions, populations, interventions, or outcomes) rather than one query — recall improves markedly with diverse framings.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 1
+      },
+      "k": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500
+      },
+      "authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "from": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "query"
+    ],
+    "additionalProperties": false
+  }
+}

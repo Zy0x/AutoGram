@@ -1,0 +1,33 @@
+{
+  "name": "browser_console_messages",
+  "description": "Returns all console messages",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "level": {
+        "default": "info",
+        "description": "Level of the console messages to return. Each level includes the messages of more severe levels. Defaults to \"info\".",
+        "type": "string",
+        "enum": [
+          "error",
+          "warning",
+          "info",
+          "debug"
+        ]
+      },
+      "all": {
+        "description": "Return all console messages since the beginning of the session, not just since the last navigation. Defaults to false.",
+        "type": "boolean"
+      },
+      "filename": {
+        "description": "Filename to save the console messages to. If not provided, messages are returned as text.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "level"
+    ],
+    "additionalProperties": false
+  }
+}

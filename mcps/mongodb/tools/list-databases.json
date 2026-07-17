@@ -1,0 +1,9 @@
+{
+  "name": "list-databases",
+  "description": "List all databases for a MongoDB connection",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {}
+  }
+}

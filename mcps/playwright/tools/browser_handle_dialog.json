@@ -1,0 +1,22 @@
+{
+  "name": "browser_handle_dialog",
+  "description": "Handle a dialog",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "accept": {
+        "type": "boolean",
+        "description": "Whether to accept the dialog."
+      },
+      "promptText": {
+        "description": "The text of the prompt in case of a prompt dialog.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "accept"
+    ],
+    "additionalProperties": false
+  }
+}

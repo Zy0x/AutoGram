@@ -1,0 +1,16 @@
+{
+  "name": "db-stats",
+  "description": "Returns statistics that reflect the use state of a single database",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "database"
+    ]
+  }
+}

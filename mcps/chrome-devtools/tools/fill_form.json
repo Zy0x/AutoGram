@@ -1,0 +1,40 @@
+{
+  "name": "fill_form",
+  "description": "Fill out multiple form elements (inputs, selects, checkboxes, radios) at once. ALWAYS prefer this tool over multiple individual 'fill' or 'click' calls when interacting with forms. It is significantly faster, more reliable, and reduces turn count. Example: Fill username, password, and check \"Remember Me\" in one call.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "elements": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "uid": {
+              "type": "string",
+              "description": "The uid of the element to fill out"
+            },
+            "value": {
+              "type": "string",
+              "description": "Value for the element. \"true\" or \"false\" for checkboxes and toggles, \"true\" for radio buttons."
+            }
+          },
+          "required": [
+            "uid",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Elements from snapshot to fill out."
+      },
+      "includeSnapshot": {
+        "type": "boolean",
+        "description": "Whether to include a snapshot in the response. Default is false."
+      }
+    },
+    "required": [
+      "elements"
+    ],
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

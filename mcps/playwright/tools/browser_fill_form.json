@@ -1,0 +1,57 @@
+{
+  "name": "browser_fill_form",
+  "description": "Fill multiple form fields",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "element": {
+              "description": "Human-readable element description used to obtain permission to interact with the element",
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "description": "Exact target element reference from the page snapshot, or a unique element selector"
+            },
+            "name": {
+              "type": "string",
+              "description": "Human-readable field name"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "textbox",
+                "checkbox",
+                "radio",
+                "combobox",
+                "slider"
+              ],
+              "description": "Type of the field"
+            },
+            "value": {
+              "type": "string",
+              "description": "Value to fill in the field. If the field is a checkbox, the value should be `true` or `false`. If the field is a combobox, the value should be the text of the option."
+            }
+          },
+          "required": [
+            "target",
+            "name",
+            "type",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Fields to fill in"
+      }
+    },
+    "required": [
+      "fields"
+    ],
+    "additionalProperties": false
+  }
+}

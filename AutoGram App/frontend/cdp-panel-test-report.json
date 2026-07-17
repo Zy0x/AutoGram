@@ -1,0 +1,413 @@
+{
+  "when": "2026-07-14T04:58:38.586Z",
+  "pass": 68,
+  "total": 70,
+  "fail": [
+    {
+      "group": "click",
+      "name": "Close",
+      "ok": false,
+      "detail": "NOT FOUND"
+    },
+    {
+      "group": "click",
+      "name": "Close",
+      "ok": false,
+      "detail": "NOT FOUND"
+    }
+  ],
+  "results": [
+    {
+      "group": "setup",
+      "name": "files-loaded",
+      "ok": true,
+      "detail": "5 cards"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "open-preview",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "shows-image-or-loading",
+      "ok": true,
+      "detail": "kind=image img=true title=FB_IMG_1783930165745.jpg"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "hit-test-all-visible-buttons",
+      "ok": true,
+      "detail": "17 buttons OK"
+    },
+    {
+      "group": "click",
+      "name": "Besar",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "zoom-in-effect",
+      "ok": true,
+      "detail": "zoom=125%"
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true,
+      "detail": "disabled"
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true,
+      "detail": "disabled"
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true,
+      "detail": "disabled"
+    },
+    {
+      "group": "click",
+      "name": "Kecil",
+      "ok": true,
+      "detail": "disabled"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "zoom-out-to-25",
+      "ok": true,
+      "detail": "zoom=25% transform=translate(0px, 0px) scale(0.25, 0.25) rotate(0deg)"
+    },
+    {
+      "group": "click",
+      "name": "Reset 100%",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "zoom-reset-100",
+      "ok": true,
+      "detail": "100%"
+    },
+    {
+      "group": "click",
+      "name": "Kanan",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "rotate-right-effect",
+      "ok": true,
+      "detail": "translate(0px, 0px) scale(1, 1) rotate(90deg)"
+    },
+    {
+      "group": "click",
+      "name": "Kiri",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Cermin",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "flip-h-toggle-on",
+      "ok": true,
+      "detail": "is-on=true transform=translate(0px, 0px) scale(-1, 1) rotate(0deg)"
+    },
+    {
+      "group": "click",
+      "name": "Balik",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "flip-v-toggle-on",
+      "ok": true,
+      "detail": "is-on=true"
+    },
+    {
+      "group": "click",
+      "name": "Info",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "info-panel-open",
+      "ok": true,
+      "detail": "Detail fileNama FB_IMG_1783930165745.jpgUkuran 144.8 KBTipe jpgMIME image/jpegZoom 100% · cermin · b"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "info-panel-close",
+      "ok": true
+    },
+    {
+      "group": "click",
+      "name": "Ulang",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "reload-keeps-preview",
+      "ok": true,
+      "detail": "FB_IMG_1783930165745.jpg"
+    },
+    {
+      "group": "click",
+      "name": "Next",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "nav-next",
+      "ok": true,
+      "detail": "title=detail.json"
+    },
+    {
+      "group": "click",
+      "name": "Prev",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "fullscreen-enter",
+      "ok": true,
+      "detail": "fullscreenElement=true"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "fullscreen-exit",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "header-nav-inventory",
+      "ok": true,
+      "detail": "Close | Previous | Next | Download | Buka | Buka dengan | Reveal | Fullscreen"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "header-has-open",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "header-has-openwith",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "header-has-reveal",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "group": "click",
+      "name": "Close",
+      "ok": true
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "close-preview",
+      "ok": true,
+      "detail": "via button"
+    },
+    {
+      "group": "image:FB_IMG_1783930165745.jpg",
+      "name": "Download-click",
+      "ok": true,
+      "detail": "clicked; esc"
+    },
+    {
+      "group": "video",
+      "name": "sample",
+      "ok": true,
+      "detail": "SKIP — no video in current folder"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "open-preview",
+      "ok": true
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "doc-viewer-state",
+      "ok": true,
+      "detail": "text=true pdf=false empty=false kind=text"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "hit-test-all-visible-buttons",
+      "ok": true,
+      "detail": "13 buttons OK"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "toolbar-inventory",
+      "ok": true,
+      "detail": "Close | Previous | Next | Download | Buka | Buka dengan | Reveal | Fullscreen | Aplikasi | Dengan… | Salin | Ulang | Info"
+    },
+    {
+      "group": "click",
+      "name": "Info",
+      "ok": true
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "info",
+      "ok": true,
+      "detail": "Detail fileNama detail.jsonUkuran 4.0 KBTipe jsonMIME application/jsonMode progr"
+    },
+    {
+      "group": "click",
+      "name": "Ulang",
+      "ok": true
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "reload",
+      "ok": true
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "Salin",
+      "ok": true,
+      "detail": "clicked"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "has-open-aplikasi",
+      "ok": true,
+      "detail": "yes"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "has-open-dengan",
+      "ok": true,
+      "detail": "yes"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "Aplikasi-click",
+      "ok": true,
+      "detail": "clicked; may open native app"
+    },
+    {
+      "group": "click",
+      "name": "Close",
+      "ok": false,
+      "detail": "NOT FOUND"
+    },
+    {
+      "group": "doc:detail.json",
+      "name": "close",
+      "ok": true
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "open-preview",
+      "ok": true
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "doc-viewer-state",
+      "ok": true,
+      "detail": "text=true pdf=false empty=false kind=text"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "hit-test-all-visible-buttons",
+      "ok": true,
+      "detail": "13 buttons OK"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "toolbar-inventory",
+      "ok": true,
+      "detail": "Close | Previous | Next | Download | Buka | Buka dengan | Reveal | Fullscreen | Aplikasi | Dengan… | Salin | Ulang | Info"
+    },
+    {
+      "group": "click",
+      "name": "Info",
+      "ok": true
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "info",
+      "ok": true,
+      "detail": "Detail fileNama 13 Nov 2025 00.14.36.nekox-settings.jsonUkuran 54.9 KBTipe jsonM"
+    },
+    {
+      "group": "click",
+      "name": "Ulang",
+      "ok": true
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "reload",
+      "ok": true
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "Salin",
+      "ok": true,
+      "detail": "clicked"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "has-open-aplikasi",
+      "ok": true,
+      "detail": "yes"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "has-open-dengan",
+      "ok": true,
+      "detail": "yes"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "Aplikasi-click",
+      "ok": true,
+      "detail": "clicked; may open native app"
+    },
+    {
+      "group": "click",
+      "name": "Close",
+      "ok": false,
+      "detail": "NOT FOUND"
+    },
+    {
+      "group": "doc:13 Nov 2025 00.14.36.nekox-settings.json",
+      "name": "close",
+      "ok": true
+    }
+  ]
+}

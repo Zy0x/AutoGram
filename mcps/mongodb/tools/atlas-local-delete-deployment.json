@@ -1,0 +1,16 @@
+{
+  "name": "atlas-local-delete-deployment",
+  "description": "Delete a MongoDB Atlas local deployment",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "deploymentName": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deploymentName"
+    ]
+  }
+}

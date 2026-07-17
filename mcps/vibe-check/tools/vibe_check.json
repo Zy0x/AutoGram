@@ -1,0 +1,92 @@
+{
+  "name": "vibe_check",
+  "description": "Metacognitive questioning tool that identifies assumptions and breaks tunnel vision to prevent cascading errors",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "goal": {
+        "type": "string",
+        "description": "The agent's current goal",
+        "examples": [
+          "Ship CPI v2.5 with zero regressions"
+        ]
+      },
+      "plan": {
+        "type": "string",
+        "description": "The agent's detailed plan",
+        "examples": [
+          "1) Write tests 2) Refactor 3) Canary rollout"
+        ]
+      },
+      "modelOverride": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "gemini",
+              "openai",
+              "openrouter",
+              "anthropic"
+            ]
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "examples": [
+          {
+            "provider": "gemini",
+            "model": "gemini-2.5-pro"
+          }
+        ]
+      },
+      "userPrompt": {
+        "type": "string",
+        "description": "The original user prompt",
+        "examples": [
+          "Summarize the repo"
+        ]
+      },
+      "progress": {
+        "type": "string",
+        "description": "The agent's progress so far",
+        "examples": [
+          "Finished step 1"
+        ]
+      },
+      "uncertainties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "The agent's uncertainties",
+        "examples": [
+          [
+            "uncertain about deployment"
+          ]
+        ]
+      },
+      "taskContext": {
+        "type": "string",
+        "description": "The context of the current task",
+        "examples": [
+          "repo: vibe-check-mcp @2.5.0"
+        ]
+      },
+      "sessionId": {
+        "type": "string",
+        "description": "Optional session ID for state management",
+        "examples": [
+          "session-123"
+        ]
+      }
+    },
+    "required": [
+      "goal",
+      "plan"
+    ],
+    "additionalProperties": false
+  }
+}

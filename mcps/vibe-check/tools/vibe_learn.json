@@ -1,0 +1,64 @@
+{
+  "name": "vibe_learn",
+  "description": "Pattern recognition system that tracks common errors and solutions to prevent recurring issues",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "mistake": {
+        "type": "string",
+        "description": "One-sentence description of the learning entry",
+        "examples": [
+          "Skipped writing tests"
+        ]
+      },
+      "category": {
+        "type": "string",
+        "description": "Category (standard categories: Complex Solution Bias, Feature Creep, Premature Implementation, Misalignment, Overtooling, Preference, Success, Other)",
+        "enum": [
+          "Complex Solution Bias",
+          "Feature Creep",
+          "Premature Implementation",
+          "Misalignment",
+          "Overtooling",
+          "Preference",
+          "Success",
+          "Other"
+        ],
+        "examples": [
+          "Premature Implementation"
+        ]
+      },
+      "solution": {
+        "type": "string",
+        "description": "How it was corrected (if applicable)",
+        "examples": [
+          "Added regression tests"
+        ]
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "mistake",
+          "preference",
+          "success"
+        ],
+        "description": "Type of learning entry",
+        "examples": [
+          "mistake"
+        ]
+      },
+      "sessionId": {
+        "type": "string",
+        "description": "Optional session ID for state management",
+        "examples": [
+          "session-123"
+        ]
+      }
+    },
+    "required": [
+      "mistake",
+      "category"
+    ],
+    "additionalProperties": false
+  }
+}

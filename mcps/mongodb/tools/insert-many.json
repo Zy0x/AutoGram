@@ -1,0 +1,29 @@
+{
+  "name": "insert-many",
+  "description": "Insert an array of documents into a MongoDB collection. If the list of documents is above com.mongodb/maxRequestPayloadBytes, consider inserting them in batches.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "documents": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        }
+      }
+    },
+    "required": [
+      "database",
+      "collection",
+      "documents"
+    ]
+  }
+}

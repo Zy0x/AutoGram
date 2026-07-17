@@ -1,0 +1,22 @@
+{
+  "name": "mongodb-logs",
+  "description": "Returns the most recent logged mongod events",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "type": {
+        "default": "global",
+        "type": "string",
+        "enum": [
+          "global",
+          "startupWarnings"
+        ]
+      },
+      "limit": {
+        "default": 50,
+        "type": "number"
+      }
+    }
+  }
+}

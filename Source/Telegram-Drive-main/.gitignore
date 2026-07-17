@@ -1,0 +1,41 @@
+# Node
+node_modules/
+dist/
+.DS_Store
+.env
+
+# Rust
+/app/src-tauri/target/
+/app/src-tauri/gen/
+**/*.rs.bk
+
+# Editors
+.vscode/
+.idea/
+
+# Misc
+CompiledApps/
+*.log
+*.key
+Error.html
+**/LatestError.html
+
+# Android local builds
+/android/
+/app/src-tauri/gen/android/
+*.apk
+*.aab
+.gradle/
+local.properties
+*.keystore
+*.idsig
+*.DMP
+
+# Android app files to exclude from git
+/app/src-tauri/src-android/
+/app/src-tauri/tests/android_uri_cache_tests.rs
+/app/src-tauri/gen/schemas/android-schema.json
+/app/src-tauri/icons/android/
+
+
+

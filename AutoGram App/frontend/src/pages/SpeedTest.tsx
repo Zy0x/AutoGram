@@ -172,6 +172,7 @@ import {
 } from '../components/media-drive/DriveToolsPanel';
 import {
   clearThumbCache,
+  forceRetryThumb,
   invalidateThumbFailures,
   setThumbContext,
   setThumbBootstrapMode,
@@ -2807,6 +2808,21 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const status = String(p.status || 'done').toLowerCase();
           if (path && (status === 'done' || status === 'ok' || status === 'success' || t === 'DriveDownloadDone')) {
             downloadArtifactsRef.current.delete(path);
+          }
+          // After a successful upload, immediately bust the soft-fail thumb cache
+          // for that message so DriveFileCard retries will fetch from network.
+          if (
+            t === 'StudioItemDone' &&
+            (status === 'done' || status === 'ok' || status === 'success')
+          ) {
+            const mid = Number((p as Record<string, unknown>).message_id ?? 0);
+            if (mid > 0 && creds) {
+              // Small delay: give Telegram a moment to process the new message
+              // before we ask for its thumbnail (reduces empty-thumb from race).
+              window.setTimeout(() => {
+                forceRetryThumb(creds, activePeerRef.current, mid);
+              }, 2500);
+            }
           }
         }
       }

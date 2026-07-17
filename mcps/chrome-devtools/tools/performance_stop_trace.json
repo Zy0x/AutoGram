@@ -1,0 +1,15 @@
+{
+  "name": "performance_stop_trace",
+  "description": "Stop the active performance trace recording on the selected webpage.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "filePath": {
+        "type": "string",
+        "description": "The absolute file path, or a file path relative to the current working directory, to save the raw trace data. For example, trace.json.gz (compressed) or trace.json (uncompressed)."
+      }
+    },
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

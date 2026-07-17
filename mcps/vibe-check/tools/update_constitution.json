@@ -1,0 +1,26 @@
+{
+  "name": "update_constitution",
+  "description": "Append a constitutional rule for this session (in-memory)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sessionId": {
+        "type": "string",
+        "examples": [
+          "session-123"
+        ]
+      },
+      "rule": {
+        "type": "string",
+        "examples": [
+          "Always write tests first"
+        ]
+      }
+    },
+    "required": [
+      "sessionId",
+      "rule"
+    ],
+    "additionalProperties": false
+  }
+}

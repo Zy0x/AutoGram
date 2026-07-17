@@ -48,11 +48,11 @@ def get_connection():
     
     # Jika db belum ada, kita bisa jalankan init schema untuk keperluan testing mandiri Python
     is_new = not os.path.exists(db_path)
-    conn = sqlite3.connect(db_path, timeout=30.0, check_same_thread=False)
+    conn = sqlite3.connect(db_path, timeout=60.0, check_same_thread=False)
 
     # Connection-scoped safety/performance settings.
     conn.execute("PRAGMA foreign_keys=ON;")
-    conn.execute("PRAGMA busy_timeout=30000;")
+    conn.execute("PRAGMA busy_timeout=60000;")  # 60s — handles media_studio + drive_serve contention
     conn.execute("PRAGMA synchronous=NORMAL;")
 
     if is_new:

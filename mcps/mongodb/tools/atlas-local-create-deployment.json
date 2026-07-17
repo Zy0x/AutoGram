@@ -1,0 +1,21 @@
+{
+  "name": "atlas-local-create-deployment",
+  "description": "Create a MongoDB Atlas local deployment. Default image is preview. When the user does not specify an image tag, inform them that preview is used by default and provide this link for more information: https://hub.docker.com/r/mongodb/mongodb-atlas-local",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "deploymentName": {
+        "type": "string"
+      },
+      "loadSampleData": {
+        "default": false,
+        "type": "boolean"
+      },
+      "imageTag": {
+        "default": "preview",
+        "type": "string"
+      }
+    }
+  }
+}

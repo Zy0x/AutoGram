@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_terminal_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"F:/AutoGram/.grok/hooks/safety-guard.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

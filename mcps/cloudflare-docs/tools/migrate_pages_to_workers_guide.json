@@ -1,0 +1,9 @@
+{
+  "name": "migrate_pages_to_workers_guide",
+  "description": "ALWAYS read this guide before migrating Pages projects to Workers.",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {}
+  }
+}

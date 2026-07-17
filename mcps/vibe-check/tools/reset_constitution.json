@@ -1,0 +1,32 @@
+{
+  "name": "reset_constitution",
+  "description": "Overwrite all constitutional rules for this session",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "sessionId": {
+        "type": "string",
+        "examples": [
+          "session-123"
+        ]
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "examples": [
+          [
+            "Be kind",
+            "Avoid loops"
+          ]
+        ]
+      }
+    },
+    "required": [
+      "sessionId",
+      "rules"
+    ],
+    "additionalProperties": false
+  }
+}

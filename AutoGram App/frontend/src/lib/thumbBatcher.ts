@@ -237,6 +237,28 @@ export function invalidateThumbFailures() {
   errorFailAt.clear();
 }
 
+/**
+ * Invalidate the soft-fail / error cache for a single message (e.g. just uploaded).
+ * If the message has no cached thumbnail yet, immediately enqueue a fresh request.
+ */
+export function forceRetryThumb(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageId: number
+): void {
+  const k = cacheKey(folderId, messageId, activeQuality, creds.session);
+  softFailAt.delete(k);
+  errorFailAt.delete(k);
+  // Only enqueue if not already in cache or queue
+  if (!memCache.has(k) && !queue.has(k)) {
+    // Fire-and-forget — result is handled by any mounted DriveFileCard
+    void requestThumb(creds, folderId, messageId, {
+      priority: 'visible',
+      contextKey: activeContextKey,
+    });
+  }
+}
+
 let thumbsPaused = false;
 
 export function setThumbsPaused(paused: boolean) {

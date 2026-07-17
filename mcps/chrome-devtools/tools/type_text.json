@@ -1,0 +1,22 @@
+{
+  "name": "type_text",
+  "description": "Type text using keyboard into a previously focused input",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The text to type"
+      },
+      "submitKey": {
+        "type": "string",
+        "description": "Optional key to press after typing. E.g., \"Enter\", \"Tab\", \"Escape\""
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

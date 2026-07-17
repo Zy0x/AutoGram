@@ -1,0 +1,26 @@
+{
+  "name": "wait_for",
+  "description": "Wait for the specified text to appear on the selected page.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "description": "Non-empty list of texts. Resolves when any value appears on the page."
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Maximum wait time in milliseconds. If set to 0, the default timeout will be used."
+      }
+    },
+    "required": [
+      "text"
+    ],
+    "additionalProperties": true,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

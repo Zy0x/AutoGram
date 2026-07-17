@@ -1,0 +1,139 @@
+{
+  "name": "aggregate",
+  "description": "Run an aggregation against a MongoDB collection",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "database": {
+        "type": "string"
+      },
+      "collection": {
+        "type": "string"
+      },
+      "pipeline": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$vectorSearch": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "exact": {
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "index": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "numCandidates": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "default": 10,
+                          "type": "number"
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
+                        },
+                        "queryVector": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "required": [
+                        "index",
+                        "path",
+                        "queryVector"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "exact": {
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "index": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        },
+                        "numCandidates": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "default": 10,
+                          "type": "number"
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
+                        },
+                        "query": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "text"
+                          ]
+                        },
+                        "model": {
+                          "type": "string",
+                          "enum": [
+                            "voyage-4",
+                            "voyage-4-large",
+                            "voyage-4-lite",
+                            "voyage-code-3"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "index",
+                        "path",
+                        "query"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "$vectorSearch"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            }
+          ]
+        }
+      },
+      "responseBytesLimit": {
+        "default": 1048576,
+        "type": "number"
+      }
+    },
+    "required": [
+      "database",
+      "collection",
+      "pipeline"
+    ]
+  }
+}

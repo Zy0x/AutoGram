@@ -1873,17 +1873,40 @@ def _write_lite_thumb(path: str, data: bytes, *, hard_max: Optional[int] = None)
         return False
 
 
+def _patch_session_wal(session_file: str) -> None:
+    """Enable WAL + high busy_timeout on a Telethon .session SQLite."""
+    db_path = session_file + ".session" if not session_file.endswith(".session") else session_file
+    if not os.path.isfile(db_path):
+        return
+    try:
+        import sqlite3 as _sqlite3
+        conn = _sqlite3.connect(db_path, timeout=5.0)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA busy_timeout=15000;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramClient:
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     os.makedirs(session_dir, exist_ok=True)
     session_file = os.path.join(session_dir, session_name)
+    _patch_session_wal(session_file)
     return TelegramClient(session_file, int(api_id), str(api_hash))
 
 
 async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramClient:
     """Connect with retries on SQLite session lock (concurrent workers)."""
     last_err: Optional[Exception] = None
-    for attempt in range(5):
+    session_dir = os.path.join(WORKER_ROOT, "sessions")
+    session_file = os.path.join(session_dir, session_name)
+    for attempt in range(8):
+        _patch_session_wal(session_file)
         client = _session_client(session_name, api_id, api_hash)
         try:
             await client.connect()
@@ -1899,7 +1922,7 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
             except Exception:
                 pass
             if "locked" in msg or "database is locked" in msg:
-                await asyncio.sleep(0.35 + attempt * 0.25)
+                await asyncio.sleep(0.4 + attempt * 0.35)
                 continue
             raise
     raise RuntimeError(str(last_err) if last_err else "Session connect failed")
@@ -4361,8 +4384,9 @@ async def _fetch_thumb_data_url_impl(
         sp = os.path.join(THUMB_DIR, stale)
         if os.path.isfile(sp):
             try:
-                # Cache empty markers for 30 minutes to prevent infinite loops
-                if time.time() - os.path.getmtime(sp) < 1800:
+                # Cache empty markers for only 3 minutes — newly uploaded files
+                # become available quickly; 30min was causing long thumbnail delays.
+                if time.time() - os.path.getmtime(sp) < 180:
                     return None
                 else:
                     os.remove(sp)

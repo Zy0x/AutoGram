@@ -1,0 +1,39 @@
+{
+  "name": "browser_drop",
+  "description": "Drop files or MIME-typed data onto an element, as if dragged from outside the page. At least one of \"paths\" or \"data\" must be provided.",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "element": {
+        "description": "Human-readable element description used to obtain permission to interact with the element",
+        "type": "string"
+      },
+      "target": {
+        "type": "string",
+        "description": "Exact target element reference from the page snapshot, or a unique element selector"
+      },
+      "paths": {
+        "description": "Absolute paths to files to drop onto the element.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "data": {
+        "description": "Data to drop, as a map of MIME type to string value (e.g. {\"text/plain\": \"hello\", \"text/uri-list\": \"https://example.com\"}).",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "target"
+    ],
+    "additionalProperties": false
+  }
+}

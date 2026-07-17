@@ -1,0 +1,34 @@
+{
+  "name": "browser_network_request",
+  "description": "Returns full details (headers and body) of a single network request, or a single part if `part` is set. Use the number from browser_network_requests.",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "index": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "1-based index of the request, as printed by browser_network_requests."
+      },
+      "part": {
+        "description": "Return only this part of the request. Omit to return full details.",
+        "type": "string",
+        "enum": [
+          "request-headers",
+          "request-body",
+          "response-headers",
+          "response-body"
+        ]
+      },
+      "filename": {
+        "description": "Filename to save the result to. If not provided, output is returned as text.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "index"
+    ],
+    "additionalProperties": false
+  }
+}
