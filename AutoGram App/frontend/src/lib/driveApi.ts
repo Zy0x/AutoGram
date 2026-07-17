@@ -1196,7 +1196,8 @@ async function spawnExclusiveTransfer(
     onStdoutLine: (line: string) => void;
     onStderrLine: (line: string) => void;
     onClose: (code: number | null) => void;
-  }
+  },
+  opts?: { skipRestartWarm?: boolean }
 ): Promise<JobChild> {
   return enqueueDrive(async () => {
     // Soft mutex: refuse second concurrent exclusive transfer (UI also gates).
@@ -1219,6 +1220,7 @@ async function spawnExclusiveTransfer(
     }
     let restarted = false;
     const restartWarm = () => {
+      if (opts?.skipRestartWarm) return;
       if (restarted || !hadWarm) return;
       restarted = true;
       void ensureDriveSession(creds).catch(() => undefined);
@@ -1258,7 +1260,8 @@ export async function driveUploadSpawn(
     onStdoutLine: (line: string) => void;
     onStderrLine: (line: string) => void;
     onClose: (code: number | null) => void;
-  }
+  },
+  opts?: { skipRestartWarm?: boolean }
 ): Promise<JobChild> {
   return spawnExclusiveTransfer(
     creds,
@@ -1272,7 +1275,8 @@ export async function driveUploadSpawn(
       '--options-json',
       optionsJsonPath,
     ],
-    handlers
+    handlers,
+    opts
   );
 }
 
@@ -1286,7 +1290,8 @@ export async function driveDownloadBatchSpawn(
     onStdoutLine: (line: string) => void;
     onStderrLine: (line: string) => void;
     onClose: (code: number | null) => void;
-  }
+  },
+  opts?: { skipRestartWarm?: boolean }
 ): Promise<JobChild> {
   return spawnExclusiveTransfer(
     creds,
@@ -1302,7 +1307,8 @@ export async function driveDownloadBatchSpawn(
       '--options-json',
       optionsJsonPath,
     ],
-    handlers
+    handlers,
+    opts
   );
 }
 
@@ -1391,7 +1397,8 @@ export async function driveDownloadSpawn(
     onStdoutLine: (line: string) => void;
     onStderrLine: (line: string) => void;
     onClose: (code: number | null) => void;
-  }
+  },
+  opts?: { skipRestartWarm?: boolean }
 ): Promise<JobChild> {
   return spawnExclusiveTransfer(
     creds,
@@ -1405,7 +1412,8 @@ export async function driveDownloadSpawn(
       savePath,
       ...folderArg(folderId),
     ],
-    handlers
+    handlers,
+    opts
   );
 }
 

@@ -2816,6 +2816,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
     taskRunningRef.current = true;
     const task = transferQueueRef.current[0];
+    const skipRestartWarm = transferQueueRef.current.length > 1;
     activeTaskStartIndexRef.current = task.startIndex;
 
     const label = `→ ${task.targetLabel}`;
@@ -2863,7 +2864,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                 exitCode = code;
                 resolve();
               },
-            })
+            }, { skipRestartWarm })
               .then((c) => {
                 childRef.current = c;
               })
@@ -2934,7 +2935,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                 exitCode = code;
                 resolve();
               },
-            })
+            }, { skipRestartWarm })
               .then((c) => {
                 childRef.current = c;
               })
@@ -2981,7 +2982,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                 exitCode = code;
                 resolve();
               },
-            })
+            }, { skipRestartWarm })
               .then((c) => {
                 childRef.current = c;
               })
