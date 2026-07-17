@@ -85,16 +85,18 @@ function recomputeOverall(session: TransferSession): TransferSession {
   let overall = session.overallPercent;
 
   if (n > 0) {
-    const allSizesKnown = items.every((i) => i.total > 0);
-    if (allSizesKnown && total > 0) {
+    if (total > 0) {
+      // Selalu gunakan progres berbasis byte jika total ukuran sesi diketahui.
+      // Sinkronkan transferred & total dari data aktual item.
       const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
-      overall = Math.min(100, (itemTransferred / total) * 100);
-      transferred = itemTransferred;
+      if (itemTransferred > transferred) transferred = itemTransferred;
+
+      const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
+      if (itemTotals > total) total = itemTotals;
+
+      overall = Math.min(100, (transferred / total) * 100);
     } else {
-      // Calculate overall based on average item percentage completion.
-      // - 'done' items are 100%
-      // - 'active' / 'preparing' items use their live item.percent
-      // - 'failed', 'cancelled', or 'queued' contribute 0% progress
+      // Fallback: gunakan rata-rata progres item jika total ukuran sesi = 0.
       const sumPct = items.reduce((s, i) => {
         if (i.status === 'done') return s + 100;
         if (i.status === 'active' || i.status === 'preparing') return s + Math.min(100, i.percent);
@@ -102,7 +104,6 @@ function recomputeOverall(session: TransferSession): TransferSession {
       }, 0);
       overall = sumPct / n;
 
-      // Estimate total / transferred bytes for UI stats
       const itemBytes = items.reduce((s, i) => s + (i.transferred || 0), 0);
       if (itemBytes > transferred) transferred = itemBytes;
       const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);

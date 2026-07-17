@@ -2931,32 +2931,40 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         }
 
         // Post task finish checks
+        const isErrorExit = uploadError || (exitCode != null && exitCode !== 0);
         if (uploadedIds.length > 0) {
           debugLog('drive', 'upload chunk ok', { count: uploadedIds.length });
           setStatusText(`Upload selesai${label}: ${namesLabel}`);
-          if (uploadError || (exitCode != null && exitCode !== 0)) {
+          if (isErrorExit) {
             setError(
               `Upload terkirim, tetapi worker mengakhiri dengan peringatan` +
                 (exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
                 (uploadError ? `: ${uploadError}` : '')
             );
           }
-          // Mark items of this task as done
+          // Mark items of this task correctly (don't overwrite failed/cancelled ones)
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled') {
+                  return it;
+                }
+                if (isErrorExit) {
+                  return { ...it, status: 'failed' as const, error: uploadError || `Exit code ${exitCode}` };
+                }
                 return { ...it, status: 'done' as const, percent: 100 };
               }
               return it;
             });
             return { ...t, items: nextItems };
           });
-        } else if (uploadError || (exitCode != null && exitCode !== 0)) {
+        } else if (isErrorExit) {
           setStatusText(`Upload gagal${label}`);
           if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                if (it.status === 'done') return it;
                 return { ...it, status: 'failed' as const, error: uploadError || 'Gagal' };
               }
               return it;
@@ -2968,6 +2976,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                if (it.status === 'failed' || it.status === 'cancelled') return it;
                 return { ...it, status: 'done' as const, percent: 100 };
               }
               return it;
