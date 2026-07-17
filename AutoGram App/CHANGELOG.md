@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.1.3 Optimalisasi Memori Thumbnail & Stabilitas Pengunggahan Massal
+
+Fixed:
+- Optimalisasi konsumsi memori RAM dengan LRU cache untuk thumbnail guna menjaga performa antarmuka tetap responsif di folder berskala besar.
+- Peningkatan batas penyimpanan cache thumbnail lokal hingga 5000 entri untuk mempercepat waktu pemuatan media.
+- Pembatasan konkuren ekstraksi video thumbnail guna mencegah peningkatan utilisasi CPU yang tinggi.
+- Perbaikan ketahanan pengunggahan massal terhadap batasan frekuensi (FloodWait) Telegram dengan mekanisme jeda hitung mundur otomatis dan dinamis.
+- Integrasi sistem penyimpanan antrean pengunggahan secara persisten untuk memungkinkan pemulihan (resume) otomatis ketika aplikasi ditutup atau dimulai kembali.
+- Pencegahan otomatis pengunggahan berkas ganda menggunakan pencocokan riwayat data.
+
 ## v5.1.2 Bug Fix Preview Media
 
 Fixed:

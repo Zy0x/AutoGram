@@ -582,26 +582,25 @@ async def _upload_bytes(
         def cb(cur, tot):
             agg.on_item(item.index, cur, tot or item.size)
 
-        try:
-            return await fast_upload_file(
-                client,
-                path,
-                workers=part_workers,
-                file_name=os.path.basename(path),
-                progress_callback=cb,
-                upload_policy=upload_policy,
-            )
-        except FloodWaitError as e:
-            emit_event("FloodWait", seconds=e.seconds, index=item.index, phase="upload_bytes")
-            await asyncio.sleep(int(e.seconds) + 2)
-            return await fast_upload_file(
-                client,
-                path,
-                workers=max(2, part_workers // 2),
-                file_name=os.path.basename(path),
-                progress_callback=cb,
-                upload_policy=upload_policy,
-            )
+        while True:
+            try:
+                return await fast_upload_file(
+                    client,
+                    path,
+                    workers=part_workers,
+                    file_name=os.path.basename(path),
+                    progress_callback=cb,
+                    upload_policy=upload_policy,
+                )
+            except FloodWaitError as e:
+                wait_seconds = int(e.seconds)
+                emit_event("FloodWait", seconds=wait_seconds, index=item.index, phase="upload_bytes")
+                total_wait = wait_seconds + 2
+                for remaining in range(total_wait, 0, -5):
+                    emit_event("FloodWaitTick", remaining=remaining, total=total_wait, index=item.index)
+                    await asyncio.sleep(min(5, remaining))
+                emit_event("FloodWaitResolved", status="RESUMING", index=item.index)
+                part_workers = max(2, part_workers // 2)
 
 
 async def _send_one(
@@ -613,6 +612,7 @@ async def _send_one(
     uploaded_handle=None,
     part_workers: int = 6,
     upload_path: Optional[str] = None,
+    dup_checker: Optional[Any] = None,
 ) -> StudioItem:
     """Sequential stage: commit message to chat (order-safe)."""
     t0 = time.time()
@@ -688,59 +688,66 @@ async def _send_one(
 
     msg = None
     try:
+        async def _send_with_retry(send_func, *args, **kwargs):
+            while True:
+                try:
+                    return await send_func(*args, **kwargs)
+                except FloodWaitError as e:
+                    wait_seconds = int(e.seconds)
+                    emit_event("FloodWait", seconds=wait_seconds, index=item.index)
+                    total_wait = wait_seconds + 2
+                    for remaining in range(total_wait, 0, -5):
+                        emit_event("FloodWaitTick", remaining=remaining, total=total_wait, index=item.index)
+                        await asyncio.sleep(min(5, remaining))
+                    emit_event("FloodWaitResolved", status="RESUMING", index=item.index)
+                    kwargs.pop("spoiler", None)
+
         if uploaded_handle is not None:
             try:
-                msg = await client.send_file(
+                msg = await _send_with_retry(
+                    client.send_file,
                     entity,
                     uploaded_handle,
                     file_name=final_file_name,
-                    **{k: v for k, v in send_kwargs.items() if v is not None},
-                )
-            except TypeError:
-                send_kwargs.pop("spoiler", None)
-                msg = await client.send_file(
-                    entity,
-                    uploaded_handle,
-                    file_name=final_file_name,
-                    **{k: v for k, v in send_kwargs.items() if v is not None},
+                    **{k: v for k, v in send_kwargs.items() if v is not None}
                 )
             except Exception as commit_err:
                 emit_event("LogEvent", level="WARNING", message=f"commit-by-handle failed, retry path: {commit_err}")
-                msg = await fast_send_file(
+                msg = await _send_with_retry(
+                    fast_send_file,
                     client,
                     entity,
                     send_path,
                     workers=part_workers,
                     progress_callback=cb,
-                    **send_kwargs,
+                    **send_kwargs
                 )
         else:
-            try:
-                msg = await fast_send_file(
-                    client,
-                    entity,
-                    send_path,
-                    workers=part_workers,
-                    progress_callback=cb,
-                    **send_kwargs,
-                )
-            except FloodWaitError as e:
-                emit_event("FloodWait", seconds=e.seconds, index=item.index)
-                await asyncio.sleep(int(e.seconds) + 2)
-                send_kwargs.pop("spoiler", None)
-                msg = await fast_send_file(
-                    client,
-                    entity,
-                    send_path,
-                    workers=part_workers,
-                    progress_callback=cb,
-                    **send_kwargs,
-                )
+            msg = await _send_with_retry(
+                fast_send_file,
+                client,
+                entity,
+                send_path,
+                workers=part_workers,
+                progress_callback=cb,
+                **send_kwargs
+            )
 
         mid = _message_id_from_send_result(msg)
         # Terminal success once Telegram accepted the message — never flip to failed
         # because of post-commit bookkeeping (progress emit, thumb cleanup, etc.).
         apply_item_commit_success(item, mid, duration_s=round(time.time() - t0, 3))
+        if dup_checker is not None and mid:
+            try:
+                dup_checker.log(
+                    file_unique_id=None,
+                    target_message_id=mid,
+                    file_hash=None,
+                    file_name=final_file_name,
+                    file_size=item.size
+                )
+            except Exception as dup_err:
+                emit_event("LogEvent", level="WARNING", message=f"Failed to log duplicate: {dup_err}")
         try:
             agg.on_item(item.index, item.size or 0, item.size or 0, force=True)
         except Exception:
@@ -804,6 +811,7 @@ async def _send_album(
     items: List[StudioItem],
     opts: StudioOptions,
     agg: ProgressAgg,
+    dup_checker: Optional[Any] = None,
 ) -> List[StudioItem]:
     """Send up to 10 items as one album (photos/videos)."""
     if not items:
@@ -848,28 +856,31 @@ async def _send_album(
         send_kwargs["spoiler"] = True
 
     try:
-        try:
-            msg = await client.send_file(
-                entity,
-                paths,
-                **{k: v for k, v in send_kwargs.items() if v is not None},
-            )
-        except TypeError:
-            send_kwargs.pop("spoiler", None)
-            msg = await client.send_file(
-                entity,
-                paths,
-                **{k: v for k, v in send_kwargs.items() if v is not None},
-            )
-        except FloodWaitError as e:
-            emit_event("FloodWait", seconds=e.seconds)
-            await asyncio.sleep(int(e.seconds) + 2)
-            send_kwargs.pop("spoiler", None)
-            msg = await client.send_file(
-                entity,
-                paths,
-                **{k: v for k, v in send_kwargs.items() if v is not None},
-            )
+        while True:
+            try:
+                msg = await client.send_file(
+                    entity,
+                    paths,
+                    **{k: v for k, v in send_kwargs.items() if v is not None},
+                )
+                break
+            except TypeError:
+                send_kwargs.pop("spoiler", None)
+                msg = await client.send_file(
+                    entity,
+                    paths,
+                    **{k: v for k, v in send_kwargs.items() if v is not None},
+                )
+                break
+            except FloodWaitError as e:
+                wait_seconds = int(e.seconds)
+                emit_event("FloodWait", seconds=wait_seconds)
+                total_wait = wait_seconds + 2
+                for remaining in range(total_wait, 0, -5):
+                    emit_event("FloodWaitTick", remaining=remaining, total=total_wait)
+                    await asyncio.sleep(min(5, remaining))
+                emit_event("FloodWaitResolved", status="RESUMING")
+                send_kwargs.pop("spoiler", None)
 
         ids: List[Optional[int]] = []
         if isinstance(msg, list):
@@ -882,6 +893,21 @@ async def _send_album(
             mid = ids[i] if i < len(ids) else (ids[-1] if ids else None)
             # Album send returned → commit success is terminal per item
             apply_item_commit_success(it, mid, duration_s=dur)
+            if dup_checker is not None and mid:
+                try:
+                    final_file_name = os.path.basename(it.path)
+                    up = getattr(it, "_upload_path", None)
+                    if up:
+                        final_file_name = _final_name(it.path, up)
+                    dup_checker.log(
+                        file_unique_id=None,
+                        target_message_id=mid,
+                        file_hash=None,
+                        file_name=final_file_name,
+                        file_size=it.size
+                    )
+                except Exception as dup_err:
+                    emit_event("LogEvent", level="WARNING", message=f"Failed to log duplicate: {dup_err}")
             if it.size and dur:
                 it.avg_mb_s = round((total_sz / (1024 * 1024)) / dur, 3)
             try:
@@ -936,6 +962,7 @@ async def run_ordered_upload(
     entity,
     items: List[StudioItem],
     opts: StudioOptions,
+    chat_id: str,
 ) -> Dict[str, Any]:
     """
     Ordered parallel: up to `concurrency` sends in flight, but we only *start*
@@ -978,6 +1005,9 @@ async def run_ordered_upload(
     download parallelism and as recommended max album batching workers.
     Emit note in StudioStarted.
     """
+    from engine.duplicate_checker import DuplicateChecker
+    dup_checker = DuplicateChecker(chat_id)
+
     total_bytes = sum(i.size for i in items)
     agg = ProgressAgg(total_bytes, len(items))
     # Live per-account upload ceiling (free ~2GB / Premium ~4GB / app-config).
@@ -1055,6 +1085,33 @@ async def run_ordered_upload(
                             error=it.error,
                         )
                         continue
+                    # CHECK DUPLICATE HERE!
+                    final_file_name = _final_name(it.path, upath)
+                    dup_mid = None
+                    try:
+                        dup_mid = dup_checker.get_duplicate_message_id(file_name=final_file_name, file_size=it.size)
+                    except Exception:
+                        pass
+                        
+                    if dup_mid:
+                        it.status = "done"
+                        it.message_id = dup_mid
+                        if it.size:
+                            agg.adjust_total_bytes(-it.size)
+                        emit_event(
+                            "StudioItemDone",
+                            index=it.index,
+                            message_id=dup_mid,
+                            status="done",
+                            note=f"Duplicate skipped (already exists at message {dup_mid})"
+                        )
+                        if tmp and os.path.isfile(tmp):
+                            try:
+                                os.remove(tmp)
+                            except Exception:
+                                pass
+                        continue
+
                     if tmp and upath != it.path:
                         upload_paths[it.index] = upath
                     ready_batch.append(it)
@@ -1074,7 +1131,7 @@ async def run_ordered_upload(
                 it0 = ready_batch[0]
                 up = getattr(it0, "_upload_path", None)
                 await _send_one(
-                    client, entity, it0, opts, agg, upload_path=up
+                    client, entity, it0, opts, agg, upload_path=up, dup_checker=dup_checker
                 )
                 tmp = getattr(it0, "_tmp_path", None)
                 if tmp and os.path.isfile(tmp):
@@ -1082,6 +1139,10 @@ async def run_ordered_upload(
                         os.remove(tmp)
                     except Exception:
                         pass
+                
+                # Cooldown delay
+                import random
+                await asyncio.sleep(random.uniform(1.5, 3.0))
             else:
                 # Album send uses original paths; rewrite to prepared paths
                 orig_paths = []
@@ -1092,7 +1153,7 @@ async def run_ordered_upload(
                         it.path = up
                         it.size = os.path.getsize(up) if os.path.isfile(up) else it.size
                 try:
-                    await _send_album(client, entity, ready_batch, opts, agg)
+                    await _send_album(client, entity, ready_batch, opts, agg, dup_checker=dup_checker)
                 finally:
                     for it, op in zip(ready_batch, orig_paths):
                         tmp = getattr(it, "_tmp_path", None)
@@ -1102,6 +1163,10 @@ async def run_ordered_upload(
                                 os.remove(tmp)
                             except Exception:
                                 pass
+                
+                # Cooldown delay
+                import random
+                await asyncio.sleep(random.uniform(1.5, 3.0))
     else:
         # Adaptive producer-consumer: at most two hardware encodes on capable
         # devices, while completed items immediately enter DC upload. Commit to
@@ -1135,15 +1200,13 @@ async def run_ordered_upload(
         prepared: List[Tuple[StudioItem, str, Optional[str]]] = []
 
         max_item = max((it.size for it in items), default=0)
-        # More concurrent MTProto parts per file (latency-bound links benefit most).
-        # Align with fast_transfer._workers_for_size for multi-GB single files.
+        # Dynamic part workers capped at 8 to prevent Telegram connection limits
         part_workers = [
-            48 if max_item >= 1500 * 1024 * 1024
-            else (36 if max_item >= 500 * 1024 * 1024
-            else (24 if max_item >= 120 * 1024 * 1024
-            else (16 if max_item >= 40 * 1024 * 1024
-            else (12 if max_item >= 8 * 1024 * 1024
-            else 8))))
+            8 if max_item >= 500 * 1024 * 1024
+            else (6 if max_item >= 120 * 1024 * 1024
+            else (4 if max_item >= 40 * 1024 * 1024
+            else (3 if max_item >= 8 * 1024 * 1024
+            else 2)))
         ][0]
         # Adaptive: shrink after FloodWait
         flood_hits = {"n": 0}
@@ -1184,12 +1247,45 @@ async def run_ordered_upload(
             if it.status == "failed":
                 emit_event("StudioItemDone", index=it.index, status="failed", error=it.error)
                 continue
-            if it.size and it.size != old_sz:
-                agg.adjust_total_bytes(it.size - old_sz)
-            prepared.append((it, upath, tmp))
-            upload_tasks.append(asyncio.create_task(_upload_adaptive(it, upath)))
+
+            # CHECK DUPLICATE HERE!
+            final_file_name = _final_name(it.path, upath)
+            dup_mid = None
+            try:
+                dup_mid = dup_checker.get_duplicate_message_id(file_name=final_file_name, file_size=it.size)
+            except Exception:
+                pass
+
+            if dup_mid:
+                it.status = "done"
+                it.message_id = dup_mid
+                if it.size:
+                    agg.adjust_total_bytes(-it.size)
+                emit_event(
+                    "StudioItemDone",
+                    index=it.index,
+                    message_id=dup_mid,
+                    status="done",
+                    note=f"Duplicate skipped (already exists at message {dup_mid})"
+                )
+                prepared.append((it, upath, tmp))
+                upload_tasks.append(None)
+            else:
+                if it.size and it.size != old_sz:
+                    agg.adjust_total_bytes(it.size - old_sz)
+                prepared.append((it, upath, tmp))
+                upload_tasks.append(asyncio.create_task(_upload_adaptive(it, upath)))
         for i, (it, upath, tmp) in enumerate(prepared):
             await _wait_if_transfer_paused()
+            if upload_tasks[i] is None:
+                # Skipped duplicate! Clean up tmp if it was created
+                if tmp and os.path.isfile(tmp):
+                    try:
+                        os.remove(tmp)
+                    except Exception:
+                        pass
+                continue
+
             try:
                 handle = await upload_tasks[i]
             except Exception as e:
@@ -1208,12 +1304,17 @@ async def run_ordered_upload(
                 uploaded_handle=handle,
                 part_workers=pw,
                 upload_path=upath,
+                dup_checker=dup_checker,
             )
             if tmp and os.path.isfile(tmp):
                 try:
                     os.remove(tmp)
                 except Exception:
                     pass
+
+            # Cooldown delay
+            import random
+            await asyncio.sleep(random.uniform(1.5, 3.0))
 
     done = sum(1 for i in items if i.status == "done")
     failed = sum(1 for i in items if i.status == "failed")
@@ -1528,7 +1629,7 @@ async def run_media_studio(
                     "Jalankan: pip install cryptg"
                 ),
             )
-        result = await run_ordered_upload(client, entity, items, opts)
+        result = await run_ordered_upload(client, entity, items, opts, chat_id)
         dlog(
             "media_studio upload finished",
             scope="media_studio",

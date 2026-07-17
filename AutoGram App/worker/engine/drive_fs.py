@@ -741,11 +741,15 @@ async def _download_thumb_bytes(
     return None
 
 
+_ffmpeg_semaphore = asyncio.Semaphore(2)
+
+
 async def _ffmpeg_first_frame_jpeg(video_path: str, out_path: str, max_edge: int = 420) -> Optional[bytes]:
-    """Extract first frame from a local video file via ffmpeg (imageio-ffmpeg)."""
-    return await asyncio.to_thread(
-        _ffmpeg_frame_from_file_sync, video_path, out_path, max_edge, False
-    )
+    """Extract first frame from a local video file via ffmpeg (imageio-ffmpeg) throttled to 2 concurrent runs."""
+    async with _ffmpeg_semaphore:
+        return await asyncio.to_thread(
+            _ffmpeg_frame_from_file_sync, video_path, out_path, max_edge, False
+        )
 
 
 def _render_pdf_first_page_jpeg(pdf_path: str, max_edge: int = 420) -> Optional[bytes]:

@@ -608,6 +608,44 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const taskRunningRef = useRef(false);
   const transferRef = useRef(transfer);
   transferRef.current = transfer;
+
+  const [hasPersistedQueue, setHasPersistedQueue] = useState(false);
+  const [persistedQueueCount, setPersistedQueueCount] = useState(0);
+
+  const savePersistedQueue = useCallback((queue: QueueTask[]) => {
+    try {
+      const uploads = queue.filter(task => task.kind === 'upload');
+      if (uploads.length > 0) {
+        localStorage.setItem('autogram_drive_upload_queue', JSON.stringify(uploads));
+      } else {
+        localStorage.removeItem('autogram_drive_upload_queue');
+        setHasPersistedQueue(false);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
+
+  const handleDismissPersistedQueue = useCallback(() => {
+    localStorage.removeItem('autogram_drive_upload_queue');
+    setHasPersistedQueue(false);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('autogram_drive_upload_queue');
+      if (stored) {
+        const queue: QueueTask[] = JSON.parse(stored);
+        if (queue.length > 0) {
+          setHasPersistedQueue(true);
+          const totalFiles = queue.reduce((sum, task) => sum + task.names.length, 0);
+          setPersistedQueueCount(totalFiles);
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
   const [transferMinimized, setTransferMinimized] = useState(
     () => localStorage.getItem(LS_TM_MIN) === '1'
   );
@@ -3033,6 +3071,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     } finally {
       // Remove completed task
       transferQueueRef.current.shift();
+      savePersistedQueue(transferQueueRef.current);
       taskRunningRef.current = false;
 
       // If queue is empty, finish the overall transfer session
@@ -3051,6 +3090,37 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
     }
   };
+
+  const handleResumeQueue = useCallback(() => {
+    try {
+      const stored = localStorage.getItem('autogram_drive_upload_queue');
+      if (stored) {
+        const queue: QueueTask[] = JSON.parse(stored);
+        if (queue.length > 0) {
+          transferQueueRef.current = queue;
+          const allNames = queue.flatMap((q) => q.names);
+          
+          setTransfer(
+            seedTransferSession({
+              direction: 'upload',
+              names: allNames,
+              label: queue[0].targetLabel || 'Melanjutkan unggahan',
+            })
+          );
+          
+          setTransferMinimized(false);
+          localStorage.setItem(LS_TM_MIN, '0');
+          setError(null);
+          
+          void processNextQueueTask();
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    } finally {
+      setHasPersistedQueue(false);
+    }
+  }, []);
 
   const openTransferManager = useCallback(() => {
     if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
@@ -3732,6 +3802,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
     // Add to queue and trigger runner
     transferQueueRef.current.push(newTask);
+    savePersistedQueue(transferQueueRef.current);
     setTransferMinimized(false);
     localStorage.setItem(LS_TM_MIN, '0');
     setError(null);
@@ -3823,6 +3894,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
       // Add to queue and trigger runner
       transferQueueRef.current.push(newTask);
+      savePersistedQueue(transferQueueRef.current);
       setTransferMinimized(false);
       localStorage.setItem(LS_TM_MIN, '0');
       setError(null);
@@ -3910,6 +3982,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
       // Add to queue and trigger runner
       transferQueueRef.current.push(newTask);
+      savePersistedQueue(transferQueueRef.current);
       setTransferMinimized(false);
       localStorage.setItem(LS_TM_MIN, '0');
       setError(null);
@@ -5551,6 +5624,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const cancelTransfer = async () => {
     debugLog('drive', 'transfer stop');
     transferQueueRef.current = [];
+    savePersistedQueue([]);
     const wasDownload = transfer.direction === 'download';
     const wasMove = transfer.direction === 'move' || moveActiveRef.current;
     const tracked = Array.from(downloadArtifactsRef.current);
@@ -6293,6 +6367,42 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               <button type="button" className="td-chip-btn" onClick={() => setError(null)}>
                 Tutup
               </button>
+            </div>
+          )}
+
+          {hasPersistedQueue && (
+            <div
+              className="td-error-banner"
+              style={{
+                background: 'rgba(217, 119, 6, 0.15)',
+                border: '1px solid rgba(217, 119, 6, 0.3)',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              role="status"
+            >
+              <Upload size={15} />
+              <span>Terdapat unggahan yang belum selesai sebelumnya ({persistedQueueCount} file).</span>
+              <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  style={{ background: '#d97706', color: '#fff', border: 'none' }}
+                  onClick={handleResumeQueue}
+                >
+                  Lanjutkan
+                </button>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  style={{ color: '#d97706', border: '1px solid rgba(217, 119, 6, 0.3)', background: 'transparent' }}
+                  onClick={handleDismissPersistedQueue}
+                >
+                  Abaikan
+                </button>
+              </div>
             </div>
           )}
 

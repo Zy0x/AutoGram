@@ -257,22 +257,21 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
     """
     Invoke MTProto request with FloodWait backoff.
     `client_or_sender` may be TelegramClient or an exported media-DC sender.
+    Handles FloodWaitError infinitely and safely, emitting tick events for UI countdown.
     """
-    last = None
-    for attempt in range(retries):
+    attempt = 0
+    while True:
         try:
             return await client_or_sender(request)
         except _UPLOAD_FLOOD_ERRORS as e:
-            last = e
-            wait = int(getattr(e, "seconds", 1) or 1) + 1 + min(attempt, 4) * 0.2
-            # Cap single wait so UI can still cancel; long floods re-raise after retries
-            wait = min(wait, 90)
+            wait_seconds = int(getattr(e, "seconds", 1) or 1)
+            total_wait = wait_seconds + 2
             try:
                 from engine.events import emit_event
 
                 emit_event(
                     "FloodWait",
-                    seconds=int(getattr(e, "seconds", wait) or wait),
+                    seconds=wait_seconds,
                     premium_throttle=bool(
                         FloodPremiumWaitError is not None
                         and isinstance(e, FloodPremiumWaitError)
@@ -280,20 +279,38 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
                 )
             except Exception:
                 pass
-            await asyncio.sleep(wait)
+
+            # Countdown sleep loop: emit progress tick every 5 seconds
+            for remaining in range(total_wait, 0, -5):
+                try:
+                    from engine.events import emit_event
+                    emit_event(
+                        "FloodWaitTick",
+                        remaining=remaining,
+                        total=total_wait
+                    )
+                except Exception:
+                    pass
+                await asyncio.sleep(min(5, remaining))
+
+            try:
+                from engine.events import emit_event
+                emit_event(
+                    "FloodWaitResolved",
+                    status="RESUMING"
+                )
+            except Exception:
+                pass
         except Exception as e:
             # Transient network / timeout — short retry
             msg = str(e).lower()
             if attempt < retries - 1 and any(
                 x in msg for x in ("timeout", "connection", "reset", "broken pipe", "server closed")
             ):
-                last = e
+                attempt += 1
                 await asyncio.sleep(0.4 + attempt * 0.35)
                 continue
             raise
-    if last:
-        raise last
-    raise RuntimeError("upload/download part failed")
 
 
 def encryption_backend() -> str:
