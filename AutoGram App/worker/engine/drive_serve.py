@@ -33,6 +33,7 @@ from engine.drive_fs import (
     invalidate_topics_cache,
     _get_create_forum_topic_cls,
     _get_delete_forum_topic_cls,
+    _get_edit_forum_topic_cls,
     _resolve_peer,
     _scan_folders_on,
     _fetch_thumb_data_url,
@@ -266,6 +267,29 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             "status": "success",
             "chat_id": int(folder_id),
             "topic_id": int(raw_tid),
+        }
+
+    if cmd in ("rename_topic", "rename-topic"):
+        raw_tid = req.get("topic_id") or req.get("topicId")
+        title = req.get("title") or req.get("name")
+        if folder_id is None or raw_tid is None or not title:
+            raise ValueError("folder_id, topic_id, and title are required for rename_topic")
+
+        EditCls = _get_edit_forum_topic_cls()
+        peer = await _resolve_peer(client, int(folder_id))
+        await client(
+            EditCls(
+                channel=peer,
+                topic_id=int(raw_tid),
+                title=str(title),
+            )
+        )
+        invalidate_topics_cache(int(folder_id))
+        return {
+            "status": "success",
+            "chat_id": int(folder_id),
+            "topic_id": int(raw_tid),
+            "name": str(title),
         }
 
     if cmd in ("list_chats", "list-chats"):
@@ -779,6 +803,8 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
         "create-topic",
         "delete_topic",
         "delete-topic",
+        "rename_topic",
+        "rename-topic",
     }
     BACKGROUND = {
         "scan_folders",

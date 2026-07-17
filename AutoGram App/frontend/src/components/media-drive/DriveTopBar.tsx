@@ -23,6 +23,7 @@ import {
   Pin,
   PinOff,
   Copy,
+  Edit2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -99,6 +100,7 @@ type Props = {
   onTopicFilter?: (t: DriveTopicFilter) => void;
   onAddTopic?: () => void;
   onDeleteTopic?: (topicId: number, title: string) => void;
+  onRenameTopic?: (topicId: number, title: string) => void;
   topicsLoading?: boolean;
   /** Open Drive power tools (dup/rename/copy/filter/space) */
   onOpenTools?: () => void;
@@ -160,6 +162,7 @@ export function DriveTopBar({
   onTopicFilter,
   onAddTopic,
   onDeleteTopic,
+  onRenameTopic,
   topicsLoading,
   onOpenTools,
   toolsActive,
@@ -767,6 +770,20 @@ export function DriveTopBar({
                 <Copy size={14} />
                 <span>Salin ID Topik</span>
               </button>
+              {onRenameTopic && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const { topicId, title } = topicContextMenu;
+                    setTopicContextMenu(null);
+                    onRenameTopic(topicId, title);
+                  }}
+                >
+                  <Edit2 size={14} />
+                  <span>Ubah Nama</span>
+                </button>
+              )}
               {onDeleteTopic && (
                 <button
                   type="button"

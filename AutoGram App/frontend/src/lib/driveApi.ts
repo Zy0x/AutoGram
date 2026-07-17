@@ -715,6 +715,28 @@ export async function driveDeleteTopic(creds: DriveCredentials, chatId: number, 
   ]);
 }
 
+export async function driveRenameTopic(
+  creds: DriveCredentials,
+  chatId: number,
+  topicId: number,
+  name: string
+) {
+  if (await ensureWarmDriveSession(creds)) {
+    return driveSessionCallFor(creds, 'rename_topic', {
+      folder_id: chatId,
+      topic_id: topicId,
+      name,
+    });
+  }
+  return runDrive(creds, [
+    '--drive-action',
+    'rename-topic',
+    ...folderArg(chatId),
+    '--options-json',
+    JSON.stringify({ topic_id: topicId, title: name }),
+  ]);
+}
+
 export async function driveThumbnail(
   creds: DriveCredentials,
   messageId: number,

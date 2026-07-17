@@ -44,6 +44,7 @@ import {
   driveListTopics,
   driveCreateTopic,
   driveDeleteTopic,
+  driveRenameTopic,
   driveDeleteBatch,
   driveRename,
   driveRenameFolder,
@@ -3095,6 +3096,51 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     });
   };
 
+  const handleRenameTopic = (topicId: number, currentTitle: string) => {
+    if (!creds) {
+      setError('Session / API belum siap.');
+      return;
+    }
+    if (activePeerId == null) {
+      setError('Pilih grup terlebih dahulu.');
+      return;
+    }
+    setInputDlg({
+      kind: 'rename',
+      title: 'Ganti Nama Topik',
+      description: 'Nama topik baru di Telegram forum.',
+      label: 'Nama Topik',
+      placeholder: currentTitle,
+      defaultValue: currentTitle,
+      confirmLabel: 'Simpan',
+      onConfirm: (name) => {
+        void (async () => {
+          try {
+            setStatusText(`Mengganti nama topik "${currentTitle}"…`);
+            try {
+              await ensureDriveSession(creds);
+            } catch {
+              /* ignore */
+            }
+            await driveRenameTopic(creds, activePeerId, topicId, name);
+            
+            // Force reload topics list
+            await loadTopicsForPeer(activePeerId, null, true);
+            
+            // If renamed topic is active, trigger refresh to update breadcrumbs
+            if (topicFilterRef.current === topicId || topicFilter === topicId) {
+              await refreshFiles();
+            }
+            setStatusText(`Topik "${currentTitle}" berhasil diganti nama.`);
+          } catch (e: any) {
+            setError(e?.message || 'Gagal mengganti nama topik');
+            setStatusText('Siap');
+          }
+        })();
+      },
+    });
+  };
+
   const applyFolderListPatch = useCallback((folder: DriveFolder | null | undefined) => {
     if (!folder?.id) return;
     setFolders((prev) => {
@@ -5826,6 +5872,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onTopicFilter={handleTopicFilter}
             onAddTopic={handleCreateTopic}
             onDeleteTopic={handleDeleteTopic}
+            onRenameTopic={handleRenameTopic}
             topicsLoading={topicsLoading}
             onOpenTools={() => {
               setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'copy');

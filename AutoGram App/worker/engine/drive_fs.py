@@ -5614,6 +5614,122 @@ def _get_delete_forum_topic_cls():
     return _DeleteTopicHistoryRequest
 
 
+def _make_edit_forum_topic_cls():
+    """
+    Dynamically build TLRequest subclass for channels.editForumTopic
+    (constructor 0xf4deb579). Needed because Telethon 1.44 does not include
+    EditForumTopicRequest.
+
+    TL schema:
+        channels.editForumTopic#f4deb579 flags:# channel:InputChannel topic_id:int
+            [title:string] [icon_emoji_id:long] [closed:Bool] = Updates
+    """
+    import struct
+    from telethon.tl.tlobject import TLRequest
+
+    class EditForumTopicRequest(TLRequest):
+        CONSTRUCTOR_ID = 0xF4DEB579
+        SUBCLASS_OF_ID = 0x8AF52AAC  # Updates
+
+        def __init__(
+            self,
+            channel,
+            topic_id: int,
+            title: Optional[str] = None,
+            icon_emoji_id: Optional[int] = None,
+            closed: Optional[bool] = None,
+        ):
+            self.channel = channel
+            self.topic_id = int(topic_id)
+            self.title = title
+            self.icon_emoji_id = icon_emoji_id
+            self.closed = closed
+
+        def _bytes(self) -> bytes:
+            flags = 0
+            if self.title is not None:
+                flags |= 1
+            if self.icon_emoji_id is not None:
+                flags |= 2
+            if self.closed is not None:
+                flags |= 4
+
+            b = struct.pack("<I", self.CONSTRUCTOR_ID)
+            b += struct.pack("<I", flags)
+            b += self.channel._bytes()
+            b += struct.pack("<i", self.topic_id)
+
+            if self.title is not None:
+                b += _tl_encode_string(self.title)
+            if self.icon_emoji_id is not None:
+                b += struct.pack("<q", int(self.icon_emoji_id))
+            if self.closed is not None:
+                bool_val = 0x9977035F if self.closed else 0xBC799730
+                b += struct.pack("<I", bool_val)
+
+            return b
+
+        @classmethod
+        def from_reader(cls, reader):
+            raise NotImplementedError("Read path not needed")
+
+    return EditForumTopicRequest
+
+
+_EditForumTopicRequest = None
+
+
+def _get_edit_forum_topic_cls():
+    global _EditForumTopicRequest
+    if _EditForumTopicRequest is not None:
+        return _EditForumTopicRequest
+    try:
+        from telethon.tl.functions.channels import EditForumTopicRequest
+        _EditForumTopicRequest = EditForumTopicRequest
+    except ImportError:
+        _EditForumTopicRequest = _make_edit_forum_topic_cls()
+    return _EditForumTopicRequest
+
+
+async def rename_topic(
+    *,
+    session_name: str,
+    api_id: int,
+    api_hash: str,
+    chat_id: int,
+    topic_id: int,
+    name: str,
+) -> Dict[str, Any]:
+    """Rename a forum topic in the given group/channel."""
+    setup_emitter(None, None)
+    client = await _connect(session_name, api_id, api_hash)
+    try:
+        peer = await _resolve_peer(client, chat_id)
+        EditCls = _get_edit_forum_topic_cls()
+        await client(
+            EditCls(
+                channel=peer,
+                topic_id=int(topic_id),
+                title=str(name),
+            )
+        )
+        invalidate_topics_cache(chat_id)
+        out = {
+            "status": "success",
+            "chat_id": int(chat_id),
+            "topic_id": int(topic_id),
+            "name": str(name),
+        }
+        _json_out(out)
+        return out
+    except Exception as e:
+        out = {"status": "error", "error": str(e)}
+        _json_out(out)
+        return out
+    finally:
+        await client.disconnect()
+
+
 async def delete_topic(
     *,
     session_name: str,
@@ -7936,6 +8052,21 @@ async def run_drive_action(
                 api_hash=api_hash,
                 chat_id=int(folder_id),
                 topic_id=int(raw_tid),
+            )
+        if act in ("rename-topic", "drive-rename-topic", "edit-topic", "drive-edit-topic"):
+            raw_tid = opts.get("topic_id") or opts.get("topicId") or message_id
+            title = opts.get("title") or name or str(opts.get("name") or "")
+            if folder_id is None or raw_tid is None or not title:
+                out = {"status": "error", "error": "folder_id, topic_id, and new title are required"}
+                _json_out(out)
+                return out
+            return await rename_topic(
+                session_name=session_name,
+                api_id=api_id,
+                api_hash=api_hash,
+                chat_id=int(folder_id),
+                topic_id=int(raw_tid),
+                name=str(title),
             )
         if act in ("list-topics", "drive-list-topics"):
             if folder_id is None:
