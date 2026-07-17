@@ -561,6 +561,8 @@ def register_stream(
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         if not os.path.isfile(path):
             open(path, "wb").close()
+        elif total_size > 0 and os.path.getsize(path) >= total_size:
+            media.mark_range(0, total_size)
     except OSError:
         pass
     with _LOCK:
