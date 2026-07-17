@@ -28,6 +28,8 @@ import {
   getApiHashSync,
   getApiIdSync,
   writeWorkerTempJson,
+  getSecureTransferSettings,
+  setSecureTransferSettings,
 } from '../lib/secureCredentials';
 import { loadSelectableSessionNames } from '../lib/sessionPicker';
 import {
@@ -927,6 +929,25 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       cancelled = true;
     };
   }, [apiCreds.apiId, apiCreds.apiHash]);
+
+  // Load transfer settings from secure backend store on mount (stable across webview resets)
+  useEffect(() => {
+    let active = true;
+    async function loadSecureSettings() {
+      try {
+        const secureSettings = await getSecureTransferSettings();
+        if (active && secureSettings) {
+          setTransferSettings(secureSettings);
+        }
+      } catch (err) {
+        console.warn('Failed to load secure transfer settings:', err);
+      }
+    }
+    void loadSecureSettings();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
@@ -3312,6 +3333,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       'Drive';
     const label = `→ ${destLabel}`;
     const names = cleanPaths.map((p) => p.split(/[/\\]/).pop() || p);
+    const namesLabel = names.length > 3
+      ? `${names.slice(0, 3).join(', ')} (+ ${names.length - 3} file lainnya)`
+      : names.join(', ');
     if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
     void clearDriveTransferPause();
     setTransfer(
@@ -3407,7 +3431,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
       if (uploadedIds.length) {
         setStatusText(
-          `Upload selesai${label}: ${names.join(', ')} · ${uploadedIds.length} msg`
+          `Upload selesai${label}: ${namesLabel} · ${uploadedIds.length} msg`
         );
       }
       // Prefer committed message ids over process exit code: worker can exit
@@ -3415,7 +3439,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       const committed = uploadedIds.length > 0;
       if (committed) {
         setStatusText(
-          `Upload selesai${label}: ${names.join(', ')} · ${uploadedIds.length} msg`
+          `Upload selesai${label}: ${namesLabel} · ${uploadedIds.length} msg`
         );
         if (uploadError || (exitCode != null && exitCode !== 0)) {
           // Soft warning only — do not mark Transfer Manager as failed
@@ -3431,7 +3455,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
         setTransfer((t) => markTransferFinished(t, 'failed'));
       } else {
-        setStatusText(`Upload selesai${label}: ${names.join(', ')}`);
+        setStatusText(`Upload selesai${label}: ${namesLabel}`);
         setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
       }
     } catch (e: any) {
@@ -5985,6 +6009,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onChange={(next: TransferSettingsState) => {
               setTransferSettings(next);
               saveTransferSettings(next);
+              void setSecureTransferSettings(next);
             }}
           />
 
