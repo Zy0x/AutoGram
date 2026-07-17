@@ -13,7 +13,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, AlertTriangle } from 'lucide-react';
+import { HardDrive, AlertTriangle, Upload } from 'lucide-react';
 import { canUseLocalTelegramWorker } from '../lib/platform';
 import {
   openDriveMoveConfirm,
@@ -6296,67 +6296,86 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             </div>
           )}
 
-          <DriveExplorer
-            files={files}
-            loading={loadingFiles}
-            loadingMore={loadingMoreFiles}
-            hasMore={filesHasMore}
-            onLoadMore={loadMoreFiles}
-            progressiveReady={progressiveReady}
-            scrollKey={explorerScrollKey}
-            initialScrollTop={explorerInitialScrollTop}
-            onScrollPositionChange={rememberExplorerScroll}
-            scaleHint={scaleHint}
-            error={error && files.length === 0 ? error : null}
-            viewMode={viewMode}
-            selectedIds={selectedIds}
-            query={query}
-            mediaFilter={mediaFilter}
-            sortMode={sortMode}
-            advFilter={advFilter}
-            gridZoom={gridZoom}
-            onGridZoom={handleGridZoom}
-            folderId={peerId}
-            folderName={breadcrumb}
-            creds={creds}
-            onSelect={handleSelect}
-            onToggleSelection={handleToggleSelection}
-            onMarqueeSelect={handleMarqueeSelect}
-            onClearSelection={clearSelection}
-            onDisplayedIdsChange={(ids) => {
-              displayedIdsRef.current = ids;
-            }}
-            onOpen={(f) => setPreviewFile(f)}
-            onPreview={(f) => setPreviewFile(f)}
-            onDownload={(f) => downloadOne(f)}
-            onDelete={(f) => handleDeleteIds([f.id])}
-            onUpload={handleUpload}
-            onCreateFolder={handleCreateFolder}
-            dragActive={dragActive}
-            internalDragActive={mediaDragActive}
-            draggingIds={
-              mediaDragActive
-                ? getActiveDriveDrag()?.messageIds || pointerDragRef.current?.ids || []
-                : []
-            }
-            onDragStartFile={handleDragStartFile}
-            onDragEndFile={handleDragEndFile}
-            onMediaDragPrime={handleMediaDragPrime}
-            thumbQuality={thumbQuality}
-            onContextMenu={(e, f) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setContextMenu({ kind: 'file', x: e.clientX, y: e.clientY, file: f });
-              if (!selectedIds.includes(f.id)) {
-                setSelectedIds([f.id]);
-                selectionAnchorRef.current = f.id;
+          <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {dragActive && !mediaDragActive && (
+              <div className="td-drop-overlay" data-dnd="os-upload">
+                <div className="td-drop-overlay-icon">
+                  <Upload size={36} strokeWidth={1.75} />
+                </div>
+                <p className="td-drop-overlay-title">
+                  Lepas untuk mengunggah ke <strong>{breadcrumb}</strong>
+                </p>
+                <span className="td-drop-overlay-hint">File dari komputer / File Explorer</span>
+              </div>
+            )}
+
+            {mediaDragActive && (
+              <div className="td-internal-dnd-tip" role="status">
+                Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
+              </div>
+            )}
+
+            <DriveExplorer
+              files={files}
+              loading={loadingFiles}
+              loadingMore={loadingMoreFiles}
+              hasMore={filesHasMore}
+              onLoadMore={loadMoreFiles}
+              progressiveReady={progressiveReady}
+              scrollKey={explorerScrollKey}
+              initialScrollTop={explorerInitialScrollTop}
+              onScrollPositionChange={rememberExplorerScroll}
+              scaleHint={scaleHint}
+              error={error && files.length === 0 ? error : null}
+              viewMode={viewMode}
+              selectedIds={selectedIds}
+              query={query}
+              mediaFilter={mediaFilter}
+              sortMode={sortMode}
+              advFilter={advFilter}
+              gridZoom={gridZoom}
+              onGridZoom={handleGridZoom}
+              folderId={peerId}
+              creds={creds}
+              onSelect={handleSelect}
+              onToggleSelection={handleToggleSelection}
+              onMarqueeSelect={handleMarqueeSelect}
+              onClearSelection={clearSelection}
+              onDisplayedIdsChange={(ids) => {
+                displayedIdsRef.current = ids;
+              }}
+              onOpen={(f) => setPreviewFile(f)}
+              onPreview={(f) => setPreviewFile(f)}
+              onDownload={(f) => downloadOne(f)}
+              onDelete={(f) => handleDeleteIds([f.id])}
+              onUpload={handleUpload}
+              onCreateFolder={handleCreateFolder}
+              dragActive={dragActive}
+              internalDragActive={mediaDragActive}
+              draggingIds={
+                mediaDragActive
+                  ? getActiveDriveDrag()?.messageIds || pointerDragRef.current?.ids || []
+                  : []
               }
-            }}
-            onCanvasContextMenu={(e) => {
-              e.preventDefault();
-              setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
-            }}
-          />
+              onDragStartFile={handleDragStartFile}
+              onDragEndFile={handleDragEndFile}
+              onMediaDragPrime={handleMediaDragPrime}
+              thumbQuality={thumbQuality}
+              onContextMenu={(e, f) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setContextMenu({ kind: 'file', x: e.clientX, y: e.clientY, file: f });
+                if (!selectedIds.includes(f.id)) {
+                  setSelectedIds([f.id]);
+                  selectionAnchorRef.current = f.id;
+                }
+              }}
+              onCanvasContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
+              }}
+            />
+          </div>
         </div>
       </div>
 

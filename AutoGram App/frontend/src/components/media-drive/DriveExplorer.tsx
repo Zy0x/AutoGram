@@ -56,7 +56,6 @@ type Props = {
   gridZoom?: DriveGridZoom;
   onGridZoom?: (z: DriveGridZoom) => void;
   folderId: number | null;
-  folderName: string;
   creds: DriveCredentials | null;
   /** Click selection — parent applies filter/sort-aware logic */
   onSelect: (e: React.MouseEvent, id: number) => void;
@@ -128,7 +127,6 @@ export function DriveExplorer({
   gridZoom = DEFAULT_GRID_ZOOM,
   onGridZoom,
   folderId,
-  folderName,
   creds,
   onSelect,
   onToggleSelection,
@@ -660,25 +658,7 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
-      {/* OS files only — Google Drive blue upload zone */}
-      {dragActive && !internalDragActive && (
-        <div className="td-drop-overlay" data-dnd="os-upload">
-          <div className="td-drop-overlay-icon">
-            <Upload size={36} strokeWidth={1.75} />
-          </div>
-          <p className="td-drop-overlay-title">
-            Lepas untuk mengunggah ke <strong>{folderName}</strong>
-          </p>
-          <span className="td-drop-overlay-hint">File dari komputer / File Explorer</span>
-        </div>
-      )}
 
-      {/* Internal move tip (like GDrive “drop on a folder”) — not full-screen overlay */}
-      {internalDragActive && (
-        <div className="td-internal-dnd-tip" role="status">
-          Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
-        </div>
-      )}
 
       {scaleHint && <div className="td-scale-hint">{scaleHint}</div>}
 
