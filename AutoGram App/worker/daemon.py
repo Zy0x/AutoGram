@@ -761,6 +761,50 @@ async def main():
         print("[DAEMON] Reconciliation complete. Zombie executions marked as FAILED.")
         return
 
+    if args.action == "calculate-cache-size":
+        cache_dir = os.path.join(os.path.dirname(__file__), 'cache')
+        total_size = 0
+        if os.path.exists(cache_dir):
+            for root, dirs, files in os.walk(cache_dir):
+                for f in files:
+                    fp = os.path.join(root, f)
+                    try:
+                        total_size += os.path.getsize(fp)
+                    except OSError:
+                        pass
+        print(f"[JSON_OUTPUT]{json.dumps({'status': 'success', 'size_bytes': total_size})}")
+        return
+
+    if args.action == "clear-disk-cache":
+        import shutil
+        cache_dir = os.path.join(os.path.dirname(__file__), 'cache')
+        cleaned_dirs = []
+        if os.path.exists(cache_dir):
+            for item in os.listdir(cache_dir):
+                item_path = os.path.join(cache_dir, item)
+                if os.path.isdir(item_path):
+                    try:
+                        shutil.rmtree(item_path)
+                        os.makedirs(item_path, exist_ok=True)
+                        cleaned_dirs.append(item)
+                    except Exception as e:
+                        print(f"[WARN] Failed to clean {item}: {e}", file=sys.stderr)
+        temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+        if os.path.exists(temp_dir):
+            for item in os.listdir(temp_dir):
+                if item == "drive_active_downloads.json":
+                    continue
+                item_path = os.path.join(temp_dir, item)
+                try:
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                    else:
+                        os.remove(item_path)
+                except Exception:
+                    pass
+        print(f"[JSON_OUTPUT]{json.dumps({'status': 'success', 'cleaned': cleaned_dirs})}")
+        return
+
     if args.action == "list-dialogs":
         await list_dialogs(args.session, args.api_id, args.api_hash)
         return

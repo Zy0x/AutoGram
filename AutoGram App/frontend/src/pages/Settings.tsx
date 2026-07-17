@@ -12,6 +12,15 @@ import {
   Terminal,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { runDaemonOnce } from '../lib/workerBridge';
+import { clearThumbCache } from '../lib/thumbBatcher';
+import { clearAvatarCache } from '../lib/avatarBatcher';
+import { clearPreviewCache } from '../lib/previewCache';
+import {
+  clearPersistentThumbs,
+  getPersistentThumbsSize,
+} from '../lib/thumbPersistentCache';
 import {
   bootstrapSecureCredentials,
   setApiCredentials,
@@ -38,6 +47,130 @@ export function Settings() {
   const [debugBusy, setDebugBusy] = useState(false);
   const [logSnap, setLogSnap] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [cacheSize, setCacheSize] = useState<number | null>(null);
+  const [clearStatus, setClearStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formattedSize = cacheSize !== null ? formatBytes(cacheSize) : 'Belum dihitung';
+
+  const calculateCacheSize = async () => {
+    setIsCalculating(true);
+    setClearStatus('idle');
+    try {
+      // 1. IndexedDB
+      const idbSize = await getPersistentThumbsSize();
+      
+      // 2. LocalStorage
+      let localSize = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('autogram_drive_locations_v1_') ||
+          key.startsWith('autogram_drive_sidebar_v1_') ||
+          key.startsWith('autogram_drive_topics_v1_')
+        )) {
+          localSize += key.length + (localStorage.getItem(key)?.length || 0);
+        }
+      }
+      
+      // 3. Disk Cache Backend
+      let diskSize = 0;
+      try {
+        const res = await runDaemonOnce(['--action', 'calculate-cache-size']);
+        if (res.code === 0 && res.stdout.includes('[JSON_OUTPUT]')) {
+          const jsonStr = res.stdout.split('[JSON_OUTPUT]')[1];
+          const data = JSON.parse(jsonStr);
+          if (data.status === 'success') {
+            diskSize = data.size_bytes || 0;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to calculate disk cache size', e);
+      }
+      
+      setCacheSize(idbSize + localSize + diskSize);
+    } catch (err) {
+      console.error('Failed to calculate cache size', err);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    const confirmed = await ask(
+      'Apakah Anda yakin ingin menghapus semua cache? Semua thumbnail, pratinjau media, dan riwayat folder lokal akan dibersihkan.',
+      {
+        title: 'Konfirmasi Hapus Cache',
+        kind: 'warning',
+        okLabel: 'Hapus',
+        cancelLabel: 'Batal'
+      }
+    );
+    if (!confirmed) return;
+
+    setIsClearing(true);
+    setClearStatus('idle');
+    try {
+      // 1. Memory Caches
+      clearThumbCache();
+      clearAvatarCache();
+      clearPreviewCache();
+
+      // 2. IndexedDB
+      await clearPersistentThumbs();
+
+      // 3. LocalStorage
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('autogram_drive_locations_v1_') ||
+          key.startsWith('autogram_drive_sidebar_v1_') ||
+          key.startsWith('autogram_drive_topics_v1_')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+
+      // 4. Disk Cache Backend
+      try {
+        const res = await runDaemonOnce(['--action', 'clear-disk-cache']);
+        if (res.code !== 0) {
+          console.warn('Disk cache clean reported non-zero code', res);
+        }
+      } catch (e) {
+        console.error('Failed to clear disk cache', e);
+      }
+
+      // Recalculate size
+      await calculateCacheSize();
+      setClearStatus('success');
+      setTimeout(() => setClearStatus('idle'), 5000);
+    } catch (err) {
+      console.error('Failed to clear cache', err);
+      setClearStatus('error');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  // Auto-calculate on mount
+  useEffect(() => {
+    void calculateCacheSize();
+  }, []);
 
   // Load from encrypted store (migrates legacy localStorage once)
   useEffect(() => {
@@ -323,6 +456,70 @@ export function Settings() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="glass-panel card">
+          <div className="card-header">
+            <Trash2 size={20} color="var(--primary)" />
+            <h3>Manajemen Cache &amp; Penyimpanan</h3>
+          </div>
+          
+          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+            Aplikasi menyimpan data sementara secara lokal (thumbnail, data pratinjau, riwayat folder/sidebar, dan log transient) untuk mempercepat performa navigasi. Hapus cache jika Anda ingin membebaskan ruang penyimpanan atau memuat ulang data segar dari Telegram.
+          </p>
+
+          <div className="page-stack" style={{ gap: '1.25rem' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'rgba(255, 255, 255, 0.03)',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div>
+                <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>Ukuran Cache Terdeteksi:</span>
+                <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>IndexedDB + LocalStorage + Disk Cache Backend</p>
+              </div>
+              <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+                <strong style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>
+                  {isCalculating ? 'Menghitung...' : formattedSize}
+                </strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={calculateCacheSize} 
+                disabled={isCalculating || isClearing}
+              >
+                Hitung Ukuran
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)' }}
+                onClick={handleClearCache} 
+                disabled={isCalculating || isClearing}
+              >
+                {isClearing ? 'Membersihkan...' : 'Hapus Cache'}
+              </button>
+            </div>
+
+            {clearStatus === 'success' && (
+              <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
+                ✓ Cache berhasil dibersihkan! Navigasi Anda akan dimuat ulang dari awal.
+              </span>
+            )}
+            {clearStatus === 'error' && (
+              <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
+                Gagal membersihkan cache disk.
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </main>

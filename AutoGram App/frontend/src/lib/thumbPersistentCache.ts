@@ -135,3 +135,27 @@ export async function savePersistentThumb(key: string, dataUrl: string): Promise
     /* thumbnail cache must never block rendering */
   }
 }
+
+
+export async function getPersistentThumbsSize(): Promise<number> {
+  const db = await openDb();
+  if (!db) return 0;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result as ThumbRow[];
+        let total = 0;
+        for (const item of items) {
+          total += (item.key.length + item.dataUrl.length + 8);
+        }
+        resolve(total);
+      };
+      req.onerror = () => resolve(0);
+    } catch {
+      resolve(0);
+    }
+  });
+}
