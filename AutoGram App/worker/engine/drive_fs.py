@@ -5496,6 +5496,64 @@ async def list_topics(
         await client.disconnect()
 
 
+async def create_topic(
+    *,
+    session_name: str,
+    api_id: int,
+    api_hash: str,
+    chat_id: int,
+    title: str,
+) -> Dict[str, Any]:
+    """Create a new forum topic in the given group/channel."""
+    from telethon.tl.functions.channels import CreateForumTopicRequest
+    setup_emitter(None, None)
+    client = await _connect(session_name, api_id, api_hash)
+    try:
+        peer = await _resolve_peer(client, chat_id)
+        # Create topic RPC
+        result = await client(
+            CreateForumTopicRequest(
+                channel=peer,
+                title=str(title),
+            )
+        )
+        invalidate_topics_cache(chat_id)
+        
+        # Extract new topic ID if possible
+        topic_id = None
+        for update in getattr(result, "updates", []):
+            if type(update).__name__ in ("UpdateNewForumTopic", "UpdateNewForumTopicWrapper"):
+                topic = getattr(update, "topic", None)
+                if topic:
+                    topic_id = getattr(topic, "id", None)
+                    break
+        
+        if topic_id is None:
+            for update in getattr(result, "updates", []):
+                if hasattr(update, "id"):
+                    topic_id = getattr(update, "id")
+                elif hasattr(update, "topic_id"):
+                    topic_id = getattr(update, "topic_id")
+        
+        out = {
+            "status": "success",
+            "chat_id": int(chat_id),
+            "topic_id": topic_id,
+            "title": str(title),
+        }
+        _json_out(out)
+        return out
+    except Exception as e:
+        out = {
+            "status": "error",
+            "error": str(e),
+        }
+        _json_out(out)
+        return out
+    finally:
+        await client.disconnect()
+
+
 async def get_thumbnail(
     *,
     session_name: str,
@@ -7699,6 +7757,19 @@ async def run_drive_action(
                 api_hash=api_hash,
                 folder_id=int(folder_id),
                 parent_id=parent_arg,
+            )
+        if act in ("create-topic", "drive-create-topic"):
+            title = opts.get("title")
+            if folder_id is None or not title:
+                out = {"status": "error", "error": "Folder ID (chat_id) and title are required"}
+                _json_out(out)
+                return out
+            return await create_topic(
+                session_name=session_name,
+                api_id=api_id,
+                api_hash=api_hash,
+                chat_id=int(folder_id),
+                title=str(title),
             )
         if act in ("list-topics", "drive-list-topics"):
             if folder_id is None:

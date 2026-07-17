@@ -30,6 +30,7 @@ from engine.drive_fs import (
     _list_chats_on,
     _list_files_on,
     _list_topics_on,
+    invalidate_topics_cache,
     _resolve_peer,
     _scan_folders_on,
     _fetch_thumb_data_url,
@@ -211,6 +212,44 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             "chat_id": int(folder_id),
             "is_forum": bool(pack.get("is_forum")),
             "topics": pack.get("topics") or [],
+        }
+
+    if cmd in ("create_topic", "create-topic"):
+        title = req.get("title")
+        if folder_id is None or not title:
+            raise ValueError("folder_id and title are required for create_topic")
+        
+        from telethon.tl.functions.channels import CreateForumTopicRequest
+        
+        peer = await _resolve_peer(client, int(folder_id))
+        result = await client(
+            CreateForumTopicRequest(
+                channel=peer,
+                title=str(title),
+            )
+        )
+        invalidate_topics_cache(int(folder_id))
+        
+        topic_id = None
+        for update in getattr(result, "updates", []):
+            if type(update).__name__ in ("UpdateNewForumTopic", "UpdateNewForumTopicWrapper"):
+                topic = getattr(update, "topic", None)
+                if topic:
+                    topic_id = getattr(topic, "id", None)
+                    break
+                    
+        if topic_id is None:
+            for update in getattr(result, "updates", []):
+                if hasattr(update, "id"):
+                    topic_id = getattr(update, "id")
+                elif hasattr(update, "topic_id"):
+                    topic_id = getattr(update, "topic_id")
+                    
+        return {
+            "status": "success",
+            "chat_id": int(folder_id),
+            "topic_id": topic_id,
+            "title": str(title),
         }
 
     if cmd in ("list_chats", "list-chats"):
@@ -710,6 +749,8 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
         "ping",
         "create_folder",
         "create-folder",
+        "create_topic",
+        "create-topic",
         "delete_folder",
         "delete-folder",
         "rename_folder",

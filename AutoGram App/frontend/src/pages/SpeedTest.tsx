@@ -40,6 +40,7 @@ import {
   driveListFiles,
   driveMediaStats,
   driveListTopics,
+  driveCreateTopic,
   driveDeleteBatch,
   driveRename,
   driveRenameFolder,
@@ -2954,6 +2955,60 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     });
   };
 
+  const handleCreateTopic = () => {
+    if (!creds) {
+      setError('Session / API belum siap.');
+      return;
+    }
+    if (activePeerId == null) {
+      setError('Pilih grup terlebih dahulu.');
+      return;
+    }
+    setError(null);
+    setInputDlg({
+      kind: 'create-topic',
+      title: 'Buat Topik Baru',
+      description: 'Tambahkan topik baru pada grup forum ini.',
+      label: 'Nama Topik',
+      placeholder: 'mis. Dokumentasi',
+      confirmLabel: 'Buat Topik',
+      onConfirm: (name) => {
+        void (async () => {
+          try {
+            if (!creds) {
+              setError('Session / API belum siap.');
+              return;
+            }
+            setStatusText(`Membuat topik "${name}"…`);
+            try {
+              await ensureDriveSession(creds);
+            } catch {
+              /* ignore */
+            }
+            const res = await driveCreateTopic(creds, activePeerId, name);
+            
+            // Invalidate local topics cache
+            topicsCacheRef.current.delete(activePeerId);
+            
+            // Reload topics list
+            await loadTopicsForPeer(activePeerId);
+            
+            if (res?.topic_id != null) {
+              setTopicFilter(res.topic_id);
+              topicFilterRef.current = res.topic_id;
+              setStatusText(`Topik siap: ${name}`);
+            } else {
+              setStatusText(`Topik "${name}" berhasil dibuat.`);
+            }
+          } catch (e: any) {
+            setError(e?.message || 'Gagal membuat topik');
+            setStatusText('Siap');
+          }
+        })();
+      },
+    });
+  };
+
   const applyFolderListPatch = useCallback((folder: DriveFolder | null | undefined) => {
     if (!folder?.id) return;
     setFolders((prev) => {
@@ -5679,6 +5734,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             topics={topics}
             topicFilter={topicFilter}
             onTopicFilter={handleTopicFilter}
+            onAddTopic={handleCreateTopic}
             topicsLoading={topicsLoading}
             onOpenTools={() => {
               setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'copy');
