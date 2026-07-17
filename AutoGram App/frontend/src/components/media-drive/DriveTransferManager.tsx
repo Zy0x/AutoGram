@@ -484,8 +484,15 @@ export function DriveTransferManager({
               <li key={it.id} className={`tm-row status-${it.status}`}>
                 <StatusIcon status={it.status} />
                 <div className="tm-row-body">
-                  <div className="tm-row-name" title={it.name}>
-                    {it.name}
+                  <div className="tm-row-name-container">
+                    <div className="tm-row-name" title={it.name}>
+                      {it.name}
+                    </div>
+                    {it.destination && (
+                      <span className="tm-row-dest" title={`Tujuan: ${it.destination}`}>
+                        {it.destination}
+                      </span>
+                    )}
                   </div>
                   <div className="tm-row-meta">
                     {it.status === 'done' && <span>Selesai</span>}

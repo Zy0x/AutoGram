@@ -3116,11 +3116,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           transferQueueRef.current = queue;
           const allNames = queue.flatMap((q) => q.names);
           
+          const destinations = queue.flatMap((q) => {
+            const dest = q.targetLabel || (q.kind.includes('download') ? q.saveDir || q.savePath || 'Folder' : 'Saved Messages');
+            return q.names.map(() => dest);
+          });
           setTransfer(
             seedTransferSession({
               direction: 'upload',
               names: allNames,
               label: queue[0].targetLabel || 'Melanjutkan unggahan',
+              destinations,
             })
           );
           
@@ -3793,6 +3798,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           direction: 'upload',
           names,
           label,
+          destination: destLabel,
         })
       );
     } else {
@@ -3808,6 +3814,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           transferred: 0,
           total: 0,
           speed_mb_s: 0,
+          destination: destLabel,
         }));
         return {
           ...prev,
@@ -3886,6 +3893,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             direction: 'download',
             names,
             label: `${selectedIds.length} file → folder`,
+            destination: saveDir || 'Folder',
           })
         );
       } else {
@@ -3900,6 +3908,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             transferred: 0,
             total: 0,
             speed_mb_s: 0,
+            destination: saveDir || 'Folder',
           }));
           return {
             ...prev,
@@ -3972,6 +3981,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             names: [file.name],
             label: file.name,
             totals: file.size > 0 ? [file.size] : undefined,
+            destination: savePath,
           })
         );
       } else {
@@ -3987,6 +3997,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               transferred: 0,
               total: file.size > 0 ? file.size : 0,
               speed_mb_s: 0,
+              destination: savePath,
             },
           ];
           return {

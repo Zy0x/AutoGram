@@ -9540,12 +9540,34 @@ body:has(.td-page),
   flex: 1;
   min-width: 0;
 }
+.tm-row-name-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
 .tm-row-name {
   font-size: 0.78rem;
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+.tm-row-dest {
+  font-size: 0.62rem;
+  font-weight: 750;
+  color: var(--tm-accent, #38bdf8);
+  background: var(--tm-accent-soft, rgba(56, 189, 248, 0.12));
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--tm-accent, #38bdf8) 20%, transparent);
 }
 .tm-row-meta {
   display: flex;

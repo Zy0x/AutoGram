@@ -84,20 +84,30 @@ function recomputeOverall(session: TransferSession): TransferSession {
   let total = session.total;
   let overall = session.overallPercent;
 
-  // Prefer byte totals when known
-  if (total > 0) {
-    overall = Math.min(100, (transferred / total) * 100);
-  } else if (n > 0) {
-    const done = items.filter((i) => i.status === 'done').length;
-    const activePct = items
-      .filter((i) => i.status === 'active' || i.status === 'preparing')
-      .reduce((s, i) => s + Math.min(100, i.percent) / 100, 0);
-    overall = Math.min(100, ((done + activePct) / n) * 100);
-    // Estimate transferred from per-item when session total unknown
-    const itemBytes = items.reduce((s, i) => s + (i.transferred || 0), 0);
-    if (itemBytes > transferred) transferred = itemBytes;
-    const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
-    if (itemTotals > total) total = itemTotals;
+  if (n > 0) {
+    const allSizesKnown = items.every((i) => i.total > 0);
+    if (allSizesKnown && total > 0) {
+      const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
+      overall = Math.min(100, (itemTransferred / total) * 100);
+      transferred = itemTransferred;
+    } else {
+      // Calculate overall based on average item percentage completion.
+      // - 'done' items are 100%
+      // - 'active' / 'preparing' items use their live item.percent
+      // - 'failed', 'cancelled', or 'queued' contribute 0% progress
+      const sumPct = items.reduce((s, i) => {
+        if (i.status === 'done') return s + 100;
+        if (i.status === 'active' || i.status === 'preparing') return s + Math.min(100, i.percent);
+        return s;
+      }, 0);
+      overall = sumPct / n;
+
+      // Estimate total / transferred bytes for UI stats
+      const itemBytes = items.reduce((s, i) => s + (i.transferred || 0), 0);
+      if (itemBytes > transferred) transferred = itemBytes;
+      const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
+      if (itemTotals > total) total = itemTotals;
+    }
   }
 
   return {
@@ -115,6 +125,8 @@ export type SeedTransferOpts = {
   label?: string;
   totals?: number[];
   jobKey?: string;
+  destination?: string;
+  destinations?: string[];
 };
 
 /** Create a fresh session when user starts an upload/download. */
@@ -131,6 +143,7 @@ export function seedTransferSession(opts: SeedTransferOpts): TransferSession {
     transferred: 0,
     total: opts.totals?.[index] ?? 0,
     speed_mb_s: 0,
+    destination: opts.destinations?.[index] ?? opts.destination ?? opts.label ?? '',
   }));
   const total = items.reduce((s, i) => s + (i.total || 0), 0);
   return {
@@ -151,7 +164,7 @@ export function markTransferFinished(
   status: 'done' | 'cancelled' | 'failed' = 'done'
 ): TransferSession {
   const items = session.items.map((it) => {
-    if (it.status === 'done' || it.status === 'failed') return it;
+    if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled') return it;
     if (status === 'cancelled') {
       return { ...it, status: 'cancelled' as const };
     }
@@ -173,16 +186,19 @@ export function markTransferFinished(
     }
     return it;
   });
-  return recomputeOverall({
+  const finished = recomputeOverall({
     ...session,
     active: false,
     paused: false,
     items,
-    overallPercent: status === 'done' ? 100 : session.overallPercent,
     speed_mb_s: 0,
     etaSeconds: null,
     banner: status === 'failed' ? session.banner : undefined,
   });
+  return {
+    ...finished,
+    overallPercent: status === 'done' && !items.some((i) => i.status === 'failed' || i.status === 'cancelled') ? 100 : finished.overallPercent,
+  };
 }
 
 export function clearFinishedItems(session: TransferSession): TransferSession {
@@ -574,7 +590,7 @@ export function applyTransferEvent(
           ...session,
           banner: `Selesai sebagian — ${err}`,
         },
-        'done'
+        'failed'
       );
     }
     return markTransferFinished({ ...session, banner: err }, 'failed');
