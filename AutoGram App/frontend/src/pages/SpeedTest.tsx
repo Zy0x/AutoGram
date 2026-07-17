@@ -59,6 +59,7 @@ import {
   parseJsonOutput,
   friendlyDriveError,
   isPeerEntityError,
+  isSessionLockError,
   CHAT_BULK_PAGE,
   type DriveCredentials,
   type ChatListCursor,
@@ -588,6 +589,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const transferHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Local paths of in-progress downloads (for Stop cleanup). */
   const downloadArtifactsRef = useRef<Set<string>>(new Set());
+  const refreshFilesRef = useRef<((retryCount?: number) => Promise<void>) | null>(null);
   /** Local confirm (delete/download) + external store for DnD move */
   const [confirmDlg, setConfirmDlg] = useState<DriveConfirmState | null>(null);
   // Version primitive forces re-render; then read latest state from store
@@ -1879,7 +1881,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setActivePeerId(id);
   }, [creds, chats, folders, loadingChats]);
 
-  const refreshFiles = useCallback(async () => {
+  const refreshFiles = useCallback(async (retryCount = 0) => {
     if (!creds) return;
     const gen = ++peerGen.current;
     // Allow thumb re-fetch after manual refresh (soft-fails cleared; success cache kept)
@@ -2056,6 +2058,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     } catch (e: any) {
       if (gen !== peerGen.current) return;
       if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
+      const isLock = isSessionLockError(e);
+      if (isLock && retryCount < 3) {
+        setStatusText(`Session sibuk, mencoba kembali (${retryCount + 1}/3)…`);
+        window.setTimeout(() => {
+          if (gen === peerGen.current) {
+            void refreshFilesRef.current?.(retryCount + 1);
+          }
+        }, 1200);
+        return;
+      }
       setError(friendlyDriveError(e));
       setStatusText('List failed');
     } finally {
@@ -2071,6 +2083,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
     }
   }, [creds, peerId, scheduleMediaStats, loadTopicsForPeer, recoverInvalidPeerLocation]);
+
+  useEffect(() => {
+    refreshFilesRef.current = refreshFiles;
+  }, [refreshFiles]);
 
   const loadMoreFiles = useCallback(async () => {
     if (!creds || !filesHasMore || loadingMoreFiles || loadMoreLock.current) return;
@@ -3385,7 +3401,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         childRef.current = null;
       }
       if (sameDriveLocation(uploadPeer, peerId)) {
-        // Force refresh files after upload so media and thumbnails are visible immediately
+        // Give background daemon a brief moment to fully release the .session database lock
+        await new Promise((r) => setTimeout(r, 600));
         await refreshFiles();
       }
       if (uploadedIds.length) {
