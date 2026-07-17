@@ -31,6 +31,7 @@ from engine.drive_fs import (
     _list_files_on,
     _list_topics_on,
     invalidate_topics_cache,
+    _get_create_forum_topic_cls,
     _resolve_peer,
     _scan_folders_on,
     _fetch_thumb_data_url,
@@ -218,18 +219,17 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         title = req.get("title")
         if folder_id is None or not title:
             raise ValueError("folder_id and title are required for create_topic")
-        
-        from telethon.tl.functions.channels import CreateForumTopicRequest
-        
+
+        CreateForumTopicCls = _get_create_forum_topic_cls()
         peer = await _resolve_peer(client, int(folder_id))
         result = await client(
-            CreateForumTopicRequest(
+            CreateForumTopicCls(
                 channel=peer,
                 title=str(title),
             )
         )
         invalidate_topics_cache(int(folder_id))
-        
+
         topic_id = None
         for update in getattr(result, "updates", []):
             if type(update).__name__ in ("UpdateNewForumTopic", "UpdateNewForumTopicWrapper"):
@@ -237,14 +237,14 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                 if topic:
                     topic_id = getattr(topic, "id", None)
                     break
-                    
+
         if topic_id is None:
             for update in getattr(result, "updates", []):
                 if hasattr(update, "id"):
                     topic_id = getattr(update, "id")
                 elif hasattr(update, "topic_id"):
                     topic_id = getattr(update, "topic_id")
-                    
+
         return {
             "status": "success",
             "chat_id": int(folder_id),

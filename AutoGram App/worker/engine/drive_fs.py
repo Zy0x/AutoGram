@@ -5496,6 +5496,75 @@ async def list_topics(
         await client.disconnect()
 
 
+def _tl_encode_string(s: str) -> bytes:
+    """TL-encode a Python str into a TL serialized string (length-prefixed, 4-byte-aligned)."""
+    data = s.encode("utf-8")
+    length = len(data)
+    if length <= 253:
+        prefix = bytes([length])
+        total = 1 + length
+    else:
+        import struct as _struct
+        prefix = bytes([254]) + _struct.pack("<I", length)[:3]
+        total = 4 + length
+    padding = (-total) % 4
+    return prefix + data + b"\x00" * padding
+
+
+def _make_create_forum_topic_cls():
+    """
+    Dynamically build a TLRequest subclass for channels.createForumTopic
+    (constructor 0xf40c0224). Required because Telethon 1.44 does not
+    include this function in its generated code.
+    """
+    import struct
+    import random as _random
+    from telethon.tl.tlobject import TLRequest
+
+    class CreateForumTopicRequest(TLRequest):
+        CONSTRUCTOR_ID = 0xF40C0224
+        SUBCLASS_OF_ID = 0x8AF52AAC  # Updates
+
+        def __init__(self, channel, title: str, random_id: Optional[int] = None):
+            self.channel = channel
+            self.title = str(title)
+            self.random_id = random_id if random_id is not None else _random.randrange(-(2**63), 2**63)
+
+        def _bytes(self) -> bytes:
+            flags = 0  # no optional fields
+            return (
+                struct.pack("<I", self.CONSTRUCTOR_ID)
+                + struct.pack("<I", flags)
+                + self.channel._bytes()
+                + _tl_encode_string(self.title)
+                + struct.pack("<q", self.random_id)
+            )
+
+        @classmethod
+        def from_reader(cls, reader):  # noqa: F841
+            raise NotImplementedError("Read path not needed for client-side requests")
+
+    return CreateForumTopicRequest
+
+
+# Module-level cache so the class is only built once
+_CreateForumTopicRequest = None
+
+
+def _get_create_forum_topic_cls():
+    global _CreateForumTopicRequest
+    if _CreateForumTopicRequest is not None:
+        return _CreateForumTopicRequest
+    # First try the official import (works on future Telethon versions)
+    try:
+        from telethon.tl.functions.channels import CreateForumTopicRequest
+        _CreateForumTopicRequest = CreateForumTopicRequest
+    except ImportError:
+        _CreateForumTopicRequest = _make_create_forum_topic_cls()
+    return _CreateForumTopicRequest
+
+
+
 async def create_topic(
     *,
     session_name: str,
@@ -5505,20 +5574,22 @@ async def create_topic(
     title: str,
 ) -> Dict[str, Any]:
     """Create a new forum topic in the given group/channel."""
-    from telethon.tl.functions.channels import CreateForumTopicRequest
     setup_emitter(None, None)
     client = await _connect(session_name, api_id, api_hash)
     try:
         peer = await _resolve_peer(client, chat_id)
-        # Create topic RPC
+
+        # Get the CreateForumTopicRequest class (built-in or hand-crafted fallback)
+        CreateForumTopicCls = _get_create_forum_topic_cls()
         result = await client(
-            CreateForumTopicRequest(
+            CreateForumTopicCls(
                 channel=peer,
                 title=str(title),
             )
         )
+
         invalidate_topics_cache(chat_id)
-        
+
         # Extract new topic ID if possible
         topic_id = None
         for update in getattr(result, "updates", []):
@@ -5527,14 +5598,14 @@ async def create_topic(
                 if topic:
                     topic_id = getattr(topic, "id", None)
                     break
-        
+
         if topic_id is None:
             for update in getattr(result, "updates", []):
                 if hasattr(update, "id"):
                     topic_id = getattr(update, "id")
                 elif hasattr(update, "topic_id"):
                     topic_id = getattr(update, "topic_id")
-        
+
         out = {
             "status": "success",
             "chat_id": int(chat_id),
@@ -5552,6 +5623,7 @@ async def create_topic(
         return out
     finally:
         await client.disconnect()
+
 
 
 async def get_thumbnail(
