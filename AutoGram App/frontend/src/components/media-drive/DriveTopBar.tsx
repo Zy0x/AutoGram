@@ -724,7 +724,7 @@ export function DriveTopBar({
       {topicContextMenu &&
         createPortal(
           <div
-            className="td-confirm-overlay context-menu-overlay"
+            className="context-menu-overlay"
             style={{
               position: 'fixed',
               top: 0,
