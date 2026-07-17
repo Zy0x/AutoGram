@@ -1,8 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Command } from '@tauri-apps/plugin-shell';
+import { useState, useEffect, useRef } from 'react';
 import { JobsList } from '../components/Jobs/JobsList';
 import { JobEditor } from '../components/Jobs/JobEditor';
 import { JobRuntime } from '../components/Jobs/JobRuntime';
+import {
+  spawnDaemonJob,
+  runDaemonOnce,
+  requestJobPause,
+  parseEventLine,
+  type JobChild,
+} from '../lib/jobProcess';
 
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
@@ -10,34 +16,38 @@ export function Jobs() {
   const [mode, setMode] = useState<WorkspaceMode>('list');
   const [jobs, setJobs] = useState<any[]>([]);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
-  const activeJob = jobs.find(j => j.id === activeJobId);
+  const activeJob = jobs.find((j) => j.id === activeJobId);
   const [editingJob, setEditingJob] = useState<any>(null);
 
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Track running processes and their logs
-  const [activeCommands, setActiveCommands] = useState<{[key: number]: any}>({});
-  const [jobLogs, setJobLogs] = useState<{[key: number]: any[]}>({});
-  const [runResults, setRunResults] = useState<{[key: number]: 'success' | 'failed' | undefined}>({});
+
+  /** Only tracks "is running" — never call kill on these */
+  const [activeCommands, setActiveCommands] = useState<{ [key: number]: JobChild | true }>({});
+  const [jobLogs, setJobLogs] = useState<{ [key: number]: any[] }>({});
+  const [runResults, setRunResults] = useState<{ [key: number]: 'success' | 'failed' | undefined }>({});
+  const intentionalStopRef = useRef<Set<number>>(new Set());
+  const runningRef = useRef<Set<number>>(new Set());
 
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'list-jobs']);
-      const result = await command.execute();
-      
-      let jsonOutput = "";
+      const result = await runDaemonOnce(['--action', 'list-jobs']);
+      let jsonOutput = '';
       if (result.stdout.includes('[JSON_OUTPUT]')) {
         const parts = result.stdout.split('[JSON_OUTPUT]');
         jsonOutput = parts[parts.length - 1].trim();
       }
-      
       if (jsonOutput) {
         setJobs(JSON.parse(jsonOutput));
+      } else if (
+        result.code !== 0 &&
+        result.stderr &&
+        !/requires desktop|requires tauri/i.test(result.stderr)
+      ) {
+        console.error('Failed to fetch jobs', result.stderr);
       }
     } catch (err) {
-      console.error("Failed to fetch jobs", err);
-      // alert("Failed to fetch jobs: " + err); // optional
+      console.error('Failed to fetch jobs', err);
     } finally {
       setIsLoading(false);
     }
@@ -47,345 +57,398 @@ export function Jobs() {
     fetchJobs();
   }, []);
 
-  const startJob = async (job: any, isRetry = false, isDryRun = false, rerunMode?: string) => {
-    if (activeCommands[job.id]) {
-        alert("This job is already running.");
-        return;
+  // Prevent uncaught errors in this page from tearing down the webview hard
+  useEffect(() => {
+    const onErr = (ev: ErrorEvent) => {
+      console.error('window error', ev.error || ev.message);
+      ev.preventDefault?.();
+    };
+    const onRej = (ev: PromiseRejectionEvent) => {
+      console.error('unhandled rejection', ev.reason);
+      ev.preventDefault?.();
+    };
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+    return () => {
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
+    };
+  }, []);
+
+  const clearRunning = (jobId: number) => {
+    runningRef.current.delete(jobId);
+    setActiveCommands((prev) => {
+      if (!(jobId in prev)) return prev;
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+  };
+
+  const startJob = async (
+    job: any,
+    isRetry = false,
+    isDryRun = false,
+    rerunMode?: string
+  ) => {
+    if (runningRef.current.has(job.id) || activeCommands[job.id]) {
+      alert('This job is already running.');
+      return;
     }
-    
-    setRunResults(prev => ({...prev, [job.id]: undefined}));
-    
+
+    setRunResults((prev) => ({ ...prev, [job.id]: undefined }));
+    intentionalStopRef.current.delete(job.id);
+    runningRef.current.add(job.id);
+
     try {
-        const apiId = localStorage.getItem('API_ID') || "";
-        const apiHash = localStorage.getItem('API_HASH') || "";
-        
-        const action = isRetry ? 'retry-execution' : 'execute-job';
-        const targetId = isRetry ? (job.last_execution_id || job.id) : job.id;
-        const args = [
-            '../../worker/daemon.py', 
-            `--action=${action}`,
-            `--job-id=${targetId}`
-        ];
-        
-        if (apiId) args.push(`--api-id=${apiId}`);
-        if (apiHash) args.push(`--api-hash=${apiHash}`);
-        if (isDryRun) args.push('--dry-run');
-        if (rerunMode) args.push(`--rerun-mode=${rerunMode}`);
-        
-        const command = Command.create('python', args);
+      const { bootstrapSecureCredentials } = await import('../lib/secureCredentials');
+      const { apiId, apiHash } = await bootstrapSecureCredentials();
 
-        // Reset logs
-        setJobLogs(prev => ({ ...prev, [job.id]: [] }));
+      const action = isRetry ? 'retry-execution' : 'execute-job';
+      const args = [`--action=${action}`, `--job-id=${job.id}`];
+      if (isRetry && job.last_execution_id) {
+        args.push(`--execution-id=${job.last_execution_id}`);
+      }
+      if (apiId) args.push(`--api-id=${apiId}`);
+      if (apiHash) args.push(`--api-hash=${apiHash}`);
+      if (isDryRun) args.push('--dry-run');
+      if (rerunMode) args.push(`--rerun-mode=${rerunMode}`);
 
-        command.stderr.on('data', line => {
-            if (!line.trim()) return;
-            setJobLogs(prev => {
-                const existing = prev[job.id] || [];
-                return { ...prev, [job.id]: [...existing.slice(-99), { type: 'error', text: line, time: new Date().toLocaleTimeString() }] };
-            });
-        });
-        
-        command.stdout.on('data', line => {
-            if (!line.trim()) return;
-            
-            if (line.includes('[EVENT]')) {
-                try {
-                    const jsonStr = line.split('[EVENT]')[1].trim();
-                    const ev = JSON.parse(jsonStr);
-                    
-                    // Unified Centralized Execution Store Updater
-                    setJobs(prevJobs => prevJobs.map(j => {
-                        if (j.id !== job.id) return j;
-                        
-                        let updated = { ...j };
-                        const p = ev.payload || ev;
-                        
-                        switch (ev.type) {
-                            case 'ExecutionCreated':
-                                updated.status = 'READY';
-                                break;
-                            case 'ExecutionStarting':
-                                updated.status = 'STARTING';
-                                break;
-                            case 'ExecutionStarted':
-                                updated.status = 'RUNNING';
-                                break;
-                            case 'ProgressUpdated':
-                                updated.processed_messages = p.processed || updated.processed_messages;
-                                updated.total_messages = p.total || updated.total_messages;
-                                break;
-                            case 'ExecutionFinished':
-                                updated.status = p.final_state || p.status;
-                                updated.processed_messages = p.processed;
-                                updated.total_messages = p.total;
-                                setRunResults(prev => ({...prev, [job.id]: 'success'}));
-                                break;
-                            case 'FatalError':
-                                updated.status = 'FAILED';
-                                setRunResults(prev => ({...prev, [job.id]: 'failed'}));
-                                break;
-                        }
-                        return updated;
-                    }));
-                    
-                    setJobLogs(prev => {
-                        const existing = prev[job.id] || [];
-                        return { ...prev, [job.id]: [...existing.slice(-99), { type: 'event', data: ev, time: new Date().toLocaleTimeString() }] };
-                    });
-                } catch(e) {
-                    setJobLogs(prev => {
-                        const existing = prev[job.id] || [];
-                        return { ...prev, [job.id]: [...existing.slice(-99), { type: 'info', text: line, time: new Date().toLocaleTimeString() }] };
-                    });
-                    
-                    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('traceback')) {
-                        setJobs(prevJobs => prevJobs.map(j => {
-                            if (j.id !== job.id) return j;
-                            return { ...j, status: 'FAILED' };
-                        }));
-                        setRunResults(prev => ({...prev, [job.id]: 'failed'}));
-                    }
+      setJobLogs((prev) => ({ ...prev, [job.id]: [] }));
+
+      const appendLog = (entry: any) => {
+        try {
+          setJobLogs((prev) => {
+            const existing = prev[job.id] || [];
+            return { ...prev, [job.id]: [...existing.slice(-99), entry] };
+          });
+        } catch {
+          /* ignore */
+        }
+      };
+
+      const applyEvent = (ev: any) => {
+        try {
+          const p = (ev && (ev.payload || ev)) || {};
+          const evType = ev?.type || p?.type;
+          let nextRunResult: 'success' | 'failed' | undefined;
+
+          setJobs((prevJobs) =>
+            prevJobs.map((j) => {
+              if (j.id !== job.id) return j;
+              const updated = { ...j };
+              switch (evType) {
+                case 'ExecutionCreated':
+                  updated.status = 'READY';
+                  break;
+                case 'ExecutionStarting':
+                  updated.status = 'STARTING';
+                  break;
+                case 'ExecutionStarted':
+                case 'EngineInitialized':
+                  updated.status = 'RUNNING';
+                  break;
+                case 'ProgressUpdated':
+                  if (p.processed != null) updated.processed_messages = p.processed;
+                  if (p.total != null && Number(p.total) > 0) updated.total_messages = p.total;
+                  break;
+                case 'ExecutionFinished': {
+                  const finalState = p.final_state || p.status || 'COMPLETED';
+                  updated.status = finalState;
+                  if (p.processed != null) updated.processed_messages = p.processed;
+                  if (p.total != null && Number(p.total) > 0) updated.total_messages = p.total;
+                  const ok = ['COMPLETED', 'PARTIAL_SUCCESS', 'PAUSED'].includes(
+                    String(finalState).toUpperCase()
+                  );
+                  nextRunResult = ok ? 'success' : 'failed';
+                  break;
                 }
-            } else {
-                setJobLogs(prev => {
-                    const existing = prev[job.id] || [];
-                    return { ...prev, [job.id]: [...existing.slice(-99), { type: 'info', text: line, time: new Date().toLocaleTimeString() }] };
-                });
-            }
-        });
+                case 'FatalError':
+                  updated.status = 'FAILED';
+                  nextRunResult = 'failed';
+                  break;
+              }
+              return updated;
+            })
+          );
 
-        command.on('close', data => {
-            setActiveCommands(prev => {
-                const next = {...prev};
-                delete next[job.id];
-                return next;
+          if (nextRunResult) {
+            setRunResults((prev) => ({ ...prev, [job.id]: nextRunResult }));
+          }
+          appendLog({ type: 'event', data: ev, time: new Date().toLocaleTimeString() });
+        } catch (e) {
+          console.warn('applyEvent', e);
+        }
+      };
+
+      // Mark running immediately so UI disables double-start
+      setActiveCommands((prev) => ({ ...prev, [job.id]: true }));
+      setActiveJobId(job.id);
+      setMode('runtime');
+
+      const child = await spawnDaemonJob({
+        jobId: job.id,
+        args,
+        onStdoutLine: (line) => {
+          const text = String(line);
+          if (text.includes('[EVENT]')) {
+            const ev = parseEventLine(text);
+            if (ev) applyEvent(ev);
+            else appendLog({ type: 'info', text, time: new Date().toLocaleTimeString() });
+          } else if (text.trim()) {
+            appendLog({ type: 'info', text, time: new Date().toLocaleTimeString() });
+          }
+        },
+        onStderrLine: (line) => {
+          if (String(line).trim()) {
+            appendLog({
+              type: 'error',
+              text: String(line),
+              time: new Date().toLocaleTimeString(),
             });
-            
-            setRunResults(prev => {
-                // If it wasn't already marked success by ExecutionFinished
-                if (prev[job.id] === 'success') return prev;
-                return { ...prev, [job.id]: data.code === 0 ? 'success' : 'failed' };
-            });
-            
-            // fetchJobs() removed to rely purely on Events
-        });
-        
-        const childProc = await command.spawn();
-        setActiveCommands(prev => ({...prev, [job.id]: childProc}));
-        
-        // Auto switch to runtime mode
-        setActiveJobId(job.id);
-        setMode('runtime');
-        
+          }
+        },
+        onClose: (code) => {
+          clearRunning(job.id);
+          setRunResults((prev) => {
+            if (prev[job.id] === 'success' || prev[job.id] === 'failed') return prev;
+            if (intentionalStopRef.current.has(job.id)) {
+              intentionalStopRef.current.delete(job.id);
+              return { ...prev, [job.id]: 'success' };
+            }
+            // Daemon is patched to exit 0 even on job failure; trust events first
+            return { ...prev, [job.id]: code === 0 || code == null ? 'success' : 'failed' };
+          });
+          // Deferred refresh — never await inside shell callback
+          window.setTimeout(() => {
+            fetchJobs().catch(() => {});
+          }, 400);
+        },
+      });
+
+      setActiveCommands((prev) => ({ ...prev, [job.id]: child }));
     } catch (err) {
-        console.error("Failed to start job", err);
-        alert(`Failed to start job: ${err}`);
-        setActiveCommands(prev => {
-            const next = {...prev};
-            delete next[job.id];
-            return next;
-        });
+      console.error('Failed to start job', err);
+      clearRunning(job.id);
+      alert(`Failed to start job: ${err}`);
     }
   };
 
   const handleCreateJob = async (config: any) => {
     try {
-        const args = [
-            '../../worker/daemon.py', 
-            editingJob ? '--action=edit-job' : '--action=create-job'
-        ];
-        if (editingJob) { args.push(`--job-id=${editingJob.id}`); }
-        
-        // Use generic placeholders for missing things that UI used to force
-        // The actual config is what matters
-        args.push(`--source=${config.source || '0'}`);
-        args.push(`--destination=${config.destination || '0'}`);
-        args.push(`--session=${config.session || 'Lavender'}`);
-        args.push(`--mode=${config.mode || 'Clean Copy'}`);
-        
-        const b64Config = btoa(unescape(encodeURIComponent(JSON.stringify(config))));
-        args.push(`--config=${b64Config}`);
-        
-        const command = Command.create('python', args);
-        const result = await command.execute();
-        
-        if (editingJob) {
-            setEditingJob(null);
-            await fetchJobs();
-            if (config.dryRun) {
-                const j = jobs.find(x => x.id === editingJob.id);
-                if (j) { setActiveJobId(j.id); startJob(j, false, true); }
-                return;
-            }
-            setMode('list');
-            return;
-        }
+      const args = [editingJob ? '--action=edit-job' : '--action=create-job'];
+      if (editingJob) args.push(`--job-id=${editingJob.id}`);
+      args.push(`--source=${config.source || '0'}`);
+      args.push(`--destination=${config.destination || '0'}`);
+      args.push(`--session=${config.session || 'Lavender'}`);
+      args.push(`--mode=${config.mode || 'Clean Copy'}`);
+      const b64Config = btoa(unescape(encodeURIComponent(JSON.stringify(config))));
+      args.push(`--config=${b64Config}`);
 
-        let newJobId = null;
-        if (result.stdout.includes('[JOB_ID]')) {
-            const parts = result.stdout.split('[JOB_ID]');
-            newJobId = parseInt(parts[1].trim());
-        }
-        
+      const result = await runDaemonOnce(args);
+
+      if (editingJob) {
+        setEditingJob(null);
         await fetchJobs();
-        
-        if (newJobId) {
-            const c2 = Command.create('python', ['../../worker/daemon.py', '--action', 'list-jobs']);
-            const res2 = await c2.execute();
-            if (res2.stdout.includes('[JSON_OUTPUT]')) {
-                const parts = res2.stdout.split('[JSON_OUTPUT]');
-                const fetchedJobs = JSON.parse(parts[parts.length - 1].trim());
-                setJobs(fetchedJobs);
-                const newlyCreatedJob = fetchedJobs.find((j: any) => j.id === newJobId);
-                if (newlyCreatedJob) {
-                    startJob(newlyCreatedJob, false, config.dryRun === true);
-                    return;
-                }
-            }
+        if (config.dryRun) {
+          const j = jobs.find((x) => x.id === editingJob.id);
+          if (j) {
+            setActiveJobId(j.id);
+            startJob(j, false, true);
+          }
+          return;
         }
-        
         setMode('list');
+        return;
+      }
+
+      let newJobId: number | null = null;
+      if (result.stdout.includes('[JOB_ID]')) {
+        const parts = result.stdout.split('[JOB_ID]');
+        newJobId = parseInt(parts[1].trim(), 10);
+      }
+
+      await fetchJobs();
+
+      if (newJobId) {
+        const res2 = await runDaemonOnce(['--action', 'list-jobs']);
+        if (res2.stdout.includes('[JSON_OUTPUT]')) {
+          const parts = res2.stdout.split('[JSON_OUTPUT]');
+          const fetchedJobs = JSON.parse(parts[parts.length - 1].trim());
+          setJobs(fetchedJobs);
+          const newlyCreatedJob = fetchedJobs.find((j: any) => j.id === newJobId);
+          if (newlyCreatedJob) {
+            // Brief delay so previous shell command is fully released
+            await new Promise((r) => setTimeout(r, 150));
+            startJob(newlyCreatedJob, false, config.dryRun === true);
+            return;
+          }
+        }
+      }
+
+      setMode('list');
     } catch (err) {
-        console.error("Failed to create job", err);
-        alert(`Failed to create job: ${err}`);
+      console.error('Failed to create job', err);
+      alert(`Failed to create job: ${err}`);
     }
   };
 
   const deleteJob = async (jobId: number) => {
-      if (!confirm("Are you sure you want to delete this job and its execution history?")) return;
-      try {
-          if (activeCommands[jobId]) {
-              await activeCommands[jobId].kill();
-          }
-          const command = Command.create('python', ['../../worker/daemon.py', '--action', 'delete-job', '--job-id', String(jobId)]);
-          await command.execute();
-          if (activeJob && activeJob.id === jobId) {
-              setMode('list');
-              setActiveJobId(null);
-          }
-          fetchJobs();
-      } catch (err) {
-          console.error("Failed to delete job", err);
-          alert("Failed to delete job");
+    if (!confirm('Are you sure you want to delete this job and its execution history?')) return;
+    try {
+      intentionalStopRef.current.add(jobId);
+      // Cooperative stop only — NEVER Child.kill()
+      if (runningRef.current.has(jobId) || activeCommands[jobId]) {
+        await requestJobPause(jobId);
+        await new Promise((r) => setTimeout(r, 800));
       }
+      clearRunning(jobId);
+      await runDaemonOnce(['--action', 'delete-job', '--job-id', String(jobId)]);
+      if (activeJob && activeJob.id === jobId) {
+        setMode('list');
+        setActiveJobId(null);
+      }
+      fetchJobs();
+    } catch (err) {
+      console.error('Failed to delete job', err);
+      alert('Failed to delete job');
+    }
   };
 
   const freshStartJob = async (jobId: number) => {
-      try {
-          const command = Command.create('python', ['../../worker/daemon.py', '--action', 'fresh-start', '--job-id', String(jobId)]);
-          await command.execute();
-          fetchJobs();
-          alert("History mapping berhasil dihapus. Job direset ke posisi 0.");
-      } catch (err) {
-          console.error("Failed to fresh start job", err);
-          alert("Gagal melakukan fresh start.");
-      }
+    try {
+      await runDaemonOnce(['--action', 'fresh-start', '--job-id', String(jobId)]);
+      fetchJobs();
+      alert('History mapping berhasil dihapus. Job direset ke posisi 0.');
+    } catch (err) {
+      console.error('Failed to fresh start job', err);
+      alert('Gagal melakukan fresh start.');
+    }
   };
 
   const pauseJob = async (jobId: number) => {
-      try {
-          if (activeCommands[jobId]) {
-              await activeCommands[jobId].kill();
-          }
-          const command = Command.create('python', ['../../worker/daemon.py', '--action', 'set-status', '--job-id', String(jobId), '--status', 'paused']);
-          await command.execute();
-          setActiveCommands(prev => {
-              const next = {...prev};
-              delete next[jobId];
-              return next;
-          });
-          setTimeout(fetchJobs, 500);
-      } catch (err) {
-          console.error("Failed to pause job", err);
-      }
+    try {
+      intentionalStopRef.current.add(jobId);
+      // Cooperative only — engines poll PAUSING and exit; no kill()
+      await requestJobPause(jobId);
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: 'PAUSED' } : j)));
+      setRunResults((prev) => ({ ...prev, [jobId]: 'success' }));
+      appendSoftLog(jobId, 'Pause requested — waiting for engine to stop cleanly…');
+      // Do NOT kill. Clear running marker when process closes via onClose.
+      // Soft fallback clear after 15s if still marked running
+      window.setTimeout(() => {
+        if (runningRef.current.has(jobId)) {
+          clearRunning(jobId);
+          fetchJobs().catch(() => {});
+        }
+      }, 15000);
+    } catch (err) {
+      console.error('Failed to pause job', err);
+    }
+  };
+
+  const appendSoftLog = (jobId: number, text: string) => {
+    setJobLogs((prev) => {
+      const existing = prev[jobId] || [];
+      return {
+        ...prev,
+        [jobId]: [
+          ...existing.slice(-99),
+          { type: 'info', text, time: new Date().toLocaleTimeString() },
+        ],
+      };
+    });
   };
 
   const exportJobs = async () => {
-      try {
-        const command = Command.create('python', ['../../worker/daemon.py', '--action', 'export-jobs']);
-        await command.execute();
-        alert("Jobs exported successfully to worker directory!");
-      } catch (err) {
-        console.error("Failed to export jobs", err);
-      }
+    try {
+      await runDaemonOnce(['--action', 'export-jobs']);
+      alert('Jobs exported successfully to worker directory!');
+    } catch (err) {
+      console.error('Failed to export jobs', err);
+    }
   };
 
   const importJobs = async () => {
-      if (!confirm("Import jobs from jobs_export.json?")) return;
-      try {
-        const command = Command.create('python', ['../../worker/daemon.py', '--action', 'import-jobs']);
-        await command.execute();
-        fetchJobs();
-        alert("Jobs imported successfully!");
-      } catch (err) {
-        console.error("Failed to import jobs", err);
-      }
+    if (!confirm('Import jobs from jobs_export.json?')) return;
+    try {
+      await runDaemonOnce(['--action', 'import-jobs']);
+      fetchJobs();
+      alert('Jobs imported successfully!');
+    } catch (err) {
+      console.error('Failed to import jobs', err);
+    }
   };
 
-  return (
-    <main className="main-content" style={{ padding: mode === 'editor' || mode === 'runtime' ? '0' : '24px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        {mode === 'list' && (
-            <JobsList 
-                jobs={jobs}
-                isLoading={isLoading}
-                activeCommands={activeCommands}
-                runResults={runResults}
-                fetchJobs={fetchJobs}
-                importJobs={importJobs}
-                exportJobs={exportJobs}
-                startJob={startJob}
-                pauseJob={pauseJob}
-                deleteJob={deleteJob}
-                onNewJob={() => {
-                    setEditingJob(null);
-                    setMode('editor');
-                }}
-                onViewRuntime={(job) => {
-                    setActiveJobId(job.id);
-                    setMode('runtime');
-                }}
-                onEditJob={(job) => {
-                    setEditingJob(job);
-                    setMode('editor');
-                }}
-            />
-        )}
-        
-        {mode === 'editor' && (
-            <div style={{ height: '100%', overflowY: 'auto' }}>
-                <JobEditor 
-                    initialJob={editingJob}
-                    onCancel={() => {
-                        setEditingJob(null);
-                        setMode('list');
-                    }}
-                    onStart={handleCreateJob}
-                />
-            </div>
-        )}
+  // Compatibility: JobRuntime checks activeCommand truthy for "is running"
+  const activeCommandsForUi = activeCommands as { [key: number]: any };
 
-        {mode === 'runtime' && activeJob && (
-            <div style={{ height: '100%' }}>
-                <JobRuntime 
-                    job={activeJob} 
-                    activeCommand={activeCommands[activeJob.id]}
-                    logs={jobLogs[activeJob.id] || []}
-                    runResult={runResults[activeJob.id]}
-                    onBack={() => {
-                        setActiveJobId(null);
-                        setMode('list');
-                        fetchJobs();
-                    }}
-                    pauseJob={pauseJob}
-                    startJob={startJob}
-                    freshStartJob={freshStartJob}
-                    onEditJob={(job) => {
-                        setEditingJob(job);
-                        setMode('editor');
-                    }}
-                />
-            </div>
-        )}
+  return (
+    <main
+      className={`main-content main-content-fill ${mode !== 'list' ? 'main-content-flush' : ''}`}
+    >
+      {mode === 'list' && (
+        <JobsList
+          jobs={jobs}
+          isLoading={isLoading}
+          activeCommands={activeCommandsForUi}
+          runResults={runResults}
+          fetchJobs={fetchJobs}
+          importJobs={importJobs}
+          exportJobs={exportJobs}
+          startJob={startJob}
+          pauseJob={pauseJob}
+          deleteJob={deleteJob}
+          onNewJob={() => {
+            setEditingJob(null);
+            setMode('editor');
+          }}
+          onViewRuntime={(job) => {
+            setActiveJobId(job.id);
+            setMode('runtime');
+          }}
+          onEditJob={(job) => {
+            setEditingJob(job);
+            setMode('editor');
+          }}
+        />
+      )}
+
+      {mode === 'editor' && (
+        <div className="workspace-pane">
+          <JobEditor
+            initialJob={editingJob}
+            onCancel={() => {
+              setEditingJob(null);
+              setMode('list');
+            }}
+            onStart={handleCreateJob}
+          />
+        </div>
+      )}
+
+      {mode === 'runtime' && activeJob && (
+        <div className="workspace-pane">
+          <JobRuntime
+            job={activeJob}
+            activeCommand={activeCommandsForUi[activeJob.id]}
+            logs={jobLogs[activeJob.id] || []}
+            runResult={runResults[activeJob.id]}
+            onBack={() => {
+              setActiveJobId(null);
+              setMode('list');
+              fetchJobs();
+            }}
+            pauseJob={pauseJob}
+            startJob={startJob}
+            freshStartJob={freshStartJob}
+            onEditJob={(job) => {
+              setEditingJob(job);
+              setMode('editor');
+            }}
+          />
+        </div>
+      )}
     </main>
   );
 }

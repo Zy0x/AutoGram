@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Play } from 'lucide-react';
 
 interface RerunModalProps {
@@ -18,36 +19,20 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
 
   const isOverwriteValid = mode !== 'OVERWRITE' || (check1 && check2 && check3);
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div className="glass-panel" style={{
-        background: 'var(--bg-panel)',
-        borderRadius: 'var(--radius-lg)',
-        width: '600px',
-        maxWidth: '90vw',
-        border: '1px solid var(--border)'
-      }}>
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-            <Play size={20} className="text-primary" />
+  const node = (
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal-panel glass-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)', minWidth: 0 }}>
+            <Play size={20} className="text-primary" style={{ flexShrink: 0 }} />
             Re-run Job
           </h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label="Close">
             <X size={20} />
           </button>
         </div>
         
-        <div style={{ padding: '24px', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+        <div className="modal-body" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.6 }}>
           <p style={{ marginTop: 0 }}>
             Job <strong>{jobName}</strong> sebelumnya: <strong style={{ color: 'var(--success)' }}>{successCount.toLocaleString()} pesan sukses</strong>
           </p>
@@ -91,7 +76,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
             </label>
 
             {mode === 'OVERWRITE' && (
-                <div style={{ marginLeft: '32px', padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                <div style={{ marginLeft: 0, padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                     <p style={{ margin: '0 0 12px 0', color: 'var(--danger)', fontWeight: 600, fontSize: '0.85rem' }}>Peringatan Ekstrem: Centang semua untuk melanjutkan</p>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
                         <input type="checkbox" checked={check1} onChange={e => setCheck1(e.target.checked)} />
@@ -128,22 +113,24 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
           </div>
         </div>
         
-        <div style={{
-          padding: '16px 24px',
+        <div className="page-header-actions" style={{
+          padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
           borderTop: '1px solid var(--border)',
-          display: 'flex',
           justifyContent: 'flex-end',
-          gap: '12px'
+          flexShrink: 0,
         }}>
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             Batal
           </button>
-          <button className="btn btn-primary" disabled={!isOverwriteValid} onClick={() => onConfirm(mode)}>
-            <Play size={16} style={{ marginRight: '8px' }} />
+          <button type="button" className="btn btn-primary" disabled={!isOverwriteValid} onClick={() => onConfirm(mode)}>
+            <Play size={16} />
             Lanjutkan Re-run
           </button>
         </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 }

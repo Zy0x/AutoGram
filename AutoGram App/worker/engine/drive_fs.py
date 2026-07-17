@@ -5616,34 +5616,36 @@ def _get_delete_forum_topic_cls():
 
 def _make_edit_forum_topic_cls():
     """
-    Dynamically build TLRequest subclass for channels.editForumTopic
-    (constructor 0xf4deb579). Needed because Telethon 1.44 does not include
-    EditForumTopicRequest.
+    Dynamically build TLRequest subclass for messages.editForumTopic
+    (constructor 0xef3d34d6). Needed because Telethon 1.44 might not include
+    EditForumTopicRequest in older sub-builds.
 
     TL schema:
-        channels.editForumTopic#f4deb579 flags:# channel:InputChannel topic_id:int
-            [title:string] [icon_emoji_id:long] [closed:Bool] = Updates
+        messages.editForumTopic#ef3d34d6 flags:# peer:InputPeer topic_id:int
+            [title:string] [icon_emoji_id:long] [closed:Bool] [hidden:Bool] = Updates
     """
     import struct
     from telethon.tl.tlobject import TLRequest
 
     class EditForumTopicRequest(TLRequest):
-        CONSTRUCTOR_ID = 0xF4DEB579
+        CONSTRUCTOR_ID = 0xEF3D34D6
         SUBCLASS_OF_ID = 0x8AF52AAC  # Updates
 
         def __init__(
             self,
-            channel,
+            peer,
             topic_id: int,
             title: Optional[str] = None,
             icon_emoji_id: Optional[int] = None,
             closed: Optional[bool] = None,
+            hidden: Optional[bool] = None,
         ):
-            self.channel = channel
+            self.peer = peer
             self.topic_id = int(topic_id)
             self.title = title
             self.icon_emoji_id = icon_emoji_id
             self.closed = closed
+            self.hidden = hidden
 
         def _bytes(self) -> bytes:
             flags = 0
@@ -5653,10 +5655,12 @@ def _make_edit_forum_topic_cls():
                 flags |= 2
             if self.closed is not None:
                 flags |= 4
+            if self.hidden is not None:
+                flags |= 8
 
             b = struct.pack("<I", self.CONSTRUCTOR_ID)
             b += struct.pack("<I", flags)
-            b += self.channel._bytes()
+            b += self.peer._bytes()
             b += struct.pack("<i", self.topic_id)
 
             if self.title is not None:
@@ -5665,6 +5669,9 @@ def _make_edit_forum_topic_cls():
                 b += struct.pack("<q", int(self.icon_emoji_id))
             if self.closed is not None:
                 bool_val = 0x9977035F if self.closed else 0xBC799730
+                b += struct.pack("<I", bool_val)
+            if self.hidden is not None:
+                bool_val = 0x9977035F if self.hidden else 0xBC799730
                 b += struct.pack("<I", bool_val)
 
             return b
@@ -5684,7 +5691,7 @@ def _get_edit_forum_topic_cls():
     if _EditForumTopicRequest is not None:
         return _EditForumTopicRequest
     try:
-        from telethon.tl.functions.channels import EditForumTopicRequest
+        from telethon.tl.functions.messages import EditForumTopicRequest
         _EditForumTopicRequest = EditForumTopicRequest
     except ImportError:
         _EditForumTopicRequest = _make_edit_forum_topic_cls()
@@ -5708,7 +5715,7 @@ async def rename_topic(
         EditCls = _get_edit_forum_topic_cls()
         await client(
             EditCls(
-                channel=peer,
+                peer=peer,
                 topic_id=int(topic_id),
                 title=str(name),
             )

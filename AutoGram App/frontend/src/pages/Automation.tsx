@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Command } from '@tauri-apps/plugin-shell';
+import { runDaemonOnce } from '../lib/workerBridge';
 import { Play, Pause, Trash2, Calendar, Clock, Plus, RefreshCw } from 'lucide-react';
 
 export function Automation() {
@@ -17,20 +17,21 @@ export function Automation() {
   const fetchAutomations = async () => {
     setIsLoading(true);
     try {
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'list-automations']);
-      const result = await command.execute();
-      
-      let jsonOutput = "";
+      const result = await runDaemonOnce(['--action', 'list-automations']);
+
+      let jsonOutput = '';
       if (result.stdout.includes('[JSON_OUTPUT]')) {
         const parts = result.stdout.split('[JSON_OUTPUT]');
         jsonOutput = parts[parts.length - 1].trim();
       }
-      
+
       if (jsonOutput) {
         setAutomations(JSON.parse(jsonOutput));
+      } else if (result.code !== 0 && result.stderr && !/requires desktop|requires tauri/i.test(result.stderr)) {
+        console.error('Failed to fetch automations', result.stderr);
       }
     } catch (err) {
-      console.error("Failed to fetch automations", err);
+      console.error('Failed to fetch automations', err);
     } finally {
       setIsLoading(false);
     }
@@ -49,38 +50,48 @@ export function Automation() {
 
     try {
       const args = [
-        '../../worker/daemon.py',
-        '--action=add-automation',
-        `--profile-name=${name || 'New Automation'}`,
-        `--source=${sourceEntity}`,
-        `--destination=${targetEntity}`
+        '--action', 'add-automation',
+        '--profile-name', name || 'New Automation',
+        '--source', sourceEntity,
+        '--destination', targetEntity,
       ];
 
       if (isRealtime) {
         args.push('--realtime');
       } else if (cronExp) {
-        args.push(`--cron=${cronExp}`);
+        args.push('--cron', cronExp);
       }
 
-      const command = Command.create('python', args);
-      await command.execute();
-      
+      const result = await runDaemonOnce(args);
+      if (result.code !== 0) {
+        const { workerErrorMessage } = await import('../lib/workerBridge');
+        alert(workerErrorMessage(result, 'Error adding automation.'));
+        return;
+      }
+
       setShowAddForm(false);
       setName('');
       setSourceEntity('');
       setTargetEntity('');
       fetchAutomations();
     } catch (err) {
-      console.error("Failed to add automation", err);
-      alert("Error adding automation.");
+      console.error('Failed to add automation', err);
+      alert('Error adding automation.');
     }
   };
 
   const deleteAutomation = async (id: number) => {
-    if (!confirm("Delete this automation job?")) return;
+    if (!confirm('Delete this automation job?')) return;
     try {
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'delete-automation', '--job-id', String(id)]);
-      await command.execute();
+      const result = await runDaemonOnce([
+        '--action', 'delete-automation',
+        '--job-id', String(id),
+      ]);
+      if (result.code !== 0) {
+        const { workerErrorMessage } = await import('../lib/workerBridge');
+        alert(workerErrorMessage(result, 'Delete failed'));
+        return;
+      }
       fetchAutomations();
     } catch (err) {
       console.error(err);
@@ -90,8 +101,16 @@ export function Automation() {
   const toggleStatus = async (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'paused' : 'active';
     try {
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'set-automation-status', '--job-id', String(id), '--status', newStatus]);
-      await command.execute();
+      const result = await runDaemonOnce([
+        '--action', 'set-automation-status',
+        '--job-id', String(id),
+        '--status', newStatus,
+      ]);
+      if (result.code !== 0) {
+        const { workerErrorMessage } = await import('../lib/workerBridge');
+        alert(workerErrorMessage(result, 'Status update failed'));
+        return;
+      }
       fetchAutomations();
     } catch (err) {
       console.error(err);
@@ -99,42 +118,42 @@ export function Automation() {
   };
 
   return (
-    <main className="main-content">
-      <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+    <main className="main-content page-stack">
+      <header className="page-header page-header-row">
+        <div style={{ minWidth: 0 }}>
             <h2 className="title">Automation & Scheduler</h2>
-            <p className="subtitle">Real-time Sync and Cron Jobs.</p>
+            <p className="subtitle" style={{ marginBottom: 0 }}>Real-time Sync and Cron Jobs.</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn btn-secondary" onClick={fetchAutomations} disabled={isLoading}>
+        <div className="page-header-actions">
+            <button type="button" className="btn btn-secondary" onClick={fetchAutomations} disabled={isLoading}>
                 <RefreshCw size={18} className={isLoading ? "spin" : ""} /> Refresh
             </button>
-            <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
                 <Plus size={18} /> New Automation
             </button>
         </div>
       </header>
 
       {showAddForm && (
-        <section className="dashboard-section" style={{ marginBottom: '24px', animation: 'fadeIn 0.3s ease-out' }}>
+        <section className="dashboard-section fade-in">
           <h3 className="section-title">Add New Automation</h3>
-          <form onSubmit={handleAddAutomation} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form onSubmit={handleAddAutomation} className="page-stack" style={{ gap: '1rem' }}>
             <div className="input-group">
-                <label>Name</label>
-                <input type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Daily Sync" />
+                <label className="input-label">Name</label>
+                <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Daily Sync" />
             </div>
-            <div style={{ display: 'flex', gap: '16px' }}>
-                <div className="input-group" style={{ flex: 1 }}>
-                    <label>Source (Chat ID / Username)</label>
-                    <input type="text" className="input" value={sourceEntity} onChange={e => setSourceEntity(e.target.value)} required />
+            <div className="form-row">
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Source (Chat ID / Username)</label>
+                    <input type="text" className="input-field" value={sourceEntity} onChange={e => setSourceEntity(e.target.value)} required />
                 </div>
-                <div className="input-group" style={{ flex: 1 }}>
-                    <label>Target (Chat ID / Username)</label>
-                    <input type="text" className="input" value={targetEntity} onChange={e => setTargetEntity(e.target.value)} required />
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Target (Chat ID / Username)</label>
+                    <input type="text" className="input-field" value={targetEntity} onChange={e => setTargetEntity(e.target.value)} required />
                 </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="title-with-icon" style={{ gap: '0.75rem' }}>
                 <input 
                     type="checkbox" 
                     id="realtime-check"
@@ -145,14 +164,14 @@ export function Automation() {
             </div>
 
             {!isRealtime && (
-                <div className="input-group">
-                    <label>Cron Expression <span style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>(Flexible for Supabase/Backend)</span></label>
-                    <input type="text" className="input" value={cronExp} onChange={e => setCronExp(e.target.value)} placeholder="0 * * * *" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>e.g., "0 * * * *" for every hour.</span>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Cron Expression <span className="field-hint" style={{ display: 'inline', margin: 0 }}>(Flexible for Supabase/Backend)</span></label>
+                    <input type="text" className="input-field" value={cronExp} onChange={e => setCronExp(e.target.value)} placeholder="0 * * * *" />
+                    <span className="field-hint" style={{ marginTop: '4px' }}>e.g., &quot;0 * * * *&quot; for every hour.</span>
                 </div>
             )}
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+            <div className="page-header-actions" style={{ justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save Automation</button>
             </div>

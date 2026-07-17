@@ -1,4 +1,4 @@
-
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
 interface FreshStartModalProps {
@@ -8,36 +8,20 @@ interface FreshStartModalProps {
 }
 
 export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModalProps) {
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div className="glass-panel" style={{
-        background: 'var(--bg-panel)',
-        borderRadius: 'var(--radius-lg)',
-        width: '500px',
-        maxWidth: '90vw',
-        border: '1px solid var(--border)'
-      }}>
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--danger)' }}>
-            <AlertTriangle size={20} />
-            ⚠️ Fresh Start — Konfirmasi
+  const node = (
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal-panel glass-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--danger)', minWidth: 0, flexWrap: 'wrap' }}>
+            <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+            Fresh Start — Konfirmasi
           </h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label="Close">
             <X size={20} />
           </button>
         </div>
         
-        <div style={{ padding: '24px', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+        <div className="modal-body" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.6 }}>
           <p style={{ marginTop: 0 }}>
             Anda akan menghapus <strong>SEMUA history mapping</strong> untuk job: <br/>
             <strong style={{ color: 'var(--primary)' }}>{jobName}</strong>
@@ -60,22 +44,24 @@ export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModal
           </ul>
         </div>
         
-        <div style={{
-          padding: '16px 24px',
+        <div className="page-header-actions" style={{
+          padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem)',
           borderTop: '1px solid var(--border)',
-          display: 'flex',
           justifyContent: 'flex-end',
-          gap: '12px'
+          flexShrink: 0,
         }}>
-          <button className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
             Batal
           </button>
-          <button className="btn btn-primary" style={{ background: 'var(--danger)', borderColor: 'var(--danger)', color: 'white' }} onClick={onConfirm}>
-            <Trash2 size={16} style={{ marginRight: '8px' }} />
-            Ya, Saya Mengerti — Fresh Start
+          <button type="button" className="btn btn-primary" style={{ background: 'var(--danger)', borderColor: 'var(--danger)', color: 'white' }} onClick={onConfirm}>
+            <Trash2 size={16} />
+            Fresh Start
           </button>
         </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 }

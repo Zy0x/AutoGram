@@ -9,27 +9,36 @@
     "core:default",
     "opener:default",
     "shell:default",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "python",
-          "cmd": "python",
-          "args": true
-        }
-      ]
-    },
-    {
-      "identifier": "shell:allow-spawn",
-      "allow": [
-        {
-          "name": "python",
-          "cmd": "python",
-          "args": true
-        }
-      ]
-    },
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$HOME/Downloads/**" },
+        { "path": "$HOME/Documents/**" },
+        { "path": "$HOME/Desktop/**" }
+      ]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$HOME/Downloads/**" },
+        { "path": "$HOME/Documents/**" },
+        { "path": "$HOME/Desktop/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$TEMP/**" },
+        { "path": "$RESOURCE/**" },
+        { "path": "**/worker/temp/**" },
+        { "path": "**/worker/cache/**" },
+        { "path": "**/worker/logs/**" }
+      ]
+    }
   ]
 }

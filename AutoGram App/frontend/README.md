@@ -1,6 +1,15 @@
-# Tauri + React + Typescript
+# AutoGram frontend (Tauri + React + TypeScript)
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+## Runtime: desktop vs web
+
+- **Desktop (Tauri):** Media Studio, re-encode, local Python/Telethon worker enabled.
+- **Web deploy:** set `VITE_RUNTIME=web` so heavy features stay off. See `../docs/development/Web_Deploy.md`.
+
+```bash
+npm test
+# Web static build (PowerShell):
+$env:VITE_RUNTIME="web"; npm run build
+```
 
 ## Recommended IDE Setup
 

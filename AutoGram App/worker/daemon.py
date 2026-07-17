@@ -18,6 +18,7 @@ class TeeStream:
     def __init__(self, stream, log_file):
         self.stream = stream
         self.log_file = log_file
+        self._closed = False
         
         # Regex untuk mendeteksi nomor telepon (minimal 10 digit, opsional dengan +)
         self.phone_regex = re.compile(r'(\+?\d{2,4}[-\s]?\d{8,12})')
@@ -25,19 +26,52 @@ class TeeStream:
         self.hash_regex = re.compile(r'([a-zA-Z0-9_-]{30,})')
 
     def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
+        if data is None or self._closed:
+            return 0
+        if isinstance(data, bytes):
+            try:
+                data = data.decode('utf-8', errors='replace')
+            except Exception:
+                data = str(data)
+        try:
+            self.stream.write(data)
+            self.stream.flush()
+        except UnicodeEncodeError:
+            try:
+                buf = getattr(self.stream, 'buffer', None)
+                if buf is not None:
+                    buf.write(str(data).encode('utf-8', errors='replace'))
+                    buf.flush()
+            except Exception:
+                pass
+        except Exception:
+            pass
         
-        # Redaction/Masking
-        safe_data = data
-        safe_data = self.phone_regex.sub('***[PHONE REDACTED]***', safe_data)
-        safe_data = self.hash_regex.sub('***[HASH REDACTED]***', safe_data)
-        
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(safe_data)
+        try:
+            safe_data = self.phone_regex.sub('***[PHONE REDACTED]***', data)
+            safe_data = self.hash_regex.sub('***[HASH REDACTED]***', safe_data)
+            with open(self.log_file, "a", encoding="utf-8", errors='replace') as f:
+                f.write(safe_data)
+        except Exception:
+            pass
+        return len(data) if isinstance(data, str) else 0
 
     def flush(self):
-        self.stream.flush()
+        try:
+            if not self._closed:
+                self.stream.flush()
+        except Exception:
+            pass
+
+    def close(self):
+        self._closed = True
+
+    @property
+    def encoding(self):
+        return getattr(self.stream, 'encoding', 'utf-8')
+
+    def isatty(self):
+        return False
 
 def parse_entity(entity_str):
     if not entity_str:
@@ -145,33 +179,41 @@ async def list_topics(session_name, chat_id, api_id, api_hash):
         print(f"[JSON_OUTPUT]{json.dumps({'error': str(e)})}")
 
 async def main():
+    # Windows console often uses 'charmap' — break Telegram unicode titles otherwise
+    try:
+        from engine.utf8_io import ensure_utf8_stdio
+        ensure_utf8_stdio()
+    except Exception:
+        pass
     parser = argparse.ArgumentParser(description="AutoGram Daemon")
     parser.add_argument("--action", default="migrate")
     parser.add_argument("--api-id", required=False)
     parser.add_argument("--api-hash", required=False)
     parser.add_argument("--source", required=False)
     parser.add_argument("--destination", required=False)
-    parser.add_argument("--mode", default="Clean Copy")
+    # Sentinels: "__DEFAULT_*" / -1 means "not provided by CLI — keep job config"
+    parser.add_argument("--mode", default="__DEFAULT_MODE__")
     parser.add_argument("--rerun-mode", default="RESUME", help="Mode untuk Re-run: RESUME, OVERWRITE, SMART_SYNC")
-    parser.add_argument("--limit", type=int, default=5)
-    parser.add_argument("--media", default="Semua")
-    parser.add_argument("--session", default="Lavender")
+    parser.add_argument("--limit", type=int, default=-1, help="Max messages (0=unlimited). -1=use job config")
+    parser.add_argument("--media", default="__DEFAULT_MEDIA__")
+    parser.add_argument("--session", default="__DEFAULT_SESSION__")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--duplicate-action", default="Skip")
-    parser.add_argument("--size-min", type=float, default=0.0)
-    parser.add_argument("--size-max", type=float, default=float('inf'))
-    parser.add_argument("--caption", default="Keep Original")
+    parser.add_argument("--duplicate-action", default="__DEFAULT_DUP__")
+    parser.add_argument("--size-min", type=float, default=-1.0)
+    parser.add_argument("--size-max", type=float, default=-1.0)
+    parser.add_argument("--caption", default="__DEFAULT_CAPTION__")
     parser.add_argument('--throttle', action='store_true', help='Aktifkan Safe Mode Throttle')
     parser.add_argument('--auto-fallback', action='store_true', help='Aktifkan Auto-Fallback jika chat terproteksi')
-    parser.add_argument('--fetch-direction', default='Newest First', help='Arah pengambilan pesan (Newest First / Oldest First)')
+    parser.add_argument('--fetch-direction', default='__DEFAULT_FETCH__', help='Arah pengambilan pesan')
     parser.add_argument('--start-date', default=None, help='Filter dari tanggal ini (YYYY-MM-DD)')
     parser.add_argument('--end-date', default=None, help='Filter hingga tanggal ini (YYYY-MM-DD)')
-    parser.add_argument('--delay-min', type=float, default=2.0, help='Jeda minimum dalam detik')
-    parser.add_argument('--delay-max', type=float, default=5.0, help='Jeda maksimum dalam detik')
-    parser.add_argument('--album-handling', default='Follow Source', help='Cara handle grouped media')
+    parser.add_argument('--delay-min', type=float, default=-1.0, help='Jeda minimum dalam detik')
+    parser.add_argument('--delay-max', type=float, default=-1.0, help='Jeda maksimum dalam detik')
+    parser.add_argument('--album-handling', default='__DEFAULT_ALBUM__', help='Cara handle grouped media')
     parser.add_argument("--chat-id", required=False)
     parser.add_argument("--config", type=str, help="Job config JSON")
-    parser.add_argument("--job-id", type=int, default=None, help="ID Job jika melanjutkan migrasi (opsional)")
+    parser.add_argument("--job-id", type=int, default=None, help="ID Job")
+    parser.add_argument("--execution-id", type=int, default=None, help="ID Execution (retry/re-run)")
     parser.add_argument('--status', type=str, help="Status (e.g., active, paused, completed)")
     parser.add_argument('--profile-name', type=str, help="Profile/Automation name")
     parser.add_argument('--profile-config', type=str, help="Profile configuration JSON")
@@ -183,16 +225,278 @@ async def main():
     parser.add_argument('--sync-catchup', action='store_true', help='Catch up missed messages in sync')
     parser.add_argument('--mirror-edits', action='store_true', help='Mirror edited messages')
     parser.add_argument('--mirror-deletions', action='store_true', help='Mirror deleted messages')
+
+    # Media speed benchmark
+    parser.add_argument('--bench-mode', default='upload', help='upload | download | roundtrip')
+    parser.add_argument('--file-path', default=None, help='Local file path for upload bench')
+    parser.add_argument('--generate-mb', type=float, default=0, help='Generate dummy file of N MB')
+    parser.add_argument('--message-id', type=int, default=None, help='Message id for download bench')
+    parser.add_argument('--cleanup', action='store_true', default=True, help='Delete temp files after bench')
+    parser.add_argument('--no-cleanup', action='store_true', help='Keep temp files after bench')
+    parser.add_argument('--delete-message', action='store_true', help='Delete uploaded test message after bench')
+
+    # Media Studio
+    parser.add_argument('--studio-action', default='upload', help='upload | download')
+    parser.add_argument('--files-json', default=None, help='Path to JSON list of {path, caption}')
+    parser.add_argument('--options-json', default=None, help='Path or inline JSON for studio options')
+    parser.add_argument('--last-n', type=int, default=5, help='Download last N media')
+
+    # AutoGram Drive (Telegram-Drive model)
+    parser.add_argument('--drive-action', default=None, help='bootstrap|scan-folders|list-chats|list-files|thumbnails|thumbnail|preview|...')
+    parser.add_argument('--folder-id', default=None, help='Drive folder peer id; omit/empty = Saved Messages')
+    parser.add_argument('--to-folder-id', default=None, help='Target folder for move')
+    parser.add_argument('--drive-name', default=None, help='Folder or rename name')
+    parser.add_argument('--save-path', default=None, help='Local path for drive-download or dir for download-batch')
+    parser.add_argument('--include-td', action='store_true', help='Deprecated; [TD] always scanned')
+    parser.add_argument('--drive-limit', type=int, default=80, help='Legacy limit; prefer --page-size')
+    parser.add_argument('--page-size', type=int, default=None, help='Page size for list-files / list-chats')
+    parser.add_argument('--offset-id', type=int, default=None, help='Telegram offset_id for list-files pagination')
+    parser.add_argument('--chat-offset', type=int, default=0, help='Skip N dialogs for list-chats pagination')
+    parser.add_argument('--message-ids-json', default=None, help='JSON list of message ids for download-batch')
     
     args = parser.parse_args()
+
+    try:
+        from engine.debug_log import dlog, is_debug_enabled, set_debug_session
+
+        set_debug_session(f"daemon-{args.action}-{args.drive_action or args.studio_action or 'x'}")
+        dlog(
+            "daemon invoke",
+            scope="daemon",
+            phase="start",
+            action=args.action,
+            drive_action=args.drive_action,
+            studio_action=getattr(args, "studio_action", None),
+            job_id=args.job_id,
+            debug=is_debug_enabled(),
+        )
+    except Exception:
+        pass
+
+    if args.action == "drive-serve":
+        # Long-lived Drive RPC (stdin JSON lines) — keep one Telethon session warm
+        try:
+            from engine.drive_serve import run_drive_serve
+
+            session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else 'Lavender'
+            if not args.api_id or not args.api_hash:
+                print(json.dumps({"type": "error", "error": "API_ID/API_HASH required"}), flush=True)
+                return
+            await run_drive_serve(
+                session_name=session,
+                api_id=int(args.api_id),
+                api_hash=str(args.api_hash),
+            )
+        except Exception as e:
+            print(json.dumps({"type": "error", "error": str(e)}), flush=True)
+        return
+
+    if args.action == "drive":
+        # Desktop drive ops — always clean exit (Windows Tauri host safety)
+        try:
+            from engine.drive_fs import run_drive_action
+
+            def _load_json_arg(raw: str):
+                s = (raw or "").strip().strip('"').strip("'")
+                if not s:
+                    return None
+                if os.path.isfile(s):
+                    with open(s, 'r', encoding='utf-8-sig') as f:
+                        return json.load(f)
+                if s.startswith('\ufeff'):
+                    s = s.lstrip('\ufeff')
+                return json.loads(s)
+
+            session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else 'Lavender'
+            if not args.api_id or not args.api_hash:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'API_ID/API_HASH required'})}")
+                return
+            drive_action = args.drive_action or 'scan-folders'
+            folder_id = None
+            if args.folder_id not in (None, '', 'null', 'None', 'home', 'me'):
+                try:
+                    folder_id = int(str(args.folder_id).strip())
+                except ValueError:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'invalid folder_id'})}")
+                    return
+            to_folder_id = None
+            if args.to_folder_id not in (None, '', 'null', 'None', 'home', 'me'):
+                try:
+                    to_folder_id = int(str(args.to_folder_id).strip())
+                except ValueError:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'invalid to_folder_id'})}")
+                    return
+            files = None
+            options = {}
+            if args.files_json:
+                try:
+                    files = _load_json_arg(args.files_json)
+                except Exception as e:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': f'files-json: {e}'})}")
+                    return
+            if args.options_json:
+                try:
+                    options = _load_json_arg(args.options_json) or {}
+                except Exception as e:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': f'options-json: {e}'})}")
+                    return
+            message_ids = None
+            if args.message_ids_json:
+                try:
+                    message_ids = _load_json_arg(args.message_ids_json)
+                except Exception as e:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': f'message-ids-json: {e}'})}")
+                    return
+            await run_drive_action(
+                drive_action,
+                session_name=session,
+                api_id=int(args.api_id),
+                api_hash=str(args.api_hash),
+                folder_id=folder_id,
+                to_folder_id=to_folder_id,
+                message_id=args.message_id,
+                message_ids=message_ids,
+                name=args.drive_name,
+                save_path=args.save_path or args.file_path,
+                include_td=True,
+                limit=int(args.drive_limit or 80),
+                page_size=args.page_size,
+                offset_id=args.offset_id,
+                chat_offset=int(args.chat_offset or 0),
+                files=files,
+                options=options,
+            )
+        except Exception as e:
+            print(f"[ERROR] drive: {e}", file=sys.stderr)
+            try:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': str(e)})}")
+            except Exception:
+                pass
+        return
+
+    if args.action == "media-studio":
+        # Never sys.exit(non-zero) here — on Windows Tauri shell may force-close the UI.
+        log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+        studio_log = os.path.join(log_dir, f'studio_{int(datetime.datetime.now().timestamp())}.log')
+        try:
+            with open(studio_log, 'a', encoding='utf-8') as lf:
+                lf.write(f"START media-studio args files={args.files_json} opts={args.options_json}\n")
+        except Exception:
+            pass
+        try:
+            from engine.media_studio import run_media_studio
+            session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else 'Lavender'
+            if not args.api_id or not args.api_hash:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'API_ID/API_HASH required'})}")
+                return
+            if not args.chat_id:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'chat_id required'})}")
+                return
+            files = None
+            options = {}
+
+            def _load_json_arg(raw: str):
+                """Load JSON from file path or inline string; tolerate UTF-8 BOM."""
+                s = (raw or "").strip().strip('"').strip("'")
+                if not s:
+                    return None
+                if os.path.isfile(s):
+                    with open(s, 'r', encoding='utf-8-sig') as f:
+                        return json.load(f)
+                if s.startswith('\ufeff'):
+                    s = s.lstrip('\ufeff')
+                return json.loads(s)
+
+            if args.files_json:
+                try:
+                    files = _load_json_arg(args.files_json)
+                except Exception as e:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': f'files-json: {e}'})}")
+                    return
+            if args.options_json:
+                try:
+                    options = _load_json_arg(args.options_json) or {}
+                except Exception as e:
+                    print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': f'options-json: {e}'})}")
+                    return
+            msg_ids = None
+            if args.message_id:
+                msg_ids = [int(args.message_id)]
+            await run_media_studio(
+                session_name=session,
+                api_id=int(args.api_id),
+                api_hash=str(args.api_hash),
+                chat_id=str(args.chat_id),
+                action=str(args.studio_action or 'upload'),
+                files=files,
+                options=options,
+                last_n=int(args.last_n or 5),
+                message_ids=msg_ids,
+            )
+            try:
+                with open(studio_log, 'a', encoding='utf-8') as lf:
+                    lf.write("END media-studio ok\n")
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"[ERROR] media-studio: {e}", file=sys.stderr)
+            try:
+                with open(studio_log, 'a', encoding='utf-8') as lf:
+                    lf.write(f"END media-studio error: {e}\n")
+            except Exception:
+                pass
+            try:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': str(e)})}")
+            except Exception:
+                pass
+            try:
+                emit_event('StudioFailed', error=str(e))
+            except Exception:
+                pass
+        # Always exit path cleanly (exit code 0 from process)
+        return
+
+    if args.action == "media-bench":
+        from engine.media_bench import run_media_bench
+        session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else 'Lavender'
+        if not args.api_id or not args.api_hash:
+            print("[ERROR] --api-id and --api-hash are required for media-bench", file=sys.stderr)
+            print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'API_ID/API_HASH required'})}")
+            return
+        if not args.chat_id:
+            print("[ERROR] --chat-id is required for media-bench", file=sys.stderr)
+            print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': 'chat_id required'})}")
+            return
+        cleanup = not bool(args.no_cleanup)
+        try:
+            await run_media_bench(
+                session_name=session,
+                api_id=int(args.api_id),
+                api_hash=str(args.api_hash),
+                chat_id=str(args.chat_id),
+                mode=str(args.bench_mode or 'upload'),
+                file_path=args.file_path,
+                generate_mb=float(args.generate_mb or 0),
+                message_id=args.message_id,
+                cleanup=cleanup,
+                delete_message=bool(args.delete_message),
+            )
+        except Exception as e:
+            print(f"[ERROR] media-bench failed: {e}", file=sys.stderr)
+            # JSON already emitted by run_media_bench on error; ensure one line
+            try:
+                print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': str(e)})}")
+            except Exception:
+                pass
+        # Always exit 0 so Tauri shell does not force-close UI
+        return
     
     
     if args.action == "create-job":
-        if not args.source or not args.destination or not args.session:
-            print("[ERROR] --source, --destination, and --session are required for create-job", file=sys.stderr)
-            sys.exit(1)
         job_name = None
         config_str = "{}"
+        conf = {}
         if args.config:
             import base64
             try:
@@ -203,17 +507,29 @@ async def main():
                 conf = json.loads(config_str)
                 job_name = conf.get("jobName")
             except Exception as e:
-                pass
-        job_id = create_job(args.session, args.source, args.destination, args.mode, config_str, job_name)
+                conf = {}
+        from engine.config_normalize import normalize_job_config
+        conf = normalize_job_config(conf, None)
+        # Persist normalized JSON so later runs have consistent keys
+        config_str = json.dumps(conf)
+        source = args.source if args.source else conf.get('source_chat')
+        dest = args.destination if args.destination else conf.get('dest_chat')
+        session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else conf.get('session_name', 'Lavender')
+        mode = args.mode if args.mode not in (None, '', '__DEFAULT_MODE__') else conf.get('transfer_mode', 'Clean Copy')
+        if not source or not dest or not session:
+            print("[ERROR] --source, --destination, and --session are required for create-job", file=sys.stderr)
+            sys.exit(1)
+        job_id = create_job(session, source, dest, mode, config_str, job_name)
         print(f"[JOB_ID]{job_id}")
         return
 
     if args.action == "edit-job":
-        if not args.job_id or not args.source or not args.destination or not args.session:
-            print("[ERROR] --job-id, --source, --destination, and --session are required for edit-job", file=sys.stderr)
+        if not args.job_id:
+            print("[ERROR] --job-id is required for edit-job", file=sys.stderr)
             sys.exit(1)
         job_name = None
         config_str = "{}"
+        conf = {}
         if args.config:
             import base64
             try:
@@ -224,9 +540,19 @@ async def main():
                 conf = json.loads(config_str)
                 job_name = conf.get("jobName")
             except Exception as e:
-                pass
+                conf = {}
+        from engine.config_normalize import normalize_job_config
+        conf = normalize_job_config(conf, None)
+        config_str = json.dumps(conf)
+        source = args.source if args.source else conf.get('source_chat')
+        dest = args.destination if args.destination else conf.get('dest_chat')
+        session = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else conf.get('session_name', 'Lavender')
+        mode = args.mode if args.mode not in (None, '', '__DEFAULT_MODE__') else conf.get('transfer_mode', 'Clean Copy')
+        if not source or not dest or not session:
+            print("[ERROR] source, destination, and session are required for edit-job", file=sys.stderr)
+            sys.exit(1)
         from database.queries import update_job
-        update_job(args.job_id, args.session, args.source, args.destination, args.mode, config_str, job_name)
+        update_job(args.job_id, session, source, dest, mode, config_str, job_name)
         print(f"[DAEMON] Job ID {args.job_id} updated successfully")
         return
 
@@ -348,10 +674,29 @@ async def main():
             
         from engine.enterprise.database import delete_mapping_by_job
         from engine.enterprise.checkpoint import CheckpointManager
-        from database.queries import update_job
+        from database.queries import (
+            clear_duplicate_history_for_target,
+            clear_tasks_for_job,
+            mark_stalled_mappings_for_job,
+            get_job as _get_job_fs,
+        )
         
+        job_row = _get_job_fs(args.job_id)
         delete_mapping_by_job(str(args.job_id))
         CheckpointManager().delete_checkpoint(str(args.job_id))
+        clear_tasks_for_job(args.job_id)
+        mark_stalled_mappings_for_job(args.job_id, 'FAILED', 'Cleared by Fresh Start')
+        if job_row and job_row.get('target_entity_id'):
+            clear_duplicate_history_for_target(job_row['target_entity_id'])
+        # Also clear by dest from config_json if present
+        try:
+            import json as _json
+            conf = _json.loads(job_row.get('config_json') or '{}') if job_row else {}
+            dest = conf.get('dest_chat') or conf.get('destination') or conf.get('destValue')
+            if dest:
+                clear_duplicate_history_for_target(dest)
+        except Exception:
+            pass
         print("[DAEMON] Fresh Start Completed", flush=True)
         return
         
@@ -359,8 +704,16 @@ async def main():
         if not args.job_id or not args.status:
             print("[ERROR] --job-id and --status are required", file=sys.stderr)
             sys.exit(1)
-        update_job_status(args.job_id, args.status)
-        print(f"[DAEMON] Job {args.job_id} Status Set to {args.status}", flush=True)
+        from database.queries import update_job_status, request_pause_for_job, mark_stalled_mappings_for_job
+        status_norm = str(args.status).lower()
+        if status_norm in ('paused', 'pause', 'pausing'):
+            request_pause_for_job(args.job_id)
+            update_job_status(args.job_id, 'paused')
+            # Give cooperative engines a moment; UI may also kill process
+            print(f"[DAEMON] Job {args.job_id} pause requested (PAUSING)", flush=True)
+        else:
+            update_job_status(args.job_id, args.status)
+            print(f"[DAEMON] Job {args.job_id} Status Set to {args.status}", flush=True)
         return
         
     if args.action == "export-jobs":
@@ -396,8 +749,15 @@ async def main():
     if args.action == "reconcile":
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE executions SET status = 'FAILED', error_message = 'Process terminated unexpectedly (System Restart)' WHERE status = 'RUNNING'")
+        cursor.execute("UPDATE executions SET status = 'FAILED', error_message = 'Process terminated unexpectedly (System Restart)', finished_at = CURRENT_TIMESTAMP WHERE status IN ('RUNNING', 'STARTING', 'PAUSING', 'RESUMING')")
         conn.commit()
+        # Best-effort clear enterprise IN_PROGRESS leftovers
+        try:
+            cursor.execute("UPDATE message_mapping SET status = 'FAILED', error_message = 'Stalled after restart', last_updated = CURRENT_TIMESTAMP WHERE status = 'IN_PROGRESS'")
+            conn.commit()
+        except Exception:
+            pass
+        conn.close()
         print("[DAEMON] Reconciliation complete. Zombie executions marked as FAILED.")
         return
 
@@ -457,210 +817,247 @@ async def main():
         return
         
     if args.action in ("execute-job", "retry-execution", "run-again"):
-        from database.queries import get_job, create_execution, update_execution_status, get_execution
+        from database.queries import get_job, create_execution, update_execution_status, get_execution, get_executions_by_job
+        from engine.config_normalize import normalize_job_config, effective_limit
         
-        config = {'is_retry': args.action == 'retry-execution'}
+        config = {}
         execution_id = None
+        job_id = None
         
         if args.action == 'retry-execution':
-            # Needs --execution-id (we will overload --job-id for it temporarily if needed, but let's add --execution-id manually or parse it)
-            # Wait, argparse doesn't have --execution-id. Let's use --job-id as the execution_id for this action
-            exec_id = args.job_id
+            # Prefer explicit --execution-id; fall back to --job-id only if it resolves as execution
+            exec_id = args.execution_id or args.job_id
             if not exec_id:
-                print("[ERROR] --job-id (used as execution_id) is required for retry-execution", file=sys.stderr)
+                print("[ERROR] --execution-id is required for retry-execution (or --job-id of a prior execution)", file=sys.stderr)
                 sys.exit(1)
             execution = get_execution(exec_id)
             if not execution:
-                print(f"[ERROR] Execution ID {exec_id} not found", file=sys.stderr)
+                # Maybe user passed job_id: pick latest execution for that job
+                if args.job_id:
+                    exs = get_executions_by_job(args.job_id)
+                    execution = exs[0] if exs else None
+                    exec_id = execution['id'] if execution else None
+            if not execution:
+                print(f"[ERROR] Execution not found for retry (execution_id/job_id={exec_id})", file=sys.stderr)
                 sys.exit(1)
             try:
-                config = json.loads(execution.get('snapshot_config_json', '{}'))
-            except:
-                pass
+                config = json.loads(execution.get('snapshot_config_json', '{}') or '{}')
+            except Exception:
+                config = {}
+            # Prefer latest job config when available (user may have edited)
+            job_id = execution['job_id']
+            job_data = get_job(job_id)
+            if job_data and job_data.get('config_json'):
+                try:
+                    latest = json.loads(job_data.get('config_json') or '{}')
+                    # Keep snapshot as base, overlay non-empty latest fields
+                    for k, v in latest.items():
+                        if v is not None and v != '':
+                            config[k] = v
+                except Exception:
+                    pass
             config['is_retry'] = True
-            config['rerun_mode'] = args.rerun_mode
-            config['job_id'] = execution['job_id']
-            
-            # Create a NEW execution for the retry, using the same snapshot
-            execution_id = create_execution(execution['job_id'], execution.get('snapshot_config_json', '{}'))
+            config['rerun_mode'] = args.rerun_mode or config.get('rerun_mode', 'RESUME')
+            config['job_id'] = job_id
+            config['prior_execution_id'] = execution['id']
+            # Guard concurrent
+            existing_execs = get_executions_by_job(job_id)
+            if any(e.get('status') in ('RUNNING', 'STARTING') for e in existing_execs):
+                print(f"[ERROR] Job ID {job_id} is already RUNNING. Cannot start multiple instances.", file=sys.stderr)
+                sys.exit(1)
+            execution_id = create_execution(job_id, json.dumps(config))
             
         else:
             if not args.job_id:
                 print("[ERROR] --job-id is required for execute-job and run-again", file=sys.stderr)
                 sys.exit(1)
+            job_id = args.job_id
                 
-            from database.queries import get_executions_by_job
-            existing_execs = get_executions_by_job(args.job_id)
-            if any(e.get('status') == 'RUNNING' for e in existing_execs):
-                print(f"[ERROR] Job ID {args.job_id} is already RUNNING. Cannot start multiple instances.", file=sys.stderr)
+            existing_execs = get_executions_by_job(job_id)
+            if any(e.get('status') in ('RUNNING', 'STARTING') for e in existing_execs):
+                print(f"[ERROR] Job ID {job_id} is already RUNNING. Cannot start multiple instances.", file=sys.stderr)
                 sys.exit(1)
                 
-            job_data = get_job(args.job_id)
+            job_data = get_job(job_id)
             if not job_data:
-                print(f"[ERROR] Job ID {args.job_id} not found", file=sys.stderr)
+                print(f"[ERROR] Job ID {job_id} not found", file=sys.stderr)
                 sys.exit(1)
             try:
-                config = json.loads(job_data.get('config_json', '{}'))
-            except:
-                pass
+                config = json.loads(job_data.get('config_json', '{}') or '{}')
+            except Exception:
+                config = {}
             
             config['is_retry'] = False
-            config['job_id'] = args.job_id
-            execution_id = create_execution(args.job_id, json.dumps(config))
+            config['job_id'] = job_id
+            # run-again with rerun_mode treats as soft retry of mapping path
+            if args.action == 'run-again' or (args.rerun_mode and args.rerun_mode != 'RESUME' and getattr(args, 'force_rerun', False)):
+                pass
+            execution_id = create_execution(job_id, json.dumps(config))
+            # Resume checkpoint: new execution inherits last_processed_id from prior run
+            try:
+                from database.queries import seed_execution_from_prior
+                # Fresh start clears mappings/history elsewhere; still OK to seed if prior exists.
+                # OVERWRITE / force full re-run should not continue mid-history.
+                rerun = (args.rerun_mode or config.get('rerun_mode') or 'RESUME')
+                if str(rerun).upper() != 'OVERWRITE' and not getattr(args, 'force_rerun', False):
+                    seeded = seed_execution_from_prior(job_id, execution_id)
+                    if seeded:
+                        print(f"[EVENT] {json.dumps({'type': 'CheckpointSeeded', 'execution_id': execution_id, 'job_id': job_id})}", flush=True)
+            except Exception as _seed_err:
+                print(f"[WARN] Could not seed checkpoint: {_seed_err}", file=sys.stderr)
             
-        # SETUP PERSISTENT LOGGING
+        # Normalize config (UI camelCase + CLI)
+        config = normalize_job_config(config, args)
+        config['job_id'] = job_id
+        if args.action == 'retry-execution':
+            config['is_retry'] = True
+            config['rerun_mode'] = args.rerun_mode or 'RESUME'
+            # Also seed for soft retry RESUME so last_processed continues
+            if (config.get('rerun_mode') or 'RESUME').upper() == 'RESUME':
+                try:
+                    from database.queries import seed_execution_from_prior
+                    seed_execution_from_prior(job_id, execution_id)
+                except Exception:
+                    pass
+
+        # SETUP PERSISTENT LOGGING (always job_id + execution_id)
         log_dir = os.path.join(os.path.dirname(__file__), 'logs')
         os.makedirs(log_dir, exist_ok=True)
-        log_file_path = os.path.join(log_dir, f'job_{args.job_id}_exec_{execution_id}.log')
-        sys.stdout = TeeStream(sys.stdout, log_file_path)
-        sys.stderr = TeeStream(sys.stderr, log_file_path)
+        log_file_path = os.path.join(log_dir, f'job_{job_id}_exec_{execution_id}.log')
+        _orig_stdout, _orig_stderr = sys.stdout, sys.stderr
+        sys.stdout = TeeStream(_orig_stdout, log_file_path)
+        sys.stderr = TeeStream(_orig_stderr, log_file_path)
         
-        setup_emitter(execution_id, args.job_id)
-        emit_event('ExecutionCreated', execution_id=execution_id, jobId=args.job_id)
-                
-        # Override with any explicit args provided (if they were sent over CLI instead of config)
-        if args.source and args.destination:
-            config['source_chat'] = args.source
-            config['dest_chat'] = args.destination
-            
-        # Map frontend config keys
-        if 'source' in config and 'source_chat' not in config:
-            config['source_chat'] = config['source']
-        if 'destination' in config and 'dest_chat' not in config:
-            config['dest_chat'] = config['destination']
-        if 'mode' in config and 'transfer_mode' not in config:
-            config['transfer_mode'] = config['mode']
-        if 'session' in config and 'session_name' not in config:
-            config['session_name'] = config['session']
-        if 'delayMin' in config and 'delay_min' not in config:
-            config['delay_min'] = config['delayMin']
-        if 'delayMax' in config and 'delay_max' not in config:
-            config['delay_max'] = config['delayMax']
-        if 'size_min' in config and 'size_min_mb' not in config:
-            config['size_min_mb'] = config['size_min']
-        if 'size_max' in config and 'size_max_mb' not in config:
-            config['size_max_mb'] = config['size_max']
-        if 'dupAction' in config and 'duplicate_action' not in config:
-            config['duplicate_action'] = config['dupAction']
-        if 'fetchDirection' in config and 'fetch_direction' not in config:
-            config['fetch_direction'] = config['fetchDirection']
-        if 'captionRule' in config and 'caption_rule' not in config:
-            config['caption_rule'] = config['captionRule']
-        if 'albumHandling' in config and 'album_handling' not in config:
-            config['album_handling'] = config['albumHandling']
-        if 'autoFallback' in config and 'auto_fallback' not in config:
-            config['auto_fallback'] = config['autoFallback']
+        setup_emitter(execution_id, job_id)
+        emit_event('ExecutionCreated', execution_id=execution_id, jobId=job_id)
+
+        exit_code = 0
+        client = None
             
         if not config.get('source_chat') or not config.get('dest_chat'):
-            print("[ERROR] --source and --destination are required for new migration", file=sys.stderr)
+            print("[ERROR] source and destination are required", file=sys.stderr)
             update_execution_status(execution_id, 'FAILED', "Source/Destination missing")
-            sys.exit(1)
+            exit_code = 1
+        else:
+            # Determine effective API ID and Hash
+            effective_api_id = args.api_id or config.get('api_id')
+            effective_api_hash = args.api_hash or config.get('api_hash')
             
-        # Merge other args
-        config['api_id'] = args.api_id or config.get('api_id')
-        config['api_hash'] = args.api_hash or config.get('api_hash')
-        config['transfer_mode'] = args.mode if args.mode != "Clean Copy" else config.get('transfer_mode', 'Clean Copy')
-        config['limit'] = args.limit if args.limit != 5 else config.get('limit', 5)
-        config['media_filter'] = args.media if args.media != "Semua" else config.get('media_filter', 'Semua')
-        config['dry_run'] = args.dry_run or config.get('dry_run', False)
-        config['session_name'] = args.session if args.session != "Lavender" else config.get('session_name', 'Lavender')
-        config['duplicate_action'] = args.duplicate_action if args.duplicate_action != "Skip" else config.get('duplicate_action', 'Skip')
-        config['size_min_mb'] = args.size_min if args.size_min != 0.0 else config.get('size_min_mb', 0.0)
-        config['size_max_mb'] = args.size_max if args.size_max != float('inf') else config.get('size_max_mb', float('inf'))
-        config['throttle_active'] = args.throttle or config.get('throttle_active', False)
-        config['auto_fallback'] = args.auto_fallback or config.get('auto_fallback', False)
-        config['caption_rule'] = args.caption if args.caption != "Keep Original" else config.get('caption_rule', "Keep Original")
-        config['album_handling'] = args.album_handling if args.album_handling != 'Follow Source' else config.get('album_handling', 'Follow Source')
-        config['fetch_direction'] = args.fetch_direction if args.fetch_direction != 'Newest First' else config.get('fetch_direction', 'Newest First')
-        config['start_date'] = args.start_date or config.get('start_date')
-        config['end_date'] = args.end_date or config.get('end_date')
-        config['delay_min'] = args.delay_min if args.delay_min != 2.0 else config.get('delay_min', 2.0)
-        config['delay_max'] = args.delay_max if args.delay_max != 5.0 else config.get('delay_max', 5.0)
-        
-        # Determine effective API ID and Hash
-        effective_api_id = args.api_id if args.api_id else config.get('api_id')
-        effective_api_hash = args.api_hash if args.api_hash else config.get('api_hash')
-        
-        if not effective_api_id or not effective_api_hash:
-            print("[EVENT] {\"type\": \"FatalError\", \"error\": \"API_ID and API_HASH are required. Please login.\"}", file=sys.stderr)
-            update_execution_status(execution_id, 'FAILED', "API_ID missing")
-            sys.exit(1)
-            
-        print(f"[EVENT] {json.dumps({'type': 'EngineInitialized', 'execution_id': execution_id})}", flush=True)
-        session_dir = os.path.join(os.path.dirname(__file__), 'sessions')
-        session_file = os.path.join(session_dir, config.get('session_name', 'Lavender'))
-        
-        # Ekstrak topic ID jika ada
-        source_topic_id = None
-        source_str = str(config.get('source_chat', ''))
-        if '_' in source_str:
-            try: source_topic_id = int(source_str.split('_')[1])
-            except: pass
-            
-        dest_topic_id = None
-        dest_str = str(config.get('dest_chat', ''))
-        if '_' in dest_str:
-            try: dest_topic_id = int(dest_str.split('_')[1])
-            except: pass
-            
-        config['source_topic_id'] = source_topic_id
-        config['dest_topic_id'] = dest_topic_id
-        
-        try:
-            update_execution_status(execution_id, 'STARTING')
-            client = TelegramClient(session_file, int(effective_api_id), effective_api_hash)
-            await client.connect()
-            if not await client.is_user_authorized():
-                print("[EVENT] {\"type\": \"FatalError\", \"error\": \"Sesi tidak valid. Silakan login kembali.\"}", flush=True)
-                update_execution_status(execution_id, 'FAILED', "Sesi tidak valid")
-                sys.exit(1)
-                
-            try:
-                source_entity = await client.get_input_entity(parse_entity(config.get('source_chat')))
-            except ValueError:
-                print("[EVENT] {\"type\": \"Log\", \"message\": \"Fetching dialogs to populate cache for Source...\"}", flush=True)
-                await client.get_dialogs(limit=100)
-                try:
-                    source_entity = await client.get_input_entity(parse_entity(config.get('source_chat')))
-                except ValueError:
-                    emit_event('FatalError', error=f"Chat/Username Sumber '{config.get('source_chat')}' tidak valid.")
-                    update_execution_status(execution_id, 'FAILED', "Source invalid")
-                    sys.exit(1)
-                
-            try:
-                dest_entity = await client.get_input_entity(parse_entity(config.get('dest_chat')))
-            except ValueError:
-                print("[EVENT] {\"type\": \"Log\", \"message\": \"Fetching dialogs to populate cache for Dest...\"}", flush=True)
-                await client.get_dialogs(limit=100)
-                try:
-                    dest_entity = await client.get_input_entity(parse_entity(config.get('dest_chat')))
-                except ValueError:
-                    emit_event('FatalError', error=f"Chat/Username Tujuan '{config.get('dest_chat')}' tidak valid.")
-                    update_execution_status(execution_id, 'FAILED', "Destination invalid")
-                    sys.exit(1)
-            
-            update_execution_status(execution_id, 'RUNNING')
-            
-            mode = config.get('mode', 'Instant Clone')
-            if mode == 'Clean Copy':
-                # Use RetryScheduler if it's a retry, else EnterpriseEngine
-                if config.get('is_retry'):
-                    from engine.enterprise.retry_scheduler import RetryScheduler
-                    forwarder = RetryScheduler(client, source_entity, dest_entity, execution_id, config)
-                else:
-                    from engine.enterprise.engine import EnterpriseEngine
-                    forwarder = EnterpriseEngine(client, source_entity, dest_entity, execution_id, config)
+            if not effective_api_id or not effective_api_hash:
+                print("[EVENT] {\"type\": \"FatalError\", \"error\": \"API_ID and API_HASH are required. Please login.\"}", file=sys.stderr)
+                update_execution_status(execution_id, 'FAILED', "API_ID missing")
+                exit_code = 1
             else:
-                forwarder = MigrationForwarder(client, source_entity, dest_entity, execution_id, config)
+                limit = effective_limit(config)
+                print(f"[EVENT] {json.dumps({'type': 'EngineInitialized', 'execution_id': execution_id, 'job_id': job_id, 'limit': limit, 'mode': config.get('transfer_mode')})}", flush=True)
+                session_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+                session_file = os.path.join(session_dir, config.get('session_name', 'Lavender'))
                 
-            await forwarder.execute_migration(limit=config.get('limit', 5))
-            
-            # The final state is handled inside execute_migration
-                
-        except Exception as e:
-            emit_event('FatalError', error=f"Engine Failed: {str(e)}")
-            update_execution_status(execution_id, 'FAILED', str(e))
-            sys.exit(1)
+                async def resolve_entity(client, chat_key, label):
+                    last_err = None
+                    entity_ref = parse_entity(config.get(chat_key))
+                    for attempt, dlg_limit in enumerate((0, 200, 500)):
+                        try:
+                            if dlg_limit:
+                                print(f"[EVENT] {json.dumps({'type': 'Log', 'message': f'Resolving {label}: loading dialogs (limit={dlg_limit})...'})}", flush=True)
+                                await client.get_dialogs(limit=dlg_limit)
+                            return await client.get_input_entity(entity_ref)
+                        except Exception as e:
+                            last_err = e
+                            continue
+                    try:
+                        raw = str(config.get(chat_key) or '')
+                        if raw.startswith('@') or (not raw.lstrip('-').replace('_', '').isdigit()):
+                            return await client.get_entity(raw)
+                    except Exception as e:
+                        last_err = e
+                    raise ValueError(str(last_err) if last_err else f"{label} invalid")
+
+                try:
+                    update_execution_status(execution_id, 'STARTING')
+                    client = TelegramClient(session_file, int(effective_api_id), effective_api_hash)
+                    await client.connect()
+                    if not await client.is_user_authorized():
+                        print("[EVENT] {\"type\": \"FatalError\", \"error\": \"Sesi tidak valid. Silakan login kembali.\"}", flush=True)
+                        update_execution_status(execution_id, 'FAILED', "Sesi tidak valid")
+                        exit_code = 1
+                    else:
+                        try:
+                            source_entity = await resolve_entity(client, 'source_chat', 'Source')
+                            dest_entity = await resolve_entity(client, 'dest_chat', 'Destination')
+                        except Exception as e:
+                            emit_event('FatalError', error=f"Entity resolve failed: {e}")
+                            update_execution_status(execution_id, 'FAILED', "Entity invalid")
+                            exit_code = 1
+                        else:
+                            update_execution_status(execution_id, 'RUNNING')
+                            
+                            mode = config.get('transfer_mode') or config.get('mode') or 'Clean Copy'
+                            is_retry = bool(config.get('is_retry'))
+                            if mode == 'Clean Copy':
+                                if is_retry:
+                                    from engine.enterprise.retry_scheduler import RetryScheduler
+                                    forwarder = RetryScheduler(client, source_entity, dest_entity, execution_id, config)
+                                else:
+                                    from engine.enterprise.engine import EnterpriseEngine
+                                    forwarder = EnterpriseEngine(client, source_entity, dest_entity, execution_id, config)
+                            else:
+                                forwarder = MigrationForwarder(client, source_entity, dest_entity, execution_id, config)
+                                
+                            await forwarder.execute_migration(limit=limit)
+                            # final state is set inside engine; success exit
+                        
+                except Exception as e:
+                    try:
+                        emit_event('FatalError', error=f"Engine Failed: {str(e)}")
+                    except Exception:
+                        print(f"[ERROR] Engine Failed: {e}", file=sys.stderr)
+                    try:
+                        update_execution_status(execution_id, 'FAILED', str(e))
+                    except Exception:
+                        pass
+                    exit_code = 1
+                finally:
+                    # Always disconnect Telegram cleanly — prevents native crash on process teardown
+                    if client is not None:
+                        try:
+                            if getattr(client, "is_connected", lambda: True)():
+                                await asyncio.wait_for(client.disconnect(), timeout=5.0)
+                        except Exception:
+                            try:
+                                # Force-close transport if graceful disconnect hangs
+                                if hasattr(client, "disconnect"):
+                                    await asyncio.wait_for(client.disconnect(), timeout=1.0)
+                            except Exception:
+                                pass
+                        try:
+                            await asyncio.sleep(0.05)
+                        except Exception:
+                            pass
+                        client = None
+                    # Drop pending tasks that Telethon may leave behind
+                    try:
+                        await asyncio.sleep(0)
+                    except Exception:
+                        pass
+
+        # Restore streams before process end (avoids flush crash into closed TeeStream)
+        try:
+            if isinstance(sys.stdout, TeeStream):
+                sys.stdout.close()
+            if isinstance(sys.stderr, TeeStream):
+                sys.stderr.close()
+        except Exception:
+            pass
+        sys.stdout = _orig_stdout
+        sys.stderr = _orig_stderr
+
+        # IMPORTANT: Always exit 0 for job runners so Tauri shell never treats
+        # a failed migration as an abnormal process death (can force-close UI on Windows).
+        # Job success/failure is communicated via [EVENT] ExecutionFinished / FatalError.
+        if exit_code != 0:
+            print(f"[DAEMON] Job finished with logical exit_code={exit_code} (process still exits 0)", flush=True)
+        return
 
     if args.action == "sync":
         if not args.source or not args.destination:
@@ -748,6 +1145,27 @@ if __name__ == "__main__":
         pass
         
     if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(line_buffering=True)
-    asyncio.run(main())
-    
+        try:
+            sys.stdout.reconfigure(line_buffering=True)
+        except Exception:
+            pass
+    try:
+        asyncio.run(main())
+    except SystemExit:
+        # Swallow — always terminate cleanly for host process stability
+        pass
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        try:
+            print(f"[FATAL] {e}", file=sys.stderr)
+        except Exception:
+            pass
+    # Hard guarantee: process always exits 0 (no crash signal to Tauri parent)
+    try:
+        sys.exit(0)
+    except SystemExit:
+        raise
+    except Exception:
+        os._exit(0)
+

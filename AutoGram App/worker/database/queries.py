@@ -29,6 +29,20 @@ def update_job(job_id, profile_name, source_entity_id, target_entity_id, transfe
     conn.commit()
     conn.close()
 
+
+def update_job_status(job_id, status):
+    """Update lightweight status flag on jobs table if column exists; no-op safe."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('UPDATE jobs SET status = ? WHERE id = ?', (status, job_id))
+        conn.commit()
+    except Exception:
+        # Column may not exist on older schemas — ignore
+        pass
+    finally:
+        conn.close()
+
 def get_job(job_id):
     """Mendapatkan data job berdasarkan ID."""
     conn = get_connection()
@@ -85,6 +99,56 @@ def create_execution(job_id, snapshot_config_json):
     conn.close()
     return execution_id
 
+
+def seed_execution_from_prior(job_id, new_execution_id, *, allow_statuses=None):
+    """
+    Copy last_processed_id / processed_messages from the most recent prior
+    execution so Resume (new execution row) continues the checkpoint.
+    """
+    # Do NOT seed from COMPLETED — a new run after success should start clean
+    # (duplicates still skip via history). Resume targets PAUSED / partial / failed.
+    allow = allow_statuses or (
+        'PAUSED', 'PARTIAL_SUCCESS', 'PARTIAL', 'FAILED', 'STOPPING', 'PAUSING'
+    )
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    try:
+        placeholders = ','.join('?' * len(allow))
+        cursor.execute(f'''
+            SELECT last_processed_id, processed_messages, total_messages, status
+            FROM executions
+            WHERE job_id = ? AND id != ? AND status IN ({placeholders})
+            ORDER BY id DESC
+            LIMIT 1
+        ''', (job_id, new_execution_id, *allow))
+        row = cursor.fetchone()
+        if not row:
+            return False
+        last_id = row['last_processed_id'] or 0
+        processed = row['processed_messages'] or 0
+        total = row['total_messages']
+        if last_id <= 0 and processed <= 0:
+            return False
+        if total is not None:
+            cursor.execute('''
+                UPDATE executions
+                SET last_processed_id = ?, processed_messages = ?, total_messages = ?
+                WHERE id = ?
+            ''', (last_id, processed, total, new_execution_id))
+        else:
+            cursor.execute('''
+                UPDATE executions
+                SET last_processed_id = ?, processed_messages = ?
+                WHERE id = ?
+            ''', (last_id, processed, new_execution_id))
+        conn.commit()
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
 def update_execution_progress(execution_id, last_processed_id, processed_messages, total_messages=None):
     """Memperbarui progres eksekusi saat ini."""
     conn = get_connection()
@@ -110,7 +174,9 @@ def update_execution_status(execution_id, status, error_message=None):
     cursor = conn.cursor()
     
     # Jika selesai/stop, catat waktu selesai
-    is_terminal = status in ['COMPLETED', 'PARTIAL_SUCCESS', 'FAILED', 'STOPPED', 'CANCELLED']
+    is_terminal = status in [
+        'COMPLETED', 'PARTIAL_SUCCESS', 'FAILED', 'STOPPED', 'CANCELLED', 'PAUSED'
+    ]
     
     if is_terminal:
         cursor.execute('''
@@ -127,6 +193,71 @@ def update_execution_status(execution_id, status, error_message=None):
         
     conn.commit()
     conn.close()
+
+
+def request_pause_for_job(job_id):
+    """Mark running/starting executions as PAUSING for cooperative stop."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE executions
+        SET status = 'PAUSING', error_message = 'Pause requested by user'
+        WHERE job_id = ? AND status IN ('RUNNING', 'STARTING', 'RESUMING')
+    ''', (job_id,))
+    conn.commit()
+    changed = cursor.rowcount
+    conn.close()
+    return changed
+
+
+def clear_duplicate_history_for_target(target_entity_id):
+    """Remove file-level duplicate history for a destination entity."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'DELETE FROM duplicate_history WHERE target_entity_id = ?',
+            (str(target_entity_id),)
+        )
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
+def clear_tasks_for_job(job_id):
+    """Clear tasks belonging to all executions of a job."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            DELETE FROM tasks WHERE execution_id IN (
+                SELECT id FROM executions WHERE job_id = ?
+            )
+        ''', (job_id,))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
+
+def mark_stalled_mappings_for_job(job_id, status='FAILED', message='Stalled after process end'):
+    """Best-effort mark enterprise IN_PROGRESS rows as failed after kill/reconcile."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            UPDATE message_mapping
+            SET status = ?, error_message = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE job_id = ? AND status = 'IN_PROGRESS'
+        ''', (status, message, str(job_id)))
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
 
 def get_execution(execution_id):
     conn = get_connection()
@@ -175,6 +306,37 @@ def create_task(execution_id, source_message_id, file_unique_id=None, file_hash=
     conn.close()
     return task_id
 
+
+def create_tasks_batch(rows):
+    """
+    Insert task rows in one transaction and return their generated IDs.
+
+    Each row is `(execution_id, source_message_id, file_unique_id, file_hash,
+    file_name, file_size, status)`. Inserts stay individual inside the same
+    transaction so callers retain the exact task-id/message pairing.
+    """
+    if not rows:
+        return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    task_ids = []
+    try:
+        cursor.execute('BEGIN')
+        for row in rows:
+            cursor.execute('''
+                INSERT INTO tasks
+                (execution_id, source_message_id, file_unique_id, file_hash, file_name, file_size, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', tuple(row))
+            task_ids.append(cursor.lastrowid)
+        conn.commit()
+        return task_ids
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
 def update_task_status(task_id, status, target_message_id=None, error_category=None, error_message=None):
     """Memperbarui status task (DONE / FAILED / SKIPPED)."""
     conn = get_connection()
@@ -186,6 +348,30 @@ def update_task_status(task_id, status, target_message_id=None, error_category=N
     ''', (status, target_message_id, error_category, error_message, task_id))
     conn.commit()
     conn.close()
+
+
+def update_task_status_batch(rows):
+    """Update task states in one transaction.
+
+    Rows are `(status, target_message_id, error_category, error_message, task_id)`.
+    """
+    if not rows:
+        return
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.executemany('''
+            UPDATE tasks
+            SET status = ?, target_message_id = ?, error_category = ?,
+                error_message = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', [tuple(row) for row in rows])
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def get_failed_source_message_ids(execution_id):
     """Mengambil list source_message_id yang statusnya FAILED untuk suatu eksekusi."""
@@ -232,6 +418,26 @@ def log_duplicate(file_unique_id, target_entity_id, target_message_id):
         conn.commit()
     except Exception:
         pass
+    finally:
+        conn.close()
+
+
+def log_duplicates_batch(rows):
+    """Persist duplicate keys with one connection/commit (existing keys stay)."""
+    if not rows:
+        return
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.executemany('''
+            INSERT OR IGNORE INTO duplicate_history
+            (file_unique_id, target_entity_id, target_message_id)
+            VALUES (?, ?, ?)
+        ''', [tuple(row) for row in rows])
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 

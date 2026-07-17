@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, Settings, Database, Filter, Sliders, Shield } from 'lucide-react';
 
 interface JobDetailsModalProps {
@@ -19,43 +20,28 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
   }
 
   const DetailItem = ({ label, value }: { label: string, value: any }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontWeight: 500, color: 'var(--text-main)', textAlign: 'right' }}>
-        {value === null || value === undefined || value === '' ? '-' : String(value)}
+    <div className="detail-item-row">
+      <span className="detail-item-label">{label}</span>
+      <span className="detail-item-value">
+        {value === null || value === undefined || value === '' ? '-' : (typeof value === 'string' || typeof value === 'number' ? String(value) : value)}
       </span>
     </div>
   );
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100
-    }}>
-      <div className="glass-panel" style={{
-        background: 'var(--bg-panel)',
-        borderRadius: 'var(--radius-lg)',
-        width: '600px',
-        maxWidth: '90vw',
-        maxHeight: '85vh',
-        border: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column'
-      }}>
-        <div style={{
-          padding: '20px 24px', borderBottom: '1px solid var(--border)', 
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Settings size={20} color="var(--primary)" />
+  const node = (
+    <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={onClose} role="presentation">
+      <div className="modal-panel glass-panel" style={{ display: 'flex', flexDirection: 'column', maxHeight: 'min(90dvh, 90vh)' }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
+            <Settings size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
             Job Configuration Details
           </h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button type="button" onClick={onClose} className="btn-tertiary" aria-label="Close">
             <X size={20} />
           </button>
         </div>
         
-        <div style={{ padding: '24px', overflowY: 'auto' }}>
+        <div className="modal-body" style={{ padding: 'clamp(1rem, 3vw, 1.5rem)' }}>
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 12px 0' }}>
               <Database size={16} /> General Info
@@ -106,4 +92,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 }

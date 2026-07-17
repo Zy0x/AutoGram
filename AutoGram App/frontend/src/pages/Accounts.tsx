@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft } from 'lucide-react';
-import { Command } from '@tauri-apps/plugin-shell';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
+import { getApiCredentials } from '../lib/secureCredentials';
+import { runAuthManagerOnce } from '../lib/workerBridge';
 
 const safeGetCallingCode = (val: string) => {
   if (!val) return '';
@@ -138,37 +139,85 @@ export function Accounts() {
 
   const loadSessions = async () => {
     setIsLoading(true);
+    setErrorMsg('');
     try {
-      const apiId = localStorage.getItem('API_ID');
-      const apiHash = localStorage.getItem('API_HASH');
-      
-      const command = Command.create('python', [
-        '../../worker/auth_manager.py', 
-        '--action', 'list-sessions',
-        '--api-id', apiId || "",
-        '--api-hash', apiHash || ""
+      // Ensure API credentials recovered (secure store / worker .env) before list
+      const { bootstrapSecureCredentials } = await import('../lib/secureCredentials');
+      const { apiId, apiHash } = await bootstrapSecureCredentials();
+
+      const result = await runAuthManagerOnce([
+        '--action',
+        'list-sessions',
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
       ]);
-      const result = await command.execute();
-      
-      if (!result.stdout && result.stderr) {
+
+      if (result.code !== 0 && !result.stdout && result.stderr) {
+        if (/requires desktop|requires tauri/i.test(result.stderr)) {
+          setSessions([]);
+          setErrorMsg(
+            'Daftar session butuh aplikasi desktop AutoGram. Buka lewat Tauri (bukan browser saja).'
+          );
+          return;
+        }
         throw new Error(t('error.python_error', { error: result.stderr }));
       }
-      
-      let data;
-      try {
-        data = JSON.parse(result.stdout);
-      } catch (e) {
-        throw new Error(t('error.json_error', { error: (result.stdout || result.stderr) }));
+      if (!result.stdout && result.stderr) {
+        if (/requires desktop|requires tauri/i.test(result.stderr)) {
+          setSessions([]);
+          setErrorMsg(
+            'Daftar session butuh aplikasi desktop AutoGram. Buka lewat Tauri (bukan browser saja).'
+          );
+          return;
+        }
+        throw new Error(t('error.python_error', { error: result.stderr }));
       }
-      
-      if(data.sessions) {
-        setSessions(data.sessions);
-        // Hapus sesi aktif dari state jika sudah tidak ada di file (misal dihapus dari luar)
-        const validNames = data.sessions.map((s: any) => s.name);
-        setActiveSessions(prev => prev.filter(p => validNames.includes(p)));
+
+      let data: any;
+      try {
+        const line =
+          (result.stdout || '')
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l.startsWith('{'))
+            .pop() || result.stdout;
+        data = JSON.parse(line || '{}');
+      } catch (e) {
+        throw new Error(
+          t('error.json_error', {
+            error: result.stdout || result.stderr || String(e),
+          })
+        );
+      }
+
+      if (data.error && !data.sessions) {
+        throw new Error(String(data.error));
+      }
+
+      const list = Array.isArray(data.sessions) ? data.sessions : [];
+      setSessions(list);
+      const validNames = list.map((s: any) => s.name);
+      setActiveSessions((prev) => prev.filter((p) => validNames.includes(p)));
+
+      if (!apiId || !apiHash) {
+        setErrorMsg(
+          t('accounts.error_api_required') ||
+            'API ID / Hash belum terisi. Buka Settings untuk menyimpan credentials — session file tetap aman di disk.'
+        );
       }
     } catch (e) {
-      console.error(e);
+      const msg = String((e as Error)?.message || e);
+      if (/requires desktop|requires tauri/i.test(msg)) {
+        setErrorMsg(
+          'Daftar session butuh aplikasi desktop AutoGram. Buka lewat Tauri (bukan browser saja).'
+        );
+      } else {
+        console.error(e);
+        setErrorMsg(msg);
+      }
+      // Do not clear existing sessions on transient failure
     } finally {
       setIsLoading(false);
     }
@@ -193,9 +242,13 @@ export function Accounts() {
     
     setIsLoading(true);
     try {
-      const command = Command.create('python', ['../../worker/auth_manager.py', '--action', 'delete-session', '--session', name]);
-      const result = await command.execute();
-      
+      const result = await runAuthManagerOnce([
+        '--action',
+        'delete-session',
+        '--session',
+        name,
+      ]);
+
       if (!result.stdout && result.stderr) {
         throw new Error(t('error.python_error', { error: result.stderr }));
       }
@@ -208,10 +261,8 @@ export function Accounts() {
     }
   };
 
-  const checkApiCredentials = () => {
-    const apiId = localStorage.getItem('API_ID');
-    const apiHash = localStorage.getItem('API_HASH');
-    
+  const checkApiCredentials = async () => {
+    const { apiId, apiHash } = await getApiCredentials();
     if (!apiId || !apiHash) {
       setErrorMsg(t('accounts.error_api_required'));
       return false;
@@ -242,53 +293,57 @@ export function Accounts() {
     }
   };
 
+  const parseAuthJson = (stdout: string, stderr: string) => {
+    if (!stdout && stderr) {
+      throw new Error(t('error.python_error', { error: stderr }));
+    }
+    try {
+      const line =
+        (stdout || '')
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter((l) => l.startsWith('{'))
+          .pop() || stdout;
+      return JSON.parse(line || '{}');
+    } catch {
+      throw new Error(t('error.json_error', { error: stdout || stderr }));
+    }
+  };
+
   const handleSendCode = async () => {
     if (!sessionName || !phone) {
       setErrorMsg(t('accounts.error_fields_required'));
       return;
     }
-    
-    if (!checkApiCredentials()) return;
 
-    // `react-phone-number-input` always returns full E.164 format like '+628123456789'
+    if (!(await checkApiCredentials())) return;
+
     const finalPhone = phone;
-    
     setIsProcessing(true);
-    setErrorMsg("");
+    setErrorMsg('');
     try {
-      const apiId = localStorage.getItem('API_ID');
-      const apiHash = localStorage.getItem('API_HASH');
-
-      const command = Command.create('python', [
-        '../../worker/auth_manager.py', 
-        '--action', 'send-code', 
-        '--session', sessionName, 
-        '--phone', finalPhone || "",
-        '--api-id', apiId || "",
-        '--api-hash', apiHash || ""
+      const { apiId, apiHash } = await getApiCredentials();
+      const result = await runAuthManagerOnce([
+        '--action',
+        'send-code',
+        '--session',
+        sessionName,
+        '--phone',
+        finalPhone || '',
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
       ]);
-      
-      const result = await command.execute();
-      
-      if (!result.stdout && result.stderr) {
-        throw new Error(t('error.python_error', { error: result.stderr }));
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(result.stdout);
-      } catch (e) {
-        throw new Error(t('error.json_error', { error: (result.stdout || result.stderr) }));
-      }
-      
-      if(data.error) {
+      const data = parseAuthJson(result.stdout, result.stderr);
+
+      if (data.error) {
         handleError(data);
       } else if (data.status === 'already_authorized') {
         setIsWizardOpen(false);
         loadSessions();
       } else if (data.status === 'code_sent') {
         setPhoneCodeHash(data.phone_code_hash);
-        // Simpan nomor yang sudah diformat ke state agar bisa dipakai tahap selanjutnya
         setPhone(finalPhone);
         setStep(2);
       }
@@ -301,39 +356,31 @@ export function Accounts() {
 
   const handleSignIn = async () => {
     if (!code) return;
-    
-    const apiId = localStorage.getItem('API_ID');
-    const apiHash = localStorage.getItem('API_HASH');
-    
+
     setIsProcessing(true);
-    setErrorMsg("");
-    
+    setErrorMsg('');
+
     try {
-      const command = Command.create('python', [
-        '../../worker/auth_manager.py', 
-        '--action', 'sign-in', 
-        '--session', sessionName, 
-        '--phone', phone || "",
-        '--code', code,
-        '--hash', phoneCodeHash,
-        '--api-id', apiId || "",
-        '--api-hash', apiHash || ""
+      const { apiId, apiHash } = await getApiCredentials();
+      const result = await runAuthManagerOnce([
+        '--action',
+        'sign-in',
+        '--session',
+        sessionName,
+        '--phone',
+        phone || '',
+        '--code',
+        code,
+        '--hash',
+        phoneCodeHash,
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
       ]);
-      
-      const result = await command.execute();
-      
-      if (!result.stdout && result.stderr) {
-        throw new Error(t('error.python_error', { error: result.stderr }));
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(result.stdout);
-      } catch (e) {
-        throw new Error(t('error.json_error', { error: (result.stdout || result.stderr) }));
-      }
-      
-      if(data.error) {
+      const data = parseAuthJson(result.stdout, result.stderr);
+
+      if (data.error) {
         handleError(data);
       } else if (data.status === '2fa_required') {
         setStep(3);
@@ -350,37 +397,27 @@ export function Accounts() {
 
   const handleSignIn2FA = async () => {
     if (!password) return;
-    
-    const apiId = localStorage.getItem('API_ID');
-    const apiHash = localStorage.getItem('API_HASH');
-    
+
     setIsProcessing(true);
-    setErrorMsg("");
-    
+    setErrorMsg('');
+
     try {
-      const command = Command.create('python', [
-        '../../worker/auth_manager.py', 
-        '--action', 'sign-in-2fa', 
-        '--session', sessionName, 
-        '--password', password,
-        '--api-id', apiId || "",
-        '--api-hash', apiHash || ""
+      const { apiId, apiHash } = await getApiCredentials();
+      const result = await runAuthManagerOnce([
+        '--action',
+        'sign-in-2fa',
+        '--session',
+        sessionName,
+        '--password',
+        password,
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
       ]);
-      
-      const result = await command.execute();
-      
-      if (!result.stdout && result.stderr) {
-        throw new Error(t('error.python_error', { error: result.stderr }));
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(result.stdout);
-      } catch (e) {
-        throw new Error(t('error.json_error', { error: (result.stdout || result.stderr) }));
-      }
-      
-      if(data.error) {
+      const data = parseAuthJson(result.stdout, result.stderr);
+
+      if (data.error) {
         handleError(data);
       } else if (data.status === 'success') {
         setIsWizardOpen(false);
@@ -394,33 +431,30 @@ export function Accounts() {
   };
 
   return (
-    <main className="main-content">
-      <header style={{ marginBottom: '32px' }}>
+    <main className="main-content page-stack">
+      <header className="page-header">
         <h2 className="title">{t('accounts.title')}</h2>
         <p className="subtitle">{t('accounts.subtitle')}</p>
       </header>
 
-      <div className="grid-layout">
+      <div className="grid-layout" style={{ gridTemplateColumns: '1fr' }}>
         <div className="glass-panel card">
-          <div className="card-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Users size={20} color="var(--primary)" />
+          <div className="card-header card-header-spread">
+            <div className="title-with-icon">
+              <Users size={20} color="var(--primary)" aria-hidden />
               <h3 style={{ margin: 0 }}>{t('accounts.saved_sessions')}</h3>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="page-header-actions">
               {sessions.length > 0 && (
                 <button 
+                  type="button"
+                  className="btn btn-secondary btn-sm"
                   onClick={() => setActiveSessions(sessions.length === activeSessions.length ? [] : sessions.map(s => s.name))}
-                  style={{ 
-                    background: 'transparent', border: '1px solid var(--border-light)', 
-                    color: 'var(--text-secondary)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
                 >
                   {sessions.length === activeSessions.length ? t('accounts.deselect_all') : t('accounts.select_all')}
                 </button>
               )}
-                <button className="btn btn-primary" onClick={openWizard} style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button type="button" className="btn btn-primary" onClick={openWizard}>
                   <Plus size={16} /> {t('accounts.btn_add')}
                 </button>
             </div>
@@ -428,89 +462,49 @@ export function Accounts() {
           
           <div className="card-body">
             {isLoading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+              <div className="title-with-icon" style={{ color: 'var(--text-muted)' }}>
                 <RefreshCcw size={16} className="spin" /> {t('accounts.loading_sessions')}
               </div>
             ) : sessions.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', margin: 0 }}>{t('accounts.no_accounts')}</p>
             ) : (
               sessions.map((s, idx) => (
-                <div key={idx} style={{ 
-                  background: 'var(--bg-tertiary)', 
-                  padding: '16px', 
-                  borderRadius: '12px',
-                  marginBottom: '12px',
-                  border: '1px solid var(--border-light)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ background: 'rgba(99, 102, 241, 0.2)', padding: '10px', borderRadius: '50%' }}>
-                      <Users size={20} color="var(--primary)" />
+                <div key={idx} className="list-row">
+                  <div className="list-row-main">
+                    <div className="avatar-circle">
+                      <Users size={20} color="var(--primary)" aria-hidden />
                     </div>
-                    <div>
-                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word' }}>
                         {s.name}
                       </h4>
-                      <span style={{ 
-                        fontSize: '0.8rem', 
-                        color: s.status === 'expired' ? '#ef4444' : s.status === 'error' ? '#f59e0b' : 'var(--accent)',
-                        fontWeight: s.status === 'expired' ? '600' : 'normal'
-                      }}>
+                      <span className={`session-status status-${s.status || 'ok'}`}>
                         {s.status === 'expired' ? t('accounts.status_expired') : s.status === 'error' ? t('accounts.status_error') : t('accounts.status_connected')}
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', opacity: s.status === 'expired' ? 0.5 : 1, pointerEvents: s.status === 'expired' ? 'none' : 'auto' }}>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
+                  <div className="list-row-actions" style={{ opacity: s.status === 'expired' ? 0.5 : 1, pointerEvents: s.status === 'expired' ? 'none' : 'auto' }}>
+                    <div className="title-with-icon" style={{ gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.85rem', color: activeSessions.includes(s.name) ? 'var(--primary)' : 'var(--text-muted)', fontWeight: activeSessions.includes(s.name) ? '600' : 'normal' }}>
                         {activeSessions.includes(s.name) ? t('accounts.active_target') : t('accounts.inactive')}
                       </span>
                       <div 
+                        role="switch"
+                        aria-checked={activeSessions.includes(s.name)}
+                        tabIndex={0}
                         onClick={() => toggleSession(s.name)}
-                        style={{
-                        width: '44px',
-                        height: '24px',
-                        background: activeSessions.includes(s.name) ? 'var(--primary)' : 'var(--border-light)',
-                        borderRadius: '24px',
-                        position: 'relative',
-                        transition: 'background 0.3s',
-                        cursor: 'pointer'
-                      }}>
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          background: '#fff',
-                          borderRadius: '50%',
-                          position: 'absolute',
-                          top: '2px',
-                          left: activeSessions.includes(s.name) ? '22px' : '2px',
-                          transition: 'left 0.3s',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }} />
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSession(s.name); } }}
+                        className={`session-toggle ${activeSessions.includes(s.name) ? 'on' : ''}`}
+                      >
+                        <div className="session-toggle-knob" />
                       </div>
                     </div>
                     
                     <button 
+                      type="button"
                       onClick={() => handleDeleteSession(s.name)}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: 'none',
-                        padding: '8px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        color: 'rgb(239, 68, 68)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'background 0.2s'
-                      }}
+                      className="btn btn-secondary btn-icon btn-danger-soft"
                       title={t('accounts.delete_title')}
-                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                     >
                       <Trash2 size={18} />
                     </button>

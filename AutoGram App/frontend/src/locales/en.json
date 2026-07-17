@@ -3,8 +3,13 @@
     "dashboard": "Dashboard",
     "accounts": "Accounts",
     "settings": "Settings",
+    "speedtest": "Media Studio",
     "collapse": "Collapse",
     "expand": "Expand"
+  },
+  "speedtest": {
+    "title": "Media Studio",
+    "subtitle": "Upload local media with HQ quality, ordered multi-file, and speed tools."
   },
   "dashboard": {
     "step1_title": "Step 1: Target Setup",
@@ -135,7 +140,7 @@
     "deselect_all": "Deselect All",
     "select_all": "Select All",
     "loading_sessions": "Loading sessions...",
-    "no_accounts": "No accounts connected yet. Click \"New Account\" to start.",
+    "no_accounts": "No accounts connected yet. Click \"Connect New Account\" to start.",
     "status_expired": "Expired (Delete & Re-login)",
     "status_error": "Connection Error",
     "status_connected": "Connected",

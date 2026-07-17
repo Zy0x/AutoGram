@@ -3,8 +3,13 @@
     "dashboard": "Dasbor",
     "accounts": "Akun",
     "settings": "Pengaturan",
+    "speedtest": "Media Studio",
     "collapse": "Sembunyikan",
     "expand": "Tampilkan"
+  },
+  "speedtest": {
+    "title": "Media Studio",
+    "subtitle": "Unggah media lokal dengan kualitas HQ, multi-file berurutan, dan alat kecepatan."
   },
   "dashboard": {
     "step1_title": "Langkah 1: Setup Target",
@@ -135,7 +140,7 @@
     "deselect_all": "Batal Pilih Semua",
     "select_all": "Pilih Semua",
     "loading_sessions": "Memuat sesi...",
-    "no_accounts": "Belum ada akun yang terhubung. Klik \"Akun Baru\" untuk memulai.",
+    "no_accounts": "Belum ada akun yang terhubung. Klik \"Hubungkan Akun Baru\" untuk memulai.",
     "status_expired": "Kedaluwarsa (Hapus & Login Ulang)",
     "status_error": "Kesalahan Koneksi",
     "status_connected": "Terhubung",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Command } from '@tauri-apps/plugin-shell';
+import { runDaemonOnce } from '../lib/workerBridge';
 import { Bookmark, Trash2, Edit3, Save } from 'lucide-react';
 
 interface Profile {
@@ -20,8 +20,7 @@ export function Profiles() {
   const loadProfiles = async () => {
     try {
       setLoading(true);
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'list-profiles']);
-      const result = await command.execute();
+      const result = await runDaemonOnce(['--action', 'list-profiles']);
       
       const lines = result.stdout.split('\n');
       for (const line of lines) {
@@ -47,8 +46,10 @@ export function Profiles() {
     if (!confirm("Are you sure you want to delete this profile?")) return;
     
     try {
-      const command = Command.create('python', ['../../worker/daemon.py', '--action', 'delete-profile', '--profile-id', String(id)]);
-      await command.execute();
+      await runDaemonOnce([
+        '--action', 'delete-profile',
+        '--profile-id', String(id),
+      ]);
       await loadProfiles();
     } catch (err) {
       console.error(err);
@@ -58,13 +59,11 @@ export function Profiles() {
 
   const handleSave = async () => {
     try {
-      const command = Command.create('python', [
-        '../../worker/daemon.py', 
-        '--action', 'save-profile', 
+      await runDaemonOnce([
+        '--action', 'save-profile',
         '--profile-name', editName,
-        '--profile-config', editConfig
+        '--profile-config', editConfig,
       ]);
-      await command.execute();
       setIsEditing(null);
       await loadProfiles();
     } catch (err) {
@@ -80,22 +79,22 @@ export function Profiles() {
   };
 
   return (
-    <main className="main-content fade-in">
-      <header style={{ marginBottom: '32px' }}>
-        <h2 className="title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Bookmark color="var(--primary)" size={28} />
+    <main className="main-content page-stack fade-in">
+      <header className="page-header">
+        <h2 className="title title-with-icon">
+          <Bookmark color="var(--primary)" size={28} aria-hidden />
           Migration Profiles
         </h2>
         <p className="subtitle">Manage your saved templates and configurations.</p>
       </header>
 
       {error && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+        <div className="alert-error">
           {error}
         </div>
       )}
 
-      <div className="glass-panel" style={{ overflowX: 'auto' }}>
+      <div className="table-container">
         <table className="glass-table">
           <thead>
             <tr>

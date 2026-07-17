@@ -13,9 +13,10 @@ from .scheduler import OrderedCommitScheduler
 from .duplicate import EnterpriseDuplicateChecker
 from .checkpoint import CheckpointManager
 from .database import record_mapping, update_mapping_status
-from .filters import passes_media_filter, passes_size_filter, process_caption
+from .filters import passes_media_filter, passes_size_filter, process_caption, message_in_date_range
 
 from engine.events import emit_event
+from engine.pause_control import should_pause, resolve_final_state
 from database.queries import update_execution_progress, update_execution_status, get_execution
 
 class EnterpriseEngine:
@@ -69,23 +70,41 @@ class EnterpriseEngine:
 
     async def execute_migration(self, limit=10):
         start_time = time.time()
+        dry_run = bool(self.config.get('dry_run'))
+        # UI total: 0 limit => unknown (send 0 so UI shows ?)
+        total_display = limit if limit and limit > 0 else 0
+        paused = False
         emit_event('ExecutionStarting', execution_id=self.execution_id, jobId=self.job_id, limit=limit)
         emit_event('ExecutionStarted', execution_id=self.execution_id, jobId=self.job_id, limit=limit)
         
         processed_count = 0
         current_sequence = self.last_committed_sequence + 1
         
-        # Determine iterator args
         reverse_flag = (self.config.get('fetch_direction') == "Oldest First")
         iter_kwargs = {'reverse': reverse_flag}
         
         if self.config.get('source_topic_id'):
             iter_kwargs['reply_to'] = self.config.get('source_topic_id')
+
+        # Safe mode: slight delay between messages
+        submode = (self.config.get('clean_copy_submode') or 'Speed')
+        inter_delay = 0.0
+        if submode == 'Safe' or self.config.get('throttle_active'):
+            inter_delay = max(float(self.config.get('delay_min', 1.0) or 1.0), 0.5)
             
+        natural_end = False
         try:
             async for message in self.client.iter_messages(self.source, **iter_kwargs):
+                # Limit first — completed work must not be reported as PAUSED
                 if limit > 0 and processed_count >= limit:
                     break
+
+                if should_pause(self.execution_id):
+                    paused = True
+                    break
+
+                if not message_in_date_range(message, self.config):
+                    continue
                     
                 if not message.media and not message.text:
                     continue
@@ -102,7 +121,7 @@ class EnterpriseEngine:
                 source_msg_id = message.id
                 
                 # 1. Check mapping/duplicates
-                dup_action = self.config.get('dupAction', 'Skip')
+                dup_action = self.config.get('dupAction') or self.config.get('duplicate_action', 'Skip')
                 if dup_action != 'Overwrite' and self.duplicate_checker.is_duplicate(source_chat_id, source_msg_id):
                     is_deleted_at_dest = False
                     if dup_action == 'Verify':
@@ -111,53 +130,55 @@ class EnterpriseEngine:
                             retry = True
                             while retry:
                                 try:
-                                    await asyncio.sleep(0.5) # Gentle throttle for Verify Dest
+                                    await asyncio.sleep(0.5)
                                     check_msg = await self.client.get_messages(self.dest, ids=[dest_msg_id])
                                     if not check_msg or check_msg[0] is None or type(check_msg[0]).__name__ == 'MessageEmpty':
                                         is_deleted_at_dest = True
-                                        print(f"[DEBUG Verify] Message {dest_msg_id} is CONFIRMED deleted at dest!")
                                     retry = False
                                 except FloodWaitError as e:
-                                    print(f"[WARN] Verify Dest hit FloodWait! Sleeping for {e.seconds}s...")
                                     await asyncio.sleep(e.seconds)
-                                except Exception as e:
-                                    print(f"[ERROR Verify] Exception checking message {dest_msg_id}: {e}")
+                                except Exception:
                                     retry = False
-                                    pass
                     if not is_deleted_at_dest:
                         self.skipped_count += 1
                         reason_str = "Duplicate mapping" if dup_action != 'Verify' else "Verified Duplicate (Still Exists)"
                         emit_event('TaskSkipped', task_id=str(source_msg_id), reason=reason_str)
                         if self.execution_id:
-                            update_execution_progress(self.execution_id, source_msg_id, processed_count, limit)
-                            emit_event('ProgressUpdated', processed=processed_count, total=limit, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
+                            update_execution_progress(self.execution_id, source_msg_id, processed_count, total_display or None)
+                            emit_event('ProgressUpdated', processed=processed_count, total=total_display, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
                         continue
                     
-                # 2. Determine Mode
                 quality = self._determine_mode(message)
                 
-                # 3. Create Task
                 task = TransferTask(
                     sequence_id=current_sequence,
                     job_id=self.job_id,
                     source_chat_id=source_chat_id,
                     source_msg_id=source_msg_id,
-                    dest_chat_id=self.dest.id if hasattr(self.dest, 'id') else 0, # Note: dest is entity
+                    dest_chat_id=(
+                        int(getattr(self.dest, 'id', 0) or 0)
+                        or int(getattr(self.dest, 'channel_id', 0) or 0)
+                        or int(getattr(self.dest, 'chat_id', 0) or 0)
+                        or int(getattr(self.dest, 'user_id', 0) or 0)
+                        or 0
+                    ),
                     quality_mode=quality,
                     message_obj=message
                 )
                 
-                # 4. Route Task
                 prepared = MediaUploadRouter.route(task)
                 
-                # 5. Process / Upload
-                # We simulate parallel/ordered commit by doing it sequentially but with the architecture intact.
-                # (For full parallel we would need asyncio.gather and worker pools).
                 try:
                     update_mapping_status(self.job_id, source_msg_id, 'IN_PROGRESS')
-                    await self._upload_prepared(prepared)
+                    if dry_run:
+                        emit_event('TaskSkipped', task_id=str(source_msg_id), reason='Dry run')
+                        self.skipped_count += 1
+                        update_mapping_status(self.job_id, source_msg_id, 'PENDING')
+                    else:
+                        await self._upload_prepared(prepared)
+                        if inter_delay > 0:
+                            await asyncio.sleep(inter_delay)
                     
-                    # Checkpoint every 10 messages
                     if current_sequence % 10 == 0:
                         self.checkpoint_manager.write_checkpoint({
                             "job_id": self.job_id,
@@ -165,6 +186,11 @@ class EnterpriseEngine:
                             "timestamp": time.time()
                         })
                         
+                except FloodWaitError as e:
+                    print(f"[FloodWait] sleeping {e.seconds}s")
+                    await asyncio.sleep(e.seconds)
+                    self.failed_count_val += 1
+                    update_mapping_status(self.job_id, source_msg_id, 'FAILED', error_message=f'FloodWait {e.seconds}s')
                 except Exception as e:
                     print(f"Error on message {source_msg_id}: {e}")
                     self.failed_count_val += 1
@@ -173,26 +199,53 @@ class EnterpriseEngine:
                 current_sequence += 1
                 
                 if self.execution_id:
-                    update_execution_progress(self.execution_id, source_msg_id, processed_count, limit)
-                    emit_event('ProgressUpdated', processed=processed_count, total=limit, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
+                    update_execution_progress(self.execution_id, source_msg_id, processed_count, total_display or None)
+                    emit_event('ProgressUpdated', processed=processed_count, total=total_display, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
+
+                # Stop cleanly after fulfilling limit (next loop would also break)
+                if limit > 0 and processed_count >= limit:
+                    break
+                    
+            else:
+                # async for exhausted without break
+                natural_end = True
                     
         except Exception as e:
             emit_event('FatalError', error=str(e))
             if self.execution_id:
-                update_execution_status(self.execution_id, 'FAILED', error_message=str(e))
-            raise e
+                try:
+                    update_execution_status(self.execution_id, 'FAILED', error_message=str(e))
+                except Exception:
+                    pass
+            # Do not re-raise — let daemon finish cleanly (disconnect client, restore streams)
+            return
             
-        # Final checkpoint
-        self.checkpoint_manager.write_checkpoint({
-            "job_id": self.job_id,
-            "last_committed_sequence": current_sequence - 1,
-            "timestamp": time.time()
-        })
+        try:
+            self.checkpoint_manager.write_checkpoint({
+                "job_id": self.job_id,
+                "last_committed_sequence": max(current_sequence - 1, 0),
+                "timestamp": time.time()
+            })
+        except Exception:
+            pass
         
         duration = time.time() - start_time
-        final_state = 'PARTIAL_SUCCESS' if self.failed_count_val > 0 else 'COMPLETED'
+        final_state = resolve_final_state(
+            paused=paused,
+            failed_count=self.failed_count_val,
+            processed_count=processed_count,
+            limit=limit or 0,
+            natural_end=natural_end or (not paused),
+        )
+        # If we hit limit exactly, always completed/partial — never PAUSED
+        if limit > 0 and processed_count >= limit:
+            final_state = 'PARTIAL_SUCCESS' if self.failed_count_val > 0 else 'COMPLETED'
+
         if self.execution_id:
-            update_execution_status(self.execution_id, final_state)
+            try:
+                update_execution_status(self.execution_id, final_state)
+            except Exception:
+                pass
             
         emit_event('ExecutionFinished', 
             final_state=final_state,
@@ -202,7 +255,7 @@ class EnterpriseEngine:
             failed=self.failed_count_val,
             skipped=self.skipped_count,
             duration=duration,
-            total=limit,
+            total=total_display,
             jobId=self.job_id
         )
 
@@ -212,66 +265,48 @@ class EnterpriseEngine:
         caption = process_caption(caption, self.config)
         reply_to = prepared.kwargs.get("reply_to", self.config.get('dest_topic_id'))
         if msg.reply_to_msg_id:
-            # Need to map source reply to dest reply
             dest_reply_id = self.duplicate_checker.get_dest_msg_id(msg.chat_id, msg.reply_to_msg_id)
             if dest_reply_id:
                 reply_to = dest_reply_id
+
+        # hide_trace: strip forward-like metadata by re-uploading as new content (already send_file path)
+        force_doc = prepared.kwargs.get("force_document", True)
+        if (self.config.get('clean_copy_submode') or 'Speed') == 'Safe':
+            force_doc = True
         
-        # Uploading
         if not msg.media:
-            # Just text
             sent = await self.client.send_message(self.dest, message=caption, reply_to=reply_to)
         else:
             if prepared.method == "sendDocument":
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    force_document=prepared.kwargs.get("force_document", True),
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption,
+                    force_document=force_doc, reply_to=reply_to
                 )
             elif prepared.method == "sendPhoto":
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption, reply_to=reply_to
                 )
             elif prepared.method == "sendVideo":
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    supports_streaming=True,
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption,
+                    supports_streaming=True, reply_to=reply_to
                 )
             elif prepared.method == "sendAudio":
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption, reply_to=reply_to
                 )
             elif prepared.method == "sendAnimation":
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption, reply_to=reply_to
                 )
             else:
                 sent = await self.client.send_file(
-                    self.dest,
-                    msg.media,
-                    caption=caption,
-                    reply_to=reply_to
+                    self.dest, msg.media, caption=caption, reply_to=reply_to
                 )
                 
-        # Handle list vs single
         if isinstance(sent, list):
             sent = sent[-1]
             
-        # Record Mapping
         record_mapping(
             job_id=self.job_id,
             source_chat_id=msg.chat_id,
@@ -280,6 +315,6 @@ class EnterpriseEngine:
             dest_msg_id=sent.id,
             sequence_id=prepared.task.sequence_id,
             quality_mode=prepared.task.quality_mode.value,
-            status="VERIFIED" # Assumed verified if it didn't throw
+            status="VERIFIED"
         )
         self.success_count += 1

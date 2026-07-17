@@ -112,3 +112,19 @@ Prompt/
 archive/
 legacy_scripts/
 
+# Remote automation / CDP debug tooling (local only — not product source)
+remote-automation-suite/
+AutoGram-Remote-Semua-Otomatis.cmd
+start-remote-debug.cmd
+AutoGram App/start-remote-debug.cmd
+AutoGram App/REMOTE-OTOMATIS.cmd
+AutoGram App/frontend/start-remote-debug.cmd
+AutoGram App/frontend/start-remote-audit.cmd
+AutoGram App/frontend/scripts/remote-*.mjs
+AutoGram App/frontend/scripts/remote-*.json
+AutoGram App/frontend/scripts/cdp-*.mjs
+AutoGram App/frontend/preview-toolbar-remote-*.png
+**/*remote*report*.json
+**/*-remote-test*.png
+
+

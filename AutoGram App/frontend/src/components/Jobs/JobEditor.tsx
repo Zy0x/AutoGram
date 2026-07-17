@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, FolderGit2, Play, RefreshCcw, X, Hash, Users, Radio, User, Bot, Plus, Save, Trash2, Settings } from 'lucide-react';
-import { Command } from '@tauri-apps/plugin-shell';
 import { useTranslation } from 'react-i18next';
 import { Select } from '../../components/Select';
 import { InfoTooltip } from '../../components/InfoTooltip';
@@ -56,6 +56,11 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const handleLoadJobProfile = (profileName: string) => {
+    // Empty option = "Load Profile..." — hide delete icon, no config apply
+    if (!profileName) {
+      setSelectedJobProfile('');
+      return;
+    }
     setSelectedJobProfile(profileName);
     const p = jobProfiles.find(x => x.name === profileName);
     if (p && p.config) {
@@ -68,6 +73,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       if (c.destName !== undefined) setDestName(c.destName);
       if (c.mode !== undefined) setMode(c.mode);
       if (c.qualityMode !== undefined) setQualityMode(c.qualityMode);
+      if (c.reencodeHardware !== undefined) setReencodeHardware(c.reencodeHardware);
+      if (c.reencodePreset !== undefined) setReencodePreset(c.reencodePreset);
       if (c.fetchDirection !== undefined) setFetchDirection(c.fetchDirection);
       if (c.captionRule !== undefined) setCaptionRule(c.captionRule);
       if (c.dupAction !== undefined) setDupAction(c.dupAction);
@@ -123,6 +130,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 if (c.destName !== undefined) setDestName(c.destName);
                 if (c.mode !== undefined) setMode(c.mode);
                 if (c.qualityMode !== undefined) setQualityMode(c.qualityMode);
+                if (c.reencodeHardware !== undefined) setReencodeHardware(c.reencodeHardware);
+                if (c.reencodePreset !== undefined) setReencodePreset(c.reencodePreset);
                 if (c.fetchDirection !== undefined) setFetchDirection(c.fetchDirection);
                 if (c.captionRule !== undefined) setCaptionRule(c.captionRule);
                 if (c.dupAction !== undefined) setDupAction(c.dupAction);
@@ -175,6 +184,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [mode, setMode] = useState("Fast Forward");
   const [cleanCopySubMode, setCleanCopySubMode] = useState<'Speed' | 'Safe'>('Speed');
   const [qualityMode, setQualityMode] = useState("SMART");
+  const [reencodeHardware, setReencodeHardware] = useState("auto");
+  const [reencodePreset, setReencodePreset] = useState("balanced");
   const [fetchDirection, setFetchDirection] = useState("Oldest First");
   const [dupAction, setDupAction] = useState("Skip");
   const [albumHandling, setAlbumHandling] = useState('Follow Source');
@@ -209,32 +220,29 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   
   useEffect(() => {
     const fetchSessions = async () => {
-      const apiId = localStorage.getItem('API_ID') || "";
-      const apiHash = localStorage.getItem('API_HASH') || "";
-      if (!apiId || !apiHash) return;
       try {
-        const command = Command.create('python', ['../../worker/auth_manager.py', '--action', 'list-sessions', '--api-id', apiId, '--api-hash', apiHash]);
-        const output = await command.execute();
-        const data = JSON.parse(output.stdout);
-        if (data.sessions) {
-          let activeSessionNames: string[] = [];
-          try { activeSessionNames = JSON.parse(localStorage.getItem('ACTIVE_SESSIONS') || '[]'); } catch(e) {}
-          
-          const activeSess = data.sessions.filter((s: any) => 
-            s.status === 'active' && activeSessionNames.includes(s.name)
+        const { loadSelectableSessions } = await import('../../lib/sessionPicker');
+        const activeSess = await loadSelectableSessions({ autoSeedActive: true });
+        setSessions(activeSess.map((s) => ({ name: s.name, status: s.status })));
+        if (activeSess.length > 0) {
+          setSelectedSession((prev) =>
+            prev && activeSess.some((s) => s.name === prev) ? prev : activeSess[0].name
           );
-          setSessions(activeSess);
-          if (activeSess.length > 0) {
-            setSelectedSession(activeSess[0].name);
-          } else {
-            setSelectedSession("");
-          }
+        } else {
+          setSelectedSession('');
         }
-      } catch(e) {
-        console.error("Failed to load sessions", e);
+      } catch (e) {
+        const msg = String((e as Error)?.message || e);
+        // Expected in browser preview — avoid red console noise
+        if (/requires desktop|requires tauri/i.test(msg)) {
+          setSessions([]);
+          setSelectedSession('');
+          return;
+        }
+        console.error('Failed to load sessions', e);
       }
     };
-    
+
     fetchSessions();
   }, []);
 
@@ -254,12 +262,28 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setIsLoadingDialogs(true);
     
     try {
-      const apiId = localStorage.getItem('API_ID') || "";
-      const apiHash = localStorage.getItem('API_HASH') || "";
-      const command = Command.create('python', ['../../worker/daemon.py', '--action=list-dialogs', `--session=${session}`, `--api-id=${apiId}`, `--api-hash=${apiHash}`]);
-      const result = await command.execute(); // Wait to finish
-      
-      let jsonOutput = "";
+      const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
+      const { runDaemonOnce } = await import('../../lib/workerBridge');
+      const { apiId, apiHash } = await bootstrapSecureCredentials();
+      if (!apiId || !apiHash) {
+        alert(
+          t('accounts.error_api_required') ||
+            'API ID/Hash belum terisi. Buka Settings dan simpan credentials dulu.'
+        );
+        setIsModalOpen(false);
+        setIsLoadingDialogs(false);
+        return;
+      }
+      const result = await runDaemonOnce([
+        '--action', 'list-dialogs',
+        '--session', session,
+        '--api-id', String(apiId),
+        '--api-hash', String(apiHash),
+      ]);
+
+      const { isWorkerFailure, workerErrorMessage } = await import('../../lib/workerBridge');
+
+      let jsonOutput = '';
       if (result.stdout.includes('[JSON_OUTPUT]')) {
         const parts = result.stdout.split('[JSON_OUTPUT]');
         jsonOutput = parts[parts.length - 1].trim();
@@ -273,9 +297,12 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         } else {
           setDialogs(data);
         }
-      } else if (result.stderr || result.stdout) {
-        console.error("Daemon error:", result.stderr || result.stdout);
-        alert(`Engine error: ${result.stderr || result.stdout}`);
+      } else if (isWorkerFailure(result) || result.stderr || result.stdout) {
+        const msg = workerErrorMessage(result, result.stderr || result.stdout || 'list-dialogs failed');
+        if (!/requires desktop|requires tauri/i.test(msg)) {
+          console.error('Daemon error:', msg);
+        }
+        alert(`Engine error: ${msg}`);
         setIsModalOpen(false);
       }
     } catch (err) {
@@ -293,13 +320,27 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setSelectedDialogId(chatId);
     
     try {
-      const apiId = localStorage.getItem('API_ID') || "";
-      const apiHash = localStorage.getItem('API_HASH') || "";
-      const session = selectedSession || "Lavender";
-      const command = Command.create('python', ['../../worker/daemon.py', '--action=list-topics', `--session=${session}`, `--chat-id=${chatId}`, `--api-id=${apiId}`, `--api-hash=${apiHash}`]);
-      const result = await command.execute();
-      
-      let jsonOutput = "";
+      const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
+      const { runDaemonOnce } = await import('../../lib/workerBridge');
+      const { apiId, apiHash } = await bootstrapSecureCredentials();
+      const session = selectedSession || 'Lavender';
+      if (!apiId || !apiHash) {
+        alert(
+          t('accounts.error_api_required') ||
+            'API ID/Hash belum terisi. Buka Settings dan simpan credentials dulu.'
+        );
+        setIsLoadingDialogs(false);
+        return;
+      }
+      const result = await runDaemonOnce([
+        '--action', 'list-topics',
+        '--session', session,
+        '--chat-id', String(chatId),
+        '--api-id', String(apiId),
+        '--api-hash', String(apiHash),
+      ]);
+
+      let jsonOutput = '';
       if (result.stdout.includes('[JSON_OUTPUT]')) {
         const parts = result.stdout.split('[JSON_OUTPUT]');
         jsonOutput = parts[parts.length - 1].trim();
@@ -444,6 +485,15 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         return;
     }
 
+    // Never use Infinity — JSON serializes it as null. Use 0 = unlimited max.
+    const sizeMaxVal = enableSizeFilter ? (Number(sizeMax) || 0) : 0;
+    const sizeMinVal = enableSizeFilter ? (Number(sizeMin) || 0) : 0;
+
+    let effectiveCaptionRule = captionRule;
+    if (enableCaptionRule && customCaption && (captionRule === 'Custom Caption' || String(captionRule).toLowerCase().includes('custom'))) {
+      effectiveCaptionRule = `custom:${customCaption}`;
+    }
+
     const config = {
       source: sourceValue,
       destination: destValue,
@@ -451,37 +501,59 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       destName,
       session: selectedSession,
       mode: mode,
+      transfer_mode: mode,
       clean_copy_submode: mode === 'Clean Copy' ? cleanCopySubMode : null,
       quality_mode: mode === 'Clean Copy' ? qualityMode : 'SMART',
+      reencodeHardware: mode === 'Clean Copy' ? reencodeHardware : 'auto',
+      reencodePreset: mode === 'Clean Copy' ? reencodePreset : 'balanced',
       media: 'all',
+      media_filter: 'all',
       dupAction,
+      duplicate_action: dupAction,
       limit: enableLimit ? (Number(limit) || 0) : 0,
-      size_min: enableSizeFilter ? (Number(sizeMin) || 0) : 0,
-      size_max: enableSizeFilter ? (Number(sizeMax) || Infinity) : Infinity,
+      enableLimit,
+      size_min: sizeMinVal,
+      size_max: sizeMaxVal,
+      size_min_mb: sizeMinVal,
+      size_max_mb: sizeMaxVal,
       autoFallback: autoFallback,
+      auto_fallback: autoFallback,
       fetchDirection,
-      captionRule,
+      fetch_direction: fetchDirection,
+      captionRule: effectiveCaptionRule,
+      caption_rule: effectiveCaptionRule,
       albumHandling,
+      album_handling: albumHandling,
       delayMin: enableThrottle ? (Number(delayMin) || 2) : 2,
       delayMax: enableThrottle ? (Number(delayMax) || 5) : 5,
-      startDate: enableDateFilter ? startDate : null,
-      endDate: enableDateFilter ? endDate : null,
+      delay_min: enableThrottle ? (Number(delayMin) || 2) : 2,
+      delay_max: enableThrottle ? (Number(delayMax) || 5) : 5,
+      enableThrottle,
+      throttle_active: enableThrottle,
+      startDate: enableDateFilter ? (startDate || null) : null,
+      endDate: enableDateFilter ? (endDate || null) : null,
+      start_date: enableDateFilter ? (startDate || null) : null,
+      end_date: enableDateFilter ? (endDate || null) : null,
       jobName,
       dryRun: isDryRun,
+      dry_run: isDryRun,
       hideTrace,
+      hide_trace: hideTrace,
       enableCaptionRule,
-      customCaption
+      enable_caption_rule: enableCaptionRule,
+      customCaption,
+      custom_caption: customCaption || ''
     };
     
     onStart(config);
   };
 
   return (
-    <div className="job-editor-container" style={{ padding: '24px 24px 0 24px', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ marginBottom: '24px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-          <div>
-            <h2 className="title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
+    <div className="job-editor-container">
+      <header className="job-editor-header">
+        <div className="job-editor-header-top">
+          <div style={{ minWidth: 0, flex: '1 1 12rem' }}>
+            <h2 className="title title-with-icon" style={{ margin: '0 0 4px 0' }}>
               {initialJob ? (
                   <><Settings size={24}/> Edit Job</>
               ) : (
@@ -492,44 +564,54 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
               {initialJob ? "Update configuration for this migration job." : "Configure and run a new migration job."}
             </p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', background: currentStep === 4 ? 'rgba(255,255,255,0.02)' : 'transparent', padding: currentStep === 4 ? '6px 12px' : '0', borderRadius: '12px', border: currentStep === 4 ? '1px solid rgba(255,255,255,0.05)' : 'none', transition: 'all 0.3s ease' }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <div style={{ width: '180px' }}>
-                  <Select 
-                    options={[{value: '', label: 'Load Profile...'}, ...jobProfiles.map(p => ({value: p.name, label: p.name}))]}
+          <div className="job-editor-tools">
+            <div
+              className={[
+                'job-editor-profile-tools',
+                currentStep === 4 ? 'has-save' : '',
+                selectedJobProfile ? 'has-selection' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <div className={`profile-load-row ${selectedJobProfile ? 'is-loaded' : ''}`}>
+                <div className="profile-select-wrap">
+                  <Select
+                    options={[
+                      { value: '', label: 'Load Profile...' },
+                      ...jobProfiles.map((p) => ({ value: p.name, label: p.name })),
+                    ]}
                     value={selectedJobProfile}
                     onChange={(val) => handleLoadJobProfile(val)}
                   />
                 </div>
-                {selectedJobProfile && (
-                  <button 
-                    onClick={handleDeleteJobProfile} 
-                    className="btn-secondary" 
-                    style={{ padding: '8px', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-                    title="Delete Profile"
+                {/* Trash only after a real profile is loaded — never for placeholder */}
+                {!!selectedJobProfile && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteJobProfile}
+                    className="profile-delete-btn"
+                    title={`Hapus profil "${selectedJobProfile}"`}
+                    aria-label={`Hapus profil ${selectedJobProfile}`}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} strokeWidth={2} />
                   </button>
                 )}
               </div>
-              
+
               {currentStep === 4 && (
                 <>
-                  <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div className="job-editor-divider" aria-hidden />
+                  <div className="job-editor-save-profile">
                     <input 
                       type="text" 
-                      className="input-field" 
-                      style={{ width: '140px', padding: '8px 12px' }}
+                      className="input-field profile-name-input"
                       placeholder="Profile Name"
                       value={newJobProfileName}
                       onChange={(e) => setNewJobProfileName(e.target.value)}
                     />
                     <button 
+                      type="button"
                       onClick={handleSaveJobProfile}
-                      className="btn-secondary" 
-                      style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      className="btn btn-secondary"
                       disabled={!newJobProfileName.trim() || (!jobName.trim() && !sourceValue.trim() && !destValue.trim())}
                       title={(!jobName.trim() && !sourceValue.trim() && !destValue.trim()) ? "Please fill at least Job Name, Source, or Destination" : "Save current configuration as a profile"}
                     >
@@ -539,12 +621,11 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 </>
               )}
             </div>
-            <button className="btn btn-secondary" onClick={onCancel}><X size={18} style={{marginRight: '6px'}}/> Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={onCancel}><X size={18} /> Cancel</button>
           </div>
         </div>
         
-        {/* Stepper Indicator */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="stepper">
           {[1, 2, 3, 4].map(step => (
             <div key={step} className="stepper-item">
               <div className={`stepper-bar ${step <= currentStep ? 'active' : 'inactive'}`}></div>
@@ -556,10 +637,10 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         </div>
       </header>
 
-      <div className="job-editor-scroll-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '8px', paddingBottom: '24px' }}>
+      <div className="job-editor-scroll-area">
         {/* STEP 1: IDENTITY */}
         <div style={{ display: currentStep >= 1 ? 'block' : 'none', flex: currentStep === 1 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <div className="card glass-panel" style={{ marginBottom: '24px', padding: '32px' }}>
+          <div className="card glass-panel" style={{ marginBottom: '24px' }}>
             <h3 className="section-title" style={{ marginBottom: '24px' }}>Job Identity</h3>
             
             <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>Job Name <span style={{color: 'var(--danger)'}}>*</span></label>
@@ -628,7 +709,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
         {/* STEP 2: FILTERS */}
         <div ref={step2Ref} style={{ display: currentStep >= 2 ? 'block' : 'none', flex: currentStep === 2 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <div className="card glass-panel" style={{ marginBottom: '24px', padding: '32px' }}>
+          <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
             <h3 className="section-title" style={{ marginBottom: '24px' }}>Data Filters & Mode</h3>
             
             <div style={{ marginBottom: '32px' }}>
@@ -644,10 +725,11 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   </div>
                   <div style={{ paddingLeft: '30px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                     <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'square' }}>
-                      <li>Uses Telegram native forward (tercepat)</li>
-                      <li>Mempertahankan album, reply, dan caption secara akurat</li>
-                      <li><strong>Kelemahan:</strong> Terdapat jejak "Forwarded from [Source]"</li>
-                      <li><strong>Cocok untuk:</strong> Backup pribadi, arsip cepat</li>
+                      <li>Native Telegram forward (tercepat) + batch album</li>
+                      <li>Caption &amp; album utuh; reply hanya jika pesan terkait ikut di-forward</li>
+                      <li>Resume, pause, skip duplikat (message ID), filter media/tanggal/ukuran</li>
+                      <li><strong>Kelemahan:</strong> jejak &quot;Forwarded from…&quot; selalu ada (API)</li>
+                      <li><strong>Cocok untuk:</strong> backup pribadi / arsip cepat; channel restricted → Auto-Fallback ke Clean Copy</li>
                     </ul>
                   </div>
                 </div>
@@ -705,6 +787,43 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     onChange={(v) => setQualityMode(v)}
                   />
                 </div>
+              )}
+
+              {mode === 'Clean Copy' && (
+                <>
+                  <div className="input-group">
+                    <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
+                      Hardware Re-encode (GPU)
+                      <InfoTooltip content="Pilih akselerasi GPU (NVENC/AMF/QSV) untuk kecepatan re-encode maksimal." />
+                    </label>
+                    <Select 
+                      options={[
+                        {value: 'auto', label: 'Auto (Prioritas GPU)'},
+                        {value: 'nvidia', label: 'NVIDIA (NVENC)'},
+                        {value: 'amd', label: 'AMD (AMF)'},
+                        {value: 'intel', label: 'Intel (QSV)'},
+                        {value: 'cpu', label: 'CPU (Slow)'}
+                      ]}
+                      value={reencodeHardware}
+                      onChange={(v) => setReencodeHardware(v)}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label" style={{ display: 'flex', alignItems: 'center' }}>
+                      Mode Re-encode
+                      <InfoTooltip content="Pilih profil untuk kecepatan proses re-encode (Handbrake-style)." />
+                    </label>
+                    <Select 
+                      options={[
+                        {value: 'speed', label: 'Kecepatan'},
+                        {value: 'balanced', label: 'Seimbang (Default)'},
+                        {value: 'quality', label: 'Kualitas'}
+                      ]}
+                      value={reencodePreset}
+                      onChange={(v) => setReencodePreset(v)}
+                    />
+                  </div>
+                </>
               )}
 
               <div className="input-group">
@@ -816,7 +935,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
         {/* STEP 3: RULES */}
         <div ref={step3Ref} style={{ display: currentStep >= 3 ? 'block' : 'none', flex: currentStep === 3 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <div className="card glass-panel" style={{ marginBottom: '24px', padding: '32px' }}>
+          <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
             <h3 className="section-title" style={{ marginBottom: '24px' }}>Rules & Behaviors</h3>
             
             <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -897,9 +1016,13 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <span className="toggle-slider"></span>
                   </label>
                   <span className="danger-text">Auto-Fallback</span>
-                  <InfoTooltip content={t('dashboard.tooltip_fallback') || 'Try fallback mechanisms if direct transfer fails.'} />
+                  <InfoTooltip content={t('dashboard.tooltip_fallback') || 'Jika Fast Forward diblokir (noforwards / restricted), otomatis beralih ke Clean Copy (Enterprise).'} />
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>Try fallback mechanisms if direct transfer fails.</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                  {mode === 'Fast Forward'
+                    ? 'Jika forward diblokir Telegram, job beralih ke Clean Copy (Enterprise). Matikan untuk gagal tegas.'
+                    : 'Hanya relevan untuk Fast Forward. Clean Copy tidak memerlukan fallback mode.'}
+                </p>
               </div>
 
               <div className="input-group col-span-full">
@@ -920,7 +1043,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
         {/* STEP 4: REVIEW */}
         <div ref={step4Ref} style={{ display: currentStep >= 4 ? 'block' : 'none', flex: currentStep === 4 ? 1 : 'none', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <div className="card glass-panel" style={{ marginBottom: '24px', padding: '32px' }}>
+          <div className="card glass-panel" style={{ marginBottom: '1.5rem' }}>
             <h3 className="section-title" style={{ marginBottom: '24px' }}>Review & Execute</h3>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '24px' }}>Please review your configuration before starting the background process.</p>
             
@@ -1031,110 +1154,189 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         )}
       </div>
       
-      {/* Auto Discovery Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-                {modalTarget === 'source' ? t('dashboard.select_source') : t('dashboard.select_dest')}
-              </h3>
-              <button className="btn" style={{ background: 'transparent', padding: 4 }} onClick={() => setIsModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              {isLoadingDialogs ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <RefreshCcw className="spin" size={24} style={{ margin: '0 auto 12px' }} />
-                  <p>{t('dashboard.loading_api')}</p>
-                </div>
-              ) : selectedDialogId && topics.length > 0 ? (
-                <div>
-                  <div style={{ padding: '12px 20px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', fontWeight: 600 }}>
-                    {t('dashboard.select_subtopic')}
+      {/* Auto Discovery Modal — portaled so layout cannot collapse under page chrome */}
+      {isModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                  {modalTarget === 'source' ? t('dashboard.select_source') : t('dashboard.select_dest')}
+                </h3>
+                <button
+                  className="btn"
+                  style={{ background: 'transparent', padding: 4 }}
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="modal-body">
+                {isLoadingDialogs ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <RefreshCcw className="spin" size={24} style={{ margin: '0 auto 12px' }} />
+                    <p>{t('dashboard.loading_api')}</p>
                   </div>
-                  <div className="dialog-item" onClick={() => selectTopic(selectedDialogId, "", t('dashboard.all_group') || 'All Group')}>
-                    <Hash size={18} color="var(--text-muted)" />
-                    <div>{t('dashboard.all_group')}</div>
-                  </div>
-                  {topics.map(t => (
-                    <div key={t.id} className="dialog-item" onClick={() => selectTopic(selectedDialogId, t.id, t.title)}>
-                      <Hash size={18} color="var(--primary)" />
-                      <div>{t.title}</div>
+                ) : selectedDialogId && topics.length > 0 ? (
+                  <div>
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        background: 'rgba(99, 102, 241, 0.1)',
+                        color: 'var(--primary)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {t('dashboard.select_subtopic')}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', gap: '8px', padding: '12px 20px', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {['All', 'User', 'Group', 'Channel', 'Bot'].map(f => (
-                      <div 
-                        key={f}
-                        onClick={() => setDialogFilter(f)}
-                        style={{
-                          padding: '4px 12px',
-                          borderRadius: '16px',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          background: dialogFilter === f ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                          color: dialogFilter === f ? '#fff' : 'var(--text-muted)',
-                          transition: 'var(--transition-safe)'
-                        }}
+                    <div
+                      className="dialog-item"
+                      onClick={() =>
+                        selectTopic(selectedDialogId, '', t('dashboard.all_group') || 'All Group')
+                      }
+                    >
+                      <Hash size={18} color="var(--text-muted)" />
+                      <div>{t('dashboard.all_group')}</div>
+                    </div>
+                    {topics.map((tp) => (
+                      <div
+                        key={tp.id}
+                        className="dialog-item"
+                        onClick={() => selectTopic(selectedDialogId, tp.id, tp.title)}
                       >
-                        {f === 'Group' ? 'Group/Forum' : f}
+                        <Hash size={18} color="var(--primary)" />
+                        <div>{tp.title}</div>
                       </div>
                     ))}
                   </div>
-                  {dialogs.filter(d => dialogFilter === 'All' || d.type === dialogFilter || (dialogFilter === 'Group' && d.is_forum)).map(d => {
-                  let badgeText = d.type || 'Unknown';
-                  let icon = <User size={18} color="#6366f1" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                  let bg = 'rgba(255,255,255,0.1)';
-                  let color = 'var(--text-muted)';
-                  
-                  if (d.is_forum) {
-                    badgeText = 'Group';
-                    icon = <Hash size={18} color="#d946ef" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                    bg = 'rgba(217, 70, 239, 0.2)';
-                    color = '#d946ef';
-                  } else if (d.type === 'Channel') {
-                    icon = <Radio size={18} color="#f59e0b" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                    bg = 'rgba(245, 158, 11, 0.2)';
-                    color = '#f59e0b';
-                  } else if (d.type === 'Group') {
-                    icon = <Users size={18} color="#3b82f6" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                    bg = 'rgba(59, 130, 246, 0.2)';
-                    color = '#3b82f6';
-                  } else if (d.type === 'Bot') {
-                    icon = <Bot size={18} color="#10b981" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                    bg = 'rgba(16, 185, 129, 0.2)';
-                    color = '#10b981';
-                  } else if (d.type === 'User') {
-                    icon = <User size={18} color="#94a3b8" style={{ marginRight: '12px', flexShrink: 0 }} />;
-                    bg = 'rgba(148, 163, 184, 0.2)';
-                    color = '#94a3b8';
-                  }
-
-                  return (
-                    <div key={d.id} className="dialog-item" onClick={() => selectDialog(d.id, d.name, d.is_forum)} style={{ display: 'flex', alignItems: 'center' }}>
-                      {icon}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {d.id}</div>
-                      </div>
-                      <span style={{ fontSize: '0.7rem', background: bg, color, padding: '2px 8px', borderRadius: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '8px', flexShrink: 0 }}>
-                        {badgeText}
-                      </span>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        padding: '12px 20px',
+                        overflowX: 'auto',
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      {['All', 'User', 'Group', 'Channel', 'Bot'].map((f) => (
+                        <div
+                          key={f}
+                          onClick={() => setDialogFilter(f)}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '16px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            background: dialogFilter === f ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                            color: dialogFilter === f ? '#fff' : 'var(--text-muted)',
+                            transition: 'var(--transition-safe)',
+                          }}
+                        >
+                          {f === 'Group' ? 'Group/Forum' : f}
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-                </>
-              )}
+                    {dialogs
+                      .filter(
+                        (d) =>
+                          dialogFilter === 'All' ||
+                          d.type === dialogFilter ||
+                          (dialogFilter === 'Group' && d.is_forum)
+                      )
+                      .map((d) => {
+                        let badgeText = d.type || 'Unknown';
+                        let icon = (
+                          <User size={18} color="#6366f1" style={{ marginRight: '12px', flexShrink: 0 }} />
+                        );
+                        let bg = 'rgba(255,255,255,0.1)';
+                        let color = 'var(--text-muted)';
+
+                        if (d.is_forum) {
+                          badgeText = 'Group';
+                          icon = (
+                            <Hash size={18} color="#d946ef" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          );
+                          bg = 'rgba(217, 70, 239, 0.2)';
+                          color = '#d946ef';
+                        } else if (d.type === 'Channel') {
+                          icon = (
+                            <Radio size={18} color="#f59e0b" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          );
+                          bg = 'rgba(245, 158, 11, 0.2)';
+                          color = '#f59e0b';
+                        } else if (d.type === 'Group') {
+                          icon = (
+                            <Users size={18} color="#3b82f6" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          );
+                          bg = 'rgba(59, 130, 246, 0.2)';
+                          color = '#3b82f6';
+                        } else if (d.type === 'Bot') {
+                          icon = (
+                            <Bot size={18} color="#10b981" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          );
+                          bg = 'rgba(16, 185, 129, 0.2)';
+                          color = '#10b981';
+                        } else if (d.type === 'User') {
+                          icon = (
+                            <User size={18} color="#94a3b8" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          );
+                          bg = 'rgba(148, 163, 184, 0.2)';
+                          color = '#94a3b8';
+                        }
+
+                        return (
+                          <div
+                            key={d.id}
+                            className="dialog-item"
+                            onClick={() => selectDialog(d.id, d.name, d.is_forum)}
+                            style={{ display: 'flex', alignItems: 'center' }}
+                          >
+                            {icon}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {d.name}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                ID: {d.id}
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                background: bg,
+                                color,
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                marginLeft: '8px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {badgeText}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
       
       <CaptionModal 
         isOpen={isCaptionModalOpen} 

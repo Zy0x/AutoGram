@@ -279,7 +279,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         peer = await _resolve_peer(client, int(folder_id))
         await client(
             EditCls(
-                channel=peer,
+                peer=peer,
                 topic_id=int(raw_tid),
                 title=str(title),
             )

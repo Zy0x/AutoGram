@@ -111,22 +111,78 @@ async def sign_in_2fa(session_name, password, api_id, api_hash):
     finally:
         await client.disconnect()
 
-async def list_sessions_action(api_id, api_hash):
-    if not api_id or not api_hash:
-        print(json.dumps({"sessions": []}))
+def _scan_session_files():
+    """File-based Telethon sessions under worker/sessions/*.session (used by daemon/drive)."""
+    sessions_dir = os.path.join(os.path.dirname(__file__), "sessions")
+    names = []
+    if not os.path.isdir(sessions_dir):
+        return names
+    for f in os.listdir(sessions_dir):
+        if not f.endswith(".session"):
+            continue
+        # skip journal/wal sidecars
+        if f.endswith(".session-journal") or "-journal" in f:
+            continue
+        name = f[: -len(".session")]
+        if name and not name.startswith("."):
+            names.append(name)
+    return names
+
+
+async def list_sessions_action(api_id, api_hash, verify: bool = False):
+    """
+    Always list known sessions from DB + session files.
+    Missing API credentials must NOT return an empty list (UI looked like data loss).
+    Live Telegram checks only when verify=True AND api_id + api_hash present.
+    Default is offline (fast) — Media Studio must not block on N× Telethon connects.
+    Never auto-delete sessions on soft auth failures.
+    """
+    by_name = {}
+
+    # 1) StringSession rows in SQLite
+    try:
+        for sess in get_all_sessions():
+            name = sess.get("name") if isinstance(sess, dict) else sess[0]
+            if not name:
+                continue
+            status = "stored"
+            if isinstance(sess, dict) and sess.get("status"):
+                status = sess["status"]
+            by_name[name] = {"name": name, "status": status, "source": "db"}
+    except Exception as e:
+        print(json.dumps({"error": f"db_list_failed: {e}", "sessions": []}), flush=True)
         return
-        
-    db_sessions = get_all_sessions()
-    valid_sessions = []
-    
-    for sess in db_sessions:
-        session_name = sess['name']
-        client, _ = get_client_and_string(session_name, api_id, api_hash)
-        
+
+    # 2) File sessions (Lavender.session, Mantan Gadis.session, …)
+    for name in _scan_session_files():
+        if name in by_name:
+            by_name[name]["source"] = "db+file"
+            if by_name[name].get("status") in (None, "", "stored"):
+                by_name[name]["status"] = "active"
+        else:
+            by_name[name] = {"name": name, "status": "active", "source": "file"}
+
+    # Offline default: treat stored/file sessions as usable without Telegram RTT
+    if not verify or not api_id or not api_hash:
+        for info in by_name.values():
+            if info.get("status") in (None, "", "stored"):
+                info["status"] = "active"
+        print(json.dumps({"sessions": list(by_name.values())}), flush=True)
+        return
+
+    # 3) Live check (only when verify=True)
+    for session_name, info in list(by_name.items()):
+        client = None
         try:
+            sessions_dir = os.path.join(os.path.dirname(__file__), "sessions")
+            file_base = os.path.join(sessions_dir, session_name)
+            if os.path.exists(file_base + ".session"):
+                client = TelegramClient(file_base, int(api_id), str(api_hash))
+            else:
+                client, _ = get_client_and_string(session_name, api_id, api_hash)
+
             await client.connect()
             authorized = await client.is_user_authorized()
-            
             if authorized:
                 status = "active"
                 try:
@@ -135,20 +191,26 @@ async def list_sessions_action(api_id, api_hash):
                         status = "expired"
                 except Exception as e:
                     err_str = str(e).lower()
-                    if "auth" in err_str or "deactivated" in err_str or "revoke" in err_str or "unregistered" in err_str:
+                    if any(
+                        k in err_str
+                        for k in ("auth", "deactivated", "revoke", "unregistered")
+                    ):
                         status = "expired"
                     else:
                         status = "error"
-                        
-                valid_sessions.append({"name": session_name, "status": status})
+                info["status"] = status
             else:
-                delete_session(session_name)
-            
+                info["status"] = "expired"
             await client.disconnect()
-        except Exception as e:
-            valid_sessions.append({"name": session_name, "status": "error"})
-            
-    print(json.dumps({"sessions": valid_sessions}))
+        except Exception:
+            info["status"] = info.get("status") or "error"
+            if client is not None:
+                try:
+                    await client.disconnect()
+                except Exception:
+                    pass
+
+    print(json.dumps({"sessions": list(by_name.values())}), flush=True)
 
 async def delete_session_action(session_name):
     try:
@@ -170,6 +232,11 @@ def main():
     parser.add_argument('--code', required=False)
     parser.add_argument('--hash', required=False)
     parser.add_argument('--password', required=False)
+    parser.add_argument(
+        '--verify',
+        action='store_true',
+        help='Live-check each session via Telegram (slow). Default is offline list only.',
+    )
     
     args = parser.parse_args()
     
@@ -177,7 +244,7 @@ def main():
         sys.stdout.reconfigure(line_buffering=True)
         
     if args.action == 'list-sessions':
-        asyncio.run(list_sessions_action(args.api_id, args.api_hash))
+        asyncio.run(list_sessions_action(args.api_id, args.api_hash, verify=bool(args.verify)))
     elif args.action == 'delete-session':
         asyncio.run(delete_session_action(args.session))
     elif args.action == 'send-code':

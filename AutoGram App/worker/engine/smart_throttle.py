@@ -9,9 +9,12 @@ class SmartThrottle:
     dan menangani batas waktu dari API Telegram.
     """
     def __init__(self, base_delay_min=2.0, base_delay_max=5.0):
-        self.base_delay_min = float(base_delay_min)
-        self.base_delay_max = float(base_delay_max)
-        self.base_delay_max = float(base_delay_max)
+        configured_min = max(0.0, float(base_delay_min))
+        configured_max = max(configured_min, float(base_delay_max))
+        self.configured_delay_min = configured_min
+        self.configured_delay_max = configured_max
+        self.base_delay_min = configured_min
+        self.base_delay_max = configured_max
         self.consecutive_errors = 0
         self.is_paused = False
         
@@ -29,7 +32,7 @@ class SmartThrottle:
             # Send/Clone sedikit lebih longgar: istirahat setelah 70-110 pesan
             self.current_burst_limit = random.randint(70, 110)
 
-    async def human_delay(self, mode: str = "Fast Forward"):
+    async def human_delay(self, mode: str = "Fast Forward", batch_size: int = 1):
         """Tidur dengan durasi acak agar tidak terdeteksi sebagai spam bot. 
         Termasuk istirahat batching cerdas."""
         # 1. Istirahat reguler antar pesan
@@ -37,7 +40,7 @@ class SmartThrottle:
         await asyncio.sleep(delay)
         
         # 2. Logika Burst
-        self.messages_in_burst += 1
+        self.messages_in_burst += max(1, int(batch_size or 1))
         
         if self.messages_in_burst >= self.current_burst_limit:
             # Istirahat panjang!
@@ -71,5 +74,11 @@ class SmartThrottle:
         """Mereset metrik jika transfer berhasil beruntun."""
         self.consecutive_errors = max(0, self.consecutive_errors - 1)
         if self.consecutive_errors == 0:
-            self.base_delay_min = max(2, self.base_delay_min - 0.5)
-            self.base_delay_max = max(5, self.base_delay_max - 0.5)
+            # Decay toward the user's configured baseline. Never jump a fast
+            # profile up to the former hard-coded 2-5 second defaults.
+            self.base_delay_min = max(
+                self.configured_delay_min, self.base_delay_min - 0.5
+            )
+            self.base_delay_max = max(
+                self.configured_delay_max, self.base_delay_max - 0.5
+            )

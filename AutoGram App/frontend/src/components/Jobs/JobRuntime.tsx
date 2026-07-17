@@ -1,9 +1,8 @@
 import { Play, Pause, Terminal, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, Info, Download, Trash2, Edit3, Zap, Clock } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import { Command } from '@tauri-apps/plugin-shell';
-import { isTauri } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { runDaemonOnce } from '../../lib/workerBridge';
+
+import { isDesktop } from '../../lib/platform';
 import { RerunModal } from './RerunModal';
 import { FreshStartModal } from './FreshStartModal';
 import { JobDetailsModal } from './JobDetailsModal';
@@ -42,8 +41,10 @@ export function JobRuntime({
         setIsFetchingLogs(true);
         const fetchLogs = async () => {
             try {
-                const cmd = Command.create('python', ['../../worker/daemon.py', '--action', 'get-logs', '--job-id', String(job.id)]);
-                const res = await cmd.execute();
+                const res = await runDaemonOnce([
+                  '--action', 'get-logs',
+                  '--job-id', String(job.id),
+                ]);
                 let jsonOutput = "";
                 if (res.stdout.includes('[JSON_OUTPUT]')) {
                     const parts = res.stdout.split('[JSON_OUTPUT]');
@@ -132,8 +133,10 @@ export function JobRuntime({
       
       const defaultFileName = `job_${job.id}_logs.txt`;
 
-      if (isTauri()) {
+      if (isDesktop()) {
           try {
+              const { save } = await import('@tauri-apps/plugin-dialog');
+              const { writeTextFile } = await import('@tauri-apps/plugin-fs');
               const filePath = await save({
                   defaultPath: defaultFileName,
                   filters: [{
@@ -178,6 +181,17 @@ export function JobRuntime({
   let failedCount = 0;
   let speed = "0.0";
   let eta = "--:--:--";
+
+  const formatEta = (raw: any): string => {
+      if (raw === null || raw === undefined || raw === '') return '--:--:--';
+      if (typeof raw === 'string' && raw.includes(':')) return raw;
+      const sec = Number(raw);
+      if (!Number.isFinite(sec) || sec < 0) return '--:--:--';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
   
   if (displayLogs && displayLogs.length > 0) {
       for (let i = displayLogs.length - 1; i >= 0; i--) {
@@ -186,43 +200,68 @@ export function JobRuntime({
               const ev = l.data || l.event;
               if (ev) {
                   const p = ev.payload || ev;
-                  if (ev.type === 'ProgressUpdated' || ev.type === 'ExecutionFinished') {
+                  if (ev.type === 'ProgressUpdated' || p.type === 'ProgressUpdated' || ev.type === 'ExecutionFinished' || p.type === 'ExecutionFinished') {
                       if (p.success !== undefined) successCount = p.success;
                       if (p.skipped !== undefined) skippedCount = p.skipped;
                       if (p.failed !== undefined) failedCount = p.failed;
                       if (p.speed !== undefined) speed = typeof p.speed === 'number' ? p.speed.toFixed(1) : p.speed;
-                      if (p.eta !== undefined) eta = p.eta;
-                      if (successCount > 0 || skippedCount > 0 || failedCount > 0) break;
+                      if (p.eta !== undefined && p.eta !== null) eta = formatEta(p.eta);
+                      if (successCount > 0 || skippedCount > 0 || failedCount > 0 || p.processed !== undefined) break;
                   }
               }
           }
       }
   }
   
-  let statusClass = "paused";
-  let displayStatus = job.status || 'READY';
   let fallbackTriggered = false;
+  let fallbackReason = '';
 
   if (displayLogs && displayLogs.length > 0) {
       for (let i = 0; i < displayLogs.length; i++) {
           const l = displayLogs[i];
-          if (l.type === 'event' && l.data) {
-              const ev = l.data.payload || l.data;
-              if (ev.message === 'Beralih ke Clean Copy Speed karena restriksi') {
+          if (l.type === 'event' && (l.data || l.event)) {
+              const raw = l.data || l.event;
+              const ev = raw.payload || raw;
+              const t = raw.type || ev.type;
+              if (t === 'FallbackTriggered' || ev.type === 'FallbackTriggered') {
                   fallbackTriggered = true;
+                  fallbackReason = ev.reason || raw.reason || '';
+              }
+              // Legacy string match (older logs)
+              if (typeof ev.message === 'string' && ev.message.toLowerCase().includes('beralih ke clean copy')) {
+                  fallbackTriggered = true;
+                  if (!fallbackReason) fallbackReason = ev.message;
               }
           }
       }
   }
-  
+
+  // Prefer DB status over stale runResult (e.g. PAUSED must not become green COMPLETED)
+  const statusUpper = String(job.status || 'READY').toUpperCase();
+  let statusClass = "paused";
+  let displayStatus = job.status || 'READY';
+
   if (isRunning) {
       statusClass = "running";
       displayStatus = "RUNNING";
-  } else if (runResult === 'success' || displayStatus === 'COMPLETED' || displayStatus === 'PARTIAL_SUCCESS') {
-      statusClass = "completed";
-      if (displayStatus === 'PARTIAL_SUCCESS') displayStatus = "PARTIAL";
-  } else if (runResult === 'failed' || displayStatus === 'FAILED') {
+  } else if (statusUpper === 'PAUSED' || statusUpper === 'PAUSING') {
+      statusClass = "paused";
+      displayStatus = "PAUSED";
+  } else if (statusUpper === 'FAILED' || runResult === 'failed') {
       statusClass = "failed";
+      displayStatus = "FAILED";
+  } else if (statusUpper === 'COMPLETED') {
+      statusClass = "completed";
+      displayStatus = "COMPLETED";
+  } else if (statusUpper === 'PARTIAL_SUCCESS' || statusUpper === 'PARTIAL') {
+      statusClass = "completed";
+      displayStatus = "PARTIAL";
+  } else if (runResult === 'success') {
+      statusClass = "completed";
+      displayStatus = "COMPLETED";
+  } else if (statusUpper === 'READY' || statusUpper === 'STARTING') {
+      statusClass = "paused";
+      displayStatus = statusUpper;
   }
 
   let pulseClass = "warning";
@@ -242,90 +281,133 @@ export function JobRuntime({
   const targetLabel = parsedConfig.destName || job.target_entity_id;
 
   return (
-    <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', height: '100%', gap: '24px' }}>
-      {/* Header section */}
-      <header className="glass-panel" style={{ 
-          padding: '24px 32px', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          borderRadius: 'var(--radius-lg)'
-      }}>
-        <div>
-          <button className="btn btn-secondary" onClick={onBack} style={{ marginBottom: '16px', background: 'rgba(255,255,255,0.05)', border: 'none' }}>
-            <ArrowLeft size={16} style={{ marginRight: '6px' }} /> Back to Jobs
+    <div className="runtime-view">
+      <header className="glass-panel runtime-header">
+        <div className="runtime-header-main">
+          <button type="button" className="btn btn-secondary" onClick={onBack} style={{ marginBottom: '12px', background: 'rgba(255,255,255,0.05)', border: 'none' }}>
+            <ArrowLeft size={16} /> Back to Jobs
           </button>
-          <h2 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h2 className="runtime-title">
             {job.job_name || `Migration #${job.id}`}
-            <span className={`modern-badge ${statusClass}`} style={{ fontSize: '0.85rem', padding: '6px 12px' }}>
-                <div className={`pulse-indicator ${pulseClass}`}></div>
-                {displayStatus}
+            <span className={`modern-badge ${statusClass}`}>
+              <div className={`pulse-indicator ${pulseClass}`} />
+              {displayStatus}
             </span>
           </h2>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '16px', alignItems: 'center' }}>
-            <span style={{ fontSize: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.3)', padding: '8px 16px', borderRadius: 'var(--radius-md)' }}>
-              <span>{sourceLabel}</span> 
-              <span style={{ color: 'var(--primary)', opacity: 0.8 }}>&rarr;</span> 
+          <div className="runtime-meta">
+            <span className="runtime-meta-chip">
+              <span>{sourceLabel}</span>
+              <span style={{ color: 'var(--primary)', opacity: 0.8 }}>&rarr;</span>
               <span>{targetLabel}</span>
             </span>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '8px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ whiteSpace: 'nowrap' }}>Mode: <strong style={{ color: 'var(--text-main)' }}>{job.transfer_mode}</strong></span>
+            <span className="runtime-meta-stats">
+              <span>
+                Mode:{' '}
+                <strong style={{ color: fallbackTriggered ? 'var(--warning)' : 'var(--text-main)' }}>
+                  {fallbackTriggered
+                    ? `${job.transfer_mode || 'Fast Forward'} → Clean Copy`
+                    : (job.transfer_mode || '—')}
+                </strong>
+                {fallbackTriggered && (
+                  <span
+                    title={fallbackReason || 'Fell back due to forward restriction'}
+                    style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}
+                  >
+                    (fallback)
+                  </span>
+                )}
+              </span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span style={{ whiteSpace: 'nowrap' }}>Progress: <strong style={{ color: 'var(--text-main)' }}>{job.processed_messages?.toLocaleString()}/{job.total_messages?.toLocaleString()}</strong></span>
+              <span>Progress: <strong style={{ color: 'var(--text-main)' }}>{job.processed_messages?.toLocaleString()}/{job.total_messages?.toLocaleString()}</strong></span>
               <span style={{ opacity: 0.3 }}>|</span>
-              <span style={{ whiteSpace: 'nowrap' }}>Failed: <strong style={{ color: failedCount > 0 ? 'var(--danger)' : 'var(--success)' }}>{failedCount}</strong></span>
+              <span>OK: <strong style={{ color: 'var(--success)' }}>{successCount}</strong></span>
+              <span style={{ opacity: 0.3 }}>|</span>
+              <span>Skip: <strong>{skippedCount}</strong></span>
+              <span style={{ opacity: 0.3 }}>|</span>
+              <span>Failed: <strong style={{ color: failedCount > 0 ? 'var(--danger)' : 'var(--success)' }}>{failedCount}</strong></span>
+              {isRunning && (
+                <>
+                  <span style={{ opacity: 0.3 }}>|</span>
+                  <span>Speed: <strong>{speed}</strong>/s</span>
+                  <span style={{ opacity: 0.3 }}>|</span>
+                  <span>ETA: <strong>{eta}</strong></span>
+                </>
+              )}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="runtime-actions">
+          <div className="runtime-action-group action-group">
+            <div className="primary-actions">
               {statusClass === 'running' && (
-                <button className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '1rem', whiteSpace: 'nowrap', color: 'var(--warning)', borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.1)' }} onClick={() => pauseJob(job.id)}>
-                  <Pause size={18} style={{ marginRight: '8px' }} /> Pause
+                <button type="button" className="btn btn-secondary btn-warning-soft" onClick={() => pauseJob(job.id)} title="Jeda eksekusi">
+                  <Pause size={18} /> Pause
                 </button>
               )}
-
-              {statusClass === 'paused' && (
-                <button className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '1rem', whiteSpace: 'nowrap' }} onClick={() => startJob(job)}>
-                  <Play size={18} style={{ marginRight: '8px' }} /> Resume
+              {/* PAUSED → Resume = execute-job (lanjut checkpoint / skip verified) */}
+              {(statusClass === 'paused' && statusUpper !== 'READY' && statusUpper !== 'STARTING') && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => startJob(job, false, false)}
+                  title="Lanjutkan dari checkpoint / pesan yang belum selesai"
+                >
+                  <Play size={18} /> Resume
                 </button>
               )}
-
-              {(statusClass === 'failed' || (statusClass === 'completed' && failedCount > 0)) && (
-                <button className="btn btn-primary" style={{ padding: '10px 20px', fontSize: '1rem', whiteSpace: 'nowrap', background: 'var(--primary)', color: 'white', borderColor: 'var(--primary)' }} onClick={() => startJob(job, true)} title={`Fix ${failedCount} messages that failed in the last run`}>
-                  <RefreshCw size={18} style={{ marginRight: '8px' }} /> Retry Failed {failedCount > 0 && `(${failedCount})`}
+              {(statusClass === 'paused' && (statusUpper === 'READY' || statusUpper === 'STARTING' || !job.status)) && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => startJob(job, false, false)}
+                  title="Jalankan migrasi"
+                >
+                  <Play size={18} /> Run
+                </button>
+              )}
+              {/* FAILED → retry-execution RESUME (hanya yang gagal) */}
+              {statusClass === 'failed' && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => startJob(job, true, false, 'RESUME')}
+                  title={`Retry failed messages (retry-execution)${failedCount > 0 ? ` — ${failedCount} failed` : ''}`}
+                >
+                  <RefreshCw size={18} /> Retry Failed {failedCount > 0 && `(${failedCount})`}
                 </button>
               )}
             </div>
-
-            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-              {statusClass === 'completed' && (
-                <button className={`btn ${failedCount > 0 ? 'btn-secondary' : 'btn-primary'}`} style={{ padding: '10px 20px', fontSize: '1rem', whiteSpace: 'nowrap', borderColor: failedCount > 0 ? 'var(--primary)' : undefined, color: failedCount > 0 ? 'var(--primary)' : undefined }} onClick={() => setShowRerunModal(true)}>
-                  <Play size={18} style={{ marginRight: '8px' }} /> Re-run
+            <div className="secondary-actions">
+              {/* COMPLETED / PARTIAL / FAILED → full Re-run modal */}
+              {(statusClass === 'completed' || statusClass === 'failed') && (
+                <button
+                  type="button"
+                  className={`btn ${failedCount > 0 && statusClass === 'completed' ? 'btn-secondary btn-primary-outline' : statusClass === 'failed' ? 'btn-secondary btn-primary-outline' : 'btn-primary'}`}
+                  onClick={() => setShowRerunModal(true)}
+                  title="Re-run: RESUME / OVERWRITE / SMART_SYNC"
+                >
+                  <Play size={18} /> Re-run
                 </button>
               )}
             </div>
-
             {statusClass === 'completed' && (
-              <div style={{ display: 'flex', gap: '8px', marginLeft: '24px', borderLeft: '1px solid rgba(255,0,0,0.1)', paddingLeft: '24px' }}>
-                <button className="btn btn-secondary" style={{ padding: '10px 20px', fontSize: '1rem', whiteSpace: 'nowrap', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.5)' }} onClick={() => setShowFreshStartModal(true)}>
-                  <Trash2 size={18} style={{ marginRight: '8px' }} /> Fresh Start
+              <div className="danger-actions">
+                <button type="button" className="btn btn-secondary btn-danger-soft" onClick={() => setShowFreshStartModal(true)}>
+                  <Trash2 size={18} /> Fresh Start
                 </button>
               </div>
             )}
           </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setShowDetailsModal(true)} title="View Config Details" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-              <Info size={14} style={{ marginRight: '6px' }} /> Config Details
+          <div className="runtime-secondary-actions">
+            <button type="button" className="btn-tertiary" onClick={() => setShowDetailsModal(true)} title="View Config Details">
+              <Info size={14} /> Config Details
             </button>
-            <button onClick={() => onEditJob(job)} title="Edit Configuration" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-              <Edit3 size={14} style={{ marginRight: '6px' }} /> Edit Config
+            <button type="button" className="btn-tertiary" onClick={() => onEditJob(job)} title="Edit Configuration">
+              <Edit3 size={14} /> Edit Config
             </button>
-            <button onClick={handleExportLogs} title="Export Audit Logs" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-main)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
-              <Download size={14} style={{ marginRight: '6px' }} /> Export Logs
+            <button type="button" className="btn-tertiary" onClick={handleExportLogs} title="Export Audit Logs">
+              <Download size={14} /> Export Logs
             </button>
           </div>
         </div>
@@ -338,6 +420,7 @@ export function JobRuntime({
               onClose={() => setShowRerunModal(false)}
               onConfirm={(mode) => {
                   setShowRerunModal(false);
+                  // Always retry-execution with explicit rerun mode from modal
                   startJob(job, true, false, mode);
               }}
           />
@@ -363,37 +446,36 @@ export function JobRuntime({
           />
       )}
 
-      {/* Progress Stats */}
-      <div className="glass-panel" style={{ padding: '24px 32px', borderRadius: 'var(--radius-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '1.1rem', fontWeight: 600 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <span style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ padding: '8px', background: 'rgba(99, 102, 246, 0.15)', borderRadius: '10px', color: 'var(--primary)' }}>
-                  <Play size={18} />
-                </div>
-                Overall Progress
-              </span>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', fontWeight: 500, marginTop: '4px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
-                      <CheckCircle size={14} /> {successCount} Success
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--warning)' }}>
-                      <Info size={14} /> {skippedCount} Skipped
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}>
-                      <AlertCircle size={14} /> {failedCount} Failed
-                  </span>
+      <div className="glass-panel runtime-progress-panel">
+        <div className="runtime-progress-head">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+            <span style={{ color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600 }}>
+              <div style={{ padding: '8px', background: 'rgba(99, 102, 246, 0.15)', borderRadius: '10px', color: 'var(--primary)', flexShrink: 0 }}>
+                <Play size={18} />
               </div>
+              Overall Progress
+            </span>
+            <div className="runtime-progress-counts">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
+                <CheckCircle size={14} /> {successCount} Success
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--warning)' }}>
+                <Info size={14} /> {skippedCount} Skipped
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}>
+                <AlertCircle size={14} /> {failedCount} Failed
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-              <span style={{ fontSize: '1.5rem', color: 'var(--primary)', fontWeight: 700 }}>{percent}%</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--fs-xl)', color: 'var(--primary)', fontWeight: 700 }}>{percent}%</span>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
                 ({processed} / {total || '?'})
               </span>
             </div>
             {statusClass === 'running' && (
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <div className="runtime-progress-counts" style={{ color: 'var(--text-muted)' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Zap size={14} color="var(--warning)" /> {speed} msg/s
                 </span>
@@ -404,28 +486,23 @@ export function JobRuntime({
             )}
           </div>
         </div>
-        <div style={{ width: '100%', height: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', overflow: 'hidden' }}>
-          <div style={{ 
-              width: `${percent}%`, 
-              height: '100%',
-              background: statusClass === "running" ? 'var(--primary)' : 
-                          statusClass === "completed" ? 'var(--success)' : 
-                          statusClass === "failed" ? 'var(--danger)' : 'var(--text-muted)', 
-              transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-          }} />
+        <div className="job-progress-track" style={{ height: 12 }}>
+          <div
+            className={`job-progress-bar status-bg-${statusClass}`}
+            style={{ width: `${percent}%` }}
+          />
         </div>
       </div>
 
-      {/* Live Logs */}
-      <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0, borderRadius: 'var(--radius-lg)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: 0, padding: '20px 32px', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)' }}>
-          <div style={{ padding: '8px', background: 'rgba(139, 92, 246, 0.15)', borderRadius: '10px', color: 'var(--accent)', display: 'flex' }}>
+      <div className="glass-panel runtime-logs">
+        <h3 className="runtime-logs-title">
+          <div style={{ padding: '8px', background: 'rgba(139, 92, 246, 0.15)', borderRadius: '10px', color: 'var(--accent)', display: 'flex', flexShrink: 0 }}>
             <Terminal size={18} />
           </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>Execution Logs</span>
+          <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>Execution Logs</span>
         </h3>
-        
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px', fontSize: '0.95rem', lineHeight: '1.6', background: 'rgba(0, 0, 0, 0.4)', fontFamily: 'JetBrains Mono, monospace' }}>
+
+        <div className="runtime-logs-body">
           {displayLogs && displayLogs.length > 0 ? (
             displayLogs.map((log, idx) => {
                 if (log.type === 'event') {
@@ -476,13 +553,13 @@ export function JobRuntime({
                     }
 
                     return (
-                        <div key={idx} style={{ marginBottom: '8px', color, display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', paddingTop: '2px', minWidth: '80px' }}>{log.time}</span>
-                            <span style={{ paddingTop: '3px' }}>{icon}</span>
-                            <span style={{ wordBreak: 'break-word', flex: 1 }}>
+                        <div key={idx} className="log-line" style={{ color }}>
+                            <span className="log-time">{log.time}</span>
+                            <span style={{ paddingTop: '3px', flexShrink: 0 }}>{icon}</span>
+                            <span className="log-text">
                                 <details className="log-details" style={{ cursor: 'pointer' }}>
                                     <summary style={{ outline: 'none' }}>{text}</summary>
-                                    <pre style={{ margin: '8px 0 0 0', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85rem', overflowX: 'auto', color: 'var(--text-muted)' }}>
+                                    <pre style={{ margin: '8px 0 0 0', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85rem', overflowX: 'auto', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
                                         {JSON.stringify(ev, null, 2)}
                                     </pre>
                                 </details>
@@ -501,10 +578,10 @@ export function JobRuntime({
                     }
 
                     return (
-                        <div key={idx} style={{ marginBottom: '8px', color: 'var(--danger)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', paddingTop: '2px', minWidth: '80px' }}>{log.time}</span>
-                            <span style={{ paddingTop: '3px' }}><AlertCircle size={14} /></span>
-                            <span style={{ wordBreak: 'break-word', flex: 1 }}>
+                        <div key={idx} className="log-line" style={{ color: 'var(--danger)' }}>
+                            <span className="log-time">{log.time}</span>
+                            <span style={{ paddingTop: '3px', flexShrink: 0 }}><AlertCircle size={14} /></span>
+                            <span className="log-text">
                                 <details className="log-details" style={{ cursor: 'pointer' }}>
                                     <summary style={{ outline: 'none' }}>[STDERR] {summaryText}</summary>
                                     <pre style={{ margin: '8px 0 0 0', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85rem', overflowX: 'auto', color: 'var(--danger)', whiteSpace: 'pre-wrap' }}>
@@ -516,10 +593,10 @@ export function JobRuntime({
                     );
                 } else {
                     return (
-                        <div key={idx} style={{ marginBottom: '8px', color: 'var(--text-muted)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: '0.8rem', paddingTop: '2px', minWidth: '80px' }}>{log.time}</span>
-                            <span style={{ paddingTop: '3px', opacity: 0.5 }}><Info size={14} /></span>
-                            <span style={{ wordBreak: 'break-word', flex: 1 }}>{log.text}</span>
+                        <div key={idx} className="log-line" style={{ color: 'var(--text-muted)' }}>
+                            <span className="log-time">{log.time}</span>
+                            <span style={{ paddingTop: '3px', opacity: 0.5, flexShrink: 0 }}><Info size={14} /></span>
+                            <span className="log-text">{log.text}</span>
                         </div>
                     );
                 }

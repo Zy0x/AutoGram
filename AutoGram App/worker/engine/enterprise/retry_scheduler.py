@@ -5,10 +5,11 @@ from telethon import TelegramClient, utils
 from telethon.errors import FloodWaitError
 from .retry_scanner import RetryScanner, Action
 from .retry_processor import RetryProcessor
-from .filters import passes_media_filter, passes_size_filter
+from .filters import passes_media_filter, passes_size_filter, message_in_date_range
 from .engine import EnterpriseEngine # For determining quality mode
 from .database import get_stalled_in_progress, update_mapping_status, get_mapping
 from engine.events import emit_event
+from engine.pause_control import should_pause, resolve_final_state
 from database.queries import update_execution_progress, update_execution_status
 
 class RetryScheduler:
@@ -64,6 +65,9 @@ class RetryScheduler:
                 iter_kwargs['offset_id'] = start_msg_id + 1
                 
         processed_count = 0
+        paused = False
+        total_display = limit if limit and limit > 0 else 0
+        dry_run = bool(self.config.get('dry_run'))
         
         # SMART_SYNC state
         sync_sample_rate = 0.05
@@ -77,10 +81,18 @@ class RetryScheduler:
         overwrite_speed = 0.2 # msg per sec
         overwrite_batch = 0
         
+        natural_end = False
         try:
             async for message in self.client.iter_messages(self.source, **iter_kwargs):
                 if limit > 0 and processed_count >= limit:
                     break
+
+                if should_pause(self.execution_id):
+                    paused = True
+                    break
+
+                if not message_in_date_range(message, self.config):
+                    continue
                     
                 if not message.media and not message.text:
                     continue
@@ -163,37 +175,61 @@ class RetryScheduler:
                     self.skipped_count += 1
                     emit_event('TaskSkipped', task_id=str(source_msg_id), reason=f"Verified Duplicate ({self.rerun_mode})")
                 elif action in [Action.PROCESS, Action.RETRY]:
-                    quality_mode = self._dummy_engine._determine_mode(message)
-                    try:
-                        success = await self.processor.process_message(message, sequence_id=processed_count, quality_mode=quality_mode)
-                        if success:
-                            self.success_count += 1
-                        else:
+                    if dry_run:
+                        self.skipped_count += 1
+                        emit_event('TaskSkipped', task_id=str(source_msg_id), reason='Dry run')
+                    else:
+                        quality_mode = self._dummy_engine._determine_mode(message)
+                        try:
+                            success = await self.processor.process_message(message, sequence_id=processed_count, quality_mode=quality_mode)
+                            if success:
+                                self.success_count += 1
+                            else:
+                                self.failed_count_val += 1
+                        except FloodWaitError as e:
+                            self.flood_wait_count += 1
+                            if self.rerun_mode == 'OVERWRITE' and self.flood_wait_count >= 2:
+                                raise Exception("Auto-stop: FloodWait > 2 per hour in OVERWRITE mode.")
+                            await asyncio.sleep(e.seconds)
                             self.failed_count_val += 1
-                    except FloodWaitError as e:
-                        self.flood_wait_count += 1
-                        if self.rerun_mode == 'OVERWRITE' and self.flood_wait_count >= 2:
-                            raise Exception("Auto-stop: FloodWait > 2 per hour in OVERWRITE mode.")
-                        await asyncio.sleep(e.seconds)
-                        self.failed_count_val += 1
                 elif action == Action.WAIT:
                     self.skipped_count += 1
                     emit_event('TaskSkipped', task_id=str(source_msg_id), reason="Still In Progress")
                     
                 if self.execution_id:
-                    update_execution_progress(self.execution_id, source_msg_id, processed_count, limit)
-                    emit_event('ProgressUpdated', processed=processed_count, total=limit, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
+                    update_execution_progress(self.execution_id, source_msg_id, processed_count, total_display or None)
+                    emit_event('ProgressUpdated', processed=processed_count, total=total_display, current_id=source_msg_id, success=self.success_count, skipped=self.skipped_count, failed=self.failed_count_val)
+
+                if limit > 0 and processed_count >= limit:
+                    break
+            else:
+                natural_end = True
                     
         except Exception as e:
             emit_event('FatalError', error=str(e))
             if self.execution_id:
-                update_execution_status(self.execution_id, 'FAILED', error_message=str(e))
-            raise e
+                try:
+                    update_execution_status(self.execution_id, 'FAILED', error_message=str(e))
+                except Exception:
+                    pass
+            # Clean return — avoid bubbling crash into asyncio/process teardown
+            return
             
         duration = time.time() - start_time
-        final_state = 'PARTIAL_SUCCESS' if self.failed_count_val > 0 else 'COMPLETED'
+        final_state = resolve_final_state(
+            paused=paused,
+            failed_count=self.failed_count_val,
+            processed_count=processed_count,
+            limit=limit or 0,
+            natural_end=natural_end or (not paused),
+        )
+        if limit > 0 and processed_count >= limit:
+            final_state = 'PARTIAL_SUCCESS' if self.failed_count_val > 0 else 'COMPLETED'
         if self.execution_id:
-            update_execution_status(self.execution_id, final_state)
+            try:
+                update_execution_status(self.execution_id, final_state)
+            except Exception:
+                pass
             
         emit_event('ExecutionFinished', 
             final_state=final_state,
@@ -203,6 +239,6 @@ class RetryScheduler:
             failed=self.failed_count_val,
             skipped=self.skipped_count,
             duration=duration,
-            total=limit,
+            total=total_display,
             jobId=self.job_id
         )

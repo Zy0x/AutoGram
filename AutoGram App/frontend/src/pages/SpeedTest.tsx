@@ -131,6 +131,7 @@ import {
   loadTransferSettings,
   saveTransferSettings,
   type DriveTransferSettings as TransferSettingsState,
+  type TransferItem,
 } from '../lib/driveTypes';
 import {
   applyTransferEvent,
@@ -285,6 +286,23 @@ function writeSessionsCache(list: string[]) {
 async function writeWorkerJson(name: string, data: any): Promise<string> {
   // P0: no python -c — write via Rust path jail under worker/temp
   return writeWorkerTempJson(name, data);
+}
+
+interface QueueTask {
+  id: string;
+  kind: 'upload' | 'download' | 'download_one';
+  paths?: string[];
+  targetFolderId?: number | null;
+  targetLabel?: string;
+  skipTopic?: boolean;
+  topicId?: number | null;
+  selectedIds?: number[];
+  saveDir?: string;
+  messageId?: number;
+  savePath?: string;
+  names: string[];
+  options: any;
+  startIndex: number;
 }
 
 type LocationKind = 'saved' | 'drive' | 'chat';
@@ -585,6 +603,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   );
   const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
+  const transferQueueRef = useRef<QueueTask[]>([]);
+  const activeTaskStartIndexRef = useRef<number>(0);
+  const taskRunningRef = useRef(false);
+  const transferRef = useRef(transfer);
+  transferRef.current = transfer;
   const [transferMinimized, setTransferMinimized] = useState(
     () => localStorage.getItem(LS_TM_MIN) === '1'
   );
@@ -2712,6 +2735,25 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     if (text.includes('[EVENT]')) {
       const ev = parseEventLine(text);
       if (ev) {
+        // Offset indexes if we are running a queued task with a start index > 0
+        const task = transferQueueRef.current[0];
+        let startIndex = 0;
+        if (task) {
+          const liveOffset = transferRef.current.items.findIndex((it) => it.id.startsWith(task.id));
+          if (liveOffset >= 0) {
+            startIndex = liveOffset;
+          }
+        }
+        if (startIndex > 0) {
+          if (ev.index != null) ev.index = Number(ev.index) + startIndex;
+          if (ev.item_index != null) ev.item_index = Number(ev.item_index) + startIndex;
+          if (ev.payload) {
+            const p = ev.payload as Record<string, any>;
+            if (p.index != null) p.index = Number(p.index) + startIndex;
+            if (p.item_index != null) p.item_index = Number(p.item_index) + startIndex;
+            if (p.items != null) p.items = Number(p.items) + startIndex;
+          }
+        }
         applyProgressEvent(ev);
         // Track download dests for Stop cleanup
         const t = String(ev.type || '');
@@ -2765,6 +2807,249 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       localStorage.setItem(LS_TM_MIN, '1');
     }, 12000);
   }, []);
+
+  const processNextQueueTask = async () => {
+    // Prevent overlapping execution
+    if (taskRunningRef.current || transferQueueRef.current.length === 0) {
+      return;
+    }
+
+    taskRunningRef.current = true;
+    const task = transferQueueRef.current[0];
+    activeTaskStartIndexRef.current = task.startIndex;
+
+    const label = `→ ${task.targetLabel}`;
+    const namesLabel = task.names.length > 3
+      ? `${task.names.slice(0, 3).join(', ')} (+ ${task.names.length - 3} file lainnya)`
+      : task.names.join(', ');
+
+    try {
+      if (task.kind === 'upload') {
+        const filesPayload = task.paths!.map((path) => {
+          const base = path.split(/[/\\]/).pop() || path;
+          const stem = base.includes('.') ? base.replace(/\.[^.]+$/, '') : base;
+          return {
+            path,
+            caption: task.options.global_caption || stem || base,
+          };
+        });
+
+        const filesJson = await writeWorkerJson('drive_files', filesPayload);
+        const optionsJson = await writeWorkerJson('drive_opts', task.options);
+        
+        let uploadError: string | null = null;
+        let uploadedIds: number[] = [];
+        let exitCode: number | null = 0;
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            driveUploadSpawn(creds!, task.targetFolderId ?? null, filesJson, optionsJson, {
+              onStdoutLine: (line) => {
+                const text = String(line);
+                onTransferStdout(text);
+                if (text.includes('[JSON_OUTPUT]')) {
+                  const data = parseJsonOutput(text);
+                  if (data?.status === 'error') {
+                    uploadError = data.error || 'Upload failed';
+                    setError(uploadError);
+                  } else if (data && Array.isArray((data as any).items)) {
+                    const ids = (data as any).items.map((x: any) => Number(x?.id)).filter(Number.isFinite);
+                    if (ids.length) uploadedIds.push(...ids);
+                  }
+                }
+              },
+              onStderrLine: (line) => onTransferStdout(String(line)),
+              onClose: (code) => {
+                exitCode = code;
+                resolve();
+              },
+            })
+              .then((c) => {
+                childRef.current = c;
+              })
+              .catch(reject);
+          });
+        } finally {
+          void deleteWorkerTempFile(filesJson);
+          void deleteWorkerTempFile(optionsJson);
+          childRef.current = null;
+        }
+
+        // Post task finish checks
+        if (uploadedIds.length > 0) {
+          debugLog('drive', 'upload chunk ok', { count: uploadedIds.length });
+          setStatusText(`Upload selesai${label}: ${namesLabel}`);
+          if (uploadError || (exitCode != null && exitCode !== 0)) {
+            setError(
+              `Upload terkirim, tetapi worker mengakhiri dengan peringatan` +
+                (exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
+                (uploadError ? `: ${uploadError}` : '')
+            );
+          }
+          // Mark items of this task as done
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                return { ...it, status: 'done' as const, percent: 100 };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        } else if (uploadError || (exitCode != null && exitCode !== 0)) {
+          setStatusText(`Upload gagal${label}`);
+          if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                return { ...it, status: 'failed' as const, error: uploadError || 'Gagal' };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        } else {
+          setStatusText(`Upload selesai${label}: ${namesLabel}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                return { ...it, status: 'done' as const, percent: 100 };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        }
+      } else if (task.kind === 'download') {
+        const idsJson = await writeWorkerJson('drive_ids', task.selectedIds!);
+        const optsJson = await writeWorkerJson('drive_dl_opts', task.options);
+        let exitCode: number | null = 0;
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            driveDownloadBatchSpawn(creds!, task.targetFolderId ?? null, idsJson, task.saveDir!, optsJson, {
+              onStdoutLine: (line) => onTransferStdout(String(line)),
+              onStderrLine: (line) => onTransferStdout(String(line)),
+              onClose: (code) => {
+                exitCode = code;
+                resolve();
+              },
+            })
+              .then((c) => {
+                childRef.current = c;
+              })
+              .catch(reject);
+          });
+        } finally {
+          void deleteWorkerTempFile(idsJson);
+          void deleteWorkerTempFile(optsJson);
+          childRef.current = null;
+        }
+
+        if (exitCode === 0) {
+          setStatusText(`Download selesai: ${namesLabel}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                return { ...it, status: 'done' as const, percent: 100 };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        } else {
+          setStatusText('Download gagal');
+          setError(`Download exit code ${exitCode}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                return { ...it, status: 'failed' as const, error: `Exit code ${exitCode}` };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        }
+      } else if (task.kind === 'download_one') {
+        let exitCode: number | null = 0;
+        try {
+          await new Promise<void>((resolve, reject) => {
+            driveDownloadSpawn(creds!, task.messageId!, task.targetFolderId ?? null, task.savePath!, {
+              onStdoutLine: (line) => onTransferStdout(String(line)),
+              onStderrLine: (line) => onTransferStdout(String(line)),
+              onClose: (code) => {
+                exitCode = code;
+                resolve();
+              },
+            })
+              .then((c) => {
+                childRef.current = c;
+              })
+              .catch(reject);
+          });
+        } finally {
+          childRef.current = null;
+        }
+
+        if (exitCode === 0) {
+          setStatusText(`Tersimpan: ${task.names[0]}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx === task.startIndex) {
+                return { ...it, status: 'done' as const, percent: 100 };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        } else {
+          setStatusText('Download gagal');
+          setError(`Download exit code ${exitCode}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx === task.startIndex) {
+                return { ...it, status: 'failed' as const, error: `Exit code ${exitCode}` };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems };
+          });
+        }
+      }
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      setError(msg);
+      setStatusText(task.kind === 'upload' ? 'Upload gagal' : 'Download gagal');
+      setTransfer((t) => {
+        const nextItems = t.items.map((it, idx) => {
+          if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+            return { ...it, status: 'failed' as const, error: msg };
+          }
+          return it;
+        });
+        return { ...t, items: nextItems };
+      });
+    } finally {
+      // Remove completed task
+      transferQueueRef.current.shift();
+      taskRunningRef.current = false;
+
+      // If queue is empty, finish the overall transfer session
+      if (transferQueueRef.current.length === 0) {
+        void clearDriveTransferPause();
+        setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
+        scheduleTransferHide();
+        // A little delay then refresh
+        setTimeout(() => {
+          void refreshFiles();
+          void refreshLocations();
+        }, 600);
+      } else {
+        // Run next task in queue
+        void processNextQueueTask();
+      }
+    }
+  };
 
   const openTransferManager = useCallback(() => {
     if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
@@ -3358,11 +3643,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     opts?: { targetFolderId?: number | null; targetLabel?: string; skipTopic?: boolean }
   ) => {
     if (!creds || !paths.length) return;
-    if (isTransferJobActive() || transfer.active) {
-      setError('Transfer lain masih berjalan. Stop dulu di Transfer Manager, lalu unggah lagi.');
-      openTransferManager();
-      return;
-    }
+    
     // Normalize Windows paths (quotes / long-path prefixes sometimes leak from DnD)
     const cleanPaths = paths
       .map((p) => String(p || '').trim().replace(/^["']|["']$/g, ''))
@@ -3379,149 +3660,83 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       'Drive';
     const label = `→ ${destLabel}`;
     const names = cleanPaths.map((p) => p.split(/[/\\]/).pop() || p);
-    const namesLabel = names.length > 3
-      ? `${names.slice(0, 3).join(', ')} (+ ${names.length - 3} file lainnya)`
-      : names.join(', ');
-    if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
-    void clearDriveTransferPause();
-    setTransfer(
-      seedTransferSession({
-        direction: 'upload',
-        names,
-        label,
-      })
-    );
+
+    const options: Record<string, unknown> = {
+      quality_mode: transferSettings.forceDocumentDefault
+        ? 'ORIGINAL'
+        : transferSettings.qualityMode,
+      concurrency: transferSettings.uploadConcurrency,
+      group_as_album: transferSettings.groupAsAlbum,
+      silent: transferSettings.silent,
+      spoiler: transferSettings.spoiler,
+      global_caption: (transferSettings.globalCaption || '').trim() || undefined,
+      reencodeHardware: transferSettings.reencodeHardware,
+      reencodePreset: transferSettings.reencodePreset,
+    };
+    // Upload into selected forum topic only when targeting current peer
+    if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
+      const tid = topicFilterRef.current;
+      if (tid != null && tid > 0) options.topic_id = tid;
+    }
+
+    // Determine startIndex
+    const currentItemsCount = transferRef.current.items.length;
+    const isActive = transferRef.current.active;
+    const startIndex = isActive ? currentItemsCount : 0;
+
+    const newTask: QueueTask = {
+      id: `upload_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      kind: 'upload',
+      paths: cleanPaths,
+      targetFolderId: uploadPeer,
+      targetLabel: destLabel,
+      skipTopic: opts?.skipTopic,
+      topicId: options.topic_id as number | null,
+      names,
+      options,
+      startIndex,
+    };
+
+    // If no active transfer, seed the session
+    if (!isActive) {
+      if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+      void clearDriveTransferPause();
+      setTransfer(
+        seedTransferSession({
+          direction: 'upload',
+          names,
+          label,
+        })
+      );
+    } else {
+      // Append new items to the existing transfer session
+      setTransfer((prev) => {
+        const newItems: TransferItem[] = names.map((name, index) => ({
+          id: `${newTask.id}-${index}`,
+          index: startIndex + index,
+          name: name || `File ${index + 1}`,
+          direction: 'upload',
+          status: 'queued' as const,
+          percent: 0,
+          transferred: 0,
+          total: 0,
+          speed_mb_s: 0,
+        }));
+        return {
+          ...prev,
+          items: [...prev.items, ...newItems],
+        };
+      });
+    }
+
+    // Add to queue and trigger runner
+    transferQueueRef.current.push(newTask);
     setTransferMinimized(false);
     localStorage.setItem(LS_TM_MIN, '0');
     setError(null);
-    setStatusText(`Mengunggah ${names[0]}${names.length > 1 ? ` (+${names.length - 1})` : ''} ${label}…`);
-    debugLog('drive', 'upload start', { count: cleanPaths.length, dest: destLabel });
-    setTransfer((t) => ({
-      ...t,
-      banner: 'Menyiapkan unggahan (session eksklusif)…',
-      overallPercent: Math.max(t.overallPercent, 1),
-    }));
-    try {
-      const defaultCap = (transferSettings.globalCaption || '').trim();
-      // Default caption = basename WITHOUT extension when possible.
-      // After HQ re-encode (webm→mp4) the document filename carries the real ext;
-      // a caption like "clip.webm" would otherwise stick as the Drive display name.
-      const filesPayload = cleanPaths.map((path) => {
-        const base = path.split(/[/\\]/).pop() || path;
-        const stem = base.includes('.') ? base.replace(/\.[^.]+$/, '') : base;
-        return {
-          path,
-          caption: defaultCap || stem || base,
-        };
-      });
-      const options: Record<string, unknown> = {
-        quality_mode: transferSettings.forceDocumentDefault
-          ? 'ORIGINAL'
-          : transferSettings.qualityMode,
-        concurrency: transferSettings.uploadConcurrency,
-        group_as_album: transferSettings.groupAsAlbum,
-        silent: transferSettings.silent,
-        spoiler: transferSettings.spoiler,
-        global_caption: (transferSettings.globalCaption || '').trim() || undefined,
-        reencodeHardware: transferSettings.reencodeHardware,
-        reencodePreset: transferSettings.reencodePreset,
-      };
-      // Upload into selected forum topic only when targeting current peer
-      if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
-        const tid = topicFilterRef.current;
-        if (tid != null && tid > 0) options.topic_id = tid;
-      }
-      const filesJson = await writeWorkerJson('drive_files', filesPayload);
-      const optionsJson = await writeWorkerJson('drive_opts', options);
-      let uploadError: string | null = null;
-      let uploadedIds: number[] = [];
-      let exitCode: number | null = 0;
-      try {
-        await new Promise<void>((resolve, reject) => {
-          driveUploadSpawn(creds, uploadPeer, filesJson, optionsJson, {
-            onStdoutLine: (line) => {
-              const text = String(line);
-              onTransferStdout(text);
-              if (text.includes('[JSON_OUTPUT]')) {
-                const data = parseJsonOutput(text);
-                if (data?.status === 'error') {
-                  uploadError = data.error || 'Upload failed';
-                  setError(uploadError);
-                } else if (data && Array.isArray((data as any).items)) {
-                  uploadedIds = ((data as any).items as any[])
-                    .map((it) => Number(it?.message_id))
-                    .filter((n) => Number.isFinite(n) && n > 0);
-                }
-              }
-            },
-            onStderrLine: (line) => onTransferStdout(String(line)),
-            onClose: (code) => {
-              exitCode = code;
-              resolve();
-            },
-          })
-            .then((child) => {
-              childRef.current = child;
-            })
-            .catch(reject);
-        });
-      } finally {
-        void deleteWorkerTempFile(filesJson);
-        void deleteWorkerTempFile(optionsJson);
-        childRef.current = null;
-      }
-      if (sameDriveLocation(uploadPeer, peerId)) {
-        // Give background daemon a brief moment to fully release the .session database lock
-        await new Promise((r) => setTimeout(r, 600));
-        await refreshFiles();
-      }
-      if (uploadedIds.length) {
-        setStatusText(
-          `Upload selesai${label}: ${namesLabel} · ${uploadedIds.length} msg`
-        );
-      }
-      // Prefer committed message ids over process exit code: worker can exit
-      // non-zero after Telegram already accepted the file (false "gagal").
-      const committed = uploadedIds.length > 0;
-      if (committed) {
-        setStatusText(
-          `Upload selesai${label}: ${namesLabel} · ${uploadedIds.length} msg`
-        );
-        if (uploadError || (exitCode != null && exitCode !== 0)) {
-          // Soft warning only — do not mark Transfer Manager as failed
-          setError(
-            `Upload terkirim, tetapi worker mengakhiri dengan peringatan` +
-              (exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
-              (uploadError ? `: ${uploadError}` : '')
-          );
-        }
-        setTransfer((t) => markTransferFinished(t, 'done'));
-      } else if (uploadError || (exitCode != null && exitCode !== 0)) {
-        setStatusText(`Upload gagal${label}`);
-        if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
-        setTransfer((t) => markTransferFinished(t, 'failed'));
-      } else {
-        setStatusText(`Upload selesai${label}: ${namesLabel}`);
-        setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      }
-    } catch (e: any) {
-      const msg = String(e?.message || e);
-      // If events already marked items done with message ids, keep success UI
-      setTransfer((t) => {
-        const anyDone = t.items.some((i) => i.status === 'done');
-        if (anyDone) {
-          setStatusText(`Upload selesai${label} (peringatan: ${msg})`);
-          return markTransferFinished(t, 'done');
-        }
-        setError(msg);
-        setStatusText('Upload gagal');
-        return markTransferFinished(t, 'failed');
-      });
-    } finally {
-      void clearDriveTransferPause();
-      setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      scheduleTransferHide();
-    }
+
+    // Trigger processing
+    void processNextQueueTask();
   };
 
   const handleUpload = async () => {
@@ -3541,11 +3756,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const runDownloadSelected = async () => {
     if (!creds || !selectedIds.length) return;
-    if (isTransferJobActive() || transfer.active) {
-      setError('Transfer lain masih berjalan. Stop dulu di Transfer Manager.');
-      openTransferManager();
-      return;
-    }
     try {
       const { open } = await import('@tauri-apps/plugin-dialog');
       const dir = await open({ directory: true, multiple: false, title: 'Download folder' });
@@ -3561,62 +3771,64 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         saveDir,
         names: [...names],
       };
-      if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
-      void clearDriveTransferPause();
-      downloadArtifactsRef.current = new Set();
-      setTransfer(
-        seedTransferSession({
-          direction: 'download',
-          names,
-          label: `${selectedIds.length} file → folder`,
-        })
-      );
+
+      const currentItemsCount = transferRef.current.items.length;
+      const isActive = transferRef.current.active;
+      const startIndex = isActive ? currentItemsCount : 0;
+
+      const newTask: QueueTask = {
+        id: `download_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        kind: 'download',
+        selectedIds: [...selectedIds],
+        saveDir,
+        names,
+        options: {
+          concurrency: transferSettings.downloadConcurrency,
+          notifyDownloadDone: transferSettings.notifyDownloadDone,
+        },
+        startIndex,
+      };
+
+      if (!isActive) {
+        if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+        void clearDriveTransferPause();
+        downloadArtifactsRef.current = new Set();
+        setTransfer(
+          seedTransferSession({
+            direction: 'download',
+            names,
+            label: `${selectedIds.length} file → folder`,
+          })
+        );
+      } else {
+        setTransfer((prev) => {
+          const newItems: TransferItem[] = names.map((name, index) => ({
+            id: `${newTask.id}-${index}`,
+            index: startIndex + index,
+            name: name || `File ${index + 1}`,
+            direction: 'download',
+            status: 'queued' as const,
+            percent: 0,
+            transferred: 0,
+            total: 0,
+            speed_mb_s: 0,
+          }));
+          return {
+            ...prev,
+            items: [...prev.items, ...newItems],
+          };
+        });
+      }
+
+      // Add to queue and trigger runner
+      transferQueueRef.current.push(newTask);
       setTransferMinimized(false);
       localStorage.setItem(LS_TM_MIN, '0');
-      const idsJson = await writeWorkerJson('drive_ids', selectedIds);
-      const optsJson = await writeWorkerJson('drive_dl_opts', {
-        concurrency: transferSettings.downloadConcurrency,
-      });
-      let exitCode: number | null = 0;
-      try {
-        await new Promise<void>((resolve, reject) => {
-          driveDownloadBatchSpawn(creds, peerId, idsJson, saveDir, optsJson, {
-            onStdoutLine: (line) => onTransferStdout(String(line)),
-            onStderrLine: (line) => onTransferStdout(String(line)),
-            onClose: (code) => {
-              exitCode = code;
-              resolve();
-            },
-          })
-            .then((c) => {
-              childRef.current = c;
-            })
-            .catch(reject);
-        });
-      } finally {
-        void deleteWorkerTempFile(idsJson);
-        void deleteWorkerTempFile(optsJson);
-        childRef.current = null;
-      }
-      if (exitCode != null && exitCode !== 0) {
-        setError(`Download exit code ${exitCode}`);
-        setStatusText('Download gagal');
-        setTransfer((t) => markTransferFinished(t, 'failed'));
-      } else {
-        if (transferSettings.notifyDownloadDone) {
-          setStatusText(`Downloaded to ${saveDir}`);
-        } else {
-          setStatusText('Download selesai');
-        }
-        setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      }
+      setError(null);
+
+      void processNextQueueTask();
     } catch (e: any) {
       setError(String(e?.message || e));
-      setTransfer((t) => markTransferFinished(t, 'failed'));
-    } finally {
-      void clearDriveTransferPause();
-      setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      scheduleTransferHide();
     }
   };
 
@@ -3639,59 +3851,71 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setSelectedIds([file.id]);
     selectionAnchorRef.current = file.id;
     if (!creds) return;
-    if (isTransferJobActive() || transfer.active) {
-      setError('Transfer lain masih berjalan. Stop dulu di Transfer Manager.');
-      openTransferManager();
-      return;
-    }
     try {
       const defaultName = file.name.replace(/[<>:"/\\|?*]/g, '_');
       const { save } = await import('@tauri-apps/plugin-dialog');
       const savePath = await save({ defaultPath: defaultName, title: 'Simpan file' });
       if (!savePath) return;
-      if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
-      void clearDriveTransferPause();
-      downloadArtifactsRef.current = new Set([savePath]);
-      setTransfer(
-        seedTransferSession({
-          direction: 'download',
-          names: [file.name],
-          label: file.name,
-          totals: file.size > 0 ? [file.size] : undefined,
-        })
-      );
+
+      const currentItemsCount = transferRef.current.items.length;
+      const isActive = transferRef.current.active;
+      const startIndex = isActive ? currentItemsCount : 0;
+
+      const newTask: QueueTask = {
+        id: `download_one_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        kind: 'download_one',
+        targetFolderId: peerId,
+        targetLabel: file.name,
+        messageId: file.id,
+        savePath,
+        names: [file.name],
+        options: {},
+        startIndex,
+      };
+
+      if (!isActive) {
+        if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+        void clearDriveTransferPause();
+        downloadArtifactsRef.current = new Set([savePath]);
+        setTransfer(
+          seedTransferSession({
+            direction: 'download',
+            names: [file.name],
+            label: file.name,
+            totals: file.size > 0 ? [file.size] : undefined,
+          })
+        );
+      } else {
+        setTransfer((prev) => {
+          const newItems: TransferItem[] = [
+            {
+              id: `${newTask.id}-0`,
+              index: startIndex,
+              name: file.name,
+              direction: 'download',
+              status: 'queued' as const,
+              percent: 0,
+              transferred: 0,
+              total: file.size > 0 ? file.size : 0,
+              speed_mb_s: 0,
+            },
+          ];
+          return {
+            ...prev,
+            items: [...prev.items, ...newItems],
+          };
+        });
+      }
+
+      // Add to queue and trigger runner
+      transferQueueRef.current.push(newTask);
       setTransferMinimized(false);
       localStorage.setItem(LS_TM_MIN, '0');
-      let exitCode: number | null = 0;
-      await new Promise<void>((resolve, reject) => {
-        driveDownloadSpawn(creds, file.id, peerId, savePath, {
-          onStdoutLine: (line) => onTransferStdout(String(line)),
-          onStderrLine: (line) => onTransferStdout(String(line)),
-          onClose: (code) => {
-            exitCode = code;
-            resolve();
-          },
-        })
-          .then((c) => {
-            childRef.current = c;
-          })
-          .catch(reject);
-      });
-      childRef.current = null;
-      if (exitCode != null && exitCode !== 0) {
-        setError(`Download exit code ${exitCode}`);
-        setTransfer((t) => markTransferFinished(t, 'failed'));
-      } else {
-        setStatusText(`Tersimpan: ${file.name}`);
-        setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      }
+      setError(null);
+
+      void processNextQueueTask();
     } catch (e: any) {
       setError(String(e?.message || e));
-      setTransfer((t) => markTransferFinished(t, 'failed'));
-    } finally {
-      void clearDriveTransferPause();
-      setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
-      scheduleTransferHide();
     }
   };
 
@@ -5325,6 +5549,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const cancelTransfer = async () => {
     debugLog('drive', 'transfer stop');
+    transferQueueRef.current = [];
     const wasDownload = transfer.direction === 'download';
     const wasMove = transfer.direction === 'move' || moveActiveRef.current;
     const tracked = Array.from(downloadArtifactsRef.current);

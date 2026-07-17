@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface CaptionModalProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export const CaptionModal: React.FC<CaptionModalProps> = ({ isOpen, onClose, ini
 
   if (!isOpen) return null;
 
-  return (
+  const node = (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
         
@@ -128,4 +129,7 @@ export const CaptionModal: React.FC<CaptionModalProps> = ({ isOpen, onClose, ini
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 };

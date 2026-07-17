@@ -57,7 +57,27 @@ class EventEmitter:
             "payload": payload
         }
         
-        print(f"[EVENT] {json.dumps(event)}", flush=True)
+        try:
+            line = json.dumps(event, default=str, ensure_ascii=False)
+        except Exception:
+            line = json.dumps({
+                "type": event_type,
+                "payload": {"error": "event_serialization_failed"},
+                "executionId": self.execution_id,
+                "jobId": self.job_id,
+            }, default=str)
+        try:
+            from engine.utf8_io import write_line
+            write_line(f"[EVENT] {line}")
+        except Exception:
+            try:
+                print(f"[EVENT] {line}", flush=True)
+            except Exception:
+                try:
+                    sys.stdout.buffer.write(f"[EVENT] {line}\n".encode("utf-8", errors="replace"))
+                    sys.stdout.buffer.flush()
+                except Exception:
+                    pass
         return event
 
 # Global instance initialized during execute-job

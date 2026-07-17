@@ -79,7 +79,17 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
           setIsOpen(!isOpen);
         }}
       >
-        <span style={{ color: selectedOption ? 'inherit' : 'rgba(255,255,255,0.2)' }}>
+        <span
+          style={{
+            color: selectedOption ? 'inherit' : 'rgba(255,255,255,0.2)',
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={selectedOption ? selectedOption.label : (placeholder || 'Select...')}
+        >
           {selectedOption ? selectedOption.label : (placeholder || 'Select...')}
         </span>
         <ChevronDown size={18} style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
