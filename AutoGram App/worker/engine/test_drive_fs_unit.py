@@ -227,6 +227,38 @@ def test_video_thumb_allows_larger_edge():
     assert max(im2.size) <= 442
 
 
+def test_disk_thumb_data_url_empty_nosample_markers():
+    from engine.drive_fs import _disk_thumb_data_url, THUMB_DIR, _cache_key, _thumb_nosample_path, _stream_sample_base_key
+    
+    folder_id = -100987654
+    message_id = 998877
+    key = _cache_key(folder_id, message_id)
+    
+    # 1. Test empty2 marker
+    empty_path = os.path.join(THUMB_DIR, f"{key}.empty2")
+    try:
+        os.makedirs(THUMB_DIR, exist_ok=True)
+        with open(empty_path, "wb") as f:
+            pass
+        res = _disk_thumb_data_url(folder_id, message_id, quality="balanced")
+        assert res == ""
+    finally:
+        if os.path.isfile(empty_path):
+            os.remove(empty_path)
+            
+    # 2. Test nosample marker
+    nosample_path = _thumb_nosample_path(_stream_sample_base_key(key))
+    try:
+        os.makedirs(THUMB_DIR, exist_ok=True)
+        with open(nosample_path, "wb") as f:
+            pass
+        res = _disk_thumb_data_url(folder_id, message_id, quality="balanced")
+        assert res == ""
+    finally:
+        if os.path.isfile(nosample_path):
+            os.remove(nosample_path)
+
+
 class _FakeDocAttrName:
     def __init__(self, file_name):
         self.file_name = file_name
@@ -339,6 +371,7 @@ if __name__ == "__main__":
     test_optimize_thumb_shrinks_large_jpeg()
     test_thumb_quality_profiles()
     test_video_thumb_allows_larger_edge()
+    test_disk_thumb_data_url_empty_nosample_markers()
     test_document_as_photo_icon()
     test_media_duration_from_video_attr()
     test_preloaded_thumbnail_message_skips_per_item_lookup()

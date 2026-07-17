@@ -2806,14 +2806,15 @@ def _disk_thumb_data_url(
     message_id: int,
     quality: Optional[str] = None,
 ) -> Optional[str]:
-    """Return data URL from disk cache for the given quality profile, or None if miss."""
+    """Return data URL from disk cache, '' for cached empty/nosample, or None if miss."""
     _ensure_dirs()
-    prof = _thumb_profile(quality)
-    hard_max = int(prof["max"]) * 2  # allow slightly larger cached lite thumbs
     key = _cache_key(folder_id, message_id)
-    # No longer honor permanent empty markers (caused blank document-video cards)
+    
+    # 1. Check if lite path exists
     path = _thumb_lite_path(folder_id, message_id, quality)
     if os.path.isfile(path) and os.path.getsize(path) > 0:
+        prof = _thumb_profile(quality)
+        hard_max = int(prof["max"]) * 2  # allow slightly larger cached lite thumbs
         size = os.path.getsize(path)
         if size > hard_max:
             try:
@@ -2824,6 +2825,27 @@ def _disk_thumb_data_url(
         with open(path, "rb") as f:
             data = f.read()
         return f"data:image/jpeg;base64,{base64.b64encode(data).decode('ascii')}"
+        
+    # 2. Honor empty markers within their 30-minute TTL
+    import time
+    for stale in (f"{key}.empty", f"{key}.empty2"):
+        sp = os.path.join(THUMB_DIR, stale)
+        if os.path.isfile(sp):
+            try:
+                if time.time() - os.path.getmtime(sp) < 1800:
+                    return ""  # Cached empty marker -> return empty string to indicate "no thumbnail"
+            except OSError:
+                pass
+                
+    # 3. Honor nosample markers within their 2-hour TTL
+    nsp = _thumb_nosample_path(_stream_sample_base_key(key))
+    if os.path.isfile(nsp):
+        try:
+            if time.time() - os.path.getmtime(nsp) < 2 * 3600:
+                return ""  # Cached nosample marker -> return empty string to indicate "no thumbnail"
+        except OSError:
+            pass
+            
     return None
 
 
@@ -4290,6 +4312,35 @@ async def _fetch_thumb_data_url(
     preloaded_message: Any = None,
     message_preloaded: bool = False,
 ) -> Optional[str]:
+    try:
+        res = await _fetch_thumb_data_url_impl(
+            client=client,
+            peer=peer,
+            folder_id=folder_id,
+            message_id=message_id,
+            quality=quality,
+            preloaded_message=preloaded_message,
+            message_preloaded=message_preloaded,
+        )
+        if res is None:
+            _mark_thumb_empty(folder_id, message_id)
+        return res
+    except FloodWaitError:
+        raise
+    except Exception:
+        _mark_thumb_empty(folder_id, message_id)
+        return None
+
+
+async def _fetch_thumb_data_url_impl(
+    client: TelegramClient,
+    peer,
+    folder_id: Optional[int],
+    message_id: int,
+    quality: Optional[str] = None,
+    preloaded_message: Any = None,
+    message_preloaded: bool = False,
+) -> Optional[str]:
     """
     Grid thumb: Telegram static photo thumbs → compact JPEG.
     Videos without server thumbs: lean stream sample only (~0.5–1.5 MB head/tail,
@@ -4800,8 +4851,6 @@ async def get_thumbnails_batch(
             preloaded = {}
         for mid in need:
             try:
-                # Allow re-sample after prior "Tanpa preview" (nosample soft-fail)
-                clear_thumb_nosample(_cache_key(folder_id, mid))
                 url = await _fetch_thumb_data_url(
                     client,
                     peer,
