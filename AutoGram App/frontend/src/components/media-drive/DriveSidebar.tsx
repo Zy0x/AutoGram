@@ -165,6 +165,11 @@ type Props = {
   }) => void;
   /** Soft channel-limit banner text (optional override) */
   channelLimitWarning?: string | null;
+  /** Real-time ping and connection strength state */
+  pingState?: {
+    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor';
+    ms: number | null;
+  };
 };
 
 function ChatIcon({ type }: { type: string }) {
@@ -461,7 +466,23 @@ export function DriveSidebar({
   onLocationContextMenu,
   onFolderReparentDrop,
   channelLimitWarning,
+  pingState,
 }: Props) {
+  const getPingTooltip = () => {
+    if (!pingState) return connected ? 'Drive Terhubung' : 'Terhubung';
+    if (pingState.status === 'offline') return 'Internet Terputus (Device Offline)';
+    if (pingState.status === 'disconnected') return 'Telegram Terputus (Lost)';
+    
+    const msLabel = pingState.ms != null ? `${pingState.ms} ms` : '';
+    let label = 'Koneksi';
+    if (pingState.status === 'excellent') label = 'Sangat Kuat';
+    if (pingState.status === 'good') label = 'Kuat';
+    if (pingState.status === 'fair') label = 'Sedang';
+    if (pingState.status === 'poor') label = 'Lemah';
+
+    return `Telegram: ${label} ${msLabel ? `(${msLabel})` : ''}`;
+  };
+
   const [overKey, setOverKey] = useState<string | null>(null);
   /** Immediate flag — does not wait for React setState after dragstart */
   const [liveInternalDrag, setLiveInternalDrag] = useState(() => isInternalMediaDragActive());
@@ -1416,6 +1437,14 @@ export function DriveSidebar({
             <span>Telegram · [TD]</span>
           </div>
         </button>
+        {collapsed && (
+          <div 
+            className={`td-rail-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}
+            title={getPingTooltip()}
+          >
+            <span className={`td-rail-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
+          </div>
+        )}
 
         {onExitToApp && (
           <button
@@ -1447,9 +1476,17 @@ export function DriveSidebar({
             ? sessions.map((name) => ({ value: name, label: name }))
             : [{ value: '', label: 'Belum ada session', disabled: true }]}
         />
-        <div className={`td-conn ${connected ? 'on' : 'off'}`}>
-          <span className="td-conn-dot" />
-          {connected ? 'Drive terhubung' : 'Belum terhubung'}
+        <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
+          <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
+          <span className="td-conn-text">
+            {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
+            {pingState?.status === 'disconnected' && 'Terputus'}
+            {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sangat Kuat`}
+            {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Kuat`}
+            {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sedang`}
+            {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Lemah`}
+            {!pingState && (connected ? 'Drive terhubung' : 'Belum terhubung')}
+          </span>
         </div>
       </div>
 

@@ -72,7 +72,10 @@ import {
   ensureDriveSession,
   isDriveSessionReady,
   scheduleDriveSessionStop,
+  isDriveSessionReadyFor,
+  driveSessionCall,
 } from '../lib/driveSession';
+
 import {
   loadDriveLocationSnapshot,
   saveDriveLocationSnapshot,
@@ -712,6 +715,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   /** Warm drive-serve connected (not just credentials filled) */
   const [driveReady, setDriveReady] = useState(false);
 
+  interface PingState {
+    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor';
+    ms: number | null;
+  }
+
+  const [pingState, setPingState] = useState<PingState>({
+    status: 'disconnected',
+    ms: null,
+  });
+
+
+
   // Prefer sync cache (App already bootstraps credentials) — no blank wait for invoke
   const [apiCreds, setApiCreds] = useState(() => ({
     apiId: getApiIdSync(),
@@ -735,6 +750,68 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       /* ignore */
     }
   }, [session]);
+
+  useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function checkPing() {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (active) {
+          setPingState({ status: 'offline', ms: null });
+        }
+        scheduleNext(3000);
+        return;
+      }
+
+      if (!creds || !isDriveSessionReadyFor(creds)) {
+        if (active) {
+          setPingState({ status: 'disconnected', ms: null });
+        }
+        scheduleNext(3000);
+        return;
+      }
+
+      const t0 = Date.now();
+      try {
+        const res = await driveSessionCall('ping', {}, 2500);
+        if (!active) return;
+
+        if (res && res.connected) {
+          const ms = typeof res.ms === 'number' ? res.ms : Date.now() - t0;
+          let status: PingState['status'] = 'excellent';
+          if (ms < 150) status = 'excellent';
+          else if (ms < 300) status = 'good';
+          else if (ms < 600) status = 'fair';
+          else if (ms < 1500) status = 'poor';
+          else status = 'disconnected';
+
+          setPingState({ status, ms });
+        } else {
+          setPingState({ status: 'disconnected', ms: null });
+        }
+      } catch (err) {
+        if (active) {
+          setPingState({ status: 'disconnected', ms: null });
+        }
+      }
+      scheduleNext(3000);
+    }
+
+    function scheduleNext(delay: number) {
+      if (!active) return;
+      timer = setTimeout(() => {
+        void checkPing();
+      }, delay);
+    }
+
+    void checkPing();
+
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [creds]);
 
   useEffect(() => {
     if (!creds) return;
@@ -6310,6 +6387,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               : statusText
           }
           connected={driveReady || isDriveSessionReady()}
+          pingState={pingState}
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((c) => !c)}
           chatQuery={chatQuery}

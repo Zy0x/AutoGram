@@ -112,11 +112,19 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
 
     if cmd == "ping":
         connected = False
+        ms = None
         try:
             connected = bool(client is not None and client.is_connected())
+            if connected:
+                import time
+                import random
+                from telethon.functions import PingRequest
+                t0 = time.time()
+                await client(PingRequest(ping_id=random.randint(0, 1000000)))
+                ms = int((time.time() - t0) * 1000)
         except Exception:
             connected = False
-        return {"pong": True, "connected": connected}
+        return {"pong": True, "connected": connected, "ms": ms}
 
     def _parse_topic_id(raw) -> Optional[int]:
         if raw in (None, "", "null", "None", "all", "ALL", 0, "0"):
