@@ -652,6 +652,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       /* ignore */
     }
   }, []);
+  useEffect(() => {
+    return () => {
+      if (throttledRefreshTimerRef.current) {
+        window.clearTimeout(throttledRefreshTimerRef.current);
+      }
+    };
+  }, []);
   const [transferMinimized, setTransferMinimized] = useState(
     () => localStorage.getItem(LS_TM_MIN) === '1'
   );
@@ -660,6 +667,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   /** Local paths of in-progress downloads (for Stop cleanup). */
   const downloadArtifactsRef = useRef<Set<string>>(new Set());
   const refreshFilesRef = useRef<((retryCount?: number) => Promise<void>) | null>(null);
+  const throttledRefreshTimerRef = useRef<any>(null);
+  const lastRefreshTimeRef = useRef<number>(0);
   /** Local confirm (delete/download) + external store for DnD move */
   const [confirmDlg, setConfirmDlg] = useState<DriveConfirmState | null>(null);
   // Version primitive forces re-render; then read latest state from store
@@ -2773,6 +2782,26 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setTransfer((prev) => applyTransferEvent(prev, ev || {}));
   }, []);
 
+  const throttledUploadRefresh = useCallback(() => {
+    if (throttledRefreshTimerRef.current) {
+      window.clearTimeout(throttledRefreshTimerRef.current);
+    }
+    const now = Date.now();
+    const cooldown = 4000; // 4 seconds limit between refreshes
+    const elapsed = now - lastRefreshTimeRef.current;
+
+    if (elapsed >= cooldown) {
+      lastRefreshTimeRef.current = now;
+      void refreshFiles();
+    } else {
+      const remain = cooldown - elapsed;
+      throttledRefreshTimerRef.current = window.setTimeout(() => {
+        lastRefreshTimeRef.current = Date.now();
+        void refreshFiles();
+      }, Math.max(1000, remain)); // minimum 1 second debounce
+    }
+  }, [refreshFiles]);
+
   /** Capture worker transfer debug lines (+ events already via applyProgressEvent). */
   const onTransferStdout = useCallback((line: string) => {
     const text = String(line);
@@ -2820,6 +2849,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             t === 'StudioItemDone' &&
             (status === 'done' || status === 'ok' || status === 'success')
           ) {
+            // Trigger throttled realtime upload refresh
+            throttledUploadRefresh();
+
             const mid = Number((p as Record<string, unknown>).message_id ?? 0);
             if (mid > 0 && creds) {
               // Small delay: give Telegram a moment to process the new message
@@ -2843,7 +2875,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         }
       }
     }
-  }, [applyProgressEvent]);
+  }, [applyProgressEvent, throttledUploadRefresh, creds]);
 
   const toggleTransferMinimize = useCallback(() => {
     setTransferMinimized((m) => {
