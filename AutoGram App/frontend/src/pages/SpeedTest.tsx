@@ -670,6 +670,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const refreshFilesRef = useRef<((retryCount?: number) => Promise<void>) | null>(null);
   const throttledRefreshTimerRef = useRef<any>(null);
   const lastRefreshTimeRef = useRef<number>(0);
+  const uploadRefreshLockRef = useRef(false);
   /** Local confirm (delete/download) + external store for DnD move */
   const [confirmDlg, setConfirmDlg] = useState<DriveConfirmState | null>(null);
   // Version primitive forces re-render; then read latest state from store
@@ -2785,25 +2786,91 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setTransfer((prev) => applyTransferEvent(prev, ev || {}));
   }, []);
 
+  /**
+   * Lightweight head-refresh triggered after each successful upload item.
+   * Uses the same live-sync reconcile path (no loading spinner, no thumb-pause,
+   * no selection reset). Throttled to one concurrent fetch at a time.
+   */
+  const uploadSoftRefresh = useCallback(async () => {
+    if (!creds || uploadRefreshLockRef.current) return;
+    uploadRefreshLockRef.current = true;
+    const gen = peerGen.current;
+    const tid = topicFilterRef.current;
+    const cacheKey = `${peerId}_${tid || ''}`;
+    const cursorBefore = nextOffsetId;
+    const hasMoreBefore = filesHasMore;
+    try {
+      const perf = getDrivePerfProfile();
+      const pageSize = perf.tier === 'low' ? 8 : perf.tier === 'mid' ? 12 : 16;
+      const res = await driveListFiles(creds, peerId, {
+        pageSize,
+        topicId: tid,
+        quickStats: false,
+      });
+      if (gen !== peerGen.current || tid !== topicFilterRef.current) return;
+      const liveHead: DriveFile[] = dedupeByMsgId(res.files || []);
+      const keptExtendedPages = !!res.has_more && liveFilesRef.current.length > liveHead.length;
+      const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
+      liveFilesRef.current = merged;
+      filesCacheRef.current.set(cacheKey, merged);
+      setFiles(merged);
+      if (!keptExtendedPages) {
+        setFilesHasMore(!!res.has_more);
+        setNextOffsetId(res.next_offset_id ?? null);
+      } else {
+        setFilesHasMore(hasMoreBefore || !!res.has_more);
+        setNextOffsetId(cursorBefore);
+      }
+      if (res.total_count != null && Number.isFinite(Number(res.total_count))) {
+        const total = clampMediaTotal(res.total_count, merged) ?? merged.length;
+        filesTotalCountRef.current.set(cacheKey, total);
+        setTotalFileCount(total);
+      }
+      if (res.total_bytes != null && Number.isFinite(Number(res.total_bytes))) {
+        const bytes = clampMediaBytes(res.total_bytes, merged) ?? loadedMediaBytes(merged);
+        filesTotalBytesRef.current.set(cacheKey, bytes);
+        setTotalBytes(bytes);
+      }
+      try {
+        saveDriveLocationSnapshot(localStorage, creds.session, peerId, tid, {
+          files: merged,
+          hasMore: keptExtendedPages ? hasMoreBefore || !!res.has_more : !!res.has_more,
+          nextOffsetId: keptExtendedPages ? cursorBefore : res.next_offset_id ?? null,
+          totalCount: filesTotalCountRef.current.get(cacheKey) ?? null,
+          totalBytes: filesTotalBytesRef.current.get(cacheKey) ?? null,
+        });
+      } catch { /* cache is best-effort */ }
+      // Stamp live-sync so the periodic timer skips a redundant fetch right after
+      liveSyncLastAtRef.current.set(cacheKey, Date.now());
+      liveSyncFailuresRef.current = 0;
+      liveSyncBackoffUntilRef.current = 0;
+    } catch {
+      /* Soft-refresh failure is silent; live sync will pick up on next interval */
+    } finally {
+      uploadRefreshLockRef.current = false;
+    }
+  }, [creds, peerId, nextOffsetId, filesHasMore]);
+
   const throttledUploadRefresh = useCallback(() => {
     if (throttledRefreshTimerRef.current) {
       window.clearTimeout(throttledRefreshTimerRef.current);
     }
     const now = Date.now();
-    const cooldown = 4000; // 4 seconds limit between refreshes
+    const cooldown = 4000; // 4 seconds limit between upload refreshes
     const elapsed = now - lastRefreshTimeRef.current;
 
     if (elapsed >= cooldown) {
       lastRefreshTimeRef.current = now;
-      void refreshFiles();
+      void uploadSoftRefresh();
     } else {
       const remain = cooldown - elapsed;
       throttledRefreshTimerRef.current = window.setTimeout(() => {
         lastRefreshTimeRef.current = Date.now();
-        void refreshFiles();
+        void uploadSoftRefresh();
       }, Math.max(1000, remain)); // minimum 1 second debounce
     }
-  }, [refreshFiles]);
+  }, [uploadSoftRefresh]);
+
 
   /** Capture worker transfer debug lines (+ events already via applyProgressEvent). */
   const onTransferStdout = useCallback((line: string) => {
