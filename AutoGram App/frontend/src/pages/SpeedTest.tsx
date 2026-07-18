@@ -3776,6 +3776,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       global_caption: (transferSettings.globalCaption || '').trim() || undefined,
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
+      duplicate_policy: transferSettings.duplicatePolicy,
     };
     // Upload into selected forum topic only when targeting current peer
     if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {

@@ -303,6 +303,18 @@ export function DriveTransferSettings({
                     <small>Muat ulang grid di folder tujuan agar file baru langsung terlihat.</small>
                   </span>
                 </label>
+                <label className="td-xfer-check">
+                  <input
+                    type="checkbox"
+                    checked={draft.duplicatePolicy === 'SKIP'}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
+                  />
+                  <span>
+                    <strong>Lewati berkas terunggah (De-duplikasi)</strong>
+                    <small>Deteksi riwayat Telegram dan database lokal secara otomatis untuk menghindari pengunggahan ganda.</small>
+                  </span>
+                </label>
               </div>
 
               <h3>Caption default</h3>
