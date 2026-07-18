@@ -79,6 +79,10 @@ export function friendlyDriveError(err: unknown): string {
     // banner in the newly selected location.
     return '';
   }
+  if (/drive session stopped|drive session ended|drive session not ready/i.test(raw)) {
+    // Normal lifecycle cancellation when warm session is stopped for transfer jobs.
+    return '';
+  }
   if (isSessionLockError(err)) {
     return 'Session Telegram sedang dipakai proses lain. Tunggu sebentar lalu Refresh, atau hentikan job migrasi yang jalan.';
   }
