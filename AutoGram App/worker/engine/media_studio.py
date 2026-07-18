@@ -831,6 +831,26 @@ async def _send_one(
         # Terminal success once Telegram accepted the message — never flip to failed
         # because of post-commit bookkeeping (progress emit, thumb cleanup, etc.).
         apply_item_commit_success(item, mid, duration_s=round(time.time() - t0, 3))
+        # Copy generated thumbnail to local cache for instant UI rendering
+        if mid:
+            try:
+                from engine.drive_fs import THUMB_DIR, THUMB_LITE_TAG
+                import shutil
+                from telethon import utils
+                
+                raw_peer_id = utils.get_peer_id(entity)
+                fk = "home" if raw_peer_id is None else str(int(raw_peer_id))
+                cache_key = f"{fk}_{int(mid)}"
+                
+                thumb_candidate = send_path + ".thumb.jpg"
+                if os.path.isfile(thumb_candidate) and os.path.getsize(thumb_candidate) > 0:
+                    os.makedirs(THUMB_DIR, exist_ok=True)
+                    for q in ["saver", "balanced", "sharp"]:
+                        dest_path = os.path.join(THUMB_DIR, f"{cache_key}.{q}.{THUMB_LITE_TAG}.jpg")
+                        shutil.copy2(thumb_candidate, dest_path)
+            except Exception as cache_err:
+                emit_event("LogEvent", level="WARNING", message=f"Failed to cache uploaded thumb: {cache_err}")
+
         if dup_checker is not None and mid:
             try:
                 dup_checker.log(

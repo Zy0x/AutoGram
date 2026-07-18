@@ -290,6 +290,14 @@ function writeSessionsCache(list: string[]) {
   }
 }
 
+function getIconTypeFromFilename(name: string): string {
+  const ext = String(name || '').split('.').pop()?.toLowerCase() || '';
+  if (['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'].includes(ext)) return 'video';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
+  if (['mp3', 'ogg', 'wav', 'm4a', 'flac'].includes(ext)) return 'audio';
+  return 'file';
+}
+
 async function writeWorkerJson(name: string, data: any): Promise<string> {
   // P0: no python -c — write via Rust path jail under worker/temp
   return writeWorkerTempJson(name, data);
@@ -1442,6 +1450,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const refreshLocations = useCallback(async () => {
     if (!creds) return;
+    if (isTransferJobActive()) {
+      setStatusText('Transfer aktif — refresh ditunda');
+      return;
+    }
     // Staged load: paint chats/folders/files as each RPC finishes (never wait for all).
     // Warm session uses 3 parallel cmds; one-shot falls back to bootstrap.
     invalidateAvatarFailures();
@@ -2095,6 +2107,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const refreshFiles = useCallback(async (retryCount = 0) => {
     if (!creds) return;
+    if (isTransferJobActive()) {
+      setStatusText('Transfer aktif — refresh ditunda');
+      return;
+    }
     const gen = ++peerGen.current;
     // Allow thumb re-fetch after manual refresh (soft-fails cleared; success cache kept)
     invalidateThumbFailures();
@@ -3015,6 +3031,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   }, [creds]);
 
   const throttledUploadRefresh = useCallback(() => {
+    if (isTransferJobActive()) return;
     if (throttledRefreshTimerRef.current) {
       window.clearTimeout(throttledRefreshTimerRef.current);
     }
@@ -3076,6 +3093,39 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           if (path && (status === 'done' || status === 'ok' || status === 'success' || t === 'DriveDownloadDone')) {
             downloadArtifactsRef.current.delete(path);
           }
+          // After a successful upload,
+          const mid = Number((p as Record<string, unknown>).message_id ?? 0);
+          const idx = p.index != null ? Number(p.index) : -1;
+          const activeTask = transferQueueRef.current[0];
+          const isCurrentLocation = activeTask && (
+            activeTask.targetFolderId === peerId ||
+            (activeTask.targetFolderId == null && peerId == null)
+          );
+
+          if (mid > 0 && idx >= 0 && isCurrentLocation) {
+            const item = transferRef.current.items.find((x) => x.index === idx);
+            const name = item?.name || activeTask.names[idx - activeTask.startIndex] || `msg_${mid}`;
+            const size = item?.total || 0;
+            const type = getIconTypeFromFilename(name);
+            const duration_s = p.duration_s != null ? Number(p.duration_s) : null;
+
+            const newFile: DriveFile = {
+              id: mid,
+              folder_id: peerId,
+              name,
+              size,
+              created_at: new Date().toISOString(),
+              icon_type: type,
+              duration: duration_s,
+              has_thumb: ['video', 'image'].includes(type),
+            };
+
+            setFiles((prev) => {
+              if (prev.some((x) => x.id === mid)) return prev;
+              return [newFile, ...prev];
+            });
+          }
+
           // After a successful upload, immediately bust the soft-fail thumb cache
           // for that message so DriveFileCard retries will fetch from network.
           if (
@@ -3085,7 +3135,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             // Trigger throttled realtime upload refresh (skipped items already exist in Telegram)
             throttledUploadRefresh();
 
-            const mid = Number((p as Record<string, unknown>).message_id ?? 0);
             if (mid > 0 && creds && status !== 'skipped') {
               // Small delay: give Telegram a moment to process the new message
               // before we ask for its thumbnail (reduces empty-thumb from race).
