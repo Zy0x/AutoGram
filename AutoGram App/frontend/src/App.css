@@ -9521,37 +9521,42 @@ body:has(.td-page),
 .tm-panel.down .tm-ico.spin {
   color: #a78bfa;
 }
-/* Skip status — amber/orange */
+/* Skip status — amber/orange pill badge */
 .tm-ico.skip {
   color: #f59e0b;
 }
-.tm-skip-text {
-  color: #f59e0b;
+/* Hoverable pill badge "Dilewati" */
+.tm-skip-badge-pill {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-weight: 650;
-}
-.tm-skip-note {
-  color: var(--td-sub, #94a3b8);
-  font-weight: 500;
-  font-size: 0.62rem;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  cursor: help;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  user-select: none;
   white-space: nowrap;
-  display: inline-block;
-  vertical-align: middle;
+  flex-shrink: 0;
+}
+.tm-skip-badge-pill:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.6);
+  transform: scale(1.04);
 }
 .tm-skip-badge {
   color: #f59e0b;
   font-weight: 700;
   font-size: 0.62rem;
 }
-/* Skipped rows get a subtle amber left-border */
+/* Skipped rows — subtle tint, no border (green check + pill is enough) */
 .tm-row.status-skipped {
-  border-left: 2px solid rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.04);
+  background: rgba(245, 158, 11, 0.03);
 }
 @keyframes tm-spin {
   to {

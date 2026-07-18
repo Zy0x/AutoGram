@@ -56,8 +56,8 @@ type Props = {
 };
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === 'done') return <Check size={14} className="tm-ico ok" />;
-  if (status === 'skipped') return <SkipForward size={14} className="tm-ico skip" />;
+  // skipped: treated as done visually (green check), badge shows separately
+  if (status === 'done' || status === 'skipped') return <Check size={14} className="tm-ico ok" />;
   if (status === 'failed' || status === 'cancelled')
     return <AlertCircle size={14} className="tm-ico err" />;
   if (status === 'active' || status === 'preparing')
@@ -506,15 +506,15 @@ export function DriveTransferManager({
                     )}
                   </div>
                   <div className="tm-row-meta">
-                    {it.status === 'done' && <span>Selesai</span>}
+                    {(it.status === 'done' || it.status === 'skipped') && <span>Selesai</span>}
                     {it.status === 'skipped' && (
                       <span
-                        className="tm-skip-text"
-                        title={it.note || 'File sudah ada di tujuan'}
+                        className="tm-skip-badge-pill"
+                        title={it.note || 'File sudah ada di tujuan — tidak diunggah ulang'}
+                        aria-label={`Dilewati: ${it.note || 'duplikat'}`}
                       >
-                        <SkipForward size={11} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                        <SkipForward size={9} />
                         Dilewati
-                        {it.note && <span className="tm-skip-note">&nbsp;·&nbsp;{it.note}</span>}
                       </span>
                     )}
                     {it.status === 'failed' && (
