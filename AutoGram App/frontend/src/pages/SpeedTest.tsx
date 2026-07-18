@@ -117,6 +117,7 @@ import type {
   TransferSession,
 } from '../lib/driveTypes';
 import {
+  DEFAULT_TRANSFER_SETTINGS,
   DEFAULT_DRIVE_SORT,
   DRIVE_FOLDER_SOFT_LIMIT,
   driveFileDisplayName,
@@ -599,9 +600,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     | null
   >(null);
 
-  const [transferSettings, setTransferSettings] = useState<TransferSettingsState>(() =>
-    loadTransferSettings()
-  );
+  const [transferSettings, setTransferSettings] = useState<TransferSettingsState>(() => ({
+    ...DEFAULT_TRANSFER_SETTINGS,
+    ...loadTransferSettings(),
+  }));
   const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
   const transferQueueRef = useRef<QueueTask[]>([]);
@@ -3776,7 +3778,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       global_caption: (transferSettings.globalCaption || '').trim() || undefined,
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
-      duplicate_policy: transferSettings.duplicatePolicy,
+      duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
     };
     // Upload into selected forum topic only when targeting current peer
     if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
