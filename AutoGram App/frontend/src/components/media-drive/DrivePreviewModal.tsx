@@ -857,11 +857,13 @@ export function DrivePreviewModal({
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
-  // Playback rate
+  // Playback rate — only react to rate changes.
+  // onLoadedMetadata already applies the rate when a new video element mounts,
+  // so we must NOT include streamUrl/path here (videoRef is null at that point).
   useEffect(() => {
     const v = videoRef.current;
-    if (v) v.playbackRate = playbackRate;
-  }, [playbackRate, streamUrl, path]);
+    if (v && v.readyState >= 1) v.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -1954,7 +1956,7 @@ export function DrivePreviewModal({
                   <button
                     ref={rateBtnRef}
                     type="button"
-                    className="drive-tool-btn"
+                    className="drive-tool-btn drive-tool-btn-value"
                     title="Kecepatan putar (0.5x – 2x)"
                     onClick={() => {
                       setQualityOpen(false);
@@ -1968,9 +1970,10 @@ export function DrivePreviewModal({
                     }}
                     aria-expanded={rateOpen}
                     aria-haspopup="menu"
+                    aria-label={`Kecepatan putar: ${playbackRate}x`}
                   >
                     <Gauge size={15} />
-                    <span className="drive-tool-btn-label">{playbackRate}x</span>
+                    <span className="drive-tool-btn-label strong">{playbackRate}x</span>
                   </button>
                 </div>
                 <button

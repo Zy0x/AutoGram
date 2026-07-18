@@ -2819,6 +2819,37 @@ body.td-dnd-external {
   background: color-mix(in srgb, var(--td-primary) 6%, var(--td-surface));
 }
 
+.td-file-card.is-new-upload .td-file-card-inner {
+  border-color: #34d399;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.38), 0 0 24px rgba(52, 211, 153, 0.28);
+  animation: td-new-upload-in 420ms ease-out both;
+}
+
+.td-new-upload-badge {
+  position: absolute;
+  z-index: 8;
+  top: 8px;
+  left: 8px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #052e26;
+  background: rgba(110, 231, 183, 0.94);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  pointer-events: none;
+}
+
+@keyframes td-new-upload-in {
+  from { opacity: 0.72; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-file-card.is-new-upload .td-file-card-inner { animation: none; }
+}
+
 .td-file-thumb-full {
   position: absolute;
   inset: 0;
@@ -4121,7 +4152,7 @@ body.td-dnd-external {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
 }
 .drive-rate-menu {
-  min-width: 140px;
+  min-width: 160px;
 }
 .drive-preview-banner {
   position: absolute;
@@ -8481,8 +8512,9 @@ body:has(.td-page),
   left: 0;
 }
 @container drive-preview (max-width: 480px) {
-  .drive-preview-nav .drive-quality-menu,
-  .drive-preview-toolbar .drive-quality-menu {
+  /* Exclude .is-fixed-popover: JS-positioned menus (z-index 12600) must NOT be overridden */
+  .drive-preview-nav .drive-quality-menu:not(.is-fixed-popover),
+  .drive-preview-toolbar .drive-quality-menu:not(.is-fixed-popover) {
     position: fixed;
     left: 8px;
     right: 8px;
