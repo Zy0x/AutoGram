@@ -1121,6 +1121,27 @@ async def run_ordered_upload(
         upload_premium=bool(getattr(upload_policy, "premium", False)) if upload_policy else None,
     )
 
+    # Pre-flight active reconciliation scan on Telegram to avoid duplicate uploads
+    tg_exists = {}
+    try:
+        emit_event("StudioInfo", message="Memindai riwayat Telegram untuk menyelaraskan status...")
+        topic_filter = None
+        if opts.topic_id:
+            topic_filter = int(opts.topic_id)
+        elif opts.reply_to:
+            topic_filter = int(opts.reply_to)
+
+        async for msg in client.iter_messages(entity, limit=200, reply_to=topic_filter):
+            if msg.media and hasattr(msg, "file") and msg.file:
+                fname = (msg.file.name or "").lower()
+                fsize = msg.file.size
+                if fname and fsize:
+                    tg_exists[(fname, fsize)] = msg.id
+        if tg_exists:
+            emit_event("StudioInfo", message=f"Penyelarasan sukses: menemukan {len(tg_exists)} berkas di Telegram.")
+    except Exception as recon_err:
+        emit_event("LogEvent", level="WARNING", message=f"Penyelarasan riwayat Telegram gagal: {recon_err}")
+
     # Album mode: batch by 10 same-kind media
     if opts.group_as_album:
         batches: List[List[StudioItem]] = []
@@ -1174,6 +1195,12 @@ async def run_ordered_upload(
                     except Exception:
                         pass
                         
+                    if not dup_mid and (final_file_name.lower(), it.size) in tg_exists:
+                        dup_mid = tg_exists[(final_file_name.lower(), it.size)]
+                        try:
+                            dup_checker.log(None, dup_mid, file_name=final_file_name, file_size=it.size)
+                        except Exception:
+                            pass
                     if dup_mid:
                         it.status = "done"
                         it.message_id = dup_mid
@@ -1336,6 +1363,13 @@ async def run_ordered_upload(
                 dup_mid = dup_checker.get_duplicate_message_id(file_name=final_file_name, file_size=it.size)
             except Exception:
                 pass
+
+            if not dup_mid and (final_file_name.lower(), it.size) in tg_exists:
+                dup_mid = tg_exists[(final_file_name.lower(), it.size)]
+                try:
+                    dup_checker.log(None, dup_mid, file_name=final_file_name, file_size=it.size)
+                except Exception:
+                    pass
 
             if dup_mid:
                 it.status = "done"

@@ -1,7 +1,7 @@
-AutoGram Version: v5.1.3
+AutoGram Version: v5.1.4
 
 Current State:
-Real Implementation Foundation + Telegram Core (Fixed Thumbnail RAM & Mass Upload Resilience)
+Real Implementation Foundation + Telegram Core (Telegram Reconciliation Engine for Robust Resumes)
 
 Previous:
 v5.1.2 Bug Fix Preview Media

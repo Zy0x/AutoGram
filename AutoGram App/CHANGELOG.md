@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.1.4 Pre-flight Active Telegram Reconciliation Engine
+
+Added:
+- Integrasi *Pre-flight Active Telegram Reconciliation Engine* yang secara otomatis memindai riwayat chat/thread Telegram sebelum pengunggahan dimulai untuk mendeteksi berkas yang sudah berhasil terkirim.
+- Sinkronisasi otomatis riwayat Telegram yang terdeteksi ke database `duplicate_history` lokal untuk mencegah pengunggahan ganda (de-duplikasi) dan memungkinkan resume 1-klik yang tangguh.
+
 ## v5.1.3 Optimalisasi Memori Thumbnail & Stabilitas Pengunggahan Massal
 
 Fixed:
