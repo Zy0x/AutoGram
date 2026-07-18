@@ -42,7 +42,6 @@ import {
   cleanupPartialDownloads,
   driveDownload,
   driveStopStream,
-  driveStreamSeek,
   driveStreamStatus,
 } from '../../lib/driveApi';
 import { getCachedThumb } from '../../lib/thumbBatcher';
@@ -307,6 +306,9 @@ function pointerIdMatches(a: number, b: number): boolean {
   return a === b;
 }
 
+let globalStreamTeardownGen = 0;
+let activeMountGen = 0;
+
 export function DrivePreviewModal({
   file,
   folderId,
@@ -395,6 +397,7 @@ export function DrivePreviewModal({
     null
   );
   const [rateMenuPos, setRateMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const mountGenRef = useRef(0);
   const loadSeq = useRef(0);
   const dragRef = useRef<{
     active: boolean;
@@ -534,6 +537,7 @@ export function DrivePreviewModal({
 
   const loadPreview = useCallback(
     async (q: string, opts?: { resumeAt?: number; soft?: boolean }) => {
+      if (mountGenRef.current !== activeMountGen) return;
       const seq = ++loadSeq.current;
       const soft = !!opts?.soft;
       const qNorm = q || 'auto';
@@ -582,12 +586,14 @@ export function DrivePreviewModal({
 
       try {
         const res = await loadPreviewCached(creds, file.id, folderId, qNorm);
+        if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
         applyResult(res, qNorm, false);
 
         const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
         if (ids.length) prefetchPreviews(creds, folderId, ids, qNorm);
       } catch (e: any) {
+        if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
         // Keep cached playback if we already painted a hit
         if (!hasUsable) {
@@ -662,9 +668,10 @@ export function DrivePreviewModal({
    * live stream and leaves a black video with a dead http://127.0.0.1 URL.
    * Defer teardown and skip if a newer mount generation is already alive.
    */
-  const streamTeardownGen = useRef(0);
   useEffect(() => {
-    const gen = ++streamTeardownGen.current;
+    const gen = ++globalStreamTeardownGen;
+    mountGenRef.current = gen;
+    activeMountGen = gen;
     const mid = file.id;
     const fid = folderId;
     return () => {
@@ -672,7 +679,7 @@ export function DrivePreviewModal({
       const c = credsRef.current;
       window.setTimeout(() => {
         // Remounted (StrictMode or fast re-open) — do not kill the new session
-        if (streamTeardownGen.current !== gen) return;
+        if (globalStreamTeardownGen !== gen) return;
         if (!c) return;
         if (sid) void driveStopStream(c, sid);
         void driveStopStream(c, null, { stopAll: true, incompleteOnly: true });
@@ -827,52 +834,14 @@ export function DrivePreviewModal({
     if (!userSeekPendingRef.current) return;
     userSeekPendingRef.current = false;
     const v = videoRef.current;
-    const sid = streamIdRef.current;
-    if (!v || !streamUrl || !sid) return;
+    if (!v || !streamUrl) return;
     const t = v.currentTime;
     if (!Number.isFinite(t) || t < 0.05) return;
 
     // Already buffered in the browser — nothing to do
     if (timeInBuffered(v, t, 1.25)) return;
 
-    const dur = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
-    const c = credsRef.current;
-    if (!c) return;
-    const target = t;
-
     flashSeekWarn('Memuat titik seek…');
-    void (async () => {
-      try {
-        await driveStreamSeek(c, sid, {
-          time_s: target,
-          duration_s: dur > 0 ? dur : undefined,
-        });
-      } catch {
-        /* worker may be restarting */
-      }
-      // Retry nudge a few times while offset download lands (player re-ranges)
-      for (let i = 0; i < 8; i++) {
-        await new Promise((r) => window.setTimeout(r, 280 + i * 120));
-        const vv = videoRef.current;
-        if (!vv || streamIdRef.current !== sid) return;
-        if (timeInBuffered(vv, target, 1.5)) {
-          try {
-            vv.currentTime = target;
-            void vv.play().catch(() => undefined);
-          } catch {
-            /* ignore */
-          }
-          setSeekWarn(null);
-          return;
-        }
-        try {
-          vv.currentTime = target;
-        } catch {
-          /* ignore */
-        }
-      }
-      setSeekWarn(null);
-    })();
   }, [streamUrl, timeInBuffered, flashSeekWarn]);
 
   useEffect(() => {
@@ -2491,7 +2460,11 @@ export function DrivePreviewModal({
                     setPlayerHint('Menunggu data…');
                   }
                 }}
-                onError={() => {
+                onError={(e) => {
+                  const mediaErr = videoRef.current?.error || (e.target as HTMLVideoElement)?.error;
+                  if (mediaErr && mediaErr.code === 1) {
+                    return; // MEDIA_ERR_ABORTED is not a failure
+                  }
                   if (tryNextSrc()) return;
                   // Stale stream URL after worker restart / StrictMode teardown
                   if (streamUrl) {

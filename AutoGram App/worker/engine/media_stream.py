@@ -36,10 +36,18 @@ _SERVER: Optional[ThreadingHTTPServer] = None
 _SERVER_THREAD: Optional[threading.Thread] = None
 _PORT: int = 0
 
+def log_debug(msg: str) -> None:
+    try:
+        with open("f:/AutoGram/AutoGram App/worker/temp/media_stream_debug.txt", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except Exception:
+        pass
+
 # Seek / pipeline windows (Telegram max part = 512 KiB)
 _PART = 512 * 1024
-_SEEK_WINDOW = 8 * 1024 * 1024  # ~8 MiB around seek (like client pre-buffer)
-_PIPELINE_WINDOW = 8 * 1024 * 1024  # concurrent prefix batches
+_SEEK_WINDOW = 4 * 1024 * 1024  # actual HTTP Range runway around the playhead
+_SEEK_PRIME_WINDOW = 2 * 1024 * 1024  # cheap time-ratio hint before exact Range arrives
+_PIPELINE_WINDOW = 4 * 1024 * 1024  # bounded sequential playback window
 _SEEK_ALIGN = 64 * 1024
 _STREAM_WORKERS = 16
 # Document / re-encode MP4 often puts moov at EOF — fetch enough for full atom
@@ -93,15 +101,59 @@ class ProgressiveMedia:
         self._dc_id: Optional[int] = None
         self._media_api = None  # client or exported media-DC sender
         self._media_sender = None  # must be returned if borrowed
-        self._seek_inflight: Dict[int, float] = {}  # aligned_offset -> started_at
+        # aligned_offset -> {started, generation, priority, future}.  A new
+        # distant seek cancels the old generation so rapid scrubbing does not
+        # keep spending quota on abandoned ranges.
+        self._seek_inflight: Dict[int, Dict[str, Any]] = {}
         self._seek_lock = threading.Lock()
+        self._seek_generation = 0
+        self._active_seek_offset: Optional[int] = None
+        self._active_seek_priority = 0
         from collections import OrderedDict
         self._ram_cache = OrderedDict()  # part_off -> data
 
     def cancel(self) -> None:
+        with self._seek_lock:
+            self._seek_generation += 1
+            for job in self._seek_inflight.values():
+                future = job.get("future")
+                try:
+                    if future is not None:
+                        future.cancel()
+                except Exception:
+                    pass
+            self._seek_inflight.clear()
+            self._active_seek_offset = None
+            self._active_seek_priority = 0
         with self.cv:
             self.cancelled = True
             self.cv.notify_all()
+        self._release_borrowed_sender()
+
+    def _release_borrowed_sender(self) -> None:
+        sender = self._media_sender
+        client = self._client
+        loop = self._loop
+        self._media_sender = None
+        self._media_api = client
+        if sender is None or client is None or loop is None or not loop.is_running():
+            return
+
+        async def _release_later() -> None:
+            # Let cancellation propagate through any in-flight GetFile first.
+            await asyncio.sleep(0.2)
+            await _release_media_sender(client, sender)
+
+        try:
+            loop.call_soon_threadsafe(lambda: loop.create_task(_release_later()))
+        except Exception:
+            pass
+
+    def is_seek_generation_current(self, generation: Optional[int]) -> bool:
+        if generation is None:
+            return not self.cancelled
+        with self._seek_lock:
+            return not self.cancelled and generation == self._seek_generation
 
     def read_from_cache(self, pos: int, to_read: int) -> Optional[bytes]:
         part_off = (pos // _PART) * _PART
@@ -202,17 +254,22 @@ class ProgressiveMedia:
         """Wait until [start, start+min_len) has any contiguous coverage from start."""
         deadline = time.time() + max(0.1, timeout)
         need_end = start + max(1, min_len)
+        log_debug(f"wait_for_range start={start} min_len={min_len} timeout={timeout}")
         with self.cv:
             while True:
                 end = self._contiguous_end_from_unlocked(start)
                 if self.cancelled or self.error:
+                    log_debug(f"wait_for_range early exit: cancelled={self.cancelled} error={self.error} end={end}")
                     return end
                 if self.done and end <= start:
+                    log_debug(f"wait_for_range early exit: done={self.done} end={end}")
                     return end
-                if end >= need_end:
+                if end >= need_end or (self.total_size and end >= self.total_size):
+                    log_debug(f"wait_for_range success: end={end} total={self.total_size}")
                     return end
                 remaining = deadline - time.time()
                 if remaining <= 0:
+                    log_debug(f"wait_for_range timeout: end={end}")
                     return end
                 self.cv.wait(timeout=min(0.35, remaining))
 
@@ -247,14 +304,20 @@ class ProgressiveMedia:
             self.done = True
             self.cv.notify_all()
 
-    def schedule_seek(self, byte_offset: int, window: int = _SEEK_WINDOW) -> bool:
+    def schedule_seek(
+        self,
+        byte_offset: int,
+        window: int = _SEEK_WINDOW,
+        *,
+        priority: int = 2,
+    ) -> bool:
         """
         Kick off (or reuse) a Telegram offset-download around byte_offset.
         Safe to call from the HTTP thread.
         """
         if self.cancelled or self.done:
             return False
-        if self._loop is None or self._input_loc is None:
+        if self._loop is None or (self._input_loc is None and self._msg is None):
             # Not bound yet / location missing — cannot random-access
             return False
         if (self._media_api is None and self._client is None):
@@ -270,22 +333,88 @@ class ProgressiveMedia:
             return True
         with self._seek_lock:
             now = time.time()
-            for k, t0 in list(self._seek_inflight.items()):
-                if now - t0 > 60:
+            for k, job in list(self._seek_inflight.items()):
+                future = job.get("future")
+                if now - float(job.get("started") or 0) > 60 or (
+                    future is not None and future.done()
+                ):
                     self._seek_inflight.pop(k, None)
                 elif abs(k - off) < _SEEK_WINDOW // 2:
                     return True
-            self._seek_inflight[off] = now
+
+            # A low-priority sequential read must not steal bandwidth back from
+            # the user's latest range seek while it is still landing.
+            if (
+                self._active_seek_offset is not None
+                and priority < self._active_seek_priority
+                and abs(self._active_seek_offset - off) >= _SEEK_WINDOW // 2
+            ):
+                return False
+
+            browser_range = priority >= 3
+            if browser_range:
+                # Chromium can request several distant byte islands for one
+                # seek (keyframe/video/audio samples). Cancelling the first
+                # request when the second arrives causes a 503/retry loop and
+                # long buffering. Keep a tiny bounded burst instead; each job
+                # is itself quota-bounded by its range window.
+                generation = self._seek_generation
+                active_ranges = [
+                    (old_off, job)
+                    for old_off, job in self._seek_inflight.items()
+                    if int(job.get("priority") or 0) >= 3
+                ]
+                if len(active_ranges) >= 4:
+                    old_off, old_job = min(
+                        active_ranges,
+                        key=lambda pair: float(pair[1].get("started") or 0),
+                    )
+                    future = old_job.get("future")
+                    try:
+                        if future is not None:
+                            future.cancel()
+                    except Exception:
+                        pass
+                    self._seek_inflight.pop(old_off, None)
+            else:
+                # Explicit/background seeks retain latest-wins cancellation.
+                self._seek_generation += 1
+                generation = self._seek_generation
+                for old_off, job in list(self._seek_inflight.items()):
+                    if abs(old_off - off) < _SEEK_WINDOW // 2:
+                        continue
+                    future = job.get("future")
+                    try:
+                        if future is not None:
+                            future.cancel()
+                    except Exception:
+                        pass
+                    self._seek_inflight.pop(old_off, None)
+            self._active_seek_offset = off
+            self._active_seek_priority = max(0, int(priority))
         length = window if total <= 0 else min(window, total - off)
         try:
-            asyncio.run_coroutine_threadsafe(
-                _fill_range_from_telegram(self, off, length),
+            future = asyncio.run_coroutine_threadsafe(
+                _fill_range_from_telegram(self, off, length, generation=generation),
                 self._loop,
             )
+            with self._seek_lock:
+                if generation != self._seek_generation:
+                    future.cancel()
+                    return False
+                self._seek_inflight[off] = {
+                    "started": time.time(),
+                    "generation": generation,
+                    "priority": priority,
+                    "future": future,
+                }
             return True
         except Exception:
             with self._seek_lock:
                 self._seek_inflight.pop(off, None)
+                if generation == self._seek_generation:
+                    self._active_seek_offset = None
+                    self._active_seek_priority = 0
             return False
 
 
@@ -308,8 +437,18 @@ def _ensure_server() -> int:
                 self.send_header(
                     "Access-Control-Expose-Headers",
                     "Content-Length, Content-Range, Accept-Ranges, Retry-After, "
-                    "X-AutoGram-Buffer, X-AutoGram-Available",
+                    "X-AutoGram-Buffer, X-AutoGram-Available, X-AutoGram-Filled, "
+                    "X-AutoGram-Seek-Offset, X-AutoGram-Seek-Generation",
                 )
+
+            def _stream_metrics(self, media: ProgressiveMedia) -> None:
+                self.send_header("X-AutoGram-Available", str(media.contiguous_from_zero()))
+                self.send_header("X-AutoGram-Filled", str(media.filled_bytes()))
+                self.send_header(
+                    "X-AutoGram-Seek-Offset",
+                    str(media._active_seek_offset if media._active_seek_offset is not None else -1),
+                )
+                self.send_header("X-AutoGram-Seek-Generation", str(media._seek_generation))
 
             def do_OPTIONS(self) -> None:  # noqa: N802
                 self.send_response(204)
@@ -336,18 +475,38 @@ def _ensure_server() -> int:
                     return
 
                 # Need moov / file head first (small — open video ASAP)
-                first_need = min(64 * 1024, media.total_size or 64 * 1024)
-                media.wait_for_bytes(first_need, timeout=8.0)
-                if media.contiguous_from_zero() < first_need and not media.done:
-                    # Kick head download if idle
-                    media.schedule_seek(0, window=min(_PIPELINE_WINDOW, media.total_size or _PIPELINE_WINDOW))
-                    media.wait_for_bytes(first_need, timeout=6.0)
-                if media.error and media.contiguous_from_zero() <= 0:
-                    self.send_error(502, media.error or "stream error")
-                    return
-                if media.contiguous_from_zero() <= 0 and not media.done:
-                    self.send_error(503, "buffering")
-                    return
+                # Parse the requested start before waiting for the head. A far
+                # Range seek must bypass prefix buffering entirely.
+                range_probe = self.headers.get("Range") or self.headers.get("range") or ""
+                range_start_probe = 0
+                if range_probe.startswith("bytes="):
+                    try:
+                        range_start_probe = int(range_probe[6:].split(",", 1)[0].split("-", 1)[0] or 0)
+                    except Exception:
+                        range_start_probe = 0
+                if range_start_probe <= 0:
+                    first_need = min(64 * 1024, media.total_size or 64 * 1024)
+                    media.wait_for_bytes(first_need, timeout=25.0)
+                    if media.contiguous_from_zero() < first_need and not media.done:
+                        media.schedule_seek(
+                            0,
+                            window=min(_PIPELINE_WINDOW, media.total_size or _PIPELINE_WINDOW),
+                            priority=1,
+                        )
+                        media.wait_for_bytes(first_need, timeout=20.0)
+                    if media.error and media.contiguous_from_zero() <= 0:
+                        self.send_error(502, media.error or "stream error")
+                        return
+                    if media.contiguous_from_zero() <= 0 and not media.done:
+                        self.send_response(503)
+                        self._cors()
+                        self.send_header("Content-Length", "0")
+                        self.send_header("Retry-After", "1")
+                        self.send_header("Cache-Control", "no-cache")
+                        self.send_header("X-AutoGram-Buffer", "head-loading")
+                        self._stream_metrics(media)
+                        self.end_headers()
+                        return
 
                 file_size_known = media.total_size if media.total_size > 0 else None
                 range_hdr = self.headers.get("Range") or self.headers.get("range")
@@ -377,22 +536,28 @@ def _ensure_server() -> int:
                             if near_end and total_sz > start
                             else _SEEK_WINDOW
                         )
-                        media.schedule_seek(start, window=max(win, 256 * 1024))
-                        media.wait_for_range(start, 128 * 1024, timeout=28.0)
+                        log_debug(f"Seek Range Request start={start} near_end={near_end} win={win}")
+                        media.schedule_seek(
+                            start,
+                            window=max(win, 256 * 1024),
+                            priority=3,
+                        )
+                        res = media.wait_for_range(start, 128 * 1024, timeout=55.0)
+                        log_debug(f"Seek Range Request wait_for_range returned={res} has_byte={media.has_byte(start)}")
 
                     if not media.has_byte(start) and not media.done:
                         # Still cold — brief tip wait if near sequential prefix
                         if start <= prefix + 512 * 1024:
-                            media.wait_for_bytes(start + 64 * 1024, timeout=10.0)
+                            media.wait_for_bytes(start + 64 * 1024, timeout=25.0)
                         if not media.has_byte(start):
+                            log_debug(f"Seek Range Request returning 503 for start={start} has_byte={media.has_byte(start)}")
                             self.send_response(503)
                             self._cors()
                             self.send_header("Retry-After", "1")
+                            self.send_header("Content-Length", "0")
                             self.send_header("Cache-Control", "no-cache")
                             self.send_header("X-AutoGram-Buffer", "seek-loading")
-                            self.send_header(
-                                "X-AutoGram-Available", str(media.contiguous_from_zero())
-                            )
+                            self._stream_metrics(media)
                             self.end_headers()
                             return
 
@@ -400,23 +565,30 @@ def _ensure_server() -> int:
                         self.send_error(416, "range not satisfiable")
                         return
 
-                    # Serve longest contiguous filled span from start
+                    # Serve a bounded streaming Range. Advertise the current
+                    # seek window (not merely the first 512 KiB that happened
+                    # to arrive) and block-read only bytes explicitly marked
+                    # filled. This avoids repeated HTTP round trips while the
+                    # Telegram parts are already landing in the background.
                     filled_end = media.contiguous_end_from(start)
-                    window = 2 * 1024 * 1024 if not media.done else 4 * 1024 * 1024
-                    chunk_end = filled_end - 1
+                    window = _SEEK_WINDOW if not media.done else 4 * 1024 * 1024
+                    aligned_start = (start // _SEEK_ALIGN) * _SEEK_ALIGN
+                    target_end = start + window - 1
+                    if not media.done:
+                        target_end = aligned_start + _SEEK_WINDOW - 1
+                    if file_size_known:
+                        target_end = min(target_end, file_size_known - 1)
                     if end_req is not None:
-                        chunk_end = min(chunk_end, end_req)
-                    else:
-                        chunk_end = min(chunk_end, start + window - 1)
+                        target_end = min(target_end, end_req)
+                    chunk_end = target_end if not media.done else min(filled_end - 1, target_end)
 
                     # Grow a bit if still filling this region
                     if not media.done and chunk_end < start + 256 * 1024:
-                        media.schedule_seek(start, window=_SEEK_WINDOW)
-                        media.wait_for_range(start, 512 * 1024, timeout=8.0)
+                        media.schedule_seek(start, window=_SEEK_WINDOW, priority=3)
+                        media.wait_for_range(start, 512 * 1024, timeout=6.0)
                         filled_end = media.contiguous_end_from(start)
-                        chunk_end = min(filled_end - 1, start + window - 1)
-                        if end_req is not None:
-                            chunk_end = min(chunk_end, end_req)
+                        if media.done:
+                            chunk_end = min(filled_end - 1, target_end)
 
                     length = max(0, chunk_end - start + 1)
                     total_for_range = (
@@ -434,10 +606,11 @@ def _ensure_server() -> int:
                     )
                     self.send_header("Content-Length", str(length))
                     self.send_header("Cache-Control", "no-cache")
+                    self._stream_metrics(media)
                     self.end_headers()
                     if head_only or length <= 0:
                         return
-                    self._write_file_range(media, start, length)
+                    self._write_file_range(media, start, length, grow=not media.done)
                     return
 
                 # Full GET — grow body as contiguous prefix fills (never claim
@@ -462,6 +635,7 @@ def _ensure_server() -> int:
                 self.send_header("Accept-Ranges", "bytes")
                 self.send_header("Content-Length", str(length))
                 self.send_header("Cache-Control", "no-cache")
+                self._stream_metrics(media)
                 self.end_headers()
                 if head_only or length <= 0:
                     return
@@ -488,7 +662,7 @@ def _ensure_server() -> int:
                                 break
                             # Prefer pulling the missing tip (esp. head) instead of spinning
                             if pos == 0 or grow:
-                                media.schedule_seek(pos, window=_PIPELINE_WINDOW)
+                                media.schedule_seek(pos, window=_PIPELINE_WINDOW, priority=1)
                             media.wait_for_range(pos, 64 * 1024, timeout=15.0)
                             filled_end = media.contiguous_end_from(pos)
                             if filled_end <= pos:
@@ -562,7 +736,13 @@ def register_stream(
         if not os.path.isfile(path):
             open(path, "wb").close()
         elif total_size > 0 and os.path.getsize(path) >= total_size:
-            media.mark_range(0, total_size)
+            if ".stream." in os.path.basename(path).lower():
+                # A seek/tail write extends a sparse file to its final logical
+                # size. Inspect its solid regions instead of treating holes as
+                # downloaded media bytes.
+                _resume_partial_file_ranges(media, os.path.getsize(path))
+            else:
+                media.mark_range(0, total_size)
     except OSError:
         pass
     with _LOCK:
@@ -624,6 +804,11 @@ def stream_status(stream_id: str) -> Dict[str, Any]:
         "cancelled": bool(media.cancelled),
         "stream_ready": prefix >= min(256 * 1024, total or 256 * 1024),
         "seek_capable": bool(media._input_loc is not None and not media.done),
+        "seek_offset": media._active_seek_offset,
+        "seek_generation": media._seek_generation,
+        "seek_inflight": len(media._seek_inflight),
+        "window_bytes": _SEEK_WINDOW,
+        "quota_bytes": filled,
         "moov_ready": bool(
             prefix >= min(64 * 1024, total or 64 * 1024)
             and (
@@ -664,11 +849,12 @@ def stream_seek(
     if off is None:
         return {"status": "error", "error": "offset or time_s required"}
     off = max(0, int(off))
-    ok = media.schedule_seek(off, window=_SEEK_WINDOW)
+    ok = media.schedule_seek(off, window=_SEEK_PRIME_WINDOW, priority=2)
     return {
         "status": "ok" if ok else "busy",
         "offset": off,
-        "window": _SEEK_WINDOW,
+        "window": _SEEK_PRIME_WINDOW,
+        "generation": media._seek_generation,
         "seek_capable": media._client is not None,
     }
 
@@ -751,22 +937,32 @@ async def _getfile_part(api, input_loc, offset: int, need: int) -> bytes:
     """One GetFile part with flood handling (same path as fast_transfer)."""
     from engine.fast_transfer import _call_with_flood, _getfile_limit_candidates
 
-    data = b""
-    for limit in _getfile_limit_candidates(need, _PART):
-        try:
-            result = await _call_with_flood(
-                api,
-                GetFileRequest(location=input_loc, offset=offset, limit=limit),
-            )
-            data = getattr(result, "bytes", None) or b""
-            if data:
-                break
-        except Exception as e:
-            err = str(e).lower()
-            if "limit" in err or "invalid" in err:
-                continue
-            raise
-    return data[:need] if data else b""
+    total_data = b""
+    while len(total_data) < need:
+        cur_offset = offset + len(total_data)
+        cur_need = need - len(total_data)
+        candidates = _getfile_limit_candidates(cur_need, _PART)
+        if not candidates:
+            break
+        data = b""
+        for limit in candidates:
+            try:
+                result = await _call_with_flood(
+                    api,
+                    GetFileRequest(location=input_loc, offset=cur_offset, limit=limit),
+                )
+                data = getattr(result, "bytes", None) or b""
+                if data:
+                    break
+            except Exception as e:
+                err = str(e).lower()
+                if "limit" in err or "invalid" in err:
+                    continue
+                raise
+        if not data:
+            break
+        total_data += data
+    return total_data[:need]
 
 
 async def _download_parts_concurrent(
@@ -776,6 +972,7 @@ async def _download_parts_concurrent(
     length: int,
     workers: int = _STREAM_WORKERS,
     head_first: bool = True,
+    seek_generation: Optional[int] = None,
 ) -> int:
     """
     Concurrent multi-part GetFile into media.path at [start, start+length).
@@ -784,7 +981,7 @@ async def _download_parts_concurrent(
     parallelizing the rest — prevents "71% filled but 0:00 frozen" when part 0
     loses the race and leaves a hole at the playhead.
     """
-    if media.cancelled or length <= 0:
+    if media.cancelled or length <= 0 or not media.is_seek_generation_current(seek_generation):
         return 0
     api = media._media_api or media._client
     loc = media._input_loc
@@ -819,7 +1016,7 @@ async def _download_parts_concurrent(
 
     async def one(part_off: int) -> None:
         nonlocal written
-        if media.cancelled:
+        if media.cancelled or not media.is_seek_generation_current(seek_generation):
             return
         need = min(_PART, end - part_off)
         if need <= 0:
@@ -828,12 +1025,18 @@ async def _download_parts_concurrent(
             return
         try:
             async with sem:
-                if media.cancelled:
+                if media.cancelled or not media.is_seek_generation_current(seek_generation):
                     return
+                log_debug(f"one() downloading part_off={part_off} need={need}")
                 data = await _getfile_part(api, loc, part_off, need)
-        except Exception:
+                log_debug(f"one() downloaded part_off={part_off} size={len(data) if data else 0}")
+        except Exception as e:
+            try:
+                log_debug(f"ERROR _download_parts_concurrent part {part_off} failed: {e}")
+            except Exception:
+                pass
             return
-        if not data:
+        if not data or not media.is_seek_generation_current(seek_generation):
             return
 
         def _write():
@@ -883,23 +1086,53 @@ async def _download_parts_concurrent(
         # Phase 3: BACKGROUND PREFETCH (Upcoming chunks)
         rest = offsets[6:]
 
-    if rest and not media.cancelled:
+    if rest and not media.cancelled and media.is_seek_generation_current(seek_generation):
         await asyncio.gather(*(one(o) for o in rest), return_exceptions=True)
     return written
 
 
 async def _fill_range_from_telegram(
-    media: ProgressiveMedia, start: int, length: int
+    media: ProgressiveMedia,
+    start: int,
+    length: int,
+    *,
+    generation: Optional[int] = None,
 ) -> None:
     """Download [start, start+length) with concurrent GetFile — random-access seek."""
     if media.cancelled:
         return
     try:
-        await _download_parts_concurrent(
-            media, start=start, length=length, workers=_STREAM_WORKERS
-        )
+        if media._input_loc is None and media._client is not None and media._msg is not None:
+            await _fill_stream_iter_download_fallback(
+                media._client,
+                media._msg,
+                media,
+                start_from=start,
+                max_bytes=length,
+                seek_generation=generation,
+            )
+        else:
+            await _download_parts_concurrent(
+                media,
+                start=start,
+                length=length,
+                workers=_STREAM_WORKERS,
+                seek_generation=generation,
+            )
+        if (
+            not media.cancelled
+            and media.total_size > 0
+            and media.filled_bytes() >= media.total_size
+            and media.contiguous_from_zero() >= media.total_size
+        ):
+            media.mark_done()
+            media._release_borrowed_sender()
     except Exception as e:
         if not media.cancelled:
+            try:
+                log_debug(f"ERROR seek range fill failed: {e}")
+            except Exception:
+                pass
             try:
                 from engine.transfer_log import tlog
 
@@ -908,9 +1141,14 @@ async def _fill_range_from_telegram(
                 pass
     finally:
         with media._seek_lock:
-            for k in list(media._seek_inflight.keys()):
-                if abs(k - start) < _SEEK_WINDOW:
-                    media._seek_inflight.pop(k, None)
+            job = media._seek_inflight.get(start)
+            if job is not None and (
+                generation is None or int(job.get("generation") or -1) == generation
+            ):
+                media._seek_inflight.pop(start, None)
+            if generation is not None and generation == media._seek_generation:
+                media._active_seek_offset = None
+                media._active_seek_priority = 0
 
 
 def _mime_is_fragmentable_video(mime: str, label: str = "") -> bool:
@@ -1176,7 +1414,7 @@ async def fill_stream_from_telegram(
                     msg,
                     media,
                     start_from=media.contiguous_from_zero(),
-                    max_bytes=stop_after_bytes if warm_only else 0,
+                    max_bytes=stop_after_bytes if warm_only else _PIPELINE_WINDOW,
                 )
                 return
 
@@ -1252,7 +1490,7 @@ async def fill_stream_from_telegram(
                 await _bootstrap_moov_at_end(media)
             except Exception as e:
                 try:
-                    print(f"[media_stream] moov bootstrap fail: {e}", flush=True)
+                    log_debug(f"moov bootstrap fail: {e}")
                 except Exception:
                     pass
 
@@ -1265,6 +1503,13 @@ async def fill_stream_from_telegram(
 
         # Phase 2: pipeline concurrent windows from solid prefix tip
         # (middle holes from seek/moov-tail stay valid — only grow playable prefix)
+        # Known-size Telegram media is served on demand from this point. The
+        # head and moov/tail metadata above unlock playback and duration; HTTP
+        # reads fetch only one bounded window around the active playhead.
+        if total > 0 and media._input_loc is not None:
+            media.notify()
+            return
+
         workers = _STREAM_WORKERS
         while not media.cancelled:
             pos = media.contiguous_from_zero()
@@ -1345,6 +1590,7 @@ async def _fill_stream_iter_download_fallback(
     *,
     start_from: int = 0,
     max_bytes: int = 0,
+    seek_generation: Optional[int] = None,
 ) -> None:
     """Legacy single-connection fill (location unresolved / recovery)."""
     try:
@@ -1362,7 +1608,7 @@ async def _fill_stream_iter_download_fallback(
         if not os.path.isfile(media.path):
             open(media.path, "wb").close()
         async for chunk in client.iter_download(target, **kwargs):
-            if media.cancelled:
+            if media.cancelled or not media.is_seek_generation_current(seek_generation):
                 return
             if not chunk:
                 continue

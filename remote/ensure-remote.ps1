@@ -124,7 +124,7 @@ function Start-ViteHidden {
   Write-Phase 'VITE_START' "node=$node port=$vitePort"
   try {
     $null = Start-Process -FilePath $node -ArgumentList @(
-      $viteJs, '--host', '127.0.0.1', '--port', "$vitePort", '--strictPort'
+      "`"$viteJs`"", '--host', '127.0.0.1', '--port', "$vitePort", '--strictPort'
     ) -WorkingDirectory $frontendRoot -WindowStyle Hidden `
       -RedirectStandardOutput $outLog -RedirectStandardError $errLog -PassThru
   } catch {
