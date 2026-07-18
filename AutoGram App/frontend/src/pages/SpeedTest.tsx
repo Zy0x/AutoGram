@@ -2851,6 +2851,51 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
   }, [creds, peerId, nextOffsetId, filesHasMore]);
 
+  /**
+   * Lightweight sidebar refresh triggered after upload finishes.
+   * Fetches the latest chat list and merges it into the existing sidebar state
+   * without any loading spinners, peerGen increment, or state resets.
+   * New chats are prepended; existing chats get their metadata updated.
+   */
+  const sidebarRefreshLockRef = useRef(false);
+  const softRefreshSidebar = useCallback(async () => {
+    if (!creds || sidebarRefreshLockRef.current) return;
+    sidebarRefreshLockRef.current = true;
+    try {
+      const perf = getDrivePerfProfile();
+      const cr = await driveListChats(creds, { limit: perf.chatPage });
+      const incoming: DriveChat[] = cr.chats || [];
+      if (!incoming.length) return;
+      // Merge: update existing entries + prepend new ones
+      setChats((prev) => {
+        const byId = new Map(incoming.map((c) => [c.id, c]));
+        const updated = prev.map((c) => byId.has(c.id) ? { ...c, ...byId.get(c.id)! } : c);
+        const existingIds = new Set(prev.map((c) => c.id));
+        const newOnes = incoming.filter((c) => !existingIds.has(c.id));
+        return newOnes.length > 0 ? [...newOnes, ...updated] : updated;
+      });
+      // Also update the snapshot so next load shows correct data
+      try {
+        const cur: ChatListCursor = {
+          offset_id: cr.next_offset_id ?? null,
+          offset_date: cr.next_offset_date ?? null,
+          offset_peer_id: cr.next_offset_peer_id ?? null,
+        };
+        const nextCursor = cur.offset_id || cur.offset_date || cur.offset_peer_id ? cur : null;
+        saveDriveSidebarSnapshot(localStorage, creds.session, {
+          chats: incoming,
+          chatsHasMore: !!cr.has_more,
+          chatsOffset: cr.next_offset ?? incoming.length,
+          cursor: nextCursor,
+        });
+      } catch { /* snapshot is best-effort */ }
+    } catch {
+      /* sidebar soft-refresh failure is silent */
+    } finally {
+      sidebarRefreshLockRef.current = false;
+    }
+  }, [creds]);
+
   const throttledUploadRefresh = useCallback(() => {
     if (throttledRefreshTimerRef.current) {
       window.clearTimeout(throttledRefreshTimerRef.current);
@@ -3224,11 +3269,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         void clearDriveTransferPause();
         setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
         scheduleTransferHide();
-        // A little delay then refresh
+        // A little delay then refresh files + sidebar (no full reset — lightweight paths)
         setTimeout(() => {
-          void refreshFiles();
-          void refreshLocations();
-        }, 600);
+          void uploadSoftRefresh();
+          void softRefreshSidebar();
+        }, 800);
       } else {
         // Run next task in queue
         void processNextQueueTask();
