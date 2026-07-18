@@ -4142,7 +4142,6 @@ body.td-dnd-external {
 .drive-quality-menu.is-fixed-popover {
   position: fixed !important;
   right: auto !important;
-  top: auto !important;
   /* Above preview overlay (12500) and tools (12000) */
   z-index: 12600 !important;
   max-height: min(60vh, 360px);
