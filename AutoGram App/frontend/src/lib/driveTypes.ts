@@ -521,7 +521,9 @@ export type TransferItemStatus =
   | 'paused'
   | 'done'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  /** Duplicate detected — file existed in destination, upload was intentionally skipped */
+  | 'skipped';
 
 export type TransferDirection = 'upload' | 'download' | 'move';
 
@@ -545,6 +547,8 @@ export type TransferItem = {
   encodeEtaSeconds?: number | null;
   fallbackReason?: string;
   error?: string;
+  /** Short human-readable note (e.g. "Duplikat dilewati") */
+  note?: string;
   /** Telegram message id after successful commit — locks status as done */
   messageId?: number;
   /** Destination name (e.g. Chat/Folder Title or Local save path) */

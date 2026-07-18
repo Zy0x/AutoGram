@@ -1233,8 +1233,8 @@ async def run_ordered_upload(
                             "StudioItemDone",
                             index=it.index,
                             message_id=dup_mid,
-                            status="done",
-                            note=f"Duplicate skipped (already exists at message {dup_mid})"
+                            status="skipped",
+                            note=f"Duplikat dilewati \u2014 sudah ada di tujuan (pesan {dup_mid})"
                         )
                         if tmp and os.path.isfile(tmp):
                             try:
@@ -1404,8 +1404,8 @@ async def run_ordered_upload(
                     "StudioItemDone",
                     index=it.index,
                     message_id=dup_mid,
-                    status="done",
-                    note=f"Duplicate skipped (already exists at message {dup_mid})"
+                    status="skipped",
+                    note=f"Duplikat dilewati \u2014 sudah ada di tujuan (pesan {dup_mid})"
                 )
                 prepared.append((it, upath, tmp))
                 upload_tasks.append(None)

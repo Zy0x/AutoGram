@@ -98,7 +98,7 @@ function recomputeOverall(session: TransferSession): TransferSession {
     } else {
       // Fallback: gunakan rata-rata progres item jika total ukuran sesi = 0.
       const sumPct = items.reduce((s, i) => {
-        if (i.status === 'done') return s + 100;
+        if (i.status === 'done' || i.status === 'skipped') return s + 100;
         if (i.status === 'active' || i.status === 'preparing') return s + Math.min(100, i.percent);
         return s;
       }, 0);
@@ -165,7 +165,7 @@ export function markTransferFinished(
   status: 'done' | 'cancelled' | 'failed' = 'done'
 ): TransferSession {
   const items = session.items.map((it) => {
-    if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled') return it;
+    if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') return it;
     if (status === 'cancelled') {
       return { ...it, status: 'cancelled' as const };
     }
@@ -204,7 +204,7 @@ export function markTransferFinished(
 
 export function clearFinishedItems(session: TransferSession): TransferSession {
   const items = session.items.filter(
-    (i) => i.status !== 'done' && i.status !== 'failed' && i.status !== 'cancelled'
+    (i) => i.status !== 'done' && i.status !== 'failed' && i.status !== 'cancelled' && i.status !== 'skipped'
   );
   if (!items.length && !session.active) {
     return { ...EMPTY_TRANSFER_SESSION };
@@ -471,7 +471,12 @@ export function applyTransferEvent(
   if (t === 'StudioItemDone' || t === 'DriveItemDone') {
     const index = num(p.index ?? p.item_index, 0);
     const statusRaw = str(p.status || 'done').toLowerCase();
-    const ok = statusRaw === 'done' || statusRaw === 'ok' || statusRaw === 'success';
+    const note = str(p.note || '');
+    // Detect skip: backend sends status='skipped' OR status='done' with a 'Duplicate skipped' note
+    const isSkipped =
+      statusRaw === 'skipped' ||
+      (statusRaw === 'done' && /duplicate.?skipped|dilewati/i.test(note));
+    const ok = !isSkipped && (statusRaw === 'done' || statusRaw === 'ok' || statusRaw === 'success');
     const err = str(p.error || '');
     const name = basename(str(p.path || p.file_name || ''));
     const size = num(p.size, 0);
@@ -484,24 +489,31 @@ export function applyTransferEvent(
       num((prev as { messageId?: number } | undefined)?.messageId, 0) ||
       num((prev as { message_id?: number } | undefined)?.message_id, 0);
     const alreadyCommitted = alreadyDone || prevMid > 0;
-    const finalOk = ok || alreadyCommitted || mid > 0;
+    // Skipped takes precedence only if not already committed as a real success
+    const finalSkipped = isSkipped && !alreadyCommitted;
+    const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
+    const skipNote = finalSkipped
+      ? (note || 'Duplikat dilewati — sudah ada di tujuan')
+      : undefined;
     const items = ensureItem(session.items, index, session.direction, {
-      status: finalOk ? 'done' : 'failed',
-      percent: finalOk ? 100 : session.items[index]?.percent ?? 0,
+      status: finalSkipped ? 'skipped' : finalOk ? 'done' : 'failed',
+      percent: (finalSkipped || finalOk) ? 100 : session.items[index]?.percent ?? 0,
       ...(size > 0
         ? {
             total: size,
-            transferred: finalOk ? size : session.items[index]?.transferred ?? 0,
+            transferred: (finalSkipped || finalOk) ? size : session.items[index]?.transferred ?? 0,
           }
-        : finalOk
+        : (finalSkipped || finalOk)
           ? { transferred: session.items[index]?.total || session.items[index]?.transferred || 0 }
           : {}),
       ...(name ? { name } : {}),
-      ...(finalOk ? { error: undefined } : err ? { error: err } : {}),
+      ...(finalOk ? { error: undefined, note: undefined } : {}),
+      ...(finalSkipped ? { note: skipNote, error: undefined } : {}),
+      ...(!finalOk && !finalSkipped && err ? { error: err } : {}),
       ...(mid > 0 ? { messageId: mid } : {}),
       speed_mb_s: 0,
     });
-    return recomputeOverall({ ...session, items, banner: finalOk ? undefined : session.banner });
+    return recomputeOverall({ ...session, items, banner: (finalOk || finalSkipped) ? undefined : session.banner });
   }
 
   if (t === 'FloodWait') {
@@ -539,10 +551,10 @@ export function applyTransferEvent(
   }
 
   if (t === 'StudioFinished' || t === 'DriveDownloadDone') {
-    // Worker finished successfully: preserve failed/cancelled; complete the rest.
+    // Worker finished successfully: preserve failed/cancelled/skipped; complete the rest.
     // (Mid-batch user cancel uses markTransferFinished('cancelled'), not this event.)
     const items = session.items.map((it) => {
-      if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled') {
+      if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') {
         return it;
       }
       return { ...it, status: 'done' as const, percent: 100 };
@@ -699,9 +711,10 @@ export function activeItemName(session: TransferSession): string {
 }
 
 export function countByStatus(session: TransferSession) {
-  const c = { done: 0, failed: 0, active: 0, queued: 0, total: session.items.length };
+  const c = { done: 0, failed: 0, active: 0, queued: 0, skipped: 0, total: session.items.length };
   for (const it of session.items) {
     if (it.status === 'done') c.done++;
+    else if (it.status === 'skipped') c.skipped++;
     else if (it.status === 'failed' || it.status === 'cancelled') c.failed++;
     else if (it.status === 'active' || it.status === 'preparing') c.active++;
     else c.queued++;

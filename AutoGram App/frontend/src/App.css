@@ -9521,6 +9521,38 @@ body:has(.td-page),
 .tm-panel.down .tm-ico.spin {
   color: #a78bfa;
 }
+/* Skip status — amber/orange */
+.tm-ico.skip {
+  color: #f59e0b;
+}
+.tm-skip-text {
+  color: #f59e0b;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 650;
+}
+.tm-skip-note {
+  color: var(--td-sub, #94a3b8);
+  font-weight: 500;
+  font-size: 0.62rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+.tm-skip-badge {
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 0.62rem;
+}
+/* Skipped rows get a subtle amber left-border */
+.tm-row.status-skipped {
+  border-left: 2px solid rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.04);
+}
 @keyframes tm-spin {
   to {
     transform: rotate(360deg);

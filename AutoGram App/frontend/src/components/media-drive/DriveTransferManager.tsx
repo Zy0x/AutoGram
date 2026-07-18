@@ -21,6 +21,7 @@ import {
   FolderInput,
   FolderOpen,
   RotateCcw,
+  SkipForward,
 } from 'lucide-react';
 import type { TransferSession } from '../../lib/driveTypes';
 import {
@@ -56,6 +57,7 @@ type Props = {
 
 function StatusIcon({ status }: { status: string }) {
   if (status === 'done') return <Check size={14} className="tm-ico ok" />;
+  if (status === 'skipped') return <SkipForward size={14} className="tm-ico skip" />;
   if (status === 'failed' || status === 'cancelled')
     return <AlertCircle size={14} className="tm-ico err" />;
   if (status === 'active' || status === 'preparing')
@@ -159,7 +161,7 @@ export function DriveTransferManager({
         ? 'Mengunggah'
         : 'Mengunduh';
   const activeName = activeItemName(session);
-  const hasFinished = counts.done + counts.failed > 0;
+  const hasFinished = counts.done + counts.failed + counts.skipped > 0;
   const isEmptyShell = !hasSession && forceShow;
   // Soft-pause only holds *next* files. With a single file already running there is
   // nothing left to hold — mid-file pause is not supported by Telegram/Telethon.
@@ -294,9 +296,13 @@ export function DriveTransferManager({
                     : phaseLabel
                   : counts.failed
                     ? 'Selesai dengan error'
-                    : counts.done
-                      ? 'Selesai'
-                      : 'Siap'}
+                    : counts.skipped > 0 && counts.done === 0
+                      ? `${counts.skipped} dilewati`
+                      : counts.skipped > 0
+                        ? `Selesai · ${counts.skipped} dilewati`
+                        : counts.done
+                          ? 'Selesai'
+                          : 'Siap'}
               {!isEmptyShell && session.label ? ` · ${session.label}` : ''}
             </span>
           </div>
@@ -343,6 +349,11 @@ export function DriveTransferManager({
                 {counts.total > 0 && (
                   <span>
                     {Math.min(counts.done + counts.active, counts.total)}/{counts.total} file
+                    {counts.skipped > 0 && (
+                      <span className="tm-skip-badge" title="File dilewati karena sudah ada di tujuan">
+                        &nbsp;·&nbsp;{counts.skipped} dilewati
+                      </span>
+                    )}
                   </span>
                 )}
                 {encodeItem && !!encodeItem.encodeSpeed && (
@@ -496,6 +507,16 @@ export function DriveTransferManager({
                   </div>
                   <div className="tm-row-meta">
                     {it.status === 'done' && <span>Selesai</span>}
+                    {it.status === 'skipped' && (
+                      <span
+                        className="tm-skip-text"
+                        title={it.note || 'File sudah ada di tujuan'}
+                      >
+                        <SkipForward size={11} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                        Dilewati
+                        {it.note && <span className="tm-skip-note">&nbsp;·&nbsp;{it.note}</span>}
+                      </span>
+                    )}
                     {it.status === 'failed' && (
                       <span className="tm-err-text">{it.error || 'Gagal'}</span>
                     )}
