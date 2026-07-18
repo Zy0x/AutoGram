@@ -1432,20 +1432,18 @@ export function DriveSidebar({
         >
           <div className="td-sidebar-logo">
             <HardDrive size={20} />
+            {collapsed && (
+              <span
+                className={`td-sidebar-logo-dot td-rail-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`}
+                title={getPingTooltip()}
+              />
+            )}
           </div>
           <div className="td-sidebar-brand-text">
             <strong>Drive</strong>
             <span>Telegram · [TD]</span>
           </div>
         </button>
-        {collapsed && (
-          <div 
-            className={`td-rail-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}
-            title={getPingTooltip()}
-          >
-            <span className={`td-rail-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
-          </div>
-        )}
 
         {onExitToApp && (
           <button

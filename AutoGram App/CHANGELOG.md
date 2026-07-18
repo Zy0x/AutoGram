@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.4 Desain Ulang Indikator Status Koneksi Drive
+
+Changed:
+- Desain ulang indikator status koneksi (dot hijau/merah/biru) pada sidebar Drive saat menciut (collapsed). Indikator kini diletakkan sebagai dot badge di pojok kanan bawah icon Drive (HardDrive), menghemat ruang baris kosong dan memberikan visual status yang lebih modern.
+
 ## v2.1.3 Perbaikan Kontrol Kecepatan Video
 
 Fixed:

@@ -5704,6 +5704,7 @@ body:has(.td-page),
   background: var(--td-hover);
 }
 .td-sidebar-logo {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -5713,6 +5714,15 @@ body:has(.td-page),
   flex-shrink: 0;
   background: linear-gradient(135deg, rgba(255, 174, 0, 0.28), rgba(36, 129, 204, 0.22));
   color: var(--td-primary);
+}
+.td-sidebar-logo-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--td-surface, #0f172a);
+  z-index: 5;
 }
 .td-sidebar-brand-text {
   display: flex;
