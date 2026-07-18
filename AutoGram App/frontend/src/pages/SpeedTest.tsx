@@ -609,6 +609,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const taskRunningRef = useRef(false);
   const transferRef = useRef(transfer);
   transferRef.current = transfer;
+  if (typeof window !== 'undefined') {
+    (window as any).transfer = transfer;
+  }
 
   const [hasPersistedQueue, setHasPersistedQueue] = useState(false);
   const [persistedQueueCount, setPersistedQueueCount] = useState(0);
