@@ -2783,6 +2783,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   );
 
   const applyProgressEvent = useCallback((ev: any) => {
+    // Debug: log StudioItemDone events to help diagnose skip indicator
+    if (ev?.type === 'StudioItemDone') {
+      const p = ev?.payload ?? ev;
+      if (typeof window !== 'undefined') {
+        console.debug('[AutoGram:transfer] StudioItemDone', { status: p?.status, note: p?.note, index: p?.index, raw: JSON.stringify(ev).slice(0, 300) });
+      }
+    }
     setTransfer((prev) => applyTransferEvent(prev, ev || {}));
   }, []);
 
@@ -2962,13 +2969,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           // for that message so DriveFileCard retries will fetch from network.
           if (
             t === 'StudioItemDone' &&
-            (status === 'done' || status === 'ok' || status === 'success')
+            (status === 'done' || status === 'ok' || status === 'success' || status === 'skipped')
           ) {
-            // Trigger throttled realtime upload refresh
+            // Trigger throttled realtime upload refresh (skipped items already exist in Telegram)
             throttledUploadRefresh();
 
             const mid = Number((p as Record<string, unknown>).message_id ?? 0);
-            if (mid > 0 && creds) {
+            if (mid > 0 && creds && status !== 'skipped') {
               // Small delay: give Telegram a moment to process the new message
               // before we ask for its thumbnail (reduces empty-thumb from race).
               window.setTimeout(() => {
