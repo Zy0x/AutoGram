@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.7 Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale
+
+Fixed:
+- Perbaikan bug skip duplikat palsu (stale duplicate record). Jika sebuah file pernah diunggah lalu dihapus secara manual di aplikasi Telegram, uploader sebelumnya tetap melewati (skip) file tersebut karena record-nya masih tersimpan di database lokal `duplicate_history`. Backend kini memverifikasi eksistensi pesan secara real-time di Telegram menggunakan Telethon sebelum melewati file. Jika pesan terbukti sudah terhapus, data duplikat stale di database otomatis dibersihkan dan berkas diunggah ulang secara sukses.
+
 ## v2.1.6 Fitur Pemfilteran Link & Pratinjau WebPage di Media Drive
 
 Added:

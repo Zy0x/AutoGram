@@ -1746,6 +1746,22 @@ async def _run_fastlane_pipeline(
                 agg.adjust_total_bytes(it.size - old_size)
             duplicate = duplicate_id(it, upath)
             if duplicate:
+                exists = True
+                try:
+                    msg = await client.get_messages(entity, ids=[duplicate])
+                    if not msg or not msg[0] or getattr(msg[0], "action", None):
+                        exists = False
+                except Exception as e:
+                    emit_event("LogEvent", level="WARNING", message=f"Gagal verifikasi pesan {duplicate} di Telegram: {e}")
+                
+                if not exists:
+                    emit_event("LogEvent", level="INFO", message=f"Pesan duplikat {duplicate} tidak ditemukan di Telegram (telah dihapus). Menghapus riwayat dan mengunggah ulang.")
+                    dup_checker.delete_duplicate_by_message_id(duplicate)
+                    final_name = _final_name(it.path, upath)
+                    tg_exists.pop((final_name.lower(), it.size), None)
+                    duplicate = None
+
+            if duplicate:
                 it.status = "done"
                 it.message_id = duplicate
                 agg.adjust_total_bytes(-(it.size or 0))
@@ -1949,6 +1965,21 @@ async def _run_safe_album_pipeline(
                     except Exception:
                         duplicate = None
                     duplicate = duplicate or tg_exists.get((final_name.lower(), item.size))
+                if duplicate:
+                    exists = True
+                    try:
+                        msg = await client.get_messages(entity, ids=[int(duplicate)])
+                        if not msg or not msg[0] or getattr(msg[0], "action", None):
+                            exists = False
+                    except Exception as e:
+                        emit_event("LogEvent", level="WARNING", message=f"Gagal verifikasi pesan {duplicate} di Telegram: {e}")
+                    
+                    if not exists:
+                        emit_event("LogEvent", level="INFO", message=f"Pesan duplikat {duplicate} tidak ditemukan di Telegram (telah dihapus). Menghapus riwayat dan mengunggah ulang.")
+                        dup_checker.delete_duplicate_by_message_id(int(duplicate))
+                        tg_exists.pop((final_name.lower(), item.size), None)
+                        duplicate = None
+
                 if duplicate:
                     item.status = "done"
                     item.message_id = int(duplicate)

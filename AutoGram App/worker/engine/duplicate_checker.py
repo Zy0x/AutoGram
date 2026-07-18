@@ -93,6 +93,20 @@ class DuplicateChecker:
         if file_name is not None and file_size is not None:
             log_duplicate(f"name:{file_name}|{file_size}", self.target_entity_id, target_message_id)
 
+    def delete_duplicate_by_message_id(self, target_message_id: int):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                DELETE FROM duplicate_history
+                WHERE target_message_id = ? AND target_entity_id = ?
+            ''', (target_message_id, self.target_entity_id))
+            conn.commit()
+        except Exception:
+            pass
+        finally:
+            conn.close()
+
     @staticmethod
     def msgid_key(source_entity_id, source_message_id) -> str:
         return f"msgid:{source_entity_id}:{source_message_id}"

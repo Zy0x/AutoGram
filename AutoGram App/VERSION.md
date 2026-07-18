@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.6
+AutoGram Version: v2.1.7
 
 Current State:
-Real Implementation Foundation + Telegram Core (Fitur Pemfilteran Link & Pratinjau WebPage di Media Drive)
+Real Implementation Foundation + Telegram Core (Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale)
 
 Previous:
+v2.1.6 Fitur Pemfilteran Link & Pratinjau WebPage di Media Drive
 v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
 v2.1.4 Desain Ulang Indikator Status Koneksi Drive
 v2.1.3 Perbaikan Kontrol Kecepatan Video
