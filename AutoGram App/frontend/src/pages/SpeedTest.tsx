@@ -3114,11 +3114,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                 (uploadError ? `: ${uploadError}` : '')
             );
           }
-          // Mark items of this task correctly (don't overwrite failed/cancelled ones)
+          // Mark items of this task correctly (don't overwrite failed/cancelled/skipped ones)
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled') {
+                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') {
                   return it;
                 }
                 if (isErrorExit) {
@@ -3136,7 +3136,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'done') return it;
+                if (it.status === 'done' || it.status === 'skipped') return it;
                 return { ...it, status: 'failed' as const, error: uploadError || 'Gagal' };
               }
               return it;
@@ -3148,7 +3148,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'failed' || it.status === 'cancelled') return it;
+                if (it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') return it;
                 return { ...it, status: 'done' as const, percent: 100 };
               }
               return it;
