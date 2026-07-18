@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
+
+Added:
+- Implementasi pencarian offset atom `moov` secara dinamis dengan melakukan parsing box header `ftyp` dan `mdat` pada 128KB pertama video MP4. Ini secara instan mendeteksi letak presisi `moov` di akhir file dan mengunduhnya secara paralel sebelum video diputar.
+- Peningkatan batas fallback `_MOOV_TAIL_BUDGET` secara dinamis hingga 32MB (dari sebelumnya 2MB) untuk mendukung video berukuran besar (>150MB) yang memiliki metadata `moov` besar. Hal ini mencegah browser terpaksa mendownload seluruh file secara sekuensial dari awal jika deteksi gagal.
+
 ## v2.1.4 Desain Ulang Indikator Status Koneksi Drive
 
 Changed:

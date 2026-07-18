@@ -1276,6 +1276,60 @@ def _resume_partial_file_ranges(media: ProgressiveMedia, existing: int) -> None:
         media.notify()
 
 
+def _find_mp4_moov_offset(path: str, total_size: int) -> Optional[int]:
+    """
+    Parse MP4 box headers from the beginning of the file to locate the exact start
+    of the moov box (which usually immediately follows mdat if moov is at the end).
+    Returns the file offset where the tail/moov download should start.
+    """
+    try:
+        if not os.path.exists(path):
+            return None
+        with open(path, "rb") as f:
+            header = f.read(128 * 1024)
+        
+        pos = 0
+        limit = len(header)
+        while pos + 8 <= limit:
+            size = int.from_bytes(header[pos:pos+4], "big")
+            box_type = header[pos+4:pos+8]
+            
+            if size < 8 and size != 1:
+                break
+                
+            if box_type == b"mdat":
+                # Found mdat!
+                if size == 1:
+                    # 64-bit size
+                    if pos + 16 <= limit:
+                        large_size = int.from_bytes(header[pos+8:pos+16], "big")
+                        mdat_end = pos + large_size
+                    else:
+                        return None
+                elif size > 1:
+                    mdat_end = pos + size
+                else:
+                    # size == 0: extends to EOF
+                    return None
+                
+                # The moov box starts exactly at mdat_end.
+                # Ensure the offset is valid and fits within the file size.
+                if 0 < mdat_end < total_size:
+                    return mdat_end
+                return None
+                
+            # Move to the next box
+            if size == 1:
+                pos += 16
+            elif size > 1:
+                pos += size
+            else:
+                break
+    except Exception as e:
+        log_debug(f"Error parsing MP4 boxes for moov offset: {e}")
+    return None
+
+
 async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
     """
     For moov-at-end MP4 (common for document / re-encode originals):
@@ -1302,18 +1356,28 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
     if _path_region_has_moov(media.path, 0, min(head_have, 1024 * 1024)):
         return False
 
-    # Tail budget: large re-encodes can have multi-MB moov
-    tail_budget = min(_MOOV_TAIL_BUDGET, max(_MOOV_TAIL_MIN, total // 8))
-    if total < 4 * 1024 * 1024:
-        tail_budget = max(_MOOV_TAIL_MIN, min(tail_budget, total // 2))
-    elif total < tail_budget * 2:
-        tail_budget = max(_MOOV_TAIL_MIN, total // 3)
-    # Don't require tail_off >= head_have — middle hole is fine; only avoid overlap
-    tail_off = max(0, total - tail_budget)
-    if head_have > 0 and tail_off < head_have:
-        # Tiny file: head already covers most — pull remainder only
-        tail_off = head_have
-    tail_len = total - tail_off
+    # 1. Coba deteksi offset moov secara presisi dari header mdat
+    exact_offset = _find_mp4_moov_offset(media.path, total)
+    if exact_offset is not None:
+        tail_off = exact_offset
+        tail_len = total - tail_off
+        log_debug(f"MP4 exact moov offset parsed: start={tail_off} length={tail_len}")
+    else:
+        # Fallback ke dynamic budget dengan batas maksimum ditingkatkan hingga 32MB (dari sebelumnya 2MB)
+        # Tail budget: large re-encodes can have multi-MB moov
+        max_budget = min(32 * 1024 * 1024, max(_MOOV_TAIL_MIN, total // 8))
+        tail_budget = max_budget
+        if total < 4 * 1024 * 1024:
+            tail_budget = max(_MOOV_TAIL_MIN, min(tail_budget, total // 2))
+        elif total < tail_budget * 2:
+            tail_budget = max(_MOOV_TAIL_MIN, total // 3)
+        # Don't require tail_off >= head_have — middle hole is fine; only avoid overlap
+        tail_off = max(0, total - tail_budget)
+        if head_have > 0 and tail_off < head_have:
+            # Tiny file: head already covers most — pull remainder only
+            tail_off = head_have
+        tail_len = total - tail_off
+
     if tail_len < 16 * 1024:
         return False
     if media.contiguous_end_from(tail_off) >= total:
