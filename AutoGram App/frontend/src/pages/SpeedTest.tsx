@@ -3858,6 +3858,23 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
   };
 
+  useEffect(() => {
+    (window as any).triggerRemoteUpload = (paths: string[], targetPeerId: number, topicId: number | null) => {
+      setLocationKind('chat');
+      setActivePeerId(targetPeerId);
+      setTopicFilter(topicId);
+      topicFilterRef.current = topicId;
+      setError(null);
+      setTimeout(() => {
+        const dest = chats.find((c) => c.id === targetPeerId)?.name || 'Gudang';
+        void runUploadPaths(paths, { targetFolderId: targetPeerId, targetLabel: dest, skipTopic: false });
+      }, 200);
+    };
+    return () => {
+      delete (window as any).triggerRemoteUpload;
+    };
+  }, [runUploadPaths, chats]);
+
   const runDownloadSelected = async () => {
     if (!creds || !selectedIds.length) return;
     try {
