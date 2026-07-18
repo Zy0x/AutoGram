@@ -3,13 +3,15 @@
  * Serialized queue + lock retry to avoid SQLite "database is locked" on .session
  */
 import { runDaemonOnce, spawnDaemonJob, killWorkerJob, parseEventLine, type JobChild } from './jobProcess';
+import { invoke } from '@tauri-apps/api/core';
 import {
-  driveSessionCallFor,
+  driveSessionCallFor as rawDriveSessionCallFor,
   ensureDriveSession,
   isDriveSessionReady,
   isDriveSessionReadyFor,
   stopDriveSession,
 } from './driveSession';
+import { detectTauriRuntime } from './platform';
 
 export const DRIVE_JOB_ID = 991002;
 /** Open/Preview download — separate from transfer so cancel open never kills upload/download. */
@@ -32,9 +34,36 @@ export type DriveCredentials = {
 };
 
 async function ensureWarmDriveSession(creds: DriveCredentials): Promise<boolean> {
-  if (isTransferJobActive()) return false;
+  if (await isSessionTransferLeased(creds)) return false;
   if (isDriveSessionReadyFor(creds)) return true;
   return ensureDriveSession(creds);
+}
+
+export class DriveTransferDeferredError extends Error {
+  readonly code = 'DRIVE_TRANSFER_DEFERRED';
+
+  constructor() {
+    super('Drive read deferred while Media Studio owns the Telegram session');
+    this.name = 'DriveTransferDeferredError';
+  }
+}
+
+export function isDriveTransferDeferredError(err: unknown): boolean {
+  return (
+    err instanceof DriveTransferDeferredError ||
+    String((err as any)?.code || '') === 'DRIVE_TRANSFER_DEFERRED' ||
+    /drive read deferred while media studio/i.test(String((err as any)?.message || err || ''))
+  );
+}
+
+async function driveSessionCallFor(
+  creds: DriveCredentials,
+  cmd: string,
+  params: Record<string, any> = {},
+  timeoutMs = 120000
+): Promise<any> {
+  if (await isSessionTransferLeased(creds)) throw new DriveTransferDeferredError();
+  return rawDriveSessionCallFor(creds, cmd, params, timeoutMs);
 }
 
 /** Pure helper — exported for unit tests */
@@ -83,6 +112,7 @@ export function friendlyDriveError(err: unknown): string {
     // Normal lifecycle cancellation when warm session is stopped for transfer jobs.
     return '';
   }
+  if (isDriveTransferDeferredError(err)) return '';
   if (isSessionLockError(err)) {
     return 'Session Telegram sedang dipakai proses lain. Tunggu sebentar lalu Refresh, atau hentikan job migrasi yang jalan.';
   }
@@ -224,6 +254,9 @@ async function withExclusiveSession<T>(
 /** Serialized + retry on session lock */
 async function runDrive(creds: DriveCredentials, extra: string[], retries = 4): Promise<any> {
   return enqueueDrive(async () => {
+    if (await isSessionTransferLeased(creds)) {
+      throw new DriveTransferDeferredError();
+    }
     return withExclusiveSession(creds, async () => {
       let last: unknown;
       for (let attempt = 0; attempt < retries; attempt++) {
@@ -1193,6 +1226,83 @@ export async function driveDownloadOpenSpawn(
 
 /** True while exclusive transfer job (upload/download-batch) owns DRIVE_JOB_ID. */
 let transferJobActive = false;
+let activeTransferLease: { sessionKeyHash: string; transferId: string } | null = null;
+let leaseProbeCache: { key: string; active: boolean; at: number } | null = null;
+let transferChainNeedsWarmRestart = false;
+
+/** Non-secret deterministic key used only for the in-process/Rust lease map. */
+export function driveSessionLeaseKey(creds: DriveCredentials): string {
+  const input = `${creds.session}|${creds.apiId}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ (c + i), 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
+export async function isSessionTransferLeased(creds: DriveCredentials): Promise<boolean> {
+  if (transferJobActive) return true;
+  const key = driveSessionLeaseKey(creds);
+  if (activeTransferLease?.sessionKeyHash === key) return true;
+  const now = Date.now();
+  if (leaseProbeCache?.key === key && now - leaseProbeCache.at < 500) {
+    return leaseProbeCache.active;
+  }
+  if (!detectTauriRuntime()) return false;
+  try {
+    const lease = await invoke<unknown>('get_worker_session_lease', { sessionKeyHash: key });
+    const active = !!lease;
+    leaseProbeCache = { key, active, at: now };
+    return active;
+  } catch {
+    return false;
+  }
+}
+
+async function acquireTransferLease(creds: DriveCredentials, transferId: string): Promise<void> {
+  const key = driveSessionLeaseKey(creds);
+  if (detectTauriRuntime()) {
+    let last: unknown;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await invoke('acquire_worker_session_lease', {
+          sessionKeyHash: key,
+          transferId,
+          jobId: DRIVE_JOB_ID,
+        });
+        last = null;
+        break;
+      } catch (e) {
+        last = e;
+        if (attempt < 3) await sleep(120 + attempt * 120);
+      }
+    }
+    if (last) throw last;
+  }
+  activeTransferLease = { sessionKeyHash: key, transferId };
+  leaseProbeCache = { key, active: true, at: Date.now() };
+}
+
+async function releaseTransferLease(): Promise<void> {
+  const lease = activeTransferLease;
+  activeTransferLease = null;
+  if (!lease) return;
+  try {
+    if (detectTauriRuntime()) {
+      await invoke('release_worker_session_lease', {
+        sessionKeyHash: lease.sessionKeyHash,
+        transferId: lease.transferId,
+      });
+    }
+  } catch {
+    // Rust also releases leases when the worker process exits.
+  } finally {
+    leaseProbeCache = { key: lease.sessionKeyHash, active: false, at: Date.now() };
+  }
+}
 
 export function isTransferJobActive(): boolean {
   return transferJobActive;
@@ -1220,23 +1330,27 @@ async function spawnExclusiveTransfer(
         'Transfer lain masih berjalan. Tunggu selesai atau Stop dulu di Transfer Manager.'
       );
     }
+    // Best-effort: clear any orphan transfer worker before spawn
+    try {
+      await killWorkerJob(DRIVE_JOB_ID);
+      await sleep(220);
+    } catch {
+      /* ignore */
+    }
+    const transferId = `transfer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await acquireTransferLease(creds, transferId);
     const hadWarm = isDriveSessionReady();
+    transferChainNeedsWarmRestart = transferChainNeedsWarmRestart || hadWarm;
     if (hadWarm) {
       await stopDriveSession();
       await sleep(250);
     }
-    // Best-effort: clear any orphan transfer worker before spawn
-    try {
-      await killWorkerJob(DRIVE_JOB_ID);
-      await sleep(120);
-    } catch {
-      /* ignore */
-    }
     let restarted = false;
     const restartWarm = () => {
       if (opts?.skipRestartWarm) return;
-      if (restarted || !hadWarm) return;
+      if (restarted || !transferChainNeedsWarmRestart) return;
       restarted = true;
+      transferChainNeedsWarmRestart = false;
       void ensureDriveSession(creds).catch(() => undefined);
     };
     transferJobActive = true;
@@ -1247,17 +1361,21 @@ async function spawnExclusiveTransfer(
         onStdoutLine: handlers.onStdoutLine,
         onStderrLine: handlers.onStderrLine,
         onClose: (code) => {
-          transferJobActive = false;
-          try {
-            handlers.onClose(code);
-          } finally {
-            restartWarm();
-          }
+          void (async () => {
+            transferJobActive = false;
+            await releaseTransferLease();
+            try {
+              handlers.onClose(code);
+            } finally {
+              restartWarm();
+            }
+          })();
         },
         allowShellFallback: false,
       });
     } catch (e) {
       transferJobActive = false;
+      await releaseTransferLease();
       restartWarm();
       throw e;
     }

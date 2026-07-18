@@ -58,9 +58,9 @@ type Props = {
 function StatusIcon({ status }: { status: string }) {
   // skipped: treated as done visually (green check), badge shows separately
   if (status === 'done' || status === 'skipped') return <Check size={14} className="tm-ico ok" />;
-  if (status === 'failed' || status === 'cancelled')
+  if (status === 'failed' || status === 'cancelled' || status === 'needs_verification')
     return <AlertCircle size={14} className="tm-ico err" />;
-  if (status === 'active' || status === 'preparing')
+  if (status === 'active' || status === 'preparing' || status === 'uploaded' || status === 'waiting_commit' || status === 'committing')
     return <Loader2 size={14} className="tm-ico spin" />;
   if (status === 'paused') return <Pause size={14} className="tm-ico muted" />;
   return <Clock size={14} className="tm-ico muted" />;
@@ -161,7 +161,7 @@ export function DriveTransferManager({
         ? 'Mengunggah'
         : 'Mengunduh';
   const activeName = activeItemName(session);
-  const hasFinished = counts.done + counts.failed + counts.skipped > 0;
+  const hasFinished = counts.done + counts.failed + counts.skipped + counts.needsVerification > 0;
   const isEmptyShell = !hasSession && forceShow;
   // Soft-pause only holds *next* files. With a single file already running there is
   // nothing left to hold — mid-file pause is not supported by Telegram/Telethon.
@@ -211,6 +211,8 @@ export function DriveTransferManager({
       ? phaseLabel
       : counts.failed
         ? 'Gagal'
+        : counts.needsVerification
+          ? 'Perlu verifikasi'
         : 'Selesai';
     const tip = [
       `${statusLine} ${pct.toFixed(0)}%`,
@@ -223,7 +225,7 @@ export function DriveTransferManager({
       .join(' · ');
     const fileFrac =
       counts.total > 0
-        ? `${Math.min(counts.done + (session.active ? counts.active : 0), counts.total)}/${counts.total}`
+        ? `${counts.done}/${counts.total}`
         : '';
 
     return (
@@ -232,7 +234,7 @@ export function DriveTransferManager({
         className={[
           'tm-fab',
           session.active ? 'is-active' : 'is-idle',
-          counts.failed && !session.active ? 'is-error' : '',
+          (counts.failed || counts.needsVerification) && !session.active ? 'is-error' : '',
           isUpload ? 'dir-up' : 'dir-down',
         ]
           .filter(Boolean)
@@ -246,7 +248,7 @@ export function DriveTransferManager({
           <span className="tm-fab-ico">
             {session.active ? (
               <DirIcon size={15} strokeWidth={2.4} />
-            ) : counts.failed ? (
+            ) : counts.failed || counts.needsVerification ? (
               <AlertCircle size={15} strokeWidth={2.4} />
             ) : (
               <Check size={15} strokeWidth={2.6} />
@@ -296,6 +298,8 @@ export function DriveTransferManager({
                     : phaseLabel
                   : counts.failed
                     ? 'Selesai dengan error'
+                    : counts.needsVerification
+                      ? `${counts.needsVerification} perlu verifikasi`
                     : counts.skipped > 0 && counts.done === 0
                       ? `${counts.skipped} dilewati`
                       : counts.skipped > 0
@@ -348,10 +352,15 @@ export function DriveTransferManager({
               <span className="tm-summary-stats">
                 {counts.total > 0 && (
                   <span>
-                    {Math.min(counts.done + counts.active, counts.total)}/{counts.total} file
+                    {counts.done}/{counts.total} commit
                     {counts.skipped > 0 && (
                       <span className="tm-skip-badge" title="File dilewati karena sudah ada di tujuan">
                         &nbsp;·&nbsp;{counts.skipped} dilewati
+                      </span>
+                    )}
+                    {counts.needsVerification > 0 && (
+                      <span className="tm-skip-badge" title="Commit ambigu; AutoGram tidak mengunggah ulang byte">
+                        &nbsp;Â·&nbsp;{counts.needsVerification} perlu verifikasi
                       </span>
                     )}
                   </span>
@@ -521,12 +530,18 @@ export function DriveTransferManager({
                       <span className="tm-err-text">{it.error || 'Gagal'}</span>
                     )}
                     {it.status === 'cancelled' && <span>Dibatalkan</span>}
+                    {it.status === 'uploaded' && <span>Media terdaftar</span>}
+                    {it.status === 'waiting_commit' && <span>Menunggu urutan commit</span>}
+                    {it.status === 'committing' && <span>Mengirim pesanâ€¦</span>}
+                    {it.status === 'needs_verification' && (
+                      <span className="tm-err-text">Perlu verifikasi â€” tidak diunggah ulang</span>
+                    )}
                     {it.status === 'queued' && <span>Antre</span>}
                     {it.status === 'paused' && <span>Dijeda</span>}
                     {it.status === 'preparing' && (
                       <span>{it.phase === 'reencode' ? 'Re-encode' : 'Menyiapkan…'}</span>
                     )}
-                    {(it.status === 'active' || it.status === 'preparing') && (
+                    {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                       <>
                         <span>{it.percent.toFixed(0)}%</span>
                         {it.phase === 'reencode' && (it.encoderBackend || it.encoderName) && (
@@ -553,7 +568,7 @@ export function DriveTransferManager({
                       </>
                     )}
                   </div>
-                  {(it.status === 'active' || it.status === 'preparing') && (
+                  {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                     <div className="tm-mini-bar">
                       <div
                         className="tm-mini-fill"
@@ -581,8 +596,8 @@ export function DriveTransferManager({
         {showLogs && (
           <div className="tm-debug-body">
             <div className="tm-debug-actions">
-              <span className="tm-debug-hint" title="worker/temp/transfer_debug.log">
-                File: worker/temp/transfer_debug.log
+              <span className="tm-debug-hint" title="worker/temp/transfer_debug.txt">
+                File: worker/temp/transfer_debug.txt
               </span>
               <button
                 type="button"

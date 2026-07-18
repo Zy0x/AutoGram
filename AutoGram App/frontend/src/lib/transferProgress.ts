@@ -5,6 +5,7 @@
 import type {
   TransferDirection,
   TransferItem,
+  TransferItemStatus,
   TransferSession,
 } from './driveTypes';
 import { EMPTY_TRANSFER_SESSION } from './driveTypes';
@@ -94,12 +95,31 @@ function recomputeOverall(session: TransferSession): TransferSession {
       const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
       if (itemTotals > total) total = itemTotals;
 
-      overall = Math.min(100, (transferred / total) * 100);
+      // Upload bytes and ordered commit are intentionally separate.  A batch
+      // is only complete as items become terminal; uploaded bytes alone must
+      // never produce the old misleading 99%/5-of-51 state.
+      if (session.direction === 'upload') {
+        const terminal = items.filter((i) =>
+          i.status === 'done' ||
+          i.status === 'failed' ||
+          i.status === 'cancelled' ||
+          i.status === 'skipped' ||
+          i.status === 'needs_verification'
+        ).length;
+        overall = (terminal / n) * 100;
+      } else {
+        overall = Math.min(100, (transferred / total) * 100);
+      }
     } else {
       // Fallback: gunakan rata-rata progres item jika total ukuran sesi = 0.
       const sumPct = items.reduce((s, i) => {
-        if (i.status === 'done' || i.status === 'skipped') return s + 100;
-        if (i.status === 'active' || i.status === 'preparing') return s + Math.min(100, i.percent);
+        if (
+          i.status === 'done' ||
+          i.status === 'skipped' ||
+          i.status === 'failed' ||
+          i.status === 'cancelled' ||
+          i.status === 'needs_verification'
+        ) return s + 100;
         return s;
       }, 0);
       overall = sumPct / n;
@@ -165,7 +185,7 @@ export function markTransferFinished(
   status: 'done' | 'cancelled' | 'failed' = 'done'
 ): TransferSession {
   const items = session.items.map((it) => {
-    if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') return it;
+    if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped' || it.status === 'needs_verification') return it;
     if (status === 'cancelled') {
       return { ...it, status: 'cancelled' as const };
     }
@@ -204,7 +224,7 @@ export function markTransferFinished(
 
 export function clearFinishedItems(session: TransferSession): TransferSession {
   const items = session.items.filter(
-    (i) => i.status !== 'done' && i.status !== 'failed' && i.status !== 'cancelled' && i.status !== 'skipped'
+    (i) => i.status !== 'done' && i.status !== 'failed' && i.status !== 'cancelled' && i.status !== 'skipped' && i.status !== 'needs_verification'
   );
   if (!items.length && !session.active) {
     return { ...EMPTY_TRANSFER_SESSION };
@@ -370,6 +390,27 @@ export function applyTransferEvent(
     return { ...session, active: true, items, banner: 'Re-encode selesai · menyiapkan upload' };
   }
 
+  if (t === 'StudioItemPhase') {
+    const index = num(p.index ?? p.item_index, 0);
+    const phase = str(p.phase || '').toLowerCase();
+    const status: TransferItemStatus =
+      phase === 'media_registered'
+        ? 'uploaded'
+        : phase === 'waiting_commit'
+          ? 'waiting_commit'
+          : phase === 'committing'
+            ? 'committing'
+            : phase === 'preflight' || phase === 'media_registering'
+              ? 'preparing'
+              : session.items[index]?.status || 'active';
+    const items = ensureItem(session.items, index, session.direction, {
+      status,
+      phase,
+      ...(phase === 'media_registered' ? { percent: 100 } : {}),
+    });
+    return recomputeOverall({ ...session, active: true, items, banner: undefined });
+  }
+
   if (t === 'StudioItemStarted' || t === 'DriveItemStarted') {
     const index = num(p.index ?? p.item_index, 0);
     const name =
@@ -476,7 +517,8 @@ export function applyTransferEvent(
     const isSkipped =
       statusRaw === 'skipped' ||
       (statusRaw === 'done' && /duplicate.?skipped|dilewati/i.test(note));
-    const ok = !isSkipped && (statusRaw === 'done' || statusRaw === 'ok' || statusRaw === 'success');
+    const needsVerification = statusRaw === 'needs_verification';
+    const ok = !isSkipped && !needsVerification && (statusRaw === 'done' || statusRaw === 'ok' || statusRaw === 'success');
     const err = str(p.error || '');
     const name = basename(str(p.path || p.file_name || ''));
     const size = num(p.size, 0);
@@ -491,29 +533,37 @@ export function applyTransferEvent(
     const alreadyCommitted = alreadyDone || prevMid > 0;
     // Skipped takes precedence only if not already committed as a real success
     const finalSkipped = isSkipped && !alreadyCommitted;
-    const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
+    const hasCommitProof = t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
+    const finalOk = !finalSkipped && hasCommitProof && (ok || alreadyCommitted || mid > 0);
     const skipNote = finalSkipped
       ? (note || 'Duplikat dilewati — sudah ada di tujuan')
       : undefined;
     const items = ensureItem(session.items, index, session.direction, {
-      status: finalSkipped ? 'skipped' : finalOk ? 'done' : 'failed',
-      percent: (finalSkipped || finalOk) ? 100 : session.items[index]?.percent ?? 0,
+      status: needsVerification ? 'needs_verification' : finalSkipped ? 'skipped' : finalOk ? 'done' : 'failed',
+      percent: (needsVerification || finalSkipped || finalOk) ? 100 : session.items[index]?.percent ?? 0,
       ...(size > 0
         ? {
             total: size,
-            transferred: (finalSkipped || finalOk) ? size : session.items[index]?.transferred ?? 0,
+            transferred: (needsVerification || finalSkipped || finalOk) ? size : session.items[index]?.transferred ?? 0,
           }
-        : (finalSkipped || finalOk)
+        : (needsVerification || finalSkipped || finalOk)
           ? { transferred: session.items[index]?.total || session.items[index]?.transferred || 0 }
           : {}),
       ...(name ? { name } : {}),
       ...(finalOk ? { error: undefined, note: undefined } : {}),
       ...(finalSkipped ? { note: skipNote, error: undefined } : {}),
+      ...(needsVerification ? { note: note || 'Commit perlu diverifikasi; byte tidak diunggah ulang.', error: err || undefined } : {}),
       ...(!finalOk && !finalSkipped && err ? { error: err } : {}),
       ...(mid > 0 ? { messageId: mid } : {}),
       speed_mb_s: 0,
     });
-    return recomputeOverall({ ...session, items, banner: (finalOk || finalSkipped) ? undefined : session.banner });
+    return recomputeOverall({
+      ...session,
+      items,
+      committedCount: items.filter((i) => i.status === 'done').length,
+      needsVerificationCount: items.filter((i) => i.status === 'needs_verification').length,
+      banner: (finalOk || finalSkipped) ? undefined : session.banner,
+    });
   }
 
   if (t === 'FloodWait') {
@@ -551,15 +601,26 @@ export function applyTransferEvent(
   }
 
   if (t === 'StudioFinished' || t === 'DriveDownloadDone') {
-    // Worker finished successfully: preserve failed/cancelled/skipped; complete the rest.
-    // (Mid-batch user cancel uses markTransferFinished('cancelled'), not this event.)
+    // Never synthesize success. Every upload item must have a terminal event
+    // with message_id, verified duplicate, explicit failure, or verification state.
     const items = session.items.map((it) => {
-      if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') {
+      if (
+        it.status === 'done' ||
+        it.status === 'failed' ||
+        it.status === 'cancelled' ||
+        it.status === 'skipped' ||
+        it.status === 'needs_verification'
+      ) {
         return it;
       }
-      return { ...it, status: 'done' as const, percent: 100 };
+      if (t === 'DriveDownloadDone') return { ...it, status: 'done' as const, percent: 100 };
+      return {
+        ...it,
+        status: 'failed' as const,
+        error: it.error || 'Worker selesai tanpa bukti terminal/message_id.',
+      };
     });
-    const anyFailed = items.some((i) => i.status === 'failed');
+    const anyFailed = items.some((i) => i.status === 'failed' || i.status === 'needs_verification');
     const finished = recomputeOverall({
       ...session,
       active: false,
@@ -571,7 +632,9 @@ export function applyTransferEvent(
     });
     return {
       ...finished,
-      overallPercent: anyFailed ? finished.overallPercent : 100,
+      overallPercent: finished.overallPercent,
+      committedCount: items.filter((i) => i.status === 'done').length,
+      needsVerificationCount: items.filter((i) => i.status === 'needs_verification').length,
     };
   }
 
@@ -704,19 +767,26 @@ export function sessionVisible(session: TransferSession): boolean {
 }
 
 export function activeItemName(session: TransferSession): string {
-  const a = session.items.find((i) => i.status === 'active' || i.status === 'preparing');
+  const a = session.items.find((i) =>
+    i.status === 'active' ||
+    i.status === 'preparing' ||
+    i.status === 'uploaded' ||
+    i.status === 'waiting_commit' ||
+    i.status === 'committing'
+  );
   if (a) return a.name;
   const q = session.items.find((i) => i.status === 'queued' || i.status === 'paused');
   return q?.name || session.label || '';
 }
 
 export function countByStatus(session: TransferSession) {
-  const c = { done: 0, failed: 0, active: 0, queued: 0, skipped: 0, total: session.items.length };
+  const c = { done: 0, failed: 0, active: 0, queued: 0, skipped: 0, needsVerification: 0, total: session.items.length };
   for (const it of session.items) {
     if (it.status === 'done') c.done++;
     else if (it.status === 'skipped') c.skipped++;
+    else if (it.status === 'needs_verification') c.needsVerification++;
     else if (it.status === 'failed' || it.status === 'cancelled') c.failed++;
-    else if (it.status === 'active' || it.status === 'preparing') c.active++;
+    else if (it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') c.active++;
     else c.queued++;
   }
   return c;

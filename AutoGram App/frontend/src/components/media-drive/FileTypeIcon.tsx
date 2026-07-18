@@ -7,6 +7,7 @@ import {
   FileJson,
   FileCode,
   Archive,
+  Link,
 } from 'lucide-react';
 import { driveFileExt, isTextDriveFile, type DriveFile } from '../../lib/driveTypes';
 
@@ -22,6 +23,9 @@ export function FileTypeIcon({ file, size = 'sm' }: Props) {
   const cls = size === 'lg' ? 'td-type-ico lg' : 'td-type-ico';
   const mime = (file.mime_type || '').toLowerCase();
 
+  if (t === 'link' || ext === 'link') {
+    return <Link size={px} className={`${cls} link`} />;
+  }
   if (t === 'image' || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'avif'].includes(ext)) {
     return <ImageIcon size={px} className={`${cls} image`} />;
   }

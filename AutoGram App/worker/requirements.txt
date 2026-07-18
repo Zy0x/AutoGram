@@ -1,4 +1,4 @@
-telethon
+telethon==1.44.0
 python-dotenv
 cryptography
 cryptg

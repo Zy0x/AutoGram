@@ -33,6 +33,35 @@ function credKey(c: DriveCredentials) {
 }
 
 /**
+ * Mirror the non-secret lease key used by driveApi/Rust without importing the
+ * runtime driveApi module (driveApi already imports this module). Keeping this
+ * guard at the session boundary also protects direct ensureDriveSession callers.
+ */
+function sessionLeaseKey(creds: DriveCredentials): string {
+  const input = `${creds.session}|${creds.apiId}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ (c + i), 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
+async function hasTransferLease(creds: DriveCredentials): Promise<boolean> {
+  if (!detectTauriRuntime()) return false;
+  try {
+    return !!(await invoke('get_worker_session_lease', {
+      sessionKeyHash: sessionLeaseKey(creds),
+    }));
+  } catch {
+    // Older/non-Tauri runtimes do not expose the lease command.
+    return false;
+  }
+}
+
+/**
  * A ready worker is only useful when it belongs to the requested Telegram
  * session.  Treating a worker from another session as ready can leak dialog
  * folders, peers, and Saved Messages between accounts during a rapid switch.
@@ -84,6 +113,9 @@ export function isDriveSessionReady() {
  */
 export async function ensureDriveSession(creds: DriveCredentials): Promise<boolean> {
   cancelScheduledDriveSessionStop();
+  // A transfer owns the Telethon .session exclusively. This check belongs here,
+  // not only in driveApi, because UI lifecycle handlers call ensure directly.
+  if (await hasTransferLease(creds)) return false;
   const key = credKey(creds);
   if (isDriveSessionReadyFor(creds)) return true;
 
@@ -104,10 +136,14 @@ export async function ensureDriveSession(creds: DriveCredentials): Promise<boole
   if (!detectTauriRuntime()) return false;
 
   const startPromise = (async () => {
+    if (await hasTransferLease(creds)) return;
     await stopDriveSession();
     // Rust worker-exit events are asynchronous. Let the previous job-id event
     // drain before attaching listeners for its replacement.
     await new Promise<void>((resolve) => setTimeout(resolve, 120));
+    // Close the race where a transfer acquires its lease while an old warm
+    // worker is being stopped.
+    if (await hasTransferLease(creds)) return;
     const generation = ++sessionGeneration;
     activeCredsKey = key;
     ready = false;
@@ -261,10 +297,12 @@ export function cancelScheduledDriveSessionStop(): void {
 export async function stopDriveSession(): Promise<void> {
   cancelScheduledDriveSessionStop();
   sessionGeneration += 1;
+  let quitRequested = false;
   try {
     if (ready) {
       try {
         await writeStdin(JSON.stringify({ id: 'quit', cmd: 'quit' }));
+        quitRequested = true;
       } catch {
         /* ignore */
       }
@@ -276,6 +314,12 @@ export async function stopDriveSession(): Promise<void> {
       p.reject(new Error('Drive session stopped'));
     }
     pending.clear();
+    // Give Telethon time to flush the SQLite session and disconnect cleanly.
+    // A hard kill immediately after `quit` is the main source of lingering
+    // `.session` locks during the Media Studio hand-off.
+    if (quitRequested) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 320));
+    }
     try {
       await killWorkerJob(DRIVE_SERVE_JOB_ID);
     } catch {

@@ -5,16 +5,20 @@ ordered-parallel pipeline, album grouping, and Telegram-like options.
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import json
 import mimetypes
 import os
+import random
 import subprocess
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
-from telethon import TelegramClient
+from telethon import TelegramClient, functions, types, utils
 from telethon.errors import FloodWaitError, ChatWriteForbiddenError, UserBannedInChannelError
 
 from engine.events import emit_event, setup_emitter
@@ -37,6 +41,7 @@ from engine.media_meta import (
     probe_with_ffmpeg,
 )
 from engine.progress_rate import WindowedRateTracker
+from engine.transfer_journal import TransferJournal
 
 TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
 PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp"}
@@ -133,11 +138,29 @@ class StudioItem:
     path: str
     caption: str = ""
     size: int = 0
-    status: str = "pending"  # pending|uploading|done|failed|skipped
+    status: str = "pending"  # pending|uploading|done|failed|skipped|needs_verification
     message_id: Optional[int] = None
     error: Optional[str] = None
     duration_s: float = 0.0
     avg_mb_s: float = 0.0
+    item_id: str = ""
+    fingerprint: str = ""
+
+
+@dataclass
+class RegisteredMedia:
+    input_media: Any
+    media_identity: str
+    final_file_name: str
+    send_path: str
+    random_id: int
+    registered_at: float
+    thumb_path: Optional[str] = None
+    thumb_data_url: Optional[str] = None
+
+
+class AmbiguousCommitError(RuntimeError):
+    """Bytes are registered, but Telegram commit could not be proven."""
 
 
 @dataclass
@@ -307,6 +330,440 @@ def _parse_schedule(iso: Optional[str]):
         return dt
     except Exception:
         return None
+
+
+def _stable_random_id(transfer_id: str, item: StudioItem) -> int:
+    seed = f"{transfer_id}|{item.item_id or item.index}|{item.fingerprint}|{item.size}"
+    value = int.from_bytes(hashlib.sha256(seed.encode("utf-8", errors="replace")).digest()[:8], "big")
+    return max(1, value & ((1 << 63) - 1))
+
+
+def _session_lease_hash(session_name: str, api_id: int) -> str:
+    """Match frontend driveSessionLeaseKey without exposing the raw session."""
+    text = f"{session_name}|{api_id}"
+    h1 = 0x811C9DC5
+    h2 = 0x9E3779B9
+    for index, char in enumerate(text):
+        h1 = ((h1 ^ ord(char)) * 0x01000193) & 0xFFFFFFFF
+        h2 = ((h2 ^ (ord(char) + index)) * 0x85EBCA6B) & 0xFFFFFFFF
+    return f"{h1:08x}{h2:08x}"
+
+
+async def _sha256_file(path: str) -> str:
+    def _hash() -> str:
+        digest = hashlib.sha256()
+        with open(path, "rb") as fh:
+            while True:
+                chunk = fh.read(4 * 1024 * 1024)
+                if not chunk:
+                    break
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    return await asyncio.to_thread(_hash)
+
+
+def _media_identity(media_or_message: Any) -> str:
+    media = getattr(media_or_message, "media", media_or_message)
+    document = getattr(media, "document", None)
+    photo = getattr(media, "photo", None)
+    obj = document or photo
+    if obj is None:
+        return ""
+    kind = "document" if document is not None else "photo"
+    return f"{kind}:{int(getattr(obj, 'id', 0) or 0)}"
+
+
+def _thumb_data_url(path: Optional[str]) -> Optional[str]:
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        if os.path.getsize(path) > 512 * 1024:
+            return None
+        with open(path, "rb") as fh:
+            data = fh.read()
+        return f"data:image/jpeg;base64,{base64.b64encode(data).decode('ascii')}"
+    except OSError:
+        return None
+
+
+async def _make_video_thumb(client: TelegramClient, send_path: str) -> Tuple[Any, Optional[str]]:
+    is_video = send_path.lower().endswith(
+        (".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".flv", ".3gp")
+    )
+    if not is_video:
+        return None, None
+    thumb_path = send_path + f".{uuid.uuid4().hex[:8]}.thumb.jpg"
+    try:
+        from engine.drive_fs import _ffmpeg_first_frame_jpeg
+
+        payload = await _ffmpeg_first_frame_jpeg(send_path, thumb_path, max_edge=320)
+        if payload or (os.path.isfile(thumb_path) and os.path.getsize(thumb_path) > 0):
+            return await client.upload_file(thumb_path), thumb_path
+    except Exception as exc:
+        emit_event("LogEvent", level="WARNING", message=f"Thumbnail lokal gagal: {exc}")
+    try:
+        if os.path.isfile(thumb_path):
+            os.remove(thumb_path)
+    except OSError:
+        pass
+    return None, None
+
+
+async def _register_uploaded_handle(
+    client: TelegramClient,
+    entity,
+    item: StudioItem,
+    opts: StudioOptions,
+    uploaded_handle: Any,
+    send_path: str,
+    *,
+    transfer_id: str,
+    journal: TransferJournal,
+) -> RegisteredMedia:
+    """Turn temporary uploaded parts into reusable Telegram media."""
+    final_file_name = _final_name(item.path, send_path)
+    kwargs = resolve_send_kwargs(send_path, opts.quality_mode, spoiler=opts.spoiler)
+    force_doc = bool(kwargs.get("force_document"))
+    ext = _ext(send_path)
+    as_photo = ext in PHOTO_EXTS and not force_doc
+    thumb_handle = None
+    thumb_path: Optional[str] = None
+    if not as_photo:
+        thumb_handle, thumb_path = await _make_video_thumb(client, send_path)
+
+    if as_photo:
+        uploaded_media = types.InputMediaUploadedPhoto(
+            file=uploaded_handle,
+            spoiler=bool(opts.spoiler) or None,
+        )
+    else:
+        attrs, mime = build_send_attributes(
+            send_path,
+            force_document=force_doc,
+            supports_streaming=bool(kwargs.get("supports_streaming", True)),
+            file_name=final_file_name,
+        )
+        uploaded_media = types.InputMediaUploadedDocument(
+            file=uploaded_handle,
+            mime_type=mime or mimetypes.guess_type(final_file_name)[0] or "application/octet-stream",
+            attributes=attrs or [],
+            thumb=thumb_handle,
+            force_file=force_doc or None,
+            spoiler=bool(opts.spoiler) or None,
+            nosound_video=True if ext in VIDEO_EXTS else None,
+        )
+
+    emit_event("StudioItemPhase", index=item.index, phase="media_registering")
+    journal.append(
+        "media_register_start",
+        critical=True,
+        index=item.index,
+        item_id=item.item_id,
+        file_name=final_file_name,
+    )
+    last_error: Optional[BaseException] = None
+    response = None
+    for attempt in range(3):
+        try:
+            if not client.is_connected():
+                await client.connect()
+            response = await client(functions.messages.UploadMediaRequest(peer=entity, media=uploaded_media))
+            break
+        except FloodWaitError as exc:
+            wait_seconds = max(1, int(exc.seconds))
+            emit_event("FloodWait", seconds=wait_seconds, index=item.index, phase="upload_media")
+            journal.append("flood_wait", verbose=True, index=item.index, phase="upload_media", seconds=wait_seconds)
+            await asyncio.sleep(wait_seconds + 1)
+        except Exception as exc:
+            last_error = exc
+            journal.append(
+                "media_register_retry",
+                verbose=True,
+                index=item.index,
+                attempt=attempt + 1,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            if attempt < 2:
+                await asyncio.sleep(1.0 + attempt)
+    if response is None:
+        if thumb_path and os.path.isfile(thumb_path):
+            try:
+                os.remove(thumb_path)
+            except OSError:
+                pass
+        raise RuntimeError(
+            "Byte sudah diunggah tetapi registrasi media Telegram gagal. "
+            "AutoGram menghentikan item tanpa mengunggah ulang file."
+        ) from last_error
+
+    if getattr(response, "document", None) is not None:
+        input_media = utils.get_input_media(
+            response.document,
+            supports_streaming=bool(kwargs.get("supports_streaming", True)),
+        )
+    elif getattr(response, "photo", None) is not None:
+        input_media = utils.get_input_media(response.photo)
+    else:
+        if thumb_path and os.path.isfile(thumb_path):
+            try:
+                os.remove(thumb_path)
+            except OSError:
+                pass
+        raise RuntimeError("Telegram uploadMedia tidak mengembalikan document/photo")
+
+    identity = _media_identity(response)
+    random_id = _stable_random_id(transfer_id, item)
+    registered = RegisteredMedia(
+        input_media=input_media,
+        media_identity=identity,
+        final_file_name=final_file_name,
+        send_path=send_path,
+        random_id=random_id,
+        registered_at=time.time(),
+        thumb_path=thumb_path,
+        thumb_data_url=_thumb_data_url(thumb_path),
+    )
+    item.status = "waiting_commit"
+    emit_event(
+        "StudioItemPhase",
+        index=item.index,
+        phase="media_registered",
+        media_identity=identity,
+    )
+    journal.append(
+        "media_registered",
+        critical=True,
+        index=item.index,
+        item_id=item.item_id,
+        media_identity=identity,
+        random_id_hash=hashlib.sha256(str(random_id).encode()).hexdigest()[:16],
+    )
+    return registered
+
+
+async def _reconcile_registered_commit(
+    client: TelegramClient,
+    entity,
+    item: StudioItem,
+    registered: RegisteredMedia,
+    opts: StudioOptions,
+    journal: TransferJournal,
+):
+    """Find an accepted commit without sending bytes or creating a new message."""
+    topic = int(opts.topic_id or opts.reply_to or 0) or None
+    try:
+        async for msg in client.iter_messages(entity, limit=120, reply_to=topic):
+            if getattr(msg, "date", None) and msg.date.timestamp() < registered.registered_at - 15:
+                break
+            identity = _media_identity(msg)
+            same_identity = bool(identity and identity == registered.media_identity)
+            same_file = False
+            try:
+                same_file = (
+                    bool(msg.file)
+                    and str(msg.file.name or "") == registered.final_file_name
+                    and (not item.size or int(msg.file.size or 0) == int(item.size))
+                )
+            except Exception:
+                pass
+            if same_identity or same_file:
+                journal.append(
+                    "commit_reconciled",
+                    critical=True,
+                    index=item.index,
+                    message_id=int(msg.id),
+                    media_identity=identity,
+                )
+                return msg
+    except FloodWaitError as exc:
+        await asyncio.sleep(max(1, int(exc.seconds)) + 1)
+    except Exception as exc:
+        journal.append(
+            "commit_reconcile_error",
+            verbose=True,
+            index=item.index,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+    return None
+
+
+async def _commit_registered_media(
+    client: TelegramClient,
+    entity,
+    item: StudioItem,
+    opts: StudioOptions,
+    registered: RegisteredMedia,
+    *,
+    journal: TransferJournal,
+):
+    caption = _align_caption_with_sent_file(
+        (item.caption or opts.global_caption or "").strip(),
+        item.path,
+        registered.final_file_name,
+    )
+    entities = None
+    try:
+        caption, entities = await client._parse_message_text(caption, ())  # Telethon 1.44
+    except Exception:
+        entities = None
+    reply_id = int(opts.reply_to or opts.topic_id or 0) or None
+    reply_to = types.InputReplyToMessage(reply_to_msg_id=reply_id) if reply_id else None
+    request = functions.messages.SendMediaRequest(
+        peer=entity,
+        media=registered.input_media,
+        message=caption,
+        silent=bool(opts.silent) or None,
+        reply_to=reply_to,
+        random_id=registered.random_id,
+        entities=entities,
+        schedule_date=_parse_schedule(opts.schedule_date),
+    )
+    item.status = "committing"
+    emit_event("StudioItemPhase", index=item.index, phase="committing")
+    journal.append("commit_start", critical=True, index=item.index, item_id=item.item_id)
+    last_error: Optional[BaseException] = None
+    for attempt in range(3):
+        try:
+            if not client.is_connected():
+                await client.connect()
+            updates = await client(request)
+            msg = client._get_response_message(request, updates, entity)
+            if msg is not None:
+                return msg
+            reconciled = await _reconcile_registered_commit(client, entity, item, registered, opts, journal)
+            if reconciled is not None:
+                return reconciled
+            last_error = RuntimeError("Telegram commit response did not contain a message")
+        except FloodWaitError as exc:
+            wait_seconds = max(1, int(exc.seconds))
+            emit_event("FloodWait", seconds=wait_seconds, index=item.index, phase="commit")
+            journal.append("flood_wait", verbose=True, index=item.index, phase="commit", seconds=wait_seconds)
+            await asyncio.sleep(wait_seconds + 1)
+            continue
+        except Exception as exc:
+            last_error = exc
+            reconciled = await _reconcile_registered_commit(client, entity, item, registered, opts, journal)
+            if reconciled is not None:
+                return reconciled
+            journal.append(
+                "commit_retry",
+                verbose=True,
+                index=item.index,
+                attempt=attempt + 1,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            if attempt < 2:
+                await asyncio.sleep(1.5 + attempt)
+                continue
+        break
+    raise AmbiguousCommitError(
+        "Commit Telegram belum dapat diverifikasi. File tidak diunggah ulang; gunakan verifikasi/retry manual."
+    ) from last_error
+
+
+async def _commit_registered_album(
+    client: TelegramClient,
+    entity,
+    entries: List[Tuple[StudioItem, RegisteredMedia]],
+    opts: StudioOptions,
+    *,
+    journal: TransferJournal,
+) -> List[Optional[Any]]:
+    """Atomically commit reusable media with stable per-member random IDs."""
+    singles: List[Any] = []
+    for item, registered in entries:
+        caption = _align_caption_with_sent_file(
+            (item.caption or opts.global_caption or "").strip(),
+            item.path,
+            registered.final_file_name,
+        )
+        entities = None
+        try:
+            caption, entities = await client._parse_message_text(caption, ())
+        except Exception:
+            entities = None
+        singles.append(
+            types.InputSingleMedia(
+                media=registered.input_media,
+                message=caption,
+                random_id=registered.random_id,
+                entities=entities,
+            )
+        )
+
+    reply_id = int(opts.reply_to or opts.topic_id or 0) or None
+    request = functions.messages.SendMultiMediaRequest(
+        peer=entity,
+        multi_media=singles,
+        silent=bool(opts.silent) or None,
+        reply_to=(types.InputReplyToMessage(reply_to_msg_id=reply_id) if reply_id else None),
+        schedule_date=_parse_schedule(opts.schedule_date),
+    )
+    random_ids = [registered.random_id for _, registered in entries]
+    for item, _ in entries:
+        item.status = "committing"
+        emit_event("StudioItemPhase", index=item.index, phase="committing")
+    journal.append(
+        "album_commit_start",
+        critical=True,
+        indexes=[item.index for item, _ in entries],
+        member_count=len(entries),
+    )
+
+    known: List[Optional[Any]] = [None] * len(entries)
+    last_error: Optional[BaseException] = None
+    for attempt in range(3):
+        try:
+            if not client.is_connected():
+                await client.connect()
+            updates = await client(request)
+            response = client._get_response_message(random_ids, updates, entity)
+            if isinstance(response, list):
+                for index, message in enumerate(response[: len(known)]):
+                    if message is not None:
+                        known[index] = message
+            if all(message is not None for message in known):
+                return known
+            last_error = RuntimeError("Telegram album response had missing message mappings")
+        except FloodWaitError as exc:
+            wait_seconds = max(1, int(exc.seconds))
+            emit_event("FloodWait", seconds=wait_seconds, phase="album_commit")
+            journal.append("flood_wait", index=-1, phase="album_commit", seconds=wait_seconds)
+            await asyncio.sleep(wait_seconds + 1)
+        except Exception as exc:
+            last_error = exc
+
+        # sendMultiMedia is atomic, but the local response may be lost. Reconcile
+        # every stable media identity before retrying the identical request.
+        for index, (item, registered) in enumerate(entries):
+            if known[index] is not None:
+                continue
+            known[index] = await _reconcile_registered_commit(
+                client, entity, item, registered, opts, journal
+            )
+        if all(message is not None for message in known):
+            return known
+        journal.append(
+            "album_commit_retry",
+            index=-1,
+            attempt=attempt + 1,
+            unresolved=sum(message is None for message in known),
+            error_type=type(last_error).__name__ if last_error else "Unknown",
+            error=str(last_error or "missing response"),
+        )
+        if attempt < 2:
+            await asyncio.sleep(1.5 + attempt)
+
+    journal.append(
+        "album_commit_ambiguous",
+        critical=True,
+        unresolved=sum(message is None for message in known),
+    )
+    return known
 
 
 class ProgressAgg:
@@ -588,6 +1045,8 @@ async def _upload_bytes(
     part_workers: int = 8,
     upload_path: Optional[str] = None,
     upload_policy: Optional[UploadPolicy] = None,
+    transfer_id: str = "",
+    journal: Optional[TransferJournal] = None,
 ):
     """Parallel stage: multi-part concurrent upload to DC (no chat message yet)."""
     path = upload_path or item.path
@@ -606,46 +1065,57 @@ async def _upload_bytes(
         def cb(cur, tot):
             agg.on_item(item.index, cur, tot or item.size)
 
-        retries = 0
-        while True:
-            try:
-                if not client.is_connected():
-                    emit_event("LogEvent", level="INFO", message="Telegram client disconnected, reconnecting before upload...")
-                    await client.connect()
-                return await fast_upload_file(
-                    client,
-                    path,
-                    workers=part_workers,
-                    file_name=os.path.basename(path),
-                    progress_callback=cb,
-                    upload_policy=upload_policy,
+        if not client.is_connected():
+            emit_event("LogEvent", level="INFO", message="Telegram client disconnected, reconnecting before upload...")
+            await client.connect()
+        upload_seed = f"{transfer_id}|{item.item_id or item.index}|upload"
+        upload_id = max(
+            1,
+            int.from_bytes(hashlib.sha256(upload_seed.encode()).digest()[:8], "big") & ((1 << 63) - 1),
+        )
+        if journal:
+            journal.append(
+                "upload_start",
+                critical=True,
+                index=item.index,
+                item_id=item.item_id,
+                file_name=os.path.basename(path),
+                size=item.size,
+                upload_id_hash=hashlib.sha256(str(upload_id).encode()).hexdigest()[:16],
+                part_workers=part_workers,
+            )
+        resumed_parts = journal.acknowledged_parts(item.index, item.fingerprint) if journal else set()
+        if resumed_parts and journal:
+            journal.append(
+                "upload_resume",
+                critical=True,
+                index=item.index,
+                acknowledged_parts=len(resumed_parts),
+            )
+
+        def part_done(part_index: int, part_bytes: int, _file_id: int):
+            if journal:
+                journal.append(
+                    "part_acked",
+                    index=item.index,
+                    part_index=part_index,
+                    part_bytes=part_bytes,
                 )
-            except FloodWaitError as e:
-                wait_seconds = int(e.seconds)
-                emit_event("FloodWait", seconds=wait_seconds, index=item.index, phase="upload_bytes")
-                total_wait = wait_seconds + 2
-                for remaining in range(total_wait, 0, -5):
-                    emit_event("FloodWaitTick", remaining=remaining, total=total_wait, index=item.index)
-                    await asyncio.sleep(min(5, remaining))
-                emit_event("FloodWaitResolved", status="RESUMING", index=item.index)
-                part_workers = max(2, part_workers // 2)
-            except (OSError, asyncio.CancelledError, Exception) as e:
-                if isinstance(e, asyncio.CancelledError):
-                    raise
-                retries += 1
-                if retries > 3:
-                    raise
-                wait_time = 2 * retries
-                emit_event("LogEvent", level="WARNING", message=f"Upload error: {e}. Reconnect & retry {retries}/3 in {wait_time}s...")
-                try:
-                    await client.disconnect()
-                except Exception:
-                    pass
-                await asyncio.sleep(wait_time)
-                try:
-                    await client.connect()
-                except Exception as conn_err:
-                    emit_event("LogEvent", level="WARNING", message=f"Reconnect failed: {conn_err}")
+
+        handle = await fast_upload_file(
+            client,
+            path,
+            workers=part_workers,
+            file_name=os.path.basename(path),
+            progress_callback=cb,
+            upload_policy=upload_policy,
+            upload_id=upload_id,
+            part_done_callback=part_done,
+            acknowledged_parts=resumed_parts,
+        )
+        if journal:
+            journal.append("upload_parts_done", critical=True, index=item.index, size=item.size)
+        return handle
 
 
 async def _send_one(
@@ -658,6 +1128,10 @@ async def _send_one(
     part_workers: int = 6,
     upload_path: Optional[str] = None,
     dup_checker: Optional[Any] = None,
+    registered_media: Optional[RegisteredMedia] = None,
+    transfer_id: str = "",
+    journal: Optional[TransferJournal] = None,
+    session_key_hash: str = "",
 ) -> StudioItem:
     """Sequential stage: commit message to chat (order-safe)."""
     t0 = time.time()
@@ -698,7 +1172,7 @@ async def _send_one(
     is_video = (mime or "").startswith("video/") or send_path.lower().endswith(
         (".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".flv", ".3gp")
     )
-    if is_video:
+    if is_video and registered_media is None:
         thumb_path = send_path + ".thumb.jpg"
         try:
             from engine.drive_fs import _ffmpeg_first_frame_jpeg
@@ -796,26 +1270,40 @@ async def _send_one(
                     except Exception as conn_err:
                         emit_event("LogEvent", level="WARNING", message=f"Reconnect failed: {conn_err}")
 
-        if uploaded_handle is not None:
-            try:
-                msg = await _send_with_retry(
-                    client.send_file,
-                    entity,
-                    uploaded_handle,
-                    file_name=final_file_name,
-                    **{k: v for k, v in send_kwargs.items() if v is not None}
-                )
-            except Exception as commit_err:
-                emit_event("LogEvent", level="WARNING", message=f"commit-by-handle failed, retry path: {commit_err}")
-                msg = await _send_with_retry(
-                    fast_send_file,
-                    client,
-                    entity,
-                    send_path,
-                    workers=part_workers,
-                    progress_callback=cb,
-                    **send_kwargs
-                )
+        if registered_media is not None:
+            if journal is None:
+                journal = TransferJournal(transfer_id or f"transfer-{int(time.time())}")
+            msg = await _commit_registered_media(
+                client,
+                entity,
+                item,
+                opts,
+                registered_media,
+                journal=journal,
+            )
+        elif uploaded_handle is not None:
+            # Compatibility path: register the existing uploaded handle first.
+            # Never fall back to fast_send_file(path), which retransmits all bytes.
+            if journal is None:
+                journal = TransferJournal(transfer_id or f"transfer-{int(time.time())}")
+            registered_media = await _register_uploaded_handle(
+                client,
+                entity,
+                item,
+                opts,
+                uploaded_handle,
+                send_path,
+                transfer_id=transfer_id or journal.transfer_id,
+                journal=journal,
+            )
+            msg = await _commit_registered_media(
+                client,
+                entity,
+                item,
+                opts,
+                registered_media,
+                journal=journal,
+            )
         else:
             msg = await _send_with_retry(
                 fast_send_file,
@@ -831,18 +1319,17 @@ async def _send_one(
         # Terminal success once Telegram accepted the message — never flip to failed
         # because of post-commit bookkeeping (progress emit, thumb cleanup, etc.).
         apply_item_commit_success(item, mid, duration_s=round(time.time() - t0, 3))
-        # Copy generated thumbnail to local cache for instant UI rendering
-        if mid:
+        # Copy the still-live generated thumbnail to local cache before cleanup.
+        if mid and registered_media is not None and registered_media.thumb_path:
             try:
                 from engine.drive_fs import THUMB_DIR, THUMB_LITE_TAG
                 import shutil
-                from telethon import utils
-                
+
                 raw_peer_id = utils.get_peer_id(entity)
                 fk = "home" if raw_peer_id is None else str(int(raw_peer_id))
                 cache_key = f"{fk}_{int(mid)}"
-                
-                thumb_candidate = send_path + ".thumb.jpg"
+
+                thumb_candidate = registered_media.thumb_path
                 if os.path.isfile(thumb_candidate) and os.path.getsize(thumb_candidate) > 0:
                     os.makedirs(THUMB_DIR, exist_ok=True)
                     for q in ["saver", "balanced", "sharp"]:
@@ -867,6 +1354,24 @@ async def _send_one(
         except Exception:
             pass
         try:
+            drive_file = None
+            try:
+                from engine.drive_fs import message_to_drive_file
+
+                drive_file = message_to_drive_file(msg, int(utils.get_peer_id(entity)))
+                if drive_file is not None:
+                    drive_file["topic_id"] = int(opts.topic_id or opts.reply_to or 0) or None
+            except Exception as dto_err:
+                emit_event("LogEvent", level="WARNING", message=f"Committed card metadata failed: {dto_err}")
+            if journal is not None:
+                journal.append(
+                    "committed",
+                    critical=True,
+                    index=item.index,
+                    item_id=item.item_id,
+                    message_id=mid,
+                    media_identity=(registered_media.media_identity if registered_media else ""),
+                )
             emit_event(
                 "StudioItemDone",
                 index=item.index,
@@ -875,12 +1380,44 @@ async def _send_one(
                 avg_mb_s=item.avg_mb_s,
                 status="done",
             )
+            emit_event(
+                "StudioItemCommitted",
+                transfer_id=transfer_id,
+                item_id=item.item_id,
+                index=item.index,
+                message_id=mid,
+                session_key_hash=session_key_hash,
+                peer_id=int(utils.get_peer_id(entity)),
+                topic_id=int(opts.topic_id or opts.reply_to or 0) or None,
+                file=drive_file,
+                thumb_data_url=(registered_media.thumb_data_url if registered_media else None),
+                committed_at=int(time.time() * 1000),
+                verified=True,
+            )
         except Exception as emit_err:
             emit_event(
                 "LogEvent",
                 level="WARNING",
                 message=f"StudioItemDone emit after success: {emit_err}",
             )
+    except AmbiguousCommitError as e:
+        item.duration_s = round(time.time() - t0, 3)
+        item.status = "needs_verification"
+        item.error = str(e)
+        if journal is not None:
+            journal.append(
+                "needs_verification",
+                critical=True,
+                index=item.index,
+                item_id=item.item_id,
+                error=str(e),
+            )
+        emit_event(
+            "StudioItemDone",
+            index=item.index,
+            status="needs_verification",
+            error=str(e),
+        )
     except Exception as e:
         item.duration_s = round(time.time() - t0, 3)
         mid = item.message_id or _message_id_from_send_result(msg)
@@ -907,6 +1444,19 @@ async def _send_one(
         else:
             item.status = "failed"
             item.error = str(e)
+            try:
+                from engine.debug_log import dlog
+                dlog(
+                    f"Upload failed for {final_file_name}: {e}",
+                    level="ERROR",
+                    scope="media_studio",
+                    phase="upload_file",
+                    error=str(e),
+                    file_name=final_file_name,
+                    index=item.index,
+                )
+            except Exception:
+                pass
             emit_event("StudioItemDone", index=item.index, status="failed", error=str(e))
     finally:
         # thumb may be InputFile handle, not a path — only unlink real files we created
@@ -916,6 +1466,12 @@ async def _send_one(
                 os.remove(thumb_candidate)
         except Exception:
             pass
+        if registered_media and registered_media.thumb_path:
+            try:
+                if os.path.isfile(registered_media.thumb_path):
+                    os.remove(registered_media.thumb_path)
+            except OSError:
+                pass
     return item
 
 
@@ -1075,8 +1631,548 @@ async def _send_album(
                 continue
             it.status = "failed"
             it.error = str(e)
+            try:
+                from engine.debug_log import dlog
+                album_fn = os.path.basename(it.path or "")
+                dlog(
+                    f"Upload failed for album item {album_fn}: {e}",
+                    level="ERROR",
+                    scope="media_studio",
+                    phase="upload_album",
+                    error=str(e),
+                    file_name=album_fn,
+                    index=it.index,
+                )
+            except Exception:
+                pass
             emit_event("StudioItemDone", index=it.index, status="failed", error=str(e))
     return items
+
+
+async def _run_fastlane_pipeline(
+    client: TelegramClient,
+    entity,
+    items: List[StudioItem],
+    opts: StudioOptions,
+    agg: ProgressAgg,
+    *,
+    upload_policy: Optional[UploadPolicy],
+    dup_checker: Any,
+    tg_exists: Dict[Tuple[str, int], int],
+    transfer_id: str,
+    session_key_hash: str,
+    journal: TransferJournal,
+) -> None:
+    """Prioritize item zero, then upload concurrently and commit in order."""
+    if not items:
+        return
+    conc = max(1, min(int(opts.concurrency or 4), 8))
+    prepare_slots = _adaptive_prepare_slots(opts, len(items))
+    prepare_sem = asyncio.Semaphore(prepare_slots)
+    file_sem = asyncio.Semaphore(conc)
+    max_item = max((it.size for it in items), default=0)
+    part_workers = (
+        8 if max_item >= 500 * 1024 * 1024
+        else 6 if max_item >= 120 * 1024 * 1024
+        else 4 if max_item >= 40 * 1024 * 1024
+        else 3 if max_item >= 8 * 1024 * 1024
+        else 2
+    )
+    emit_event(
+        "StudioInfo",
+        message=f"Fast lane file pertama; pipeline berikutnya {prepare_slots} encode / {conc} upload",
+    )
+
+    async def prepare_one(it: StudioItem) -> Tuple[str, Optional[str], int]:
+        async with prepare_sem:
+            await _wait_if_transfer_paused()
+            old_size = it.size or 0
+            it.status = "preparing"
+            emit_event("StudioItemPhase", index=it.index, phase="preflight")
+            journal.append("preflight_start", verbose=True, index=it.index, item_id=it.item_id)
+
+            def reencode_progress(data: Dict[str, Any]):
+                event = str(data.get("event") or "progress")
+                payload = {key: value for key, value in data.items() if key != "event"}
+                if event == "started":
+                    emit_event("StudioReencodeStarted", index=it.index, **payload)
+                elif event == "done":
+                    emit_event("StudioReencodeDone", index=it.index, **payload)
+                else:
+                    emit_event("StudioReencodeProgress", index=it.index, **payload)
+
+            upath, tmp = await _prepare_item_path(
+                it,
+                opts,
+                progress_cb=reencode_progress,
+                upload_policy=upload_policy,
+            )
+            if os.path.isfile(upath):
+                it.size = os.path.getsize(upath)
+                it.fingerprint = await _sha256_file(upath)
+            journal.append(
+                "preflight_done",
+                critical=True,
+                index=it.index,
+                item_id=it.item_id,
+                size=it.size,
+                fingerprint=it.fingerprint,
+            )
+            return upath, tmp, old_size
+
+    def duplicate_id(it: StudioItem, upath: str) -> Optional[int]:
+        if opts.duplicate_policy == "FORCE_UPLOAD":
+            return None
+        final_name = _final_name(it.path, upath)
+        found = None
+        try:
+            found = dup_checker.get_duplicate_message_id(
+                file_hash=it.fingerprint or None,
+                file_name=final_name,
+                file_size=it.size,
+            )
+        except Exception:
+            pass
+        if not found:
+            found = tg_exists.get((final_name.lower(), it.size))
+        return int(found) if found else None
+
+    async def prepare_upload_register(it: StudioItem):
+        upath: Optional[str] = None
+        tmp: Optional[str] = None
+        try:
+            upath, tmp, old_size = await prepare_one(it)
+            if it.size != old_size:
+                agg.adjust_total_bytes(it.size - old_size)
+            duplicate = duplicate_id(it, upath)
+            if duplicate:
+                it.status = "done"
+                it.message_id = duplicate
+                agg.adjust_total_bytes(-(it.size or 0))
+                emit_event(
+                    "StudioItemDone",
+                    index=it.index,
+                    message_id=duplicate,
+                    status="skipped",
+                    note=f"Duplikat dilewati — sudah ada di tujuan (pesan {duplicate})",
+                )
+                journal.append(
+                    "duplicate_skipped",
+                    critical=True,
+                    index=it.index,
+                    message_id=duplicate,
+                    fingerprint=it.fingerprint,
+                )
+                return it, upath, tmp, None
+
+            handle = await _upload_bytes(
+                client,
+                it,
+                agg,
+                file_sem,
+                part_workers=part_workers,
+                upload_path=upath,
+                upload_policy=upload_policy,
+                transfer_id=transfer_id,
+                journal=journal,
+            )
+            registered = await _register_uploaded_handle(
+                client,
+                entity,
+                it,
+                opts,
+                handle,
+                upath,
+                transfer_id=transfer_id,
+                journal=journal,
+            )
+            return it, upath, tmp, registered
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            it.status = "failed"
+            it.error = str(exc)
+            journal.append(
+                "item_failed_before_commit",
+                critical=True,
+                index=it.index,
+                item_id=it.item_id,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            emit_event("StudioItemDone", index=it.index, status="failed", error=str(exc))
+            return it, upath or it.path, tmp, None
+
+    async def commit_result(result) -> None:
+        it, upath, tmp, registered = result
+        try:
+            if registered is not None and it.status not in {"failed", "done"}:
+                await _send_one(
+                    client,
+                    entity,
+                    it,
+                    opts,
+                    agg,
+                    registered_media=registered,
+                    upload_path=upath,
+                    dup_checker=dup_checker,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                    session_key_hash=session_key_hash,
+                )
+                if it.status == "done" and it.message_id:
+                    try:
+                        dup_checker.log(
+                            None,
+                            it.message_id,
+                            file_hash=it.fingerprint or None,
+                            file_name=_final_name(it.path, upath),
+                            file_size=it.size,
+                        )
+                    except Exception:
+                        pass
+                await asyncio.sleep(random.uniform(1.5, 3.0))
+        finally:
+            if tmp and os.path.isfile(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+
+    # The first selected item is fully terminal before later upload tasks exist.
+    await commit_result(await prepare_upload_register(items[0]))
+
+    tasks = [
+        asyncio.create_task(prepare_upload_register(it), name=f"studio-item-{it.index}")
+        for it in items[1:]
+    ]
+    # Ordered cursor: later tasks may finish first, but cannot commit first.
+    for task in tasks:
+        await commit_result(await task)
+
+
+async def _run_safe_album_pipeline(
+    client: TelegramClient,
+    entity,
+    items: List[StudioItem],
+    opts: StudioOptions,
+    agg: ProgressAgg,
+    *,
+    upload_policy: Optional[UploadPolicy],
+    dup_checker: Any,
+    tg_exists: Dict[Tuple[str, int], int],
+    transfer_id: str,
+    session_key_hash: str,
+    journal: TransferJournal,
+) -> None:
+    """Register album members first, then one stable sendMultiMedia commit."""
+    batches: List[List[StudioItem]] = []
+    current: List[StudioItem] = []
+    current_kind: Optional[str] = None
+    for item in items:
+        ext = _ext(item.path)
+        kind = "photo" if ext in PHOTO_EXTS else ("video" if ext in VIDEO_EXTS else "other")
+        if kind == "other":
+            if current:
+                batches.append(current)
+                current = []
+                current_kind = None
+            batches.append([item])
+            continue
+        if current and (kind != current_kind or len(current) >= 10):
+            batches.append(current)
+            current = []
+        if not current:
+            current_kind = kind
+        current.append(item)
+    if current:
+        batches.append(current)
+
+    sem = asyncio.Semaphore(max(1, min(int(opts.concurrency or 4), 8)))
+    max_item = max((item.size for item in items), default=0)
+    part_workers = 8 if max_item >= 500 * 1024 * 1024 else 6 if max_item >= 120 * 1024 * 1024 else 4
+
+    for batch_number, batch in enumerate(batches):
+        if len(batch) == 1:
+            await _run_fastlane_pipeline(
+                client,
+                entity,
+                batch,
+                opts,
+                agg,
+                upload_policy=upload_policy,
+                dup_checker=dup_checker,
+                tg_exists=tg_exists,
+                transfer_id=transfer_id,
+                session_key_hash=session_key_hash,
+                journal=journal,
+            )
+            continue
+
+        prepared: List[Tuple[StudioItem, str, Optional[str]]] = []
+        for item in batch:
+            try:
+                item.status = "preparing"
+                emit_event("StudioItemPhase", index=item.index, phase="preflight")
+
+                def reencode_progress(data: Dict[str, Any], *, _item=item):
+                    event = str(data.get("event") or "progress")
+                    payload = {key: value for key, value in data.items() if key != "event"}
+                    if event == "started":
+                        emit_event("StudioReencodeStarted", index=_item.index, **payload)
+                    elif event == "done":
+                        emit_event("StudioReencodeDone", index=_item.index, **payload)
+                    else:
+                        emit_event("StudioReencodeProgress", index=_item.index, **payload)
+
+                old_size = item.size or 0
+                upload_path, temp_path = await _prepare_item_path(
+                    item,
+                    opts,
+                    progress_cb=reencode_progress,
+                    upload_policy=upload_policy,
+                )
+                if os.path.isfile(upload_path):
+                    item.size = os.path.getsize(upload_path)
+                    item.fingerprint = await _sha256_file(upload_path)
+                if item.size != old_size:
+                    agg.adjust_total_bytes(item.size - old_size)
+                final_name = _final_name(item.path, upload_path)
+                duplicate = None
+                if opts.duplicate_policy != "FORCE_UPLOAD":
+                    try:
+                        duplicate = dup_checker.get_duplicate_message_id(
+                            file_hash=item.fingerprint or None,
+                            file_name=final_name,
+                            file_size=item.size,
+                        )
+                    except Exception:
+                        duplicate = None
+                    duplicate = duplicate or tg_exists.get((final_name.lower(), item.size))
+                if duplicate:
+                    item.status = "done"
+                    item.message_id = int(duplicate)
+                    agg.adjust_total_bytes(-(item.size or 0))
+                    emit_event(
+                        "StudioItemDone",
+                        index=item.index,
+                        message_id=int(duplicate),
+                        status="skipped",
+                        note=f"Duplikat dilewati — sudah ada di tujuan (pesan {duplicate})",
+                    )
+                    if temp_path and os.path.isfile(temp_path):
+                        os.remove(temp_path)
+                    continue
+                journal.append(
+                    "preflight_done",
+                    critical=True,
+                    index=item.index,
+                    item_id=item.item_id,
+                    size=item.size,
+                    fingerprint=item.fingerprint,
+                    album=batch_number,
+                )
+                prepared.append((item, upload_path, temp_path))
+            except Exception as exc:
+                item.status = "failed"
+                item.error = str(exc)
+                journal.append(
+                    "album_member_preflight_failed",
+                    critical=True,
+                    index=item.index,
+                    error_type=type(exc).__name__,
+                    error=str(exc),
+                )
+                emit_event("StudioItemDone", index=item.index, status="failed", error=str(exc))
+
+        if not prepared:
+            continue
+        if len(prepared) == 1:
+            item, upload_path, temp_path = prepared[0]
+            try:
+                handle = await _upload_bytes(
+                    client,
+                    item,
+                    agg,
+                    sem,
+                    part_workers=part_workers,
+                    upload_path=upload_path,
+                    upload_policy=upload_policy,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                )
+                registered = await _register_uploaded_handle(
+                    client,
+                    entity,
+                    item,
+                    opts,
+                    handle,
+                    upload_path,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                )
+                await _send_one(
+                    client,
+                    entity,
+                    item,
+                    opts,
+                    agg,
+                    registered_media=registered,
+                    upload_path=upload_path,
+                    dup_checker=dup_checker,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                    session_key_hash=session_key_hash,
+                )
+            except Exception as exc:
+                if item.status not in {"done", "needs_verification"}:
+                    item.status = "failed"
+                    item.error = str(exc)
+                    emit_event("StudioItemDone", index=item.index, status="failed", error=str(exc))
+            finally:
+                if temp_path and os.path.isfile(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
+            continue
+
+        async def upload_register(entry: Tuple[StudioItem, str, Optional[str]]):
+            item, upload_path, temp_path = entry
+            try:
+                handle = await _upload_bytes(
+                    client,
+                    item,
+                    agg,
+                    sem,
+                    part_workers=part_workers,
+                    upload_path=upload_path,
+                    upload_policy=upload_policy,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                )
+                registered = await _register_uploaded_handle(
+                    client,
+                    entity,
+                    item,
+                    opts,
+                    handle,
+                    upload_path,
+                    transfer_id=transfer_id,
+                    journal=journal,
+                )
+                return item, upload_path, temp_path, registered, None
+            except Exception as exc:
+                return item, upload_path, temp_path, None, exc
+
+        # Give the first member the first byte lane; once registered, release
+        # the remaining members concurrently while retaining one atomic commit.
+        first = await upload_register(prepared[0])
+        rest = await asyncio.gather(*(upload_register(entry) for entry in prepared[1:]))
+        uploaded = [first, *rest]
+        failures = [entry for entry in uploaded if entry[4] is not None or entry[3] is None]
+        if failures:
+            reason = "Album dibatalkan sebelum commit karena satu anggota gagal; byte tidak diunggah ulang."
+            for item, _path, _temp, registered, exc in uploaded:
+                if registered and registered.thumb_path and os.path.isfile(registered.thumb_path):
+                    try:
+                        os.remove(registered.thumb_path)
+                    except OSError:
+                        pass
+                if item.status not in {"done", "failed"}:
+                    item.status = "failed"
+                    item.error = str(exc or reason)
+                    emit_event("StudioItemDone", index=item.index, status="failed", error=item.error)
+            journal.append(
+                "album_cancelled_before_commit",
+                critical=True,
+                album=batch_number,
+                failed_indexes=[entry[0].index for entry in failures],
+            )
+        else:
+            commit_entries = [(entry[0], entry[3]) for entry in uploaded if entry[3] is not None]
+            messages = await _commit_registered_album(
+                client, entity, commit_entries, opts, journal=journal
+            )
+            for (item, registered), message in zip(commit_entries, messages):
+                if message is None:
+                    item.status = "needs_verification"
+                    item.error = "Commit album diterima tanpa bukti pesan lokal; tidak diunggah ulang."
+                    emit_event(
+                        "StudioItemDone",
+                        index=item.index,
+                        status="needs_verification",
+                        error=item.error,
+                    )
+                    continue
+                message_id = _message_id_from_send_result(message)
+                if not message_id:
+                    item.status = "needs_verification"
+                    item.error = "Telegram tidak mengembalikan message_id album."
+                    emit_event("StudioItemDone", index=item.index, status="needs_verification", error=item.error)
+                    continue
+                apply_item_commit_success(item, message_id)
+                agg.on_item(item.index, item.size or 0, item.size or 0, force=True)
+                try:
+                    dup_checker.log(
+                        None,
+                        message_id,
+                        file_hash=item.fingerprint or None,
+                        file_name=registered.final_file_name,
+                        file_size=item.size,
+                    )
+                except Exception:
+                    pass
+                drive_file = None
+                try:
+                    from engine.drive_fs import message_to_drive_file
+
+                    drive_file = message_to_drive_file(message, int(utils.get_peer_id(entity)))
+                    if drive_file is not None:
+                        drive_file["topic_id"] = int(opts.topic_id or opts.reply_to or 0) or None
+                except Exception:
+                    drive_file = None
+                journal.append(
+                    "album_member_committed",
+                    critical=True,
+                    album=batch_number,
+                    index=item.index,
+                    message_id=message_id,
+                    media_identity=registered.media_identity,
+                )
+                emit_event(
+                    "StudioItemDone",
+                    index=item.index,
+                    message_id=message_id,
+                    status="done",
+                )
+                emit_event(
+                    "StudioItemCommitted",
+                    transfer_id=transfer_id,
+                    item_id=item.item_id,
+                    index=item.index,
+                    message_id=message_id,
+                    session_key_hash=session_key_hash,
+                    peer_id=int(utils.get_peer_id(entity)),
+                    topic_id=int(opts.topic_id or opts.reply_to or 0) or None,
+                    file=drive_file,
+                    thumb_data_url=registered.thumb_data_url,
+                    committed_at=int(time.time() * 1000),
+                    verified=True,
+                )
+
+        for _item, _path, temp_path, registered, _exc in uploaded:
+            if registered and registered.thumb_path and os.path.isfile(registered.thumb_path):
+                try:
+                    os.remove(registered.thumb_path)
+                except OSError:
+                    pass
+            if temp_path and os.path.isfile(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+        await asyncio.sleep(random.uniform(1.5, 3.0))
 
 
 async def run_ordered_upload(
@@ -1085,6 +2181,9 @@ async def run_ordered_upload(
     items: List[StudioItem],
     opts: StudioOptions,
     chat_id: str,
+    *,
+    transfer_id: str = "",
+    session_key_hash: str = "",
 ) -> Dict[str, Any]:
     """
     Ordered parallel: up to `concurrency` sends in flight, but we only *start*
@@ -1129,6 +2228,15 @@ async def run_ordered_upload(
     """
     from engine.duplicate_checker import DuplicateChecker
     dup_checker = DuplicateChecker(chat_id)
+    transfer_id = transfer_id or f"transfer-{uuid.uuid4().hex}"
+    journal = TransferJournal(transfer_id)
+    journal.append(
+        "transfer_started",
+        critical=True,
+        item_count=len(items),
+        destination=str(chat_id),
+        topic_id=opts.topic_id or opts.reply_to,
+    )
 
     total_bytes = sum(i.size for i in items)
     agg = ProgressAgg(total_bytes, len(items))
@@ -1158,6 +2266,8 @@ async def run_ordered_upload(
         concurrency=opts.concurrency,
         group_as_album=opts.group_as_album,
         order_mode="parallel_upload_sequential_commit",
+        transfer_id=transfer_id,
+        debug_log_path=os.path.relpath(journal.path, os.path.dirname(os.path.dirname(__file__))),
         upload_hard_max_bytes=getattr(upload_policy, "hard_max_bytes", None),
         upload_premium=bool(getattr(upload_policy, "premium", False)) if upload_policy else None,
     )
@@ -1184,8 +2294,32 @@ async def run_ordered_upload(
         except Exception as recon_err:
             emit_event("LogEvent", level="WARNING", message=f"Penyelarasan riwayat Telegram gagal: {recon_err}")
 
-    # Album mode: batch by 10 same-kind media
+    # Safety takes precedence over the legacy client.send_file(album) path,
+    # which can retransmit every member after an ambiguous failure. Until the
+    # raw sendMultiMedia journal is fully verifiable, album selections use the
+    # same reusable-media ordered pipeline as ordinary batches.
     if opts.group_as_album:
+        emit_event(
+            "StudioInfo",
+            message="Mode album aman: commit berurutan tanpa upload ulang otomatis.",
+        )
+
+    if opts.group_as_album:
+        await _run_safe_album_pipeline(
+            client,
+            entity,
+            items,
+            opts,
+            agg,
+            upload_policy=upload_policy,
+            dup_checker=dup_checker,
+            tg_exists=tg_exists,
+            transfer_id=transfer_id,
+            session_key_hash=session_key_hash,
+            journal=journal,
+        )
+    # Legacy album sender retained as reference only; it is intentionally unreachable.
+    elif False:
         batches: List[List[StudioItem]] = []
         current: List[StudioItem] = []
         current_kind = None
@@ -1319,6 +2453,19 @@ async def run_ordered_upload(
                 import random
                 await asyncio.sleep(random.uniform(1.5, 3.0))
     else:
+        await _run_fastlane_pipeline(
+            client,
+            entity,
+            items,
+            opts,
+            agg,
+            upload_policy=upload_policy,
+            dup_checker=dup_checker,
+            tg_exists=tg_exists,
+            transfer_id=transfer_id,
+            session_key_hash=session_key_hash,
+            journal=journal,
+        )
         # Adaptive producer-consumer: at most two hardware encodes on capable
         # devices, while completed items immediately enter DC upload. Commit to
         # chat remains ordered.
@@ -1347,7 +2494,10 @@ async def run_ordered_upload(
                 )
                 return it, upath, tmp, old_sz
 
-        prepare_tasks = [asyncio.create_task(_prepare_one(it)) for it in items]
+        # The fast-lane pipeline above supersedes this legacy scheduler. Keep
+        # the old definitions temporarily for compatibility while ensuring it
+        # cannot enqueue a second upload/commit pass.
+        prepare_tasks = [asyncio.create_task(_prepare_one(it)) for it in []]
         prepared: List[Tuple[StudioItem, str, Optional[str]]] = []
 
         max_item = max((it.size for it in items), default=0)
@@ -1477,9 +2627,11 @@ async def run_ordered_upload(
 
     done = sum(1 for i in items if i.status == "done")
     failed = sum(1 for i in items if i.status == "failed")
+    needs_verification = sum(1 for i in items if i.status == "needs_verification")
     elapsed = max(time.time() - agg.t0, 1e-6)
     result = {
-        "status": "ok" if failed == 0 else ("partial" if done else "error"),
+        "status": "ok" if failed == 0 and needs_verification == 0 else ("partial" if done else "error"),
+        "transfer_id": transfer_id,
         "mode": "upload",
         "items": [
             {
@@ -1496,12 +2648,21 @@ async def run_ordered_upload(
         ],
         "done": done,
         "failed": failed,
+        "needs_verification": needs_verification,
         "size_bytes": total_bytes,
         "duration_s": round(elapsed, 3),
         "avg_mb_s": round((total_bytes / (1024 * 1024)) / elapsed, 3),
         "peak_mb_s": round(agg.peak_mb_s, 3),
     }
     emit_event("StudioFinished", **{k: v for k, v in result.items() if k != "items"})
+    journal.append(
+        "transfer_finished",
+        critical=True,
+        status=result["status"],
+        done=done,
+        failed=failed,
+        needs_verification=needs_verification,
+    )
     # Counts/sizes on Drive locations must recompute after upload
     try:
         from engine.drive_fs import invalidate_media_stats
@@ -1648,7 +2809,10 @@ async def run_media_studio(
     setup_emitter(None, None)
     from engine.debug_log import dlog, dlog_exc, set_debug_session, is_debug_enabled
 
-    set_debug_session(f"studio-{action}-{int(time.time())}")
+    opts_raw = options or {}
+    transfer_id = str(opts_raw.get("transfer_id") or opts_raw.get("transferId") or f"transfer-{uuid.uuid4().hex}")
+    session_key_hash = _session_lease_hash(session_name, api_id)
+    set_debug_session(transfer_id)
     dlog(
         "media_studio start",
         scope="media_studio",
@@ -1657,8 +2821,8 @@ async def run_media_studio(
         chat_id=str(chat_id),
         files_n=len(files) if isinstance(files, list) else (1 if files else 0),
         debug=is_debug_enabled(),
+        transfer_id=transfer_id,
     )
-    opts_raw = options or {}
     opts = StudioOptions(
         quality_mode=str(opts_raw.get("quality_mode") or opts_raw.get("qualityMode") or "HIGH_QUALITY"),
         concurrency=int(opts_raw.get("concurrency") or 4),
@@ -1782,6 +2946,7 @@ async def run_media_studio(
                     path=path,
                     caption=caption,
                     size=os.path.getsize(path),
+                    item_id=f"{transfer_id}:{i}",
                 )
             )
         # Speed guard: pure-Python MTProto is extremely slow
@@ -1793,7 +2958,15 @@ async def run_media_studio(
                     "Jalankan: pip install cryptg"
                 ),
             )
-        result = await run_ordered_upload(client, entity, items, opts, chat_id)
+        result = await run_ordered_upload(
+            client,
+            entity,
+            items,
+            opts,
+            chat_id,
+            transfer_id=transfer_id,
+            session_key_hash=session_key_hash,
+        )
         dlog(
             "media_studio upload finished",
             scope="media_studio",

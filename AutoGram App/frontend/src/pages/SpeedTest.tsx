@@ -58,6 +58,7 @@ import {
   setDriveTransferPaused,
   clearDriveTransferPause,
   isTransferJobActive,
+  driveSessionLeaseKey,
   parseEventLine,
   parseJsonOutput,
   friendlyDriveError,
@@ -179,6 +180,7 @@ import {
 import {
   clearThumbCache,
   forceRetryThumb,
+  primeThumbCache,
   invalidateThumbFailures,
   setThumbContext,
   setThumbBootstrapMode,
@@ -296,6 +298,20 @@ function getIconTypeFromFilename(name: string): string {
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
   if (['mp3', 'ogg', 'wav', 'm4a', 'flac'].includes(ext)) return 'audio';
   return 'file';
+}
+
+async function flushTransferDebugLog(session: TransferSession) {
+  if (!session || !session.debugLogs || !session.debugLogs.length) return;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const contents = session.debugLogs.join('\n');
+    await invoke('write_worker_temp_file', {
+      filename: 'transfer_debug.txt',
+      contents,
+    });
+  } catch (e) {
+    console.warn('Gagal menulis transfer_debug.txt', e);
+  }
 }
 
 async function writeWorkerJson(name: string, data: any): Promise<string> {
@@ -2463,6 +2479,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const syncActiveLocationLive = useCallback(
     async (reason: 'interval' | 'focus') => {
       if (!creds || loadingFiles || loadingMoreFiles || liveSyncLockRef.current) return;
+      if (isTransferJobActive()) return;
       if (document.visibilityState === 'hidden') return;
 
       const plan = getDriveLiveSyncPlan(getDrivePerfProfile().tier);
@@ -2927,6 +2944,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
    */
   const uploadSoftRefresh = useCallback(async () => {
     if (!creds || uploadRefreshLockRef.current) return;
+    if (isTransferJobActive()) return;
     uploadRefreshLockRef.current = true;
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
@@ -2994,6 +3012,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const sidebarRefreshLockRef = useRef(false);
   const softRefreshSidebar = useCallback(async () => {
     if (!creds || sidebarRefreshLockRef.current) return;
+    if (isTransferJobActive()) return;
     sidebarRefreshLockRef.current = true;
     try {
       const perf = getDrivePerfProfile();
@@ -3081,6 +3100,37 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         // Track download dests for Stop cleanup
         const t = String(ev.type || '');
         const p = (ev.payload || ev) as Record<string, unknown>;
+        if (t === 'StudioItemCommitted' && creds) {
+          const eventSession = String(p.session_key_hash || '');
+          const eventTopic = p.topic_id == null ? null : Number(p.topic_id);
+          const currentTopic = topicFilterRef.current == null ? null : Number(topicFilterRef.current);
+          const authoritative = p.file && typeof p.file === 'object'
+            ? ({ ...(p.file as DriveFile), recently_uploaded_at: Date.now() } as DriveFile)
+            : null;
+          const sameSession = eventSession === driveSessionLeaseKey(creds);
+          const targetPeer = task?.targetFolderId ?? null;
+          const sameLocation = sameSession && targetPeer === peerId && eventTopic === currentTopic;
+          if (authoritative && sameSession) {
+            const cacheKey = `${targetPeer}_${eventTopic || ''}`;
+            const cached = filesCacheRef.current.get(cacheKey) || [];
+            const alreadyCached = cached.some((x) => x.id === authoritative.id);
+            const nextCached = [authoritative, ...cached.filter((x) => x.id !== authoritative.id)];
+            filesCacheRef.current.set(cacheKey, nextCached);
+            if (sameLocation) {
+              liveFilesRef.current = [
+                authoritative,
+                ...liveFilesRef.current.filter((x) => x.id !== authoritative.id),
+              ];
+              setFiles(liveFilesRef.current);
+              if (!alreadyCached) {
+                setTotalFileCount((n) => Math.max(liveFilesRef.current.length, (n ?? 0) + 1));
+                setTotalBytes((n) => (n ?? 0) + Math.max(0, Number(authoritative.size || 0)));
+              }
+            }
+            const thumbData = String(p.thumb_data_url || '');
+            if (thumbData) primeThumbCache(creds, targetPeer, authoritative.id, thumbData);
+          }
+        }
         if (t === 'DriveItemStarted' || t === 'StudioItemStarted') {
           const path = String(p.path || p.dest || '');
           if (path && (path.includes('\\') || path.includes('/'))) {
@@ -3222,7 +3272,12 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         });
 
         const filesJson = await writeWorkerJson('drive_files', filesPayload);
-        const optionsJson = await writeWorkerJson('drive_opts', task.options);
+        const optionsJson = await writeWorkerJson('drive_opts', {
+          ...task.options,
+          // Persisted queue task id keeps upload file_id and commit random_id stable
+          // when this exact task is resumed/retried.
+          transfer_id: task.id,
+        });
         
         let uploadError: string | null = null;
         let uploadedIds: number[] = [];
@@ -3240,7 +3295,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                     uploadError = data.error || 'Upload failed';
                     setError(uploadError);
                   } else if (data && Array.isArray((data as any).items)) {
-                    const ids = (data as any).items.map((x: any) => Number(x?.id)).filter(Number.isFinite);
+                    const ids = (data as any).items
+                      .map((x: any) => Number(x?.message_id))
+                      .filter((id: number) => Number.isFinite(id) && id > 0);
                     if (ids.length) uploadedIds.push(...ids);
                   }
                 }
@@ -3248,6 +3305,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               onStderrLine: (line) => onTransferStdout(String(line)),
               onClose: (code) => {
                 exitCode = code;
+                void flushTransferDebugLog(transferRef.current);
                 resolve();
               },
             }, { skipRestartWarm })
@@ -3274,22 +3332,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                 (uploadError ? `: ${uploadError}` : '')
             );
           }
-          // Mark items of this task correctly (don't overwrite failed/cancelled/skipped ones)
-          setTransfer((t) => {
-            const nextItems = t.items.map((it, idx) => {
-              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') {
-                  return it;
-                }
-                if (isErrorExit) {
-                  return { ...it, status: 'failed' as const, error: uploadError || `Exit code ${exitCode}` };
-                }
-                return { ...it, status: 'done' as const, percent: 100 };
-              }
-              return it;
-            });
-            return { ...t, items: nextItems };
-          });
+          // Terminal states are owned by StudioItemDone; never synthesize success here.
         } else if (isErrorExit) {
           setStatusText(`Upload gagal${label}`);
           if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
@@ -3308,8 +3351,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped') return it;
-                return { ...it, status: 'done' as const, percent: 100 };
+                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped' || it.status === 'needs_verification') return it;
+                return { ...it, status: 'failed' as const, error: 'Worker selesai tanpa message_id atau bukti duplikat.' };
               }
               return it;
             });
@@ -3328,6 +3371,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               onStderrLine: (line) => onTransferStdout(String(line)),
               onClose: (code) => {
                 exitCode = code;
+                void flushTransferDebugLog(transferRef.current);
                 resolve();
               },
             }, { skipRestartWarm })
@@ -3375,6 +3419,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               onStderrLine: (line) => onTransferStdout(String(line)),
               onClose: (code) => {
                 exitCode = code;
+                void flushTransferDebugLog(transferRef.current);
                 resolve();
               },
             }, { skipRestartWarm })
@@ -3434,7 +3479,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       // If queue is empty, finish the overall transfer session
       if (transferQueueRef.current.length === 0) {
         void clearDriveTransferPause();
-        setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
+        setTransfer((t) =>
+          t.active
+            ? applyTransferEvent(t, {
+                type: task.kind === 'upload' ? 'StudioFinished' : 'DriveDownloadDone',
+              })
+            : t
+        );
         scheduleTransferHide();
         // A little delay then refresh files + sidebar (no full reset — lightweight paths)
         setTimeout(() => {
@@ -4203,10 +4254,25 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         void runUploadPaths(paths, { targetFolderId: targetPeerId, targetLabel: dest, skipTopic: false });
       }, 200);
     };
+    if (import.meta.env.DEV) {
+      (window as any).triggerRemoteDeleteMessages = async (
+        messageIds: number[],
+        targetPeerId: number
+      ) => {
+        if (!creds) throw new Error('Session belum siap');
+        const ids = [...new Set(messageIds.map(Number).filter((id) => Number.isFinite(id) && id > 0))];
+        if (!ids.length) return { deleted: 0 };
+        await driveDeleteBatch(creds, ids, targetPeerId);
+        setFiles((prev) => prev.filter((file) => !ids.includes(file.id)));
+        liveFilesRef.current = liveFilesRef.current.filter((file) => !ids.includes(file.id));
+        return { deleted: ids.length };
+      };
+    }
     return () => {
       delete (window as any).triggerRemoteUpload;
+      delete (window as any).triggerRemoteDeleteMessages;
     };
-  }, [runUploadPaths, chats]);
+  }, [runUploadPaths, chats, creds]);
 
   const runDownloadSelected = async () => {
     if (!creds || !selectedIds.length) return;
@@ -6841,8 +6907,40 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               onDisplayedIdsChange={(ids) => {
                 displayedIdsRef.current = ids;
               }}
-              onOpen={(f) => setPreviewFile(f)}
-              onPreview={(f) => setPreviewFile(f)}
+              onOpen={(f) => {
+                if (f.icon_type === 'link') {
+                  const url = f.original_name || f.name || '';
+                  if (url) {
+                    void (async () => {
+                      try {
+                        const mod = await import('@tauri-apps/plugin-opener');
+                        await mod.openUrl(url);
+                      } catch {
+                        window.open(url, '_blank');
+                      }
+                    })();
+                  }
+                } else {
+                  setPreviewFile(f);
+                }
+              }}
+              onPreview={(f) => {
+                if (f.icon_type === 'link') {
+                  const url = f.original_name || f.name || '';
+                  if (url) {
+                    void (async () => {
+                      try {
+                        const mod = await import('@tauri-apps/plugin-opener');
+                        await mod.openUrl(url);
+                      } catch {
+                        window.open(url, '_blank');
+                      }
+                    })();
+                  }
+                } else {
+                  setPreviewFile(f);
+                }
+              }}
               onDownload={(f) => downloadOne(f)}
               onDelete={(f) => handleDeleteIds([f.id])}
               onUpload={handleUpload}

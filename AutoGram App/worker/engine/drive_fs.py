@@ -28,6 +28,10 @@ from telethon.tl.types import (
     DocumentAttributeAudio,
     MessageMediaPhoto,
     MessageMediaDocument,
+    MessageMediaWebPage,
+    WebPage,
+    MessageEntityUrl,
+    MessageEntityTextUrl,
     Channel,
     User,
     Chat,
@@ -37,6 +41,7 @@ from telethon.tl.types import (
     InputMessagesFilterMusic,
     InputMessagesFilterRoundVideo,
     InputMessagesFilterVoice,
+    InputMessagesFilterUrl,
 )
 
 from engine.events import emit_event, setup_emitter
@@ -495,6 +500,15 @@ def _collect_telegram_thumbs(msg) -> List[Any]:
         for s in getattr(photo, "sizes", None) or []:
             if _is_photo_thumb_size(s):
                 out.append(s)
+    # Check webpage preview photo
+    if msg.media and isinstance(msg.media, MessageMediaWebPage):
+        webpage = getattr(msg.media, "webpage", None)
+        if webpage is not None:
+            wphoto = getattr(webpage, "photo", None)
+            if wphoto is not None:
+                for s in getattr(wphoto, "sizes", None) or []:
+                    if _is_photo_thumb_size(s):
+                        out.append(s)
     doc = _media_document(msg) or getattr(msg, "document", None)
     if doc is not None:
         for s in getattr(doc, "thumbs", None) or []:
@@ -647,6 +661,12 @@ async def _download_thumb_bytes(
         if doc is not None:
             targets.append(doc)
         targets.append(msg)
+        webpage = getattr(msg.media or msg, "webpage", None)
+        if webpage is not None:
+            targets.append(webpage)
+            wphoto = getattr(webpage, "photo", None)
+            if wphoto is not None:
+                targets.append(wphoto)
         media = getattr(msg, "media", None)
         if media is not None and media is not msg and media not in targets:
             targets.append(media)
@@ -2092,7 +2112,11 @@ def _icon_type_from_message(msg) -> str:
     """
     media = getattr(msg, "media", None)
     if media is None:
+        if getattr(msg, "message", None) and _extract_url_from_message(msg):
+            return "link"
         return "file"
+    if isinstance(media, MessageMediaWebPage):
+        return "link"
     if isinstance(media, MessageMediaPhoto) or (
         getattr(media, "photo", None) is not None and _media_document(msg) is None
     ):
@@ -2163,6 +2187,10 @@ def _message_is_visual(msg) -> bool:
     Text/JSON/code are NOT visual for grid — frontend shows FileTypeIcon.
     Content dumps as JPEG look broken on portrait cards and waste quota.
     """
+    if msg.media and isinstance(msg.media, MessageMediaWebPage):
+        webpage = getattr(msg.media, "webpage", None)
+        if webpage and getattr(webpage, "photo", None):
+            return True
     icon = _icon_type_from_message(msg)
     if icon in ("image", "video"):
         return True
@@ -2770,11 +2798,121 @@ async def _download_media_complete(
     return str(path)
 
 
+_URL_REGEX = re.compile(
+    r'(https?://[^\s]+)',
+    re.IGNORECASE
+)
+
+def _extract_url_from_message(msg) -> Optional[str]:
+    # 1. Check message entities first (highly reliable Telegram parser)
+    entities = getattr(msg, "entities", None) or []
+    for ent in entities:
+        if isinstance(ent, MessageEntityUrl):
+            offset = getattr(ent, "offset", 0)
+            length = getattr(ent, "length", 0)
+            if msg.message:
+                url = msg.message[offset : offset + length]
+                if url:
+                    return url
+        elif isinstance(ent, MessageEntityTextUrl):
+            url = getattr(ent, "url", "")
+            if url:
+                return url
+                
+    # 2. Check webpage preview url
+    if msg.media and isinstance(msg.media, MessageMediaWebPage):
+        webpage = getattr(msg.media, "webpage", None)
+        if webpage and isinstance(webpage, WebPage):
+            url = getattr(webpage, "url", "")
+            if url:
+                return url
+                
+    # 3. Fallback: regex search in message text
+    if msg.message:
+        match = _URL_REGEX.search(msg.message)
+        if match:
+            return match.group(1)
+            
+    return None
+
+
+def _get_link_title(msg, url: str) -> str:
+    if msg.media and isinstance(msg.media, MessageMediaWebPage):
+        webpage = getattr(msg.media, "webpage", None)
+        if webpage and isinstance(webpage, WebPage):
+            title = getattr(webpage, "title", None)
+            if title:
+                return title
+            site = getattr(webpage, "site_name", None)
+            if site:
+                return site
+                
+    # Fallback to message text or domain name from URL
+    text = getattr(msg, "message", "") or ""
+    first_line = text.strip().split("\n")[0].strip()
+    if first_line and len(first_line) < 80 and not first_line.startswith("http"):
+        return first_line
+        
+    # Extract domain as fallback
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        netloc = parsed.netloc
+        if netloc:
+            return netloc
+    except Exception:
+        pass
+        
+    return url
+
+
 def message_to_drive_file(msg, folder_id: Optional[int]) -> Optional[Dict[str, Any]]:
-    if not msg or not msg.media:
+    if not msg:
         return None
-    if not isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
-        return None
+
+    is_link = False
+    link_url = ""
+    link_title = ""
+
+    # Check if it is a link first
+    link_url = _extract_url_from_message(msg)
+    if link_url:
+        is_link = True
+        link_title = _get_link_title(msg, link_url)
+
+    if not is_link:
+        if not msg.media or not isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
+            return None
+
+    if is_link:
+        created = msg.date
+        if created and created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        created_s = created.isoformat() if created else ""
+
+        has_photo = False
+        if msg.media and isinstance(msg.media, MessageMediaWebPage):
+            webpage = getattr(msg.media, "webpage", None)
+            if webpage and getattr(webpage, "photo", None):
+                has_photo = True
+
+        out: Dict[str, Any] = {
+            "id": int(msg.id),
+            "folder_id": folder_id,
+            "name": link_title or link_url,
+            "size": 0,
+            "mime_type": "text/html",
+            "file_ext": "link",
+            "duration": None,
+            "duration_s": None,
+            "created_at": created_s,
+            "icon_type": "link",
+            "has_thumb": has_photo,
+            "as_document": False,
+            "original_name": link_url,
+        }
+        return out
+
     real_fn = _doc_real_filename(msg)
     mime = _mime_from_message(msg)
     name = _file_name_from_message(msg)
@@ -3620,6 +3758,7 @@ _MEDIA_FILTERS = (
     InputMessagesFilterRoundVideo,
     InputMessagesFilterMusic,
     InputMessagesFilterVoice,
+    InputMessagesFilterUrl,
 )
 
 

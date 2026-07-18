@@ -1,0 +1,75 @@
+{
+  "startedAt": "2026-07-18T19:01:38.665Z",
+  "passed": true,
+  "directRangeProbe": true,
+  "card": {
+    "messageId": "361",
+    "title": "𝐄𝐩𝐨𝐬𝐢𝐝𝐞= 𝟏.mp4",
+    "declaredBytes": 674454569
+  },
+  "video": {
+    "src": "http://127.0.0.1:52028/stream/35c45a9ac088401d/_.mp4",
+    "duration": 927.341,
+    "readyState": 3
+  },
+  "range": {
+    "total": 674458236,
+    "farOffset": 485609929,
+    "head": {
+      "status": 206,
+      "bytes": 65536,
+      "headers": {
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "content-length": "65536",
+        "content-range": "bytes 0-65535/674458236",
+        "content-type": "video/mp4",
+        "x-autogram-available": "1310720",
+        "x-autogram-filled": "1310720",
+        "x-autogram-seek-generation": "1",
+        "x-autogram-seek-offset": "262144"
+      }
+    },
+    "far": {
+      "status": 206,
+      "bytes": 262144,
+      "headers": {
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "content-length": "262144",
+        "content-range": "bytes 485609929-485872072/674458236",
+        "content-type": "video/mp4",
+        "x-autogram-available": "4456448",
+        "x-autogram-filled": "5505024",
+        "x-autogram-seek-generation": "1",
+        "x-autogram-seek-offset": "-1"
+      }
+    }
+  },
+  "seek": {
+    "targetTime": 667.68552,
+    "elapsedMs": 1989,
+    "filledBytes": 16515072,
+    "filledRatio": 0.02448642646570039,
+    "finalVideo": {
+      "currentTime": 667.703938,
+      "duration": 927.341,
+      "readyState": 4,
+      "buffered": [
+        [
+          0.08,
+          2.661333
+        ],
+        [
+          667.685313,
+          668.197313
+        ],
+        [
+          670.945,
+          680.316
+        ]
+      ]
+    }
+  },
+  "finishedAt": "2026-07-18T19:01:45.757Z"
+}

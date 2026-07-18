@@ -226,6 +226,21 @@ export function getCachedThumb(folderId: number | null, messageId: number): stri
   return undefined;
 }
 
+/** Seed a just-committed thumbnail without opening another Telegram worker. */
+export function primeThumbCache(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageId: number,
+  dataUrl: string
+): void {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
+  const k = cacheKey(folderId, messageId, activeQuality, creds.session);
+  memCache.set(k, dataUrl);
+  softFailAt.delete(k);
+  errorFailAt.delete(k);
+  void savePersistentThumb(k, dataUrl);
+}
+
 export function clearThumbCache() {
   memCache.clear();
   softFailAt.clear();

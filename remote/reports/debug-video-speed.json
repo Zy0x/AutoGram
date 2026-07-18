@@ -1,0 +1,182 @@
+{
+  "steps": [
+    {
+      "t": "2026-07-18T18:08:55.692Z",
+      "msg": "start",
+      "cdp": "http://127.0.0.1:9222"
+    },
+    {
+      "t": "2026-07-18T18:08:55.780Z",
+      "msg": "cdp_connected"
+    },
+    {
+      "t": "2026-07-18T18:08:55.780Z",
+      "msg": "page_found",
+      "url": "http://localhost:1420/"
+    },
+    {
+      "t": "2026-07-18T18:08:56.393Z",
+      "msg": "screenshot",
+      "label": "01-initial",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-08-55-780Z-01-initial.png"
+    },
+    {
+      "t": "2026-07-18T18:08:56.398Z",
+      "msg": "app_version",
+      "version": "unknown"
+    },
+    {
+      "t": "2026-07-18T18:08:56.398Z",
+      "msg": "navigating_to_media_studio"
+    },
+    {
+      "t": "2026-07-18T18:08:58.213Z",
+      "msg": "studio_clicked"
+    },
+    {
+      "t": "2026-07-18T18:08:58.640Z",
+      "msg": "screenshot",
+      "label": "02-after-nav",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-08-58-213Z-02-after-nav.png"
+    },
+    {
+      "t": "2026-07-18T18:08:58.640Z",
+      "msg": "inspecting_toolbar"
+    },
+    {
+      "t": "2026-07-18T18:08:58.652Z",
+      "msg": "toolbar_inspect",
+      "found": false,
+      "reason": "no .drive-preview-toolbar"
+    },
+    {
+      "t": "2026-07-18T18:08:58.655Z",
+      "msg": "modal_open",
+      "hasModal": false
+    },
+    {
+      "t": "2026-07-18T18:08:58.655Z",
+      "msg": "trying_to_open_video_preview"
+    },
+    {
+      "t": "2026-07-18T18:09:01.379Z",
+      "msg": "video_card_dblclicked"
+    },
+    {
+      "t": "2026-07-18T18:09:01.694Z",
+      "msg": "screenshot",
+      "label": "03-modal-state",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-01-379Z-03-modal-state.png"
+    },
+    {
+      "t": "2026-07-18T18:09:01.708Z",
+      "msg": "modal_inspect",
+      "found": true,
+      "modalClass": "drive-preview-overlay",
+      "toolbar": {
+        "found": true,
+        "class": "drive-preview-toolbar is-video",
+        "mediaKind": "video",
+        "isVideo": true,
+        "hasMenu": false
+      },
+      "video": {
+        "found": true,
+        "src": "http://127.0.0.1:59315/stream/7b8659e204b64078/2073216601009336582.mp4",
+        "readyState": 4,
+        "playbackRate": 1,
+        "paused": false
+      },
+      "rateBtnCandidates": [
+        {
+          "text": "1x",
+          "class": "drive-tool-btn drive-tool-btn-value",
+          "ariaLabel": "Kecepatan putar: 1x",
+          "ariaExpanded": "false",
+          "visible": true,
+          "boundingRect": {
+            "x": 861.8375244140625,
+            "y": 127.8125,
+            "width": 45.63750076293945,
+            "height": 32,
+            "top": 127.8125,
+            "right": 907.475025177002,
+            "bottom": 159.8125,
+            "left": 861.8375244140625
+          }
+        }
+      ],
+      "rateMenuOpen": false,
+      "allToolBtns": [
+        "Kecil",
+        "100%",
+        "Besar",
+        "Kiri",
+        "Kanan",
+        "Cermin",
+        "Balik",
+        "Asli",
+        "1x",
+        "Suara",
+        "Loop",
+        "PiP",
+        "Muat",
+        "Info"
+      ],
+      "styleIssues": []
+    },
+    {
+      "t": "2026-07-18T18:09:01.708Z",
+      "msg": "attempting_rate_btn_click"
+    },
+    {
+      "t": "2026-07-18T18:09:02.828Z",
+      "msg": "screenshot",
+      "label": "04-after-rate-click",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-02-559Z-04-after-rate-click.png"
+    },
+    {
+      "t": "2026-07-18T18:09:02.830Z",
+      "msg": "rate_menu_visible_after_click",
+      "menuVisible": false
+    },
+    {
+      "t": "2026-07-18T18:09:02.830Z",
+      "msg": "injecting_emergency_css_fix"
+    },
+    {
+      "t": "2026-07-18T18:09:02.832Z",
+      "msg": "css_fix_inject",
+      "result": "applied"
+    },
+    {
+      "t": "2026-07-18T18:09:03.093Z",
+      "msg": "screenshot",
+      "label": "06-final",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-02-832Z-06-final.png"
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    {
+      "label": "01-initial",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-08-55-780Z-01-initial.png"
+    },
+    {
+      "label": "02-after-nav",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-08-58-213Z-02-after-nav.png"
+    },
+    {
+      "label": "03-modal-state",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-01-379Z-03-modal-state.png"
+    },
+    {
+      "label": "04-after-rate-click",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-02-559Z-04-after-rate-click.png"
+    },
+    {
+      "label": "06-final",
+      "file": "F:\\AutoGram\\remote\\reports\\screenshots\\speed-2026-07-18T18-09-02-832Z-06-final.png"
+    }
+  ]
+}

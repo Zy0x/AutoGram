@@ -41,11 +41,17 @@ export function DriveTransferSettings({
 }: Props) {
   const titleId = useId();
   const [tab, setTab] = useState<Tab>('upload');
-  const [draft, setDraft] = useState<DriveTransferSettings>(settings);
+  const [draft, setDraft] = useState<DriveTransferSettings>(() => ({
+    ...DEFAULT_TRANSFER_SETTINGS,
+    ...settings,
+  }));
 
   useEffect(() => {
     if (open) {
-      setDraft(settings);
+      setDraft({
+        ...DEFAULT_TRANSFER_SETTINGS,
+        ...settings,
+      });
       setTab('upload');
     }
   }, [open, settings]);

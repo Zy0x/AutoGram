@@ -65,7 +65,30 @@ function DriveFileCardInner({
   const durationLabel = formatDriveDuration(durationSecs);
   const kindLabel = formatDriveKindLabel(file);
   const displayName = driveFileDisplayName(file);
+  
+  let subLabel = '';
+  if (file.icon_type === 'link') {
+    try {
+      const url = file.original_name || file.name || '';
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        subLabel = new URL(url).hostname;
+      } else {
+        subLabel = 'Tautan';
+      }
+    } catch {
+      subLabel = 'Tautan';
+    }
+  } else {
+    subLabel = formatDriveBytes(file.size);
+    if (kindLabel) {
+      subLabel += ` · ${kindLabel}`;
+    }
+  }
+
   const [dragging, setDragging] = useState(false);
+  const [recentlyUploaded, setRecentlyUploaded] = useState(
+    () => !!file.recently_uploaded_at && Date.now() - file.recently_uploaded_at < 4_000
+  );
   const {
     suppressClick,
     movedPastThreshold,
@@ -84,6 +107,18 @@ function DriveFileCardInner({
       resetAfterDrag();
     }
   }, [isDragSource, resetAfterDrag]);
+
+  useEffect(() => {
+    const at = Number(file.recently_uploaded_at || 0);
+    const remaining = 4_000 - (Date.now() - at);
+    if (!at || remaining <= 0) {
+      setRecentlyUploaded(false);
+      return;
+    }
+    setRecentlyUploaded(true);
+    const timer = window.setTimeout(() => setRecentlyUploaded(false), remaining);
+    return () => window.clearTimeout(timer);
+  }, [file.id, file.recently_uploaded_at]);
 
   const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
   const [thumb, setThumb] = useState<string | null>(() =>
@@ -207,7 +242,7 @@ function DriveFileCardInner({
       data-drive-file="1"
       className={`td-file-card ${selected ? 'selected' : ''}${isVideo ? ' is-video' : ''}${
         dragging || isDragSource ? ' is-dragging' : ''
-      }${thumb ? ' has-thumb' : ' no-thumb'}`}
+      }${thumb ? ' has-thumb' : ' no-thumb'}${recentlyUploaded ? ' is-new-upload' : ''}`}
       onMouseEnter={() => onWarmPreview?.()}
       onPointerEnter={() => onWarmPreview?.()}
       onMouseDown={(e) => {
@@ -298,6 +333,7 @@ function DriveFileCardInner({
       title={displayName}
     >
       <div className="td-file-card-inner">
+        {recentlyUploaded && <span className="td-new-upload-badge">Baru diunggah</span>}
         {thumb ? (
           <div className="td-file-thumb-full">
             <img src={thumb} alt="" draggable={false} loading="lazy" decoding="async" />
@@ -357,9 +393,8 @@ function DriveFileCardInner({
           <div className="td-file-card-name" title={displayName}>
             {displayName}
           </div>
-          <div className="td-file-card-sub">
-            <span className="td-file-card-size">{formatDriveBytes(file.size)}</span>
-            {kindLabel ? <span className="td-file-card-kind"> · {kindLabel}</span> : null}
+          <div className="td-file-card-sub" title={file.icon_type === 'link' ? (file.original_name || file.name) : undefined}>
+            <span className="td-file-card-size">{subLabel}</span>
           </div>
         </div>
 

@@ -660,6 +660,7 @@ export function DriveTopBar({
                   ['image', 'Gambar', 'Hanya gambar'],
                   ['video', 'Video', 'Hanya video'],
                   ['document', 'Dokumen', 'Hanya dokumen'],
+                  ['link', 'Link', 'Hanya link / URL'],
                 ] as const
               ).map(([id, label, tip]) => (
                 <button

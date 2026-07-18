@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.6 Fitur Pemfilteran Link & Pratinjau WebPage di Media Drive
+
+Added:
+- Implementasi filter "Link" eksklusif di baris Filter Tipe Media Drive. Link/tautan hanya akan ditampilkan saat tab filter ini ditekan, menjaga tab "Semua" tetap bersih dari tautan.
+- Dukungan ekstraksi dan klasifikasi pesan bertipe link/URL secara otomatis di backend (`drive_fs.py`) melalui deteksi `MessageMediaWebPage` maupun parser teks URL berbasis Telegram entities (`MessageEntityUrl` / `MessageEntityTextUrl`) dan regex fallback.
+- Integrasi pratinjau thumbnail untuk link: backend secara cerdas memetakan dan mengunduh gambar pratinjau situs (WebPage photo preview) ke cache thumbnail, sehingga kartu link di grid dapat menampilkan gambar thumbnail situs yang elegan.
+- Kustomisasi visual kartu link: kartu link menampilkan domain/hostname tautan di sub-label (misal `github.com` atau `youtube.com`) alih-alih ukuran file `0 B`, dengan tooltip hover yang menunjukkan URL lengkap.
+- Penanganan navigasi link: klik ganda atau menekan tombol Preview pada kartu link akan membuka tautan tersebut secara langsung di browser eksternal sistem menggunakan Tauri `@tauri-apps/plugin-opener` (atau fallback `window.open` di web/browser).
+
 ## v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
 
 Added:

@@ -1,0 +1,701 @@
+{
+  "startedAt": "2026-07-18T14:31:44.289Z",
+  "peerId": -1003214112048,
+  "topicId": 5,
+  "files": [
+    "01-lease-guard-first-priority.mp4",
+    "02-lease-guard-no-audio.mp4",
+    "03-lease-guard-portrait.mp4",
+    "04-lease-guard-reencode-vp9.webm",
+    "05-lease-guard-webm-audio.webm",
+    "06-lease-guard-small.mp4",
+    "07-lease-guard-small.mp4",
+    "08-lease-guard-small.mp4",
+    "09-lease-guard-small.mp4",
+    "10-lease-guard-small.mp4"
+  ],
+  "snapshots": [
+    {
+      "at": "2026-07-18T14:31:45.310Z",
+      "active": true,
+      "overallPercent": 0,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:31:50.453Z",
+      "active": true,
+      "overallPercent": 10,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "queued",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:31:55.628Z",
+      "active": true,
+      "overallPercent": 20,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "done",
+          "messageId": 42702,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:32:00.705Z",
+      "active": true,
+      "overallPercent": 40,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "done",
+          "messageId": 42702,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "done",
+          "messageId": 42703,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "done",
+          "messageId": 42704,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:32:05.798Z",
+      "active": true,
+      "overallPercent": 60,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "done",
+          "messageId": 42702,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "done",
+          "messageId": 42703,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "done",
+          "messageId": 42704,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "done",
+          "messageId": 42705,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42706,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:32:10.872Z",
+      "active": true,
+      "overallPercent": 70,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "done",
+          "messageId": 42702,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "done",
+          "messageId": 42703,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "done",
+          "messageId": 42704,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "done",
+          "messageId": 42705,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42706,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42707,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "committing",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    },
+    {
+      "at": "2026-07-18T14:32:15.928Z",
+      "active": true,
+      "overallPercent": 90,
+      "items": [
+        {
+          "index": 0,
+          "name": "01-lease-guard-first-priority.mp4",
+          "status": "done",
+          "messageId": 42701,
+          "error": null
+        },
+        {
+          "index": 1,
+          "name": "02-lease-guard-no-audio.mp4",
+          "status": "done",
+          "messageId": 42702,
+          "error": null
+        },
+        {
+          "index": 2,
+          "name": "03-lease-guard-portrait.mp4",
+          "status": "done",
+          "messageId": 42703,
+          "error": null
+        },
+        {
+          "index": 3,
+          "name": "04-lease-guard-reencode-vp9.webm",
+          "status": "done",
+          "messageId": 42704,
+          "error": null
+        },
+        {
+          "index": 4,
+          "name": "05-lease-guard-webm-audio.webm",
+          "status": "done",
+          "messageId": 42705,
+          "error": null
+        },
+        {
+          "index": 5,
+          "name": "06-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42706,
+          "error": null
+        },
+        {
+          "index": 6,
+          "name": "07-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42707,
+          "error": null
+        },
+        {
+          "index": 7,
+          "name": "08-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42708,
+          "error": null
+        },
+        {
+          "index": 8,
+          "name": "09-lease-guard-small.mp4",
+          "status": "done",
+          "messageId": 42709,
+          "error": null
+        },
+        {
+          "index": 9,
+          "name": "10-lease-guard-small.mp4",
+          "status": "uploaded",
+          "messageId": 0,
+          "error": null
+        }
+      ],
+      "banner": null
+    }
+  ],
+  "messageIds": [
+    42701,
+    42702,
+    42703,
+    42704,
+    42705,
+    42706,
+    42707,
+    42708,
+    42709,
+    42710
+  ],
+  "cleanup": {
+    "deleted": 10
+  },
+  "final": {
+    "active": false,
+    "overallPercent": 100,
+    "items": [
+      {
+        "index": 0,
+        "name": "01-lease-guard-first-priority.mp4",
+        "status": "done",
+        "messageId": 42701,
+        "error": null
+      },
+      {
+        "index": 1,
+        "name": "02-lease-guard-no-audio.mp4",
+        "status": "done",
+        "messageId": 42702,
+        "error": null
+      },
+      {
+        "index": 2,
+        "name": "03-lease-guard-portrait.mp4",
+        "status": "done",
+        "messageId": 42703,
+        "error": null
+      },
+      {
+        "index": 3,
+        "name": "04-lease-guard-reencode-vp9.webm",
+        "status": "done",
+        "messageId": 42704,
+        "error": null
+      },
+      {
+        "index": 4,
+        "name": "05-lease-guard-webm-audio.webm",
+        "status": "done",
+        "messageId": 42705,
+        "error": null
+      },
+      {
+        "index": 5,
+        "name": "06-lease-guard-small.mp4",
+        "status": "done",
+        "messageId": 42706,
+        "error": null
+      },
+      {
+        "index": 6,
+        "name": "07-lease-guard-small.mp4",
+        "status": "done",
+        "messageId": 42707,
+        "error": null
+      },
+      {
+        "index": 7,
+        "name": "08-lease-guard-small.mp4",
+        "status": "done",
+        "messageId": 42708,
+        "error": null
+      },
+      {
+        "index": 8,
+        "name": "09-lease-guard-small.mp4",
+        "status": "done",
+        "messageId": 42709,
+        "error": null
+      },
+      {
+        "index": 9,
+        "name": "10-lease-guard-small.mp4",
+        "status": "done",
+        "messageId": 42710,
+        "error": null
+      }
+    ],
+    "banner": null
+  },
+  "order": [
+    {
+      "name": "01-lease-guard-first-priority.mp4",
+      "messageId": 42701
+    },
+    {
+      "name": "02-lease-guard-no-audio.mp4",
+      "messageId": 42702
+    },
+    {
+      "name": "03-lease-guard-portrait.mp4",
+      "messageId": 42703
+    },
+    {
+      "name": "04-lease-guard-reencode-vp9.webm",
+      "messageId": 42704
+    },
+    {
+      "name": "05-lease-guard-webm-audio.webm",
+      "messageId": 42705
+    },
+    {
+      "name": "06-lease-guard-small.mp4",
+      "messageId": 42706
+    },
+    {
+      "name": "07-lease-guard-small.mp4",
+      "messageId": 42707
+    },
+    {
+      "name": "08-lease-guard-small.mp4",
+      "messageId": 42708
+    },
+    {
+      "name": "09-lease-guard-small.mp4",
+      "messageId": 42709
+    },
+    {
+      "name": "10-lease-guard-small.mp4",
+      "messageId": 42710
+    }
+  ],
+  "passed": true,
+  "finishedAt": "2026-07-18T14:32:22.105Z"
+}

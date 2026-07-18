@@ -8,6 +8,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -21,6 +22,104 @@ fn worker_pids() -> &'static Mutex<HashMap<i64, u32>> {
 fn worker_stdins() -> &'static Mutex<HashMap<i64, ChildStdin>> {
     static MAP: OnceLock<Mutex<HashMap<i64, ChildStdin>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Hashed Telegram session key -> exclusive transfer owner.
+///
+/// The raw session name and Telegram credentials never enter this map. The
+/// frontend reserves the lease before stopping drive-serve so no one-shot
+/// Drive worker can race into the hand-off gap.
+fn worker_session_leases() -> &'static Mutex<HashMap<String, WorkerSessionLease>> {
+    static MAP: OnceLock<Mutex<HashMap<String, WorkerSessionLease>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WorkerSessionLease {
+    session_key_hash: String,
+    transfer_id: String,
+    job_id: i64,
+    acquired_at_ms: u128,
+}
+
+fn now_epoch_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
+
+fn acquire_session_lease_inner(
+    session_key_hash: String,
+    transfer_id: String,
+    job_id: i64,
+) -> Result<WorkerSessionLease, String> {
+    if session_key_hash.trim().is_empty() || transfer_id.trim().is_empty() {
+        return Err("session lease key and transfer id are required".into());
+    }
+    let mut leases = worker_session_leases()
+        .lock()
+        .map_err(|e| format!("session lease lock: {e}"))?;
+    if let Some(existing) = leases.get(&session_key_hash) {
+        if existing.transfer_id == transfer_id && existing.job_id == job_id {
+            return Ok(existing.clone());
+        }
+        return Err(format!(
+            "Telegram session is already owned by transfer {}",
+            existing.transfer_id
+        ));
+    }
+    let lease = WorkerSessionLease {
+        session_key_hash: session_key_hash.clone(),
+        transfer_id,
+        job_id,
+        acquired_at_ms: now_epoch_ms(),
+    };
+    leases.insert(session_key_hash, lease.clone());
+    Ok(lease)
+}
+
+fn release_session_lease_inner(session_key_hash: &str, transfer_id: &str) -> bool {
+    let Ok(mut leases) = worker_session_leases().lock() else {
+        return false;
+    };
+    let matches = leases
+        .get(session_key_hash)
+        .map(|lease| lease.transfer_id == transfer_id)
+        .unwrap_or(false);
+    if matches {
+        leases.remove(session_key_hash);
+    }
+    matches
+}
+
+fn release_session_leases_for_job(job_id: i64) {
+    if let Ok(mut leases) = worker_session_leases().lock() {
+        leases.retain(|_, lease| lease.job_id != job_id);
+    }
+}
+
+#[tauri::command]
+fn acquire_worker_session_lease(
+    session_key_hash: String,
+    transfer_id: String,
+    job_id: i64,
+) -> Result<WorkerSessionLease, String> {
+    acquire_session_lease_inner(session_key_hash, transfer_id, job_id)
+}
+
+#[tauri::command]
+fn get_worker_session_lease(session_key_hash: String) -> Result<Option<WorkerSessionLease>, String> {
+    let leases = worker_session_leases()
+        .lock()
+        .map_err(|e| format!("session lease lock: {e}"))?;
+    Ok(leases.get(&session_key_hash).cloned())
+}
+
+#[tauri::command]
+fn release_worker_session_lease(session_key_hash: String, transfer_id: String) -> Result<bool, String> {
+    Ok(release_session_lease_inner(&session_key_hash, &transfer_id))
 }
 
 #[derive(Clone, Serialize)]
@@ -273,6 +372,7 @@ async fn start_worker_job(
         if let Ok(mut map) = worker_stdins().lock() {
             map.remove(&job_id);
         }
+        release_session_leases_for_job(job_id);
         // Small delay so last stdout lines flush through the other threads
         thread::sleep(std::time::Duration::from_millis(80));
         let _ = app_wait.emit(
@@ -545,6 +645,9 @@ pub fn run() {
             greet,
             start_worker_job,
             kill_worker_job,
+            acquire_worker_session_lease,
+            get_worker_session_lease,
+            release_worker_session_lease,
             cleanup_partial_downloads,
             write_worker_stdin,
             run_worker_once,
@@ -570,4 +673,22 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod session_lease_tests {
+    use super::*;
+
+    #[test]
+    fn lease_is_atomic_and_owner_scoped() {
+        let key = format!("test-key-{}", now_epoch_ms());
+        let first = acquire_session_lease_inner(key.clone(), "transfer-a".into(), 42).unwrap();
+        assert_eq!(first.job_id, 42);
+        assert!(acquire_session_lease_inner(key.clone(), "transfer-b".into(), 43).is_err());
+        assert!(!release_session_lease_inner(&key, "transfer-b"));
+        assert!(release_session_lease_inner(&key, "transfer-a"));
+        assert!(acquire_session_lease_inner(key.clone(), "transfer-b".into(), 43).is_ok());
+        release_session_leases_for_job(43);
+        assert!(worker_session_leases().lock().unwrap().get(&key).is_none());
+    }
 }

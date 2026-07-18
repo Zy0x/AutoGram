@@ -11,6 +11,8 @@ export type DriveFile = {
   file_ext?: string | null;
   created_at?: string;
   icon_type: DriveIconType | string;
+  /** Local-only timestamp used for the one-shot post-upload card feedback. */
+  recently_uploaded_at?: number;
   /** Forum topic id when media belongs to a topic */
   topic_id?: number | null;
   /** Video/audio duration in seconds (from Telegram attributes) */
@@ -330,7 +332,7 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
   }
 }
 
-export type DriveMediaFilter = 'all' | 'image' | 'video' | 'document';
+export type DriveMediaFilter = 'all' | 'image' | 'video' | 'document' | 'link';
 export type QualityMode = 'HIGH_QUALITY' | 'SMART' | 'ORIGINAL';
 export type ReencodeHardware = 'auto' | 'nvidia' | 'amd' | 'intel' | 'cpu';
 export type ReencodePreset = 'speed' | 'balanced' | 'quality';
@@ -518,6 +520,10 @@ export type TransferItemStatus =
   | 'queued'
   | 'preparing'
   | 'active'
+  | 'uploaded'
+  | 'waiting_commit'
+  | 'committing'
+  | 'needs_verification'
   | 'paused'
   | 'done'
   | 'failed'
@@ -565,6 +571,10 @@ export type TransferSession = {
   peak_mb_s: number;
   transferred: number;
   total: number;
+  /** Upload byte metrics stay separate from ordered commit/terminal progress. */
+  uploadedBytes?: number;
+  committedCount?: number;
+  needsVerificationCount?: number;
   etaSeconds: number | null;
   label: string;
   banner?: string;
@@ -875,10 +885,18 @@ export function canShowDriveThumb(file: DriveFile): boolean {
 }
 
 export function matchesMediaFilter(file: DriveFile, filter: DriveMediaFilter): boolean {
+  // Links should only match the 'link' filter, never show up under 'all' or others
+  if (file.icon_type === 'link') {
+    return filter === 'link';
+  }
+  if (filter === 'link') {
+    return false;
+  }
+
   if (filter === 'all') return true;
   if (filter === 'image') return isImageDriveFile(file);
   if (filter === 'video') return isVideoDriveFile(file);
-  // document = non image/video (includes true docs; document-as-media counts as image/video)
+  // document = non image/video/link
   return !isImageDriveFile(file) && !isVideoDriveFile(file);
 }
 

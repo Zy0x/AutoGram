@@ -47,6 +47,7 @@ BIG_FILE_THRESHOLD = 10 * 1024 * 1024
 CONCURRENT_MIN_BYTES = 256 * 1024
 
 ProgressCB = Optional[Callable[[int, int], None]]
+PartDoneCB = Optional[Callable[[int, int, int], None]]
 _UPLOAD_LIMIT_CACHE = {}
 _UPLOAD_LIMIT_CACHE_TTL_SECONDS = 600.0
 DEFAULT_UPLOAD_MAX_PARTS = 4000
@@ -337,6 +338,9 @@ async def fast_upload_file(
     file_name: Optional[str] = None,
     progress_callback: ProgressCB = None,
     upload_policy: Optional[UploadPolicy] = None,
+    upload_id: Optional[int] = None,
+    part_done_callback: PartDoneCB = None,
+    acknowledged_parts: Optional[set[int]] = None,
 ) -> object:
     """
     Upload a local file with concurrent part workers when beneficial.
@@ -374,10 +378,15 @@ async def fast_upload_file(
         # Big uploads are forced to Telegram's largest legal part size above,
         # so the pure 512-KiB plan is identical to the request plan below.
         part_count = preflight_upload_size(file_size, policy)
-    file_id = random.randrange(1, 2**63 - 1)
+    # A stable upload id keeps acknowledged part indexes reusable across
+    # reconnects. Callers may persist it in the transfer safety journal.
+    file_id = int(upload_id or random.randrange(1, 2**63 - 1))
     name = file_name or os.path.basename(path) or "file"
 
-    transferred = 0
+    acknowledged = {int(i) for i in (acknowledged_parts or set()) if 0 <= int(i) < part_count}
+    transferred = sum(
+        max(0, min(part_size, file_size - index * part_size)) for index in acknowledged
+    )
     lock = asyncio.Lock()
     next_idx = 0
     idx_lock = asyncio.Lock()
@@ -471,6 +480,8 @@ async def fast_upload_file(
                     return
                 idx = next_idx
                 next_idx += 1
+            if idx in acknowledged:
+                continue
             data = await asyncio.to_thread(_read_part, idx)
             if not data:
                 continue
@@ -479,6 +490,11 @@ async def fast_upload_file(
             else:
                 req = SaveFilePartRequest(file_id, idx, data)
             await _call_with_flood(client, req)
+            if part_done_callback:
+                try:
+                    part_done_callback(idx, len(data), file_id)
+                except Exception:
+                    pass
             async with lock:
                 transferred += len(data)
                 if progress_callback:
@@ -495,13 +511,12 @@ async def fast_upload_file(
                 "Telegram menolak jumlah part file. AutoGram menghentikan fallback agar tidak "
                 "mengunggah ulang gigabyte yang sama; aktifkan High Quality/Smart untuk video besar."
             ) from exc
-        # Fallback sequential Telethon path (only for transient/unknown errors)
-        return await client.upload_file(
-            path,
-            part_size_kb=part_size_kb,
-            file_name=name,
-            progress_callback=progress_callback,
-        )
+        # Never fall back to client.upload_file here: it allocates a new file id
+        # and retransmits every acknowledged part, wasting the user's quota.
+        raise RuntimeError(
+            "Upload part terhenti setelah retry aman. AutoGram tidak mengunggah ulang file dari awal; "
+            "silakan retry manual setelah koneksi stabil."
+        ) from exc
     finally:
         await asyncio.to_thread(_close_reader)
 
