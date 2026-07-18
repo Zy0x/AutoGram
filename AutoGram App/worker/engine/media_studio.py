@@ -732,6 +732,22 @@ async def _send_one(
         agg.on_item(item.index, cur, tot or item.size)
 
     msg = None
+    async def _check_recent_sent():
+        try:
+            # Iterate over the last 5 messages in the channel/chat
+            async for msg in client.iter_messages(entity, limit=5):
+                if msg.date and (time.time() - msg.date.timestamp() < 120):
+                    if msg.media and msg.file:
+                        m_name = msg.file.name
+                        m_size = msg.file.size
+                        if m_name == final_file_name:
+                            if not item.size or m_size == item.size:
+                                emit_event("LogEvent", level="INFO", message=f"Detected duplicate message already sent on Telegram: message_id {msg.id}")
+                                return msg
+        except Exception as e:
+            emit_event("LogEvent", level="DEBUG", message=f"Failed to check recent sent: {e}")
+        return None
+
     try:
         async def _send_with_retry(send_func, *args, **kwargs):
             import sqlite3 as _sqlite3
@@ -761,6 +777,10 @@ async def _send_one(
                 except (OSError, asyncio.CancelledError, Exception) as e:
                     if isinstance(e, asyncio.CancelledError):
                         raise
+                    # Before retrying, check if it was actually already sent
+                    recent_msg = await _check_recent_sent()
+                    if recent_msg:
+                        return recent_msg
                     retries += 1
                     if retries > 3:
                         raise

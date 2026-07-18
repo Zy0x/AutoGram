@@ -2905,6 +2905,19 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       return;
     }
 
+    if (!creds) {
+      const hasSessionName = !!localStorage.getItem('autogram_drive_session');
+      if (hasSessionName) {
+        setTimeout(() => {
+          void processNextQueueTask();
+        }, 1000);
+      } else {
+        taskRunningRef.current = false;
+        setError("Silakan pilih session Telegram terlebih dahulu sebelum melakukan transfer.");
+      }
+      return;
+    }
+
     taskRunningRef.current = true;
     const task = transferQueueRef.current[0];
     const skipRestartWarm = transferQueueRef.current.length > 1;
