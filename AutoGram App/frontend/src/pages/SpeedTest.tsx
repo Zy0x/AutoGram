@@ -89,6 +89,7 @@ import {
   driveSyncBackoffMs,
   getDriveLiveSyncPlan,
   reconcileDriveLiveHead,
+  dedupeByMsgId,
 } from '../lib/driveLiveSync';
 import {
   driveScrollLocationKey,
@@ -965,8 +966,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
       const location = loadDriveLocationSnapshot(localStorage, next, null, null);
       if (location) {
-        filesCacheRef.current.set('null_', location.files);
-        setFiles(location.files);
+        const dedupedLocFiles = dedupeByMsgId(location.files);
+        filesCacheRef.current.set('null_', dedupedLocFiles);
+        setFiles(dedupedLocFiles);
         setFilesHasMore(location.hasMore);
         setNextOffsetId(location.nextOffsetId);
         if (location.totalCount != null) setTotalFileCount(location.totalCount);
@@ -2006,7 +2008,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
     const instantFiles = cachedFiles ?? persisted?.files;
     if (instantFiles) {
-      setFiles(instantFiles);
+      setFiles(dedupeByMsgId(instantFiles));
       const cachedCount = filesTotalCountRef.current.get(cacheKey);
       if (cachedCount != null) setTotalFileCount(clampMediaTotal(cachedCount, instantFiles));
       else if (persisted?.totalCount != null) {
@@ -2056,7 +2058,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (gen !== peerGen.current) return;
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
-      const page: DriveFile[] = res.files || [];
+      const page: DriveFile[] = dedupeByMsgId(res.files || []);
 
       // Update cache — only apply totals that belong to this peer+topic key
       filesCacheRef.current.set(cacheKey, page);
@@ -2561,8 +2563,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         const location = loadDriveLocationSnapshot(localStorage, creds.session, null, null);
         if (location) {
           const key = `null_`;
-          filesCacheRef.current.set(key, location.files);
-          setFiles(location.files);
+          const dedupedBootFiles = dedupeByMsgId(location.files);
+          filesCacheRef.current.set(key, dedupedBootFiles);
+          setFiles(dedupedBootFiles);
           setFilesHasMore(location.hasMore);
           setNextOffsetId(location.nextOffsetId);
           if (location.totalCount != null) {
@@ -2578,7 +2581,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const cachedFiles = sessionStorage.getItem(`drive_root_files_${creds.session}`);
           if (cachedFiles) {
             const parsed = JSON.parse(cachedFiles);
-            setFiles(parsed.files || []);
+            setFiles(dedupeByMsgId(parsed.files || []));
             if (parsed.totalCount != null) setTotalFileCount(Number(parsed.totalCount));
             if (parsed.totalBytes != null) setTotalBytes(Number(parsed.totalBytes));
           }
