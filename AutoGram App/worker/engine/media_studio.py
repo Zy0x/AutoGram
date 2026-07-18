@@ -605,8 +605,12 @@ async def _upload_bytes(
         def cb(cur, tot):
             agg.on_item(item.index, cur, tot or item.size)
 
+        retries = 0
         while True:
             try:
+                if not client.is_connected():
+                    emit_event("LogEvent", level="INFO", message="Telegram client disconnected, reconnecting before upload...")
+                    await client.connect()
                 return await fast_upload_file(
                     client,
                     path,
@@ -624,6 +628,23 @@ async def _upload_bytes(
                     await asyncio.sleep(min(5, remaining))
                 emit_event("FloodWaitResolved", status="RESUMING", index=item.index)
                 part_workers = max(2, part_workers // 2)
+            except (OSError, asyncio.CancelledError, Exception) as e:
+                if isinstance(e, asyncio.CancelledError):
+                    raise
+                retries += 1
+                if retries > 3:
+                    raise
+                wait_time = 2 * retries
+                emit_event("LogEvent", level="WARNING", message=f"Upload error: {e}. Reconnect & retry {retries}/3 in {wait_time}s...")
+                try:
+                    await client.disconnect()
+                except Exception:
+                    pass
+                await asyncio.sleep(wait_time)
+                try:
+                    await client.connect()
+                except Exception as conn_err:
+                    emit_event("LogEvent", level="WARNING", message=f"Reconnect failed: {conn_err}")
 
 
 async def _send_one(
@@ -714,8 +735,12 @@ async def _send_one(
         async def _send_with_retry(send_func, *args, **kwargs):
             import sqlite3 as _sqlite3
             db_lock_attempts = 0
+            retries = 0
             while True:
                 try:
+                    if not client.is_connected():
+                        emit_event("LogEvent", level="INFO", message="Telegram client disconnected before commit, reconnecting...")
+                        await client.connect()
                     return await send_func(*args, **kwargs)
                 except FloodWaitError as e:
                     wait_seconds = int(e.seconds)
@@ -732,6 +757,23 @@ async def _send_one(
                         await asyncio.sleep(0.5 + db_lock_attempts * 0.4)
                         continue
                     raise
+                except (OSError, asyncio.CancelledError, Exception) as e:
+                    if isinstance(e, asyncio.CancelledError):
+                        raise
+                    retries += 1
+                    if retries > 3:
+                        raise
+                    wait_time = 2 * retries
+                    emit_event("LogEvent", level="WARNING", message=f"Commit error: {e}. Reconnect & retry {retries}/3 in {wait_time}s...")
+                    try:
+                        await client.disconnect()
+                    except Exception:
+                        pass
+                    await asyncio.sleep(wait_time)
+                    try:
+                        await client.connect()
+                    except Exception as conn_err:
+                        emit_event("LogEvent", level="WARNING", message=f"Reconnect failed: {conn_err}")
 
         if uploaded_handle is not None:
             try:
