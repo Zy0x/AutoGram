@@ -9,6 +9,9 @@ Added:
 - Kustomisasi visual kartu link: kartu link menampilkan domain/hostname tautan di sub-label (misal `github.com` atau `youtube.com`) alih-alih ukuran file `0 B`, dengan tooltip hover yang menunjukkan URL lengkap.
 - Penanganan navigasi link: klik ganda atau menekan tombol Preview pada kartu link akan membuka tautan tersebut secara langsung di browser eksternal sistem menggunakan Tauri `@tauri-apps/plugin-opener` (atau fallback `window.open` di web/browser).
 
+Fixed:
+- Perbaikan pemuatan thumbnail pada kartu link. Kondisi `isTextDriveFile` sebelumnya keliru mendeteksi link sebagai file teks biasa (karena MIME type `text/html`), yang memblokir penayangan thumbnail pratinjau halaman di antarmuka grid.
+
 ## v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
 
 Added:

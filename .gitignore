@@ -62,6 +62,11 @@ venv.bak/
 # Telethon Sessions (CRITICAL)
 *.session
 *.session-journal
+*.session-shm
+*.session-wal
+AutoGram App/worker/cache/
+AutoGram App/worker/sessions/
+AutoGram App/worker/temp/
 
 # Database
 *.sqlite

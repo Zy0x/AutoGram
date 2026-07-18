@@ -826,6 +826,7 @@ export function isZipDriveFile(file: DriveFile): boolean {
 }
 
 export function isTextDriveFile(file: DriveFile): boolean {
+  if (file.icon_type === 'link') return false;
   if (isPdfDriveFile(file) || isImageDriveFile(file) || isVideoDriveFile(file)) return false;
   const mime = (file.mime_type || '').toLowerCase();
   if (mime.startsWith('text/')) return true;
@@ -872,6 +873,9 @@ export function canPreviewInApp(file: DriveFile): boolean {
  * (and waste bandwidth). Backend may still set has_thumb for misclassified docs.
  */
 export function canShowDriveThumb(file: DriveFile): boolean {
+  if (file.icon_type === 'link') {
+    return file.has_thumb === true;
+  }
   // Never paint raw text/JSON as a full-bleed card image
   if (isTextDriveFile(file)) return false;
   if (file.has_thumb === true) return true;
