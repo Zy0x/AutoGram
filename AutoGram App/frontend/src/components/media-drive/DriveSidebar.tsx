@@ -167,7 +167,7 @@ type Props = {
   channelLimitWarning?: string | null;
   /** Real-time ping and connection strength state */
   pingState?: {
-    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor';
+    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor' | 'transferring';
     ms: number | null;
   };
 };
@@ -469,6 +469,7 @@ export function DriveSidebar({
   pingState,
 }: Props) {
   const getPingTooltip = () => {
+    if (pingState?.status === 'transferring') return 'Telegram: Sedang mentransfer data (Session terkunci eksklusif)';
     if (!pingState) return connected ? 'Drive Terhubung' : 'Terhubung';
     if (pingState.status === 'offline') return 'Internet Terputus (Device Offline)';
     if (pingState.status === 'disconnected') return 'Telegram Terputus (Lost)';
@@ -1481,6 +1482,7 @@ export function DriveSidebar({
           <span className="td-conn-text">
             {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
             {pingState?.status === 'disconnected' && 'Terputus'}
+            {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
             {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sangat Kuat`}
             {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Kuat`}
             {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sedang`}

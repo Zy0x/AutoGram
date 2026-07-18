@@ -1799,6 +1799,10 @@
   background-color: #6b7280; /* Gray */
   box-shadow: 0 0 6px rgba(107, 114, 128, 0.6);
 }
+.td-conn-dot.transferring {
+  background-color: #38bdf8; /* Sky Blue */
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
 
 /* Pulsing effect */
 .td-conn-dot.pulse {
@@ -1855,6 +1859,10 @@
 .td-rail-conn-dot.offline {
   background-color: #6b7280;
   box-shadow: 0 0 6px rgba(107, 114, 128, 0.55);
+}
+.td-rail-conn-dot.transferring {
+  background-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.55);
 }
 .td-rail-conn-dot.pulse {
   animation: conn-pulse 2s infinite ease-in-out;

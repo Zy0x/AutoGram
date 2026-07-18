@@ -32,6 +32,7 @@ export type DriveCredentials = {
 };
 
 async function ensureWarmDriveSession(creds: DriveCredentials): Promise<boolean> {
+  if (isTransferJobActive()) return false;
   if (isDriveSessionReadyFor(creds)) return true;
   return ensureDriveSession(creds);
 }
@@ -410,6 +411,9 @@ export async function driveDeleteFolder(
   folderId: number,
   opts?: DriveDeleteFolderOpts
 ) {
+  if (isTransferJobActive()) {
+    throw new Error('Tidak dapat mengubah folder saat proses transfer aktif.');
+  }
   const fid = Number(folderId);
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
   const cascade = !!opts?.cascade;
@@ -459,6 +463,9 @@ export async function driveRenameFolder(
   folderId: number,
   name: string
 ) {
+  if (isTransferJobActive()) {
+    throw new Error('Tidak dapat mengubah folder saat proses transfer aktif.');
+  }
   const fid = Number(folderId);
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
   const clean = String(name || '').trim();
@@ -504,6 +511,9 @@ export async function driveSetFolderParent(
   folderId: number,
   parentId: number | null
 ) {
+  if (isTransferJobActive()) {
+    throw new Error('Tidak dapat mengubah folder saat proses transfer aktif.');
+  }
   const fid = Number(folderId);
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
   const pid =

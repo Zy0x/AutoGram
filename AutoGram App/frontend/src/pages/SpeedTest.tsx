@@ -74,6 +74,7 @@ import {
   scheduleDriveSessionStop,
   isDriveSessionReadyFor,
   driveSessionCall,
+  stopDriveSession,
 } from '../lib/driveSession';
 
 import {
@@ -513,6 +514,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     ) => void
   >(() => {});
   const peerGen = useRef(0);
+  const sessionLockRetriesRef = useRef(0);
   const loadMoreLock = useRef(false);
   const topicFilterRef = useRef<DriveTopicFilter>(null);
   const liveFilesRef = useRef(files);
@@ -716,7 +718,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const [driveReady, setDriveReady] = useState(false);
 
   interface PingState {
-    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor';
+    status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor' | 'transferring';
     ms: number | null;
   }
 
@@ -759,6 +761,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         if (active) {
           setPingState({ status: 'offline', ms: null });
+        }
+        scheduleNext(3000);
+        return;
+      }
+
+      if (isTransferJobActive()) {
+        if (active) {
+          setPingState({ status: 'transferring', ms: null });
         }
         scheduleNext(3000);
         return;
@@ -1494,6 +1504,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           liveSyncLastAtRef.current.set(bootKey, Date.now());
           liveSyncFailuresRef.current = 0;
           liveSyncBackoffUntilRef.current = 0;
+          sessionLockRetriesRef.current = 0;
           if (res.total_count != null) {
             const n = Number(res.total_count);
             if (Number.isFinite(n)) {
@@ -1570,8 +1581,19 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           quickStats: false,
         })
           .then(applyFiles)
-          .catch((e) => {
+          .catch(async (e) => {
             if (gen !== peerGen.current) return;
+            if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
+              sessionLockRetriesRef.current += 1;
+              setStatusText('Koneksi terkunci. Memulihkan session...');
+              try {
+                await stopDriveSession();
+                await new Promise((r) => setTimeout(r, 450));
+              } catch { /* ignore */ }
+              void refreshLocations();
+              return;
+            }
+            sessionLockRetriesRef.current = 0;
             // Warm path must recover PeerChannel here — .catch swallows so the
             // outer try/catch never sees the error (poisoned location stick).
             if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
@@ -1722,6 +1744,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         chatPageSize: getDrivePerfProfile().chatPage,
         topicId: tid,
       });
+      sessionLockRetriesRef.current = 0;
       if (gen !== peerGen.current) return;
       const bootCursor: ChatListCursor = {
         offset_id: boot.chats_next_offset_id ?? null,
@@ -1855,6 +1878,17 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         });
     } catch (e: any) {
       if (gen !== peerGen.current) return;
+      if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
+        sessionLockRetriesRef.current += 1;
+        setStatusText('Koneksi terkunci. Memulihkan session...');
+        try {
+          await stopDriveSession();
+          await new Promise((r) => setTimeout(r, 450));
+        } catch { /* ignore */ }
+        void refreshLocations();
+        return;
+      }
+      sessionLockRetriesRef.current = 0;
       if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
       setError(friendlyDriveError(e));
     } finally {
