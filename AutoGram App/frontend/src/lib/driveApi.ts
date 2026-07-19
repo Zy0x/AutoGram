@@ -670,6 +670,26 @@ export async function driveListFiles(
   return runDrive(creds, extra);
 }
 
+export async function driveGetFile(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageId: number
+) {
+  if (await ensureWarmDriveSession(creds)) {
+    return driveSessionCallFor(creds, 'get_message', {
+      folder_id: folderId,
+      message_id: messageId,
+    });
+  }
+  return runDrive(creds, [
+    '--drive-action',
+    'get-message',
+    ...folderArg(folderId),
+    '--options-json',
+    JSON.stringify({ message_id: messageId }),
+  ]);
+}
+
 /**
  * Accurate media count + total bytes for a location (unique message ids).
  * Independent of pagination — walks Telegram media filters (metadata only).

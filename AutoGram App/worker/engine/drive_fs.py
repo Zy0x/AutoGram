@@ -2874,15 +2874,18 @@ def message_to_drive_file(msg, folder_id: Optional[int]) -> Optional[Dict[str, A
     link_url = ""
     link_title = ""
 
-    # Check if it is a link first
-    link_url = _extract_url_from_message(msg)
-    if link_url:
-        is_link = True
-        link_title = _get_link_title(msg, link_url)
+    # A message is a media file if it contains MessageMediaPhoto or MessageMediaDocument.
+    # We should only treat it as a link if it doesn't contain actual file attachments or photos.
+    has_real_media = msg.media and isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument))
 
-    if not is_link:
-        if not msg.media or not isinstance(msg.media, (MessageMediaPhoto, MessageMediaDocument)):
-            return None
+    if not has_real_media:
+        link_url = _extract_url_from_message(msg)
+        if link_url:
+            is_link = True
+            link_title = _get_link_title(msg, link_url)
+
+    if not is_link and not has_real_media:
+        return None
 
     if is_link:
         created = msg.date

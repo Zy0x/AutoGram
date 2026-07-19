@@ -536,7 +536,7 @@ export function DrivePreviewModal({
   );
 
   const loadPreview = useCallback(
-    async (q: string, opts?: { resumeAt?: number; soft?: boolean }) => {
+    async (q: string, opts?: { resumeAt?: number; soft?: boolean; deferredRetryCount?: number }) => {
       if (mountGenRef.current !== activeMountGen) return;
       const seq = ++loadSeq.current;
       const soft = !!opts?.soft;
@@ -595,9 +595,25 @@ export function DrivePreviewModal({
       } catch (e: any) {
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
+
+        const raw = String(e?.message || e || '');
+        const isDeferred = /drive read deferred/i.test(raw);
+        const retryCount = opts?.deferredRetryCount ?? 0;
+
+        if (isDeferred && retryCount < 6) {
+          setPlayerHint(`Drive sedang sibuk transfer file... Mencoba kembali otomatis (percobaan ${retryCount + 1}/6)...`);
+          setLoading(true);
+          setError(null);
+          setTimeout(() => {
+            if (mountGenRef.current !== activeMountGen) return;
+            if (seq !== loadSeq.current) return;
+            void loadPreview(q, { ...opts, deferredRetryCount: retryCount + 1, soft: true });
+          }, 1500);
+          return;
+        }
+
         // Keep cached playback if we already painted a hit
         if (!hasUsable) {
-          const raw = String(e?.message || e || '');
           const disconnected =
             /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended/i.test(
               raw

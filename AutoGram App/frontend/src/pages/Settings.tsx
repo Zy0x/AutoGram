@@ -72,7 +72,7 @@ export function Settings() {
       // 1. IndexedDB Persistent Thumbs
       let idbSize = 0;
       try {
-        idbSize = await calculatePersistentThumbsSize();
+        idbSize = await getPersistentThumbsSize();
       } catch (e) {
         console.warn('Failed to calculate IDB size', e);
       }

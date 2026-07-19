@@ -40,6 +40,7 @@ import {
   driveCreateFolder,
   driveDeleteFolder,
   driveListFiles,
+  driveGetFile,
   driveMediaStats,
   driveListTopics,
   driveCreateTopic,
@@ -1120,6 +1121,41 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       cancelled = true;
     };
   }, [apiCreds.apiId, apiCreds.apiHash]);
+
+  // Dynamically fetch missing message ID from Telegram when searched
+  useEffect(() => {
+    const numericQuery = query.trim();
+    const isNumeric = /^\d+$/.test(numericQuery);
+    const targetMsgId = isNumeric ? Number(numericQuery) : (advFilter.messageId || null);
+
+    if (!targetMsgId || !driveReady || !creds) return;
+
+    // Check if we already have it in files list
+    const alreadyExists = files.some((f) => f.id === targetMsgId);
+    if (alreadyExists) return;
+
+    let cancelled = false;
+    const fetchSingleFile = async () => {
+      try {
+        const res = await driveGetFile(creds, peerId, targetMsgId);
+        if (cancelled) return;
+        if (res && res.status === 'success' && res.file) {
+          // Prepend to files list so local search filter matches it
+          setFiles((prev) => {
+            if (prev.some((f) => f.id === targetMsgId)) return prev;
+            return [res.file, ...prev];
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch searched file ID:', err);
+      }
+    };
+
+    void fetchSingleFile();
+    return () => {
+      cancelled = true;
+    };
+  }, [query, advFilter.messageId, creds, peerId, driveReady, files, setFiles]);
 
   // Load transfer settings from secure backend store on mount (stable across webview resets)
   useEffect(() => {

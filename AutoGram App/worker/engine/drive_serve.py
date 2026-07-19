@@ -200,6 +200,23 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         )
         return {"status": "success", **pack}
 
+    if cmd in ("get_message", "get-message", "get_file", "get-file"):
+        mid = req.get("message_id")
+        if not mid:
+            return {"status": "error", "message": "message_id required"}
+        from engine.drive_fs import message_to_drive_file, _attach_topic_id
+        try:
+            msg = await client.get_messages(peer, ids=int(mid))
+            if not msg:
+                return {"status": "error", "message": "Pesan tidak ditemukan"}
+            item = message_to_drive_file(msg, folder_id)
+            if not item:
+                return {"status": "error", "message": "Pesan bukan media valid"}
+            _attach_topic_id(msg, item)
+            return {"status": "success", "file": item}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     if cmd in ("media_stats", "media-stats", "drive_media_stats", "stats"):
         from engine.drive_fs import media_stats_on_client
 
