@@ -60,7 +60,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
 
   return (
     <div 
-      className={`select-container ${disabled ? 'disabled' : ''}`}
+      className={`select-container ${disabled ? 'disabled' : ''} ${isOpen ? 'is-open' : ''}`}
       ref={containerRef}
       style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
     >

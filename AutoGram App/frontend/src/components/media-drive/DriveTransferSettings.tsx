@@ -20,6 +20,7 @@ import {
   clampConcurrency,
 } from '../../lib/driveTypes';
 import { MediaSelect } from './MediaSelect';
+import { Select } from '../Select';
 
 type Tab = 'upload' | 'download';
 
@@ -352,17 +353,16 @@ export function DriveTransferSettings({
                     </div>
 
                     <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Cakupan Topik (Forum)</h4>
-                    <select
-                      className="td-xfer-select"
+                    <Select
+                      options={[
+                        { value: 'selected_only', label: 'Topik terpilih saja' },
+                        { value: 'selected_plus_general', label: 'Topik terpilih + General' },
+                        { value: 'all_topics', label: 'Semua topik' },
+                      ]}
                       value={draft.topicScope}
                       disabled={!!transferActive}
-                      onChange={(e) => patch({ topicScope: e.target.value as 'selected_only' | 'selected_plus_general' | 'all_topics' })}
-                      aria-label="Cakupan topik untuk pemindaian"
-                    >
-                      <option value="selected_only">Topik terpilih saja</option>
-                      <option value="selected_plus_general">Topik terpilih + General</option>
-                      <option value="all_topics">Semua topik</option>
-                    </select>
+                      onChange={(val) => patch({ topicScope: val as 'selected_only' | 'selected_plus_general' | 'all_topics' })}
+                    />
 
                     <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Guardrail Re-upload</h4>
                     <label className="td-xfer-check" style={{ marginBottom: '0.5rem' }}>
