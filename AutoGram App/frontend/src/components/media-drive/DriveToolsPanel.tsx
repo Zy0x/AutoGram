@@ -575,6 +575,22 @@ export function DriveToolsPanel({
                     spellCheck={false}
                   />
                 </label>
+                <label className="td-tools-field">
+                  Message ID
+                  <input
+                    type="number"
+                    min={0}
+                    className="td-tools-input"
+                    value={advFilter.messageId ?? ''}
+                    onChange={(e) =>
+                      onAdvFilter({
+                        ...advFilter,
+                        messageId: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    placeholder="Contoh: 42712"
+                  />
+                </label>
               </div>
               <div className="td-tools-actions">
                 <button

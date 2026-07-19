@@ -284,6 +284,7 @@ export function filterAndSortDriveFiles(
     const tokens = q.split(/\s+/).filter(Boolean);
     list = list.filter((f) => {
       const hay = [
+        f.id.toString(),
         f.name,
         f.original_name,
         f.icon_type,
