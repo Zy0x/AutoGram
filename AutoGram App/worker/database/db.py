@@ -70,6 +70,8 @@ def get_connection():
             ensure_runtime_indexes(conn)
             # Apply migration 012 on existing databases (idempotent)
             _apply_migration_012(conn)
+            # Apply migration 013 (keyframe & moov sidecar)
+            _apply_migration_013(conn)
             _RUNTIME_SCHEMA_READY.add(db_path)
 
     return conn
@@ -125,6 +127,22 @@ def _apply_migration_012(conn):
     except Exception:
         pass  # Migration 012 is non-critical on existing databases
 
+def _apply_migration_013(conn):
+    """
+    Apply migration 013 (keyframe index & moov sidecar cache).
+    """
+    migrations_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'database', 'migrations')
+    migration_013 = os.path.join(migrations_dir, '013_keyframe_and_moov.sql')
+    if not os.path.exists(migration_013):
+        return
+    try:
+        with open(migration_013, 'r') as f:
+            sql_content = f.read()
+        conn.executescript(sql_content)
+        conn.commit()
+    except Exception as e:
+        print(f"Gagal menjalankan migrasi 013: {e}", flush=True)
+
 def init_schema(conn):
     """Menjalankan file migrasi awal jika DB belum terbentuk (untuk Dev Mode)."""
     migrations_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'database', 'migrations')
@@ -160,6 +178,7 @@ def init_schema(conn):
                 conn.executescript(f.read())
         # Migration 012: Enhanced duplicate detection (new tables + extended columns)
         _apply_migration_012(conn)
+        _apply_migration_013(conn)
         conn.commit()
     except Exception as e:
         print(f"Gagal menginisialisasi skema database: {e}", flush=True)

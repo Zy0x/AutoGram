@@ -36,6 +36,26 @@ _SERVER: Optional[ThreadingHTTPServer] = None
 _SERVER_THREAD: Optional[threading.Thread] = None
 _PORT: int = 0
 
+def _get_ram_usage() -> int:
+    with _LOCK:
+        return sum(len(s.ram_buffer) for s in _STREAMS.values() if getattr(s, "ram_buffer", None) is not None)
+
+def _ensure_ram_budget(needed: int) -> None:
+    with _LOCK:
+        while _get_ram_usage() + needed > 150 * 1024 * 1024:
+            oldest_sid = None
+            oldest_time = float("inf")
+            for sid, s in _STREAMS.items():
+                if getattr(s, "ram_buffer", None) is not None:
+                    if s.created < oldest_time:
+                        oldest_time = s.created
+                        oldest_sid = sid
+            if oldest_sid is not None:
+                s = _STREAMS.pop(oldest_sid)
+                s.cancel()
+            else:
+                break
+
 def log_debug(msg: str) -> None:
     try:
         with open("f:/AutoGram/AutoGram App/worker/temp/media_stream_debug.txt", "a", encoding="utf-8") as f:
@@ -90,6 +110,8 @@ class ProgressiveMedia:
         self.cv = threading.Condition()
         self.refcount = 0
         self.cancelled = False
+        self.in_memory = False
+        self.ram_buffer = None
         # Explicit filled ranges [start, end) — source of truth for seek/serve
         self._ranges: List[Tuple[int, int]] = []
         self._write_lock = threading.Lock()
@@ -324,7 +346,22 @@ class ProgressiveMedia:
             return False
         total = self.total_size or 0
         off = max(0, int(byte_offset))
-        off = (off // _SEEK_ALIGN) * _SEEK_ALIGN
+        file_id = os.path.basename(self.path)
+        try:
+            from database.db import get_connection
+            conn = get_connection()
+            row = conn.execute("""
+                SELECT byte_offset FROM keyframe_index 
+                WHERE file_id = ? AND byte_offset <= ?
+                ORDER BY byte_offset DESC LIMIT 1
+            """, (file_id, off)).fetchone()
+            if row:
+                off = row[0]
+                log_debug(f"schedule_seek: adjusted off from {byte_offset} to keyframe {off}")
+            else:
+                off = (off // _SEEK_ALIGN) * _SEEK_ALIGN
+        except Exception:
+            off = (off // _SEEK_ALIGN) * _SEEK_ALIGN
         if total > 0 and off >= total:
             return False
         # Already have enough here?
@@ -684,10 +721,13 @@ def _ensure_server() -> int:
                         # Try RAM cache first
                         chunk = media.read_from_cache(pos, to_read)
                         if chunk is None:
-                            if f is None:
-                                f = open(media.path, "rb")
-                            f.seek(pos)
-                            chunk = f.read(to_read)
+                            if getattr(media, "in_memory", False) and media.ram_buffer is not None:
+                                chunk = bytes(media.ram_buffer[pos : pos + to_read])
+                            else:
+                                if f is None:
+                                    f = open(media.path, "rb")
+                                f.seek(pos)
+                                chunk = f.read(to_read)
                         
                         if not chunk:
                             break
@@ -732,17 +772,24 @@ def register_stream(
         path=path, total_size=total_size, mime=mime, label=label
     )
     try:
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        if not os.path.isfile(path):
-            open(path, "wb").close()
-        elif total_size > 0 and os.path.getsize(path) >= total_size:
-            if ".stream." in os.path.basename(path).lower():
-                # A seek/tail write extends a sparse file to its final logical
-                # size. Inspect its solid regions instead of treating holes as
-                # downloaded media bytes.
-                _resume_partial_file_ranges(media, os.path.getsize(path))
-            else:
-                media.mark_range(0, total_size)
+        if total_size > 0 and total_size <= 100 * 1024 * 1024:
+            _ensure_ram_budget(total_size)
+            media.in_memory = True
+            media.ram_buffer = bytearray(total_size)
+        else:
+            media.in_memory = False
+            media.ram_buffer = None
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            if not os.path.isfile(path):
+                open(path, "wb").close()
+            elif total_size > 0 and os.path.getsize(path) >= total_size:
+                if ".stream." in os.path.basename(path).lower():
+                    # A seek/tail write extends a sparse file to its final logical
+                    # size. Inspect its solid regions instead of treating holes as
+                    # downloaded media bytes.
+                    _resume_partial_file_ranges(media, os.path.getsize(path))
+                else:
+                    media.mark_range(0, total_size)
     except OSError:
         pass
     with _LOCK:
@@ -1045,20 +1092,27 @@ async def _download_parts_concurrent(
             return
 
         def _write():
-            os.makedirs(os.path.dirname(media.path) or ".", exist_ok=True)
-            # Ensure file exists and is large enough for seek write
-            with media._write_lock:
-                mode = "r+b" if os.path.isfile(media.path) else "w+b"
-                with open(media.path, mode) as out:
-                    out.seek(part_off)
-                    out.write(data)
-                with media.cv:
-                    if part_off in media._ram_cache:
-                        media._ram_cache.pop(part_off)
-                    media._ram_cache[part_off] = data
-                    media._ram_cache.move_to_end(part_off)
-                    while len(media._ram_cache) > 100:  # 50MB cache limit (100 * 512KB)
-                        media._ram_cache.popitem(last=False)
+            if getattr(media, "in_memory", False) and media.ram_buffer is not None:
+                with media._write_lock:
+                    end_pos = part_off + len(data)
+                    if end_pos <= len(media.ram_buffer):
+                        media.ram_buffer[part_off:end_pos] = data
+                media.mark_range(part_off, len(data))
+            else:
+                os.makedirs(os.path.dirname(media.path) or ".", exist_ok=True)
+                # Ensure file exists and is large enough for seek write
+                with media._write_lock:
+                    mode = "r+b" if os.path.isfile(media.path) else "w+b"
+                    with open(media.path, mode) as out:
+                        out.seek(part_off)
+                        out.write(data)
+                    with media.cv:
+                        if part_off in media._ram_cache:
+                            media._ram_cache.pop(part_off)
+                        media._ram_cache[part_off] = data
+                        media._ram_cache.move_to_end(part_off)
+                        while len(media._ram_cache) > 100:  # 50MB cache limit (100 * 512KB)
+                            media._ram_cache.popitem(last=False)
                 media.mark_range(part_off, len(data))
 
         await asyncio.to_thread(_write)
@@ -1357,6 +1411,40 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
     if head_have < 24 * 1024:
         return False
 
+    file_id = os.path.basename(media.path)
+    cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache", "moov")
+    from engine.moov_sidecar import MoovSidecarManager
+    sidecar_manager = MoovSidecarManager(cache_dir)
+    
+    cached_moov = sidecar_manager.load(file_id)
+    if cached_moov:
+        log_debug(f"Loaded moov sidecar for {file_id}")
+        tail_off = total - len(cached_moov)
+        def _write_cached_moov():
+            with media._write_lock:
+                with open(media.path, "r+b" if os.path.isfile(media.path) else "w+b") as f:
+                    f.seek(tail_off)
+                    f.write(cached_moov)
+            media.mark_range(tail_off, len(cached_moov))
+        await asyncio.to_thread(_write_cached_moov)
+        
+        try:
+            from database.db import get_connection
+            conn = get_connection()
+            row = conn.execute("SELECT count(*) FROM keyframe_index WHERE file_id = ?", (file_id,)).fetchone()
+            if not row or row[0] == 0:
+                from engine.mp4_keyframe_parser import parse_mp4_keyframes
+                keyframes = parse_mp4_keyframes(cached_moov)
+                if keyframes:
+                    conn.executemany(
+                        "INSERT OR IGNORE INTO keyframe_index (file_id, timestamp_ms, byte_offset) VALUES (?, ?, ?)",
+                        [(file_id, ts, off) for ts, off in keyframes]
+                    )
+                    conn.commit()
+        except Exception:
+            pass
+        return True
+
     # Already progressive (moov near start)
     if _path_region_has_moov(media.path, 0, min(head_have, 1024 * 1024)):
         return False
@@ -1403,6 +1491,24 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
         total, tail_off + max(16 * 1024, _MOOV_TAIL_MIN // 4)
     )
     if have_tail or media.filled_bytes() > head_have:
+        try:
+            with open(media.path, "rb") as f:
+                f.seek(tail_off)
+                moov_data = f.read(tail_len)
+            sidecar_manager.save(file_id, moov_data)
+            
+            from engine.mp4_keyframe_parser import parse_mp4_keyframes
+            keyframes = parse_mp4_keyframes(moov_data)
+            if keyframes:
+                from database.db import get_connection
+                conn = get_connection()
+                conn.executemany(
+                    "INSERT OR IGNORE INTO keyframe_index (file_id, timestamp_ms, byte_offset) VALUES (?, ?, ?)",
+                    [(file_id, ts, off) for ts, off in keyframes]
+                )
+                conn.commit()
+        except Exception as e:
+            log_debug(f"Failed to save moov sidecar or keyframes: {e}")
         try:
             print(
                 f"[media_stream] moov-at-end bootstrap tail "

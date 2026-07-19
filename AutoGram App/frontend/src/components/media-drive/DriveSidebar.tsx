@@ -1615,6 +1615,9 @@ export function DriveSidebar({
           </p>
         )}
         {/* Shortcuts moved to input title tooltips — strip was visual noise */}
+        <div className="td-shortcuts-hint td-only-expanded" style={{ display: 'none' }}>
+          Ctrl+K lokasi · Ctrl+F file · Ctrl+A pilih · Esc
+        </div>
 
         {showSaved &&
           (() => {

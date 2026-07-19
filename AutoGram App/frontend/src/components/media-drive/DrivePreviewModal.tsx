@@ -2552,6 +2552,76 @@ export function DrivePreviewModal({
                   <Loader2 size={14} className="spin" /> Stream…
                 </div>
               )}
+              {quality === 'preview' && (
+                <div className="drive-preview-banner-overlay" style={{
+                  position: 'absolute',
+                  bottom: '50px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(15, 23, 42, 0.9)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  color: 'white',
+                  zIndex: 20,
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: 500 }}>
+                    Pratinjau 30 Detik (Hemat Kuota)
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const fullQ = qualities.find(q => q.id !== 'preview' && q.id !== 'auto')?.id || 'original';
+                        void handleQualityChange(fullQ);
+                      }}
+                      style={{
+                        background: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.background = '#1d4ed8')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = '#2563eb')}
+                    >
+                      Transcode Penuh
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleOpenSystem();
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.15)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
+                    >
+                      Buka File Asli
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
