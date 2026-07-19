@@ -836,8 +836,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           if (ms < 150) status = 'excellent';
           else if (ms < 300) status = 'good';
           else if (ms < 600) status = 'fair';
-          else if (ms < 1500) status = 'poor';
-          else status = 'disconnected';
+          else status = 'poor';
 
           setPingState({ status, ms });
         } else {

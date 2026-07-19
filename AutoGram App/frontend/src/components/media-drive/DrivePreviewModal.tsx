@@ -1652,7 +1652,11 @@ export function DrivePreviewModal({
   const togglePip = async () => {
     const v = videoRef.current;
     if (!v) {
-      setError('Video belum siap untuk Picture-in-Picture.');
+      flashSeekWarn('Video belum siap untuk Picture-in-Picture.');
+      return;
+    }
+    if (v.readyState < 1) {
+      flashSeekWarn('Metadata video belum dimuat. Tunggu sebentar…');
       return;
     }
     try {
@@ -1661,10 +1665,10 @@ export function DrivePreviewModal({
       } else if (document.pictureInPictureEnabled) {
         await v.requestPictureInPicture();
       } else {
-        setError('Picture-in-Picture tidak didukung di lingkungan ini.');
+        flashSeekWarn('Picture-in-Picture tidak didukung di lingkungan ini.');
       }
     } catch (e: any) {
-      setError(String(e?.message || e || 'Gagal membuka PiP'));
+      flashSeekWarn(String(e?.message || e || 'Gagal membuka PiP'));
     }
   };
 

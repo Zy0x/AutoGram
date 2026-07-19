@@ -119,9 +119,18 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                 import time
                 import random
                 from telethon.functions import PingRequest
-                t0 = time.time()
-                await client(PingRequest(ping_id=random.randint(0, 1000000)))
-                ms = int((time.time() - t0) * 1000)
+                try:
+                    t0 = time.time()
+                    # Wait at most 1.5 seconds for ping response (fast timeout)
+                    await asyncio.wait_for(
+                        client(PingRequest(ping_id=random.randint(0, 1000000))),
+                        timeout=1.5
+                    )
+                    ms = int((time.time() - t0) * 1000)
+                except Exception:
+                    # Do not set connected=False if PingRequest fails due to timeout/busy channel.
+                    # As long as client.is_connected() returned True, we are still connected.
+                    ms = None
         except Exception:
             connected = False
         return {"pong": True, "connected": connected, "ms": ms}

@@ -4213,6 +4213,7 @@ async def media_stats_on_client(
                 "round_video",
                 "music",
                 "voice",
+                "url",
             )
             sizes: Dict[int, int] = {}
             kinds: Dict[int, str] = {}
@@ -8707,7 +8708,7 @@ async def index_folder_on_client(
             
     peer = await _resolve_peer(client, folder_id)
     filters = _media_filter_instances()
-    filter_names = ["photo_video", "document", "gif", "round_video", "music", "voice"]
+    filter_names = ["photo_video", "document", "gif", "round_video", "music", "voice", "url"]
     
     if cp["totalCount"] == 0:
         try:
