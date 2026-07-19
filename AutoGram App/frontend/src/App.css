@@ -11331,33 +11331,7 @@ body:has(.td-page),
   accent-color: var(--td-primary, #38bdf8);
   margin-top: 4px;
 }
-.select-container {
-  position: relative;
-  width: 100%;
-  box-sizing: border-box;
-}
-.select-container .input-field {
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--td-border, color-mix(in srgb, #64748b 45%, transparent));
-  background: color-mix(in srgb, #0b1220 90%, #000);
-  color: var(--td-text, #f1f5f9);
-  font-size: 0.86rem;
-  font-weight: 550;
-  line-height: 1.35;
-  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-  box-sizing: border-box;
-}
-.select-container:hover .input-field {
-  border-color: color-mix(in srgb, var(--td-primary, #38bdf8) 55%, transparent);
-  background: color-mix(in srgb, #0b1220 75%, #000);
-}
-.select-container.is-open .input-field {
-  border-color: var(--td-primary, #38bdf8);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--td-primary, #38bdf8) 18%, transparent);
-  background: color-mix(in srgb, #0b1220 60%, #000);
-}
+
 
 /* ═══════════════════════════════════════════════════════════════
    Transfer Manager — Scan Progress & Reupload Badge
