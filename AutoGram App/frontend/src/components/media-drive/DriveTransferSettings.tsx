@@ -399,6 +399,8 @@ export function DriveTransferSettings({
                   </div>
                 )}
 
+              </div>{/* /.td-xfer-checks */}
+
               <h3>Caption default</h3>
               <p className="td-xfer-hint">
                 Teks yang dilampirkan ke setiap unggahan (bisa diganti per-file di masa depan). Kosongkan
