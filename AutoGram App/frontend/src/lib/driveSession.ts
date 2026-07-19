@@ -153,6 +153,21 @@ export async function ensureDriveSession(creds: DriveCredentials): Promise<boole
 
     const unsubs: UnlistenFn[] = [];
     let processAssigned = false;
+    let startupReject: ((err: Error) => void) | null = null;
+    let onReadyCheck: ReturnType<typeof setInterval> | null = null;
+    let t: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanStartupTimers = () => {
+      if (onReadyCheck) {
+        clearInterval(onReadyCheck);
+        onReadyCheck = null;
+      }
+      if (t) {
+        clearTimeout(t);
+        t = null;
+      }
+    };
+
     unsub = await listen<{ jobId: number; line: string; stream: string }>('worker-line', (ev) => {
       const p = ev.payload as any;
       const jid = p?.jobId ?? p?.job_id;
@@ -182,8 +197,10 @@ export async function ensureDriveSession(creds: DriveCredentials): Promise<boole
         pending.clear();
       };
       if (!ready) {
-        // This can be the previous same-job process exiting during startup.
-        // The replacement's forthcoming `ready` event is authoritative.
+        cleanStartupTimers();
+        if (startupReject) {
+          startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
+        }
         return;
       }
       if (Date.now() - readyAt < 5_000) {
@@ -198,17 +215,14 @@ export async function ensureDriveSession(creds: DriveCredentials): Promise<boole
     unsubs.push(unsubExit);
 
     await new Promise<void>((resolve, reject) => {
-      // Ready fires as soon as the worker process is up (before Telethon connect).
-      // Connect continues in background; RPCs wait server-side. Keep timeout for
-      // true spawn failures only — 8s is enough for process start.
-      const t = setTimeout(() => {
-        clearInterval(onReadyCheck);
+      startupReject = reject;
+      t = setTimeout(() => {
+        cleanStartupTimers();
         reject(new Error('Drive session start timeout'));
       }, 20000);
-      const onReadyCheck = setInterval(() => {
+      onReadyCheck = setInterval(() => {
         if (ready && processAssigned) {
-          clearInterval(onReadyCheck);
-          clearTimeout(t);
+          cleanStartupTimers();
           resolve();
         }
       }, 40);
@@ -250,8 +264,8 @@ export async function ensureDriveSession(creds: DriveCredentials): Promise<boole
           processAssigned = true;
         })
         .catch((e) => {
-          clearInterval(onReadyCheck);
-          clearTimeout(t);
+          if (onReadyCheck) clearInterval(onReadyCheck);
+          if (t) clearTimeout(t);
           reject(e);
         });
     });

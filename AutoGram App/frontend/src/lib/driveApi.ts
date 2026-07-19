@@ -1371,7 +1371,9 @@ async function spawnExclusiveTransfer(
       if (restarted || !transferChainNeedsWarmRestart) return;
       restarted = true;
       transferChainNeedsWarmRestart = false;
-      void ensureDriveSession(creds).catch(() => undefined);
+      setTimeout(() => {
+        void ensureDriveSession(creds).catch(() => undefined);
+      }, 1200);
     };
     transferJobActive = true;
     try {
