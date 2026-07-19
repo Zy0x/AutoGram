@@ -157,13 +157,9 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         from engine.drive_fs import _FOLDERS_CACHE, _FOLDERS_CACHE_TTL_S
         import time as _time
 
-        chats_pack = await _list_chats_on(client, limit=cps, offset=0)
-        folders = []
-        if _FOLDERS_CACHE.get("folders") and (
-            _time.time() - float(_FOLDERS_CACHE.get("ts") or 0)
-        ) < _FOLDERS_CACHE_TTL_S:
-            folders = [dict(f) for f in _FOLDERS_CACHE["folders"]]
-        files_pack = await _list_files_on(
+        # Parallel fetch chats and files to reduce initial load latency
+        chats_task = _list_chats_on(client, limit=cps, offset=0)
+        files_task = _list_files_on(
             client,
             folder_id=folder_id,
             page_size=fps,
@@ -172,6 +168,13 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             topic_id=tid,
             quick_stats=False,
         )
+        chats_pack, files_pack = await asyncio.gather(chats_task, files_task)
+
+        folders = []
+        if _FOLDERS_CACHE.get("folders") and (
+            _time.time() - float(_FOLDERS_CACHE.get("ts") or 0)
+        ) < _FOLDERS_CACHE_TTL_S:
+            folders = [dict(f) for f in _FOLDERS_CACHE["folders"]]
         return {
             "status": "success",
             "folders": folders,

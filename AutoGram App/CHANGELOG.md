@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media
+
+Changed:
+- Mengubah alur inisialisasi awal (*bootstrap*) Media Studio agar daftar obrolan (*chats*) di sidebar dan berkas media (*files*) di grid dimuat secara paralel (*concurrently* via `asyncio.gather`) alih-alih berurutan. Ini memotong waktu tunggu inisialisasi awal hingga hampir setengahnya.
+- Mengurangi jumlah batas muat awal (*fetch limit*) per jenis filter media dari 2x ukuran halaman menjadi tepat 1x ukuran halaman (misal 28 berkas) untuk halaman pertama saat cache belum terbangun. Hal ini memotong volume muat data dari Telegram API sebesar 50% tanpa mengurangi keakuratan penggabungan jenis berkas, sehingga memproses data awal jauh lebih cepat.
+
 ## v2.1.15 Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka
 
 Fixed:

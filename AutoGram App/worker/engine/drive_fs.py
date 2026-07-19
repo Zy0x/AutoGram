@@ -4410,9 +4410,9 @@ async def _list_files_on(
     except Exception as e:
         pass
 
-    # First page: collect less headroom for faster first paint (still enough to merge)
+    # First page: collect exactly page_size per filter for fast first paint (mathematically sufficient for merged page)
     if offset_id is None or int(offset_id or 0) == 0:
-        fetch_limit = min(120, max(page_size * 2, page_size + 12))
+        fetch_limit = page_size
     else:
         fetch_limit = min(200, max(page_size * 3, page_size + 24))
 
@@ -5081,8 +5081,18 @@ async def bootstrap_drive(
     t0 = time.time()
     try:
         emit_event("DriveBootstrapStarted")
-        # Chats first — unblocks sidebar even when folder scan is huge
-        chats_pack = await _list_chats_on(client, limit=chat_page_size, offset=0)
+        # Parallel fetch chats and files to reduce bootstrap latency
+        chats_task = _list_chats_on(client, limit=chat_page_size, offset=0)
+        files_task = _list_files_on(
+            client,
+            folder_id=folder_id,
+            page_size=file_page_size,
+            offset_id=None,
+            scan_budget=min(160, file_page_size * 4),
+            topic_id=topic_id,
+            quick_stats=False,
+        )
+        chats_pack, files_pack = await asyncio.gather(chats_task, files_task)
         emit_event(
             "DriveChatsReady",
             count=len(chats_pack["chats"]),
@@ -5095,15 +5105,6 @@ async def bootstrap_drive(
             time.time() - float(_FOLDERS_CACHE.get("ts") or 0)
         ) < _FOLDERS_CACHE_TTL_S:
             folders = [dict(f) for f in _FOLDERS_CACHE["folders"]]
-        files_pack = await _list_files_on(
-            client,
-            folder_id=folder_id,
-            page_size=file_page_size,
-            offset_id=None,
-            scan_budget=min(160, file_page_size * 4),
-            topic_id=topic_id,
-            quick_stats=False,
-        )
         emit_event("DriveFoldersReady", count=len(folders))
         emit_event(
             "DriveFilesDone",
