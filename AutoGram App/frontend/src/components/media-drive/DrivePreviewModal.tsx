@@ -366,6 +366,8 @@ export function DrivePreviewModal({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [mediaWidth, setMediaWidth] = useState<number | null>(null);
+  const [mediaHeight, setMediaHeight] = useState<number | null>(null);
 
   // Video tools
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -500,6 +502,8 @@ export function DrivePreviewModal({
       setTextBody(null);
       setFromCache(cachedHit);
       setHasVideoFrame(false);
+      setMediaWidth(res.video_width || null);
+      setMediaHeight(res.video_height || null);
       if (res.qualities && res.qualities.length) {
         setQualities(normalizePlayQualities(res.qualities as PlayQuality[]));
       }
@@ -579,6 +583,8 @@ export function DrivePreviewModal({
         setPoster(gridThumb);
         setQualityOpen(false);
         setRateOpen(false);
+        setMediaWidth(null);
+        setMediaHeight(null);
       } else {
         // Soft switch: keep current frame, show poster skeleton if nothing
         setPoster((p) => p || gridThumb);
@@ -634,6 +640,8 @@ export function DrivePreviewModal({
   // Load when file / folder changes
   useEffect(() => {
     resetViewTools();
+    setMediaWidth(null);
+    setMediaHeight(null);
     // ZIP: browser lists central dir — skip heavy media stream/download path
     if (isZipDriveFile(file)) {
       setLoading(false);
@@ -2081,8 +2089,9 @@ export function DrivePreviewModal({
               <span className="drive-tool-group-label">Lain</span>
               <button
                 type="button"
-                className="drive-tool-btn"
+                className={`drive-tool-btn${loading ? ' is-loading' : ''}`}
                 title="Muat ulang preview dari Telegram"
+                disabled={loading}
                 onClick={() => {
                   resetViewTools();
                   invalidatePreview(folderId, file.id);
@@ -2093,8 +2102,8 @@ export function DrivePreviewModal({
                   loadPreview(isVideo ? quality : 'auto');
                 }}
               >
-                <RefreshCw size={15} />
-                <span className="drive-tool-btn-label">Muat</span>
+                <RefreshCw size={15} className={loading ? 'spin' : ''} />
+                <span className="drive-tool-btn-label">{loading ? 'Memuat…' : 'Muat'}</span>
               </button>
               <button
                 type="button"
@@ -2326,7 +2335,10 @@ export function DrivePreviewModal({
                   transformOrigin: 'center center',
                   pointerEvents: 'none', // all gestures on wrap — avoids img eating events
                 }}
-                onLoad={() => {
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setMediaWidth(img.naturalWidth);
+                  setMediaHeight(img.naturalHeight);
                   setLoading(false);
                   setError(null);
                 }}
@@ -2410,6 +2422,8 @@ export function DrivePreviewModal({
                     v.playbackRate = playbackRate;
                     v.muted = muted;
                     v.loop = loopVideo;
+                    setMediaWidth(v.videoWidth);
+                    setMediaHeight(v.videoHeight);
                   }
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
@@ -2677,6 +2691,16 @@ export function DrivePreviewModal({
               <div>
                 <strong>Nama</strong> {displayName}
               </div>
+              {file.original_name && file.original_name !== displayName && (
+                <div title={file.original_name}>
+                  <strong>Nama asli</strong> {file.original_name}
+                </div>
+              )}
+              {mediaWidth && mediaHeight && (
+                <div>
+                  <strong>Dimensi</strong> {mediaWidth} × {mediaHeight} px
+                </div>
+              )}
               <div>
                 <strong>Ukuran</strong> {formatDriveBytes(file.size)}
               </div>
@@ -2693,6 +2717,17 @@ export function DrivePreviewModal({
                   <strong>MIME</strong> {mime}
                 </div>
               )}
+              {file.created_at && (
+                <div>
+                  <strong>Tanggal</strong> {new Date(file.created_at).toLocaleString('id-ID', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </div>
+              )}
+              <div>
+                <strong>Pengiriman</strong> {file.as_document ? 'Dokumen/File (Asli)' : 'Media Native (Kompresi)'}
+              </div>
               {isVideo && (
                 <div>
                   <strong>Kualitas</strong> {activeQuality?.label || quality}

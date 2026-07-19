@@ -769,6 +769,11 @@ def get_stream(stream_id: str) -> Optional[ProgressiveMedia]:
         return _STREAMS.get(stream_id)
 
 
+def has_active_streams() -> bool:
+    with _LOCK:
+        return any(not s.done and not s.cancelled for s in _STREAMS.values())
+
+
 def stream_status(stream_id: str) -> Dict[str, Any]:
     media = get_stream(stream_id)
     if not media:

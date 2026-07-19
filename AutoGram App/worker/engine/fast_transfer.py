@@ -485,6 +485,15 @@ async def fast_upload_file(
             data = await asyncio.to_thread(_read_part, idx)
             if not data:
                 continue
+
+            # Smart Rate Controller: throttle uploads if user is previewing/streaming media
+            try:
+                from engine.media_stream import has_active_streams
+                if has_active_streams():
+                    await asyncio.sleep(0.08)
+            except Exception:
+                pass
+
             if is_big:
                 req = SaveBigFilePartRequest(file_id, idx, part_count, data)
             else:

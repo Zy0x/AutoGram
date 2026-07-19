@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.1.8 Perbaikan Media Studio Preview (Smart Upload Throttle, Feedback Tombol Muat, & Detail Info Spesifik)
+
+Added:
+- Penambahan informasi spesifik pada popup Detail file (Info): resolusi/dimensi gambar dan video (misal `1920 × 1080 px`), tanggal unggah berkas (format lokal Indonesia), metode pengiriman (Dokumen/File asli vs Media native kompresi), serta nama asli Telegram jika berbeda.
+- Penambahan deteksi dimensi media secara dinamis pada frontend (`onLoad` gambar dan `onLoadedMetadata` video) untuk menjamin data dimensi selalu mutakhir sewaktu preview selesai dimuat.
+
+Changed:
+- Penambahan umpan balik visual (loading feedback) pada tombol "Muat" (Refresh Preview): menonaktifkan tombol saat proses pemuatan berlangsung, mengubah label tombol sementara menjadi "Memuat…", dan menganimasikan putar (`spin`) ikon Lucide `RefreshCw`.
+- Optimalisasi responsivitas tinggi (max-height) popup `.drive-preview-info` di CSS menjadi `min(80%, 460px)` untuk mengakomodasi tampilan data metadata baru tanpa terpotong.
+
+Fixed:
+- Perbaikan kelancaran pratinjau media sewaktu proses unggah (upload) sedang berlangsung. Backend menerapkan Smart Rate Controller dengan mendeteksi keberadaan stream pratinjau aktif (`has_active_streams`) dan melakukan pembatasan kecepatan unggah (throttling delay `80ms` antar-part part) secara dinamis agar tidak menyumbat bandwidth & DC slot koneksi Telegram.
+
 ## v2.1.7 Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale
 
 Fixed:

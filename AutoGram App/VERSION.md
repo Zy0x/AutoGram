@@ -1,10 +1,10 @@
-AutoGram Version: v2.1.7
+AutoGram Version: v2.1.8
 
 Current State:
-Real Implementation Foundation + Telegram Core (Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale)
+Real Implementation Foundation + Perbaikan Media Studio Preview (Smart Upload Throttle, Feedback Tombol Muat, & Detail Info Spesifik)
 
 Previous:
-v2.1.6 Fitur Pemfilteran Link & Pratinjau WebPage di Media Drive
+v2.1.7 Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale
 v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
 v2.1.4 Desain Ulang Indikator Status Koneksi Drive
 v2.1.3 Perbaikan Kontrol Kecepatan Video
