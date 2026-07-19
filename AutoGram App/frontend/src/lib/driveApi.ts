@@ -648,7 +648,7 @@ export async function driveListFiles(
 ) {
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
   const topicId = opts?.topicId ?? null;
-  const sortMode = opts?.sortMode ?? 'newest_first';
+  const sortMode = opts?.sortMode ?? 'newest';
 
   // 1. Try serving from local IndexedDB warm cache (completed indexing)
   const folderKey = folderId || 0;
@@ -683,6 +683,16 @@ export async function driveListFiles(
     }
   }
 
+  const sortModeMap: Record<string, string> = {
+    newest: 'newest_first',
+    oldest: 'oldest_first',
+    size_desc: 'size_desc',
+    size_asc: 'size_asc',
+    name_desc: 'name_desc',
+    name_asc: 'name_asc',
+  };
+  const pythonSortMode = sortModeMap[sortMode] || sortMode;
+
   // 2. Fallback to network
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_files', {
@@ -691,7 +701,7 @@ export async function driveListFiles(
       offset_id: opts?.offsetId ?? null,
       topic_id: topicId,
       quick_stats: opts?.quickStats ?? true,
-      sort_mode: sortMode,
+      sort_mode: pythonSortMode,
     });
   }
   const extra = [
@@ -704,7 +714,7 @@ export async function driveListFiles(
   if (opts?.offsetId != null && opts.offsetId > 0) {
     extra.push('--offset-id', String(opts.offsetId));
   }
-  const optionsJson: Record<string, any> = { sort_mode: sortMode };
+  const optionsJson: Record<string, any> = { sort_mode: pythonSortMode };
   if (topicId != null) {
     optionsJson.topic_id = topicId;
   }

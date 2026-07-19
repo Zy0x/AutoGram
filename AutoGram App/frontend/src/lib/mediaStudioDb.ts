@@ -187,10 +187,12 @@ export async function getMediaRecords(
     let direction: IDBCursorDirection = 'prev'; // default newest first
 
     switch (sortMode) {
+      case 'oldest':
       case 'oldest_first':
         indexName = 'byFolder_Date';
         direction = 'next';
         break;
+      case 'newest':
       case 'newest_first':
         indexName = 'byFolder_Date';
         direction = 'prev';

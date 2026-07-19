@@ -2470,8 +2470,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   useEffect(() => {
     if (!creds || !peerId) return;
     const sortModeStr = String(sortMode);
-    const isTimeSort = sortModeStr === 'newest_first' || sortModeStr === 'oldest_first';
+    const isTimeSort = sortModeStr === 'newest' || sortModeStr === 'oldest';
     if (isTimeSort) {
+      setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
       void refreshFiles();
       return;
     }
@@ -7107,7 +7108,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           )}
 
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {indexingJob.active && (
+            {indexingJob.active && sortMode !== 'newest' && sortMode !== 'oldest' && (
               <div
                 className="td-drop-overlay"
                 style={{
