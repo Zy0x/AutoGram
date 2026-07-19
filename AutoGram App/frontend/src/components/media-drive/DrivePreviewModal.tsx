@@ -1192,7 +1192,11 @@ export function DrivePreviewModal({
   /** Always offer resolution menu for video (Telegram-style) */
   const resolutionOptions =
     qualities.length >= 2 ? qualities : isVideo ? DEFAULT_VIDEO_QUALITIES : qualities;
-  const showThumbSkeleton = loading && !activeSrc && !!(poster || gridThumb);
+  const showThumbSkeleton =
+    (loading || ((isVideo || isImage) && !activeSrc)) &&
+    !error &&
+    !tooLarge &&
+    !!(poster || gridThumb);
 
   const activeResolution =
     resolutionOptions.find((q) => q.id === quality) ||
@@ -2311,11 +2315,16 @@ export function DrivePreviewModal({
           {/* Instant skeleton from grid thumb while loading */}
           {showThumbSkeleton && (
             <div className="drive-preview-media-wrap is-skeleton">
-              <img
-                src={poster || gridThumb || ''}
-                alt=""
-                className="drive-preview-media drive-preview-skeleton-img"
-              />
+              {poster || gridThumb ? (
+                <img
+                  src={poster || gridThumb}
+                  alt=""
+                  className="drive-preview-media drive-preview-skeleton-img"
+                  draggable={false}
+                />
+              ) : (
+                <div className="drive-preview-media drive-preview-skeleton-img is-blank" />
+              )}
               <div className="drive-preview-loading-chip">
                 <Loader2 size={14} className="spin" /> Memuat…
               </div>
@@ -2694,6 +2703,8 @@ export function DrivePreviewModal({
             !error &&
             !showImage &&
             !showVideo &&
+            !isVideo &&
+            !isImage &&
             !showThumbSkeleton &&
             !isPdf &&
             !isText &&

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.14 Pembersihan Placeholder Tampilan Awal Memuat Pratinjau Media (Video & Gambar)
+
+Changed:
+- Mengubah perilaku tampilan awal saat memuat/re-koneksi pratinjau media (video dan gambar). Alih-alih menampilkan placeholder default biner/office (dengan ikon Film raksasa, teks status mentah, dan tombol aksi "Buka"/"Buka dengan..."/"Download file" yang membingungkan pengguna), modal kini menampilkan poster media/gambar mini (thumbnail) dengan indikator pemuatan spinner yang bersih ("Memuat..."). Perubahan ini memberikan transisi visual yang jauh lebih rapi, modern, dan nyaman digunakan.
+
 ## v2.1.13 Perbaikan Error 'MTProtoSender' Object Is Not Callable untuk Pratinjau Berkas Lintas DC (>2GB)
 
 Fixed:
