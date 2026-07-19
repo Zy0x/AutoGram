@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi
+
+Fixed:
+- Perbaikan galat index out of range (`list index out of range`) pada saat memulai pengindeksan media saat pengurutan non-waktu (seperti ukuran terbesar/terkecil) diaktifkan. Penyelarasan filter media backend kini mencakup filter tautan secara tepat.
+- Perbaikan kestabilan indikator koneksi di sidebar yang sempat memicu status "Terputus" palsu saat saluran data sibuk melayani pemutaran (streaming) media berukuran besar. Request ping backend kini memiliki mekanisme timeout cepat dan tidak lagi memutus status online secara keliru saat channel padat.
+- Perbaikan penanganan galat Picture-in-Picture (PiP) pada pemutar video pratinjau. Mengklik PiP saat video sedang memuat metadata tidak lagi memunculkan crash banner fatal yang memblokir pemutar video, melainkan menampilkan toast peringatan non-fatal yang informatif.
+
 ## v2.1.10 Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter
 
 Fixed:
