@@ -65,14 +65,14 @@ def log_debug(msg: str) -> None:
 
 # Seek / pipeline windows (Telegram max part = 512 KiB)
 _PART = 512 * 1024
-_SEEK_WINDOW = 4 * 1024 * 1024  # actual HTTP Range runway around the playhead
-_SEEK_PRIME_WINDOW = 2 * 1024 * 1024  # cheap time-ratio hint before exact Range arrives
-_PIPELINE_WINDOW = 4 * 1024 * 1024  # bounded sequential playback window
+_SEEK_WINDOW = 8 * 1024 * 1024  # actual HTTP Range runway around the playhead
+_SEEK_PRIME_WINDOW = 4 * 1024 * 1024  # cheap time-ratio hint before exact Range arrives
+_PIPELINE_WINDOW = 8 * 1024 * 1024  # bounded sequential playback window
 _SEEK_ALIGN = 64 * 1024
-_STREAM_WORKERS = 16
+_STREAM_WORKERS = 24  # higher concurrency for fast networks
 # Document / re-encode MP4 often puts moov at EOF — fetch enough for full atom
-_MOOV_TAIL_BUDGET = 2 * 1024 * 1024
-_MOOV_TAIL_MIN = 256 * 1024
+_MOOV_TAIL_BUDGET = 4 * 1024 * 1024  # 4MB for large files
+_MOOV_TAIL_MIN = 512 * 1024
 
 
 def _merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
@@ -1628,12 +1628,14 @@ async def fill_stream_from_telegram(
             return
 
         # Phase 1: tiny HEAD for instant first frame
-        head_quick = min(256 * 1024, total if total > 0 else 256 * 1024)
+        # For large files (>200MB) use a smaller initial head to return URL quickly
+        large_file = total > 200 * 1024 * 1024
+        head_quick = min(128 * 1024, total if total > 0 else 128 * 1024)
         if warm_only:
             head_quick = min(head_quick, stop_after_bytes)
         if media.contiguous_from_zero() < head_quick:
             await _download_parts_concurrent(
-                media, start=0, length=head_quick, workers=6, head_first=True
+                media, start=0, length=head_quick, workers=12, head_first=True
             )
         if media.contiguous_from_zero() <= 0 and not media.cancelled:
             await _fill_stream_iter_download_fallback(
@@ -1644,7 +1646,9 @@ async def fill_stream_from_telegram(
 
         # Phase 1.5 EARLY: moov-at-end bootstrap ASAP (document originals).
         # Run in parallel with head expand so duration/seek unlock without waiting 1MB head.
-        head_len = min(1536 * 1024, total if total > 0 else 1536 * 1024)
+        # For large files use 4MB head to ensure moov is reliably reachable.
+        head_len = min(4 * 1024 * 1024 if large_file else 2 * 1024 * 1024,
+                       total if total > 0 else 4 * 1024 * 1024)
         if warm_only:
             head_len = min(head_len, stop_after_bytes)
 
@@ -1654,7 +1658,7 @@ async def fill_stream_from_telegram(
                     media,
                     start=media.contiguous_from_zero(),
                     length=head_len - media.contiguous_from_zero(),
-                    workers=8,
+                    workers=16 if large_file else 8,
                     head_first=True,
                 )
 
