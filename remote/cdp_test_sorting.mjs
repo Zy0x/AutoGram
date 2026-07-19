@@ -39,35 +39,48 @@ async function run() {
       await sendRPC('Runtime.enable');
       await sendRPC('Page.enable');
       
-      // 1. Switch to #Gudang folder in sidebar
-      console.log('Selecting #Gudang folder in sidebar...');
-      await sendRPC('Runtime.evaluate', {
+      // 1. Switch to Group #Gudang (-1003214112048) in sidebar
+      console.log('Selecting Group #Gudang in sidebar...');
+      const clickRes = await sendRPC('Runtime.evaluate', {
         expression: `
           (() => {
-            const items = Array.from(document.querySelectorAll('*'));
-            const gudang = items.find(el => {
-              const text = el.innerText || '';
-              return text.trim() === '#Gudang ~ NSFW' && (
-                el.className.includes('item') || 
-                el.className.includes('row') || 
-                el.className.includes('name') ||
-                el.getAttribute('data-peer-id')
-              );
-            });
-            if (gudang) {
-              gudang.click();
-              return 'Clicked #Gudang ~ NSFW';
+            const el = document.querySelector('div[data-drop-key="chat:-1003214112048"]');
+            if (el) {
+              el.click();
+              return 'Clicked Group #Gudang';
             }
-            return 'Could not find #Gudang button directly';
+            return 'Could not find Group #Gudang in sidebar';
           })()
         `,
         returnByValue: true
       });
+      console.log('Click Group Result:', clickRes.result.value);
+      
+      // Wait for group topics to load
+      await new Promise(r => setTimeout(r, 5000));
+      
+      // 2. Click Topic pill Twitter
+      console.log('Selecting Twitter topic chip...');
+      const topicClickRes = await sendRPC('Runtime.evaluate', {
+        expression: `
+          (() => {
+            const pills = Array.from(document.querySelectorAll('.td-topic-pill'));
+            const targetPill = pills.find(p => p.innerText.trim() === 'Twitter');
+            if (targetPill) {
+              targetPill.click();
+              return 'Clicked topic Twitter';
+            }
+            return 'Could not find topic Twitter chip. Available: ' + pills.map(p => p.innerText.trim()).join(', ');
+          })()
+        `,
+        returnByValue: true
+      });
+      console.log('Click Topic Result:', topicClickRes.result.value);
       
       // Wait for files to load
       await new Promise(r => setTimeout(r, 6000));
       
-      // 2. Click sort dropdown
+      // 3. Click sort dropdown
       console.log('Opening sort dropdown...');
       await sendRPC('Runtime.evaluate', {
         expression: `
@@ -132,7 +145,7 @@ async function run() {
       fs.writeFileSync('f:/AutoGram/remote/reports/screenshots/01_sort_oldest.png', Buffer.from(screenshotRes.data, 'base64'));
       console.log('Saved oldest sorting screenshot.');
       
-      // 3. Click sort dropdown
+      // 4. Click sort dropdown
       console.log('\nOpening sort dropdown again...');
       await sendRPC('Runtime.evaluate', {
         expression: `
@@ -197,7 +210,7 @@ async function run() {
       fs.writeFileSync('f:/AutoGram/remote/reports/screenshots/02_sort_newest.png', Buffer.from(screenshotRes.data, 'base64'));
       console.log('Saved newest sorting screenshot.');
       
-      // 4. Verify Accuracy
+      // 5. Verify Accuracy
       const isDivergent = oldestFiles.files.length > 0 && newestFiles.files.length > 0 && oldestFiles.files[0] !== newestFiles.files[0];
       console.log('\n--- VERIFICATION VERDICT ---');
       if (isDivergent) {

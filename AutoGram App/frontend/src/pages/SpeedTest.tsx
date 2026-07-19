@@ -2391,7 +2391,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         }, getDrivePerfProfile().thumbResumeMs);
       }
     }
-  }, [creds, peerId, scheduleMediaStats, loadTopicsForPeer, recoverInvalidPeerLocation]);
+  }, [creds, peerId, scheduleMediaStats, loadTopicsForPeer, recoverInvalidPeerLocation, sortMode]);
 
   useEffect(() => {
     refreshFilesRef.current = refreshFiles;
@@ -2664,6 +2664,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     nextOffsetId,
     scheduleMediaStats,
     statsAccurate,
+    sortMode,
+    files,
   ]);
 
   // Cheap exact path for bounded locations. This fetches metadata only and is

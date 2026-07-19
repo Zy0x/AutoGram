@@ -3594,12 +3594,107 @@ async def _iter_topic_media(
     msg_filter,
     limit: Optional[int] = None,
     offset_id: Optional[int] = None,
+    reverse: bool = False,
 ):
     """
     Telethon's iter_messages with `reply_to` uses GetRepliesRequest, which ignores
     media filters (downloads all text messages). This manually uses SearchRequest
     with top_msg_id for O(1) server-side filtering inside forum topics.
+    When reverse=True, we use iter_messages(reverse=True, reply_to=topic_id) and filter
+    media types locally to support oldest-first sorting within the topic thread.
     """
+    if reverse:
+        from telethon.tl.types import (
+            InputMessagesFilterPhotos,
+            InputMessagesFilterVideo,
+            InputMessagesFilterPhotoVideo,
+            InputMessagesFilterDocument,
+            InputMessagesFilterGif,
+            InputMessagesFilterRoundVideo,
+            InputMessagesFilterMusic,
+            InputMessagesFilterVoice,
+            InputMessagesFilterUrl,
+        )
+        def _matches_filter(msg, msg_filter) -> bool:
+            if not msg.media and not getattr(msg, "entities", None):
+                return False
+            if msg_filter is None:
+                return msg.media is not None
+            t = type(msg_filter)
+            if t == InputMessagesFilterPhotos:
+                return msg.photo is not None
+            if t == InputMessagesFilterVideo:
+                return msg.video is not None
+            if t == InputMessagesFilterPhotoVideo:
+                return (msg.photo is not None) or (msg.video is not None)
+            if t == InputMessagesFilterDocument:
+                if msg.document is None:
+                    return False
+                try:
+                    for attr in msg.document.attributes:
+                        if getattr(attr, "voice", False) or getattr(attr, "round_message", False):
+                            return False
+                except Exception:
+                    pass
+                return True
+            if t == InputMessagesFilterGif:
+                return msg.gif is not None
+            if t == InputMessagesFilterRoundVideo:
+                try:
+                    if msg.document:
+                        for attr in msg.document.attributes:
+                            if getattr(attr, "round_message", False):
+                                return True
+                except Exception:
+                    pass
+                return False
+            if t == InputMessagesFilterMusic:
+                try:
+                    if msg.document:
+                        for attr in msg.document.attributes:
+                            if getattr(attr, "voice", False) is False and (
+                                getattr(attr, "duration", 0) > 0 or "audio" in (msg.document.mime_type or "")
+                            ):
+                                return True
+                except Exception:
+                    pass
+                return False
+            if t == InputMessagesFilterVoice:
+                try:
+                    if msg.document:
+                        for attr in msg.document.attributes:
+                            if getattr(attr, "voice", False):
+                                return True
+                except Exception:
+                    pass
+                return False
+            if t == InputMessagesFilterUrl:
+                if msg.entities:
+                    from telethon.tl.types import MessageEntityUrl, MessageEntityTextUrl
+                    for ent in msg.entities:
+                        if type(ent) in (MessageEntityUrl, MessageEntityTextUrl):
+                            return True
+                return False
+            return msg.media is not None
+
+        fetched = 0
+        oid = int(offset_id or 0)
+        kwargs = {
+            "reply_to": topic_id,
+            "reverse": True,
+        }
+        if oid > 0:
+            kwargs["min_id"] = oid
+            
+        async for msg in client.iter_messages(peer, **kwargs):
+            msg._client = client
+            if _matches_filter(msg, msg_filter):
+                yield msg
+                fetched += 1
+                if limit is not None and fetched >= limit:
+                    break
+        return
+
     from telethon.tl.functions.messages import SearchRequest
     fetched = 0
     oid = int(offset_id or 0)
@@ -3682,7 +3777,7 @@ async def _collect_media_slice(
         if topic_id is not None and int(topic_id) > 0:
             generator = _iter_topic_media(
                 client, peer, topic_id=int(topic_id), limit=rpc_limit,
-                msg_filter=msg_filter, offset_id=offset_id
+                msg_filter=msg_filter, offset_id=offset_id, reverse=reverse
             )
         else:
             generator = client.iter_messages(peer, **kwargs)
@@ -3721,6 +3816,11 @@ async def _list_files_scan_fallback(
 ) -> Dict[str, Any]:
     """Legacy path: walk history and keep only media (slow on text-heavy chats)."""
     budget = max(page_size, min(int(scan_budget or 350), 1200))
+    try:
+        with open("f:/AutoGram/python_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"[_list_files_scan_fallback] folder_id={folder_id}, topic_id={topic_id}, reverse={reverse}, offset_id={offset_id}\n")
+    except Exception as e:
+        pass
     files: List[Dict[str, Any]] = []
     scanned = 0
     last_id: Optional[int] = None
@@ -4275,6 +4375,12 @@ async def _list_files_on(
     """
     page_size = max(1, min(int(page_size or 40), 200))
     peer = await _resolve_peer(client, folder_id)
+    try:
+        with open("f:/AutoGram/python_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"[_list_files_on] folder_id={folder_id}, topic_id={topic_id}, sort_mode={sort_mode}, offset_id={offset_id}\n")
+    except Exception as e:
+        pass
+
     # First page: collect less headroom for faster first paint (still enough to merge)
     if offset_id is None or int(offset_id or 0) == 0:
         fetch_limit = min(120, max(page_size * 2, page_size + 12))
@@ -4308,6 +4414,18 @@ async def _list_files_on(
             except Exception:
                 total_count = None
                 total_bytes = None
+
+    if sort_mode == "oldest_first":
+        return await _list_files_scan_fallback(
+            client,
+            peer,
+            folder_id=folder_id,
+            page_size=page_size,
+            offset_id=offset_id,
+            topic_id=topic_id,
+            scan_budget=scan_budget,
+            reverse=True,
+        )
 
     try:
         slices = await asyncio.gather(

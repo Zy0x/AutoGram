@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.10 Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter
+
+Fixed:
+- Perbaikan ketidakakuratan pengurutan terlama ("Terlama dulu") pada pencarian media forum topic di Telegram.
+- Mengatasi keterbatasan Telegram API (`messages.search` / `messages.getReplies`) yang tidak mendukung pengurutan waktu secara menaik (*ascending* / tertua di atas) pada sisi server.
+- Mengalihkan pencarian tertua ("Terlama dulu") secara otomatis ke jalur pemindaian sequential history (`_list_files_scan_fallback`) yang menggunakan `iter_messages(reverse=True)`. Jalur ini terbukti akurat mengembalikan berkas tertua yang sebenarnya (seperti berkas `OyU-8c_o7FF72qdg.mp4` / pesan ID 34 pada topik Twitter grup).
+- Perbaikan bug *stale React closure* pada frontend (`SpeedTest.tsx`). Array dependensi pada *useCallback* `refreshFiles` dan `loadMoreFiles` kini menyertakan `sortMode` dan `files` secara eksplisit, menjamin state pengurutan terbaru selalu terkirim ke backend dan mencegah pemuatan halaman berikutnya bercampur dengan parameter pengurutan lama.
+
 ## v2.1.9 Implementasi Ghost Session Protocol v3.0
 
 Added:

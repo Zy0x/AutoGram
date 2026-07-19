@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.9
+AutoGram Version: v2.1.10
 
 Current State:
-Implementasi Ghost Session Protocol v3.0 (Atomic Clone, Stateless Preview Client, Adaptive Ghost Throttler, & Ref Counting Grace Period Transition)
+Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter
 
 Previous:
+v2.1.9 Implementasi Ghost Session Protocol v3.0 (Atomic Clone, Stateless Preview Client, Adaptive Ghost Throttler, & Ref Counting Grace Period Transition)
 v2.1.8 Perbaikan Media Studio Preview (Smart Upload Throttle, Feedback Tombol Muat, & Detail Info Spesifik)
 v2.1.7 Verifikasi Eksistensi Pesan Duplikat Telegram & Pembersihan Riwayat Stale
 v2.1.5 Optimasi dynamic moov offset parsing untuk streaming video besar (>150MB)
