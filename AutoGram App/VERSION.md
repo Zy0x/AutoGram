@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.12
+AutoGram Version: v2.1.13
 
 Current State:
-Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
+Perbaikan Error 'MTProtoSender' Object Is Not Callable untuk Pratinjau Berkas Lintas DC (>2GB)
 
 Previous:
+v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
 v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi
 v2.1.10 Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter
 v2.1.9 Implementasi Ghost Session Protocol v3.0 (Atomic Clone, Stateless Preview Client, Adaptive Ghost Throttler, & Ref Counting Grace Period Transition)

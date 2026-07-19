@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.13 Perbaikan Error 'MTProtoSender' Object Is Not Callable untuk Pratinjau Berkas Lintas DC (>2GB)
+
+Fixed:
+- Memperbaiki galat fatal `'MTProtoSender' object is not callable` pada saat mengunduh/streaming berkas media yang berlokasi di Data Center (DC) berbeda dari home DC akun (lintas DC). Fungsi internal `_call_with_flood` kini secara dinamis mendeteksi jika target pemanggilan berupa objek raw `MTProtoSender` dan menggunakan pemanggilan async `send(request)` alih-alih mencoba mengeksekusi objek secara langsung. Perbaikan ini memulihkan kemampuan streaming untuk video berukuran sangat besar (>2GB) yang tersebar di DC Telegram lainnya.
+
 ## v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
 
 Added:

@@ -321,7 +321,10 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
     attempt = 0
     while True:
         try:
-            return await client_or_sender(request)
+            if hasattr(client_or_sender, "_call"):
+                return await client_or_sender(request)
+            else:
+                return await client_or_sender.send(request)
         except _UPLOAD_FLOOD_ERRORS as e:
             wait_seconds = int(getattr(e, "seconds", 1) or 1)
             try:
