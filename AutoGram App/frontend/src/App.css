@@ -11303,35 +11303,60 @@ body:has(.td-page),
    ═══════════════════════════════════════════════════════════════ */
 .td-xfer-subsection {
   margin: 0.75rem 0 0.25rem 1.5rem;
-  padding: 0.75rem 0.875rem;
-  border-left: 2px solid color-mix(in srgb, var(--primary, #3b82f6) 40%, transparent);
-  background: color-mix(in srgb, var(--primary, #3b82f6) 4%, transparent);
-  border-radius: 0 6px 6px 0;
+  padding: 0.85rem 1rem;
+  border-left: 2px solid var(--td-primary, #38bdf8);
+  background: rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(8px);
+  border-radius: 0 10px 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 .td-xfer-sub-title {
-  margin: 0 0 0.4rem;
-  font-size: 0.72rem;
+  margin: 0 0 0.1rem;
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--td-sub, #888);
+  letter-spacing: 0.06em;
+  color: var(--td-primary, #38bdf8);
+  opacity: 0.85;
 }
-.td-xfer-radio-group { display: flex; flex-direction: column; gap: 0.35rem; }
-.td-xfer-radio {
-  display: flex; align-items: flex-start; gap: 0.5rem;
-  cursor: pointer; padding: 0.35rem 0.5rem; border-radius: 5px; transition: background 0.15s;
+.td-xfer-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
-.td-xfer-radio:hover { background: color-mix(in srgb, var(--primary, #3b82f6) 8%, transparent); }
-.td-xfer-radio input[type="radio"] { margin-top: 2px; accent-color: var(--primary, #3b82f6); flex-shrink: 0; }
-.td-xfer-radio span { display: flex; flex-direction: column; gap: 1px; }
-.td-xfer-radio strong { font-size: 0.82rem; font-weight: 600; }
-.td-xfer-radio small { font-size: 0.71rem; color: var(--td-sub, #888); line-height: 1.4; }
+/* We let the original .td-xfer-radio handle its beautiful styling, only tweaking input sizes */
+.td-xfer-radio input[type="radio"] {
+  accent-color: var(--td-primary, #38bdf8);
+  margin-top: 4px;
+}
 .td-xfer-select {
-  width: 100%; padding: 0.4rem 0.6rem; border-radius: 5px;
-  border: 1px solid var(--td-border, #333); background: var(--td-bg, #1a1a1a);
-  color: inherit; font: inherit; font-size: 0.8rem; cursor: pointer; transition: border-color 0.15s;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--td-border, rgba(255, 255, 255, 0.08));
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--td-text, #f1f5f9);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.2rem;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
-.td-xfer-select:hover, .td-xfer-select:focus { border-color: var(--primary, #3b82f6); outline: none; }
+.td-xfer-select:hover {
+  border-color: color-mix(in srgb, var(--td-primary, #38bdf8) 50%, transparent);
+}
+.td-xfer-select:focus {
+  border-color: var(--td-primary, #38bdf8);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--td-primary, #38bdf8) 18%, transparent);
+  outline: none;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    Transfer Manager — Scan Progress & Reupload Badge

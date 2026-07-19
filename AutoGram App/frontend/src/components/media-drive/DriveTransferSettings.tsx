@@ -334,7 +334,7 @@ export function DriveTransferSettings({
                         { id: 'smart',    label: 'Smart',    desc: '1.000 pesan terbaru + sampling adaptif — direkomendasikan.' },
                         { id: 'forensic', label: 'Forensik', desc: 'Semua pesan tanpa batas — sangat akurat, lambat untuk grup besar.' },
                       ] as const).map(({ id, label, desc }) => (
-                        <label key={id} className="td-xfer-radio">
+                        <label key={id} className={`td-xfer-radio ${draft.scanMode === id ? 'is-on' : ''}`}>
                           <input
                             type="radio"
                             name="scanMode"
