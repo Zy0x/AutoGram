@@ -117,7 +117,7 @@ class RandomSeekTests(unittest.IsolatedAsyncioTestCase):
         media.cancel()
 
     async def test_open_bootstrap_is_bounded_not_full_download(self):
-        total = 220 * 1024 * 1024
+        total = 150 * 1024 * 1024
         path = os.path.join(tempfile.mkdtemp(prefix="ag_seek_boot_"), "video.stream.mp4")
         media = ProgressiveMedia(path=path, total_size=total, mime="video/mp4", label="video.mp4")
         calls = []

@@ -71,7 +71,7 @@ _PIPELINE_WINDOW = 8 * 1024 * 1024  # bounded sequential playback window
 _SEEK_ALIGN = 64 * 1024
 _STREAM_WORKERS = 24  # higher concurrency for fast networks
 # Document / re-encode MP4 often puts moov at EOF — fetch enough for full atom
-_MOOV_TAIL_BUDGET = 4 * 1024 * 1024  # 4MB for large files
+_MOOV_TAIL_BUDGET = 16 * 1024 * 1024  # 16MB for large files
 _MOOV_TAIL_MIN = 512 * 1024
 
 
@@ -133,6 +133,27 @@ class ProgressiveMedia:
         self._active_seek_priority = 0
         from collections import OrderedDict
         self._ram_cache = OrderedDict()  # part_off -> data
+
+    def get_seek_window(self) -> int:
+        total = self.total_size or 0
+        if total > 1.5 * 1024 * 1024 * 1024:    # >1.5GB
+            return 64 * 1024 * 1024  # 64MB
+        if total > 800 * 1024 * 1024:           # >800MB
+            return 32 * 1024 * 1024  # 32MB
+        if total > 300 * 1024 * 1024:           # >300MB
+            return 16 * 1024 * 1024  # 16MB
+        return 8 * 1024 * 1024       # 8MB (default)
+
+    def get_pipeline_window(self) -> int:
+        return self.get_seek_window()
+
+    def get_stream_workers(self) -> int:
+        total = self.total_size or 0
+        if total > 1.5 * 1024 * 1024 * 1024:
+            return 32
+        if total > 800 * 1024 * 1024:
+            return 24
+        return 16
 
     def cancel(self) -> None:
         with self._seek_lock:
@@ -329,7 +350,7 @@ class ProgressiveMedia:
     def schedule_seek(
         self,
         byte_offset: int,
-        window: int = _SEEK_WINDOW,
+        window: int = 0,
         *,
         priority: int = 2,
     ) -> bool:
@@ -339,6 +360,8 @@ class ProgressiveMedia:
         """
         if self.cancelled or self.done:
             return False
+        if window <= 0:
+            window = self.get_seek_window()
         if self._loop is None or (self._input_loc is None and self._msg is None):
             # Not bound yet / location missing — cannot random-access
             return False
@@ -376,7 +399,7 @@ class ProgressiveMedia:
                     future is not None and future.done()
                 ):
                     self._seek_inflight.pop(k, None)
-                elif abs(k - off) < _SEEK_WINDOW // 2:
+                elif abs(k - off) < window // 2:
                     return True
 
             # A low-priority sequential read must not steal bandwidth back from
@@ -384,7 +407,7 @@ class ProgressiveMedia:
             if (
                 self._active_seek_offset is not None
                 and priority < self._active_seek_priority
-                and abs(self._active_seek_offset - off) >= _SEEK_WINDOW // 2
+                and abs(self._active_seek_offset - off) >= window // 2
             ):
                 return False
 
@@ -418,7 +441,7 @@ class ProgressiveMedia:
                 self._seek_generation += 1
                 generation = self._seek_generation
                 for old_off, job in list(self._seek_inflight.items()):
-                    if abs(old_off - off) < _SEEK_WINDOW // 2:
+                    if abs(old_off - off) < window // 2:
                         continue
                     future = job.get("future")
                     try:
@@ -527,7 +550,7 @@ def _ensure_server() -> int:
                     if media.contiguous_from_zero() < first_need and not media.done:
                         media.schedule_seek(
                             0,
-                            window=min(_PIPELINE_WINDOW, media.total_size or _PIPELINE_WINDOW),
+                            window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
                             priority=1,
                         )
                         media.wait_for_bytes(first_need, timeout=20.0)
@@ -571,7 +594,7 @@ def _ensure_server() -> int:
                         win = (
                             min(_MOOV_TAIL_BUDGET, total_sz - start)
                             if near_end and total_sz > start
-                            else _SEEK_WINDOW
+                            else media.get_seek_window()
                         )
                         log_debug(f"Seek Range Request start={start} near_end={near_end} win={win}")
                         media.schedule_seek(
@@ -608,11 +631,11 @@ def _ensure_server() -> int:
                     # filled. This avoids repeated HTTP round trips while the
                     # Telegram parts are already landing in the background.
                     filled_end = media.contiguous_end_from(start)
-                    window = _SEEK_WINDOW if not media.done else 4 * 1024 * 1024
+                    window = media.get_seek_window() if not media.done else 4 * 1024 * 1024
                     aligned_start = (start // _SEEK_ALIGN) * _SEEK_ALIGN
                     target_end = start + window - 1
                     if not media.done:
-                        target_end = aligned_start + _SEEK_WINDOW - 1
+                        target_end = aligned_start + window - 1
                     if file_size_known:
                         target_end = min(target_end, file_size_known - 1)
                     if end_req is not None:
@@ -621,7 +644,7 @@ def _ensure_server() -> int:
 
                     # Grow a bit if still filling this region
                     if not media.done and chunk_end < start + 256 * 1024:
-                        media.schedule_seek(start, window=_SEEK_WINDOW, priority=3)
+                        media.schedule_seek(start, window=window, priority=3)
                         media.wait_for_range(start, 512 * 1024, timeout=6.0)
                         filled_end = media.contiguous_end_from(start)
                         if media.done:
@@ -699,7 +722,7 @@ def _ensure_server() -> int:
                                 break
                             # Prefer pulling the missing tip (esp. head) instead of spinning
                             if pos == 0 or grow:
-                                media.schedule_seek(pos, window=_PIPELINE_WINDOW, priority=1)
+                                media.schedule_seek(pos, window=media.get_pipeline_window(), priority=1)
                             media.wait_for_range(pos, 64 * 1024, timeout=15.0)
                             filled_end = media.contiguous_end_from(pos)
                             if filled_end <= pos:
@@ -710,8 +733,9 @@ def _ensure_server() -> int:
                                 filled_end = media.contiguous_end_from(pos)
                                 if filled_end <= pos:
                                     break
+                        read_block_size = 256 * 1024 if media.total_size > 300 * 1024 * 1024 else 64 * 1024
                         to_read = min(
-                            64 * 1024,
+                            read_block_size,
                             length - sent,
                             filled_end - pos,
                         )
@@ -859,7 +883,7 @@ def stream_status(stream_id: str) -> Dict[str, Any]:
         "seek_offset": media._active_seek_offset,
         "seek_generation": media._seek_generation,
         "seek_inflight": len(media._seek_inflight),
-        "window_bytes": _SEEK_WINDOW,
+        "window_bytes": media.get_seek_window(),
         "quota_bytes": filled,
         "moov_ready": bool(
             prefix >= min(64 * 1024, total or 64 * 1024)
@@ -1111,7 +1135,8 @@ async def _download_parts_concurrent(
                             media._ram_cache.pop(part_off)
                         media._ram_cache[part_off] = data
                         media._ram_cache.move_to_end(part_off)
-                        while len(media._ram_cache) > 100:  # 50MB cache limit (100 * 512KB)
+                        cache_limit = max(100, (media.get_seek_window() // _PART) + 20)
+                        while len(media._ram_cache) > cache_limit:
                             media._ram_cache.popitem(last=False)
                 media.mark_range(part_off, len(data))
 
@@ -1175,7 +1200,7 @@ async def _fill_range_from_telegram(
                 media,
                 start=start,
                 length=length,
-                workers=_STREAM_WORKERS,
+                workers=media.get_stream_workers(),
                 seek_generation=generation,
             )
         if (
@@ -1482,7 +1507,7 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
         media,
         start=tail_off,
         length=tail_len,
-        workers=min(12, _STREAM_WORKERS),
+        workers=min(12, media.get_stream_workers()),
         head_first=True,
     )
     if media.cancelled:
@@ -1689,13 +1714,13 @@ async def fill_stream_from_telegram(
             media.notify()
             return
 
-        workers = _STREAM_WORKERS
+        workers = media.get_stream_workers()
         while not media.cancelled:
             pos = media.contiguous_from_zero()
             if total > 0 and pos >= total:
                 break
             # If next byte is already in a filled island (rare), jump to hole
-            window = _PIPELINE_WINDOW
+            window = media.get_pipeline_window()
             if total > 0:
                 window = min(window, total - pos)
             if window <= 0:
@@ -1719,7 +1744,7 @@ async def fill_stream_from_telegram(
                             await _download_parts_concurrent(
                                 media,
                                 start=skip_to,
-                                length=min(_PIPELINE_WINDOW, total - skip_to),
+                                length=min(media.get_pipeline_window(), total - skip_to),
                                 workers=workers,
                                 head_first=True,
                             )

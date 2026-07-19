@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
+
+Added:
+- Implementasi **Dynamic Adaptive Buffering** untuk streaming media di mana ukuran window unduh, window sequential pipeline, dan jumlah pekerja download diskalakan secara dinamis berdasarkan ukuran total berkas.
+- Peningkatan window seek & pipeline hingga **64MB** dan pekerja konkruen hingga **32 workers** untuk berkas raksasa (>1.5GB) guna memaksimalkan lebar pita unduh (*bandwidth*) pada koneksi cepat.
+- Penyesuaian kapasitas *cache* RAM secara dinamis (`max(100, window // _PART + 20)`) agar seluruh ujung depan window unduhan aktif muat di memori tanpa memicu *eviction* prematur ke SSD/HDD.
+- Peningkatan batas ukuran pembacaan disk (`to_read`) dari 64KB menjadi **256KB** pada berkas >300MB untuk meminimalkan beban I/O loop dan *context switching* di CPU.
+- Peningkatan konstanta `_MOOV_TAIL_BUDGET` ke **16MB** untuk deteksi dan bootstrap atom `moov` yang lebih andal pada berkas original berukuran besar di Telegram.
+
+Fixed:
+- Perbaikan batas asersi ukuran bootstrap pada berkas 220MB di pengujian unit random seek.
+
 ## v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi
 
 Fixed:
