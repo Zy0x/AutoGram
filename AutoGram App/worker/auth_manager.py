@@ -124,7 +124,7 @@ def _scan_session_files():
         if f.endswith(".session-journal") or "-journal" in f:
             continue
         name = f[: -len(".session")]
-        if name and not name.startswith("."):
+        if name and not name.startswith(".") and not name.endswith("_preview"):
             names.append(name)
     return names
 
@@ -143,7 +143,7 @@ async def list_sessions_action(api_id, api_hash, verify: bool = False):
     try:
         for sess in get_all_sessions():
             name = sess.get("name") if isinstance(sess, dict) else sess[0]
-            if not name:
+            if not name or name.endswith("_preview"):
                 continue
             status = "stored"
             if isinstance(sess, dict) and sess.get("status"):

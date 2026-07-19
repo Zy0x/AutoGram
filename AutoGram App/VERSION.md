@@ -1,10 +1,10 @@
-AutoGram Version: v2.1.14
+AutoGram Version: v2.1.15
 
 Current State:
-Pembersihan Placeholder Tampilan Awal Memuat Pratinjau Media (Video & Gambar)
+Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka
 
 Previous:
-v2.1.13 Perbaikan Error 'MTProtoSender' Object Is Not Callable untuk Pratinjau Berkas Lintas DC (>2GB)
+v2.1.14 Pembersihan Placeholder Tampilan Awal Memuat Pratinjau Media (Video & Gambar)
 v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
 v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi
 v2.1.10 Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.15 Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka
+
+Fixed:
+- Menyembunyikan berkas sesi bayangan/duplikat (cloned session yang berakhiran `_preview` untuk keperluan pemutaran stream/unggahan media) dari daftar pilihan Session di antarmuka Media Studio. Sesi bayangan kini dikelola sepenuhnya di latar belakang (backend-only) tanpa mengekspos duplikasi nama ke pengguna, sehingga antarmuka daftar akun tetap bersih dan rapi.
+
 ## v2.1.14 Pembersihan Placeholder Tampilan Awal Memuat Pratinjau Media (Video & Gambar)
 
 Changed:
