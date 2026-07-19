@@ -337,6 +337,9 @@ export type QualityMode = 'HIGH_QUALITY' | 'SMART' | 'ORIGINAL';
 export type ReencodeHardware = 'auto' | 'nvidia' | 'amd' | 'intel' | 'cpu';
 export type ReencodePreset = 'speed' | 'balanced' | 'quality';
 
+export type ScanMode = 'normal' | 'smart' | 'forensic';
+export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
+
 /** Upload + download preferences for Media Studio (persisted in localStorage). */
 export type DriveTransferSettings = {
   /** Upload quality mapping to Telethon send kwargs */
@@ -355,6 +358,16 @@ export type DriveTransferSettings = {
   forceDocumentDefault: boolean;
   /** Duplicate resolution policy: 'SKIP' (default) or 'FORCE_UPLOAD' (always upload) */
   duplicatePolicy: 'SKIP' | 'FORCE_UPLOAD';
+  /** Destination scan depth mode */
+  scanMode: ScanMode;
+  /** Whether to ask user before re-uploading recently deleted files */
+  guardrailEnabled: boolean;
+  /** Re-upload confirmation threshold in days (3-30) */
+  guardrailThresholdDays: number;
+  /** Which messages to include in the destination pre-scan for forum topics */
+  topicScope: TopicScope;
+  /** Max re-uploads per hour rate limit */
+  maxReuploadPerHour: number;
   /** Caption applied to every uploaded file when empty caption */
   globalCaption: string;
   /** After upload finishes, refresh file list (recommended) */
@@ -367,6 +380,14 @@ export type DriveTransferSettings = {
   reencodePreset: ReencodePreset;
 };
 
+export function isScanMode(v: unknown): v is ScanMode {
+  return v === 'normal' || v === 'smart' || v === 'forensic';
+}
+
+export function isTopicScope(v: unknown): v is TopicScope {
+  return v === 'selected_only' || v === 'selected_plus_general' || v === 'all_topics';
+}
+
 export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   qualityMode: 'HIGH_QUALITY',
   uploadConcurrency: 4,
@@ -376,6 +397,11 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   spoiler: false,
   forceDocumentDefault: false,
   duplicatePolicy: 'SKIP',
+  scanMode: 'smart',
+  guardrailEnabled: true,
+  guardrailThresholdDays: 7,
+  topicScope: 'selected_plus_general',
+  maxReuploadPerHour: 10,
   globalCaption: '',
   refreshAfterUpload: true,
   notifyDownloadDone: true,
@@ -443,6 +469,17 @@ export function loadTransferSettings(): DriveTransferSettings {
       spoiler: !!p.spoiler,
       forceDocumentDefault: !!p.forceDocumentDefault,
       duplicatePolicy: p.duplicatePolicy === 'FORCE_UPLOAD' ? 'FORCE_UPLOAD' : 'SKIP',
+      scanMode: isScanMode(p.scanMode) ? p.scanMode : DEFAULT_TRANSFER_SETTINGS.scanMode,
+      guardrailEnabled: p.guardrailEnabled !== false,
+      guardrailThresholdDays: (
+        typeof p.guardrailThresholdDays === 'number'
+        && p.guardrailThresholdDays >= 3
+        && p.guardrailThresholdDays <= 30
+      ) ? p.guardrailThresholdDays : DEFAULT_TRANSFER_SETTINGS.guardrailThresholdDays,
+      topicScope: isTopicScope(p.topicScope) ? p.topicScope : DEFAULT_TRANSFER_SETTINGS.topicScope,
+      maxReuploadPerHour: (
+        typeof p.maxReuploadPerHour === 'number' && p.maxReuploadPerHour >= 1
+      ) ? Math.min(p.maxReuploadPerHour, 100) : DEFAULT_TRANSFER_SETTINGS.maxReuploadPerHour,
       globalCaption: typeof p.globalCaption === 'string' ? p.globalCaption.slice(0, 1024) : '',
       refreshAfterUpload: p.refreshAfterUpload !== false,
       notifyDownloadDone: p.notifyDownloadDone !== false,
@@ -529,7 +566,9 @@ export type TransferItemStatus =
   | 'failed'
   | 'cancelled'
   /** Duplicate detected — file existed in destination, upload was intentionally skipped */
-  | 'skipped';
+  | 'skipped'
+  /** File was deleted from destination and has been re-uploaded */
+  | 'reuploaded';
 
 export type TransferDirection = 'upload' | 'download' | 'move';
 
@@ -559,6 +598,25 @@ export type TransferItem = {
   messageId?: number;
   /** Destination name (e.g. Chat/Folder Title or Local save path) */
   destination?: string;
+  /** True when this file was re-uploaded (deleted from destination then re-sent) */
+  reuploaded?: boolean;
+  /** Why the file was re-uploaded */
+  reuploadReason?: string;
+  /** The original message_id that was deleted */
+  originalMessageId?: number;
+  /** Timestamp when deletion was detected */
+  deletedAt?: number;
+};
+
+export type ScanStats = {
+  recentScanned: number;
+  sampledScanned: number;
+  dbCachedLoaded: number;
+  newFromTg: number;
+  duplicateHits: number;
+  skippedNoMedia: number;
+  circuitOpen: boolean;
+  totalScanned: number;
 };
 
 export type TransferSession = {
@@ -582,6 +640,18 @@ export type TransferSession = {
   startedAt: number;
   /** Last N debug lines from worker [TRANSFER] / TransferLog */
   debugLogs?: string[];
+  /** Pre-scan phase: 'idle' | 'cache_warmup' | 'recent' | 'sampling' | 'forensic' | 'done' */
+  scanPhase?: string;
+  /** Current scan progress (messages scanned so far) */
+  scanScanned?: number;
+  /** Estimated total messages for scan */
+  scanTotal?: number | null;
+  /** Full scan stats after pre-scan completes */
+  scanStats?: ScanStats;
+  /** Count of items re-uploaded (were deleted from destination) */
+  reuploadedCount?: number;
+  /** Count of items pending guardrail confirmation */
+  guardrailPendingCount?: number;
 };
 
 export const EMPTY_TRANSFER_SESSION: TransferSession = {

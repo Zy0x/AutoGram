@@ -706,6 +706,79 @@ export function applyTransferEvent(
     };
   }
 
+  // ── Scan Progress Events (new SmartScanner protocol) ─────────────────
+  if (t === 'StudioScanProgress') {
+    const phase = str(p.phase || 'scanning');
+    const scanned = num(p.scanned, session.scanScanned ?? 0);
+    const totalEst = p.totalEstimated != null ? num(p.totalEstimated, 0) || null : null;
+    const phaseLabelMap: Record<string, string> = {
+      cache_warmup: 'Memuat cache…',
+      recent:    'Memindai 1.000 pesan terakhir…',
+      sampling:  'Sampling adaptif riwayat…',
+      forensic:  'Pemindaian forensik (semua pesan)…',
+    };
+    const bannerText = phaseLabelMap[phase] ?? `Memindai destination… (${scanned} pesan)`;
+    return {
+      ...session,
+      active: true,
+      scanPhase: phase,
+      scanScanned: scanned,
+      scanTotal: totalEst,
+      banner: bannerText,
+    };
+  }
+
+  if (t === 'StudioScanComplete') {
+    const stats = p.scanStats as Record<string, unknown> | undefined;
+    const indexSize = num(p.indexSize, 0);
+    const duration = num(p.durationSeconds, 0);
+    const cached = stats ? num(stats.dbCachedLoaded, 0) : 0;
+    const fromTg  = stats ? num(stats.newFromTg, 0) : 0;
+    const bannerText = `Pemindaian selesai — ${indexSize} entri (${cached} cache + ${fromTg} Telegram) dalam ${duration.toFixed(1)}s`;
+    return {
+      ...session,
+      active: true,
+      scanPhase: 'done',
+      scanScanned: num(p.indexSize, session.scanScanned),
+      scanStats: stats
+        ? {
+            recentScanned:  num(stats.recentScanned,  0),
+            sampledScanned: num(stats.sampledScanned, 0),
+            dbCachedLoaded: num(stats.dbCachedLoaded, 0),
+            newFromTg:      num(stats.newFromTg,      0),
+            duplicateHits:  num(stats.duplicateHits,  0),
+            skippedNoMedia: num(stats.skippedNoMedia, 0),
+            circuitOpen:    Boolean(stats.circuitOpen),
+            totalScanned:   num(stats.totalScanned,   0),
+          }
+        : session.scanStats,
+      banner: bannerText,
+    };
+  }
+
+  // ── Reupload Badge Event ──────────────────────────────────────────────
+  if (t === 'StudioItemReupload') {
+    const index  = num(p.index, 0);
+    const mid    = num(p.message_id ?? p.messageId, 0);
+    const origMid = num(p.originalMessageId ?? p.original_message_id, 0);
+    const reason = str(p.reuploadReason ?? p.reupload_reason ?? 'deleted_from_destination');
+    const deletedAt = num(p.deletedAt ?? p.deleted_at, 0);
+    const items = ensureItem(session.items, index, session.direction, {
+      reuploaded: true,
+      reuploadReason: reason,
+      ...(mid > 0 ? { messageId: mid } : {}),
+      ...(origMid > 0 ? { originalMessageId: origMid } : {}),
+      ...(deletedAt > 0 ? { deletedAt } : {}),
+      note: 'File dihapus dari tujuan lalu diunggah ulang',
+    });
+    const reuploadedCount = items.filter((i) => (i as any).reuploaded).length;
+    return {
+      ...session,
+      items,
+      reuploadedCount,
+    };
+  }
+
   return session;
 }
 

@@ -321,7 +321,83 @@ export function DriveTransferSettings({
                     <small>Deteksi riwayat Telegram dan database lokal secara otomatis untuk menghindari pengunggahan ganda.</small>
                   </span>
                 </label>
-              </div>
+
+                {draft.duplicatePolicy === 'SKIP' && (
+                  <div className="td-xfer-subsection">
+                    <h4 className="td-xfer-sub-title">Mode Pemindaian Destination</h4>
+                    <p className="td-xfer-hint">
+                      Mengontrol seberapa dalam aplikasi memindai riwayat pesan tujuan sebelum transfer dimulai.
+                    </p>
+                    <div className="td-xfer-radio-group">
+                      {([
+                        { id: 'normal',   label: 'Normal',   desc: '1.000 pesan terakhir — cepat.' },
+                        { id: 'smart',    label: 'Smart',    desc: '1.000 pesan terbaru + sampling adaptif — direkomendasikan.' },
+                        { id: 'forensic', label: 'Forensik', desc: 'Semua pesan tanpa batas — sangat akurat, lambat untuk grup besar.' },
+                      ] as const).map(({ id, label, desc }) => (
+                        <label key={id} className="td-xfer-radio">
+                          <input
+                            type="radio"
+                            name="scanMode"
+                            value={id}
+                            checked={draft.scanMode === id}
+                            disabled={!!transferActive}
+                            onChange={() => patch({ scanMode: id })}
+                          />
+                          <span>
+                            <strong>{label}</strong>
+                            <small>{desc}</small>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Cakupan Topik (Forum)</h4>
+                    <select
+                      className="td-xfer-select"
+                      value={draft.topicScope}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ topicScope: e.target.value as 'selected_only' | 'selected_plus_general' | 'all_topics' })}
+                      aria-label="Cakupan topik untuk pemindaian"
+                    >
+                      <option value="selected_only">Topik terpilih saja</option>
+                      <option value="selected_plus_general">Topik terpilih + General</option>
+                      <option value="all_topics">Semua topik</option>
+                    </select>
+
+                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Guardrail Re-upload</h4>
+                    <label className="td-xfer-check" style={{ marginBottom: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={draft.guardrailEnabled}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ guardrailEnabled: e.target.checked })}
+                      />
+                      <span>
+                        <strong>Konfirmasi sebelum re-upload file yang dihapus baru-baru ini</strong>
+                        <small>Mencegah re-upload massal tanpa sengaja saat file baru dihapus dari tujuan.</small>
+                      </span>
+                    </label>
+                    {draft.guardrailEnabled && (
+                      <>
+                        <p className="td-xfer-hint">
+                          Minta konfirmasi untuk file yang dihapus dalam kurun waktu:
+                        </p>
+                        <label className="td-xfer-range-row">
+                          <input
+                            type="range"
+                            min={3}
+                            max={30}
+                            value={draft.guardrailThresholdDays}
+                            disabled={!!transferActive}
+                            onChange={(e) => patch({ guardrailThresholdDays: Number(e.target.value) })}
+                            aria-label="Batas hari guardrail"
+                          />
+                          <span className="td-xfer-range-val">{draft.guardrailThresholdDays} hari</span>
+                        </label>
+                      </>
+                    )}
+                  </div>
+                )}
 
               <h3>Caption default</h3>
               <p className="td-xfer-hint">

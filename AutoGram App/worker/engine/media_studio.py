@@ -178,6 +178,12 @@ class StudioOptions:
     reencode_hw: str = "auto"
     reencode_preset: str = "balanced"
     duplicate_policy: str = "SKIP"  # SKIP | FORCE_UPLOAD
+    # Enhanced duplicate detection options
+    scan_mode: str = "smart"              # normal | smart | forensic
+    guardrail_enabled: bool = True        # confirm before re-uploading recently deleted files
+    guardrail_threshold_days: int = 7     # files deleted within N days require confirmation
+    topic_scope: str = "selected_plus_general"  # selected_only | selected_plus_general | all_topics
+    max_reupload_per_hour: int = 10       # rate limit for re-uploads
 
 
 def _ensure_temp() -> str:
@@ -1721,11 +1727,25 @@ async def _run_fastlane_pipeline(
             return upath, tmp, old_size
 
     def duplicate_id(it: StudioItem, upath: str) -> Optional[int]:
+        """Check scan index first (O(1)), then DB, then name+size fallback."""
         if opts.duplicate_policy == "FORCE_UPLOAD":
             return None
         final_name = _final_name(it.path, upath)
         found = None
         try:
+            # Priority 1: Scanner fingerprint index (fast, multi-tier)
+            if scanner is not None:
+                from engine.fingerprint_engine import MediaFingerprint
+                fp = MediaFingerprint.from_local_file(
+                    upath or it.path,
+                    file_name=final_name,
+                    file_size=it.size,
+                    sha256=it.fingerprint,
+                )
+                found_mid = scanner.lookup(fp, strict=False)
+                if found_mid:
+                    return found_mid
+            # Priority 2: DB duplicate_history (SHA-256 + name+size)
             found = dup_checker.get_duplicate_message_id(
                 file_hash=it.fingerprint or None,
                 file_name=final_name,
@@ -1733,6 +1753,7 @@ async def _run_fastlane_pipeline(
             )
         except Exception:
             pass
+        # Priority 3: Legacy tg_exists (name+size fallback)
         if not found:
             found = tg_exists.get((final_name.lower(), it.size))
         return int(found) if found else None
@@ -1746,19 +1767,38 @@ async def _run_fastlane_pipeline(
                 agg.adjust_total_bytes(it.size - old_size)
             duplicate = duplicate_id(it, upath)
             if duplicate:
+                # Verify the destination message still exists + file accessible
                 exists = True
+                deleted_at = None
                 try:
-                    msg = await client.get_messages(entity, ids=[duplicate])
-                    if not msg or not msg[0] or getattr(msg[0], "action", None):
+                    if scanner is not None:
+                        # Use resilient client for deep verify
+                        from engine.telegram_resilient import TelegramResilientClient as _RC
+                        _resilient = _RC(client, str(chat_id), emit_event_fn=emit_event)
+                        msgs = await _resilient.get_messages_safe(entity, ids=[duplicate])
+                    else:
+                        msgs = await client.get_messages(entity, ids=[duplicate])
+                    if not msgs or not msgs[0] or getattr(msgs[0], "action", None):
                         exists = False
+                        deleted_at = int(time.time())
                 except Exception as e:
-                    emit_event("LogEvent", level="WARNING", message=f"Gagal verifikasi pesan {duplicate} di Telegram: {e}")
-                
+                    emit_event("LogEvent", level="WARNING",
+                               message=f"Gagal verifikasi pesan {duplicate}: {e}")
+
                 if not exists:
-                    emit_event("LogEvent", level="INFO", message=f"Pesan duplikat {duplicate} tidak ditemukan di Telegram (telah dihapus). Menghapus riwayat dan mengunggah ulang.")
+                    # File hilang dari destination
+                    emit_event("LogEvent", level="INFO",
+                               message=f"Pesan {duplicate} tidak ditemukan (dihapus). Re-upload otomatis.")
                     dup_checker.delete_duplicate_by_message_id(duplicate)
                     final_name = _final_name(it.path, upath)
                     tg_exists.pop((final_name.lower(), it.size), None)
+                    # Remove from scanner index too
+                    if scanner is not None and it.fingerprint:
+                        scanner.index.pop(f"sha256:{it.fingerprint}", None)
+                    # Mark item as needing re-upload (not guardrail for fastlane)
+                    it.reupload_reason = "deleted_from_destination"
+                    it.original_message_id = duplicate
+                    it.deleted_at = deleted_at
                     duplicate = None
 
             if duplicate:
@@ -1770,6 +1810,8 @@ async def _run_fastlane_pipeline(
                     index=it.index,
                     message_id=duplicate,
                     status="skipped",
+                    reuploaded=False,
+                    skipReason="pre_scan_or_db_match",
                     note=f"Duplikat dilewati — sudah ada di tujuan (pesan {duplicate})",
                 )
                 journal.append(
@@ -1838,13 +1880,31 @@ async def _run_fastlane_pipeline(
                 )
                 if it.status == "done" and it.message_id:
                     try:
+                        final_name = _final_name(it.path, upath or it.path)
+                        reupload_reason = getattr(it, "reupload_reason", None)
+                        orig_mid       = getattr(it, "original_message_id", None)
+                        deleted_at_ts  = getattr(it, "deleted_at", None)
                         dup_checker.log(
                             None,
                             it.message_id,
                             file_hash=it.fingerprint or None,
-                            file_name=_final_name(it.path, upath),
+                            file_name=final_name,
                             file_size=it.size,
+                            fingerprint_hash=(
+                                f"sha256:{it.fingerprint}" if it.fingerprint else None
+                            ),
                         )
+                        # Emit reuploaded badge if this was a re-upload
+                        if reupload_reason:
+                            emit_event(
+                                "StudioItemReupload",
+                                index=it.index,
+                                message_id=it.message_id,
+                                originalMessageId=orig_mid,
+                                reuploadReason=reupload_reason,
+                                deletedAt=deleted_at_ts,
+                                reuploadedAt=int(time.time()),
+                            )
                     except Exception:
                         pass
                 await asyncio.sleep(random.uniform(1.5, 3.0))
@@ -2258,7 +2318,15 @@ async def run_ordered_upload(
     Emit note in StudioStarted.
     """
     from engine.duplicate_checker import DuplicateChecker
-    dup_checker = DuplicateChecker(chat_id)
+    from engine.telegram_resilient import TelegramResilientClient
+    from engine.smart_scanner import SmartScanner
+    from engine.transfer_state_manager import TransferStateManager
+
+    dup_checker = DuplicateChecker(
+        chat_id,
+        guardrail_enabled=opts.guardrail_enabled,
+        guardrail_threshold_days=opts.guardrail_threshold_days,
+    )
     transfer_id = transfer_id or f"transfer-{uuid.uuid4().hex}"
     journal = TransferJournal(transfer_id)
     journal.append(
@@ -2268,6 +2336,26 @@ async def run_ordered_upload(
         destination=str(chat_id),
         topic_id=opts.topic_id or opts.reply_to,
     )
+
+    # Initialize state manager for resume capability
+    state_mgr = TransferStateManager(
+        job_id=transfer_id,
+        source_path="batch",
+        target_entity_id=str(chat_id),
+        config={
+            "duplicate_policy": opts.duplicate_policy,
+            "scan_mode": opts.scan_mode,
+            "guardrail_enabled": opts.guardrail_enabled,
+            "guardrail_threshold_days": opts.guardrail_threshold_days,
+            "topic_scope": opts.topic_scope,
+            "max_reupload_per_hour": opts.max_reupload_per_hour,
+            "target_topic_id": opts.topic_id or opts.reply_to,
+        },
+    )
+    try:
+        state_mgr.create(len(items))
+    except Exception:
+        pass
 
     total_bytes = sum(i.size for i in items)
     agg = ProgressAgg(total_bytes, len(items))
@@ -2298,32 +2386,67 @@ async def run_ordered_upload(
         group_as_album=opts.group_as_album,
         order_mode="parallel_upload_sequential_commit",
         transfer_id=transfer_id,
+        scanMode=opts.scan_mode,
         debug_log_path=os.path.relpath(journal.path, os.path.dirname(os.path.dirname(__file__))),
         upload_hard_max_bytes=getattr(upload_policy, "hard_max_bytes", None),
         upload_premium=bool(getattr(upload_policy, "premium", False)) if upload_policy else None,
     )
 
-    # Pre-flight active reconciliation scan on Telegram to avoid duplicate uploads
+    # ── Enhanced Smart Pre-Scan (replaces old 200-msg limit) ──────────────
+    # Build scan index using SmartScanner with adaptive depth and topic filtering.
+    # tg_exists kept for backward compatibility with _run_fastlane_pipeline.
     tg_exists = {}
+    scanner = None
     if opts.duplicate_policy != "FORCE_UPLOAD":
         try:
-            emit_event("StudioInfo", message="Memindai riwayat Telegram untuk menyelaraskan status...")
-            topic_filter = None
-            if opts.topic_id:
-                topic_filter = int(opts.topic_id)
-            elif opts.reply_to:
-                topic_filter = int(opts.reply_to)
+            topic_id = opts.topic_id or opts.reply_to
+            resilient = TelegramResilientClient(
+                client,
+                str(chat_id),
+                emit_event_fn=emit_event,
+            )
+            state_mgr.save_scan_started()
 
-            async for msg in client.iter_messages(entity, limit=200, reply_to=topic_filter):
-                if msg.media and hasattr(msg, "file") and msg.file:
-                    fname = (msg.file.name or "").lower()
-                    fsize = msg.file.size
-                    if fname and fsize:
-                        tg_exists[(fname, fsize)] = msg.id
-            if tg_exists:
-                emit_event("StudioInfo", message=f"Penyelarasan sukses: menemukan {len(tg_exists)} berkas di Telegram.")
+            scanner = SmartScanner(
+                resilient=resilient,
+                entity=entity,
+                entity_id=str(chat_id),
+                topic_id=int(topic_id) if topic_id else None,
+                topic_scope=opts.topic_scope,
+                scan_mode=opts.scan_mode,
+                emit_fn=emit_event,
+                db_cache_fn=lambda: dup_checker.load_scan_cache(
+                    topic_id=int(topic_id) if topic_id else None
+                ),
+                save_cache_fn=dup_checker.upsert_scan_cache,
+                job_id=transfer_id,
+            )
+            await scanner.run()
+
+            # Build legacy tg_exists from scanner's name+size index for backward compat
+            tg_exists = {
+                key: mid for key, mid in scanner.ns_index.items()
+            }
+
+            state_mgr.save_scan_complete(
+                scanner.index,
+                scanner.stats.to_dict(),
+            )
+            emit_event(
+                "StudioInfo",
+                message=(
+                    f"Pemindaian selesai: {scanner.stats.total_scanned} pesan dipindai, "
+                    f"{len(scanner.index)} entri terindeks, "
+                    f"{scanner.stats.db_cached_loaded} dari cache DB."
+                ),
+                scanStats=scanner.stats.to_dict(),
+            )
         except Exception as recon_err:
-            emit_event("LogEvent", level="WARNING", message=f"Penyelarasan riwayat Telegram gagal: {recon_err}")
+            emit_event(
+                "LogEvent",
+                level="WARNING",
+                message=f"Pemindaian destination gagal (fallback ke DB only): {recon_err}",
+            )
 
     # Safety takes precedence over the legacy client.send_file(album) path,
     # which can retransmit every member after an ambiguous failure. Until the
@@ -2887,6 +3010,11 @@ async def run_media_studio(
         reencode_hw=str(opts_raw.get("reencode_hw") or opts_raw.get("reencodeHardware") or "auto"),
         reencode_preset=str(opts_raw.get("reencode_preset") or opts_raw.get("reencodePreset") or "balanced"),
         duplicate_policy=str(opts_raw.get("duplicate_policy") or opts_raw.get("duplicatePolicy") or "SKIP"),
+        scan_mode=str(opts_raw.get("scan_mode") or opts_raw.get("scanMode") or "smart"),
+        guardrail_enabled=bool(opts_raw.get("guardrail_enabled", opts_raw.get("guardrailEnabled", True))),
+        guardrail_threshold_days=int(opts_raw.get("guardrail_threshold_days") or opts_raw.get("guardrailThresholdDays") or 7),
+        topic_scope=str(opts_raw.get("topic_scope") or opts_raw.get("topicScope") or "selected_plus_general"),
+        max_reupload_per_hour=int(opts_raw.get("max_reupload_per_hour") or opts_raw.get("maxReuploadPerHour") or 10),
     )
     opts.concurrency = max(1, min(opts.concurrency, 8))
     dlog(

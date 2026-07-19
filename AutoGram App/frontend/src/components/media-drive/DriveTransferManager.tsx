@@ -58,6 +58,7 @@ type Props = {
 function StatusIcon({ status }: { status: string }) {
   // skipped: treated as done visually (green check), badge shows separately
   if (status === 'done' || status === 'skipped') return <Check size={14} className="tm-ico ok" />;
+  if (status === 'reuploaded') return <RotateCcw size={14} className="tm-ico reupload" />;
   if (status === 'failed' || status === 'cancelled' || status === 'needs_verification')
     return <AlertCircle size={14} className="tm-ico err" />;
   if (status === 'active' || status === 'preparing' || status === 'uploaded' || status === 'waiting_commit' || status === 'committing')
@@ -358,9 +359,14 @@ export function DriveTransferManager({
                         &nbsp;·&nbsp;{counts.skipped} dilewati
                       </span>
                     )}
+                    {(session as any).reuploadedCount > 0 && (
+                      <span className="tm-reupload-badge" title="File dihapus dari tujuan lalu diunggah ulang otomatis">
+                        &nbsp;·&nbsp;<RotateCcw size={11} style={{display:'inline',verticalAlign:'middle'}} />&nbsp;{(session as any).reuploadedCount} re-upload
+                      </span>
+                    )}
                     {counts.needsVerification > 0 && (
                       <span className="tm-skip-badge" title="Commit ambigu; AutoGram tidak mengunggah ulang byte">
-                        &nbsp;Â·&nbsp;{counts.needsVerification} perlu verifikasi
+                        &nbsp;·&nbsp;{counts.needsVerification} perlu verifikasi
                       </span>
                     )}
                   </span>
@@ -406,6 +412,24 @@ export function DriveTransferManager({
               </div>
             )}
             {session.banner && <div className="tm-banner">{session.banner}</div>}
+            {/* Scan progress indicator — shown during SmartScanner pre-scan phase */}
+            {(session as any).scanPhase && (session as any).scanPhase !== 'done' && (
+              <div className="tm-scan-progress">
+                <Loader2 size={11} className="tm-ico spin" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
+                <span>
+                  {(session as any).scanPhase === 'cache_warmup' && 'Memuat cache duplikat…'}
+                  {(session as any).scanPhase === 'recent' && `Memindai 1.000 pesan terakhir… (${(session as any).scanScanned ?? 0})`}
+                  {(session as any).scanPhase === 'sampling' && `Sampling adaptif… (${(session as any).scanScanned ?? 0} dipindai)`}
+                  {(session as any).scanPhase === 'forensic' && `Pemindaian forensik… (${(session as any).scanScanned ?? 0} pesan)`}
+                  {!['cache_warmup','recent','sampling','forensic'].includes((session as any).scanPhase) && `Memindai…`}
+                </span>
+              </div>
+            )}
+            {(session as any).scanPhase === 'done' && (session as any).scanStats && (
+              <div className="tm-scan-done">
+                ✓ Scan: {(session as any).scanStats.totalScanned} pesan · {(session as any).scanStats.dbCachedLoaded} cache · {(session as any).scanStats.newFromTg} Telegram
+              </div>
+            )}
             {session.active && remainingAfterActive > 0 && (
               <p className="tm-hint">
                 Pause menahan file berikutnya (file yang sedang jalan tetap diselesaikan).

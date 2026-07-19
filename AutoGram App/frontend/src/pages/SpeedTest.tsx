@@ -4157,6 +4157,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
       duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
+      scan_mode: transferSettings.scanMode || 'smart',
+      guardrail_enabled: transferSettings.guardrailEnabled !== false,
+      guardrail_threshold_days: transferSettings.guardrailThresholdDays ?? 7,
+      topic_scope: transferSettings.topicScope || 'selected_plus_general',
+      max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
     };
     // Upload into selected forum topic only when targeting current peer
     if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
