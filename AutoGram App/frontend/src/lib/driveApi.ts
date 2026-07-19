@@ -13,6 +13,7 @@ import {
   isGhostSessionReady,
 } from './driveSession';
 import { detectTauriRuntime } from './platform';
+import { getCheckpoint, getMediaRecords, getFolderMediaCount } from './mediaStudioDb';
 
 export const DRIVE_JOB_ID = 991002;
 /** Open/Preview download — separate from transfer so cancel open never kills upload/download. */
@@ -641,10 +642,48 @@ export async function driveListFiles(
     topicId?: number | null;
     /** Skip aggregate counters on the latency-critical first page. */
     quickStats?: boolean;
+    sortMode?: string;
+    localOffset?: number;
   }
 ) {
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
   const topicId = opts?.topicId ?? null;
+  const sortMode = opts?.sortMode ?? 'newest_first';
+
+  // 1. Try serving from local IndexedDB warm cache (completed indexing)
+  const folderKey = folderId || 0;
+  const jobId = `index_chat_${folderKey}${topicId ? `_topic_${topicId}` : ''}`;
+  const cp = await getCheckpoint(jobId).catch(() => null);
+
+  if (cp && cp.status === 'completed') {
+    const localOffset = opts?.localOffset ?? 0;
+    try {
+      const records = await getMediaRecords(folderKey, sortMode, localOffset, pageSize);
+      const totalCount = await getFolderMediaCount(folderKey);
+      const hasMore = localOffset + records.length < totalCount;
+      const nextOffsetId = records.length > 0 ? records[records.length - 1].id : null;
+
+      return {
+        status: 'success',
+        folder_id: folderId,
+        topic_id: topicId,
+        files: records,
+        total: records.length,
+        page_size: pageSize,
+        has_more: hasMore,
+        next_offset_id: nextOffsetId,
+        total_count: totalCount,
+        total_bytes: null,
+        stats_accurate: true,
+        stats_pending: false,
+        cached: true,
+      };
+    } catch (e) {
+      console.warn('[driveListFiles] Local cache query failed, falling back to network:', e);
+    }
+  }
+
+  // 2. Fallback to network
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_files', {
       folder_id: folderId,
@@ -652,6 +691,7 @@ export async function driveListFiles(
       offset_id: opts?.offsetId ?? null,
       topic_id: topicId,
       quick_stats: opts?.quickStats ?? true,
+      sort_mode: sortMode,
     });
   }
   const extra = [
@@ -664,12 +704,36 @@ export async function driveListFiles(
   if (opts?.offsetId != null && opts.offsetId > 0) {
     extra.push('--offset-id', String(opts.offsetId));
   }
-  // one-shot path: pass topic via options-json
+  const optionsJson: Record<string, any> = { sort_mode: sortMode };
   if (topicId != null) {
-    extra.push('--options-json', JSON.stringify({ topic_id: topicId }));
+    optionsJson.topic_id = topicId;
   }
+  extra.push('--options-json', JSON.stringify(optionsJson));
   return runDrive(creds, extra);
 }
+
+export async function driveIndexFolder(
+  creds: DriveCredentials,
+  folderId: number | null,
+  opts?: { topicId?: number | null; jobId?: string }
+) {
+  const folder = folderId || 0;
+  if (!(await ensureWarmDriveSession(creds))) {
+    throw new Error('Warm session not ready to index');
+  }
+  return driveSessionCallFor(
+    creds,
+    'index_folder',
+    {
+      folder_id: folder,
+      topic_id: opts?.topicId ?? null,
+      job_id: opts?.jobId ?? null,
+    },
+    3600000 // 1 hour timeout
+  );
+}
+
+export { addDriveEventListener } from './driveSession';
 
 export async function driveGetFile(
   creds: DriveCredentials,

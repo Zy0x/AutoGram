@@ -188,6 +188,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         oid = req.get("offset_id")
         oid = int(oid) if oid not in (None, "", 0, "0") else None
         tid = _parse_topic_id(req.get("topic_id"))
+        sort_mode = req.get("sort_mode") or "newest_first"
         # Lower scan_budget default: media filters make large history scans rare
         pack = await _list_files_on(
             client,
@@ -197,6 +198,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             scan_budget=int(req.get("scan_budget") or min(200, max(ps * 3, 80))),
             topic_id=tid,
             quick_stats=bool(req.get("quick_stats", True)),
+            sort_mode=sort_mode,
         )
         return {"status": "success", **pack}
 
@@ -720,10 +722,92 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             delete_source=bool(del_src),
         )
 
+    if cmd in ("index_folder", "index-folder"):
+        if folder_id is None:
+            raise ValueError("folder_id required for index_folder")
+        tid = _parse_topic_id(req.get("topic_id"))
+        job_id = req.get("job_id")
+        req_id = req.get("id")
+        async def _progress(evt):
+            evt["id"] = req_id
+            print(json.dumps(evt), flush=True)
+            
+        from engine.drive_fs import index_folder_on_client
+        result = await index_folder_on_client(
+            client,
+            folder_id=int(folder_id),
+            topic_id=tid,
+            job_id=job_id,
+            progress_callback=_progress
+        )
+        return result
+
     if cmd == "quit":
         return {"bye": True}
 
     raise ValueError(f"Unknown cmd: {cmd}")
+
+
+def _register_event_handlers(client: TelegramClient):
+    from telethon import events
+    
+    @client.on(events.NewMessage)
+    async def _on_new_message(event):
+        try:
+            msg = event.message
+            if not msg:
+                return
+            chat_id = int(event.chat_id) if event.chat_id else None
+            if chat_id is None:
+                return
+            from engine.drive_fs import message_to_drive_file, _attach_topic_id
+            item = message_to_drive_file(msg, chat_id)
+            if item:
+                _attach_topic_id(msg, item)
+                _out({
+                    "type": "update",
+                    "action": "new",
+                    "folder_id": chat_id,
+                    "file": item
+                })
+        except Exception:
+            pass
+
+    @client.on(events.MessageDeleted)
+    async def _on_message_deleted(event):
+        try:
+            chat_id = int(event.chat_id) if event.chat_id else None
+            if event.deleted_ids:
+                _out({
+                    "type": "update",
+                    "action": "delete",
+                    "folder_id": chat_id,
+                    "message_ids": [int(x) for x in event.deleted_ids]
+                })
+        except Exception:
+            pass
+
+    @client.on(events.MessageEdited)
+    async def _on_message_edited(event):
+        try:
+            msg = event.message
+            if not msg:
+                return
+            chat_id = int(event.chat_id) if event.chat_id else None
+            if chat_id is None:
+                return
+            from engine.drive_fs import message_to_drive_file, _attach_topic_id
+            item = message_to_drive_file(msg, chat_id)
+            if item:
+                _attach_topic_id(msg, item)
+                _out({
+                    "type": "update",
+                    "action": "edit",
+                    "folder_id": chat_id,
+                    "file": item
+                })
+        except Exception:
+            pass
 
 
 async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> None:
@@ -751,6 +835,7 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
     async def _bg_connect() -> None:
         try:
             state["client"] = await _connect(session_name, api_id, api_hash)
+            _register_event_handlers(state["client"])
             _out({"type": "connected", "session": session_name})
         except Exception as e:
             state["connect_error"] = str(e)
@@ -836,6 +921,8 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
         "media_stats",
         "drive_media_stats",
         "stats",
+        "index_folder",
+        "index-folder",
     }
 
     async def _live_client() -> Any:

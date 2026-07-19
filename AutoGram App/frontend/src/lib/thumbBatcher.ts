@@ -39,11 +39,21 @@ export type ThumbSchedulerMetrics = {
   retries: number;
 };
 
+function base64ToBlob(base64: string, mimeType = 'image/jpeg'): Blob {
+  const parts = base64.split(';base64,');
+  const pureBase64 = parts.length > 1 ? parts[1] : parts[0];
+  const binary = atob(pureBase64);
+  const len = binary.length;
+  const buffer = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    buffer[i] = binary.charCodeAt(i);
+  }
+  return new Blob([buffer], { type: mimeType });
+}
+
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
-  private readonly MAX_SIZE = 500;
-  private readonly MAX_BYTES = 10 * 1024 * 1024; // 10MB soft limit
-  private currentBytes = 0;
+  private readonly MAX_SIZE = 150;
 
   get(key: string): string | undefined {
     const value = this.cache.get(key);
@@ -55,16 +65,28 @@ class LRUThumbnailCache {
   }
 
   set(key: string, value: string): void {
-    while (this.cache.size >= this.MAX_SIZE || (this.currentBytes + value.length) > this.MAX_BYTES) {
+    let url = value;
+    if (value.startsWith('data:image/')) {
+      try {
+        const blob = base64ToBlob(value);
+        url = URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn('Failed to convert base64 to Blob URL:', e);
+      }
+    }
+
+    while (this.cache.size >= this.MAX_SIZE) {
       this.evictLRU();
     }
+
     if (this.cache.has(key)) {
-      const old = this.cache.get(key)!;
-      this.currentBytes -= old.length;
+      const oldUrl = this.cache.get(key)!;
+      if (oldUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(oldUrl);
+      }
       this.cache.delete(key);
     }
-    this.cache.set(key, value);
-    this.currentBytes += value.length;
+    this.cache.set(key, url);
   }
 
   has(key: string): boolean {
@@ -72,15 +94,21 @@ class LRUThumbnailCache {
   }
 
   clear(): void {
+    for (const url of this.cache.values()) {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    }
     this.cache.clear();
-    this.currentBytes = 0;
   }
 
   private evictLRU(): void {
     const firstKey = this.cache.keys().next().value;
     if (firstKey !== undefined) {
-      const old = this.cache.get(firstKey)!;
-      this.currentBytes -= old.length;
+      const oldUrl = this.cache.get(firstKey)!;
+      if (oldUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(oldUrl);
+      }
       this.cache.delete(firstKey);
     }
   }

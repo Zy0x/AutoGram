@@ -78,6 +78,16 @@ export function isDriveSessionReadyFor(creds: DriveCredentials | null | undefine
   return !!creds && ready && activeCredsKey === credKey(creds);
 }
 
+type DriveEventListener = (event: { type: string; [k: string]: any }) => void;
+const listeners = new Set<DriveEventListener>();
+
+export function addDriveEventListener(l: DriveEventListener) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
 function settleLine(line: string) {
   const text = String(line || '').trim();
   if (!text.startsWith('{')) return;
@@ -86,6 +96,15 @@ function settleLine(line: string) {
     if (msg.type === 'ready') {
       ready = true;
       readyAt = Date.now();
+      return;
+    }
+    if (
+      msg.type === 'index_progress' ||
+      msg.type === 'index_complete' ||
+      msg.type === 'update' ||
+      msg.type === 'pts_update'
+    ) {
+      listeners.forEach((l) => l(msg));
       return;
     }
     const id = msg.id != null ? String(msg.id) : '';

@@ -68,7 +68,19 @@ import {
   CHAT_BULK_PAGE,
   type DriveCredentials,
   type ChatListCursor,
+  driveIndexFolder,
+  addDriveEventListener,
 } from '../lib/driveApi';
+import {
+  saveCheckpoint,
+  getCheckpoint,
+  saveMediaRecords,
+  deleteMediaRecord,
+  enqueueAction,
+  getPendingActions,
+  updateActionStatus,
+  deleteAction,
+} from '../lib/mediaStudioDb';
 import {
   cancelScheduledDriveSessionStop,
   ensureDriveSession,
@@ -600,6 +612,12 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
     return DEFAULT_DRIVE_SORT;
   });
+  const [indexingJob, setIndexingJob] = useState<{
+    active: boolean;
+    processed: number;
+    total: number;
+    text: string;
+  }>({ active: false, processed: 0, total: 0, text: '' });
   const [thumbQuality, setThumbQualityState] = useState<DriveThumbQuality>(() => {
     try {
       const raw = localStorage.getItem(LS_THUMB_Q);
@@ -2218,6 +2236,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
         topicId: tid,
         quickStats: false,
+        sortMode: sortMode,
+        localOffset: 0,
       });
       if (gen !== peerGen.current) return;
       if (res?.invalid_topic && tid != null) {
@@ -2234,11 +2254,20 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
           topicId: null,
           quickStats: false,
+          sortMode: sortMode,
+          localOffset: 0,
         });
         if (gen !== peerGen.current) return;
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       const page: DriveFile[] = dedupeByMsgId(res.files || []);
+      if (res.status === 'success' && !res.cached && page.length > 0) {
+        const folderKey = peerId || 0;
+        void saveMediaRecords(page.map(f => ({
+          ...f,
+          folderId: folderKey
+        }))).catch(err => console.warn('[Cache] Failed to warm cache:', err));
+      }
 
       // Update cache — only apply totals that belong to this peer+topic key
       filesCacheRef.current.set(cacheKey, page);
@@ -2368,6 +2397,147 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     refreshFilesRef.current = refreshFiles;
   }, [refreshFiles]);
 
+  // Real-time updates event listener
+  useEffect(() => {
+    if (!creds) return;
+    const unsub = addDriveEventListener(async (evt) => {
+      if (evt.type === 'index_progress') {
+        const folderKey = evt.folderId || 0;
+        if (Array.isArray(evt.items)) {
+          await saveMediaRecords(evt.items.map((f: any) => ({
+            ...f,
+            folderId: folderKey
+          }))).catch(err => console.error('[Index] Save failed:', err));
+        }
+        setIndexingJob({
+          active: true,
+          processed: evt.processedCount,
+          total: evt.totalCount,
+          text: `Mengindeks media: ${evt.processedCount} / ${evt.totalCount} file...`
+        });
+      } else if (evt.type === 'index_complete') {
+        const folderKey = evt.folderId || 0;
+        await saveCheckpoint({
+          jobId: evt.jobId,
+          folderId: folderKey,
+          sortMode: '',
+          lastOffsetId: 0,
+          processedCount: evt.processedCount,
+          totalCount: evt.totalCount,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+          version: 1
+        }).catch(err => console.error('[Index] Save checkpoint failed:', err));
+        
+        setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+        void refreshFiles();
+      } else if (evt.type === 'update') {
+        const folderKey = evt.folder_id || 0;
+        const currentActiveFolder = peerId || 0;
+        
+        if (evt.action === 'new' && evt.file) {
+          await saveMediaRecords([{ ...evt.file, folderId: folderKey }]).catch(() => null);
+          if (folderKey === currentActiveFolder) {
+            setFiles(prev => {
+              if (prev.some(f => f.id === evt.file.id)) return prev;
+              const matchesTopic = topicFilterRef.current === undefined || topicFilterRef.current === null || evt.file.topic_id === topicFilterRef.current;
+              if (!matchesTopic) return prev;
+              return [evt.file, ...prev];
+            });
+          }
+        } else if (evt.action === 'delete' && Array.isArray(evt.message_ids)) {
+          for (const mid of evt.message_ids) {
+            await deleteMediaRecord(folderKey, mid).catch(() => null);
+          }
+          if (folderKey === currentActiveFolder) {
+            const idsToDelete = new Set(evt.message_ids);
+            setFiles(prev => prev.filter(f => !idsToDelete.has(f.id)));
+          }
+        } else if (evt.action === 'edit' && evt.file) {
+          await saveMediaRecords([{ ...evt.file, folderId: folderKey }]).catch(() => null);
+          if (folderKey === currentActiveFolder) {
+            setFiles(prev => prev.map(f => f.id === evt.file.id ? evt.file : f));
+          }
+        }
+      }
+    });
+    return () => {
+      unsub();
+    };
+  }, [creds, peerId, refreshFiles]);
+
+  // Sort mode changes or mount trigger for indexing
+  useEffect(() => {
+    if (!creds || !peerId) return;
+    const sortModeStr = String(sortMode);
+    const isTimeSort = sortModeStr === 'newest_first' || sortModeStr === 'oldest_first';
+    if (isTimeSort) {
+      void refreshFiles();
+      return;
+    }
+    
+    const jobId = `index_chat_${peerId}${topicFilterRef.current ? `_topic_${topicFilterRef.current}` : ''}`;
+    void getCheckpoint(jobId).then(async (cp) => {
+      if (cp && cp.status === 'completed') {
+        void refreshFiles();
+      } else {
+        setIndexingJob({
+          active: true,
+          processed: cp?.processedCount || 0,
+          total: cp?.totalCount || 100,
+          text: 'Memulai pengindeksan media untuk pengurutan global...'
+        });
+        try {
+          await driveIndexFolder(creds, peerId, {
+            topicId: topicFilterRef.current,
+            jobId: jobId
+          });
+        } catch (err) {
+          console.error('[Index] driveIndexFolder trigger failed:', err);
+          setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
+          setError('Gagal memulai pengindeksan media: ' + friendlyDriveError(err));
+        }
+      }
+    });
+  }, [sortMode, peerId, creds, refreshFiles]);
+
+  const processPendingActions = useCallback(async () => {
+    if (!creds || !navigator.onLine) return;
+    try {
+      const pending = await getPendingActions();
+      if (pending.length === 0) return;
+      
+      setStatusText(`Memproses ${pending.length} tindakan tertunda...`);
+      for (const action of pending) {
+        try {
+          await updateActionStatus(action.id, 'processing');
+          if (action.type === 'rename') {
+            await driveRename(creds, action.target.messageId, action.target.chatId, action.payload.newName || '');
+          } else if (action.type === 'delete') {
+            await driveDeleteBatch(creds, [action.target.messageId], action.target.chatId);
+          }
+          await deleteAction(action.id);
+        } catch (err) {
+          console.error('[ActionQueue] Failed to execute action:', action, err);
+          await updateActionStatus(action.id, 'failed', String(err));
+        }
+      }
+      setStatusText('Tindakan tertunda selesai diproses.');
+      void refreshFiles();
+    } catch (e) {
+      console.warn('[ActionQueue] processPendingActions failed:', e);
+    }
+  }, [creds, refreshFiles]);
+
+  useEffect(() => {
+    window.addEventListener('online', processPendingActions);
+    const interval = window.setInterval(processPendingActions, 15000);
+    return () => {
+      window.removeEventListener('online', processPendingActions);
+      window.clearInterval(interval);
+    };
+  }, [processPendingActions]);
+
   const loadMoreFiles = useCallback(async () => {
     if (!creds || !filesHasMore || loadingMoreFiles || loadMoreLock.current) return;
     if (nextOffsetId == null) return;
@@ -2390,9 +2560,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         offsetId: offsetAtStart,
         topicId: tid,
         quickStats: false,
+        sortMode: sortMode,
+        localOffset: files.length,
       });
       if (gen !== peerGen.current) return;
       const page: DriveFile[] = res.files || [];
+      if (res.status === 'success' && !res.cached && page.length > 0) {
+        const folderKey = peerId || 0;
+        void saveMediaRecords(page.map(f => ({
+          ...f,
+          folderId: folderKey
+        }))).catch(err => console.warn('[Cache] Failed to warm cache:', err));
+      }
       // Avoid stuck pagination if API returned empty but claimed has_more
       if (!page.length) {
         setFilesHasMore(false);
@@ -4561,7 +4740,23 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setStatusText(n === 1 ? 'File dihapus' : `${n} file dihapus`);
         }
       } catch (e: any) {
-        setError(String(e?.message || e));
+        if (!navigator.onLine) {
+          for (const id of ids) {
+            await enqueueAction({
+              id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              type: 'delete',
+              target: { messageId: id, chatId: peerId || 0 },
+              payload: {}
+            }).catch(() => null);
+          }
+          const idsSet = new Set(ids);
+          setFiles(prev => prev.filter(f => !idsSet.has(f.id)));
+          setSelectedIds([]);
+          selectionAnchorRef.current = null;
+          setStatusText(n === 1 ? 'Hapus diantre (offline)' : `${n} hapus diantre (offline)`);
+        } else {
+          setError(String(e?.message || e));
+        }
       }
     },
     [creds, peerId, refreshFiles]
@@ -4603,7 +4798,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             await refreshFiles();
             setStatusText('Nama diperbarui');
           } catch (e: any) {
-            setError(String(e?.message || e));
+            if (!navigator.onLine) {
+              await enqueueAction({
+                id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                type: 'rename',
+                target: { messageId: file.id, chatId: peerId || 0 },
+                payload: { newName: name }
+              }).catch(() => null);
+              setFiles(prev => prev.map(f => f.id === file.id ? { ...f, name } : f));
+              setStatusText('Rename diantre (offline)');
+            } else {
+              setError(String(e?.message || e));
+            }
           }
         })();
       },
@@ -6901,6 +7107,52 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           )}
 
           <div className="td-explorer-wrapper" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {indexingJob.active && (
+              <div
+                className="td-drop-overlay"
+                style={{
+                  zIndex: 20,
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '24px',
+                  color: '#fff',
+                }}
+              >
+                <div className="td-drop-overlay-icon" style={{ animation: 'pulse 1.5s infinite' }}>
+                  <HardDrive size={36} className="text-blue-500" />
+                </div>
+                <p className="td-drop-overlay-title" style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  {indexingJob.text}
+                </p>
+                <div
+                  style={{
+                    width: '280px',
+                    height: '6px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.min(100, Math.max(0, indexingJob.total > 0 ? (indexingJob.processed / indexingJob.total) * 100 : 0))}%`,
+                      height: '100%',
+                      background: '#3b82f6',
+                      transition: 'width 0.3s ease',
+                    }}
+                  />
+                </div>
+                <span className="td-drop-overlay-hint" style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+                  Pengurutan global (ukuran/nama) memerlukan pengindeksan data satu kali per chat.
+                </span>
+              </div>
+            )}
+
             {dragActive && !mediaDragActive && (
               <div className="td-drop-overlay" data-dnd="os-upload">
                 <div className="td-drop-overlay-icon">

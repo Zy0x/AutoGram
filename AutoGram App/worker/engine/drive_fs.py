@@ -3656,6 +3656,7 @@ async def _collect_media_slice(
     topic_id: Optional[int],
     msg_filter,
     fetch_limit: int,
+    reverse: bool = False,
 ) -> Any:
     """
     One server-side media filter slice. Returns (files, last_id, scanned, exhausted).
@@ -3672,7 +3673,7 @@ async def _collect_media_slice(
     rpc_limit = max(collect_target, min(int(fetch_limit or collect_target), 200))
     kwargs: Dict[str, Any] = {
         "limit": rpc_limit,
-        "reverse": False,
+        "reverse": reverse,
         "filter": msg_filter,
     }
     if offset_id and int(offset_id) > 0:
@@ -3716,13 +3717,14 @@ async def _list_files_scan_fallback(
     offset_id: Optional[int],
     topic_id: Optional[int],
     scan_budget: int,
+    reverse: bool = False,
 ) -> Dict[str, Any]:
     """Legacy path: walk history and keep only media (slow on text-heavy chats)."""
     budget = max(page_size, min(int(scan_budget or 350), 1200))
     files: List[Dict[str, Any]] = []
     scanned = 0
     last_id: Optional[int] = None
-    kwargs: Dict[str, Any] = {"limit": budget, "reverse": False}
+    kwargs: Dict[str, Any] = {"limit": budget, "reverse": reverse}
     if offset_id and int(offset_id) > 0:
         kwargs["offset_id"] = int(offset_id)
     if topic_id is not None and int(topic_id) > 0:
@@ -3739,7 +3741,7 @@ async def _list_files_scan_fallback(
             break
     files.sort(
         key=lambda f: (f.get("created_at") or "", int(f.get("id") or 0)),
-        reverse=True,
+        reverse=not reverse,
     )
     has_more = len(files) >= page_size or (scanned >= budget and last_id is not None)
     if scanned < budget and len(files) < page_size:
@@ -3755,7 +3757,7 @@ async def _list_files_scan_fallback(
         "has_more": has_more,
         "next_offset_id": next_offset,
         "approx_note": "scan_fallback",
-        "sort": "newest_first",
+        "sort": "oldest_first" if reverse else "newest_first",
         # No unique total in fallback without full walk
         "total_count": None,
         "total_bytes": None,
@@ -4256,6 +4258,7 @@ async def _list_files_on(
     scan_budget: int = 350,
     topic_id: Optional[int] = None,
     quick_stats: bool = True,
+    sort_mode: str = "newest_first",
 ) -> Dict[str, Any]:
     """
     Paginated media list (newest first).
@@ -4318,6 +4321,7 @@ async def _list_files_on(
                     topic_id=topic_id,
                     msg_filter=flt,
                     fetch_limit=fetch_limit,
+                    reverse=(sort_mode == "oldest_first"),
                 )
                 for flt in filters
             ]
@@ -4331,6 +4335,7 @@ async def _list_files_on(
             offset_id=offset_id,
             topic_id=topic_id,
             scan_budget=scan_budget,
+            reverse=(sort_mode == "oldest_first"),
         )
 
     by_id: Dict[int, Dict[str, Any]] = {}
@@ -4381,12 +4386,13 @@ async def _list_files_on(
             offset_id=offset_id,
             topic_id=topic_id,
             scan_budget=scan_budget,
+            reverse=(sort_mode == "oldest_first"),
         )
 
     files = sorted(
         by_id.values(),
         key=lambda f: (f.get("created_at") or "", int(f.get("id") or 0)),
-        reverse=True,
+        reverse=(sort_mode != "oldest_first"),
     )
     page = files[:page_size]
     # has_more: any filter still has messages beyond this window
@@ -4481,7 +4487,7 @@ async def _list_files_on(
         "total_bytes": total_bytes,
         "stats_accurate": bool(totals_accurate),
         "approx_note": "media_filter_topic" if topic_scoped else "media_filter",
-        "sort": "newest_first",
+        "sort": sort_mode,
         "topic_scoped": topic_scoped,
         # UI must always refine via background media_stats unless tiny exact location
         "stats_pending": bool(not totals_accurate),
@@ -8489,3 +8495,154 @@ async def run_drive_action(
             pass
         _json_out(err)
         return err
+
+
+CHECKPOINTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints")
+
+async def index_folder_on_client(
+    client: TelegramClient,
+    folder_id: int,
+    topic_id: Optional[int] = None,
+    job_id: Optional[str] = None,
+    progress_callback = None,
+):
+    os.makedirs(CHECKPOINTS_DIR, exist_ok=True)
+    if not job_id:
+        job_id = f"index_chat_{folder_id}"
+        if topic_id:
+            job_id += f"_topic_{topic_id}"
+            
+    checkpoint_file = os.path.join(CHECKPOINTS_DIR, f"{job_id}.json")
+    
+    cp = {
+        "jobId": job_id,
+        "folderId": folder_id,
+        "topicId": topic_id,
+        "currentFilterIndex": 0,
+        "lastOffsetId": 0,
+        "processedCount": 0,
+        "totalCount": 0,
+        "status": "running",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+                if loaded.get("status") == "completed":
+                    if progress_callback:
+                        await progress_callback({
+                            "type": "index_complete",
+                            "jobId": job_id,
+                            "folderId": folder_id,
+                            "processedCount": loaded.get("processedCount", 0),
+                            "totalCount": loaded.get("processedCount", 0),
+                            "status": "completed"
+                        })
+                    return {"status": "success", "message": "Already fully indexed"}
+                cp.update(loaded)
+        except Exception:
+            pass
+            
+    peer = await _resolve_peer(client, folder_id)
+    filters = _media_filter_instances()
+    filter_names = ["photo_video", "document", "gif", "round_video", "music", "voice"]
+    
+    if cp["totalCount"] == 0:
+        try:
+            vals = await _quick_media_filter_counts(client, peer, topic_id=topic_id)
+            if vals:
+                cp["totalCount"] = max(vals)
+        except Exception:
+            pass
+
+    processed = cp["processedCount"]
+    start_filter_idx = cp["currentFilterIndex"]
+    start_offset_id = cp["lastOffsetId"]
+    
+    for idx in range(start_filter_idx, len(filters)):
+        flt = filters[idx]
+        fname = filter_names[idx]
+        
+        cp["currentFilterIndex"] = idx
+        offset_id = start_offset_id if idx == start_filter_idx else 0
+        
+        kwargs = {"filter": flt, "reverse": False, "limit": 100}
+        
+        while True:
+            if offset_id > 0:
+                kwargs["offset_id"] = offset_id
+                
+            batch_files = []
+            last_msg_id = 0
+            
+            try:
+                if topic_id is not None and int(topic_id) > 0:
+                    generator = _iter_topic_media(
+                        client, peer, topic_id=int(topic_id), limit=100,
+                        msg_filter=flt, offset_id=offset_id
+                    )
+                else:
+                    generator = client.iter_messages(peer, **kwargs)
+                
+                async for msg in generator:
+                    last_msg_id = int(msg.id)
+                    item = message_to_drive_file(msg, folder_id)
+                    if item:
+                        _attach_topic_id(msg, item)
+                        batch_files.append(item)
+            except FloodWaitError as e:
+                wait_sec = max(10, int(getattr(e, "seconds", 10) or 10))
+                await asyncio.sleep(wait_sec)
+                continue
+            except Exception as e:
+                break
+                
+            if not batch_files:
+                break
+                
+            processed += len(batch_files)
+            offset_id = last_msg_id
+            
+            cp["processedCount"] = processed
+            cp["lastOffsetId"] = offset_id
+            cp["timestamp"] = datetime.now(timezone.utc).isoformat()
+            
+            with open(checkpoint_file, 'w', encoding='utf-8') as f:
+                json.dump(cp, f, indent=2)
+                
+            if progress_callback:
+                await progress_callback({
+                    "type": "index_progress",
+                    "jobId": job_id,
+                    "folderId": folder_id,
+                    "items": batch_files,
+                    "processedCount": processed,
+                    "totalCount": max(processed, cp["totalCount"]),
+                    "status": "running"
+                })
+                
+            await asyncio.sleep(0.2)
+            if len(batch_files) < 100:
+                break
+                
+        start_offset_id = 0
+
+    cp["status"] = "completed"
+    cp["timestamp"] = datetime.now(timezone.utc).isoformat()
+    with open(checkpoint_file, 'w', encoding='utf-8') as f:
+        json.dump(cp, f, indent=2)
+        
+    if progress_callback:
+        await progress_callback({
+            "type": "index_complete",
+            "jobId": job_id,
+            "folderId": folder_id,
+            "processedCount": processed,
+            "totalCount": processed,
+            "status": "completed"
+        })
+        
+    return {"status": "success", "processed": processed}
+
