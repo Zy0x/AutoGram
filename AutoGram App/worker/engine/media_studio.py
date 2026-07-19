@@ -2410,6 +2410,21 @@ async def run_ordered_upload(
                             except Exception:
                                 pass
                     if dup_mid:
+                        exists = True
+                        try:
+                            msg = await client.get_messages(entity, ids=[dup_mid])
+                            if not msg or not msg[0] or getattr(msg[0], "action", None):
+                                exists = False
+                        except Exception as e:
+                            emit_event("LogEvent", level="WARNING", message=f"Gagal verifikasi pesan {dup_mid} di Telegram: {e}")
+                        
+                        if not exists:
+                            emit_event("LogEvent", level="INFO", message=f"Pesan duplikat {dup_mid} tidak ditemukan di Telegram (telah dihapus). Menghapus riwayat dan mengunggah ulang.")
+                            dup_checker.delete_duplicate_by_message_id(dup_mid)
+                            tg_exists.pop((final_file_name.lower(), it.size), None)
+                            dup_mid = None
+
+                    if dup_mid:
                         it.status = "done"
                         it.message_id = dup_mid
                         if it.size:
