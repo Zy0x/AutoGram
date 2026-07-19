@@ -2071,6 +2071,19 @@ export function DriveSidebar({
               : 'Tidak ada chat. Refresh atau cek session.'}
           </p>
         )}
+        {chatsExpanded && chatRows.length === 0 && loadingChats && (
+          <div className="td-only-expanded" style={{ padding: '4px 0' }}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="td-sidebar-skeleton-row">
+                <div className="td-sidebar-skeleton-avatar" />
+                <div className="td-sidebar-skeleton-text">
+                  <div className="td-sidebar-skeleton-line-primary" />
+                  <div className="td-sidebar-skeleton-line-secondary" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Virtualized chat list — also shown on collapsed rail (avatar icons, hidden scrollbar). */}
         {chatsExpanded && (

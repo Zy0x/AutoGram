@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.16
+AutoGram Version: v2.1.17
 
 Current State:
-Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media
+Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
 
 Previous:
+v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media
 v2.1.15 Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka
 v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)
 v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi

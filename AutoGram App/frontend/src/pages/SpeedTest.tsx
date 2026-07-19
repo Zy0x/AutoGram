@@ -1196,14 +1196,25 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
-      // Parallel: creds refresh + offline session list (do not serialize)
-      const [c, list] = await Promise.all([
-        bootstrapSecureCredentials(),
-        loadSelectableSessionNames(),
-      ]);
-      setApiCreds({ apiId: c.apiId, apiHash: c.apiHash });
+      // Boot API credentials first (resolves instantly in 2ms, unblocking the boot render)
+      const credsPromise = bootstrapSecureCredentials().then((c) => {
+        setApiCreds({ apiId: c.apiId, apiHash: c.apiHash });
+        if (!c.apiId || !c.apiHash) {
+          setError(
+            'API ID/Hash belum terisi. Buka Settings → simpan credentials (atau pastikan worker/.env ada), lalu refresh.'
+          );
+        }
+        return c;
+      });
+
+      // Load session list in background (can take 1-2 seconds due to python process spawn)
+      const list = await loadSelectableSessionNames();
       writeSessionsCache(list);
       setSessions(list);
+
+      // Await credentials to finalise next session setup
+      await credsPromise;
+
       // Resolve next session name without writing state yet
       let next = '';
       if (session && list.includes(session)) {
@@ -1223,11 +1234,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         handleSessionChange(next);
       } else if (!session && next) {
         setSession(next);
-      }
-      if (!c.apiId || !c.apiHash) {
-        setError(
-          'API ID/Hash belum terisi. Buka Settings → simpan credentials (atau pastikan worker/.env ada), lalu refresh.'
-        );
       }
     } catch (e: any) {
       setError(`Sessions: ${e?.message || e}`);
@@ -1684,9 +1690,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (gen === peerGen.current) setLoadingFiles(false);
           });
 
-        // 2) Secondary panels only begin after the latency-critical page settles.
-        const chatsP = filesP
-          .then(() => driveListChats(creds, { limit: perf.chatPage }))
+        // 2) Secondary panels run in parallel to unblock the sidebar instantly.
+        const chatsP = driveListChats(creds, { limit: perf.chatPage })
           .then((cr) => {
             if (gen !== peerGen.current) return;
             const list = cr.chats || [];

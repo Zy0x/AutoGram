@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.17 Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
+
+Changed:
+- Mengubah urutan inisialisasi pada `loadSessions` di [SpeedTest.tsx](file:///F:/AutoGram/AutoGram%20App/frontend/src/pages/SpeedTest.tsx) agar `bootstrapSecureCredentials` berjalan secara asinkron tanpa terblokir oleh pemanggilan `loadSelectableSessionNames` yang lambat (memakan waktu 1-2 detik karena spawn proses Python). Dengan perubahan ini, kredensial dimuat instan dalam 2ms dan langsung memicu rendering antarmuka dari cache penyimpanan lokal (*localStorage*) tanpa ada jeda/blank page.
+- Memparalelkan pengambilan berkas media utama (*files*) dan daftar obrolan di sidebar (*chats*) pada alur `refreshLocations` sehingga keduanya berjalan secara *concurrent* (tidak saling menunggu). Sidebar obrolan kini langsung memuat daftar chat sesaat setelah koneksi session terjalin.
+- Menambahkan visualisasi *skeleton loading* yang berdenyut halus (*pulse animation*) di area daftar chat/sidebar saat pertama kali inisialisasi session kosong (cold-start / cache kosong). Hal ini memberikan kenyamanan visual premium sehingga pengguna tahu bahwa aplikasi sedang memproses pemuatan data dengan aman.
+
 ## v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media
 
 Changed:

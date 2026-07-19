@@ -4071,6 +4071,49 @@ body.td-dnd-external {
   opacity: 0.45;
   filter: blur(1px);
 }
+.td-sidebar-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  animation: td-skeleton-pulse 1.8s infinite ease-in-out;
+}
+.td-sidebar-skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--td-border);
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+.td-sidebar-skeleton-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.td-sidebar-skeleton-line-primary {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--td-border);
+  opacity: 0.6;
+  width: 70%;
+}
+.td-sidebar-skeleton-line-secondary {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--td-border);
+  opacity: 0.4;
+  width: 45%;
+}
+@keyframes td-skeleton-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1.0;
+  }
+}
 .drive-preview-img {
   transform-origin: center center;
   transition: transform 0.05s linear;

@@ -2317,7 +2317,7 @@ export function DrivePreviewModal({
             <div className="drive-preview-media-wrap is-skeleton">
               {poster || gridThumb ? (
                 <img
-                  src={poster || gridThumb}
+                  src={poster || gridThumb || undefined}
                   alt=""
                   className="drive-preview-media drive-preview-skeleton-img"
                   draggable={false}
