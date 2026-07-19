@@ -2715,24 +2715,7 @@ def build_playback_qualities(
         },
     ]
 
-    ext = _file_ext(_file_name_from_message(msg) or _doc_real_filename(msg) or "") or "bin"
-    ext_lower = ext.lower()
-    mime_type = getattr(getattr(msg.media, "document", None), "mime_type", "") or ""
-    is_hevc_or_large = (
-        size > 100 * 1024 * 1024
-        or ext_lower in ("mkv", "avi", "webm")
-        or "hevc" in mime_type.lower()
-    )
-    if is_video and is_hevc_or_large:
-        qualities.insert(1, {
-            "id": "preview",
-            "label": "Pratinjau (30 Detik)",
-            "description": "Nonton instan 30 detik pertama (Hemat Kuota)",
-            "height": 720,
-            "size": None,
-            "native": False,
-            "transcode": True,
-        })
+    # No transcode preview quality inserted. Direct streaming handles all sizes.
 
     # Ladder mirrors Telegram: only rungs below (or equal when unknown) source
     ladder = [
@@ -6277,15 +6260,7 @@ async def start_preview_stream_on_client(
     if q not in q_ids:
         q = "auto"
 
-    # Default auto to preview for large/HEVC videos
-    ext_lower = ext.lower()
-    is_hevc_or_large = (
-        size > 100 * 1024 * 1024
-        or ext_lower in ("mkv", "avi", "webm")
-        or "hevc" in (mime or "").lower()
-    )
-    if q == "auto" and is_video and is_hevc_or_large:
-        q = "preview"
+    # Default auto streams original file progressively without transcoding.
 
     key = _cache_key(folder_id, message_id)
     # Prefer complete document/image cache (non-stream) when present
@@ -6374,95 +6349,7 @@ async def start_preview_stream_on_client(
             "video_height": vh or None,
         }
 
-    # ── Phase 6: 30-Second Smart Preview Transcode ──
-    if is_video and q == "preview":
-        out_dest = os.path.join(PREVIEW_DIR, f"{key}.preview.mp4")
-        play_mime = "video/mp4"
-        
-        # 1. If cached preview exists on disk
-        if os.path.isfile(out_dest) and os.path.getsize(out_dest) > 64:
-            disk = os.path.getsize(out_dest)
-            info = register_stream(
-                path=os.path.abspath(out_dest),
-                total_size=disk,
-                mime=play_mime,
-                label=f"{name}.preview",
-            )
-            media = get_stream(info["stream_id"])
-            if media:
-                media.mark_range(0, disk)
-                media.mark_done()
-            return _pack(
-                info=info,
-                play_mime=play_mime,
-                play_size=disk,
-                cached=True,
-                buffered=disk,
-                message="Pratinjau 30 Detik (Cache)",
-                poster=await _poster(),
-                quality_id="preview",
-            )
-            
-        # 2. If not cached, transcode first 30 seconds
-        dest = os.path.join(PREVIEW_DIR, f"{key}.stream.{ext}")
-        info = register_stream(
-            path=os.path.abspath(dest),
-            total_size=size,
-            mime=mime,
-            label=name,
-        )
-        media = get_stream(info["stream_id"])
-        if not media:
-            raise RuntimeError("Gagal membuat stream pratinjau")
-            
-        async def _runner():
-            await fill_stream_from_telegram(client, msg, media)
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_runner())
-        except RuntimeError:
-            await _runner()
-            
-        # Wait for some head bytes (192KB) so ffmpeg can probe/read
-        await asyncio.to_thread(media.wait_for_bytes, 192 * 1024, 6.0)
-        
-        from engine.preview_transcoder import SmartPreviewTranscoder
-        transcoder = SmartPreviewTranscoder()
-        tmp_preview = out_dest + ".tmp.mp4"
-        try:
-            await transcoder.transcode_preview_segment(os.path.abspath(dest), tmp_preview, duration=30)
-            if os.path.isfile(tmp_preview) and os.path.getsize(tmp_preview) > 1000:
-                os.replace(tmp_preview, out_dest)
-        except Exception as e:
-            try:
-                print(f"[drive_fs] preview transcode error: {e}", flush=True)
-            except Exception:
-                pass
-        finally:
-            media.cancel()
-            
-        if os.path.isfile(out_dest):
-            disk = os.path.getsize(out_dest)
-            info = register_stream(
-                path=os.path.abspath(out_dest),
-                total_size=disk,
-                mime=play_mime,
-                label=f"{name}.preview",
-            )
-            media = get_stream(info["stream_id"])
-            if media:
-                media.mark_range(0, disk)
-                media.mark_done()
-            return _pack(
-                info=info,
-                play_mime=play_mime,
-                play_size=disk,
-                cached=True,
-                buffered=disk,
-                message="Pratinjau 30 Detik",
-                poster=await _poster(),
-                quality_id="preview",
-            )
+    # No 30-Second transcode phase. Stream progressively directly.
 
     # ── Small / normal images: full download (fast) + stream local file ──
     if is_image and not is_video:
