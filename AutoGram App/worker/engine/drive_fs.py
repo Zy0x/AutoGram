@@ -1917,7 +1917,23 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
     os.makedirs(session_dir, exist_ok=True)
     session_file = os.path.join(session_dir, session_name)
     _patch_session_wal(session_file)
+    
+    is_ghost = session_name.endswith('_preview')
+    if is_ghost:
+        client = TelegramClient(
+            session_file,
+            int(api_id),
+            str(api_hash),
+            receive_updates=False,
+        )
+        # Drop all incoming updates without processing
+        async def _drop_update(*args, **kwargs):
+            pass
+        client._dispatch_update = _drop_update
+        return client
+        
     return TelegramClient(session_file, int(api_id), str(api_hash))
+
 
 
 async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramClient:

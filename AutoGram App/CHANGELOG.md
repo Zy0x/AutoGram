@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.1.9 Implementasi Ghost Session Protocol v3.0
+
+Added:
+- Implementasi sistem **Ghost Session** (`_preview.session`) paralel stateless khusus pratinjau (preview/streaming) media, sehingga pratinjau media dan pengunggahan (upload) transfer dapat berjalan bersamaan tanpa kendala *SQLite database is locked*.
+- Penambahan perintah Rust backend baru: `ensure_ghost_session` untuk melakukan kloning database secara *atomic* via Online Backup API (menghindari korupsi data WAL/SHM), dan `cleanup_ghost_session` untuk menghapus file klon setelah selesai.
+- Penambahan mekanisme soft-pause transfer singkat melalui pembuatan file flag `drive_pause.txt` di direktori temp untuk menstabilkan database sebelum proses Online Backup berjalan.
+- Penambahan kelas `GhostThrottler` di Python uploader untuk menerapkan *adaptive upload throttling* secara dinamis ketika terdeteksi adanya streaming pratinjau aktif, guna membagi bandwidth dan mencegah timbulnya galat `FloodWaitError` dari Telegram.
+- Penambahan *reference counting* pratinjau aktif (`activePreviews`) di frontend untuk mendeteksi kapan pratinjau dibuka atau ditutup secara akurat.
+- Implementasi transisi otomatis dengan *grace period* selama 30 detik: ketika semua jendela pratinjau ditutup, server pratinjau otomatis dihentikan dan dialihkan kembali ke sesi utama agar perubahan status tetap ter-sinkronisasi.
+
+Changed:
+- Penyesuaian `isSessionTransferLeased` untuk langsung melewati (bypass) pembatasan *lease* ketika sesi pratinjau ghost aktif.
+- Peningkatan instansiasi `TelegramClient` ghost untuk menonaktifkan update handling dengan menyematkan argumen kata kunci `receive_updates=False` dan menimpa fungsi penanganan update internal (`_dispatch_update`) menjadi no-op.
+
 ## v2.1.8 Perbaikan Media Studio Preview (Smart Upload Throttle, Feedback Tombol Muat, & Detail Info Spesifik)
 
 Added:

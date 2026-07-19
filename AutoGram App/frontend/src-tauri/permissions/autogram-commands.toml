@@ -26,5 +26,7 @@ allow = [
     "open_with_dialog",
     "reveal_path_safe",
     "cache_file_ready",
-    "copy_cache_file"
+    "copy_cache_file",
+    "ensure_ghost_session",
+    "cleanup_ghost_session"
 ]

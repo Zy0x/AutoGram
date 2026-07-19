@@ -10,6 +10,7 @@ import {
   isDriveSessionReady,
   isDriveSessionReadyFor,
   stopDriveSession,
+  isGhostSessionReady,
 } from './driveSession';
 import { detectTauriRuntime } from './platform';
 
@@ -859,7 +860,7 @@ export async function drivePreview(
     skip_poster: skipPoster,
   };
 
-  await ensureDriveSession(creds);
+  await ensureDriveSession(creds, true);
   if (isDriveSessionReadyFor(creds)) {
     try {
       return await driveSessionCallFor(creds, 'preview', payload, timeoutMs);
@@ -872,7 +873,7 @@ export async function drivePreview(
       } catch {
         /* ignore */
       }
-      await ensureDriveSession(creds);
+      await ensureDriveSession(creds, true);
       if (isDriveSessionReadyFor(creds)) {
         return driveSessionCallFor(creds, 'preview', payload, timeoutMs);
       }
@@ -899,7 +900,7 @@ export async function drivePreviewWarm(
   headBytes = 768 * 1024
 ) {
   if (!isDriveSessionReadyFor(creds)) {
-    await ensureDriveSession(creds);
+    await ensureDriveSession(creds, true);
   }
   if (!isDriveSessionReadyFor(creds)) return { status: 'no_session' };
   try {
@@ -920,7 +921,7 @@ export async function drivePreviewWarm(
 
 export async function driveStreamStatus(creds: DriveCredentials, streamId: string) {
   if (!isDriveSessionReadyFor(creds)) {
-    await ensureDriveSession(creds);
+    await ensureDriveSession(creds, true);
   }
   if (isDriveSessionReadyFor(creds)) {
     return driveSessionCallFor(creds, 'stream_status', { stream_id: streamId }, 15000);
@@ -941,7 +942,7 @@ export async function driveStopStream(
   if (!opts?.stopAll && !streamId) return { status: 'missing' };
   try {
     if (!isDriveSessionReadyFor(creds)) {
-      await ensureDriveSession(creds);
+      await ensureDriveSession(creds, true);
     }
     if (!isDriveSessionReadyFor(creds)) return { status: 'no_session' };
     return await driveSessionCallFor(
@@ -969,7 +970,7 @@ export async function driveStreamSeek(
   if (!streamId) return { status: 'missing' };
   try {
     if (!isDriveSessionReadyFor(creds)) {
-      await ensureDriveSession(creds);
+      await ensureDriveSession(creds, true);
     }
     if (!isDriveSessionReadyFor(creds)) return { status: 'no_session' };
     return await driveSessionCallFor(
@@ -1264,6 +1265,9 @@ export function driveSessionLeaseKey(creds: DriveCredentials): string {
 }
 
 export async function isSessionTransferLeased(creds: DriveCredentials): Promise<boolean> {
+  if (isGhostSessionReady(creds)) {
+    return false;
+  }
   if (transferJobActive) return true;
   const key = driveSessionLeaseKey(creds);
   if (activeTransferLease?.sessionKeyHash === key) return true;

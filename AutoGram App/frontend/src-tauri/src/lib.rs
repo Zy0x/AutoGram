@@ -1,8 +1,10 @@
 // AutoGram desktop core — isolated worker process management + P0 secrets
 mod open_file;
 mod secrets;
+mod session_clone;
 
 use serde::Serialize;
+
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -417,7 +419,7 @@ struct CleanupPartialResult {
     count: u32,
 }
 
-fn resolve_worker_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn resolve_worker_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let daemon = resolve_daemon_script(app)?;
     let parent = daemon
         .parent()
@@ -425,6 +427,7 @@ fn resolve_worker_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .to_path_buf();
     Ok(parent.canonicalize().unwrap_or(parent))
 }
+
 
 fn download_allowed_roots(app: &AppHandle) -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = Vec::new();
@@ -660,6 +663,8 @@ pub fn run() {
             secrets::write_worker_temp_file,
             secrets::delete_worker_temp_file,
             secrets::seed_api_credentials_from_env,
+            session_clone::ensure_ghost_session,
+            session_clone::cleanup_ghost_session,
             open_file::open_path_safe,
             open_file::open_with_dialog,
             open_file::reveal_path_safe,

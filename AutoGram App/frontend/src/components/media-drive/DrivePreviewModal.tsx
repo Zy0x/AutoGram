@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../lib/platform';
+import { registerPreviewOpen, registerPreviewClose } from '../../lib/driveSession';
 
 import type { DriveCredentials } from '../../lib/driveApi';
 import {
@@ -351,6 +352,16 @@ export function DrivePreviewModal({
   const streamIdRef = useRef<string | null>(null);
   const credsRef = useRef(creds);
   credsRef.current = creds;
+
+  useEffect(() => {
+    if (creds) {
+      registerPreviewOpen(creds);
+      return () => {
+        registerPreviewClose(creds);
+      };
+    }
+  }, [creds.session]);
+
   const [quality, setQuality] = useState<string>(() => readQualityPref());
   const [qualities, setQualities] = useState<PlayQuality[]>([]);
   const [qualityOpen, setQualityOpen] = useState(false);
@@ -2267,7 +2278,7 @@ export function DrivePreviewModal({
                         '../../lib/driveSession'
                       );
                       await stopDriveSession();
-                      if (creds) await ensureDriveSession(creds);
+                      if (creds) await ensureDriveSession(creds, true);
                     } catch {
                       /* ignore */
                     }

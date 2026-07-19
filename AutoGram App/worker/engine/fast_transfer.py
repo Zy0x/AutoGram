@@ -14,6 +14,64 @@ import mmap
 import os
 import random
 import threading
+import time
+from engine.media_stream import has_active_streams
+
+class GhostThrottler:
+    """
+    Throttle adaptif untuk upload saat ghost stream aktif.
+    Tidak menggunakan sleep statis - dinamis berdasarkan kondisi.
+    """
+    def __init__(self):
+        self.stream_was_active = False
+        self.fast_chunk_streak = 0
+        self.last_flood_wait = 0.0
+        
+    def get_delay(self) -> float:
+        """
+        Returns: delay dalam detik (0.0 = tidak perlu delay)
+        """
+        stream_active = has_active_streams()
+        
+        if not stream_active:
+            self.stream_was_active = False
+            self.fast_chunk_streak = 0
+            return 0.0
+        
+        # Stream baru saja aktif
+        if not self.stream_was_active:
+            self.stream_was_active = True
+            self.fast_chunk_streak = 0
+            return 0.0  # Chunk pertama tanpa delay
+        
+        self.fast_chunk_streak += 1
+        
+        # Jika baru kena flood wait (< 30 detik lalu), hati-hati
+        if time.time() - self.last_flood_wait < 30.0:
+            return 0.12
+        
+        # Streak-based delay: semakin banyak chunk berturut, semakin lama jeda
+        if self.fast_chunk_streak <= 2:
+            return 0.0
+        elif self.fast_chunk_streak <= 5:
+            return 0.03
+        elif self.fast_chunk_streak <= 10:
+            return 0.06
+        else:
+            return 0.10  # Max delay 100ms
+        
+    def record_flood_wait(self, seconds: int):
+        self.last_flood_wait = time.time()
+        self.fast_chunk_streak = 0
+        
+    def reset_streak(self):
+        self.fast_chunk_streak = 0
+
+_ghost_throttler = GhostThrottler()
+
+def get_ghost_throttler() -> GhostThrottler:
+    return _ghost_throttler
+
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -266,6 +324,10 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
             return await client_or_sender(request)
         except _UPLOAD_FLOOD_ERRORS as e:
             wait_seconds = int(getattr(e, "seconds", 1) or 1)
+            try:
+                get_ghost_throttler().record_flood_wait(wait_seconds)
+            except Exception:
+                pass
             total_wait = wait_seconds + 2
             try:
                 from engine.events import emit_event
@@ -486,19 +548,35 @@ async def fast_upload_file(
             if not data:
                 continue
 
-            # Smart Rate Controller: throttle uploads if user is previewing/streaming media
+            # Adaptive Ghost Throttler: throttle uploads if user is previewing/streaming media
             try:
-                from engine.media_stream import has_active_streams
-                if has_active_streams():
-                    await asyncio.sleep(0.08)
+                throttler = get_ghost_throttler()
+                delay = throttler.get_delay()
+                if delay > 0:
+                    await asyncio.sleep(delay)
             except Exception:
                 pass
 
-            if is_big:
-                req = SaveBigFilePartRequest(file_id, idx, part_count, data)
-            else:
-                req = SaveFilePartRequest(file_id, idx, data)
-            await _call_with_flood(client, req)
+            start_time = time.time()
+            try:
+                if is_big:
+                    req = SaveBigFilePartRequest(file_id, idx, part_count, data)
+                else:
+                    req = SaveFilePartRequest(file_id, idx, data)
+                await _call_with_flood(client, req)
+                
+                # If latency is high (> 2.0s), reset streak to slow down
+                if (time.time() - start_time) > 2.0:
+                    try:
+                        get_ghost_throttler().reset_streak()
+                    except Exception:
+                        pass
+            except Exception:
+                try:
+                    get_ghost_throttler().reset_streak()
+                except Exception:
+                    pass
+                raise
             if part_done_callback:
                 try:
                     part_done_callback(idx, len(data), file_id)
