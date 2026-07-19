@@ -1,0 +1,30 @@
+[[permission]]
+identifier = "allow-custom-commands"
+description = "Enables frontend invocation of AutoGram custom Rust commands"
+
+[permission.commands]
+allow = [
+    "greet",
+    "start_worker_job",
+    "kill_worker_job",
+    "acquire_worker_session_lease",
+    "get_worker_session_lease",
+    "release_worker_session_lease",
+    "cleanup_partial_downloads",
+    "write_worker_stdin",
+    "run_worker_once",
+    "run_auth_manager_once",
+    "get_credential",
+    "set_credential",
+    "delete_credential",
+    "migrate_credentials_from_webstorage",
+    "ensure_secure_dirs",
+    "write_worker_temp_file",
+    "delete_worker_temp_file",
+    "seed_api_credentials_from_env",
+    "open_path_safe",
+    "open_with_dialog",
+    "reveal_path_safe",
+    "cache_file_ready",
+    "copy_cache_file"
+]
