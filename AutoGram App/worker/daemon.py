@@ -805,6 +805,23 @@ async def main():
         print(f"[JSON_OUTPUT]{json.dumps({'status': 'success', 'cleaned': cleaned_dirs})}")
         return
 
+    if args.action == "clear-transfer-database":
+        try:
+            from database.db import get_connection
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM duplicate_history;")
+            cursor.execute("DELETE FROM destination_scan_cache;")
+            cursor.execute("DELETE FROM transfer_state;")
+            cursor.execute("DELETE FROM transfer_audit_log;")
+            cursor.execute("VACUUM;")
+            conn.commit()
+            conn.close()
+            print(f"[JSON_OUTPUT]{json.dumps({'status': 'success', 'message': 'Seluruh riwayat transfer dan de-duplikasi berhasil dikosongkan.'})}")
+        except Exception as e:
+            print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': str(e)})}")
+        return
+
     if args.action == "list-dialogs":
         await list_dialogs(args.session, args.api_id, args.api_hash)
         return

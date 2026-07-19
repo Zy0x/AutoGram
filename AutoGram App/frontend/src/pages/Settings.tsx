@@ -53,6 +53,9 @@ export function Settings() {
   const [cacheSize, setCacheSize] = useState<number | null>(null);
   const [clearStatus, setClearStatus] = useState<"idle" | "success" | "error">("idle");
 
+  const [isClearingDb, setIsClearingDb] = useState(false);
+  const [dbClearStatus, setDbClearStatus] = useState<"idle" | "success" | "error">("idle");
+
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -65,12 +68,16 @@ export function Settings() {
 
   const calculateCacheSize = async () => {
     setIsCalculating(true);
-    setClearStatus('idle');
     try {
-      // 1. IndexedDB
-      const idbSize = await getPersistentThumbsSize();
-      
-      // 2. LocalStorage
+      // 1. IndexedDB Persistent Thumbs
+      let idbSize = 0;
+      try {
+        idbSize = await calculatePersistentThumbsSize();
+      } catch (e) {
+        console.warn('Failed to calculate IDB size', e);
+      }
+
+      // 2. LocalStorage (Locations, sidebar, topics caches)
       let localSize = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -79,25 +86,23 @@ export function Settings() {
           key.startsWith('autogram_drive_sidebar_v1_') ||
           key.startsWith('autogram_drive_topics_v1_')
         )) {
-          localSize += key.length + (localStorage.getItem(key)?.length || 0);
+          const val = localStorage.getItem(key) || '';
+          localSize += (key.length + val.length) * 2; // UTF-16 bytes approx
         }
       }
-      
+
       // 3. Disk Cache Backend
       let diskSize = 0;
       try {
         const res = await runDaemonOnce(['--action', 'calculate-cache-size']);
-        if (res.code === 0 && res.stdout.includes('[JSON_OUTPUT]')) {
-          const jsonStr = res.stdout.split('[JSON_OUTPUT]')[1];
-          const data = JSON.parse(jsonStr);
-          if (data.status === 'success') {
-            diskSize = data.size_bytes || 0;
-          }
+        if (res.code === 0 && res.stdout) {
+          const out = JSON.parse(res.stdout.split('\n').filter(l => l.startsWith('[JSON_OUTPUT]')).pop()?.replace('[JSON_OUTPUT]', '') || '{}');
+          diskSize = Number(out?.size_bytes || 0);
         }
       } catch (e) {
         console.warn('Failed to calculate disk cache size', e);
       }
-      
+
       setCacheSize(idbSize + localSize + diskSize);
     } catch (err) {
       console.error('Failed to calculate cache size', err);
@@ -164,6 +169,38 @@ export function Settings() {
       setClearStatus('error');
     } finally {
       setIsClearing(false);
+    }
+  };
+
+  const handleClearDatabase = async () => {
+    const confirmed = await ask(
+      'Apakah Anda yakin ingin mengosongkan seluruh database transfer? Tindakan ini akan menghapus semua riwayat transfer, de-duplikasi berkas, riwayat scan, dan resume state secara permanen. Pemindaian berikutnya akan dipaksa mengambil data segar langsung via API Telegram.',
+      {
+        title: 'Konfirmasi Kosongkan Database',
+        kind: 'warning',
+        okLabel: 'Kosongkan',
+        cancelLabel: 'Batal'
+      }
+    );
+    if (!confirmed) return;
+
+    setIsClearingDb(true);
+    setDbClearStatus('idle');
+    try {
+      const res = await runDaemonOnce(['--action', 'clear-transfer-database']);
+      if (res.code === 0) {
+        setDbClearStatus('success');
+      } else {
+        console.warn('Clear transfer database reported non-zero code', res);
+        setDbClearStatus('error');
+      }
+      setTimeout(() => setDbClearStatus('idle'), 5000);
+    } catch (err) {
+      console.error('Failed to clear transfer database', err);
+      setDbClearStatus('error');
+      setTimeout(() => setDbClearStatus('idle'), 5000);
+    } finally {
+      setIsClearingDb(false);
     }
   };
 
@@ -509,6 +546,24 @@ export function Settings() {
               </button>
             </div>
 
+            <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '0.5rem 0' }} />
+
+            <div>
+              <span className="input-label" style={{ display: 'block', fontSize: '0.9rem' }}>Database Transfer &amp; De-duplikasi:</span>
+              <p className="field-hint" style={{ marginTop: '2px', marginBottom: '0.75rem', fontSize: '0.75rem', lineHeight: 1.4 }}>
+                Menghapus seluruh riwayat berkas terunggah, resume state, audit log, dan cache pemindaian lokal. Gunakan ini jika Anda ingin Transfer Manager melakukan pemindaian segar ulang via API Telegram untuk mendeteksi berkas yang hilang/dihapus di tujuan.
+              </p>
+              <button 
+                type="button" 
+                className="btn" 
+                style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)' }}
+                onClick={handleClearDatabase} 
+                disabled={isCalculating || isClearing || isClearingDb}
+              >
+                {isClearingDb ? 'Mengosongkan DB...' : 'Kosongkan Database Transfer'}
+              </button>
+            </div>
+
             {clearStatus === 'success' && (
               <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
                 ✓ Cache berhasil dibersihkan! Navigasi Anda akan dimuat ulang dari awal.
@@ -519,7 +574,19 @@ export function Settings() {
                 Gagal membersihkan cache disk.
               </span>
             )}
+
+            {dbClearStatus === 'success' && (
+              <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
+                ✓ Database transfer berhasil dikosongkan! Riwayat transfer kini bersih seperti baru.
+              </span>
+            )}
+            {dbClearStatus === 'error' && (
+              <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
+                Gagal mengosongkan database transfer. Periksa log konsol untuk detailnya.
+              </span>
+            )}
           </div>
+
         </div>
       </div>
     </main>

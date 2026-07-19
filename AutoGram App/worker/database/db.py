@@ -87,12 +87,21 @@ def _apply_migration_012(conn):
     try:
         with open(migration_012, 'r') as f:
             sql_content = f.read()
+        # Clean single-line comments before splitting
+        clean_lines = []
+        for line in sql_content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith('--'):
+                continue
+            clean_lines.append(line)
+        clean_sql = '\n'.join(clean_lines)
+
         # Execute CREATE TABLE and CREATE INDEX statements (all IF NOT EXISTS — safe)
         create_stmts = []
         alter_stmts  = []
-        for stmt in sql_content.split(';'):
+        for stmt in clean_sql.split(';'):
             stmt = stmt.strip()
-            if not stmt or stmt.startswith('--'):
+            if not stmt:
                 continue
             upper = stmt.upper().lstrip()
             if upper.startswith('ALTER TABLE'):
