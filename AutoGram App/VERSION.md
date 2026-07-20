@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.31
+AutoGram Version: v2.1.32
 
 Current State:
-Penggunaan Sesi Kloning Preview untuk Mencegah SQLite Database Locked di Obrolan Migrasi
+Fitur Pencarian Obrolan Real-time pada Modal Pemilihan Obrolan Migrasi
 
 Previous:
+v2.1.31 Penggunaan Sesi Kloning Preview untuk Mencegah SQLite Database Locked di Obrolan Migrasi
 v2.1.30 Filter Folder Telegram pada Modal Pemilihan Obrolan Migrasi
 v2.1.29 Pengekstrakan Thumbnail Launcher Icon APK dan Penyelarasan Icon Grid APK
 v2.1.28 Penyelarasan Deteksi Thumbnail untuk Berkas Non-Media (APK/ZIP/Doc) yang Memiliki Preview

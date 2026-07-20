@@ -48,6 +48,8 @@
     "select_source": "Select Source Chat",
     "select_dest": "Select Destination Chat",
     "loading_api": "Loading from Telegram API...",
+    "all_chats": "All Chats",
+    "search_chat_placeholder": "Search name or ID...",
     "select_subtopic": "Select Sub-Topic",
     "all_group": "All (Main Group)",
     "forum_badge": "FORUM",

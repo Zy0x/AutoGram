@@ -48,6 +48,8 @@
     "select_source": "Pilih Obrolan Sumber",
     "select_dest": "Pilih Obrolan Tujuan",
     "loading_api": "Memuat dari Telegram API...",
+    "all_chats": "Semua Chat",
+    "search_chat_placeholder": "Cari nama atau ID obrolan...",
     "select_subtopic": "Pilih Sub-Topik",
     "all_group": "Semua (Grup Utama)",
     "forum_badge": "FORUM",

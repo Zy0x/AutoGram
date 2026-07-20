@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.32 Fitur Pencarian Obrolan Real-time pada Modal Pemilihan Obrolan Migrasi
+
+Added:
+- Menambahkan input pencarian real-time (`searchQuery`) di bawah tipe obrolan pada modal pemilihan obrolan sumber/tujuan migrasi (`JobEditor.tsx`). Pengguna sekarang dapat mencari obrolan berdasarkan nama (case-insensitive) maupun ID obrolan secara instan.
+- Menyediakan tombol pembersih cepat (`X`) untuk menghapus pencarian secara instan.
+- Menambahkan lokalisasi key `"all_chats"` dan `"search_chat_placeholder"` pada berkas bahasa `en.json` dan `id.json`.
+
 ## v2.1.31 Penggunaan Sesi Kloning Preview untuk Mencegah SQLite Database Locked di Obrolan Migrasi
 
 Fixed:

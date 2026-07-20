@@ -21,6 +21,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [dialogFilter, setDialogFilter] = useState<string>('All');
   const [chatFolders, setChatFolders] = useState<any[]>([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
   const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
   
@@ -266,6 +267,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setTopics([]);
     setSelectedDialogId(null);
     setDialogFilter('All');
+    setSearchQuery("");
     setIsLoadingDialogs(true);
     
     try {
@@ -1317,12 +1319,54 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                         </div>
                       ))}
                     </div>
+                    <div style={{ padding: '8px 20px', position: 'relative', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <Search size={16} style={{ position: 'absolute', left: '32px', top: '18px', color: 'var(--text-muted)' }} />
+                      <input
+                        type="text"
+                        placeholder={t('dashboard.search_chat_placeholder') || "Cari nama atau ID obrolan..."}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 36px 8px 36px',
+                          borderRadius: '8px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.9rem',
+                          outline: 'none',
+                          transition: 'var(--transition-safe)',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          style={{
+                            position: 'absolute',
+                            right: '32px',
+                            top: '12px',
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                     {dialogs
                       .filter(
                         (d) =>
-                          dialogFilter === 'All' ||
-                          d.type === dialogFilter ||
-                          (dialogFilter === 'Group' && d.is_forum)
+                          (dialogFilter === 'All' ||
+                            d.type === dialogFilter ||
+                            (dialogFilter === 'Group' && d.is_forum)) &&
+                          ((d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            String(d.id).includes(searchQuery))
                       )
                       .map((d) => {
                         let badgeText = d.type || 'Unknown';
