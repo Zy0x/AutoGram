@@ -1930,11 +1930,18 @@ def patch_telethon_sqlite_session():
                 try:
                     if self._conn is not None:
                         if not getattr(self._conn, '_patched_wal_timeout', False):
-                            self._conn.execute("PRAGMA journal_mode=WAL;")
+                            # Set the flag first to prevent loop on exceptions
+                            setattr(self._conn, '_patched_wal_timeout', True)
+                            
+                            # These connection-scoped settings can be executed safely at any time
                             self._conn.execute("PRAGMA busy_timeout=15000;")
                             self._conn.execute("PRAGMA synchronous=NORMAL;")
-                            self._conn.commit()
-                            setattr(self._conn, '_patched_wal_timeout', True)
+                            
+                            # journal_mode=WAL can fail if called inside a transaction
+                            try:
+                                self._conn.execute("PRAGMA journal_mode=WAL;")
+                            except Exception:
+                                pass
                 except Exception:
                     pass
                 return cursor
@@ -1993,7 +2000,7 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
 
 
 async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramClient:
-    """Connect with retries on SQLite session lock (concurrent workers)."""
+    """Connect with retries on SQLite session lock & transient network errors."""
     last_err: Optional[Exception] = None
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     session_file = os.path.join(session_dir, session_name)
@@ -2016,8 +2023,22 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
                 await asyncio.wait_for(client.disconnect(), timeout=0.8)
             except Exception:
                 pass
-            if "locked" in msg or "database is locked" in msg:
-                await asyncio.sleep(0.4 + attempt * 0.35)
+            
+            # Check if this error is transient and can be retried (locked DB or network/timeout issues)
+            is_transient = (
+                "locked" in msg 
+                or "database is locked" in msg
+                or "timeout" in msg
+                or "connection" in msg
+                or "dns" in msg
+                or "socket" in msg
+                or "host" in msg
+                or "broken pipe" in msg
+                or isinstance(e, (OSError, ConnectionError, asyncio.TimeoutError))
+            )
+            if is_transient:
+                # Linear backoff with jitter fallback
+                await asyncio.sleep(0.5 + attempt * 0.5)
                 continue
             raise
     raise RuntimeError(str(last_err) if last_err else "Session connect failed")

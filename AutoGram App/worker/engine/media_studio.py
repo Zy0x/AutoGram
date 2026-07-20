@@ -106,11 +106,18 @@ def patch_telethon_sqlite_session():
                 try:
                     if self._conn is not None:
                         if not getattr(self._conn, '_patched_wal_timeout', False):
-                            self._conn.execute("PRAGMA journal_mode=WAL;")
+                            # Set the flag first to prevent loop on exceptions
+                            setattr(self._conn, '_patched_wal_timeout', True)
+                            
+                            # These connection-scoped settings can be executed safely at any time
                             self._conn.execute("PRAGMA busy_timeout=15000;")
                             self._conn.execute("PRAGMA synchronous=NORMAL;")
-                            self._conn.commit()
-                            setattr(self._conn, '_patched_wal_timeout', True)
+                            
+                            # journal_mode=WAL can fail if called inside a transaction
+                            try:
+                                self._conn.execute("PRAGMA journal_mode=WAL;")
+                            except Exception:
+                                pass
                 except Exception:
                     pass
                 return cursor

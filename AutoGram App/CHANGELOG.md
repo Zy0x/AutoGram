@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.46 Pemberantasan CPU Overhead SQLite Patch & Retransmisi Koneksi Resilient Sesi Drive
+
+Added:
+- Menghilangkan `self._conn.commit()` pada monkey-patch cursor Telethon (`client.py`, `drive_fs.py`, `media_studio.py`) untuk menghindari gangguan pada siklus transaksi bawaan Telethon dan mencegah galat database locked/korupsi data.
+- Menetapkan `_patched_wal_timeout = True` segera di awal inisialisasi koneksi guna mencegah perulangan eksekusi `PRAGMA journal_mode=WAL;` yang terus-menerus gagal ketika dipanggil di dalam transaksi aktif, secara dramatis memangkas overhead CPU dan antrean locks.
+- Memisahkan pragma `journal_mode=WAL` ke dalam blok try-except mandiri agar jika terjadi galat (karena berada di dalam transaksi), ia tidak menghalangi pengaturan connection-scoped lain seperti `busy_timeout` dan `synchronous`.
+- Memperluas cakupan retry loop pada helper `_connect` (`drive_fs.py`) untuk menangkap dan mengulang koneksi pada kesalahan transient (seperti network drops, socket timeouts, DNS latency, dan OSError) dengan sleep backoff bertahap (`0.5 + attempt * 0.5`) guna mencegah daemon keluar prematur dengan kode 1 saat inisialisasi awal.
+
 ## v2.1.45 Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
 
 Added:

@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.45
+AutoGram Version: v2.1.46
 
 Current State:
-Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
+Pemberantasan CPU Overhead SQLite Patch & Retransmisi Koneksi Resilient Sesi Drive
 
 Previous:
+v2.1.45 Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
 v2.1.44 Optimasi Kinerja IPC Logger Sesi Drive
 v2.1.43 Perbaikan Import File System Tauri v2 di Sesi Drive
 v2.1.42 Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
