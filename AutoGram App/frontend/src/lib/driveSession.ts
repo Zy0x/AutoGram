@@ -9,6 +9,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { spawnDaemonJob, killWorkerJob, type JobChild } from './jobProcess';
 import type { DriveCredentials } from './driveApi';
 import { detectTauriRuntime } from './platform';
+import { isDebugMode } from './debugMode';
 
 export const DRIVE_SERVE_JOB_ID = 991003;
 export const API_SERVER_JOB_ID = 991005;
@@ -88,12 +89,18 @@ const listeners = new Set<DriveEventListener>();
 const workerLog: string[] = [];
 let workerLogFlushTimer: number | null = null;
 function pushWorkerLog(line: string) {
+  if (!isDebugMode()) {
+    if (workerLog.length > 0) {
+      workerLog.length = 0;
+    }
+    return;
+  }
   try {
     const ts = new Date().toISOString();
     workerLog.push(`${ts} ${String(line || '')}`);
     if (workerLog.length > 5000) workerLog.shift();
     if (workerLogFlushTimer == null) {
-      workerLogFlushTimer = window.setTimeout(flushWorkerLogToFile, 2000);
+      workerLogFlushTimer = window.setTimeout(flushWorkerLogToFile, 10000); // 10s throttle in debug mode
     }
   } catch {
     /* ignore */
@@ -105,6 +112,10 @@ async function flushWorkerLogToFile() {
     if (workerLogFlushTimer != null) {
       clearTimeout(workerLogFlushTimer);
       workerLogFlushTimer = null;
+    }
+    if (!isDebugMode()) {
+      workerLog.length = 0;
+      return;
     }
     if (!workerLog.length) return;
     const contents = workerLog.join('\n') + '\n';

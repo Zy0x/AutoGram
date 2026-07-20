@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.44 Optimasi Kinerja IPC Logger Sesi Drive
+
+Fixed:
+- Menghindari penimbunan log dalam memori serta pengiriman berkas log ke disk via Tauri IPC saat Debug Mode dinonaktifkan.
+- Membatasi (throttle) penulisan log berkas ke disk menjadi setiap 10 detik saat Debug Mode diaktifkan, guna menghindari kemampetan antrean IPC Tauri yang dapat memperlambat transfer dan pemuatan berkas di Media Studio.
+
 ## v2.1.43 Perbaikan Import File System Tauri v2 di Sesi Drive
 
 Fixed:
