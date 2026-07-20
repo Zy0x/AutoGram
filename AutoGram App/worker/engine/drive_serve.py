@@ -94,7 +94,7 @@ async def _ensure_connected(
     # Soft reconnect existing client object (reuses session handle)
     if client is not None:
         try:
-            await client.connect()
+            await asyncio.wait_for(client.connect(), timeout=10.0)
             if client.is_connected() and await client.is_user_authorized():
                 return client
         except Exception:

@@ -271,7 +271,7 @@ async def run_media_bench(
         "phases": [],
     }
 
-    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
+    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=5, auto_reconnect=True)
     await client.connect()
     try:
         if not await client.is_user_authorized():

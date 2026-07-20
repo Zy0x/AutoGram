@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
+
+Fixed:
+- Mengubah default parameter `connection_retries` dari `None` (tanpa batas internal di Telethon) menjadi `5` untuk mencegah client connect loop tanpa henti yang memblokir penulisan database dan deadlock proses latar belakang.
+- Menambahkan batas waktu asinkron `asyncio.wait_for(..., timeout=...)` pada pemanggilan `client.connect()` di daemon, server drive-serve, dan engine drive-fs agar proses langsung kembali gagal secara bersih (*fail-fast*) tanpa menahan lock koneksi global selamanya ketika terjadi gangguan jaringan.
+- Memperbaiki helper penanganan flood `_call_with_flood` di `fast_transfer.py` agar secara otonom dapat melacak objek client target (`target_client`) dan menyambungkannya kembali secara aman dengan batasan waktu timeout 8 detik jika koneksi terputus.
+- Meneruskan parameter `client` utama dari ProgressiveMedia ke `_call_with_flood` di modul streaming `media_stream.py` saat mengunduh chunk/part untuk memicu proses reconnect otomatis ketika koneksi socket terputus di tengah-tengah pemutaran streaming.
+
 ## v2.1.49 Penerapan Optimasi Buffer Multi-Layer Khusus Video Dokumen/File & Penyelarasan Batas Part boundaries
 
 Added:

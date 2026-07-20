@@ -1104,7 +1104,7 @@ async def _release_media_sender(client, media_sender) -> None:
         pass
 
 
-async def _getfile_part(api, input_loc, offset: int, need: int, part_size: int = _PART) -> bytes:
+async def _getfile_part(api, input_loc, offset: int, need: int, part_size: int = _PART, client=None) -> bytes:
     """One GetFile part with flood handling (same path as fast_transfer)."""
     from engine.fast_transfer import _call_with_flood, _getfile_limit_candidates
 
@@ -1121,6 +1121,7 @@ async def _getfile_part(api, input_loc, offset: int, need: int, part_size: int =
                 result = await _call_with_flood(
                     api,
                     GetFileRequest(location=input_loc, offset=cur_offset, limit=limit),
+                    client=client,
                 )
                 data = getattr(result, "bytes", None) or b""
                 if data:
@@ -1206,12 +1207,12 @@ async def _download_parts_concurrent(
                     log_debug(f"one() downloading part_off={part_off} need={need} attempt={attempt}")
                     t0 = time.time()
                     try:
-                        data = await _getfile_part(api, loc, part_off, need, part_size)
+                        data = await _getfile_part(api, loc, part_off, need, part_size, client=media._client)
                     except Exception as e:
                         # Client failover: if borrowed client fails, fall back to main client
                         if media._client is not None and media._client is not api:
                             log_debug(f"one() borrowed client failed, falling back to main client: {e}")
-                            data = await _getfile_part(media._client, loc, part_off, need, part_size)
+                            data = await _getfile_part(media._client, loc, part_off, need, part_size, client=media._client)
                         else:
                             raise
                     elapsed = time.time() - t0

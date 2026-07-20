@@ -126,7 +126,7 @@ def _patch_session_wal(session_file: str) -> None:
         pass
 
 
-async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, phone_callback=None, code_callback=None, password_callback=None, connection_retries=None) -> TelegramClient:
+async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, phone_callback=None, code_callback=None, password_callback=None, connection_retries=5) -> TelegramClient:
     """
     Prefer worker/sessions/<name>.session (file) — same as daemon execute-job / Media Studio.
     Fall back to encrypted StringSession in SQLite if no file exists.

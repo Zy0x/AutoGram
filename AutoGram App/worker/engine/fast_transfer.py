@@ -382,10 +382,11 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8, clien
             )
             if attempt < retries - 1 and is_conn_err:
                 attempt += 1
-                if client is not None:
+                target_client = client if client is not None else (client_or_sender if hasattr(client_or_sender, "session") else None)
+                if target_client is not None:
                     try:
-                        if not client.is_connected():
-                            await client.connect()
+                        if not target_client.is_connected():
+                            await asyncio.wait_for(target_client.connect(), timeout=8.0)
                     except Exception:
                         pass
                 await asyncio.sleep(0.4 + attempt * 0.35)

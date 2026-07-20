@@ -1986,7 +1986,7 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
             int(api_id),
             str(api_hash),
             receive_updates=False,
-            connection_retries=None,
+            connection_retries=5,
             auto_reconnect=True,
         )
         # Drop all incoming updates without processing
@@ -1995,7 +1995,7 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
         client._dispatch_update = _drop_update
         return client
         
-    return TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
+    return TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=5, auto_reconnect=True)
 
 
 
@@ -2008,7 +2008,7 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     client = _session_client(session_name, api_id, api_hash)
     for attempt in range(8):
         try:
-            await client.connect()
+            await asyncio.wait_for(client.connect(), timeout=10.0)
             if not await client.is_user_authorized():
                 try:
                     await asyncio.wait_for(client.disconnect(), timeout=0.8)
