@@ -3034,7 +3034,7 @@ async def run_media_studio(
     # concurrent drive-serve reads don't cause "database is locked" during upload.
     _patch_session_wal(session_file)
     # P0: retry connect on SQLite session lock (drive-serve handoff race)
-    client = TelegramClient(session_file, int(api_id), str(api_hash))
+    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
     last_conn: Optional[Exception] = None
     for attempt in range(6):
         try:
@@ -3061,7 +3061,7 @@ async def run_media_studio(
                 )
                 await asyncio.sleep(0.35 + attempt * 0.3)
                 _patch_session_wal(session_file)
-                client = TelegramClient(session_file, int(api_id), str(api_hash))
+                client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
                 continue
             raise
     if last_conn is not None:

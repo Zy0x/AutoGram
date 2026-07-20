@@ -178,7 +178,58 @@ async def list_topics(session_name, chat_id, api_id, api_hash):
     except Exception as e:
         print(f"[JSON_OUTPUT]{json.dumps({'error': str(e)})}")
 
+def start_parent_watcher() -> None:
+    """Spawns a background thread to watch the parent process.
+    If the parent process exits, this process will terminate immediately to avoid orphaned daemons."""
+    import threading
+    import time
+    import sys
+
+    ppid = os.getppid()
+    if ppid <= 0:
+        return
+
+    def watcher():
+        log_path = os.path.join(os.path.dirname(__file__), "watcher_debug.log")
+        with open(log_path, "a") as log:
+            log.write(f"Watcher started. PPID: {ppid}\n")
+            log.flush()
+        while True:
+            time.sleep(2)
+            alive = True
+            err_msg = ""
+            if sys.platform == "win32":
+                try:
+                    os.kill(ppid, 0)
+                except OSError as e:
+                    err_msg = f"OSError: {e}, winerror: {getattr(e, 'winerror', None)}"
+                    # On Windows, if process is dead, os.kill(pid, 0) might raise WinError 87
+                    if getattr(e, "winerror", None) == 87:
+                        alive = False
+            else:
+                import errno
+                try:
+                    os.kill(ppid, 0)
+                except OSError as e:
+                    err_msg = f"OSError: {e}"
+                    if e.errno == errno.ESRCH:
+                        alive = False
+            
+            with open(log_path, "a") as log:
+                log.write(f"PPID: {ppid}, alive: {alive}, err: {err_msg}\n")
+                log.flush()
+                
+            if not alive:
+                with open(log_path, "a") as log:
+                    log.write("Parent is dead! Exiting...\n")
+                    log.flush()
+                os._exit(0)
+
+    t = threading.Thread(target=watcher, daemon=True)
+    t.start()
+
 async def main():
+    start_parent_watcher()
     # Windows console often uses 'charmap' — break Telegram unicode titles otherwise
     try:
         from engine.utf8_io import ensure_utf8_stdio
@@ -1066,7 +1117,7 @@ async def main():
                         _patch_session_wal(session_file)
                     except Exception:
                         pass
-                    client = TelegramClient(session_file, int(effective_api_id), effective_api_hash)
+                    client = TelegramClient(session_file, int(effective_api_id), effective_api_hash, connection_retries=None, auto_reconnect=True)
                     await client.connect()
                     if not await client.is_user_authorized():
                         print("[EVENT] {\"type\": \"FatalError\", \"error\": \"Sesi tidak valid. Silakan login kembali.\"}", flush=True)
@@ -1201,7 +1252,7 @@ async def main():
         config['dest_topic_id'] = dest_topic_id
         
         try:
-            client = TelegramClient(session_file, int(args.api_id) if args.api_id else int(config.get('api_id', 0)), args.api_hash or config.get('api_hash', ''))
+            client = TelegramClient(session_file, int(args.api_id) if args.api_id else int(config.get('api_id', 0)), args.api_hash or config.get('api_hash', ''), connection_retries=None, auto_reconnect=True)
             await client.connect()
             if not await client.is_user_authorized():
                 print("[ERROR] Sesi tidak valid untuk Sync.", flush=True)

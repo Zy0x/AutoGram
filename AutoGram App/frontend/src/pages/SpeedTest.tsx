@@ -801,12 +801,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   useEffect(() => {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let consecutiveFailures = 0;
 
     async function checkPing() {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         if (active) {
           setPingState({ status: 'offline', ms: null });
         }
+        consecutiveFailures = 0;
         scheduleNext(3000);
         return;
       }
@@ -815,6 +817,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (active) {
           setPingState({ status: 'transferring', ms: null });
         }
+        consecutiveFailures = 0;
         scheduleNext(3000);
         return;
       }
@@ -823,6 +826,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (active) {
           setPingState({ status: 'disconnected', ms: null });
         }
+        consecutiveFailures = 0;
         scheduleNext(3000);
         return;
       }
@@ -833,6 +837,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (!active) return;
 
         if (res && res.connected) {
+          consecutiveFailures = 0;
           const ms = typeof res.ms === 'number' ? res.ms : Date.now() - t0;
           let status: PingState['status'] = 'excellent';
           if (ms < 150) status = 'excellent';
@@ -842,11 +847,17 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
           setPingState({ status, ms });
         } else {
-          setPingState({ status: 'disconnected', ms: null });
+          consecutiveFailures++;
+          if (consecutiveFailures >= 3) {
+            setPingState({ status: 'disconnected', ms: null });
+          }
         }
       } catch (err) {
         if (active) {
-          setPingState({ status: 'disconnected', ms: null });
+          consecutiveFailures++;
+          if (consecutiveFailures >= 3) {
+            setPingState({ status: 'disconnected', ms: null });
+          }
         }
       }
       scheduleNext(3000);

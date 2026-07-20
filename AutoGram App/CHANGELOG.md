@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.20 Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
+
+Changed:
+- Mengonfigurasi parameter koneksi Telethon `TelegramClient` secara global dengan `connection_retries=None` dan `auto_reconnect=True` pada daemon migrasi, backend drive, dan media studio untuk menjamin proses latar belakang mencoba terhubung kembali secara mandiri tanpa terputus secara permanen.
+- Menambahkan logika deteksi gangguan jaringan dan pemulihan koneksi otomatis di dalam pembungkus MTProto `_call_with_flood` dan klien tangguh `TelegramResilientClient` (pada pemindaian pesan, pengambilan data, dan penanganan file) untuk memaksimalkan toleransi jaringan yang tidak stabil.
+- Memperluas identifikasi tipe kesalahan putus sambung (`ConnectionError`, `OSError`, `BrokenPipeError`, dsb.) pada daemon drive serve agar penanganan kegagalan socket dapat ditangani dengan cepat.
+- Meningkatkan ketahanan indikator status koneksi (ping) di frontend dengan memperkenalkan toleransi ambang batas (3x kegagalan berturut-turut) sebelum menampilkan status "Terputus" untuk menghindari peringatan palsu akibat latensi antrean transfer yang padat.
+
 ## v2.1.19 Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
 
 Fixed:

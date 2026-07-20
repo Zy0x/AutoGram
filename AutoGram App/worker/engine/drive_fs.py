@@ -1951,6 +1951,8 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
             int(api_id),
             str(api_hash),
             receive_updates=False,
+            connection_retries=None,
+            auto_reconnect=True,
         )
         # Drop all incoming updates without processing
         async def _drop_update(*args, **kwargs):
@@ -1958,7 +1960,7 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
         client._dispatch_update = _drop_update
         return client
         
-    return TelegramClient(session_file, int(api_id), str(api_hash))
+    return TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
 
 
 

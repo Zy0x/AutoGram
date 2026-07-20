@@ -92,7 +92,7 @@ def _patch_session_wal(session_file: str) -> None:
         pass
 
 
-async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, phone_callback=None, code_callback=None, password_callback=None) -> TelegramClient:
+async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, phone_callback=None, code_callback=None, password_callback=None, connection_retries=None) -> TelegramClient:
     """
     Prefer worker/sessions/<name>.session (file) — same as daemon execute-job / Media Studio.
     Fall back to encrypted StringSession in SQLite if no file exists.
@@ -104,7 +104,7 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
     if os.path.isfile(file_session):
         # File-based session (Lavender.session, Mantan Gadis.session, …)
         _patch_session_wal(file_base)
-        client = TelegramClient(file_base, api_id, api_hash)
+        client = TelegramClient(file_base, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
     else:
         session_data = get_session(session_name)
         if session_data and session_data.get('session_string'):
@@ -115,7 +115,7 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
                 string_session = StringSession()
         else:
             string_session = StringSession()
-        client = TelegramClient(string_session, api_id, api_hash)
+        client = TelegramClient(string_session, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
 
     await client.connect()
     if not await client.is_user_authorized():

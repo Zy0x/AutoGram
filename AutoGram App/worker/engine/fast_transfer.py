@@ -377,10 +377,17 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8, clien
         except Exception as e:
             # Transient network / timeout — short retry
             msg = str(e).lower()
-            if attempt < retries - 1 and any(
-                x in msg for x in ("timeout", "connection", "reset", "broken pipe", "server closed")
-            ):
+            is_conn_err = isinstance(e, (ConnectionError, OSError)) or any(
+                x in msg for x in ("timeout", "connection", "reset", "broken pipe", "server closed", "disconnected", "not connected", "cannot send requests")
+            )
+            if attempt < retries - 1 and is_conn_err:
                 attempt += 1
+                if client is not None:
+                    try:
+                        if not client.is_connected():
+                            await client.connect()
+                    except Exception:
+                        pass
                 await asyncio.sleep(0.4 + attempt * 0.35)
                 continue
             raise

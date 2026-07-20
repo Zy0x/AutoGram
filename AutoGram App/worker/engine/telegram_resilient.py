@@ -228,6 +228,7 @@ class TelegramResilientClient:
         fetched = 0
         remaining = limit  # None = unlimited
         current_offset = offset_id
+        consec_conn_failures = 0
 
         while True:
             self._check_cb()
@@ -251,6 +252,7 @@ class TelegramResilientClient:
 
                 self.CB.record_success(self.entity_id)
                 self.RL.report_success(self.entity_id)
+                consec_conn_failures = 0
 
             except FloodWaitError as fw:
                 await self._handle_floodwait(fw, "iter_messages")
@@ -259,6 +261,22 @@ class TelegramResilientClient:
             except CircuitBreakerOpen:
                 raise
             except Exception as exc:
+                if self._is_connection_error(exc):
+                    consec_conn_failures += 1
+                    if consec_conn_failures <= 5:
+                        log.warning("[TelegramResilient] Connection lost in iter_messages (attempt %d/5): %s. Reconnecting...", consec_conn_failures, exc)
+                        self.CB.record_failure(self.entity_id)
+                        try:
+                            await self.client.disconnect()
+                        except Exception:
+                            pass
+                        await asyncio.sleep(1.0 + consec_conn_failures * 1.5)
+                        try:
+                            await self.client.connect()
+                        except Exception:
+                            pass
+                        continue
+
                 log.warning("[TelegramResilient] iter_messages error: %s", exc)
                 self.CB.record_failure(self.entity_id)
                 break
@@ -294,7 +312,9 @@ class TelegramResilientClient:
         max_retries: int = 2,
     ) -> List[Any]:
         """Wrapper around client.get_messages with retry logic."""
-        for attempt in range(max_retries + 1):
+        attempt = 0
+        consec_conn_failures = 0
+        while True:
             self._check_cb()
             await self.RL.wait(self.entity_id)
             try:
@@ -304,16 +324,35 @@ class TelegramResilientClient:
                 return result if isinstance(result, list) else [result]
             except FloodWaitError as fw:
                 await self._handle_floodwait(fw, "get_messages")
-                if attempt == max_retries:
+                attempt += 1
+                if attempt > max_retries:
                     raise
+                continue
             except CircuitBreakerOpen:
                 raise
             except Exception as exc:
+                if self._is_connection_error(exc):
+                    consec_conn_failures += 1
+                    if consec_conn_failures <= 3:
+                        log.warning("[TelegramResilient] Connection lost in get_messages (attempt %d/3): %s. Reconnecting...", consec_conn_failures, exc)
+                        self.CB.record_failure(self.entity_id)
+                        try:
+                            await self.client.disconnect()
+                        except Exception:
+                            pass
+                        await asyncio.sleep(1.0 + consec_conn_failures * 1.5)
+                        try:
+                            await self.client.connect()
+                        except Exception:
+                            pass
+                        continue
+
                 log.warning("[TelegramResilient] get_messages error: %s", exc)
                 self.CB.record_failure(self.entity_id)
-                if attempt == max_retries:
+                attempt += 1
+                if attempt > max_retries:
                     raise
-        return []
+                continue
 
     async def get_file_safe(
         self,
@@ -325,7 +364,9 @@ class TelegramResilientClient:
         Call client.get_file() to deep-verify a media object still exists.
         Returns the file object if valid, None on any error.
         """
-        for attempt in range(max_retries + 1):
+        attempt = 0
+        consec_conn_failures = 0
+        while True:
             self._check_cb()
             await self.RL.wait(self.entity_id)
             try:
@@ -335,10 +376,49 @@ class TelegramResilientClient:
                 return result
             except FloodWaitError as fw:
                 await self._handle_floodwait(fw, "get_file")
-                if attempt == max_retries:
+                attempt += 1
+                if attempt > max_retries:
                     return None
+                continue
             except CircuitBreakerOpen:
                 raise
-            except Exception:
-                return None
-        return None
+            except Exception as exc:
+                if self._is_connection_error(exc):
+                    consec_conn_failures += 1
+                    if consec_conn_failures <= 3:
+                        log.warning("[TelegramResilient] Connection lost in get_file (attempt %d/3): %s. Reconnecting...", consec_conn_failures, exc)
+                        self.CB.record_failure(self.entity_id)
+                        try:
+                            await self.client.disconnect()
+                        except Exception:
+                            pass
+                        await asyncio.sleep(1.0 + consec_conn_failures * 1.5)
+                        try:
+                            await self.client.connect()
+                        except Exception:
+                            pass
+                        continue
+
+                attempt += 1
+                if attempt > max_retries:
+                    return None
+                continue
+
+    @staticmethod
+    def _is_connection_error(exc: Exception) -> bool:
+        if isinstance(exc, (ConnectionError, OSError)):
+            return True
+        msg = str(exc or "").lower()
+        return any(
+            x in msg
+            for x in (
+                "while disconnected",
+                "not connected",
+                "connection closed",
+                "server closed the connection",
+                "cannot send requests",
+                "broken pipe",
+                "connection reset",
+                "socket",
+            )
+        )

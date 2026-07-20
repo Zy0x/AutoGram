@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.19
+AutoGram Version: v2.1.20
 
 Current State:
-Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
+Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
 
 Previous:
+v2.1.19 Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
 v2.1.18 Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
 v2.1.17 Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
 v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media

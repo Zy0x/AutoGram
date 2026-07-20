@@ -58,6 +58,8 @@ def _out(obj: Dict[str, Any]) -> None:
 
 
 def _is_disconnect_error(err: BaseException) -> bool:
+    if isinstance(err, (ConnectionError, OSError)):
+        return True
     msg = str(err or "").lower()
     return (
         "while disconnected" in msg
@@ -65,6 +67,9 @@ def _is_disconnect_error(err: BaseException) -> bool:
         or "connection closed" in msg
         or "server closed the connection" in msg
         or "cannot send requests" in msg
+        or "broken pipe" in msg
+        or "connection reset" in msg
+        or "socket" in msg
     )
 
 
