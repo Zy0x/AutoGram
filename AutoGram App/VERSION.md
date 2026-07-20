@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.37
+AutoGram Version: v2.1.38
 
 Current State:
-Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
+Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 
 Previous:
+v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
 v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
 v2.1.35 Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
 v2.1.34 Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio

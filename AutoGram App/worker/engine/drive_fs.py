@@ -2003,14 +2003,17 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
         try:
             await client.connect()
             if not await client.is_user_authorized():
-                await client.disconnect()
+                try:
+                    await asyncio.wait_for(client.disconnect(), timeout=0.8)
+                except Exception:
+                    pass
                 raise RuntimeError("Session not authorized")
             return client
         except Exception as e:
             last_err = e
             msg = str(e).lower()
             try:
-                await client.disconnect()
+                await asyncio.wait_for(client.disconnect(), timeout=0.8)
             except Exception:
                 pass
             if "locked" in msg or "database is locked" in msg:

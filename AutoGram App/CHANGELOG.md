@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
+
+Added:
+- Membungkus seluruh pemanggilan `client.disconnect()` dalam blok `asyncio.wait_for(..., timeout=0.8)` pada berkas `drive_fs.py` dan `drive_serve.py`. Ini mencegah proses worker drive-serve menggantung (hang) saat mencoba memutus koneksi socket TCP yang sudah mati/setengah terbuka (half-open) dengan Telegram, yang sebelumnya dapat menghambat rilis kunci berkas SQLite (`database is locked`) dan memperlambat pemulihan koneksi sesi drive baru hingga belasan detik.
+
 ## v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
 
 Added:

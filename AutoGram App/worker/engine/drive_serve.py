@@ -100,7 +100,7 @@ async def _ensure_connected(
         except Exception:
             pass
         try:
-            await client.disconnect()
+            await asyncio.wait_for(client.disconnect(), timeout=0.8)
         except Exception:
             pass
 
@@ -991,7 +991,7 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
                     ):
                         async with connect_lock:
                             try:
-                                await state["client"].disconnect()
+                                await asyncio.wait_for(state["client"].disconnect(), timeout=0.8)
                             except Exception:
                                 pass
                             try:
@@ -1090,6 +1090,7 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         try:
-            await state["client"].disconnect()
+            if state.get("client") is not None:
+                await asyncio.wait_for(state["client"].disconnect(), timeout=0.8)
         except Exception:
             pass
