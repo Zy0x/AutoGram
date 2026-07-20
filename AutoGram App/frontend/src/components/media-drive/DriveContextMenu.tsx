@@ -220,6 +220,11 @@ export function DriveContextMenu({
                 <Download size={14} /> Unduh
               </button>
             )}
+            {onCopyId && (
+              <button type="button" role="menuitem" onClick={() => run(onCopyId)}>
+                <Copy size={14} /> Salin ID
+              </button>
+            )}
             {onRename && (
               <button type="button" role="menuitem" onClick={() => run(onRename)}>
                 <Pencil size={14} /> Ganti nama

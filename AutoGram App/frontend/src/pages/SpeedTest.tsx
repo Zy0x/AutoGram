@@ -7529,7 +7529,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                     () => setStatusText(`ID: ${id}`)
                   );
                 }
-              : undefined
+              : contextMenu.kind === 'file'
+                ? () => {
+                    const file = contextMenu.file;
+                    const segments = breadcrumbSegs.map((s) => s.label).filter(Boolean);
+                    const fileName = file.name || file.original_name || 'file';
+                    const fullPath = '/' + [...segments, fileName].join('/');
+                    void navigator.clipboard?.writeText(fullPath).then(
+                      () => setStatusText(`ID (Path) disalin: ${fullPath}`),
+                      () => setStatusText(`ID (Path): ${fullPath}`)
+                    );
+                  }
+                : undefined
           }
           onRefresh={contextMenu.kind === 'canvas' ? () => void refreshFiles() : undefined}
           onSelectAll={

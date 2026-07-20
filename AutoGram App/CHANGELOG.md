@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
+
+Added:
+- Menambahkan opsi "Salin ID" pada klik kanan (context menu) card media di Media Studio (`DriveContextMenu.tsx`).
+- Opsi ini akan menyusun dan menyalin path direktori virtual lengkap dari file media tersebut (misalnya `/Grup Obrolan/Folder Utama/NamaFile.ext`) berdasarkan segmentasi remah roti (breadcrumb) aktif ke papan klip (clipboard) pengguna, serta menampilkan notifikasi toast konfirmasi.
+
 ## v2.1.35 Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
 
 Added:
