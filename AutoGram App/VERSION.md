@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.20
+AutoGram Version: v2.1.21
 
 Current State:
-Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
+Penyelarasan Tampilan & Pencegahan Garis Biru Fokus (Focus Outline) Scrollbar
 
 Previous:
+v2.1.20 Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
 v2.1.19 Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
 v2.1.18 Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
 v2.1.17 Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend

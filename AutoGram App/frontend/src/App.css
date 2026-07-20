@@ -56,6 +56,7 @@
   flex-direction: column;
   /* ensure scrollbars work in WebView / Windows */
   scrollbar-gutter: stable;
+  outline: none !important;
 }
 
 /* Page shell — padding only; parent (.app-content) scrolls */
@@ -2611,6 +2612,7 @@ body.td-dnd-external {
   scroll-padding-top: 8px;
   /* Prefer app tools menu over WebView native (handler also preventDefault) */
   -webkit-touch-callout: none;
+  outline: none !important;
 }
 .td-grid-virtual {
   width: 100% !important;
@@ -5557,6 +5559,7 @@ body:has(.td-page),
   order: 0 !important;
   position: relative;
   background: #0e1621 !important;
+  outline: none !important;
 }
 
 /* Absolute fill as last-resort against flex height collapse (blank black / white strip) */

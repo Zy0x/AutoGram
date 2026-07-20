@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.21 Penyelarasan Tampilan & Pencegahan Garis Biru Fokus (Focus Outline) Scrollbar
+
+Fixed:
+- Memperbaiki konflik tampilan berupa garis biru vertikal (focus outline bawaan browser/WebView) di sisi kanan layar saat scrollbar ditarik ke atas/bawah. Menambahkan deklarasi `outline: none !important` pada container scrollable `.td-explorer`, `.app-content`, dan `.app-content-drive` di [App.css](file:///F:/AutoGram/AutoGram%20App/frontend/src/App.css) untuk menonaktifkan outline fokus bawaan secara total tanpa mengganggu fungsionalitas scroll halaman.
+
 ## v2.1.20 Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
 
 Changed:
