@@ -464,9 +464,9 @@ class ProgressiveMedia:
                 off = row[0]
                 log_debug(f"schedule_seek: adjusted off from {byte_offset} to keyframe {off}")
             else:
-                off = (off // _SEEK_ALIGN) * _SEEK_ALIGN
+                off = (off // self.part_size) * self.part_size
         except Exception:
-            off = (off // _SEEK_ALIGN) * _SEEK_ALIGN
+            off = (off // self.part_size) * self.part_size
         if total > 0 and off >= total:
             return False
         # Already have enough here?
@@ -724,7 +724,7 @@ def _ensure_server() -> int:
                             chunk_end = min(chunk_end, end_req)
                     else:
                         window = media.get_seek_window()
-                        aligned_start = (start // _SEEK_ALIGN) * _SEEK_ALIGN
+                        aligned_start = (start // media.part_size) * media.part_size
                         target_end = aligned_start + window - 1
                         if file_size_known:
                             target_end = min(target_end, file_size_known - 1)
@@ -1787,6 +1787,24 @@ async def fill_stream_from_telegram(
             )
 
         total = media.total_size or 0
+        is_doc = False
+        if msg is not None:
+            if hasattr(msg, "document") and msg.document is not None:
+                mime_type = getattr(msg.document, "mime_type", "") or ""
+                if mime_type.startswith("video/") or msg.document.size > 50_000_000:
+                    is_doc = True
+            elif hasattr(msg, "video") and msg.video is None and hasattr(msg, "document") and msg.document:
+                is_doc = True
+
+        if is_doc:
+            # 2% of file size, minimum 8MB, maximum 16MB
+            doc_head = min(max(int(total * 0.02), 8 * 1024 * 1024), 16 * 1024 * 1024)
+            media.config["initial_head"] = min(doc_head, total if total > 0 else doc_head)
+            media.config["workers"] = max(media.config.get("workers", 16), 20)
+            if not media.mime or media.mime == "application/octet-stream":
+                media.mime = "video/mp4"
+            log_debug(f"[DOC-MODE] Activated with head: {media.config['initial_head'] / 1024 / 1024:.1f} MB, workers: {media.config['workers']}")
+
         existing = 0
         try:
             if os.path.isfile(media.path):

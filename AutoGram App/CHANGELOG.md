@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.49 Penerapan Optimasi Buffer Multi-Layer Khusus Video Dokumen/File & Penyelarasan Batas Part boundaries
+
+Added:
+- Menambahkan pendeteksi dokumen video (`is_doc`) di fungsi `fill_stream_from_telegram` untuk memisahkan file dokumen biasa dengan video asli yang dikirim sebagai dokumen/berkas (ukuran > 50MB atau ber-MIME video).
+- Menerapkan optimasi prefetch khusus dokumen video dengan menaikkan *initial head* secara agresif ke minimum 8 MB (hingga maksimum 16 MB atau 2% ukuran berkas) untuk menampung metadata `moov` atom berukuran besar secara utuh di awal putar.
+- Menyetel batas konkurensi unduhan yang lebih agresif (20 workers) untuk video dokumen guna mempercepat resolusi awal video player.
+- Mengubah penyelarasan range seek dan HTTP range requests agar sepenuhnya sejajar ke kelipatan part boundary Telegram (`media.part_size` dinamis: 128KB/256KB/512KB) alih-alih nilai statis 64KB, guna memangkas *double-fetching* data parsial dan mencegah kemungkinan korupsi data.
+
 ## v2.1.48 Implementasi Engine Buffer Streaming Media Adaptif 6-Layer, Zero-Copy Ring Buffer & Format Sniffing Presisi
 
 Added:
