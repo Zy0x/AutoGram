@@ -58,8 +58,8 @@ def _ensure_ram_budget(needed: int) -> None:
 
 def log_debug(msg: str) -> None:
     try:
-        with open("f:/AutoGram/AutoGram App/worker/temp/media_stream_debug.txt", "a", encoding="utf-8") as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+        with open("F:/AutoGram/python_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"[media_stream] {time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
     except Exception:
         pass
 

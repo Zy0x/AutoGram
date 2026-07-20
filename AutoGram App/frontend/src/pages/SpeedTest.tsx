@@ -4464,6 +4464,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Telegram-Session': creds?.session || '',
+          'X-Telegram-Api-Id': creds?.apiId ? String(creds.apiId) : '',
+          'X-Telegram-Api-Hash': creds?.apiHash || '',
         },
         body: JSON.stringify({
           url,
@@ -4487,16 +4490,22 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   };
 
   const handleDownloadAll = useCallback(() => {
+    if (!creds) return;
     setStatusText('Membuat zip stream...');
     const link = document.createElement('a');
     const folderIdStr = peerId ? String(peerId) : 'home';
-    link.href = `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all`;
+    const params = new URLSearchParams({
+      session: creds.session,
+      api_id: String(creds.apiId),
+      api_hash: creds.apiHash,
+    });
+    link.href = `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all?${params.toString()}`;
     link.setAttribute('download', `folder_${folderIdStr}.zip`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setStatusText('Mengunduh ZIP folder...');
-  }, [peerId]);
+  }, [peerId, creds]);
 
   const handleUpload = async () => {
     if (!creds) return setError('Select session and set API credentials.');

@@ -586,7 +586,7 @@ export function DriveTopBar({
           {onRemoteUploadClick && (
             <button
               type="button"
-              className="td-btn-primary bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/50"
+              className="td-btn-secondary"
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
               title="Remote Upload (URL)"

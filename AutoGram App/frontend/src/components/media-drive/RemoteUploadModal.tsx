@@ -71,7 +71,6 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '450px', height: 'auto', minHeight: '300px' }}
       >
         <header className="td-confirm-head">
           <span className="td-confirm-icon input" aria-hidden>
@@ -92,57 +91,53 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
           </button>
         </header>
 
-        <div className="td-input-body" style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="td-input-body">
           {errorMsg && (
-            <p className="td-input-error" role="alert" style={{ marginBottom: 0 }}>
+            <p className="td-input-error" role="alert" style={{ marginBottom: '4px' }}>
               {errorMsg}
             </p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label className="td-input-label" htmlFor="td-remote-url" style={{ fontSize: '11px', textTransform: 'uppercase', tracking: '0.05em', opacity: 0.6 }}>
-              URL File Sumber
-            </label>
-            <input
-              id="td-remote-url"
-              className="td-input-field"
-              type="text"
-              placeholder="https://example.com/file.zip"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                if (errorMsg) setErrorMsg('');
-              }}
-              disabled={submitting}
-              autoComplete="off"
-              spellCheck={false}
-              autoFocus
-            />
-          </div>
+          <label className="td-input-label" htmlFor="td-remote-url">
+            URL File Sumber
+          </label>
+          <input
+            id="td-remote-url"
+            className="td-input-field"
+            type="text"
+            placeholder="https://example.com/file.zip"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              if (errorMsg) setErrorMsg('');
+            }}
+            disabled={submitting}
+            autoComplete="off"
+            spellCheck={false}
+            autoFocus
+          />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label className="td-input-label" htmlFor="td-remote-folder" style={{ fontSize: '11px', textTransform: 'uppercase', tracking: '0.05em', opacity: 0.6 }}>
-              Folder / Channel Tujuan
-            </label>
-            <select
-              id="td-remote-folder"
-              className="td-input-field"
-              value={folderId === null ? '' : folderId}
-              onChange={(e) => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
-              disabled={submitting}
-              style={{ paddingRight: '32px', cursor: 'pointer', appearance: 'auto' }}
-            >
-              <option value="">Pesan Tersimpan (Saved Messages)</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <label className="td-input-label" htmlFor="td-remote-folder" style={{ marginTop: '6px' }}>
+            Folder / Channel Tujuan
+          </label>
+          <select
+            id="td-remote-folder"
+            className="td-input-field"
+            value={folderId === null ? '' : folderId}
+            onChange={(e) => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
+            disabled={submitting}
+            style={{ cursor: 'pointer', appearance: 'auto' }}
+          >
+            <option value="">Pesan Tersimpan (Saved Messages)</option>
+            {folders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <footer className="td-confirm-foot" style={{ marginTop: '8px' }}>
+        <footer className="td-confirm-foot">
           <button 
             type="button" 
             className="td-confirm-btn ghost" 
