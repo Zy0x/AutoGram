@@ -514,7 +514,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('Ready');
   const [remoteUploadOpen, setRemoteUploadOpen] = useState(false);
-  const [zenMode, setZenMode] = useState(() => localStorage.getItem('ag-drive-zen-mode') === 'true');
   const [scaleHint, setScaleHint] = useState<string | null>(null);
   const [recents, setRecents] = useState<DriveRecent[]>(() =>
     session ? loadDriveRecents(session) : []
@@ -6689,42 +6688,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeEl = document.activeElement;
-      if (
-        activeEl &&
-        (activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          activeEl.getAttribute('contenteditable') === 'true')
-      ) {
-        return;
-      }
 
-      if (e.key === 'F11') {
-        e.preventDefault();
-        setZenMode((prev) => {
-          const next = !prev;
-          localStorage.setItem('ag-drive-zen-mode', String(next));
-          setStatusText(next ? 'Zen Mode Aktif' : 'Zen Mode Nonaktif');
-          return next;
-        });
-      } else if (e.key === 'Escape' && zenMode) {
-        setZenMode(false);
-        localStorage.setItem('ag-drive-zen-mode', 'false');
-        setStatusText('Zen Mode Nonaktif');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [zenMode]);
 
   return (
     <main
       className={`main-content main-content-fill main-content-flush td-page${
         mediaDragActive ? ' is-internal-dnd' : ''
-      }${zenMode ? ' drive-zen-mode' : ''}`}
+      }`}
       onDragEnter={(e) => {
         // Pointer internal drag has no HTML5 DataTransfer cycle — ignore
         if (isPointerDriveDragActive() || mediaDragActive) {
@@ -6933,15 +6903,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onRemoteUploadClick={() => setRemoteUploadOpen(true)}
             onDownloadAllClick={handleDownloadAll}
             onDownload={handleDownloadSelected}
-            zenMode={zenMode}
-            onToggleZenMode={() => {
-              setZenMode((prev) => {
-                const next = !prev;
-                localStorage.setItem('ag-drive-zen-mode', String(next));
-                setStatusText(next ? 'Zen Mode Aktif' : 'Zen Mode Nonaktif');
-                return next;
-              });
-            }}
             onDelete={() => handleDeleteIds(selectedIds)}
             transferBusy={transfer.active}
             actionsDisabled={transfer.active}

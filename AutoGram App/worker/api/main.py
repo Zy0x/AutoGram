@@ -33,21 +33,6 @@ class RemoteUploadRequest(BaseModel):
     url: str
     folder_id: Optional[str] = None
 
-class AsyncStreamReader:
-    """Wraps an aiohttp stream to act as a synchronous file-like reader for Telethon."""
-    def __init__(self, response_content, loop, total_size=None):
-        self.content = response_content
-        self.loop = loop
-        self.total_size = total_size
-        self.read_bytes = 0
-
-    def read(self, n=-1):
-        # Read from aiohttp content stream in the main loop
-        coro = self.content.read(n)
-        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-        chunk = future.result()
-        self.read_bytes += len(chunk)
-        return chunk
 
 def get_message_filename(message, default="file"):
     if message.document:
@@ -240,7 +225,6 @@ async def remote_upload(
         x_telegram_api_id=x_telegram_api_id,
         x_telegram_api_hash=x_telegram_api_hash
     )
-    global loop_instance
         
     url = payload.url
     actual_folder_id = None
@@ -263,26 +247,59 @@ async def remote_upload(
 
     print(f"[API] Starting remote upload from {url} to folder {payload.folder_id}...", flush=True)
 
+    import tempfile
+    worker_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    temp_dir = os.path.join(worker_dir, 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Generate unique temporary file name
+    temp_fd, temp_path = tempfile.mkstemp(dir=temp_dir, suffix=".tmp")
+    os.close(temp_fd) # Close file descriptor immediately to write via standard open()
+
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        # Download step
+        total_size = 0
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url, timeout=300) as response:
                 if response.status != 200:
-                    raise HTTPException(status_code=400, detail=f"Failed to fetch file from URL (HTTP status {response.status})")
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Failed to fetch file from URL (HTTP status {response.status})"
+                    )
                 
-                total_size = response.content_length
-                # Use custom AsyncStreamReader to pipe HTTP stream into Telethon's upload_file
-                stream_reader = AsyncStreamReader(response.content, loop_instance, total_size)
+                content_len = response.content_length
+                print(f"[API] Downloading URL to temp file: {temp_path} (expected size: {content_len})...", flush=True)
                 
-                uploaded_file = await client.upload_file(
-                    stream_reader,
-                    file_name=filename,
-                    file_size=total_size
-                )
-                
-                # Send the uploaded document to target channel/Saved Messages
-                await client.send_file(peer, uploaded_file, caption=f"Remote upload from: {url}")
-                
+                with open(temp_path, 'wb') as f:
+                    async for chunk in response.content.iter_chunked(1024 * 1024): # 1MB chunks
+                        f.write(chunk)
+                        total_size += len(chunk)
+
+        print(f"[API] Download complete ({total_size} bytes). Uploading to Telegram...", flush=True)
+        
+        # Upload step
+        uploaded_file = await client.upload_file(
+            temp_path,
+            file_name=filename
+        )
+        
+        # Send step
+        await client.send_file(peer, uploaded_file, caption=f"Remote upload from: {url}")
+        print(f"[API] Remote upload finished successfully: {filename}", flush=True)
+        
         return {"status": "success", "filename": filename, "size": total_size}
     except Exception as e:
         print(f"[API] Remote upload failed: {e}", file=sys.stderr, flush=True)
         raise HTTPException(status_code=500, detail=f"Remote upload failed: {str(e)}")
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+                print(f"[API] Cleaned up temp file: {temp_path}", flush=True)
+            except Exception as ce:
+                print(f"[API] Warning: Failed to delete temp file {temp_path}: {ce}", flush=True)

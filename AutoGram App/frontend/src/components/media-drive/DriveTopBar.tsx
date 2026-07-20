@@ -26,8 +26,6 @@ import {
   Edit2,
   Globe,
   FolderArchive,
-  Maximize,
-  Minimize,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -82,8 +80,7 @@ type Props = {
   onRemoteUploadClick?: () => void;
   onDownloadAllClick?: () => void;
   onDownload: () => void;
-  zenMode?: boolean;
-  onToggleZenMode?: () => void;
+
   onDelete: () => void;
   onMoveSelected?: () => void;
   onRefresh: () => void;
@@ -153,8 +150,7 @@ export function DriveTopBar({
   onRemoteUploadClick,
   onDownloadAllClick,
   onDownload,
-  zenMode,
-  onToggleZenMode,
+
   onDelete,
   onMoveSelected,
   onRefresh,
@@ -560,17 +556,7 @@ export function DriveTopBar({
               <Settings2 size={16} />
             </button>
           )}
-          {onToggleZenMode && (
-            <button
-              type="button"
-              className="td-icon-btn text-slate-300"
-              onClick={onToggleZenMode}
-              title={zenMode ? "Keluar Zen Mode (ESC)" : "Zen Mode Layar Penuh (F11)"}
-              aria-label="Toggle Zen Mode"
-            >
-              {zenMode ? <Minimize size={16} /> : <Maximize size={16} />}
-            </button>
-          )}
+
           {onDownloadAllClick && (
             <button
               type="button"

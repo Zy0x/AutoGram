@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Globe, X, Loader2 } from 'lucide-react';
+import { Link2, X, Loader2 } from 'lucide-react';
 
 export interface DriveFolderOption {
   id: number;
@@ -74,7 +74,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
       >
         <header className="td-confirm-head">
           <span className="td-confirm-icon input" aria-hidden>
-            <Globe size={20} strokeWidth={2} />
+            <Link2 size={20} strokeWidth={2} />
           </span>
           <div className="td-confirm-head-text">
             <h2>Remote Upload (URL)</h2>
@@ -158,7 +158,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
               </>
             ) : (
               <>
-                <Globe size={15} strokeWidth={2.25} />
+                <Link2 size={15} strokeWidth={2.25} />
                 <span>Mulai Unggah</span>
               </>
             )}
