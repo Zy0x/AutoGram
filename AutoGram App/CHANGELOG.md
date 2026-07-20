@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.42 Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
+
+Added:
+- Menghapus pembatasan unduhan langsung (early return) pada berkas video di fungsi `fill_stream_from_telegram` (`media_stream.py`). Streaming media kini terus memicu pengunduhan sequential di latar belakang saat pemutar aktif.
+- Menerapkan pembatasan laju (*sliding-window throttling*) 12MB di depan playhead aktif (`_active_seek_offset`) agar pengunduhan latar belakang tidak menghabiskan bandwidth untuk segmen yang belum ditonton dan tidak bersaing dengan *seek* aktif browser.
+- Memperbaiki pengecekan kemacetan pengunduhan (*stall detection*) agar mendeteksi kemacetan berdasarkan ujung titik putar aktif (*seek position-aware*) secara presisi, bukan hanya dari byte nol kontigu.
+
 ## v2.1.41 Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
 
 Added:

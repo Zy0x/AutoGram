@@ -1728,20 +1728,24 @@ async def fill_stream_from_telegram(
             # Hover warm stops here — leave incomplete for open to resume
             return
 
-        # Phase 2: pipeline concurrent windows from solid prefix tip
-        # (middle holes from seek/moov-tail stay valid — only grow playable prefix)
-        # Known-size Telegram media is served on demand from this point. The
-        # head and moov/tail metadata above unlock playback and duration; HTTP
-        # reads fetch only one bounded window around the active playhead.
-        if total > 0 and media._input_loc is not None:
+        # Phase 2: pipeline concurrent sliding windows ahead of the playhead.
+        # Only return early if warm_only is True (hover mode). Otherwise, run a sliding pre-download.
+        if warm_only:
             media.notify()
             return
 
         workers = media.get_stream_workers()
         while not media.cancelled:
-            pos = media.contiguous_from_zero()
+            playhead = media._active_seek_offset or 0
+            pos = max(media.contiguous_from_zero(), playhead)
             if total > 0 and pos >= total:
                 break
+
+            # Throttle background sequential download if it gets too far ahead of the active playhead
+            if total > 0 and pos > playhead + 12 * 1024 * 1024:
+                await asyncio.sleep(1.0)
+                continue
+
             # If next byte is already in a filled island (rare), jump to hole
             window = media.get_pipeline_window()
             if total > 0:
@@ -1752,14 +1756,14 @@ async def fill_stream_from_telegram(
             await _download_parts_concurrent(
                 media, start=pos, length=window, workers=workers, head_first=True
             )
-            after = media.contiguous_from_zero()
-            if after <= before:
+            after_end = media.contiguous_end_from(before)
+            if after_end <= before:
                 # Hole or stall — try iter_download recovery at tip
                 await _fill_stream_iter_download_fallback(
-                    client, msg, media, start_from=after, max_bytes=_PART * 8
+                    client, msg, media, start_from=before, max_bytes=_PART * 8
                 )
-                after = media.contiguous_from_zero()
-                if after <= before:
+                after_end = media.contiguous_end_from(before)
+                if after_end <= before:
                     # Skip tiny unfilled gap by seeking one part ahead if bound
                     if media._input_loc is not None and total > 0:
                         skip_to = min(total, before + _PART)
@@ -1771,12 +1775,11 @@ async def fill_stream_from_telegram(
                                 workers=workers,
                                 head_first=True,
                             )
-                            # Still blocked at prefix — cannot invent bytes
-                            if media.contiguous_from_zero() <= before:
+                            if media.contiguous_end_from(skip_to) <= skip_to:
                                 break
                     else:
                         break
-            if total <= 0 and after > 64 * 1024 * 1024:
+            if total <= 0 and after_end > 64 * 1024 * 1024:
                 break
 
         if media.cancelled:

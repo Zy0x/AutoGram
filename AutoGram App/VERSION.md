@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.41
+AutoGram Version: v2.1.42
 
 Current State:
-Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
+Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
 
 Previous:
+v2.1.41 Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
 v2.1.40 Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
 v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
