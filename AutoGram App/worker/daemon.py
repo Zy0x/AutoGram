@@ -94,7 +94,7 @@ from database.queries import (
 )
 from database.db import get_connection
 
-async def list_dialogs(session_name, api_id, api_hash):
+async def list_dialogs(session_name, api_id, api_hash, chat_folder_id=None):
     try:
         # Create client without interactive prompts (assuming session exists)
         client = await create_client(
@@ -106,12 +106,31 @@ async def list_dialogs(session_name, api_id, api_hash):
             password_callback=lambda: ""
         )
         
+        selected_filter = None
+        if chat_folder_id is not None and int(chat_folder_id) != 0:
+            try:
+                from engine.drive_fs import _get_chat_filter_on, _dialog_matches_chat_filter
+                selected_filter = await _get_chat_filter_on(client, int(chat_folder_id))
+            except Exception as fe:
+                print(f"[WARNING] Failed to load chat folder filter: {fe}", file=sys.stderr)
+
         dialogs_list = []
+        scanned = 0
         async for dialog in client.iter_dialogs():
-            # Limit to first 100 for performance
-            if len(dialogs_list) > 100:
+            scanned += 1
+            if scanned > 300 and not selected_filter:
                 break
-                
+            if scanned > 1000:  # safety limit when filter is active
+                break
+
+            if selected_filter:
+                try:
+                    from engine.drive_fs import _dialog_matches_chat_filter
+                    if not _dialog_matches_chat_filter(dialog, selected_filter):
+                        continue
+                except Exception:
+                    pass
+
             is_forum = getattr(dialog.entity, "forum", False)
             
             # Determine type
@@ -136,6 +155,10 @@ async def list_dialogs(session_name, api_id, api_hash):
                 "type": dialog_type,
                 "is_restricted": getattr(dialog.entity, "noforwards", False)
             })
+
+            # Limit to first 100 for performance
+            if len(dialogs_list) >= 100:
+                break
             
         await client.disconnect()
         
@@ -892,7 +915,13 @@ async def main():
         return
 
     if args.action == "list-dialogs":
-        await list_dialogs(args.session, args.api_id, args.api_hash)
+        folder_id_val = None
+        if args.folder_id:
+            try:
+                folder_id_val = int(args.folder_id)
+            except ValueError:
+                pass
+        await list_dialogs(args.session, args.api_id, args.api_hash, folder_id_val)
         return
         
     if args.action == "list-topics":

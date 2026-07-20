@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.30 Filter Folder Telegram pada Modal Pemilihan Obrolan Migrasi
+
+Added:
+- Menambahkan barisan filter folder Telegram (seperti "Semua Chat", "Nagram", dll) secara horizontal di atas pilihan tipe obrolan dalam modal pemilihan obrolan sumber/tujuan pada `JobEditor.tsx`.
+- Mengintegrasikan pemanggilan `driveListChatFolders` secara otomatis untuk mengambil daftar folder dari Telegram API sesuai sesi aktif.
+- Memperbarui daemon backend (`daemon.py`) agar menerima parameter `--folder-id` dalam aksi `list-dialogs` dan menyaring dialog berdasarkan aturan filter folder Telegram menggunakan fungsi `_get_chat_filter_on` dan `_dialog_matches_chat_filter` dari `drive_fs.py`.
+
 ## v2.1.29 Pengekstrakan Thumbnail Launcher Icon APK dan Penyelarasan Icon Grid APK
 
 Fixed:

@@ -19,6 +19,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [isLoadingDialogs, setIsLoadingDialogs] = useState(false);
   const [selectedDialogId, setSelectedDialogId] = useState<string | null>(null);
   const [dialogFilter, setDialogFilter] = useState<string>('All');
+  const [chatFolders, setChatFolders] = useState<any[]>([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
+  const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
 
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
   
@@ -246,11 +248,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     fetchSessions();
   }, []);
 
-  const fetchDialogs = async (target: 'source'|'dest') => {
+  const fetchDialogs = async (target: 'source'|'dest', folderId?: number) => {
     const session = selectedSession;
     if (!session) {
       alert(t('dashboard.no_active_session') || 'No active sessions available');
       return;
+    }
+
+    const targetFolderId = folderId !== undefined ? folderId : 0;
+    if (folderId === undefined) {
+      setSelectedFolderId(0);
     }
     
     setModalTarget(target);
@@ -274,12 +281,36 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         setIsLoadingDialogs(false);
         return;
       }
-      const result = await runDaemonOnce([
+
+      // Fetch Telegram chat folders if not loaded yet
+      if (chatFolders.length <= 1) {
+        try {
+          const { driveListChatFolders } = await import('../../lib/driveApi');
+          const creds = {
+            session,
+            apiId: String(apiId),
+            apiHash: String(apiHash),
+          };
+          const foldersRes = await driveListChatFolders(creds);
+          if (foldersRes && foldersRes.folders) {
+            setChatFolders(foldersRes.folders);
+          }
+        } catch (e) {
+          console.error("Failed to load chat folders", e);
+        }
+      }
+
+      const daemonArgs = [
         '--action', 'list-dialogs',
         '--session', session,
         '--api-id', String(apiId),
         '--api-hash', String(apiHash),
-      ]);
+      ];
+      if (targetFolderId) {
+        daemonArgs.push('--folder-id', String(targetFolderId));
+      }
+
+      const result = await runDaemonOnce(daemonArgs);
 
       const { isWorkerFailure, workerErrorMessage } = await import('../../lib/workerBridge');
 
@@ -657,7 +688,11 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     ...sessions.map(s => ({value: s.name, label: `${s.name} (${s.status})`}))
                   ]}
                   value={selectedSession}
-                  onChange={(val) => {setSelectedSession(val); setErrors({...errors, selectedSession: ''});}}
+                  onChange={(val) => {
+                    setSelectedSession(val);
+                    setChatFolders([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
+                    setErrors({...errors, selectedSession: ''});
+                  }}
                 />
                 {errors.selectedSession && <span className="error-text">{errors.selectedSession}</span>}
                 {sessions.length === 0 && <span className="warning-text" style={{marginTop: '4px', display: 'block', fontSize: '0.8rem'}}>No active sessions found. Add one in Auth page.</span>}
@@ -1212,6 +1247,48 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   </div>
                 ) : (
                   <>
+                    {chatFolders && chatFolders.length > 1 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          padding: '12px 20px',
+                          overflowX: 'auto',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          background: 'rgba(255,255,255,0.02)',
+                        }}
+                      >
+                        {chatFolders.map((folder) => {
+                          const active = folder.id === selectedFolderId;
+                          return (
+                            <div
+                              key={folder.id}
+                              onClick={() => {
+                                setSelectedFolderId(folder.id);
+                                fetchDialogs(modalTarget, folder.id);
+                              }}
+                              style={{
+                                padding: '4px 12px',
+                                borderRadius: '16px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                background: active ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                color: active ? '#fff' : 'var(--text-muted)',
+                                transition: 'var(--transition-safe)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {folder.emoticon && <span>{folder.emoticon}</span>}
+                              <span>{folder.title === 'Semua Chat' ? (t('dashboard.all_chats') || 'Semua Chat') : folder.title}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     <div
                       style={{
                         display: 'flex',
