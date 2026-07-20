@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.28 Penyelarasan Deteksi Thumbnail untuk Berkas Non-Media (APK/ZIP/Doc) yang Memiliki Preview
+
+Fixed:
+- Memperbaiki logika deteksi visual `_message_is_visual` pada `drive_fs.py`. Sebelumnya, file non-media (seperti `.apk`, `.zip`, atau file dokumen non-standard) yang sebenarnya memiliki thumbnail/preview bawaan di Telegram (misal icon aplikasi APK) diabaikan secara paksa oleh filter ekstensi `ext in _IMAGE_EXTS | _VIDEO_EXTS`. 
+- Kini, jika berkas memiliki thumbnail terdaftar di Telegram (`_doc_has_thumbs` bernilai `True`), backend akan mengembalikan `has_thumb: True` untuk berkas tersebut terlepas dari ekstensinya. Hal ini memicu frontend untuk meminta dan menampilkan thumbnail/icon pada card media dengan benar.
+
 ## v2.1.27 Optimasi Alur Koneksi Session pada Remote URL (Download Dulu Baru Connect)
 
 Fixed:

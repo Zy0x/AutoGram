@@ -2278,7 +2278,7 @@ def _message_is_visual(msg) -> bool:
         return True
     if ext in _IMAGE_EXTS or ext in _VIDEO_EXTS:
         return True
-    if _doc_has_thumbs(msg) and (ext in _IMAGE_EXTS | _VIDEO_EXTS):
+    if _doc_has_thumbs(msg):
         return True
     return False
 

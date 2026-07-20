@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.27
+AutoGram Version: v2.1.28
 
 Current State:
-Optimasi Alur Koneksi Session pada Remote URL (Download Dulu Baru Connect)
+Penyelarasan Deteksi Thumbnail untuk Berkas Non-Media (APK/ZIP/Doc) yang Memiliki Preview
 
 Previous:
+v2.1.27 Optimasi Alur Koneksi Session pada Remote URL (Download Dulu Baru Connect)
 v2.1.26 Perbaikan Input URL Terhapus dan Validasi Tipe Berkas pada Remote URL
 v2.1.25 Perbaikan Penamaan Berkas dan Akurasi Progress Unduhan pada Remote URL/Transfer
 v2.1.24 Pencegahan SQLite Database Lock pada Telethon Session selama Remote URL/Transfer
