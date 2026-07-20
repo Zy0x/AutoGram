@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.27 Optimasi Alur Koneksi Session pada Remote URL (Download Dulu Baru Connect)
+
+Fixed:
+- Mengubah alur inisialisasi dan koneksi Telegram client (`run_media_studio` di `media_studio.py`) untuk aksi upload berkas URL. Sekarang, proses parsing item dan unduhan URL (`_download_remote_url`) dijalankan terlebih dahulu secara penuh **sebelum** client melakukan koneksi dan mengunci database session.
+- Perubahan ini mencegah pemutusan session (session lease lock) dan loading spinner berkepanjangan di UI drive selama fase unduh (yang bisa berlangsung lama). Selama mengunduh file remote, koneksi Telegram utama tetap bebas dan user tetap dapat menjelajahi Media Drive dengan lancar.
+- Menambahkan properti `temp_path_to_delete` pada dataclass `StudioItem` agar berkas sementara hasil unduhan tetap terhapus dengan bersih pasca-unggah melalui alur pipeline standard.
+
 ## v2.1.26 Perbaikan Input URL Terhapus dan Validasi Tipe Berkas pada Remote URL
 
 Fixed:

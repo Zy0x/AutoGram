@@ -174,6 +174,7 @@ class StudioItem:
     item_id: str = ""
     fingerprint: str = ""
     original_name: str = ""
+    temp_path_to_delete: str = ""
 
 
 @dataclass
@@ -1026,10 +1027,11 @@ async def _prepare_item_path(
     Returns (path_to_upload, temp_to_delete_or_None).
     """
     is_url = item.path.startswith("http://") or item.path.startswith("https://")
-    url_temp_path = None
+    url_temp_path = item.temp_path_to_delete or None
     if is_url:
         url_temp_path = await _download_remote_url(item)
         item.path = url_temp_path
+        item.temp_path_to_delete = url_temp_path
 
     mode = (opts.quality_mode or "HIGH_QUALITY").upper()
     ext = _ext(item.path)
@@ -3228,149 +3230,170 @@ async def run_media_studio(
         reencode_preset=opts.reencode_preset,
     )
 
-    session_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sessions")
-    session_file = os.path.join(session_dir, session_name)
-    # Enable WAL mode + high busy_timeout on Telethon's session SQLite so that
-    # concurrent drive-serve reads don't cause "database is locked" during upload.
-    _patch_session_wal(session_file)
-    # P0: retry connect on SQLite session lock (drive-serve handoff race)
-    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
-    last_conn: Optional[Exception] = None
-    for attempt in range(6):
+    try:
+        # Pre-parse upload items and download URLs BEFORE connecting
+        items: List[StudioItem] = []
+        if action == "upload":
+            if not files:
+                raise ValueError("files required for upload")
+            # Normalize: single object / path string / list
+            if isinstance(files, dict):
+                files = [files]
+            elif isinstance(files, str):
+                files = [{"path": files}]
+            elif not isinstance(files, list):
+                raise ValueError("files must be a list of {path, caption}")
+
+            for i, f in enumerate(files):
+                if isinstance(f, str):
+                    path = f
+                    caption = ""
+                elif isinstance(f, dict):
+                    path = f.get("path") or f.get("file") or f.get("Path") or ""
+                    caption = str(f.get("caption") or f.get("Caption") or "")
+                else:
+                    raise ValueError(f"Invalid file entry at index {i}")
+                
+                path_str = str(path).strip()
+                is_url = path_str.startswith("http://") or path_str.startswith("https://")
+                if is_url:
+                    items.append(
+                        StudioItem(
+                            index=i,
+                            path=path_str,
+                            caption=caption,
+                            size=0,
+                            item_id=f"{transfer_id}:{i}",
+                        )
+                    )
+                else:
+                    path = os.path.normpath(path_str)
+                    if not path or not os.path.isfile(path):
+                        raise ValueError(f"File not found: {path}")
+                    # P0: never upload sessions/secrets/arbitrary system paths
+                    from engine.path_policy import validate_upload_path
+                    path = validate_upload_path(path)
+                    items.append(
+                        StudioItem(
+                            index=i,
+                            path=path,
+                            caption=caption,
+                            size=os.path.getsize(path),
+                            item_id=f"{transfer_id}:{i}",
+                        )
+                    )
+            
+            # Download remote URLs first (before connecting to Telegram client)
+            for it in items:
+                if it.path.startswith("http://") or it.path.startswith("https://"):
+                    url_temp_path = await _download_remote_url(it)
+                    it.path = url_temp_path
+                    it.temp_path_to_delete = url_temp_path
+
+        # Connect to Telegram Client
+        session_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sessions")
+        session_file = os.path.join(session_dir, session_name)
+        # Enable WAL mode + high busy_timeout on Telethon's session SQLite so that
+        # concurrent drive-serve reads don't cause "database is locked" during upload.
+        _patch_session_wal(session_file)
+        # P0: retry connect on SQLite session lock (drive-serve handoff race)
+        client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
+        last_conn: Optional[Exception] = None
+        for attempt in range(6):
+            try:
+                await client.connect()
+                if not await client.is_user_authorized():
+                    await client.disconnect()
+                    raise RuntimeError("Session not authorized")
+                last_conn = None
+                break
+            except Exception as e:
+                last_conn = e
+                msg = str(e).lower()
+                try:
+                    await client.disconnect()
+                except Exception:
+                    pass
+                if "locked" in msg or "database is locked" in msg or "sqlite" in msg:
+                    dlog(
+                        "media_studio connect retry (session lock)",
+                        scope="media_studio",
+                        phase="connect",
+                        attempt=attempt + 1,
+                        error=str(e),
+                    )
+                    await asyncio.sleep(0.35 + attempt * 0.3)
+                    _patch_session_wal(session_file)
+                    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
+                    continue
+                raise
+        if last_conn is not None:
+            raise RuntimeError(str(last_conn))
+
         try:
-            await client.connect()
-            if not await client.is_user_authorized():
-                await client.disconnect()
-                raise RuntimeError("Session not authorized")
-            last_conn = None
-            break
-        except Exception as e:
-            last_conn = e
-            msg = str(e).lower()
+            enc = encryption_backend()
+            dlog("encryption backend", scope="media_studio", phase="crypto", encryption=enc)
+            emit_event("StudioInfo", encryption=enc, note="cryptg/tgcrypto greatly improves upload speed")
+            if enc == "python":
+                emit_event(
+                    "StudioWarning",
+                    message="MTProto encryption is pure-Python (slow). Install cryptg: pip install cryptg",
+                )
+            entity = await _resolve_entity(client, chat_id)
+
+            if action == "download":
+                return await run_download_batch(
+                    client,
+                    entity,
+                    last_n=last_n,
+                    message_ids=message_ids,
+                    concurrency=opts.concurrency,
+                )
+
+            # upload
+            # Speed guard: pure-Python MTProto is extremely slow
+            if encryption_backend() == "python":
+                emit_event(
+                    "StudioWarning",
+                    message=(
+                        "cryptg/tgcrypto tidak terpasang — enkripsi pure-Python (lambat). "
+                        "Jalankan: pip install cryptg"
+                    ),
+                )
+            result = await run_ordered_upload(
+                client,
+                entity,
+                items,
+                opts,
+                chat_id,
+                transfer_id=transfer_id,
+                session_key_hash=session_key_hash,
+            )
+            dlog(
+                "media_studio upload finished",
+                scope="media_studio",
+                phase="done",
+                status=result.get("status"),
+                done=result.get("done"),
+                failed=result.get("failed"),
+            )
+            return result
+        finally:
             try:
                 await client.disconnect()
             except Exception:
                 pass
-            if "locked" in msg or "database is locked" in msg or "sqlite" in msg:
-                dlog(
-                    "media_studio connect retry (session lock)",
-                    scope="media_studio",
-                    phase="connect",
-                    attempt=attempt + 1,
-                    error=str(e),
-                )
-                await asyncio.sleep(0.35 + attempt * 0.3)
-                _patch_session_wal(session_file)
-                client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=None, auto_reconnect=True)
-                continue
-            raise
-    if last_conn is not None:
-        raise RuntimeError(str(last_conn))
-    try:
-        enc = encryption_backend()
-        dlog("encryption backend", scope="media_studio", phase="crypto", encryption=enc)
-        emit_event("StudioInfo", encryption=enc, note="cryptg/tgcrypto greatly improves upload speed")
-        if enc == "python":
-            emit_event(
-                "StudioWarning",
-                message="MTProto encryption is pure-Python (slow). Install cryptg: pip install cryptg",
-            )
-        entity = await _resolve_entity(client, chat_id)
-
-        if action == "download":
-            return await run_download_batch(
-                client,
-                entity,
-                last_n=last_n,
-                message_ids=message_ids,
-                concurrency=opts.concurrency,
-            )
-
-        # upload
-        if not files:
-            raise ValueError("files required for upload")
-        # Normalize: single object / path string / list
-        if isinstance(files, dict):
-            files = [files]
-        elif isinstance(files, str):
-            files = [{"path": files}]
-        elif not isinstance(files, list):
-            raise ValueError("files must be a list of {path, caption}")
-
-        items: List[StudioItem] = []
-        for i, f in enumerate(files):
-            if isinstance(f, str):
-                path = f
-                caption = ""
-            elif isinstance(f, dict):
-                path = f.get("path") or f.get("file") or f.get("Path") or ""
-                caption = str(f.get("caption") or f.get("Caption") or "")
-            else:
-                raise ValueError(f"Invalid file entry at index {i}")
-            
-            path_str = str(path).strip()
-            is_url = path_str.startswith("http://") or path_str.startswith("https://")
-            if is_url:
-                items.append(
-                    StudioItem(
-                        index=i,
-                        path=path_str,
-                        caption=caption,
-                        size=0,
-                        item_id=f"{transfer_id}:{i}",
-                    )
-                )
-            else:
-                path = os.path.normpath(path_str)
-                if not path or not os.path.isfile(path):
-                    raise ValueError(f"File not found: {path}")
-                # P0: never upload sessions/secrets/arbitrary system paths
-                from engine.path_policy import validate_upload_path
-                path = validate_upload_path(path)
-                items.append(
-                    StudioItem(
-                        index=i,
-                        path=path,
-                        caption=caption,
-                        size=os.path.getsize(path),
-                        item_id=f"{transfer_id}:{i}",
-                    )
-                )
-        # Speed guard: pure-Python MTProto is extremely slow
-        if encryption_backend() == "python":
-            emit_event(
-                "StudioWarning",
-                message=(
-                    "cryptg/tgcrypto tidak terpasang — enkripsi pure-Python (lambat). "
-                    "Jalankan: pip install cryptg"
-                ),
-            )
-        result = await run_ordered_upload(
-            client,
-            entity,
-            items,
-            opts,
-            chat_id,
-            transfer_id=transfer_id,
-            session_key_hash=session_key_hash,
-        )
-        dlog(
-            "media_studio upload finished",
-            scope="media_studio",
-            phase="done",
-            status=result.get("status"),
-            done=result.get("done"),
-            failed=result.get("failed"),
-        )
-        return result
     except Exception as e:
         dlog_exc("media_studio failed", e, scope="media_studio", phase="error", action=action)
         err = {"status": "error", "error": str(e), "mode": action}
         emit_event("StudioFailed", error=str(e))
         print(f"[JSON_OUTPUT]{json.dumps(err, default=str)}", flush=True)
+        # Cleanup any downloaded temp files if we failed before they got cleaned up
+        if action == "upload" and 'items' in locals():
+            for it in items:
+                if getattr(it, "temp_path_to_delete", None) and os.path.exists(it.temp_path_to_delete):
+                    try:
+                        os.remove(it.temp_path_to_delete)
+                    except Exception:
+                        pass
         raise
-    finally:
-        try:
-            await client.disconnect()
-        except Exception:
-            pass
