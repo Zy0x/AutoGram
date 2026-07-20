@@ -253,6 +253,7 @@ async def main():
     parser.add_argument('--offset-id', type=int, default=None, help='Telegram offset_id for list-files pagination')
     parser.add_argument('--chat-offset', type=int, default=0, help='Skip N dialogs for list-chats pagination')
     parser.add_argument('--message-ids-json', default=None, help='JSON list of message ids for download-batch')
+    parser.add_argument("--port", type=int, default=8550, help="Port untuk FastAPI api-server")
     
     args = parser.parse_args()
 
@@ -272,6 +273,23 @@ async def main():
         )
     except Exception:
         pass
+
+    if args.action == "api-server":
+        # Launch FastAPI server
+        try:
+            import uvicorn
+            os.environ["AUTOGRAM_API_SESSION"] = args.session if args.session not in (None, '', '__DEFAULT_SESSION__') else 'Lavender'
+            os.environ["AUTOGRAM_API_ID"] = str(args.api_id) if args.api_id else ""
+            os.environ["AUTOGRAM_API_HASH"] = str(args.api_hash) if args.api_hash else ""
+            
+            port = int(args.port) if getattr(args, "port", None) else 8550
+            print(f"[DAEMON] Starting FastAPI API server on port {port}...", flush=True)
+            config = uvicorn.Config("api.main:app", host="127.0.0.1", port=port, log_level="info")
+            server = uvicorn.Server(config)
+            await server.serve()
+        except Exception as e:
+            print(f"[DAEMON] API Server Failed to start: {e}", file=sys.stderr, flush=True)
+        return
 
     if args.action == "drive-serve":
         # Long-lived Drive RPC (stdin JSON lines) — keep one Telethon session warm

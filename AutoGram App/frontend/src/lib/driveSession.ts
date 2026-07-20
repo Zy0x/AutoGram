@@ -10,6 +10,7 @@ import type { DriveCredentials } from './driveApi';
 import { detectTauriRuntime } from './platform';
 
 export const DRIVE_SERVE_JOB_ID = 991003;
+export const API_SERVER_JOB_ID = 991005;
 
 type Pending = {
   resolve: (v: any) => void;
@@ -18,6 +19,7 @@ type Pending = {
 };
 
 let child: JobChild | null = null;
+let apiChild: JobChild | null = null;
 let ready = false;
 let starting: Promise<void> | null = null;
 let unsub: UnlistenFn | null = null;
@@ -322,6 +324,43 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
   }
 }
 
+async function spawnApiServer(creds: DriveCredentials): Promise<void> {
+  if (!detectTauriRuntime()) return;
+  try {
+    await killWorkerJob(API_SERVER_JOB_ID);
+  } catch {
+    /* ignore */
+  }
+  console.log('[API-SERVER] Spawning FastAPI server on port 8550...');
+  try {
+    const c = await spawnDaemonJob({
+      jobId: API_SERVER_JOB_ID,
+      args: [
+        '--action',
+        'api-server',
+        '--port',
+        '8550',
+        '--session',
+        creds.session,
+        '--api-id',
+        String(creds.apiId),
+        '--api-hash',
+        String(creds.apiHash),
+      ],
+      allowShellFallback: false,
+      onStdoutLine: (line) => console.log('[API-SERVER stdout]', line),
+      onStderrLine: (line) => console.warn('[API-SERVER stderr]', line),
+      onClose: () => {
+        apiChild = null;
+        console.log('[API-SERVER] FastAPI server stopped.');
+      },
+    });
+    apiChild = c;
+  } catch (err) {
+    console.error('[API-SERVER] Failed to spawn FastAPI server:', err);
+  }
+}
+
 async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
   if (!detectTauriRuntime()) return false;
   const key = credKey(creds);
@@ -453,6 +492,9 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         });
     });
 
+    // Spawn FastAPI api-server alongside main session
+    void spawnApiServer(creds);
+
     return true;
   } catch (e) {
     console.warn('[drive-serve] spawn main failed', e);
@@ -579,11 +621,22 @@ export async function stopDriveSession(): Promise<void> {
       /* ignore */
     }
     try {
+      await killWorkerJob(API_SERVER_JOB_ID);
+    } catch {
+      /* ignore */
+    }
+    try {
       child?.dispose?.();
     } catch {
       /* ignore */
     }
+    try {
+      apiChild?.dispose?.();
+    } catch {
+      /* ignore */
+    }
     child = null;
+    apiChild = null;
     activeCredsKey = '';
     unsub = null;
     unsubExit = null;

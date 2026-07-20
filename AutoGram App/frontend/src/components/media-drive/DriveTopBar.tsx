@@ -24,6 +24,10 @@ import {
   PinOff,
   Copy,
   Edit2,
+  Globe,
+  FolderArchive,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -75,7 +79,11 @@ type Props = {
   /** Invert selection within current filter/sort view */
   onInvertSelection?: () => void;
   onUpload: () => void;
+  onRemoteUploadClick?: () => void;
+  onDownloadAllClick?: () => void;
   onDownload: () => void;
+  zenMode?: boolean;
+  onToggleZenMode?: () => void;
   onDelete: () => void;
   onMoveSelected?: () => void;
   onRefresh: () => void;
@@ -142,7 +150,11 @@ export function DriveTopBar({
   onSelectAll,
   onInvertSelection,
   onUpload,
+  onRemoteUploadClick,
+  onDownloadAllClick,
   onDownload,
+  zenMode,
+  onToggleZenMode,
   onDelete,
   onMoveSelected,
   onRefresh,
@@ -546,6 +558,42 @@ export function DriveTopBar({
               aria-label="Pengaturan transfer"
             >
               <Settings2 size={16} />
+            </button>
+          )}
+          {onToggleZenMode && (
+            <button
+              type="button"
+              className="td-icon-btn text-slate-300"
+              onClick={onToggleZenMode}
+              title={zenMode ? "Keluar Zen Mode (ESC)" : "Zen Mode Layar Penuh (F11)"}
+              aria-label="Toggle Zen Mode"
+            >
+              {zenMode ? <Minimize size={16} /> : <Maximize size={16} />}
+            </button>
+          )}
+          {onDownloadAllClick && (
+            <button
+              type="button"
+              className="td-icon-btn text-[var(--primary,#e2a532)]"
+              onClick={onDownloadAllClick}
+              disabled={!!actionsDisabled}
+              title="Download Semua (ZIP)"
+              aria-label="Download semua file sebagai ZIP"
+            >
+              <FolderArchive size={16} />
+            </button>
+          )}
+          {onRemoteUploadClick && (
+            <button
+              type="button"
+              className="td-btn-primary bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/50"
+              onClick={onRemoteUploadClick}
+              disabled={!!actionsDisabled}
+              title="Remote Upload (URL)"
+              aria-label="Remote upload file dari URL"
+            >
+              <Globe size={15} />
+              <span className="td-btn-label">Remote URL</span>
             </button>
           )}
           <button

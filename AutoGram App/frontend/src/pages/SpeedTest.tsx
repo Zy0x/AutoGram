@@ -245,6 +245,7 @@ import {
 } from '../lib/chatSearch';
 import { DriveSidebar } from '../components/media-drive/DriveSidebar';
 import { DriveTopBar, type DriveCrumbSeg } from '../components/media-drive/DriveTopBar';
+import { RemoteUploadModal } from '../components/media-drive/RemoteUploadModal';
 import { DriveExplorer } from '../components/media-drive/DriveExplorer';
 import { DrivePreviewModal } from '../components/media-drive/DrivePreviewModal';
 import { DriveContextMenu } from '../components/media-drive/DriveContextMenu';
@@ -512,6 +513,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const [isForumChat, setIsForumChat] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('Ready');
+  const [remoteUploadOpen, setRemoteUploadOpen] = useState(false);
+  const [zenMode, setZenMode] = useState(() => localStorage.getItem('ag-drive-zen-mode') === 'true');
   const [scaleHint, setScaleHint] = useState<string | null>(null);
   const [recents, setRecents] = useState<DriveRecent[]>(() =>
     session ? loadDriveRecents(session) : []
@@ -4454,6 +4457,47 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     void processNextQueueTask();
   };
 
+  const handleRemoteUpload = async (url: string, targetFolderId: number | null) => {
+    try {
+      setStatusText('Memulai remote upload...');
+      const response = await fetch('http://127.0.0.1:8550/api/v1/remote-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          folder_id: targetFolderId ? String(targetFolderId) : null,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Gagal remote upload');
+      }
+      
+      const data = await response.json();
+      setStatusText(`Remote upload sukses: ${data.filename}`);
+      void refreshFiles();
+    } catch (err: any) {
+      console.error('Remote upload error:', err);
+      setStatusText(`Remote upload gagal: ${err.message}`);
+      throw err;
+    }
+  };
+
+  const handleDownloadAll = useCallback(() => {
+    setStatusText('Membuat zip stream...');
+    const link = document.createElement('a');
+    const folderIdStr = peerId ? String(peerId) : 'home';
+    link.href = `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all`;
+    link.setAttribute('download', `folder_${folderIdStr}.zip`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setStatusText('Mengunduh ZIP folder...');
+  }, [peerId]);
+
   const handleUpload = async () => {
     if (!creds) return setError('Select session and set API credentials.');
     try {
@@ -6636,11 +6680,42 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return;
+      }
+
+      if (e.key === 'F11') {
+        e.preventDefault();
+        setZenMode((prev) => {
+          const next = !prev;
+          localStorage.setItem('ag-drive-zen-mode', String(next));
+          setStatusText(next ? 'Zen Mode Aktif' : 'Zen Mode Nonaktif');
+          return next;
+        });
+      } else if (e.key === 'Escape' && zenMode) {
+        setZenMode(false);
+        localStorage.setItem('ag-drive-zen-mode', 'false');
+        setStatusText('Zen Mode Nonaktif');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zenMode]);
+
   return (
     <main
       className={`main-content main-content-fill main-content-flush td-page${
         mediaDragActive ? ' is-internal-dnd' : ''
-      }`}
+      }${zenMode ? ' drive-zen-mode' : ''}`}
       onDragEnter={(e) => {
         // Pointer internal drag has no HTML5 DataTransfer cycle — ignore
         if (isPointerDriveDragActive() || mediaDragActive) {
@@ -6846,7 +6921,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onSelectAll={handleSelectAllDisplayed}
             onInvertSelection={handleInvertSelection}
             onUpload={handleUpload}
+            onRemoteUploadClick={() => setRemoteUploadOpen(true)}
+            onDownloadAllClick={handleDownloadAll}
             onDownload={handleDownloadSelected}
+            zenMode={zenMode}
+            onToggleZenMode={() => {
+              setZenMode((prev) => {
+                const next = !prev;
+                localStorage.setItem('ag-drive-zen-mode', String(next));
+                setStatusText(next ? 'Zen Mode Aktif' : 'Zen Mode Nonaktif');
+                return next;
+              });
+            }}
             onDelete={() => handleDeleteIds(selectedIds)}
             transferBusy={transfer.active}
             actionsDisabled={transfer.active}
@@ -7475,6 +7561,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       />
       <DriveInputDialog state={inputDlg} onClose={() => setInputDlg(null)} />
       <DriveDestinationPicker state={destPicker} onClose={() => setDestPicker(null)} />
+      <RemoteUploadModal
+        isOpen={remoteUploadOpen}
+        onClose={() => setRemoteUploadOpen(false)}
+        folders={chats
+          .filter((c) => c.is_drive_folder || c.title_raw?.includes('[TD]') || c.name?.includes('[TD]'))
+          .map((c) => ({ id: c.id, name: c.title_raw || c.name }))}
+        onUpload={handleRemoteUpload}
+      />
     </main>
   );
 }
