@@ -1221,6 +1221,13 @@ html, body {
   flex-direction: column !important;
 }
 
+.drive-zen-mode .td-shell {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+  grid-template-columns: none !important;
+}
+
 .drive-zen-mode .td-sidebar {
   display: none !important;
 }
