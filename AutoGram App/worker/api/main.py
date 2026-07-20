@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 import asyncio
 import urllib.parse
 from typing import Optional
@@ -217,22 +218,26 @@ async def download_all(
     # Create unique temporary folder for download task
     temp_job_dir = tempfile.mkdtemp(dir=temp_dir, prefix="zip_job_")
     
+    zip_path: Optional[str] = None
     try:
         print(f"[API] Downloading {len(documents)} files for ZIP generation in: {temp_job_dir}...", flush=True)
         for doc, filename in documents:
-            dest_path = os.path.join(temp_job_dir, filename)
+            # Sanitize filename to prevent path traversal
+            safe_name = os.path.basename(filename) or f"file_{uuid.uuid4().hex[:8]}"
+            dest_path = os.path.join(temp_job_dir, safe_name)
             await client.download_file(doc, dest_path)
             
-        # Create ZIP file
-        zip_path = os.path.join(temp_dir, f"zip_out_{tempfile.mktemp(dir='')}.zip")
+        # Create ZIP file — use uuid4 hex so the name is safe on all platforms
+        zip_path = os.path.join(temp_dir, f"zip_out_{uuid.uuid4().hex}.zip")
         print(f"[API] Creating ZIP archive at: {zip_path}...", flush=True)
         
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_f:
             for filename in os.listdir(temp_job_dir):
                 file_path = os.path.join(temp_job_dir, filename)
-                zip_f.write(file_path, filename)
+                if os.path.isfile(file_path):
+                    zip_f.write(file_path, filename)
                 
-        # Register post-completion cleanup task
+        # Register post-completion cleanup task (runs AFTER response is fully sent)
         background_tasks.add_task(cleanup_files, temp_job_dir, zip_path)
         
         headers = {
@@ -241,7 +246,8 @@ async def download_all(
         return FileResponse(zip_path, media_type="application/zip", headers=headers)
         
     except Exception as e:
-        cleanup_files(temp_job_dir, None)
+        # Clean up both the staging dir and zip_path (if it was created before the error)
+        cleanup_files(temp_job_dir, zip_path)
         print(f"[API] ZIP download-all job failed: {e}", file=sys.stderr, flush=True)
         raise HTTPException(status_code=500, detail=f"Failed to generate ZIP archive: {str(e)}")
 

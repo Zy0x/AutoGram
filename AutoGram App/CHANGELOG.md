@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.23 Perbaikan Fitur Download Semua (ZIP) pada Media Studio
+
+Fixed:
+- Memperbaiki fitur **Download Semua (ZIP)** di Media Studio yang tidak berfungsi. Sebelumnya, tombol `FolderArchive` membuat elemen `<a>` dan memanggil `.click()` — pendekatan ini tidak memicu unduhan di Tauri WebView karena port `8550` tidak terdaftar dalam konfigurasi navigasi (`remote.urls` capabilities), sehingga klik diabaikan diam-diam.
+- Menggantinya dengan alur yang benar untuk lingkungan Tauri: (1) tampilkan dialog **Save As** (plugin-dialog) agar pengguna memilih lokasi terlebih dahulu, (2) unduh blob ZIP via `fetch()` ke API lokal `127.0.0.1:8550`, (3) tulis hasilnya ke disk menggunakan `writeFile` dari `@tauri-apps/plugin-fs`.
+- Memperbaiki bug kritis di backend ([`worker/api/main.py`](file:///F:/AutoGram/AutoGram%20App/worker/api/main.py)): penggunaan `tempfile.mktemp(dir='')` menghasilkan path absolut penuh (misal `C:\Users\...\AppData\Local\Temp\tmpXXXX`). Ketika dikombinasikan dengan `os.path.join(temp_dir, ...)`, Python di Windows membuang `temp_dir` karena argumen kedua sudah absolute — menghasilkan nama file yang tidak valid sehingga `zipfile.ZipFile(...)` gagal dengan `FileNotFoundError`. Solusi: ganti dengan `uuid.uuid4().hex` yang menghasilkan string hex murni.
+- Memperbaiki penanganan error di blok `except`: sebelumnya hanya membersihkan `temp_job_dir` (bukan `zip_path` jika sudah dibuat), menyebabkan file ZIP tertinggal di disk saat terjadi kegagalan setelah ZIP dibuat. Sekarang keduanya selalu dibersihkan.
+- Menambahkan sanitasi nama file (`os.path.basename`) saat mengunduh dokumen ke staging directory untuk mencegah path traversal.
+- Menambahkan `isDownloadingZipRef` untuk mencegah permintaan ZIP paralel jika pengguna mengklik tombol beberapa kali berturutan.
+
 ## v2.1.22 Pencegahan Konflik Seleksi Marquee (Select Rectangle) pada Scrollbar
 
 Fixed:

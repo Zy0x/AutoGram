@@ -534,6 +534,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     saveDir: string;
     names: string[];
   } | null>(null);
+  /** Prevents concurrent ZIP-all downloads from overlapping */
+  const isDownloadingZipRef = useRef(false);
   /** Filled after requestMoveToTarget is defined — used by Ctrl+V keyboard */
   const pasteMoveRef = useRef<
     (clip: {
@@ -4494,22 +4496,52 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     });
   };
 
-  const handleDownloadAll = useCallback(() => {
-    if (!creds) return;
-    setStatusText('Membuat zip stream...');
-    const link = document.createElement('a');
-    const folderIdStr = peerId ? String(peerId) : 'home';
-    const params = new URLSearchParams({
-      session: creds.session,
-      api_id: String(creds.apiId),
-      api_hash: creds.apiHash,
-    });
-    link.href = `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all?${params.toString()}`;
-    link.setAttribute('download', `folder_${folderIdStr}.zip`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setStatusText('Mengunduh ZIP folder...');
+  const handleDownloadAll = useCallback(async () => {
+    if (!creds || isDownloadingZipRef.current) return;
+    isDownloadingZipRef.current = true;
+    try {
+      const folderIdStr = peerId ? String(peerId) : 'home';
+      // Show save-as dialog FIRST so user can cancel before we start any network work
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const savePath = await save({
+        defaultPath: `folder_${folderIdStr}.zip`,
+        title: 'Simpan ZIP — Download Semua File',
+        filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+      });
+      if (!savePath) return; // user cancelled
+
+      setStatusText('Sedang membuat ZIP, mohon tunggu...');
+
+      const params = new URLSearchParams({
+        session: creds.session,
+        api_id: String(creds.apiId),
+        api_hash: creds.apiHash,
+      });
+
+      const response = await fetch(
+        `http://127.0.0.1:8550/api/v1/folders/${folderIdStr}/download-all?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        let errDetail = `HTTP ${response.status}`;
+        try {
+          const body = (await response.json()) as { detail?: string };
+          errDetail = body.detail || errDetail;
+        } catch { /* ignore */ }
+        throw new Error(errDetail);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      await writeFile(savePath, new Uint8Array(arrayBuffer));
+
+      setStatusText(`✓ ZIP berhasil disimpan: ${savePath}`);
+    } catch (err: any) {
+      console.error('[handleDownloadAll] error:', err);
+      setStatusText(`Gagal download ZIP: ${(err as Error)?.message ?? String(err)}`);
+    } finally {
+      isDownloadingZipRef.current = false;
+    }
   }, [peerId, creds]);
 
   const handleUpload = async () => {
