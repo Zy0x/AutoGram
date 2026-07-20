@@ -10642,6 +10642,7 @@ body:has(.td-page),
   max-width: none !important;
   max-height: none !important;
   flex-shrink: 0;
+  color: inherit !important;
 }
 .td-confirm-icon.danger {
   background: color-mix(in srgb, #ef4444 16%, transparent);
@@ -10805,6 +10806,7 @@ body:has(.td-page),
   height: 15px !important;
   max-width: none !important;
   flex-shrink: 0;
+  color: inherit !important;
 }
 .td-confirm-btn.ghost {
   background: transparent;
