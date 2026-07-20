@@ -161,7 +161,7 @@
   gap: 0.25rem;
   /* Firefox elegant thin scrollbar */
   scrollbar-width: thin;
-  scrollbar-color: rgba(99, 102, 241, 0.45) rgba(255, 255, 255, 0.04);
+  scrollbar-color: rgba(255, 174, 0, 0.45) rgba(255, 255, 255, 0.04);
 }
 
 /* Modern-elegant nav scrollbar (WebKit / Chromium / Tauri WebView2) */
@@ -186,24 +186,24 @@
 .sidebar-nav::-webkit-scrollbar-thumb {
   background: linear-gradient(
     90deg,
-    rgba(99, 102, 241, 0.35),
-    rgba(139, 92, 246, 0.55),
-    rgba(99, 102, 241, 0.35)
+    rgba(255, 174, 0, 0.35),
+    rgba(36, 129, 204, 0.55),
+    rgba(255, 174, 0, 0.35)
   );
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 10px rgba(255, 174, 0, 0.25);
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(
     90deg,
-    rgba(99, 102, 241, 0.55),
-    rgba(167, 139, 250, 0.75),
-    rgba(99, 102, 241, 0.55)
+    rgba(255, 174, 0, 0.55),
+    rgba(36, 129, 204, 0.75),
+    rgba(255, 174, 0, 0.55)
   );
-  box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 14px rgba(36, 129, 204, 0.4);
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb:active {
@@ -275,7 +275,7 @@
 }
 
 .sidebar-btn.active {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(255, 174, 0, 0.15);
   color: var(--primary);
   font-weight: 600;
 }
@@ -384,7 +384,7 @@
   }
 
   .sidebar-btn.active {
-    background: rgba(99, 102, 241, 0.22);
+    background: rgba(255, 174, 0, 0.22);
     color: var(--primary);
   }
 
@@ -453,9 +453,9 @@
   .sidebar-nav::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
-      rgba(99, 102, 241, 0.35),
-      rgba(139, 92, 246, 0.55),
-      rgba(99, 102, 241, 0.35)
+      rgba(255, 174, 0, 0.35),
+      rgba(36, 129, 204, 0.55),
+      rgba(255, 174, 0, 0.35)
     );
   }
 
@@ -760,7 +760,7 @@
 
 .storage-banner-icon {
   padding: 1rem;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(255, 174, 0, 0.1);
   border-radius: 1rem;
   flex-shrink: 0;
 }
@@ -947,7 +947,7 @@
 }
 
 .job-card-shell.running {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(255, 174, 0, 0.4);
 }
 
 .job-card-shell.failed {
@@ -1079,7 +1079,7 @@
   width: clamp(4rem, 12vw, 5rem);
   height: clamp(4rem, 12vw, 5rem);
   border-radius: 50%;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(255, 174, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4715,7 +4715,7 @@ video.drive-preview-media {
 
 .studio-dropzone:hover {
   border-color: var(--primary);
-  background: rgba(99, 102, 241, 0.06);
+  background: rgba(255, 174, 0, 0.06);
 }
 
 .studio-queue {
@@ -4882,7 +4882,7 @@ video.drive-preview-media {
 }
 
 .avatar-circle {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(255, 174, 0, 0.2);
   padding: 0.65rem;
   border-radius: 50%;
   flex-shrink: 0;
@@ -9984,9 +9984,9 @@ body:has(.td-page),
     box-shadow 0.22s ease;
 }
 .dbg-switch.on .dbg-switch-track {
-  background: linear-gradient(135deg, #7c3aed, #6366f1 55%, #0ea5e9);
+  background: linear-gradient(135deg, #2481cc, #ffae00 55%, #2481cc);
   border-color: transparent;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #a78bfa 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ffae00 22%, transparent);
 }
 .dbg-switch-knob {
   position: absolute;

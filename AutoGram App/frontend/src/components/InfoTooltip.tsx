@@ -40,7 +40,7 @@ export function InfoTooltip({ content }: { content: string }) {
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           border: '1px solid var(--primary)',
-          boxShadow: '0 8px 32px rgba(99, 102, 241, 0.2)',
+          boxShadow: '0 8px 32px rgba(255, 174, 0, 0.2)',
           color: '#fff',
           padding: '8px 12px',
           borderRadius: '6px',

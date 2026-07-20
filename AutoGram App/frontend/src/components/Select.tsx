@@ -132,7 +132,7 @@ export function Select({ options, value, onChange, placeholder, disabled }: Sele
                   padding: '12px 14px',
                   cursor: opt.disabled ? 'not-allowed' : 'pointer',
                   color: opt.disabled ? 'var(--text-muted)' : (value === opt.value ? 'var(--primary)' : 'var(--text-main)'),
-                  background: value === opt.value ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                  background: value === opt.value ? 'rgba(255, 174, 0, 0.1)' : 'transparent',
                   opacity: opt.disabled ? 0.5 : 1,
                   transition: 'background 0.2s'
                 }}

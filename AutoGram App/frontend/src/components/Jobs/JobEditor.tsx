@@ -677,7 +677,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.sourceValue ? '1px solid var(--danger)' : undefined }} value={sourceValue} onChange={(e) => {setSourceValue(e.target.value); setSourceName(""); setErrors({...errors, sourceValue: ''});}} placeholder="Channel/Group ID or Username" />
                 </div>
                 {sourceName && !errors.sourceValue && (
-                  <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(99, 102, 241, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 174, 0, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
                     <Hash size={14} style={{ marginRight: '6px' }} />
                     {sourceName}
                   </div>
@@ -696,7 +696,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.destValue ? '1px solid var(--danger)' : undefined }} value={destValue} onChange={(e) => {setDestValue(e.target.value); setDestName(""); setErrors({...errors, destValue: ''});}} placeholder="Channel/Group ID or Username" />
                 </div>
                 {destName && !errors.destValue && (
-                  <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(99, 102, 241, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 174, 0, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
                     <Hash size={14} style={{ marginRight: '6px' }} />
                     {destName}
                   </div>
@@ -718,7 +718,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <InfoTooltip content="Pilih mode eksekusi engine. Berpengaruh pada kecepatan dan jejak migrasi." />
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div onClick={() => setMode('Fast Forward')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Fast Forward' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Fast Forward' ? 'rgba(99, 102, 241, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                <div onClick={() => setMode('Fast Forward')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Fast Forward' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Fast Forward' ? 'rgba(255, 174, 0, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                     <input type="radio" checked={mode === 'Fast Forward'} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
                     <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Fast Forward' ? 'var(--primary)' : 'inherit' }}>⚡ Fast Forward — Maximum Speed</span>
@@ -734,7 +734,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   </div>
                 </div>
                 
-                <div onClick={() => setMode('Clean Copy')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Clean Copy' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Clean Copy' ? 'rgba(99, 102, 241, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                <div onClick={() => setMode('Clean Copy')} style={{ padding: '16px', borderRadius: '12px', border: mode === 'Clean Copy' ? '2px solid var(--primary)' : '1px solid var(--border)', background: mode === 'Clean Copy' ? 'rgba(255, 174, 0, 0.05)' : 'transparent', cursor: 'pointer', transition: 'all 0.2s ease' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                     <input type="radio" checked={mode === 'Clean Copy'} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
                     <span style={{ fontWeight: 600, fontSize: '1.05rem', color: mode === 'Clean Copy' ? 'var(--primary)' : 'inherit' }}>🚀 / 🛡️ Clean Copy</span>
@@ -749,14 +749,14 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
                   {mode === 'Clean Copy' && (
                     <div style={{ marginTop: '16px', paddingLeft: '30px', display: 'flex', flexDirection: 'column', gap: '12px', animation: 'fadeIn 0.3s ease-in-out' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Speed' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Speed' ? 'rgba(99, 102, 241, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Speed'); }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Speed' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Speed' ? 'rgba(255, 174, 0, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Speed'); }}>
                         <input type="radio" checked={cleanCopySubMode === 'Speed'} readOnly style={{ accentColor: 'var(--primary)' }} />
                         <div>
                           <strong style={{ color: cleanCopySubMode === 'Speed' ? 'var(--primary)' : 'inherit' }}>🚀 Speed (Batch & Reuse ID)</strong>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lebih cepat. Upload batch album & File ID Reuse.</div>
                         </div>
                       </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Safe' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Safe' ? 'rgba(99, 102, 241, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Safe'); }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', border: cleanCopySubMode === 'Safe' ? '1px solid var(--primary)' : '1px solid var(--border)', background: cleanCopySubMode === 'Safe' ? 'rgba(255, 174, 0, 0.05)' : 'transparent' }} onClick={(e) => { e.stopPropagation(); setCleanCopySubMode('Safe'); }}>
                         <input type="radio" checked={cleanCopySubMode === 'Safe'} readOnly style={{ accentColor: 'var(--primary)' }} />
                         <div>
                           <strong style={{ color: cleanCopySubMode === 'Safe' ? 'var(--primary)' : 'inherit' }}>🛡️ Safe (Sequential Output)</strong>
@@ -1183,7 +1183,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <div
                       style={{
                         padding: '12px 20px',
-                        background: 'rgba(99, 102, 241, 0.1)',
+                        background: 'rgba(255, 174, 0, 0.1)',
                         color: 'var(--primary)',
                         fontWeight: 600,
                       }}
@@ -1250,7 +1250,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       .map((d) => {
                         let badgeText = d.type || 'Unknown';
                         let icon = (
-                          <User size={18} color="#6366f1" style={{ marginRight: '12px', flexShrink: 0 }} />
+                          <User size={18} color="var(--primary)" style={{ marginRight: '12px', flexShrink: 0 }} />
                         );
                         let bg = 'rgba(255,255,255,0.1)';
                         let color = 'var(--text-muted)';
