@@ -125,6 +125,8 @@ class RandomSeekTests(unittest.IsolatedAsyncioTestCase):
         async def fake_parts(target, *, start, length, **_kwargs):
             calls.append((start, length))
             target.mark_range(start, length)
+            if len(calls) >= 2:
+                target.cancelled = True
             return length
 
         with (

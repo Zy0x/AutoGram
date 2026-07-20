@@ -585,6 +585,10 @@ def _ensure_server() -> int:
                         start = 0
                         end_req = None
 
+                    # Update playhead position to let the background downloader know where we are
+                    with media._seek_lock:
+                        media._active_seek_offset = start
+
                     # --- YouTube-like: if range is ahead of prefix, pull that offset ---
                     prefix = media.contiguous_from_zero()
                     if start > 0 and not media.done and not media.has_byte(start):
@@ -631,16 +635,20 @@ def _ensure_server() -> int:
                     # filled. This avoids repeated HTTP round trips while the
                     # Telegram parts are already landing in the background.
                     filled_end = media.contiguous_end_from(start)
-                    window = media.get_seek_window() if not media.done else 4 * 1024 * 1024
-                    aligned_start = (start // _SEEK_ALIGN) * _SEEK_ALIGN
-                    target_end = start + window - 1
-                    if not media.done:
+                    if media.done:
+                        # File is fully downloaded; serve the entire remaining requested range without chunking
+                        chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
+                        if end_req is not None:
+                            chunk_end = min(chunk_end, end_req)
+                    else:
+                        window = media.get_seek_window()
+                        aligned_start = (start // _SEEK_ALIGN) * _SEEK_ALIGN
                         target_end = aligned_start + window - 1
-                    if file_size_known:
-                        target_end = min(target_end, file_size_known - 1)
-                    if end_req is not None:
-                        target_end = min(target_end, end_req)
-                    chunk_end = target_end if not media.done else min(filled_end - 1, target_end)
+                        if file_size_known:
+                            target_end = min(target_end, file_size_known - 1)
+                        if end_req is not None:
+                            target_end = min(target_end, end_req)
+                        chunk_end = target_end
 
                     # Grow a bit if still filling this region
                     if not media.done and chunk_end < start + 32 * 1024:
@@ -648,7 +656,9 @@ def _ensure_server() -> int:
                         media.wait_for_range(start, min(64 * 1024, file_size_known - start if file_size_known > start else 64 * 1024), timeout=6.0)
                         filled_end = media.contiguous_end_from(start)
                         if media.done:
-                            chunk_end = min(filled_end - 1, target_end)
+                            chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
+                            if end_req is not None:
+                                chunk_end = min(chunk_end, end_req)
 
                     length = max(0, chunk_end - start + 1)
                     total_for_range = (
@@ -723,16 +733,17 @@ def _ensure_server() -> int:
                             # Prefer pulling the missing tip (esp. head) instead of spinning
                             if pos == 0 or grow:
                                 media.schedule_seek(pos, window=media.get_pipeline_window(), priority=1)
+                            # Wait for bytes to arrive. If grow is True, we can wait multiple times
+                            # as long as the download is still active (not done/cancelled/error).
+                            # If grow is False, we only wait once.
                             media.wait_for_range(pos, 64 * 1024, timeout=15.0)
                             filled_end = media.contiguous_end_from(pos)
+                            if filled_end <= pos and grow:
+                                while not media.done and not media.cancelled and not media.error and filled_end <= pos:
+                                    media.wait_for_range(pos, 16 * 1024, timeout=10.0)
+                                    filled_end = media.contiguous_end_from(pos)
                             if filled_end <= pos:
-                                if not grow:
-                                    break
-                                # grow mode: one more wait then exit to avoid infinite hang
-                                media.wait_for_range(pos, 1, timeout=10.0)
-                                filled_end = media.contiguous_end_from(pos)
-                                if filled_end <= pos:
-                                    break
+                                break
                         read_block_size = 256 * 1024 if media.total_size > 300 * 1024 * 1024 else 64 * 1024
                         to_read = min(
                             read_block_size,
@@ -757,6 +768,8 @@ def _ensure_server() -> int:
                             break
                         try:
                             self.wfile.write(chunk)
+                            with media._seek_lock:
+                                media._active_seek_offset = pos + len(chunk)
                         except (
                             BrokenPipeError,
                             ConnectionResetError,

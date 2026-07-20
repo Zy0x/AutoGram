@@ -1,11 +1,13 @@
-AutoGram Version: v2.1.42
+AutoGram Version: v2.1.45
 
 Current State:
-Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
+Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
 
 Previous:
+v2.1.44 Optimasi Kinerja IPC Logger Sesi Drive
+v2.1.43 Perbaikan Import File System Tauri v2 di Sesi Drive
+v2.1.42 Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
 v2.1.41 Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
-v2.1.40 Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
 v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio

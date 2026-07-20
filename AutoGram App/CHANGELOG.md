@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.45 Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
+
+Added:
+- Mengganti penyalinan berkas mentah `.session` dan companion WAL/SHM dengan API SQLite `backup()` atomis pada Python `ghost_session.py` untuk mencegah galat database locked dan korupsi berkas selama penulisan konkuren.
+- Memperbarui parameter `_active_seek_offset` secara dinamis saat server HTTP membaca dan menulis berkas pratinjau progressive stream (`media_stream.py`) ke peramban. Ini mencegah downloader latar belakang terblokir/mengalami throttling permanen selama pemutaran sequential.
+- Menghapus batasan ukuran chunk 4MB jika pengunduhan file pratinjau sudah selesai (`media.done` bernilai `True`), memungkinkan pemutar peramban mengunduh sisa segmen berkas dalam satu koneksi utuh tanpa HTTP Range request berulang.
+- Mengubah mekanisme tunggu pemblokiran pembacaan progresif menjadi deteksi loop asinkron berbasis kondisi unduhan aktif agar lebih toleran terhadap koneksi lambat dan glitch jaringan.
+- Memperbaiki kegagalan hang pengujian unit pratinjau seek acak pada `test_stream_random_seek.py`.
+
 ## v2.1.44 Optimasi Kinerja IPC Logger Sesi Drive
 
 Fixed:

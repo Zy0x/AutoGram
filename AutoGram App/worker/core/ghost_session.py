@@ -43,27 +43,83 @@ class GhostSessionManager:
                 pass
 
         if need_clone:
-            # We copy session file + journal files if WAL is used, but Telethon will rebuild them.
-            # SQLite WAL mode session file copy: copy the main session file, SQLite handles recovery.
+            import sqlite3
             temp_path = ghost_path.with_suffix('.session.tmp')
+            backup_success = False
+            
+            src_conn = None
+            dest_conn = None
             try:
-                shutil.copy2(str(original_path), str(temp_path))
-                if ghost_path.exists():
-                    ghost_path.unlink()
-                os.replace(str(temp_path), str(ghost_path))
-            except Exception:
+                # Try SQLite Online Backup API first (safe, atomic, handles WAL)
+                src_conn = sqlite3.connect(str(original_path), timeout=5.0)
+                # Quick sanity check on source connection
+                src_conn.execute("PRAGMA schema_version;")
+                
+                if temp_path.exists():
+                    try:
+                        temp_path.unlink()
+                    except OSError:
+                        pass
+                        
+                dest_conn = sqlite3.connect(str(temp_path))
+                src_conn.backup(dest_conn)
+                backup_success = True
+                
+                if temp_path.exists():
+                    if ghost_path.exists():
+                        try:
+                            ghost_path.unlink()
+                        except OSError:
+                            pass
+                    os.replace(str(temp_path), str(ghost_path))
+                    
+                    # Clean up old journal/WAL files on destination if they exist
+                    # (since backup is a single consolidated file, previous WAL files can conflict)
+                    for ext in ['.session-wal', '.session-shm']:
+                        journal = ghost_path.with_suffix(ext)
+                        if journal.exists():
+                            try:
+                                journal.unlink()
+                            except OSError:
+                                pass
+            except Exception as e:
                 try:
-                    shutil.copy2(str(original_path), str(ghost_path))
+                    import logging
+                    logging.warning(f"[GhostSession] SQLite backup failed, falling back to file copy: {e}")
                 except Exception:
                     pass
-
-            # Copy companion journal/wal files if they exist to keep session completely synced
-            for ext in ['.session-wal', '.session-shm']:
-                orig_journal = original_path.with_suffix(ext)
-                ghost_journal = ghost_path.with_suffix(ext)
-                if orig_journal.exists():
+            finally:
+                if src_conn is not None:
                     try:
-                        shutil.copy2(str(orig_journal), str(ghost_journal))
+                        src_conn.close()
+                    except Exception:
+                        pass
+                if dest_conn is not None:
+                    try:
+                        dest_conn.close()
+                    except Exception:
+                        pass
+            
+            if not backup_success:
+                # Fallback: copy file directly
+                try:
+                    shutil.copy2(str(original_path), str(temp_path))
+                    if ghost_path.exists():
+                        ghost_path.unlink()
+                    os.replace(str(temp_path), str(ghost_path))
+                    
+                    # Copy companion journal/wal files if they exist to keep session completely synced
+                    for ext in ['.session-wal', '.session-shm']:
+                        orig_journal = original_path.with_suffix(ext)
+                        ghost_journal = ghost_path.with_suffix(ext)
+                        if orig_journal.exists():
+                            try:
+                                shutil.copy2(str(orig_journal), str(ghost_journal))
+                            except Exception:
+                                pass
+                except Exception:
+                    try:
+                        shutil.copy2(str(original_path), str(ghost_path))
                     except Exception:
                         pass
 
