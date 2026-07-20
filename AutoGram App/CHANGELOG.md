@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.35 Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
+
+Added:
+- Menambahkan pemanggilan `client.get_messages` untuk mengambil pesan Telegram segar sesaat sebelum proses pengunduhan progressive stream (`fill_stream_from_telegram` pada `media_stream.py`) berjalan. Ini menyegarkan token `file_reference` yang sudah kedaluwarsa (misalnya pada media yang merupakan hasil forward dari luar atau pesan lama dari cache IndexedDB lokal). Hal ini mencegah error `FileReferenceExpiredError` dan memastikan buffering streaming berjalan instan tanpa kendala perlambatan.
+
 ## v2.1.34 Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio
 
 Added:

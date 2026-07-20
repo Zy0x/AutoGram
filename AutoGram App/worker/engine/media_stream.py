@@ -1580,6 +1580,21 @@ async def fill_stream_from_telegram(
         if media.cancelled:
             return
 
+        # Always fetch fresh message to get active cryptographic file_references.
+        # Stale file references (common in forwarded or database-cached messages)
+        # cause GetFileRequest to raise FileReferenceExpiredError or download slow.
+        try:
+            peer = getattr(msg, "peer_id", None) or getattr(msg, "chat_id", None)
+            if peer is not None and getattr(msg, "id", None):
+                fresh = await client.get_messages(peer, ids=[msg.id])
+                if fresh and fresh[0]:
+                    msg = fresh[0]
+        except Exception as e:
+            try:
+                print(f"[media_stream] message refresh error: {e}", flush=True)
+            except Exception:
+                pass
+
         # Resolve location once — document-as-file lives on media.document
         target = _resolve_stream_target(msg)
         try:

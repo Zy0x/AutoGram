@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.34
+AutoGram Version: v2.1.35
 
 Current State:
-Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio
+Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
 
 Previous:
+v2.1.34 Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio
 v2.1.33 Pemilihan Topik Forum untuk Obrolan Sumber dan Tujuan serta Fitur Kirim ke General
 v2.1.32 Fitur Pencarian Obrolan Real-time pada Modal Pemilihan Obrolan Migrasi
 v2.1.31 Penggunaan Sesi Kloning Preview untuk Mencegah SQLite Database Locked di Obrolan Migrasi
