@@ -10632,17 +10632,24 @@ body:has(.td-page),
   min-height: 40px;
   max-width: 40px;
   border-radius: 12px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 40px;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 .td-confirm-icon svg {
+  display: block !important;
   width: 20px !important;
   height: 20px !important;
   max-width: none !important;
   max-height: none !important;
   flex-shrink: 0;
   color: inherit !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 .td-confirm-icon.danger {
   background: color-mix(in srgb, #ef4444 16%, transparent);

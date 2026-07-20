@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.19 Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
+
+Fixed:
+- Memperbaiki tata letak dan centering ikon pada kotak `.td-confirm-icon` di dialog konfirmasi Media Drive (seperti Remote Upload URL). Mengubah layout container dari `display: grid` menjadi `display: flex` dengan properti perataan `align-items: center` dan `justify-content: center`, serta mengatur render `svg` sebagai `display: block` tanpa adanya margin/padding tambahan. Perubahan ini menjamin ikon (misal ikon rantai tautan/link) terpusat secara presisi di tengah-tengah kotak rounded tanpa distorsi atau pergeseran posisi.
+
 ## v2.1.18 Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
 
 Added:
