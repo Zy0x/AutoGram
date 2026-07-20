@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
+
+Added:
+- Mengurangi durasi pemblokiran wait timeout (`wait_s`) pada pemanggilan RPC Tauri (`start_preview_stream_on_client` di `drive_fs.py`) menjadi maksimal `0.2` detik ketika file media belum ter-cache. Ini mempercepat pemuatan awal antarmuka pratinjau (modal UI) menjadi kurang dari 100ms.
+- Mengubah alur pencarian `moov` atom (tail seek) pada berkas video dokumen berukuran sedang (<=200MB) menjadi asinkron sepenuhnya (fire-and-forget). Ini mencegah pemblokiran RPC thread hingga 14 detik dan membiarkan pemutar video browser menangani proses buffering secara mandiri dengan spinner bawaannya.
+
 ## v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
 
 Added:

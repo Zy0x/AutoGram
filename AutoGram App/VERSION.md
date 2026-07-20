@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.36
+AutoGram Version: v2.1.37
 
 Current State:
-Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
+Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
 
 Previous:
+v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
 v2.1.35 Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
 v2.1.34 Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio
 v2.1.33 Pemilihan Topik Forum untuk Obrolan Sumber dan Tujuan serta Fitur Kirim ke General

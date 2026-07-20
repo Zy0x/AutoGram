@@ -6753,43 +6753,27 @@ async def start_preview_stream_on_client(
 
     # Return stream_url ASAP — UI attaches <video> while head finishes.
     # Gate: tiny for large files so URL is returned after 64KB instead of 2.5MB.
+    # Reduced wait_s to maximum 0.2s for instant UI transition (non-blocking).
     if is_image and not is_video:
         min_buf = 48 * 1024
-        wait_s = 3.0
+        wait_s = 0.2
     elif size > 200 * 1024 * 1024:
         # Large file (>200MB): return URL immediately after minimal head
         min_buf = 64 * 1024
-        wait_s = 2.0
+        wait_s = 0.1
     else:
         min_buf = 64 * 1024
         if size > 0:
             min_buf = max(48 * 1024, min(128 * 1024, max(size // 400, 48 * 1024)))
-        wait_s = 3.5 if pre_bytes < min_buf else 0.4
+        wait_s = 0.2 if pre_bytes < min_buf else 0.1
     if pre_bytes < min_buf:
         await asyncio.to_thread(media.wait_for_bytes, min_buf, wait_s)
 
-    # Document / moov-at-end: kick tail seek non-blocking for ALL sizes.
-    # For large files we never block — moov bootstrap runs in background via fill_stream.
+    # Document / moov-at-end: kick tail seek fire-and-forget for ALL sizes.
+    # We do NOT block the caller RPC thread. Senders are borrowed and moov is resolved in background.
     if is_video and is_doc_video and size > 512 * 1024 and not media.done:
-        if size <= 200 * 1024 * 1024:
-            # Small doc video: wait for solid head then tail (bounded wait)
-            doc_head = min(384 * 1024, size if size > 0 else 384 * 1024)
-            if media.contiguous_from_zero() < doc_head:
-                try:
-                    await asyncio.to_thread(media.wait_for_bytes, doc_head, 6.0)
-                except Exception:
-                    pass
-            tail_off = max(0, size - min(2 * 1024 * 1024, max(size // 5, 256 * 1024)))
-            try:
-                await asyncio.to_thread(
-                    media.wait_for_range, tail_off, 32 * 1024, 8.0
-                )
-            except Exception:
-                pass
-        else:
-            # Large doc video (>200MB): kick tail seek fire-and-forget; do NOT block caller
-            tail_off = max(0, size - min(4 * 1024 * 1024, max(size // 10, 512 * 1024)))
-            media.schedule_seek(tail_off, window=4 * 1024 * 1024, priority=2)
+        tail_off = max(0, size - min(4 * 1024 * 1024, max(size // 10, 256 * 1024)))
+        media.schedule_seek(tail_off, window=4 * 1024 * 1024, priority=2)
 
     if media.error and media.contiguous_from_zero() <= 0 and media._safe_size() <= 0:
         raise RuntimeError(f"Stream gagal: {media.error}")
