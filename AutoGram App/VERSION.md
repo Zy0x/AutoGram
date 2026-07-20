@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.40
+AutoGram Version: v2.1.41
 
 Current State:
-Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
+Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
 
 Previous:
+v2.1.40 Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
 v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio

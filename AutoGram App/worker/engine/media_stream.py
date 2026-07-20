@@ -602,7 +602,7 @@ def _ensure_server() -> int:
                             window=max(win, 256 * 1024),
                             priority=3,
                         )
-                        res = media.wait_for_range(start, 128 * 1024, timeout=55.0)
+                        res = media.wait_for_range(start, min(32 * 1024, total_sz - start if total_sz > start else 32 * 1024), timeout=55.0)
                         log_debug(f"Seek Range Request wait_for_range returned={res} has_byte={media.has_byte(start)}")
 
                     if not media.has_byte(start) and not media.done:
@@ -643,9 +643,9 @@ def _ensure_server() -> int:
                     chunk_end = target_end if not media.done else min(filled_end - 1, target_end)
 
                     # Grow a bit if still filling this region
-                    if not media.done and chunk_end < start + 256 * 1024:
+                    if not media.done and chunk_end < start + 32 * 1024:
                         media.schedule_seek(start, window=window, priority=3)
-                        media.wait_for_range(start, 512 * 1024, timeout=6.0)
+                        media.wait_for_range(start, min(64 * 1024, file_size_known - start if file_size_known > start else 64 * 1024), timeout=6.0)
                         filled_end = media.contiguous_end_from(start)
                         if media.done:
                             chunk_end = min(filled_end - 1, target_end)
@@ -1099,19 +1099,27 @@ async def _download_parts_concurrent(
             return
         if media.contiguous_end_from(part_off) >= part_off + need:
             return
-        try:
-            async with sem:
-                if media.cancelled or not media.is_seek_generation_current(seek_generation):
-                    return
-                log_debug(f"one() downloading part_off={part_off} need={need}")
-                data = await _getfile_part(api, loc, part_off, need)
-                log_debug(f"one() downloaded part_off={part_off} size={len(data) if data else 0}")
-        except Exception as e:
+        data = None
+        for attempt in range(3):
             try:
-                log_debug(f"ERROR _download_parts_concurrent part {part_off} failed: {e}")
-            except Exception:
-                pass
-            return
+                async with sem:
+                    if media.cancelled or not media.is_seek_generation_current(seek_generation):
+                        return
+                    log_debug(f"one() downloading part_off={part_off} need={need} attempt={attempt}")
+                    data = await _getfile_part(api, loc, part_off, need)
+                    log_debug(f"one() downloaded part_off={part_off} size={len(data) if data else 0}")
+                    if data:
+                        break
+            except Exception as e:
+                log_debug(f"WARNING one() part_off={part_off} attempt={attempt} failed: {e}")
+                if attempt < 2:
+                    await asyncio.sleep(0.3 + attempt * 0.5)
+                else:
+                    try:
+                        log_debug(f"ERROR _download_parts_concurrent part {part_off} failed: {e}")
+                    except Exception:
+                        pass
+                    return
         if not data or not media.is_seek_generation_current(seek_generation):
             return
 

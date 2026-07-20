@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.41 Optimasi Sensitivitas Buffering dan Mekanisme Retry Streaming Progressive Media
+
+Added:
+- Menurunkan batas minimal tunggu (wait thresholds) respon HTTP Range dari 128KB–512KB menjadi 32KB–64KB pada server HTTP lokal (`media_stream.py`). Ini mempercepat respon status `206 Partial Content` ke pemutar media browser agar video dapat diputar seketika saat data awal yang sangat kecil telah siap.
+- Menambahkan perulangan percobaan kembali otomatis (retry loop) hingga 3 kali percobaan dengan penundaan (exponential sleep) pada pengunduhan chunk/part di `_download_parts_concurrent` (`media_stream.py`). Hal ini mencegah terganggunya pemutaran media akibat "lubang data buffer" akibat terputusnya koneksi sementara (transient disconnect/glitch) dengan server Telegram.
+
 ## v2.1.40 Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
 
 Added:
