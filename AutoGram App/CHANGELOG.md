@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.33 Pemilihan Topik Forum untuk Obrolan Sumber dan Tujuan serta Fitur Kirim ke General
+
+Added:
+- Mengaktifkan fitur pemilihan topik forum Telegram (sub-topic) untuk obrolan tujuan (`destValue` / Destination), melengkapi fitur yang sebelumnya hanya tersedia untuk obrolan sumber (`sourceValue` / Source).
+- Memastikan modal sub-topic tetap muncul jika obrolan adalah Forum (`isForumGroup` bernilai `true`) sekalipun grup tersebut tidak memiliki topik kustom buatan user.
+- Menambahkan pilihan eksplisit untuk memilih topik utama `General (Topik Utama)` menggunakan ID bawaan Telegram `1` (disimpan dalam format `chatId_1`) agar pesan dapat dikirim langsung ke thread General secara presisi.
+- Menambahkan lokalisasi key `"general_topic"` pada berkas bahasa `en.json` dan `id.json`.
+
 ## v2.1.32 Fitur Pencarian Obrolan Real-time pada Modal Pemilihan Obrolan Migrasi
 
 Added:

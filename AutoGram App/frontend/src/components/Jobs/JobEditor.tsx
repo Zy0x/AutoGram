@@ -22,6 +22,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   const [chatFolders, setChatFolders] = useState<any[]>([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
   const [selectedFolderId, setSelectedFolderId] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isForumGroup, setIsForumGroup] = useState(false);
 
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
   
@@ -268,6 +269,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setSelectedDialogId(null);
     setDialogFilter('All');
     setSearchQuery("");
+    setIsForumGroup(false);
     setIsLoadingDialogs(true);
     
     try {
@@ -398,7 +400,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const selectDialog = (id: string, name: string, isForum: boolean, isRestricted: boolean = false) => {
-    if(isForum && modalTarget === 'source') {
+    if(isForum) {
+      setIsForumGroup(true);
       fetchTopics(id);
       return;
     }
@@ -419,11 +422,19 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   };
 
   const selectTopic = (chatId: string, topicId: string, topicName: string) => {
-    setSourceValue(topicId ? `${chatId}_${topicId}` : chatId);
-    const parentDialog = dialogs.find(d => d.id === chatId);
-    const pName = parentDialog ? parentDialog.name : "Unknown Group";
-    setSourceName(topicId ? `${pName} › ${topicName}` : pName);
-    setErrors(prev => ({...prev, sourceValue: ''}));
+    if (modalTarget === 'source') {
+      setSourceValue(topicId ? `${chatId}_${topicId}` : chatId);
+      const parentDialog = dialogs.find(d => d.id === chatId);
+      const pName = parentDialog ? parentDialog.name : "Unknown Group";
+      setSourceName(topicId ? `${pName} › ${topicName}` : pName);
+      setErrors(prev => ({...prev, sourceValue: ''}));
+    } else {
+      setDestValue(topicId ? `${chatId}_${topicId}` : chatId);
+      const parentDialog = dialogs.find(d => d.id === chatId);
+      const pName = parentDialog ? parentDialog.name : "Unknown Group";
+      setDestName(topicId ? `${pName} › ${topicName}` : pName);
+      setErrors(prev => ({...prev, destValue: ''}));
+    }
     setIsModalOpen(false);
   };
 
@@ -1215,7 +1226,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <RefreshCcw className="spin" size={24} style={{ margin: '0 auto 12px' }} />
                     <p>{t('dashboard.loading_api')}</p>
                   </div>
-                ) : selectedDialogId && topics.length > 0 ? (
+                ) : selectedDialogId && isForumGroup ? (
                   <div>
                     <div
                       style={{
@@ -1235,6 +1246,15 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     >
                       <Hash size={18} color="var(--text-muted)" />
                       <div>{t('dashboard.all_group')}</div>
+                    </div>
+                    <div
+                      className="dialog-item"
+                      onClick={() =>
+                        selectTopic(selectedDialogId, '1', t('dashboard.general_topic') || 'General')
+                      }
+                    >
+                      <Hash size={18} color="var(--primary)" />
+                      <div>{t('dashboard.general_topic') || 'General'}</div>
                     </div>
                     {topics.map((tp) => (
                       <div
