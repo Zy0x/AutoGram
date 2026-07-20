@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-20T09:53:34.740Z",
+  "generatedAt": "2026-07-19T16:30:52.835Z",
   "total": 32,
   "passed": 32,
   "failed": 0,
   "successRate": 100,
   "fundamentalScore": 100,
   "healthScore": 100,
-  "logFile": "F:\\AutoGram\\remote\\reports\\logs\\2026-07-20_17-53-00_execution.log",
+  "logFile": "F:\\AutoGram\\remote\\reports\\logs\\2026-07-20_00-30-18_execution.log",
   "results": [
     {
       "id": "health_cdp",
@@ -34,7 +34,7 @@
           }
         ]
       },
-      "t": "2026-07-20T09:53:00.846Z"
+      "t": "2026-07-19T16:30:18.875Z"
     },
     {
       "id": "health_vite",
@@ -46,18 +46,18 @@
           "pass": true,
           "detail": "Vite reachable http://127.0.0.1:1420"
         },
-        "pageUrl": "http://127.0.0.1:1420/?heal=1784541065365"
+        "pageUrl": "http://127.0.0.1:1420/?heal=1784478541087"
       },
-      "t": "2026-07-20T09:53:01.473Z"
+      "t": "2026-07-19T16:30:19.464Z"
     },
     {
       "id": "connect_page",
       "suite": "fundamental",
       "pass": true,
       "detail": {
-        "url": "http://127.0.0.1:1420/?heal=1784541065365"
+        "url": "http://127.0.0.1:1420/?heal=1784478541087"
       },
-      "t": "2026-07-20T09:53:01.476Z"
+      "t": "2026-07-19T16:30:19.466Z"
     },
     {
       "id": "heartbeat",
@@ -66,7 +66,7 @@
       "detail": {
         "note": "interval armed"
       },
-      "t": "2026-07-20T09:53:01.478Z"
+      "t": "2026-07-19T16:30:19.467Z"
     },
     {
       "id": "shell_present",
@@ -75,7 +75,7 @@
       "detail": {
         "n": 1
       },
-      "t": "2026-07-20T09:53:24.220Z"
+      "t": "2026-07-19T16:30:42.248Z"
     },
     {
       "id": "session_select",
@@ -84,7 +84,7 @@
       "detail": {
         "selects": 0
       },
-      "t": "2026-07-20T09:53:24.229Z"
+      "t": "2026-07-19T16:30:42.254Z"
     },
     {
       "id": "toolbar_compact",
@@ -94,7 +94,7 @@
         "bar": 1,
         "tools": 2
       },
-      "t": "2026-07-20T09:53:24.237Z"
+      "t": "2026-07-19T16:30:42.260Z"
     },
     {
       "id": "location_search",
@@ -103,7 +103,7 @@
       "detail": {
         "n": 1
       },
-      "t": "2026-07-20T09:53:24.241Z"
+      "t": "2026-07-19T16:30:42.263Z"
     },
     {
       "id": "section_toggle",
@@ -115,7 +115,7 @@
         "after": "true",
         "c": 3
       },
-      "t": "2026-07-20T09:53:24.801Z"
+      "t": "2026-07-19T16:30:42.828Z"
     },
     {
       "id": "file_cards_or_empty_state",
@@ -124,7 +124,7 @@
       "detail": {
         "cards": 6
       },
-      "t": "2026-07-20T09:53:24.806Z"
+      "t": "2026-07-19T16:30:42.834Z"
     },
     {
       "id": "media_filter_pills",
@@ -133,7 +133,7 @@
       "detail": {
         "n": 5
       },
-      "t": "2026-07-20T09:53:24.809Z"
+      "t": "2026-07-19T16:30:42.837Z"
     },
     {
       "id": "file_search_topbar",
@@ -143,7 +143,7 @@
         "n": 1,
         "ph": "Cari file di lokasi ini… (Ctrl+F)"
       },
-      "t": "2026-07-20T09:53:24.816Z"
+      "t": "2026-07-19T16:30:42.844Z"
     },
     {
       "id": "ctrl_k_focus_location",
@@ -152,7 +152,7 @@
       "detail": {
         "focused": true
       },
-      "t": "2026-07-20T09:53:24.954Z"
+      "t": "2026-07-19T16:30:42.986Z"
     },
     {
       "id": "ctrl_f_focus_file_search",
@@ -161,7 +161,7 @@
       "detail": {
         "focused": true
       },
-      "t": "2026-07-20T09:53:25.119Z"
+      "t": "2026-07-19T16:30:43.157Z"
     },
     {
       "id": "saved_messages_row",
@@ -170,7 +170,7 @@
       "detail": {
         "n": 2
       },
-      "t": "2026-07-20T09:53:25.122Z"
+      "t": "2026-07-19T16:30:43.161Z"
     },
     {
       "id": "shortcuts_hint",
@@ -180,7 +180,7 @@
         "n": 1,
         "t": "Ctrl+K lokasi · Ctrl+F file · Ctrl+A pilih · Esc"
       },
-      "t": "2026-07-20T09:53:25.128Z"
+      "t": "2026-07-19T16:30:43.166Z"
     },
     {
       "id": "recents_or_current",
@@ -190,7 +190,7 @@
         "rec": 1,
         "saved": 2
       },
-      "t": "2026-07-20T09:53:25.134Z"
+      "t": "2026-07-19T16:30:43.171Z"
     },
     {
       "id": "dnd_prime_ghost",
@@ -199,7 +199,7 @@
       "detail": {
         "note": "drag completed without throw"
       },
-      "t": "2026-07-20T09:53:28.155Z"
+      "t": "2026-07-19T16:30:46.158Z"
     },
     {
       "id": "dnd_hover_target",
@@ -210,7 +210,7 @@
         "dest": "drive:-1003214112048",
         "last": "drive:-1003214112048"
       },
-      "t": "2026-07-20T09:53:28.157Z"
+      "t": "2026-07-19T16:30:46.159Z"
     },
     {
       "id": "dnd_confirm_dialog",
@@ -219,12 +219,12 @@
       "detail": {
         "mid": {
           "confirm": true,
-          "text": "Kirim media ke chat?File akan dikirim → #Gudang.SD NEGERI BELITUNG SELATAN 7.pdf Pindahhapus sumber Salinsumber tetapTop",
+          "text": "Kirim media ke chat?File akan dikirim → #Gudang.detail.json Pindahhapus sumber Salinsumber tetapTopik forum (opsional)Ge",
           "lastKey": "drive:-1003214112048",
           "kind": "move"
         }
       },
-      "t": "2026-07-20T09:53:28.159Z"
+      "t": "2026-07-19T16:30:46.161Z"
     },
     {
       "id": "dnd_esc_dismiss",
@@ -233,7 +233,7 @@
       "detail": {
         "gone": true
       },
-      "t": "2026-07-20T09:53:28.591Z"
+      "t": "2026-07-19T16:30:46.582Z"
     },
     {
       "id": "dnd_no_dropkey_overlap",
@@ -242,7 +242,7 @@
       "detail": {
         "overlaps": []
       },
-      "t": "2026-07-20T09:53:28.596Z"
+      "t": "2026-07-19T16:30:46.586Z"
     },
     {
       "id": "dnd_same_location_no_dialog",
@@ -253,7 +253,7 @@
         "lastKey": "saved:me",
         "body": ""
       },
-      "t": "2026-07-20T09:53:31.127Z"
+      "t": "2026-07-19T16:30:49.242Z"
     },
     {
       "id": "modal_layout_rename",
@@ -283,7 +283,7 @@
           "h": 794
         }
       },
-      "t": "2026-07-20T09:53:32.490Z"
+      "t": "2026-07-19T16:30:50.600Z"
     },
     {
       "id": "modal_layout_idle_clean",
@@ -293,7 +293,7 @@
         "issues": [],
         "panels": []
       },
-      "t": "2026-07-20T09:53:33.240Z"
+      "t": "2026-07-19T16:30:51.328Z"
     },
     {
       "id": "escape_clears_overlays",
@@ -302,7 +302,7 @@
       "detail": {
         "open": false
       },
-      "t": "2026-07-20T09:53:33.442Z"
+      "t": "2026-07-19T16:30:51.531Z"
     },
     {
       "id": "search_filter_zero",
@@ -311,7 +311,7 @@
       "detail": {
         "n": 0
       },
-      "t": "2026-07-20T09:53:33.936Z"
+      "t": "2026-07-19T16:30:52.042Z"
     },
     {
       "id": "search_filter_match",
@@ -321,7 +321,7 @@
         "token": "Saved",
         "n": 1
       },
-      "t": "2026-07-20T09:53:34.275Z"
+      "t": "2026-07-19T16:30:52.387Z"
     },
     {
       "id": "xss_search_input_safe",
@@ -330,7 +330,7 @@
       "detail": {
         "executed": false
       },
-      "t": "2026-07-20T09:53:34.586Z"
+      "t": "2026-07-19T16:30:52.685Z"
     },
     {
       "id": "rapid_escape_stable",
@@ -339,16 +339,16 @@
       "detail": {
         "shell": 1
       },
-      "t": "2026-07-20T09:53:34.730Z"
+      "t": "2026-07-19T16:30:52.826Z"
     },
     {
       "id": "shell_query_budget",
       "suite": "performance",
       "pass": true,
       "detail": {
-        "ms": 2
+        "ms": 1
       },
-      "t": "2026-07-20T09:53:34.735Z"
+      "t": "2026-07-19T16:30:52.830Z"
     },
     {
       "id": "no_serious_page_errors",
@@ -357,7 +357,7 @@
       "detail": {
         "serious": []
       },
-      "t": "2026-07-20T09:53:34.737Z"
+      "t": "2026-07-19T16:30:52.832Z"
     }
   ]
 }

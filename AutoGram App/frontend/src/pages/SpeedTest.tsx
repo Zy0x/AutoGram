@@ -4363,12 +4363,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   ) => {
     if (!creds || !paths.length) return;
     
-    // Normalize Windows paths (quotes / long-path prefixes sometimes leak from DnD)
+    // Normalize paths — allow both local file paths and remote URLs (http/https)
     const cleanPaths = paths
       .map((p) => String(p || '').trim().replace(/^["']|["']$/g, ''))
-      .filter((p) => p && (p.includes('\\') || p.includes('/') || /^[a-zA-Z]:/.test(p)));
+      .filter((p) => {
+        if (!p) return false;
+        if (p.startsWith('http://') || p.startsWith('https://')) return true;
+        return p.includes('\\') || p.includes('/') || /^[a-zA-Z]:/.test(p);
+      });
     if (!cleanPaths.length) {
-      setError('Path file tidak valid. Coba lagi drop dari File Explorer.');
+      setError('Path file atau URL tidak valid. Coba lagi drop dari File Explorer atau masukkan URL yang benar.');
       return;
     }
     const uploadPeer =
@@ -4378,7 +4382,17 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       (uploadPeer == null ? 'Saved Messages' : breadcrumb) ||
       'Drive';
     const label = `→ ${destLabel}`;
-    const names = cleanPaths.map((p) => p.split(/[/\\]/).pop() || p);
+    const names = cleanPaths.map((p) => {
+      if (p.startsWith('http://') || p.startsWith('https://')) {
+        try {
+          const u = new URL(p);
+          return u.pathname.split('/').pop() || u.hostname || p;
+        } catch {
+          return p;
+        }
+      }
+      return p.split(/[/\\]/).pop() || p;
+    });
 
     const options: Record<string, unknown> = {
       quality_mode: transferSettings.forceDocumentDefault
@@ -4468,35 +4482,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   };
 
   const handleRemoteUpload = async (url: string, targetFolderId: number | null) => {
-    try {
-      setStatusText('Memulai remote upload...');
-      const response = await fetch('http://127.0.0.1:8550/api/v1/remote-upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Telegram-Session': creds?.session || '',
-          'X-Telegram-Api-Id': creds?.apiId ? String(creds.apiId) : '',
-          'X-Telegram-Api-Hash': creds?.apiHash || '',
-        },
-        body: JSON.stringify({
-          url,
-          folder_id: targetFolderId ? String(targetFolderId) : null,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Gagal remote upload');
-      }
-      
-      const data = await response.json();
-      setStatusText(`Remote upload sukses: ${data.filename}`);
-      void refreshFiles();
-    } catch (err: any) {
-      console.error('Remote upload error:', err);
-      setStatusText(`Remote upload gagal: ${err.message}`);
-      throw err;
-    }
+    // Route through the Transfer Manager queue (same pipeline as local file uploads)
+    // so the upload appears in the Transfer Manager with live progress.
+    const destLabel =
+      targetFolderId != null
+        ? (breadcrumb || 'Drive')
+        : 'Saved Messages';
+    await runUploadPaths([url], {
+      targetFolderId,
+      targetLabel: destLabel,
+    });
   };
 
   const handleDownloadAll = useCallback(() => {

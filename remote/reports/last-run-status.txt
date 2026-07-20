@@ -1,1 +1,1 @@
-OK - Sorting verification passed successfully!
+﻿OK remote ready 2026-07-20T18:27:38.3203295+08:00 pid=19240 vite=http://127.0.0.1:1420/ total=6636ms

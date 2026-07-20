@@ -850,6 +850,95 @@ class ProgressAgg:
         )
 
 
+async def _download_remote_url(item: StudioItem) -> str:
+    """
+    Download a remote URL to a temporary local file, updating item size and reporting progress.
+    """
+    import aiohttp
+    import urllib.parse
+    import tempfile
+    
+    url = item.path
+    parsed = urllib.parse.urlparse(url)
+    filename = os.path.basename(parsed.path)
+    if not filename:
+        filename = "remote_file"
+        
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    temp_fd, temp_path = tempfile.mkstemp(dir=TEMP_DIR, suffix=os.path.splitext(filename)[1] or ".tmp")
+    os.close(temp_fd)
+    
+    emit_event(
+        "StudioItemPrepare",
+        index=item.index,
+        phase="download_start",
+        path=filename,
+    )
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        total_size = 0
+        start_time = time.time()
+        last_emit_time = 0
+        
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url, timeout=300) as response:
+                if response.status != 200:
+                    raise Exception(f"Gagal mengambil file dari URL (HTTP {response.status})")
+                
+                content_len = response.content_length or 0
+                item.size = content_len
+                
+                with open(temp_path, 'wb') as f:
+                    async for chunk in response.content.iter_chunked(1024 * 1024): # 1MB chunks
+                        f.write(chunk)
+                        total_size += len(chunk)
+                        
+                        now = time.time()
+                        if now - last_emit_time > 0.5 or total_size == content_len:
+                            last_emit_time = now
+                            duration = now - start_time
+                            speed = (total_size / (1024 * 1024)) / duration if duration > 0 else 0
+                            percent = (total_size / content_len * 100) if content_len > 0 else 0
+                            
+                            emit_event(
+                                "StudioProgress",
+                                index=item.index,
+                                item_index=item.index,
+                                phase="download",
+                                item_current=total_size,
+                                item_total=content_len or total_size,
+                                speed_mb_s=speed,
+                                percent=percent,
+                                file_name=filename,
+                            )
+                            
+        emit_event(
+            "StudioItemPrepare",
+            index=item.index,
+            phase="download_complete",
+            path=filename,
+        )
+        item.size = total_size
+        return temp_path
+    except Exception as e:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+        emit_event(
+            "StudioItemPrepare",
+            index=item.index,
+            phase="prepare_failed",
+            error=str(e),
+        )
+        raise
+
+
 async def _prepare_item_path(
     item: StudioItem,
     opts: StudioOptions,
@@ -861,6 +950,12 @@ async def _prepare_item_path(
     Also shrinks toward the live account upload budget when source is oversize.
     Returns (path_to_upload, temp_to_delete_or_None).
     """
+    is_url = item.path.startswith("http://") or item.path.startswith("https://")
+    url_temp_path = None
+    if is_url:
+        url_temp_path = await _download_remote_url(item)
+        item.path = url_temp_path
+
     mode = (opts.quality_mode or "HIGH_QUALITY").upper()
     ext = _ext(item.path)
     budget = int(getattr(upload_policy, "safe_max_bytes", 0) or 0)
@@ -872,6 +967,11 @@ async def _prepare_item_path(
             try:
                 preflight_upload_size(int(item.size or 0) or os.path.getsize(item.path), upload_policy)
             except UploadLimitExceeded as e:
+                if url_temp_path and os.path.isfile(url_temp_path):
+                    try:
+                        os.remove(url_temp_path)
+                    except Exception:
+                        pass
                 item.status = "failed"
                 item.error = str(e)
                 emit_event(
@@ -884,7 +984,7 @@ async def _prepare_item_path(
                     premium=bool(getattr(upload_policy, "premium", False)),
                 )
                 raise
-        return item.path, None
+        return item.path, url_temp_path
     try:
         emit_event(
             "StudioItemPrepare",
@@ -930,15 +1030,35 @@ async def _prepare_item_path(
                         os.remove(send_path)
                     except Exception:
                         pass
+                if url_temp_path and os.path.isfile(url_temp_path):
+                    try:
+                        os.remove(url_temp_path)
+                    except Exception:
+                        pass
                 item.status = "failed"
                 item.error = str(e)
                 raise
         if info.get("reencoded"):
+            if url_temp_path and os.path.isfile(url_temp_path):
+                try:
+                    os.remove(url_temp_path)
+                except Exception:
+                    pass
             return send_path, send_path
-        return item.path, None
+        return item.path, url_temp_path
     except UploadLimitExceeded:
+        if url_temp_path and os.path.isfile(url_temp_path):
+            try:
+                os.remove(url_temp_path)
+            except Exception:
+                pass
         raise
     except AccountBudgetError as e:
+        if url_temp_path and os.path.isfile(url_temp_path):
+            try:
+                os.remove(url_temp_path)
+            except Exception:
+                pass
         # Hard fail: never fall back to uploading the oversize original.
         item.status = "failed"
         item.error = str(e)
@@ -951,6 +1071,11 @@ async def _prepare_item_path(
         )
         raise
     except Exception as e:
+        if url_temp_path and os.path.isfile(url_temp_path):
+            try:
+                os.remove(url_temp_path)
+            except Exception:
+                pass
         # Oversize / budget failures must not silently upload the original.
         # Use shared detector so "batas unggah akun" etc. still match.
         size_fit_required = bool(budget and (int(item.size or 0) or 0) > budget)
@@ -978,7 +1103,7 @@ async def _prepare_item_path(
                 preflight_upload_size(int(item.size or 0) or os.path.getsize(item.path), upload_policy)
             except UploadLimitExceeded:
                 raise
-        return item.path, None
+        return item.path, url_temp_path
 
 
 def _message_id_from_send_result(msg) -> Optional[int]:
@@ -3107,22 +3232,35 @@ async def run_media_studio(
                 caption = str(f.get("caption") or f.get("Caption") or "")
             else:
                 raise ValueError(f"Invalid file entry at index {i}")
-            path = os.path.normpath(str(path))
-            if not path or not os.path.isfile(path):
-                raise ValueError(f"File not found: {path}")
-            # P0: never upload sessions/secrets/arbitrary system paths
-            from engine.path_policy import validate_upload_path
-
-            path = validate_upload_path(path)
-            items.append(
-                StudioItem(
-                    index=i,
-                    path=path,
-                    caption=caption,
-                    size=os.path.getsize(path),
-                    item_id=f"{transfer_id}:{i}",
+            
+            path_str = str(path).strip()
+            is_url = path_str.startswith("http://") or path_str.startswith("https://")
+            if is_url:
+                items.append(
+                    StudioItem(
+                        index=i,
+                        path=path_str,
+                        caption=caption,
+                        size=0,
+                        item_id=f"{transfer_id}:{i}",
+                    )
                 )
-            )
+            else:
+                path = os.path.normpath(path_str)
+                if not path or not os.path.isfile(path):
+                    raise ValueError(f"File not found: {path}")
+                # P0: never upload sessions/secrets/arbitrary system paths
+                from engine.path_policy import validate_upload_path
+                path = validate_upload_path(path)
+                items.append(
+                    StudioItem(
+                        index=i,
+                        path=path,
+                        caption=caption,
+                        size=os.path.getsize(path),
+                        item_id=f"{transfer_id}:{i}",
+                    )
+                )
         # Speed guard: pure-Python MTProto is extremely slow
         if encryption_backend() == "python":
             emit_event(

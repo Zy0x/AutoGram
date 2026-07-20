@@ -12,5 +12,8 @@
     "test:wait": "node --test core/wait_helpers.test.mjs",
     "audit:modals": "node scripts/audit-modal-layout.mjs",
     "health": "node -e \"import('./core/health_checker.mjs').then(async m=>{const c=JSON.parse(await import('node:fs').then(fs=>fs.readFileSync('./config/remote_config.json','utf8'))); console.log(JSON.stringify(await m.checkHealth(c),null,2))})\""
+  },
+  "dependencies": {
+    "ws": "^8.21.1"
   }
 }

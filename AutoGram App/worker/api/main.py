@@ -68,8 +68,9 @@ def ensure_api_session(session_name: str) -> str:
     src_db = os.path.join(sessions_dir, f"{session_name}.session")
     dest_db = os.path.join(sessions_dir, f"{session_name}_api.session")
     
-    if os.path.exists(dest_db):
-        return f"{session_name}_api"
+    if os.path.exists(dest_db) and os.path.exists(src_db):
+        if os.path.getmtime(src_db) <= os.path.getmtime(dest_db):
+            return f"{session_name}_api"
         
     if not os.path.exists(src_db):
         return session_name
