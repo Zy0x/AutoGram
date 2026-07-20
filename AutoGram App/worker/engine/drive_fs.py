@@ -6434,7 +6434,7 @@ async def start_preview_stream_on_client(
             if not str(e):
                 pass
 
-    # ── PDF / text: full download for in-app viewer (drive-serve uses this path) ──
+    # ── PDF / text: cache hit or fast path for small docs, otherwise progressive stream ──
     if dkind in ("pdf", "text") and not is_video and not is_image:
         if size > DOC_PREVIEW_MAX_BYTES > 0:
             return {
@@ -6460,25 +6460,27 @@ async def start_preview_stream_on_client(
         if dkind == "pdf":
             doc_ext = "pdf"
         doc_dest = os.path.join(PREVIEW_DIR, f"{key}.{doc_ext}")
-        try:
-            if not (
-                os.path.isfile(doc_dest)
-                and os.path.getsize(doc_dest) > 0
-                and (size <= 0 or os.path.getsize(doc_dest) >= max(size * 0.95, 1))
-            ):
+        
+        # A. If already cached completely, return cache hit instantly
+        if (
+            os.path.isfile(doc_dest)
+            and os.path.getsize(doc_dest) > 0
+            and (size <= 0 or os.path.getsize(doc_dest) >= max(size * 0.95, 1))
+        ):
+            return _preview_result(doc_dest, cached=True, kind=dkind, emit=False)
+            
+        # B. Small docs <= 512KB: fast blocking download
+        if 0 < size <= 512 * 1024:
+            try:
                 path = await client.download_media(msg, file=doc_dest)
                 if not path or not os.path.isfile(str(path)):
                     raise RuntimeError("Download dokumen gagal")
                 doc_dest = str(path)
-            # emit=False — drive-serve wraps this in RPC JSON
-            return _preview_result(doc_dest, cached=True, kind=dkind, emit=False)
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Preview dokumen gagal: {e}",
-                "preview_kind": dkind,
-                "too_large": False,
-            }
+                return _preview_result(doc_dest, cached=True, kind=dkind, emit=False)
+            except Exception:
+                pass # fall through to progressive stream
+                
+        # C. Larger files: skip blocking and fall through to progressive stream
 
     # ── Lower quality: download original → ffmpeg transcode → stream ──
     need_h = _PLAY_QUALITY_HEIGHT.get(q)
@@ -6648,8 +6650,8 @@ async def start_preview_stream_on_client(
             quality_id=q if q in ("auto", "original") else "original",
         )
 
-    # Small document-original: full download + faststart remux (bounded size)
-    if want_faststart:
+    # Small document-original: fast path for <= 512KB, otherwise progressive stream
+    if want_faststart and 0 < size <= 512 * 1024:
         try:
             await _download_media_complete(
                 client, msg, dest, expected_size=size
@@ -6712,7 +6714,36 @@ async def start_preview_stream_on_client(
         media.mark_range(0, pre_bytes)
 
     async def _runner():
-        await fill_stream_from_telegram(client, msg, media)
+        try:
+            await fill_stream_from_telegram(client, msg, media)
+            if media.done and not media.error:
+                orig_path = os.path.abspath(dest)
+                if want_faststart:
+                    ok = await asyncio.to_thread(
+                        _ffmpeg_remux_faststart_sync, orig_path, fast_dest
+                    )
+                    if ok:
+                        try:
+                            if os.path.isfile(orig_path):
+                                os.remove(orig_path)
+                        except Exception:
+                            pass
+                else:
+                    clean_path = os.path.join(PREVIEW_DIR, f"{key}.{ext}")
+                    if dkind == "pdf":
+                        clean_path = os.path.join(PREVIEW_DIR, f"{key}.pdf")
+                    elif dkind == "text":
+                        clean_path = os.path.join(PREVIEW_DIR, f"{key}.txt")
+                    
+                    if os.path.isfile(orig_path) and os.path.getsize(orig_path) >= size:
+                        try:
+                            if os.path.isfile(clean_path):
+                                os.remove(clean_path)
+                            os.rename(orig_path, clean_path)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
 
     try:
         loop = asyncio.get_running_loop()

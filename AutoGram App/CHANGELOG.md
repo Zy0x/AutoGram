@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.34 Optimasi Sinkronisasi Real-time & Progressive Streaming Dokumen dan Video Dokumen di Media Studio
+
+Added:
+- Menambahkan parameter `bypassCache: true` pada fungsi `driveListFiles` saat pemanggilan berkala (live sync polling) dan tombol muat ulang (manual refresh) di Media Studio (`SpeedTest.tsx`). Ini memaksa sistem mencari langsung ke jaringan Telegram API dan secara otomatis memperbarui IndexedDB lokal, memperbaiki kendala sinkronisasi yang lambat pada media yang diunggah dari aplikasi eksternal (Nekogram, Nagram, Telegram Mobile).
+- Mengintegrasikan sistem progressive streaming (buffer) untuk file PDF, file Teks, dan Video yang dikirim sebagai Dokumen (Video Document) berukuran >512KB. File media tersebut kini dapat langsung diputar/dilihat melalui iframe PDF atau pemutar video secara instan tanpa perlu menunggu download penuh selesai.
+- Memperbarui runner pengunduh latar belakang (`_runner` di `drive_fs.py`) untuk memindahkan file cache parsial menjadi file cache bersih (misal: memindahkan `.stream.pdf` ke `.pdf` atau menjalankan `ffmpeg` remux `faststart` untuk video dokumen) setelah proses pengunduhan selesai secara sukses sehingga pembukaan media berikutnya bersifat instan.
+
 ## v2.1.33 Pemilihan Topik Forum untuk Obrolan Sumber dan Tujuan serta Fitur Kirim ke General
 
 Added:

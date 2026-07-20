@@ -644,6 +644,7 @@ export async function driveListFiles(
     quickStats?: boolean;
     sortMode?: string;
     localOffset?: number;
+    bypassCache?: boolean;
   }
 ) {
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
@@ -655,7 +656,7 @@ export async function driveListFiles(
   const jobId = `index_chat_${folderKey}${topicId ? `_topic_${topicId}` : ''}`;
   const cp = await getCheckpoint(jobId).catch(() => null);
 
-  if (cp && cp.status === 'completed') {
+  if (cp && cp.status === 'completed' && !opts?.bypassCache) {
     const localOffset = opts?.localOffset ?? 0;
     try {
       const records = await getMediaRecords(folderKey, sortMode, localOffset, pageSize);

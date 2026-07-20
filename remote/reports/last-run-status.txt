@@ -1,1 +1,1 @@
-﻿OK remote ready 2026-07-20T18:42:03.3499637+08:00 pid=14848 vite=http://127.0.0.1:1420/ total=6452ms
+﻿OK remote ready 2026-07-20T20:37:10.1367620+08:00 pid=5732 vite=http://127.0.0.1:1420/ total=6325ms

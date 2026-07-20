@@ -2257,6 +2257,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         quickStats: false,
         sortMode: sortMode,
         localOffset: 0,
+        bypassCache: true,
       });
       if (gen !== peerGen.current) return;
       if (res?.invalid_topic && tid != null) {
@@ -2275,6 +2276,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           quickStats: false,
           sortMode: sortMode,
           localOffset: 0,
+          bypassCache: true,
         });
         if (gen !== peerGen.current) return;
         if (peerId != null) void loadTopicsForPeer(peerId);
@@ -2738,6 +2740,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           pageSize: plan.pageSize,
           topicId: tid,
           quickStats: false,
+          bypassCache: true,
         });
         if (gen !== peerGen.current || tid !== topicFilterRef.current) return;
         if (res?.invalid_topic && tid != null) {
