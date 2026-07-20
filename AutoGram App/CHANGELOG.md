@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.25 Perbaikan Penamaan Berkas dan Akurasi Progress Unduhan pada Remote URL/Transfer
+
+Fixed:
+- Memperbaiki penamaan berkas hasil unduhan Remote URL di Telegram. Sebelumnya, berkas diunggah menggunakan nama berkas temporary acak (misal `tmpXXXX.tmp`). Sekarang, nama berkas asli diekstraksi dari header `Content-Disposition` (mendukung format standard dan UTF-8 `filename*`) atau fallback ke path URL jika header tidak ada, sehingga berkas diunggah dengan nama aslinya.
+- Memperbaiki akurasi progress bar saat mengunduh berkas Remote URL. Sebelumnya, kemajuan kemajuan unduhan bisa tidak akurat atau melebihi 100% saat mengunduh berkas dengan kompresi Gzip/Brotli karena dekompresi otomatis oleh `aiohttp`. Sekarang, target kemajuan (`content_len`) disesuaikan secara dinamis jika dekompresi menghasilkan berkas yang lebih besar dari yang dilaporkan server.
+
 ## v2.1.24 Pencegahan SQLite Database Lock pada Telethon Session selama Remote URL/Transfer
 
 Fixed:

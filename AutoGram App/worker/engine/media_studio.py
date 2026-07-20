@@ -173,6 +173,7 @@ class StudioItem:
     avg_mb_s: float = 0.0
     item_id: str = ""
     fingerprint: str = ""
+    original_name: str = ""
 
 
 @dataclass
@@ -245,8 +246,17 @@ def _ext(path: str) -> str:
     return os.path.splitext(path)[1].lower()
 
 
-def _final_name(original_path: str, current_path: str) -> str:
-    orig = os.path.basename(original_path)
+def _final_name(original_path_or_item, current_path: str) -> str:
+    if hasattr(original_path_or_item, "original_name") and original_path_or_item.original_name:
+        orig = original_path_or_item.original_name
+        original_path = original_path_or_item.path
+    elif hasattr(original_path_or_item, "path"):
+        orig = os.path.basename(original_path_or_item.path)
+        original_path = original_path_or_item.path
+    else:
+        orig = os.path.basename(str(original_path_or_item))
+        original_path = str(original_path_or_item)
+
     if current_path and current_path != original_path:
         return os.path.splitext(orig)[0] + _ext(current_path)
     return orig
@@ -254,7 +264,7 @@ def _final_name(original_path: str, current_path: str) -> str:
 
 def _align_caption_with_sent_file(
     caption: str,
-    original_path: str,
+    original_path_or_item,
     final_file_name: str,
 ) -> str:
     """
@@ -263,7 +273,14 @@ def _align_caption_with_sent_file(
     """
     cap = (caption or "").strip()
     final_base = os.path.basename(final_file_name or "")
-    orig_base = os.path.basename(original_path or "")
+    
+    if hasattr(original_path_or_item, "original_name") and original_path_or_item.original_name:
+        orig_base = original_path_or_item.original_name
+    elif hasattr(original_path_or_item, "path"):
+        orig_base = os.path.basename(original_path_or_item.path)
+    else:
+        orig_base = os.path.basename(str(original_path_or_item))
+        
     final_ext = _ext(final_base)
     if not final_ext:
         return cap
@@ -456,7 +473,7 @@ async def _register_uploaded_handle(
     journal: TransferJournal,
 ) -> RegisteredMedia:
     """Turn temporary uploaded parts into reusable Telegram media."""
-    final_file_name = _final_name(item.path, send_path)
+    final_file_name = _final_name(item, send_path)
     kwargs = resolve_send_kwargs(send_path, opts.quality_mode, spoiler=opts.spoiler)
     force_doc = bool(kwargs.get("force_document"))
     ext = _ext(send_path)
@@ -635,7 +652,7 @@ async def _commit_registered_media(
 ):
     caption = _align_caption_with_sent_file(
         (item.caption or opts.global_caption or "").strip(),
-        item.path,
+        item,
         registered.final_file_name,
     )
     entities = None
@@ -712,7 +729,7 @@ async def _commit_registered_album(
     for item, registered in entries:
         caption = _align_caption_with_sent_file(
             (item.caption or opts.global_caption or "").strip(),
-            item.path,
+            item,
             registered.final_file_name,
         )
         entities = None
@@ -885,6 +902,7 @@ async def _download_remote_url(item: StudioItem) -> str:
     import aiohttp
     import urllib.parse
     import tempfile
+    import re
     
     url = item.path
     parsed = urllib.parse.urlparse(url)
@@ -892,16 +910,7 @@ async def _download_remote_url(item: StudioItem) -> str:
     if not filename:
         filename = "remote_file"
         
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    temp_fd, temp_path = tempfile.mkstemp(dir=TEMP_DIR, suffix=os.path.splitext(filename)[1] or ".tmp")
-    os.close(temp_fd)
-    
-    emit_event(
-        "StudioItemPrepare",
-        index=item.index,
-        phase="download_start",
-        path=filename,
-    )
+    temp_path = None
     
     try:
         headers = {
@@ -917,6 +926,37 @@ async def _download_remote_url(item: StudioItem) -> str:
                 if response.status != 200:
                     raise Exception(f"Gagal mengambil file dari URL (HTTP {response.status})")
                 
+                # Extract filename from Content-Disposition header if present
+                cd = response.headers.get('Content-Disposition')
+                if cd:
+                    fname_match = re.findall(r'filename\*=\s*UTF-8\'\'(.+)', cd, re.IGNORECASE)
+                    if fname_match:
+                        filename = urllib.parse.unquote(fname_match[0])
+                    else:
+                        fname_match = re.findall(r'filename\s*=\s*["\']?([^"\';]+)["\']?', cd, re.IGNORECASE)
+                        if fname_match:
+                            filename = fname_match[0]
+                
+                # Remove any path traversal or invalid characters from filename
+                filename = os.path.basename(filename)
+                if not filename:
+                    filename = "remote_file"
+                
+                item.original_name = filename
+                
+                # Create temp file with correct suffix
+                os.makedirs(TEMP_DIR, exist_ok=True)
+                suffix = os.path.splitext(filename)[1] or ".tmp"
+                temp_fd, temp_path = tempfile.mkstemp(dir=TEMP_DIR, suffix=suffix)
+                os.close(temp_fd)
+                
+                emit_event(
+                    "StudioItemPrepare",
+                    index=item.index,
+                    phase="download_start",
+                    path=filename,
+                )
+                
                 content_len = response.content_length or 0
                 item.size = content_len
                 
@@ -925,12 +965,19 @@ async def _download_remote_url(item: StudioItem) -> str:
                         f.write(chunk)
                         total_size += len(chunk)
                         
+                        # Adjust content_len if decompressed size exceeds it
+                        if content_len > 0 and total_size > content_len:
+                            content_len = total_size
+                            item.size = content_len
+                        
                         now = time.time()
                         if now - last_emit_time > 0.5 or total_size == content_len:
                             last_emit_time = now
                             duration = now - start_time
                             speed = (total_size / (1024 * 1024)) / duration if duration > 0 else 0
                             percent = (total_size / content_len * 100) if content_len > 0 else 0
+                            if percent > 99.9 and total_size < content_len:
+                                percent = 99.9
                             
                             emit_event(
                                 "StudioProgress",
@@ -953,7 +1000,7 @@ async def _download_remote_url(item: StudioItem) -> str:
         item.size = total_size
         return temp_path
     except Exception as e:
-        if os.path.exists(temp_path):
+        if temp_path and os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
             except Exception:
@@ -1018,7 +1065,7 @@ async def _prepare_item_path(
             "StudioItemPrepare",
             index=item.index,
             phase="probe",
-            path=os.path.basename(item.path),
+            path=_final_name(item, item.path),
             budget_bytes=budget or None,
             premium=bool(getattr(upload_policy, "premium", False)) if upload_policy else None,
         )
@@ -1040,7 +1087,7 @@ async def _prepare_item_path(
                 reason=info.get("reason"),
                 codec=(info.get("meta") or {}).get("video_codec"),
                 duration=(info.get("meta") or {}).get("duration"),
-                output=_final_name(item.path, send_path),
+                output=_final_name(item, send_path),
                 encoder_backend=encode.get("backend"),
                 encoder_name=encode.get("encoder"),
                 decoder_name=encode.get("decoder"),
@@ -1214,7 +1261,7 @@ async def _upload_bytes(
         emit_event(
             "StudioItemStarted",
             index=item.index,
-            path=_final_name(item.path, path),
+            path=_final_name(item, path),
             size=item.size,
             phase="upload_bytes",
         )
@@ -1295,7 +1342,7 @@ async def _send_one(
     """Sequential stage: commit message to chat (order-safe)."""
     t0 = time.time()
     send_path = upload_path or item.path
-    final_file_name = _final_name(item.path, send_path)
+    final_file_name = _final_name(item, send_path)
     
     item.status = "uploading"
     emit_event(
@@ -1307,7 +1354,7 @@ async def _send_one(
 
     caption = _align_caption_with_sent_file(
         (item.caption or opts.global_caption or "").strip(),
-        item.path,
+        item,
         final_file_name,
     )
     kwargs = resolve_send_kwargs(send_path, opts.quality_mode, spoiler=opts.spoiler)
@@ -1657,11 +1704,11 @@ async def _send_album(
             "StudioItemPrepare",
             index=it.index,
             phase="album",
-            path=os.path.basename(it.path),
+            path=_final_name(it, it.path),
             size=it.size,
         )
         it.status = "uploading"
-        emit_event("StudioItemStarted", index=it.index, path=os.path.basename(it.path), size=it.size)
+        emit_event("StudioItemStarted", index=it.index, path=_final_name(it, it.path), size=it.size)
         agg.on_item(it.index, 0, it.size or 1, force=True)
 
     def cb(cur, tot):
@@ -1732,10 +1779,10 @@ async def _send_album(
             apply_item_commit_success(it, mid, duration_s=dur)
             if dup_checker is not None and mid:
                 try:
-                    final_file_name = os.path.basename(it.path)
+                    final_file_name = _final_name(it, it.path)
                     up = getattr(it, "_upload_path", None)
                     if up:
-                        final_file_name = _final_name(it.path, up)
+                        final_file_name = _final_name(it, up)
                     dup_checker.log(
                         file_unique_id=None,
                         target_message_id=mid,
@@ -1792,7 +1839,7 @@ async def _send_album(
             it.error = str(e)
             try:
                 from engine.debug_log import dlog
-                album_fn = os.path.basename(it.path or "")
+                album_fn = _final_name(it, it.path)
                 dlog(
                     f"Upload failed for album item {album_fn}: {e}",
                     level="ERROR",
@@ -1883,7 +1930,7 @@ async def _run_fastlane_pipeline(
         """Check scan index first (O(1)), then DB, then name+size fallback."""
         if opts.duplicate_policy == "FORCE_UPLOAD":
             return None
-        final_name = _final_name(it.path, upath)
+        final_name = _final_name(it, upath)
         found = None
         try:
             # Priority 1: Scanner fingerprint index (fast, multi-tier)
@@ -1943,7 +1990,7 @@ async def _run_fastlane_pipeline(
                     emit_event("LogEvent", level="INFO",
                                message=f"Pesan {duplicate} tidak ditemukan (dihapus). Re-upload otomatis.")
                     dup_checker.delete_duplicate_by_message_id(duplicate)
-                    final_name = _final_name(it.path, upath)
+                    final_name = _final_name(it, upath)
                     tg_exists.pop((final_name.lower(), it.size), None)
                     # Remove from scanner index too
                     if scanner is not None and it.fingerprint:
@@ -2033,7 +2080,7 @@ async def _run_fastlane_pipeline(
                 )
                 if it.status == "done" and it.message_id:
                     try:
-                        final_name = _final_name(it.path, upath or it.path)
+                        final_name = _final_name(it, upath or it.path)
                         reupload_reason = getattr(it, "reupload_reason", None)
                         orig_mid       = getattr(it, "original_message_id", None)
                         deleted_at_ts  = getattr(it, "deleted_at", None)
@@ -2166,7 +2213,7 @@ async def _run_safe_album_pipeline(
                     item.fingerprint = await _sha256_file(upload_path)
                 if item.size != old_size:
                     agg.adjust_total_bytes(item.size - old_size)
-                final_name = _final_name(item.path, upload_path)
+                final_name = _final_name(item, upload_path)
                 duplicate = None
                 if opts.duplicate_policy != "FORCE_UPLOAD":
                     try:
@@ -2671,7 +2718,7 @@ async def run_ordered_upload(
                         )
                         continue
                     # CHECK DUPLICATE HERE!
-                    final_file_name = _final_name(it.path, upath)
+                    final_file_name = _final_name(it, upath)
                     dup_mid = None
                     if opts.duplicate_policy != "FORCE_UPLOAD":
                         try:
@@ -2872,7 +2919,7 @@ async def run_ordered_upload(
                 continue
 
             # CHECK DUPLICATE HERE!
-            final_file_name = _final_name(it.path, upath)
+            final_file_name = _final_name(it, upath)
             dup_mid = None
             if opts.duplicate_policy != "FORCE_UPLOAD":
                 try:
