@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.29 Pengekstrakan Thumbnail Launcher Icon APK dan Penyelarasan Icon Grid APK
+
+Fixed:
+- Menambahkan pengekstrakan otomatis launcher icon untuk berkas `.apk` saat proses unggah di `media_studio.py`. Sistem akan mencari file `ic_launcher` atau `icon` terbaik di dalam zip/apk secara efisien tanpa library eksternal, dan mengunggahnya sebagai `thumb` ke Telegram.
+- Memperbarui `FileTypeIcon.tsx` dan `App.css` untuk menambahkan ikon bertipe `Package` dari `lucide-react` dengan warna hijau Android khas (`#a4c639`) sebagai visual default file `.apk` pada grid card, sehingga tampilan jauh lebih representatif dibanding ikon dokumen putih generic.
+
 ## v2.1.28 Penyelarasan Deteksi Thumbnail untuk Berkas Non-Media (APK/ZIP/Doc) yang Memiliki Preview
 
 Fixed:

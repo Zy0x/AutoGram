@@ -896,6 +896,51 @@ class ProgressAgg:
         )
 
 
+def _extract_apk_icon(apk_path: str, temp_thumb_path: str) -> bool:
+    import zipfile
+    if not zipfile.is_zipfile(apk_path):
+        return False
+    try:
+        with zipfile.ZipFile(apk_path, 'r') as z:
+            names = z.namelist()
+            candidates = []
+            for name in names:
+                lower_name = name.lower()
+                if 'ic_launcher' in lower_name or 'app_icon' in lower_name or 'icon.png' in lower_name or 'icon.webp' in lower_name:
+                    if lower_name.endswith(('.png', '.webp', '.jpg', '.jpeg')):
+                        try:
+                            info = z.getinfo(name)
+                            candidates.append((name, info.file_size))
+                        except Exception:
+                            pass
+            if not candidates:
+                return False
+            
+            def score(item):
+                name, size = item
+                name_lower = name.lower()
+                points = 0
+                if 'ic_launcher' in name_lower:
+                    points += 1000000
+                if 'xxxhdpi' in name_lower:
+                    points += 100000
+                elif 'xxhdpi' in name_lower:
+                    points += 10000
+                elif 'xhdpi' in name_lower:
+                    points += 1000
+                elif 'hdpi' in name_lower:
+                    points += 100
+                return points + size
+                
+            candidates.sort(key=score, reverse=True)
+            best_match = candidates[0][0]
+            with open(temp_thumb_path, 'wb') as f_out:
+                f_out.write(z.read(best_match))
+            return True
+    except Exception:
+        return False
+
+
 async def _download_remote_url(item: StudioItem) -> str:
     """
     Download a remote URL to a temporary local file, updating item size and reporting progress.
@@ -1402,6 +1447,29 @@ async def _send_one(
                 except OSError:
                     pass
 
+    # Always generate APK thumbnails for any APK file to show app icon
+    is_apk = send_path.lower().endswith(".apk")
+    if is_apk and registered_media is None:
+        thumb_path = send_path + ".thumb.png"
+        try:
+            if os.path.isfile(thumb_path):
+                try:
+                    os.remove(thumb_path)
+                except OSError:
+                    pass
+            success = await asyncio.to_thread(_extract_apk_icon, send_path, thumb_path)
+            if success and os.path.isfile(thumb_path) and os.path.getsize(thumb_path) > 0:
+                thumb_handle = await client.upload_file(thumb_path)
+                send_kwargs["thumb"] = thumb_handle
+        except Exception as e:
+            emit_event("LogEvent", level="WARNING", message=f"Failed to generate APK thumbnail: {e}")
+        finally:
+            if os.path.isfile(thumb_path):
+                try:
+                    os.remove(thumb_path)
+                except OSError:
+                    pass
+
     if opts.reply_to:
         send_kwargs["reply_to"] = int(opts.reply_to)
     sched = _parse_schedule(opts.schedule_date)
@@ -1669,9 +1737,10 @@ async def _send_one(
     finally:
         # thumb may be InputFile handle, not a path — only unlink real files we created
         try:
-            thumb_candidate = send_path + ".thumb.jpg"
-            if os.path.isfile(thumb_candidate):
-                os.remove(thumb_candidate)
+            for ext_candidate in (".thumb.jpg", ".thumb.png"):
+                thumb_candidate = send_path + ext_candidate
+                if os.path.isfile(thumb_candidate):
+                    os.remove(thumb_candidate)
         except Exception:
             pass
         if registered_media and registered_media.thumb_path:

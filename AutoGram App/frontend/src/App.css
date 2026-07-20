@@ -3393,6 +3393,8 @@ body.td-dnd-external {
 .td-type-ico.json { color: #fbbf24; }
 .td-type-ico.code { color: #22d3ee; }
 .td-type-ico.archive { color: #fb923c; }
+.td-type-ico.apk { color: #a4c639; }
+
 
 .td-muted-ico {
   color: var(--td-sub);

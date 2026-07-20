@@ -8,6 +8,7 @@ import {
   FileCode,
   Archive,
   Link,
+  Package,
 } from 'lucide-react';
 import { driveFileExt, isTextDriveFile, type DriveFile } from '../../lib/driveTypes';
 
@@ -23,6 +24,9 @@ export function FileTypeIcon({ file, size = 'sm' }: Props) {
   const cls = size === 'lg' ? 'td-type-ico lg' : 'td-type-ico';
   const mime = (file.mime_type || '').toLowerCase();
 
+  if (ext === 'apk') {
+    return <Package size={px} className={`${cls} apk`} />;
+  }
   if (t === 'link' || ext === 'link') {
     return <Link size={px} className={`${cls} link`} />;
   }
