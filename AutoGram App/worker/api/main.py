@@ -341,3 +341,94 @@ async def remote_upload(
                 print(f"[API] Cleaned up temp file: {temp_path}", flush=True)
             except Exception as ce:
                 print(f"[API] Warning: Failed to delete temp file {temp_path}: {ce}", flush=True)
+
+
+@app.get("/api/v1/verify-url")
+async def verify_url(url: str = Query(...)):
+    import aiohttp
+    import urllib.parse
+    import re
+    
+    # 1. Basic validation
+    if not url.startswith("http://") and not url.startswith("https://"):
+        return {"valid": False, "error": "URL harus diawali dengan http:// atau https://"}
+        
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        status = 0
+        content_type = ""
+        content_len = None
+        headers_dict = {}
+        
+        async with aiohttp.ClientSession(headers=headers) as session:
+            # We first try HEAD request (fast, no body download)
+            try:
+                async with session.head(url, timeout=10, allow_redirects=True) as response:
+                    status = response.status
+                    content_type = response.headers.get('Content-Type', '')
+                    content_len = response.content_length
+                    headers_dict = dict(response.headers)
+            except Exception:
+                status = 0
+            
+            # HEAD failed or returned method not allowed, fallback to GET (read only first chunk)
+            if status not in (200, 201, 204):
+                try:
+                    async with session.get(url, timeout=10, allow_redirects=True) as response:
+                        status = response.status
+                        content_type = response.headers.get('Content-Type', '')
+                        content_len = response.content_length
+                        headers_dict = dict(response.headers)
+                except Exception as e:
+                    return {"valid": False, "error": f"URL tidak dapat dijangkau: {str(e)}"}
+
+        if status != 200:
+            return {"valid": False, "error": f"URL tidak dapat diakses (HTTP {status})"}
+
+        # Check content-type: html pages are not media/files
+        if 'text/html' in content_type.lower():
+            return {
+                "valid": False,
+                "error": "URL merujuk ke halaman web (HTML), bukan file media langsung. Silakan masukkan link download langsung."
+            }
+
+        # Determine filename
+        filename = ""
+        cd = headers_dict.get('Content-Disposition')
+        if cd:
+            fname_match = re.findall(r'filename\*=\s*UTF-8\'\'(.+)', cd, re.IGNORECASE)
+            if fname_match:
+                filename = urllib.parse.unquote(fname_match[0])
+            else:
+                fname_match = re.findall(r'filename\s*=\s*["\']?([^"\';]+)["\']?', cd, re.IGNORECASE)
+                if fname_match:
+                    filename = fname_match[0]
+
+        if not filename:
+            parsed = urllib.parse.urlparse(url)
+            filename = os.path.basename(parsed.path)
+
+        filename = os.path.basename(filename)
+        if not filename:
+            filename = "remote_file"
+
+        # Check file extension
+        ext = os.path.splitext(filename)[1].lower()
+        # Warn if extension is known webpage/code/styling/etc.
+        invalid_exts = {".html", ".htm", ".php", ".asp", ".aspx", ".jsp", ".js", ".css", ".json"}
+        if ext in invalid_exts:
+            return {
+                "valid": False,
+                "error": f"Tipe file {ext} tidak didukung sebagai media."
+            }
+
+        return {
+            "valid": True,
+            "filename": filename,
+            "size": content_len or 0,
+            "content_type": content_type
+        }
+    except Exception as e:
+        return {"valid": False, "error": f"Gagal memverifikasi URL: {str(e)}"}

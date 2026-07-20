@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.25
+AutoGram Version: v2.1.26
 
 Current State:
-Perbaikan Penamaan Berkas dan Akurasi Progress Unduhan pada Remote URL/Transfer
+Perbaikan Input URL Terhapus dan Validasi Tipe Berkas pada Remote URL
 
 Previous:
+v2.1.25 Perbaikan Penamaan Berkas dan Akurasi Progress Unduhan pada Remote URL/Transfer
 v2.1.24 Pencegahan SQLite Database Lock pada Telethon Session selama Remote URL/Transfer
 v2.1.23 Perbaikan Fitur Download Semua (ZIP) pada Media Studio
 v2.1.22 Pencegahan Konflik Seleksi Marquee (Select Rectangle) pada Scrollbar

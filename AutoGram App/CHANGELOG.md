@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.26 Perbaikan Input URL Terhapus dan Validasi Tipe Berkas pada Remote URL
+
+Fixed:
+- Memperbaiki bug pada modal Remote URL (`RemoteUploadModal.tsx`) di mana URL yang diinput terhapus otomatis saat halaman parent melakukan re-render berkala. Masalah ini disebabkan oleh dependency array `useEffect` yang memantau closure `onClose` yang selalu dibuat ulang pada setiap render. Kini reset state dipisahkan hanya ketika modal bertransisi menjadi terbuka (`isOpen`).
+- Menambahkan pre-flight check otomatis saat pengguna mengeklik "Mulai Unggah". Aplikasi akan memanggil endpoint verifikasi lokal `/api/v1/verify-url` di FastAPI worker untuk memvalidasi apakah URL mengarah ke file unduhan langsung (bukan halaman HTML, php, js, css, dsb) sebelum antrean upload dibuat. Jika validasi gagal, pesan error spesifik ditampilkan pada modal tanpa menutup modal tersebut, sehingga input URL tidak hilang.
+
 ## v2.1.25 Perbaikan Penamaan Berkas dan Akurasi Progress Unduhan pada Remote URL/Transfer
 
 Fixed:

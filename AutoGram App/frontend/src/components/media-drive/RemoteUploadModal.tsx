@@ -20,11 +20,18 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Reset fields only when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setUrl('');
+      setFolderId(null);
+      setErrorMsg('');
+    }
+  }, [isOpen]);
+
+  // Handle Escape key to close modal
   useEffect(() => {
     if (!isOpen) return;
-    setUrl('');
-    setFolderId(null);
-    setErrorMsg('');
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -54,6 +61,16 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
     
     setSubmitting(true);
     try {
+      // Verifikasi URL via FastAPI lokal
+      const verifyRes = await fetch(`http://127.0.0.1:8550/api/v1/verify-url?url=${encodeURIComponent(targetUrl)}`);
+      if (!verifyRes.ok) {
+        throw new Error(`Gagal menghubungi server verifikasi (HTTP ${verifyRes.status})`);
+      }
+      const data = await verifyRes.json() as { valid: boolean; error?: string; filename?: string; size?: number };
+      if (!data.valid) {
+        throw new Error(data.error || 'URL tidak valid atau tidak merujuk ke file media langsung.');
+      }
+
       await onUpload(targetUrl, folderId);
       onClose();
     } catch (err: any) {
