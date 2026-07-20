@@ -95,6 +95,34 @@ def _adaptive_prepare_slots(opts: "StudioOptions", item_count: int) -> int:
     return 2 if ram >= 4 * 1024**3 and vram >= int(1.5 * 1024**3) else 1
 
 
+def patch_telethon_sqlite_session():
+    try:
+        from telethon.sessions import SQLiteSession
+        if not getattr(SQLiteSession._cursor, '_is_patched', False):
+            orig_cursor = SQLiteSession._cursor
+            
+            def patched_cursor(self):
+                cursor = orig_cursor(self)
+                try:
+                    if self._conn is not None:
+                        if not getattr(self._conn, '_patched_wal_timeout', False):
+                            self._conn.execute("PRAGMA journal_mode=WAL;")
+                            self._conn.execute("PRAGMA busy_timeout=15000;")
+                            self._conn.execute("PRAGMA synchronous=NORMAL;")
+                            self._conn.commit()
+                            setattr(self._conn, '_patched_wal_timeout', True)
+                except Exception:
+                    pass
+                return cursor
+                
+            patched_cursor._is_patched = True
+            SQLiteSession._cursor = patched_cursor
+    except Exception:
+        pass
+
+patch_telethon_sqlite_session()
+
+
 def _patch_session_wal(session_file: str) -> None:
     """
     Apply WAL journal mode and high busy_timeout to Telethon's session SQLite file

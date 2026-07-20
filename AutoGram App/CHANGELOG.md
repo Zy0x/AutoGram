@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.24 Pencegahan SQLite Database Lock pada Telethon Session selama Remote URL/Transfer
+
+Fixed:
+- Mengintegrasikan global monkey-patch pada interaksi database internal Telethon di level worker. Modifikasi ini secara otomatis mengonfigurasi parameter transaksi database sesi (`PRAGMA journal_mode=WAL` dan `PRAGMA busy_timeout=15000`) untuk mencegah tabrakan akses.
+- Perubahan ini menjamin bahwa transfer berkas via Remote URL tidak akan memicu galat `database is locked` saat terjadi akses konkuren dengan proses latar belakang lainnya.
+
 ## v2.1.23 Perbaikan Fitur Download Semua (ZIP) pada Media Studio
 
 Fixed:

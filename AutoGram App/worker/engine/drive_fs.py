@@ -1919,6 +1919,34 @@ def _write_lite_thumb(path: str, data: bytes, *, hard_max: Optional[int] = None)
         return False
 
 
+def patch_telethon_sqlite_session():
+    try:
+        from telethon.sessions import SQLiteSession
+        if not getattr(SQLiteSession._cursor, '_is_patched', False):
+            orig_cursor = SQLiteSession._cursor
+            
+            def patched_cursor(self):
+                cursor = orig_cursor(self)
+                try:
+                    if self._conn is not None:
+                        if not getattr(self._conn, '_patched_wal_timeout', False):
+                            self._conn.execute("PRAGMA journal_mode=WAL;")
+                            self._conn.execute("PRAGMA busy_timeout=15000;")
+                            self._conn.execute("PRAGMA synchronous=NORMAL;")
+                            self._conn.commit()
+                            setattr(self._conn, '_patched_wal_timeout', True)
+                except Exception:
+                    pass
+                return cursor
+                
+            patched_cursor._is_patched = True
+            SQLiteSession._cursor = patched_cursor
+    except Exception:
+        pass
+
+patch_telethon_sqlite_session()
+
+
 def _patch_session_wal(session_file: str) -> None:
     """Enable WAL + high busy_timeout on a Telethon .session SQLite."""
     db_path = session_file + ".session" if not session_file.endswith(".session") else session_file
