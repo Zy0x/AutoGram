@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.40 Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
+
+Added:
+- Meningkatkan waktu tunggu (grace timeout) pembunuhan proses lama dari `150` md menjadi `350` md di antarmuka frontend (`driveSession.ts`). Ini memberi waktu yang cukup bagi sistem operasi (OS) untuk sepenuhnya mematikan proses lama dan merilis kunci (file lock) basis data sebelum proses baru dijalankan.
+- Mengurangi timeout koneksi SQLite internal `_patch_session_wal` di Python (`drive_fs.py`) dari `5.0` menjadi `0.2` detik, serta mengeluarkan inisialisasi `TelegramClient` dari dalam perulangan percobaan kembali (attempt loop) pada fungsi `_connect` guna mencegah kebocoran alokasi memori dan antrean lock yang menghambat waktu muat awal hingga 5 detik.
+
 ## v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 
 Added:

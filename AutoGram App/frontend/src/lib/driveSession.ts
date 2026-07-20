@@ -189,7 +189,7 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
 
     // 2. Stop main session
     await stopDriveSession();
-    await new Promise<void>((resolve) => setTimeout(resolve, 150));
+    await new Promise<void>((resolve) => setTimeout(resolve, 350));
 
     // 3. Spawn drive-serve with ghost session (_preview)
     const generation = ++sessionGeneration;
@@ -369,7 +369,7 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     ghostReady = false;
 
     await stopDriveSession();
-    await new Promise<void>((resolve) => setTimeout(resolve, 150));
+    await new Promise<void>((resolve) => setTimeout(resolve, 350));
 
     const generation = ++sessionGeneration;
     activeCredsKey = key;

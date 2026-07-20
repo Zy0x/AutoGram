@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.39
+AutoGram Version: v2.1.40
 
 Current State:
-Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
+Optimasi Kecepatan Sambung Sesi Drive saat Hard Refresh
 
 Previous:
+v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
 v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio

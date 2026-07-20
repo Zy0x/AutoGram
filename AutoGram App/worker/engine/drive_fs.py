@@ -1954,7 +1954,7 @@ def _patch_session_wal(session_file: str) -> None:
         return
     try:
         import sqlite3 as _sqlite3
-        conn = _sqlite3.connect(db_path, timeout=5.0)
+        conn = _sqlite3.connect(db_path, timeout=0.2)
         try:
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("PRAGMA busy_timeout=15000;")
@@ -1997,9 +1997,9 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     last_err: Optional[Exception] = None
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     session_file = os.path.join(session_dir, session_name)
+    _patch_session_wal(session_file)
+    client = _session_client(session_name, api_id, api_hash)
     for attempt in range(8):
-        _patch_session_wal(session_file)
-        client = _session_client(session_name, api_id, api_hash)
         try:
             await client.connect()
             if not await client.is_user_authorized():
