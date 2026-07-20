@@ -503,9 +503,18 @@ export function DriveExplorer({
   const onExplorerPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     if (isInteractiveTarget(e.target)) return;
-    // Start marquee on empty surface
     const el = parentRef.current;
     if (!el) return;
+
+    // Ignore clicks on scrollbars
+    const rect = el.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    if (localX >= el.clientWidth || localY >= el.clientHeight) {
+      return;
+    }
+
+    // Start marquee on empty surface
     el.setPointerCapture(e.pointerId);
     const mode = marqueeModeFromKeys(e);
     const cbox = el.getBoundingClientRect();

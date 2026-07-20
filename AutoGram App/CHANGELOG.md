@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.22 Pencegahan Konflik Seleksi Marquee (Select Rectangle) pada Scrollbar
+
+Fixed:
+- Memperbaiki konflik navigasi marquee selection (select rectangle) dengan interaksi scrollbar. Menambahkan pendeteksian posisi klik pada area scrollbar (`clientWidth` / `clientHeight`) dalam fungsi `onExplorerPointerDown` di [DriveExplorer.tsx](file:///F:/AutoGram/AutoGram%20App/frontend/src/components/media-drive/DriveExplorer.tsx) untuk mencegah pembuatan kotak seleksi (*select rectangle*) ketika pengguna mengklik dan menggeser (*drag*) scrollbar.
+
 ## v2.1.21 Penyelarasan Tampilan & Pencegahan Garis Biru Fokus (Focus Outline) Scrollbar
 
 Fixed:

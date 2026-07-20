@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.21
+AutoGram Version: v2.1.22
 
 Current State:
-Penyelarasan Tampilan & Pencegahan Garis Biru Fokus (Focus Outline) Scrollbar
+Pencegahan Konflik Seleksi Marquee (Select Rectangle) pada Scrollbar
 
 Previous:
+v2.1.21 Penyelarasan Tampilan & Pencegahan Garis Biru Fokus (Focus Outline) Scrollbar
 v2.1.20 Peningkatan Kestabilan Sesi Telegram & Pencegahan Putus Sambung Acak
 v2.1.19 Penyelarasan Tampilan & Centering Ikon Dialog Konfirmasi Media Drive
 v2.1.18 Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
