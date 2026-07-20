@@ -96,9 +96,16 @@ from database.db import get_connection
 
 async def list_dialogs(session_name, api_id, api_hash, chat_folder_id=None):
     try:
+        try:
+            from core.ghost_session import GhostSessionManager
+            effective_session = GhostSessionManager.ensure_ghost(session_name, GhostSessionManager.PREVIEW_SUFFIX)
+        except Exception as ge:
+            print(f"[WARNING] Failed to clone preview session: {ge}", file=sys.stderr)
+            effective_session = session_name
+
         # Create client without interactive prompts (assuming session exists)
         client = await create_client(
-            session_name=session_name,
+            session_name=effective_session,
             api_id_arg=api_id,
             api_hash_arg=api_hash,
             phone_callback=lambda: "",
@@ -169,8 +176,15 @@ async def list_dialogs(session_name, api_id, api_hash, chat_folder_id=None):
 
 async def list_topics(session_name, chat_id, api_id, api_hash):
     try:
+        try:
+            from core.ghost_session import GhostSessionManager
+            effective_session = GhostSessionManager.ensure_ghost(session_name, GhostSessionManager.PREVIEW_SUFFIX)
+        except Exception as ge:
+            print(f"[WARNING] Failed to clone preview session: {ge}", file=sys.stderr)
+            effective_session = session_name
+
         client = await create_client(
-            session_name=session_name,
+            session_name=effective_session,
             api_id_arg=api_id,
             api_hash_arg=api_hash,
             phone_callback=lambda: "",

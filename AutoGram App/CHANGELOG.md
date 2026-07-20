@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.31 Penggunaan Sesi Kloning Preview untuk Mencegah SQLite Database Locked di Obrolan Migrasi
+
+Fixed:
+- Memperbaiki kegalauan `database is locked` SQLite saat mengeklik tombol pencarian (Browse) obrolan sumber/tujuan di tab Migrasi ketika Media Studio sedang aktif (memiliki session lock).
+- Sekarang, perintah penelusuran `list-dialogs` dan `list-topics` di `daemon.py` secara otomatis menggunakan sesi kloning sementara (`_preview` suffix via `GhostSessionManager`) agar berjalan secara paralel tanpa memperebutkan lock file utama `.session`.
+
 ## v2.1.30 Filter Folder Telegram pada Modal Pemilihan Obrolan Migrasi
 
 Added:
