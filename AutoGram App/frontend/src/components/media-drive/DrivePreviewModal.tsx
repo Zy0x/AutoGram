@@ -631,10 +631,9 @@ export function DrivePreviewModal({
 
         // Keep cached playback if we already painted a hit
         if (!hasUsable) {
-          const disconnected =
-            /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended/i.test(
-              raw
-            );
+          const disconnected = /while disconnected|cannot send requests|koneksi telegram terputus|not connected|drive session ended|drive session stopped|drive session not ready/i.test(
+            raw
+          );
           setError(
             disconnected
               ? 'Koneksi Telegram putus saat memuat pratinjau. Klik Coba lagi — Drive akan menyambung ulang.'

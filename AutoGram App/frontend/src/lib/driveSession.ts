@@ -4,6 +4,7 @@
  * Supports Ghost Session mode for concurrent media preview & streaming during uploads.
  */
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { spawnDaemonJob, killWorkerJob, type JobChild } from './jobProcess';
 import type { DriveCredentials } from './driveApi';
@@ -82,6 +83,44 @@ export function isDriveSessionReadyFor(creds: DriveCredentials | null | undefine
 
 type DriveEventListener = (event: { type: string; [k: string]: any }) => void;
 const listeners = new Set<DriveEventListener>();
+
+// Worker logging buffer for diagnostics (circular)
+const workerLog: string[] = [];
+let workerLogFlushTimer: number | null = null;
+function pushWorkerLog(line: string) {
+  try {
+    const ts = new Date().toISOString();
+    workerLog.push(`${ts} ${String(line || '')}`);
+    if (workerLog.length > 5000) workerLog.shift();
+    if (workerLogFlushTimer == null) {
+      workerLogFlushTimer = window.setTimeout(flushWorkerLogToFile, 2000);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function flushWorkerLogToFile() {
+  try {
+    if (workerLogFlushTimer != null) {
+      clearTimeout(workerLogFlushTimer);
+      workerLogFlushTimer = null;
+    }
+    if (!workerLog.length) return;
+    const contents = workerLog.join('\n') + '\n';
+    // Attempt to write to AppLocalData/AutoGram/drive-worker.log
+    try {
+      await writeTextFile('AutoGram/drive-worker.log', contents, {
+        baseDir: BaseDirectory.AppLocalData,
+      });
+    } catch (e) {
+      // best-effort: ignore write failures
+      console.warn('[drive-serve] failed to write worker log:', e);
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export function addDriveEventListener(l: DriveEventListener) {
   listeners.add(l);
@@ -221,11 +260,16 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
       const jid = p?.jobId ?? p?.job_id;
       if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
       if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[ghost ${String(p.stream || '')}] ${String(p.line || '')}`);
+      } catch {
+        /* ignore */
+      }
       if (p.stream === 'stderr') {
         console.warn('[drive-serve-ghost]', p.line);
-        return;
+      } else {
+        settleCurrentLine(p.line);
       }
-      settleCurrentLine(p.line);
     });
     unsubs.push(unsub);
 
@@ -241,7 +285,9 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         child = null;
         for (const [, pend] of pending) {
           clearTimeout(pend.timer);
-          pend.reject(new Error('Drive session ended'));
+          const err = new Error('Drive session ended');
+          (err as any).code = 'DRIVE_SESSION_ENDED';
+          pend.reject(err);
         }
         pending.clear();
       };
@@ -251,6 +297,18 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
           startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
         }
         return;
+      }
+      // Log abnormal exits for diagnostics
+      if (p.code !== 0) {
+        console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+      } else {
+        console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
+      }
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+        /* ignore */
       }
       if (Date.now() - readyAt < 5_000) {
         return;
@@ -400,11 +458,16 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
       const jid = p?.jobId ?? p?.job_id;
       if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
       if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[main ${String(p.stream || '')}] ${String(p.line || '')}`);
+      } catch {
+        /* ignore */
+      }
       if (p.stream === 'stderr') {
         console.warn('[drive-serve]', p.line);
-        return;
+      } else {
+        settleCurrentLine(p.line);
       }
-      settleCurrentLine(p.line);
     });
     unsubs.push(unsub);
 
@@ -420,7 +483,9 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         child = null;
         for (const [, pend] of pending) {
           clearTimeout(pend.timer);
-          pend.reject(new Error('Drive session ended'));
+          const err = new Error('Drive session ended');
+          (err as any).code = 'DRIVE_SESSION_ENDED';
+          pend.reject(err);
         }
         pending.clear();
       };
@@ -609,7 +674,9 @@ export async function stopDriveSession(): Promise<void> {
     activePreviews = 0;
     for (const [, p] of pending) {
       clearTimeout(p.timer);
-      p.reject(new Error('Drive session stopped'));
+      const err = new Error('Drive session stopped');
+      (err as any).code = 'DRIVE_SESSION_STOPPED';
+      p.reject(err);
     }
     pending.clear();
     if (quitRequested) {
@@ -651,16 +718,55 @@ export async function driveSessionCallFor(
 ): Promise<any> {
   const expected = credKey(creds);
   const needPreview = mode === 'ghost';
-  if (!isDriveSessionReadyFor(creds)) {
-    const ok = await ensureDriveSession(creds, needPreview);
-    if (!ok || !isDriveSessionReadyFor(creds)) {
-      throw new Error('Drive session is not ready for the selected account');
+  const maxAttempts = 3;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Ensure session is warm and owned
+    if (!isDriveSessionReadyFor(creds)) {
+      const ok = await ensureDriveSession(creds, needPreview);
+      if (!ok || !isDriveSessionReadyFor(creds)) {
+        lastErr = new Error('Drive session is not ready for the selected account');
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+          continue;
+        }
+        throw lastErr;
+      }
+    }
+    if (!ready || activeCredsKey !== expected) {
+      lastErr = new Error('Drive session changed before request could start');
+      if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+        continue;
+      }
+      throw lastErr;
+    }
+
+    try {
+      return await driveSessionCall(cmd, { ...params, __session_owner: expected }, timeoutMs, expected);
+    } catch (e: any) {
+      lastErr = e;
+      const msg = String(e?.message || '').toLowerCase();
+      const code = e?.code || '';
+      const isSessionErr =
+        code === 'DRIVE_SESSION_STOPPED' ||
+        code === 'DRIVE_SESSION_ENDED' ||
+        /drive session stopped|drive session ended|drive session not ready|session not ready|drive session changed/i.test(msg);
+
+      if (isSessionErr && attempt < maxAttempts - 1) {
+        try {
+          // Try to re-bootstrap the drive session before retrying
+          await ensureDriveSession(creds, needPreview);
+        } catch {
+          /* ignore */
+        }
+        await new Promise((r) => setTimeout(r, 400 + attempt * 250));
+        continue;
+      }
+      throw e;
     }
   }
-  if (!ready || activeCredsKey !== expected) {
-    throw new Error('Drive session changed before request could start');
-  }
-  return driveSessionCall(cmd, { ...params, __session_owner: expected }, timeoutMs, expected);
+  throw lastErr;
 }
 
 export async function driveSessionCall(

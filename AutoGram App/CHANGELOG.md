@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.43 Perbaikan Import File System Tauri v2 di Sesi Drive
+
+Fixed:
+- Memperbaiki kegagalan resolusi import `@tauri-apps/api/fs` pada berkas `driveSession.ts`. Penggunaan modul file system kini diselaraskan dengan Tauri v2 dengan menggunakan `@tauri-apps/plugin-fs` dan memanfaatkan fungsi `writeTextFile` beserta opsi `baseDir` yang sesuai.
+
 ## v2.1.42 Fitur Sliding Buffer Latar Belakang & Jendela Unduhan Adaptif untuk Streaming Video
 
 Added:

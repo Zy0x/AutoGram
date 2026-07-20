@@ -266,10 +266,21 @@ async function runDrive(creds: DriveCredentials, extra: string[], retries = 4): 
           return await runDriveOnce(creds, extra);
         } catch (e) {
           last = e;
-          if (isSessionLockError(e) && attempt < retries - 1) {
-            await sleep(350 + attempt * 250);
-            continue;
-          }
+              // Retry on SQLite lock (already existing behavior)
+              if (isSessionLockError(e) && attempt < retries - 1) {
+                await sleep(350 + attempt * 250);
+                continue;
+              }
+              // Retry when worker/session disconnected — attempt to re-ensure warm session
+              if (isTelegramDisconnectError(e) && attempt < retries - 1) {
+                try {
+                  await ensureDriveSession(creds);
+                } catch {
+                  /* ignore */
+                }
+                await sleep(400 + attempt * 250);
+                continue;
+              }
           const wrapped = new Error(friendlyDriveError(e) || String((e as any)?.message || e));
           (wrapped as any).raw = String((e as any)?.message || e || '');
           (wrapped as any).cause = e;
@@ -909,7 +920,9 @@ function isTelegramDisconnectError(err: unknown): boolean {
     msg.includes('cannot send requests') ||
     msg.includes('koneksi telegram terputus') ||
     msg.includes('not connected') ||
-    msg.includes('drive session ended')
+    msg.includes('drive session ended') ||
+    msg.includes('drive session stopped') ||
+    msg.includes('drive session not ready')
   );
 }
 
