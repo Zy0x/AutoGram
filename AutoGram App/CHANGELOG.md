@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.39 Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
+
+Added:
+- Memperbarui fungsi "Salin ID" pada klik kanan card media di Media Studio (`SpeedTest.tsx`). Fitur ini sekarang benar-benar menyalin representasi path dari rangkaian ID unik numerik yang terstruktur (contoh: `/[peerId]/[folderId]/[messageId]`, seperti `/-10018475850/123/4567`) dan bukan nama label teks direktorinya.
+
 ## v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 
 Added:

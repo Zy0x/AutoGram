@@ -7532,12 +7532,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               : contextMenu.kind === 'file'
                 ? () => {
                     const file = contextMenu.file;
-                    const segments = breadcrumbSegs.map((s) => s.label).filter(Boolean);
-                    const fileName = file.name || file.original_name || 'file';
-                    const fullPath = '/' + [...segments, fileName].join('/');
+                    const segments = breadcrumbSegs
+                      .map((s) => (s.id != null ? String(s.id) : null))
+                      .filter(Boolean);
+                    const fullPath = '/' + [...segments, String(file.id)].join('/');
                     void navigator.clipboard?.writeText(fullPath).then(
-                      () => setStatusText(`ID (Path) disalin: ${fullPath}`),
-                      () => setStatusText(`ID (Path): ${fullPath}`)
+                      () => setStatusText(`ID disalin: ${fullPath}`),
+                      () => setStatusText(`ID: ${fullPath}`)
                     );
                   }
                 : undefined

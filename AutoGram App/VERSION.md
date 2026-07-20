@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.38
+AutoGram Version: v2.1.39
 
 Current State:
-Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
+Perbaikan Fitur Salin ID Media Menggunakan Path ID Numerik Lengkap di Media Studio
 
 Previous:
+v2.1.38 Optimasi Pemulihan Sesi Drive saat Terputus (Reconnect Speedup)
 v2.1.37 Optimasi Kecepatan Muat Awal (Buffering) Media Non-Cache di Media Studio
 v2.1.36 Fitur Salin ID Lengkap (Path Direktori Virtual) pada Klik Kanan Card Media Studio
 v2.1.35 Penyegaran Referensi File Telegram Sebelum Streaming Media di Latar Belakang
