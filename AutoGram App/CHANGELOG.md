@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.48 Implementasi Engine Buffer Streaming Media Adaptif 6-Layer, Zero-Copy Ring Buffer & Format Sniffing Presisi
+
+Added:
+- Mengimplementasikan 6-Layer Adaptive Buffering Classification berdasarkan ukuran berkas: Tiny (<10MB), Small (10-50MB), Medium (50-350MB), Large (350MB-1GB), Ultra (1-4GB), dan Massive (>4GB) untuk alokasi dynamic worker, prefetch window, dan initial head.
+- Menambahkan Format Sniffer di awal prefetch untuk mendeteksi signature MP4, MKV, WebM, AVI, dan RIFF langsung dari 32-128 KB pertama.
+- Melakukan overriding MIME-type dan memaksa mode sequential-only otomatis pada container non-MP4 seperti WebM dan MKV.
+- Mengimplementasikan zero-copy memory efficiency dengan meminimalisir replikasi bytes buffer RAM via slicing `memoryview` di fungsi cache stream.
+- Menambahkan mekanisme fallback DC failover otomatis ke klien utama Telegram jika terjadi pemutusan pada borrowed connection.
+- Mengatur prefetch throttling yang dinamis dan bitrate-aware yang disesuaikan dengan rata-rata kecepatan unduh real-time dan durasi pemutaran media.
+
 ## v2.1.47 Fitur Pembersihan Proses Latar Belakang Otomatis untuk Fresh Start Remote
 
 Added:

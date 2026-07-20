@@ -90,6 +90,64 @@ def _merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     return out
 
 
+def get_streaming_config(total_size: int) -> dict[str, Any]:
+    # Size-based layer classification (6-layer layout)
+    if total_size < 10 * 1024 * 1024:
+        return {
+            "layer": "tiny",
+            "initial_head": 8 * 1024 * 1024,
+            "window_size": 16 * 1024 * 1024,
+            "throttle_ahead": 0,  # No throttle
+            "workers": 8,
+            "chunk_size": 512 * 1024,
+        }
+    elif total_size < 50 * 1024 * 1024:
+        return {
+            "layer": "small",
+            "initial_head": 4 * 1024 * 1024,
+            "window_size": 16 * 1024 * 1024,
+            "throttle_ahead": 8 * 1024 * 1024,
+            "workers": 12,
+            "chunk_size": 256 * 1024,
+        }
+    elif total_size < 350 * 1024 * 1024:
+        return {
+            "layer": "medium",
+            "initial_head": 2 * 1024 * 1024,
+            "window_size": 12 * 1024 * 1024,
+            "throttle_ahead": 16 * 1024 * 1024,
+            "workers": 16,
+            "chunk_size": 256 * 1024,
+        }
+    elif total_size < 1024 * 1024 * 1024:
+        return {
+            "layer": "large",
+            "initial_head": int(1.5 * 1024 * 1024),
+            "window_size": 8 * 1024 * 1024,
+            "throttle_ahead": 24 * 1024 * 1024,
+            "workers": 20,
+            "chunk_size": 128 * 1024,
+        }
+    elif total_size < 4096 * 1024 * 1024:
+        return {
+            "layer": "ultra",
+            "initial_head": 512 * 1024,
+            "window_size": 6 * 1024 * 1024,
+            "throttle_ahead": 32 * 1024 * 1024,
+            "workers": 24,
+            "chunk_size": 128 * 1024,
+        }
+    else:
+        return {
+            "layer": "massive",
+            "initial_head": 256 * 1024,
+            "window_size": 4 * 1024 * 1024,
+            "throttle_ahead": 48 * 1024 * 1024,
+            "workers": 32,
+            "chunk_size": 64 * 1024,
+        }
+
+
 class ProgressiveMedia:
     def __init__(
         self,
@@ -134,26 +192,50 @@ class ProgressiveMedia:
         from collections import OrderedDict
         self._ram_cache = OrderedDict()  # part_off -> data
 
+        # Aligned part size and layer configs
+        self.part_size = 512 * 1024 if self.total_size > 1024 * 1024 * 1024 else (256 * 1024 if self.total_size > 50 * 1024 * 1024 else 128 * 1024)
+        self.config = get_streaming_config(self.total_size)
+        self.avg_speed = None
+        self._speed_samples: List[float] = []
+        self.sequential_only = False
+
+    def record_speed(self, bytes_downloaded: int, elapsed: float) -> None:
+        if elapsed <= 0:
+            return
+        speed = bytes_downloaded / elapsed
+        self._speed_samples.append(speed)
+        if len(self._speed_samples) > 12:
+            self._speed_samples.pop(0)
+        self.avg_speed = sum(self._speed_samples) / len(self._speed_samples)
+
+    def get_dynamic_window(self) -> int:
+        base_window = self.config.get("window_size", 8 * 1024 * 1024)
+        if self.avg_speed is not None:
+            if self.avg_speed < 500 * 1024:  # < 500 KB/s
+                # Scale down chunk size to prevent blocking
+                return max(1 * 1024 * 1024, base_window // 2)
+            elif self.avg_speed > 2000 * 1024:  # > 2 MB/s
+                # Scale up chunk size for prefetching
+                return min(base_window * 2, max(base_window, self.total_size or base_window))
+        return base_window
+
+    def get_dynamic_workers(self) -> int:
+        base_workers = self.config.get("workers", 16)
+        if self.avg_speed is not None:
+            if self.avg_speed < 500 * 1024:
+                return max(4, base_workers // 2)
+            elif self.avg_speed > 2000 * 1024:
+                return min(32, int(base_workers * 1.5))
+        return base_workers
+
     def get_seek_window(self) -> int:
-        total = self.total_size or 0
-        if total > 1.5 * 1024 * 1024 * 1024:    # >1.5GB
-            return 64 * 1024 * 1024  # 64MB
-        if total > 800 * 1024 * 1024:           # >800MB
-            return 32 * 1024 * 1024  # 32MB
-        if total > 300 * 1024 * 1024:           # >300MB
-            return 16 * 1024 * 1024  # 16MB
-        return 8 * 1024 * 1024       # 8MB (default)
+        return self.get_dynamic_window()
 
     def get_pipeline_window(self) -> int:
-        return self.get_seek_window()
+        return self.get_dynamic_window()
 
     def get_stream_workers(self) -> int:
-        total = self.total_size or 0
-        if total > 1.5 * 1024 * 1024 * 1024:
-            return 32
-        if total > 800 * 1024 * 1024:
-            return 24
-        return 16
+        return self.get_dynamic_workers()
 
     def cancel(self) -> None:
         with self._seek_lock:
@@ -198,8 +280,8 @@ class ProgressiveMedia:
         with self._seek_lock:
             return not self.cancelled and generation == self._seek_generation
 
-    def read_from_cache(self, pos: int, to_read: int) -> Optional[bytes]:
-        part_off = (pos // _PART) * _PART
+    def read_from_cache(self, pos: int, to_read: int) -> Optional[memoryview]:
+        part_off = (pos // self.part_size) * self.part_size
         intra_off = pos - part_off
         with self.cv:
             if part_off in self._ram_cache:
@@ -207,7 +289,7 @@ class ProgressiveMedia:
                 chunk_data = self._ram_cache[part_off]
                 avail = len(chunk_data) - intra_off
                 if avail >= to_read:
-                    return chunk_data[intra_off : intra_off + to_read]
+                    return memoryview(chunk_data)[intra_off : intra_off + to_read]
         return None
 
     def bind_telegram(
@@ -1022,7 +1104,7 @@ async def _release_media_sender(client, media_sender) -> None:
         pass
 
 
-async def _getfile_part(api, input_loc, offset: int, need: int) -> bytes:
+async def _getfile_part(api, input_loc, offset: int, need: int, part_size: int = _PART) -> bytes:
     """One GetFile part with flood handling (same path as fast_transfer)."""
     from engine.fast_transfer import _call_with_flood, _getfile_limit_candidates
 
@@ -1030,7 +1112,7 @@ async def _getfile_part(api, input_loc, offset: int, need: int) -> bytes:
     while len(total_data) < need:
         cur_offset = offset + len(total_data)
         cur_need = need - len(total_data)
-        candidates = _getfile_limit_candidates(cur_need, _PART)
+        candidates = _getfile_limit_candidates(cur_need, part_size)
         if not candidates:
             break
         data = b""
@@ -1085,6 +1167,8 @@ async def _download_parts_concurrent(
     if length <= 0:
         return 0
 
+    part_size = getattr(media, "part_size", _PART)
+
     # Build part offsets; skip already-filled spans
     offsets: List[int] = []
     off = start
@@ -1094,7 +1178,7 @@ async def _download_parts_concurrent(
             off = filled_to
             continue
         offsets.append(off)
-        off += _PART
+        off += part_size
 
     if not offsets:
         return media.contiguous_end_from(start) - start
@@ -1102,31 +1186,44 @@ async def _download_parts_concurrent(
     sem = asyncio.Semaphore(max(2, min(int(workers), 24)))
     written = 0
     lock = asyncio.Lock()
+    import random
 
     async def one(part_off: int) -> None:
         nonlocal written
         if media.cancelled or not media.is_seek_generation_current(seek_generation):
             return
-        need = min(_PART, end - part_off)
+        need = min(part_size, end - part_off)
         if need <= 0:
             return
         if media.contiguous_end_from(part_off) >= part_off + need:
             return
         data = None
-        for attempt in range(3):
+        for attempt in range(4):  # 4 attempts for exponential backoff + jitter
             try:
                 async with sem:
                     if media.cancelled or not media.is_seek_generation_current(seek_generation):
                         return
                     log_debug(f"one() downloading part_off={part_off} need={need} attempt={attempt}")
-                    data = await _getfile_part(api, loc, part_off, need)
-                    log_debug(f"one() downloaded part_off={part_off} size={len(data) if data else 0}")
+                    t0 = time.time()
+                    try:
+                        data = await _getfile_part(api, loc, part_off, need, part_size)
+                    except Exception as e:
+                        # Client failover: if borrowed client fails, fall back to main client
+                        if media._client is not None and media._client is not api:
+                            log_debug(f"one() borrowed client failed, falling back to main client: {e}")
+                            data = await _getfile_part(media._client, loc, part_off, need, part_size)
+                        else:
+                            raise
+                    elapsed = time.time() - t0
                     if data:
+                        media.record_speed(len(data), elapsed)
                         break
             except Exception as e:
                 log_debug(f"WARNING one() part_off={part_off} attempt={attempt} failed: {e}")
-                if attempt < 2:
-                    await asyncio.sleep(0.3 + attempt * 0.5)
+                if attempt < 3:
+                    # Exponential backoff with jitter
+                    delay = 0.5 * (2 ** attempt) + random.uniform(0.0, 0.2)
+                    await asyncio.sleep(delay)
                 else:
                     try:
                         log_debug(f"ERROR _download_parts_concurrent part {part_off} failed: {e}")
@@ -1156,7 +1253,7 @@ async def _download_parts_concurrent(
                             media._ram_cache.pop(part_off)
                         media._ram_cache[part_off] = data
                         media._ram_cache.move_to_end(part_off)
-                        cache_limit = max(100, (media.get_seek_window() // _PART) + 20)
+                        cache_limit = max(100, (media.get_seek_window() // part_size) + 20)
                         while len(media._ram_cache) > cache_limit:
                             media._ram_cache.popitem(last=False)
                 media.mark_range(part_off, len(data))
@@ -1168,7 +1265,7 @@ async def _download_parts_concurrent(
     # Priority loading orchestration
     rest = offsets
     if head_first and offsets:
-        # Phase 1: IMMEDIATE (1MB @ seek position)
+        # Phase 1: IMMEDIATE (first part_size @ seek position)
         first_batch = offsets[:2]
         if len(first_batch) > 1:
             t1 = asyncio.create_task(one(first_batch[0]))
@@ -1183,7 +1280,7 @@ async def _download_parts_concurrent(
             if media.contiguous_end_from(start) <= start and not media.cancelled:
                 await one(first_batch[0])
         
-        # Phase 2: BUFFER FILL (Next 2MB)
+        # Phase 2: BUFFER FILL (Next parts)
         phase2_batch = offsets[2:6]
         if phase2_batch and not media.cancelled:
             await asyncio.gather(*(one(o) for o in phase2_batch), return_exceptions=True)
@@ -1530,6 +1627,7 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
         length=tail_len,
         workers=min(12, media.get_stream_workers()),
         head_first=True,
+        seek_generation=media._seek_generation,
     )
     if media.cancelled:
         return False
@@ -1580,6 +1678,28 @@ def _resolve_stream_target(msg):
     return doc or photo or media or msg
 
 
+def sniff_format(data: bytes) -> str:
+    if len(data) < 32:
+        return "UNKNOWN"
+    # check signatures
+    # 1. MP4
+    if data[4:8] == b"ftyp" or data[4:8] == b"moov" or data[4:8] == b"mdat":
+        return "MP4"
+    # 2. MKV / WebM (EBML)
+    if data[0:4] == b"\x1a\x45\xdf\xa3":
+        return "MKV"
+    # 3. RIFF/AVI
+    if data[0:4] == b"RIFF":
+        if data[8:12] == b"AVI ":
+            return "AVI"
+        return "RIFF"
+    # Fallback MP4 check
+    for i in range(0, min(8, len(data) - 8)):
+        if data[i+4:i+8] in (b"ftyp", b"moov", b"mdat"):
+            return "MP4"
+    return "UNKNOWN"
+
+
 async def fill_stream_from_telegram(
     client,
     msg,
@@ -1602,8 +1722,6 @@ async def fill_stream_from_telegram(
             return
 
         # Always fetch fresh message to get active cryptographic file_references.
-        # Stale file references (common in forwarded or database-cached messages)
-        # cause GetFileRequest to raise FileReferenceExpiredError or download slow.
         try:
             peer = getattr(msg, "peer_id", None) or getattr(msg, "chat_id", None)
             if peer is not None and getattr(msg, "id", None):
@@ -1616,12 +1734,11 @@ async def fill_stream_from_telegram(
             except Exception:
                 pass
 
-        # Resolve location once — document-as-file lives on media.document
+        # Resolve location once
         target = _resolve_stream_target(msg)
         try:
             dc_id, input_loc = utils.get_input_location(target)
         except Exception:
-            # Retry with msg.media / msg explicitly
             input_loc = None
             dc_id = None
             for alt in (
@@ -1639,7 +1756,6 @@ async def fill_stream_from_telegram(
                 except Exception:
                     continue
             if input_loc is None:
-                # Fallback: slow iter_download path (no random seek)
                 try:
                     loop = asyncio.get_running_loop()
                     media.bind_telegram(client, msg, loop)
@@ -1650,7 +1766,7 @@ async def fill_stream_from_telegram(
                     msg,
                     media,
                     start_from=media.contiguous_from_zero(),
-                    max_bytes=stop_after_bytes if warm_only else _PIPELINE_WINDOW,
+                    max_bytes=stop_after_bytes if warm_only else media.get_pipeline_window(),
                 )
                 return
 
@@ -1670,7 +1786,6 @@ async def fill_stream_from_telegram(
                 media_sender=media_sender,
             )
 
-        # Resume warm/partial head if present; never treat sparse full-size as complete
         total = media.total_size or 0
         existing = 0
         try:
@@ -1688,43 +1803,75 @@ async def fill_stream_from_telegram(
         if warm_only and media.contiguous_from_zero() >= stop_after_bytes:
             return
 
-        # Phase 1: tiny HEAD for instant first frame
-        # For large files (>200MB) use a smaller initial head to return URL quickly
-        large_file = total > 200 * 1024 * 1024
-        head_quick = min(128 * 1024, total if total > 0 else 128 * 1024)
+        # Phase 1: Tiny HEAD probe for format sniffing & instant start
+        head_probe_len = min(128 * 1024, total if total > 0 else 128 * 1024)
         if warm_only:
-            head_quick = min(head_quick, stop_after_bytes)
-        if media.contiguous_from_zero() < head_quick:
+            head_probe_len = min(head_probe_len, stop_after_bytes)
+        if media.contiguous_from_zero() < head_probe_len:
             await _download_parts_concurrent(
-                media, start=0, length=head_quick, workers=12, head_first=True
+                media, start=0, length=head_probe_len, workers=8, head_first=True, seek_generation=media._seek_generation
             )
         if media.contiguous_from_zero() <= 0 and not media.cancelled:
             await _fill_stream_iter_download_fallback(
-                client, msg, media, start_from=0, max_bytes=head_quick
+                client, msg, media, start_from=0, max_bytes=head_probe_len, seek_generation=media._seek_generation
             )
+
         if warm_only and media.contiguous_from_zero() >= stop_after_bytes:
             return
 
-        # Phase 1.5 EARLY: moov-at-end bootstrap ASAP (document originals).
-        # Run in parallel with head expand so duration/seek unlock without waiting 1MB head.
-        # For large files use 4MB head to ensure moov is reliably reachable.
-        head_len = min(4 * 1024 * 1024 if large_file else 2 * 1024 * 1024,
-                       total if total > 0 else 4 * 1024 * 1024)
+        # Format sniffing & progressive detection
+        format_type = "UNKNOWN"
+        is_fast_start = False
+        if os.path.isfile(media.path) and os.path.getsize(media.path) >= 32:
+            try:
+                with open(media.path, "rb") as f:
+                    head_data = f.read(131072)
+                format_type = sniff_format(head_data)
+                if format_type == "MP4":
+                    is_fast_start = b"moov" in head_data
+                elif format_type in ("MKV", "WEBM"):
+                    media.sequential_only = True
+                
+                # MIME Override for player compatibility
+                if format_type == "MP4":
+                    media.mime = "video/mp4"
+                elif format_type == "MKV":
+                    media.mime = "video/x-matroska"
+                elif format_type == "WEBM" or (format_type == "MKV" and "webm" in media.label.lower()):
+                    media.mime = "video/webm"
+                elif format_type == "AVI":
+                    media.mime = "video/x-msvideo"
+            except Exception:
+                pass
+        log_debug(f"Media format sniffed: {format_type}, is_fast_start: {is_fast_start}, sequential_only: {media.sequential_only}")
+
+        # Determine head expansion length
+        if format_type in ("MKV", "WEBM") or getattr(media, "sequential_only", False):
+            # Strict Sequential Mode: larger (8MB) head buffer
+            head_len = min(8 * 1024 * 1024, total if total > 0 else 8 * 1024 * 1024)
+        else:
+            head_len = media.config.get("initial_head", 2 * 1024 * 1024)
+
         if warm_only:
             head_len = min(head_len, stop_after_bytes)
 
+        # Expand head and bootstrap moov
         async def _expand_head() -> None:
             if media.contiguous_from_zero() < head_len and not media.cancelled:
                 await _download_parts_concurrent(
                     media,
                     start=media.contiguous_from_zero(),
                     length=head_len - media.contiguous_from_zero(),
-                    workers=16 if large_file else 8,
+                    workers=media.get_stream_workers(),
                     head_first=True,
+                    seek_generation=media._seek_generation,
                 )
 
         async def _moov_boot() -> None:
-            if warm_only or media.cancelled or total <= head_quick:
+            if warm_only or media.cancelled or total <= head_probe_len:
+                return
+            # Skip moov bootstrap for Fast-Start or non-MP4 containers
+            if is_fast_start or format_type in ("MKV", "WEBM") or getattr(media, "sequential_only", False):
                 return
             try:
                 await _bootstrap_moov_at_end(media)
@@ -1738,48 +1885,69 @@ async def fill_stream_from_telegram(
             await asyncio.gather(_expand_head(), _moov_boot())
 
         if warm_only:
-            # Hover warm stops here — leave incomplete for open to resume
             return
 
-        # Phase 2: pipeline concurrent sliding windows ahead of the playhead.
-        # Only return early if warm_only is True (hover mode). Otherwise, run a sliding pre-download.
-        if warm_only:
-            media.notify()
-            return
+        # Bitrate-Aware Override calculation
+        duration = 0
+        if msg is not None:
+            for attr in getattr(msg, "attributes", []):
+                if hasattr(attr, "duration") and attr.duration:
+                    duration = attr.duration
+                    break
+        bitrate_bps = 0
+        if duration > 0 and total > 0:
+            bitrate_bps = total / duration  # average bytes per second
 
-        workers = media.get_stream_workers()
+        # Phase 2: Pipeline pre-downloads ahead of the playhead
         while not media.cancelled:
+            # Active seek generation monitoring
+            generation = media._seek_generation
             playhead = media._active_seek_offset or 0
             pos = max(media.contiguous_from_zero(), playhead)
             if total > 0 and pos >= total:
                 break
 
-            # Throttle background sequential download if it gets too far ahead of the active playhead
-            if total > 0 and pos > playhead + 12 * 1024 * 1024:
+            # Calculate adaptive throttle distance
+            throttle_dist = media.config.get("throttle_ahead", 16 * 1024 * 1024)
+            if throttle_dist is None or throttle_dist <= 0:
+                # None or 0 means no throttling (Tiny layer)
+                throttle_dist = total or (100 * 1024 * 1024)
+            else:
+                if bitrate_bps > 0:
+                    throttle_dist = max(throttle_dist, int(bitrate_bps * 30))
+
+            if total > 0 and pos > playhead + throttle_dist:
                 await asyncio.sleep(1.0)
                 continue
 
-            # If next byte is already in a filled island (rare), jump to hole
             window = media.get_pipeline_window()
             if total > 0:
                 window = min(window, total - pos)
             if window <= 0:
                 break
+            
             before = pos
+            workers = media.get_stream_workers()
             await _download_parts_concurrent(
-                media, start=pos, length=window, workers=workers, head_first=True
+                media, start=pos, length=window, workers=workers, head_first=True, seek_generation=generation
             )
+            
+            if generation != media._seek_generation:
+                continue
+
             after_end = media.contiguous_end_from(before)
             if after_end <= before:
-                # Hole or stall — try iter_download recovery at tip
+                # Hole recovery
                 await _fill_stream_iter_download_fallback(
-                    client, msg, media, start_from=before, max_bytes=_PART * 8
+                    client, msg, media, start_from=before, max_bytes=media.part_size * 8, seek_generation=generation
                 )
+                if generation != media._seek_generation:
+                    continue
                 after_end = media.contiguous_end_from(before)
                 if after_end <= before:
-                    # Skip tiny unfilled gap by seeking one part ahead if bound
+                    # Skip tiny unfilled gaps
                     if media._input_loc is not None and total > 0:
-                        skip_to = min(total, before + _PART)
+                        skip_to = min(total, before + media.part_size)
                         if skip_to > before:
                             await _download_parts_concurrent(
                                 media,
@@ -1787,7 +1955,10 @@ async def fill_stream_from_telegram(
                                 length=min(media.get_pipeline_window(), total - skip_to),
                                 workers=workers,
                                 head_first=True,
+                                seek_generation=generation,
                             )
+                            if generation != media._seek_generation:
+                                continue
                             if media.contiguous_end_from(skip_to) <= skip_to:
                                 break
                     else:
@@ -1800,7 +1971,6 @@ async def fill_stream_from_telegram(
         have = media.contiguous_from_zero()
         if media.total_size <= 0:
             media.total_size = max(have, media.filled_bytes())
-        # Done when prefix covers full file OR every byte is filled (sparse complete)
         filled = media.filled_bytes()
         if media.total_size > 0 and (
             have >= media.total_size or filled >= media.total_size
@@ -1808,7 +1978,6 @@ async def fill_stream_from_telegram(
             if have >= media.total_size:
                 media.mark_done()
             elif filled >= media.total_size:
-                # All islands filled — merge to full if no holes... only if filled == total
                 media.mark_done()
         elif media.total_size <= 0 and have > 0:
             media.mark_done()
