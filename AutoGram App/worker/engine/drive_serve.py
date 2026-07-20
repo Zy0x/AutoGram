@@ -949,9 +949,9 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
                 await asyncio.wait_for(asyncio.shield(connect_task), timeout=45.0)
             except Exception:
                 pass
-        if state["client"] is None and state.get("connect_error"):
-            raise RuntimeError(f"Telegram connect failed: {state['connect_error']}")
         async with connect_lock:
+            # Clear connect_error to allow _ensure_connected to attempt connection recovery
+            state["connect_error"] = None
             state["client"] = await _ensure_connected(
                 state["client"],
                 session_name=state["session_name"],

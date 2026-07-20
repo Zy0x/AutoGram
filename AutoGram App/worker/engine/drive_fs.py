@@ -2004,9 +2004,10 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     last_err: Optional[Exception] = None
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     session_file = os.path.join(session_dir, session_name)
-    _patch_session_wal(session_file)
-    client = _session_client(session_name, api_id, api_hash)
+    
     for attempt in range(8):
+        _patch_session_wal(session_file)
+        client = _session_client(session_name, api_id, api_hash)
         try:
             await asyncio.wait_for(client.connect(), timeout=10.0)
             if not await client.is_user_authorized():

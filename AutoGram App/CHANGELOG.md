@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.51 Perbaikan Reconnect Self-Healing & Rekreasi Client Instan pada Database Locks
+
+Fixed:
+- Mengubah fungsi `_live_client` pada `drive_serve.py` agar selalu menghapus `connect_error` sebelum mencoba pemulihan koneksi `_ensure_connected`. Hal ini memungkinkan aplikasi melakukan koneksi ulang secara mandiri (*self-healing*) saat pengguna menekan tombol "Muat" atau saat perintah baru dikirimkan, alih-alih terkunci selamanya dalam kondisi gagal akibat error inisialisasi awal.
+- Memindahkan pembuatan objek `TelegramClient` ke dalam perulangan percobaan kembali (*retry attempt loop*) pada fungsi `_connect` (`drive_fs.py`). Dengan cara ini, setiap kali koneksi gagal karena basis data SQLite terkunci (*database is locked*) atau kesalahan transien lainnya, sistem akan membuang handle koneksi lama dan membuat instansi client baru secara bersih, menyelaraskan perilakunya dengan `media_studio.py` yang terbukti stabil.
+
 ## v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
 
 Fixed:

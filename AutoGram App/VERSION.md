@@ -1,10 +1,10 @@
-AutoGram Version: v2.1.50
+AutoGram Version: v2.1.51
 
 Current State:
-Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
+Perbaikan Reconnect Self-Healing & Rekreasi Client Instan pada Database Locks
 
 Previous:
-v2.1.49 Penerapan Optimasi Buffer Multi-Layer Khusus Video Dokumen/File & Penyelarasan Batas Part boundaries
+v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
 v2.1.47 Fitur Pembersihan Proses Latar Belakang Otomatis untuk Fresh Start Remote
 v2.1.45 Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming
 v2.1.43 Perbaikan Import File System Tauri v2 di Sesi Drive
