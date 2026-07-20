@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.47 Fitur Pembersihan Proses Latar Belakang Otomatis untuk Fresh Start Remote
+
+Added:
+- Menambahkan modul deteksi dan pembersihan paksa proses (cleanup routine) di awal skrip `ensure-remote.ps1` yang dipanggil oleh `1-Start-Remote.vbs`.
+- Skrip sekarang secara otomatis memindai dan mematikan semua proses `frontend.exe`, `node.exe` (Vite dev server), dan `python.exe` (daemon & workers) yang berjalan di direktori AutoGram atau dipanggil dengan parameter AutoGram, guna menjamin kondisi "fresh start" (semua port dibebaskan dan tidak ada tabrakan instance) setiap kali remote dijalankan.
+- Mencegah penutupan diri sendiri (runner PID) dan terminal PowerShell pengembang lainnya secara aman.
+
 ## v2.1.46 Pemberantasan CPU Overhead SQLite Patch & Retransmisi Koneksi Resilient Sesi Drive
 
 Added:

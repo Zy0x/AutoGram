@@ -158,6 +158,24 @@ Write-EnsureLog 'ensure-remote START'
 Write-Phase 'START' 'cold ensure'
 Set-Status 'WORKING bootstrap (0s) - starting remote stack...'
 
+# Fresh start cleanup: terminate any running processes related to AutoGram
+Write-Phase 'CLEANUP' 'force-closing existing AutoGram processes'
+Set-Progress 'Cleanup' 'terminating stale processes'
+
+$currentPid = $PID
+Get-CimInstance Win32_Process | Where-Object {
+  ($_.ExecutablePath -and ($_.ExecutablePath -like "*AutoGram*")) -or 
+  ($_.CommandLine -and ($_.CommandLine -like "*AutoGram*"))
+} | Where-Object {
+  $_.ProcessId -ne $currentPid -and $_.Name -notlike "*powershell*"
+} | ForEach-Object {
+  try {
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    Write-EnsureLog "Killed stale process: $($_.Name) (PID $($_.ProcessId))"
+  } catch {}
+}
+Start-Sleep -Milliseconds 600
+
 if (-not $exe) {
   Write-EnsureLog 'ERROR frontend.exe missing'
   Set-Status 'FAIL frontend.exe missing - build with tauri first'
