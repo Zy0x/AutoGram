@@ -69,6 +69,29 @@ def resolve_session_path(session_name: str) -> str:
     return os.path.join(sessions_dir, session_name)
 
 
+import sqlite3 as _sqlite3
+
+def _patch_session_wal(session_file: str) -> None:
+    db_path = (
+        session_file + '.session'
+        if not session_file.endswith('.session')
+        else session_file
+    )
+    if not os.path.isfile(db_path):
+        return
+    try:
+        conn = _sqlite3.connect(db_path, timeout=5.0)
+        try:
+            conn.execute('PRAGMA journal_mode=WAL;')
+            conn.execute('PRAGMA busy_timeout=15000;')
+            conn.execute('PRAGMA synchronous=NORMAL;')
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        pass
+
+
 async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, phone_callback=None, code_callback=None, password_callback=None) -> TelegramClient:
     """
     Prefer worker/sessions/<name>.session (file) — same as daemon execute-job / Media Studio.
@@ -80,6 +103,7 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
 
     if os.path.isfile(file_session):
         # File-based session (Lavender.session, Mantan Gadis.session, …)
+        _patch_session_wal(file_base)
         client = TelegramClient(file_base, api_id, api_hash)
     else:
         session_data = get_session(session_name)

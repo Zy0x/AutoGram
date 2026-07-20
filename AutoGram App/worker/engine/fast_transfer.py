@@ -312,7 +312,7 @@ def _workers_for_size(file_size: int, requested: int = 0) -> int:
     return 48
 
 
-async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
+async def _call_with_flood(client_or_sender, request, *, retries: int = 8, client=None):
     """
     Invoke MTProto request with FloodWait backoff.
     `client_or_sender` may be TelegramClient or an exported media-DC sender.
@@ -321,7 +321,7 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
     attempt = 0
     while True:
         try:
-            if hasattr(client_or_sender, "_call"):
+            if hasattr(client_or_sender, "_call") or callable(client_or_sender):
                 return await client_or_sender(request)
             else:
                 return await client_or_sender.send(request)
@@ -329,6 +329,13 @@ async def _call_with_flood(client_or_sender, request, *, retries: int = 8):
             wait_seconds = int(getattr(e, "seconds", 1) or 1)
             try:
                 get_ghost_throttler().record_flood_wait(wait_seconds)
+            except Exception:
+                pass
+            try:
+                target_client = client if client is not None else (client_or_sender if hasattr(client_or_sender, "session") else None)
+                if target_client and hasattr(target_client, "session") and hasattr(target_client.session, "filename"):
+                    from core.shared_state import SharedRateLimiter
+                    SharedRateLimiter.record_flood_wait(target_client.session.filename, wait_seconds)
             except Exception:
                 pass
             total_wait = wait_seconds + 2
@@ -413,6 +420,16 @@ async def fast_upload_file(
     (even with cryptg) — high-latency links gain more from parallelism than
     from a single native sequential stream.
     """
+    # Check shared rate limiter
+    try:
+        if hasattr(client, "session") and hasattr(client.session, "filename"):
+            from core.shared_state import SharedRateLimiter
+            delay = SharedRateLimiter.get_delay(client.session.filename)
+            if delay > 0:
+                await asyncio.sleep(delay)
+    except Exception:
+        pass
+
     if not path or not os.path.isfile(path):
         raise FileNotFoundError(path)
 
@@ -566,7 +583,7 @@ async def fast_upload_file(
                     req = SaveBigFilePartRequest(file_id, idx, part_count, data)
                 else:
                     req = SaveFilePartRequest(file_id, idx, data)
-                await _call_with_flood(client, req)
+                await _call_with_flood(client, req, client=client)
                 
                 # If latency is high (> 2.0s), reset streak to slow down
                 if (time.time() - start_time) > 2.0:
@@ -975,6 +992,16 @@ async def fast_download_media(
     Download message media with concurrent GetFile parts when size warrants it.
     Falls back to sequential only if concurrent path cannot complete.
     """
+    # Check shared rate limiter
+    try:
+        if hasattr(client, "session") and hasattr(client.session, "filename"):
+            from core.shared_state import SharedRateLimiter
+            delay = SharedRateLimiter.get_delay(client.session.filename)
+            if delay > 0:
+                await asyncio.sleep(delay)
+    except Exception:
+        pass
+
     import time as _time
     from engine.transfer_log import set_transfer_session, tlog, tlog_exc, tlog_verbose, log_path
 
@@ -1151,6 +1178,7 @@ async def fast_download_media(
                             GetFileRequest(
                                 location=input_loc, offset=offset, limit=limit
                             ),
+                            client=client,
                         )
                         data = getattr(result, "bytes", None) or b""
                     if data:
@@ -1318,6 +1346,7 @@ async def fast_download_media(
                                     GetFileRequest(
                                         location=input_loc, offset=pos, limit=4096
                                     ),
+                                    client=client,
                                 )
                                 chunk = getattr(result, "bytes", None) or b""
                         except Exception as e:
@@ -1379,6 +1408,7 @@ async def fast_download_media(
                                     offset=pos,
                                     limit=4096,
                                 ),
+                                client=client,
                             )
                             chunk = getattr(result, "bytes", None) or b""
                     except Exception as e:
@@ -1468,6 +1498,7 @@ async def fast_download_media(
                             GetFileRequest(
                                 location=input_loc, offset=pos, limit=4096
                             ),
+                            client=client,
                         )
                         chunk = getattr(result, "bytes", None) or b""
                     except Exception as e2:

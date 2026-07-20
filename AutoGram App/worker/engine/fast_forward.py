@@ -285,6 +285,20 @@ class FastForwardEngine:
         if self.dry_run:
             return ForwardResult(status="SUCCESS", messages=messages, sent_messages=[])
 
+        # Check shared rate limiter
+        try:
+            if hasattr(self.client, "session") and hasattr(self.client.session, "filename"):
+                from core.shared_state import SharedRateLimiter
+                delay = SharedRateLimiter.get_delay(self.client.session.filename)
+                if delay > 0:
+                    return ForwardResult(
+                        status="FLOOD_WAIT",
+                        retry_after=int(delay),
+                        messages=messages,
+                    )
+        except Exception:
+            pass
+
         try:
             await self.throttle.human_delay(
                 mode="Fast Forward", batch_size=len(messages)
@@ -314,6 +328,12 @@ class FastForwardEngine:
 
         except FloodWaitError as e:
             self.progress.floodwait_count += 1
+            try:
+                if hasattr(self.client, "session") and hasattr(self.client.session, "filename"):
+                    from core.shared_state import SharedRateLimiter
+                    SharedRateLimiter.record_flood_wait(self.client.session.filename, int(e.seconds))
+            except Exception:
+                pass
             return ForwardResult(
                 status="FLOOD_WAIT",
                 retry_after=int(e.seconds),

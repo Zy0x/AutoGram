@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.17
+AutoGram Version: v2.1.18
 
 Current State:
-Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
+Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
 
 Previous:
+v2.1.17 Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
 v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media
 v2.1.15 Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka
 v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB)

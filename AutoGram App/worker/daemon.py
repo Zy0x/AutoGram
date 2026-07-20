@@ -1012,7 +1012,14 @@ async def main():
                 limit = effective_limit(config)
                 print(f"[EVENT] {json.dumps({'type': 'EngineInitialized', 'execution_id': execution_id, 'job_id': job_id, 'limit': limit, 'mode': config.get('transfer_mode')})}", flush=True)
                 session_dir = os.path.join(os.path.dirname(__file__), 'sessions')
-                session_file = os.path.join(session_dir, config.get('session_name', 'Lavender'))
+                original_session_name = config.get('session_name', 'Lavender')
+                try:
+                    from core.ghost_session import GhostSessionManager
+                    ghost_session_name = GhostSessionManager.ensure_ghost(original_session_name)
+                except Exception as e:
+                    print(f"[WARN] Gagal membuat ghost session: {e}. Menggunakan session utama.", file=sys.stderr)
+                    ghost_session_name = original_session_name
+                session_file = os.path.join(session_dir, ghost_session_name)
                 
                 async def resolve_entity(client, chat_key, label):
                     last_err = None
@@ -1036,6 +1043,11 @@ async def main():
 
                 try:
                     update_execution_status(execution_id, 'STARTING')
+                    try:
+                        from core.client import _patch_session_wal
+                        _patch_session_wal(session_file)
+                    except Exception:
+                        pass
                     client = TelegramClient(session_file, int(effective_api_id), effective_api_hash)
                     await client.connect()
                     if not await client.is_user_authorized():
@@ -1099,6 +1111,12 @@ async def main():
                     # Drop pending tasks that Telethon may leave behind
                     try:
                         await asyncio.sleep(0)
+                    except Exception:
+                        pass
+                    # Cleanup ghost session
+                    try:
+                        from core.ghost_session import GhostSessionManager
+                        GhostSessionManager.cleanup_ghost(original_session_name)
                     except Exception:
                         pass
 

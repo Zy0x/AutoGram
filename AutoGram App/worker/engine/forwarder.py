@@ -285,6 +285,17 @@ class MigrationForwarder:
             if not buffer:
                 return
 
+            # Check shared rate limiter
+            try:
+                if hasattr(self.client, "session") and hasattr(self.client.session, "filename"):
+                    from core.shared_state import SharedRateLimiter
+                    delay = SharedRateLimiter.get_delay(self.client.session.filename)
+                    if delay > 0:
+                        emit_event('FloodWait', seconds=int(delay))
+                        await asyncio.sleep(delay)
+            except Exception:
+                pass
+
             mode_local = self.config.get('transfer_mode') or self.config.get('mode') or 'Clean Copy'
 
             item_ids = []
@@ -329,12 +340,30 @@ class MigrationForwarder:
                                     downloaded_paths.append(fpath)
 
                             if downloaded_paths:
-                                sent_msg = await self.client.send_file(
-                                    self.dest,
-                                    file=downloaded_paths,
-                                    caption=caption_text,
-                                    reply_to=self.config.get('dest_topic_id'),
-                                )
+                                try:
+                                    if len(downloaded_paths) == 1:
+                                        from engine.fast_transfer import fast_send_file
+                                        sent_msg = await fast_send_file(
+                                            client=self.client,
+                                            entity=self.dest,
+                                            path=downloaded_paths[0],
+                                            caption=caption_text,
+                                            reply_to=self.config.get('dest_topic_id'),
+                                        )
+                                    else:
+                                        sent_msg = await self.client.send_file(
+                                            self.dest,
+                                            file=downloaded_paths,
+                                            caption=caption_text,
+                                            reply_to=self.config.get('dest_topic_id'),
+                                        )
+                                except Exception:
+                                    sent_msg = await self.client.send_file(
+                                        self.dest,
+                                        file=downloaded_paths,
+                                        caption=caption_text,
+                                        reply_to=self.config.get('dest_topic_id'),
+                                    )
                             elif any((m.text or m.message) for _, m, _ in item_ids):
                                 text_body = caption_text or next(
                                     (m.text or m.message for _, m, _ in item_ids if (m.text or m.message)),
@@ -387,6 +416,12 @@ class MigrationForwarder:
                     self.throttle.reset_health()
 
             except FloodWaitError as e:
+                try:
+                    if hasattr(self.client, "session") and hasattr(self.client.session, "filename"):
+                        from core.shared_state import SharedRateLimiter
+                        SharedRateLimiter.record_flood_wait(self.client.session.filename, int(e.seconds))
+                except Exception:
+                    pass
                 emit_event('FloodWait', seconds=e.seconds)
                 if e.seconds > 900:
                     print(

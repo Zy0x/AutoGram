@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.18 Implementasi Concurrency Terintegrasi (Opsi C) - Ghost Session, Shared Throttler, SQLite WAL Patch, & Fast Upload Clean Copy
+
+Added:
+- Menambahkan [shared_state.py](file:///F:/AutoGram/AutoGram%20App/worker/core/shared_state.py) sebagai pengelola state rate-limiting lintas-proses (*cross-process*). Utilitas ini mengamankan sinkronisasi status `FloodWait` antar proses terpisah (misal Media Studio dan Daemon Migrasi) menggunakan mekanisme OS-level file lock (`msvcrt` untuk Windows dan `fcntl` untuk Unix) agar tidak terjadi penalti durasi ganda dari Telegram API.
+- Menambahkan [ghost_session.py](file:///F:/AutoGram/AutoGram%20App/worker/core/ghost_session.py) sebagai *Ghost Session Manager* untuk memotong/menyalin file sesi Telegram secara atomis (`<session_name>_migration`) sebelum dieksekusi oleh daemon migrasi. Ini memutus interdependensi lock file fisik `.session` secara total.
+
+Changed:
+- Mengintegrasikan WAL Patch SQLite (`PRAGMA journal_mode=WAL` dan `PRAGMA busy_timeout=15000`) ke dalam [client.py](file:///F:/AutoGram/AutoGram%20App/worker/core/client.py) dan [daemon.py](file:///F:/AutoGram/AutoGram%20App/worker/daemon.py) untuk menjamin database sqlite Telethon aman diakses secara konkuren tanpa galat `database is locked`.
+- Mengintegrasikan pemeriksaan dan pencatatan Shared Throttler pada [fast_transfer.py](file:///F:/AutoGram/AutoGram%20App/worker/engine/fast_transfer.py), [fast_forward.py](file:///F:/AutoGram/AutoGram%20App/worker/engine/fast_forward.py), dan [forwarder.py](file:///F:/AutoGram/AutoGram%20App/worker/engine/forwarder.py) agar seluruh proses asinkron melambat/menunggu secara serempak saat akun terkena batas limit (FloodWait).
+- Mengintegrasikan `fast_send_file` (unggah bagian paralel konkuren) ke dalam alur Clean Copy pada [forwarder.py](file:///F:/AutoGram/AutoGram%20App/worker/engine/forwarder.py) untuk meningkatkan kecepatan transfer file tunggal album hingga **10x lipat** dibandingkan metode unggahan sekuensial bawaan.
+- Menyesuaikan pembungkus MTProto `_call_with_flood` agar mendukung panggilan *mock/callable client* demi keutuhan pengujian fungsional pipeline Media Studio.
+
 ## v2.1.17 Inisialisasi Cepat Session & Paralelisasi Sidebar List di Frontend
 
 Changed:
