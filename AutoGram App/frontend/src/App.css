@@ -10365,12 +10365,12 @@ body:has(.td-page),
 }
 .td-confirm-icon.move {
   background: color-mix(in srgb, #a78bfa 16%, transparent);
-  color: #c4b5fd;
+  color: #c4b5fd !important;
   border: 1px solid color-mix(in srgb, #a78bfa 28%, transparent);
 }
 .td-confirm-icon.input {
   background: color-mix(in srgb, #38bdf8 16%, transparent);
-  color: #7dd3fc;
+  color: #7dd3fc !important;
   border: 1px solid color-mix(in srgb, #38bdf8 28%, transparent);
 }
 .td-confirm-panel.input-dialog {
@@ -10645,12 +10645,12 @@ body:has(.td-page),
 }
 .td-confirm-icon.danger {
   background: color-mix(in srgb, #ef4444 16%, transparent);
-  color: #f87171;
+  color: #f87171 !important;
   border: 1px solid color-mix(in srgb, #ef4444 28%, transparent);
 }
 .td-confirm-icon.download {
   background: color-mix(in srgb, #38bdf8 16%, transparent);
-  color: #7dd3fc;
+  color: #7dd3fc !important;
   border: 1px solid color-mix(in srgb, #38bdf8 28%, transparent);
 }
 .td-confirm-head-text {
@@ -10817,7 +10817,7 @@ body:has(.td-page),
 }
 .td-confirm-btn.primary {
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
-  color: #fff;
+  color: #fff !important;
   border-color: transparent;
   box-shadow: 0 4px 14px color-mix(in srgb, #0ea5e9 35%, transparent);
 }
@@ -10826,7 +10826,7 @@ body:has(.td-page),
 }
 .td-confirm-btn.danger {
   background: linear-gradient(135deg, #dc2626, #ef4444);
-  color: #fff;
+  color: #fff !important;
   border-color: transparent;
   box-shadow: 0 4px 14px color-mix(in srgb, #ef4444 35%, transparent);
 }

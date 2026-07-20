@@ -3,12 +3,11 @@ import sys
 import asyncio
 import urllib.parse
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Query, Header
+from fastapi import FastAPI, HTTPException, Query, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from pydantic import BaseModel
 import aiohttp
-import zipstream
 
 from core.client import create_client
 from engine.drive_fs import _resolve_peer
@@ -41,23 +40,22 @@ def get_message_filename(message, default="file"):
                 return attr.file_name
     return default
 
-def sync_chunk_generator(loop, client, document):
-    """Synchronous chunk generator running async Telethon downloads thread-safely."""
-    offset = 0
-    chunk_size = 512 * 1024  # 512KB chunks for high performance
-    while offset < document.size:
-        coro = client.download_file(
-            document,
-            file=bytes,
-            offset=offset,
-            limit=chunk_size
-        )
-        future = asyncio.run_coroutine_threadsafe(coro, loop)
-        chunk = future.result()
-        if not chunk:
-            break
-        yield chunk
-        offset += len(chunk)
+def cleanup_files(temp_job_dir: str, zip_path: Optional[str] = None):
+    import shutil
+    try:
+        if os.path.exists(temp_job_dir):
+            shutil.rmtree(temp_job_dir, ignore_errors=True)
+            print(f"[API] Cleaned up temporary folder: {temp_job_dir}", flush=True)
+    except Exception as e:
+        print(f"[API] Warning: Failed to clean up temp folder {temp_job_dir}: {e}", flush=True)
+        
+    if zip_path:
+        try:
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+                print(f"[API] Cleaned up temporary ZIP file: {zip_path}", flush=True)
+        except Exception as e:
+            print(f"[API] Warning: Failed to delete temp ZIP {zip_path}: {e}", flush=True)
 
 def ensure_api_session(session_name: str) -> str:
     if not session_name or session_name.endswith("_api") or session_name.endswith("_preview"):
@@ -70,6 +68,9 @@ def ensure_api_session(session_name: str) -> str:
     src_db = os.path.join(sessions_dir, f"{session_name}.session")
     dest_db = os.path.join(sessions_dir, f"{session_name}_api.session")
     
+    if os.path.exists(dest_db):
+        return f"{session_name}_api"
+        
     if not os.path.exists(src_db):
         return session_name
         
@@ -177,12 +178,12 @@ async def health(
 @app.get("/api/v1/folders/{folder_id}/download-all")
 async def download_all(
     folder_id: str,
+    background_tasks: BackgroundTasks,
     session: Optional[str] = Query(None),
     api_id: Optional[str] = Query(None),
     api_hash: Optional[str] = Query(None)
 ):
     client = await get_client(session=session, api_id=api_id, api_hash=api_hash)
-    global loop_instance
         
     actual_id = None
     if folder_id not in (None, '', 'home', 'me', 'null', 'None'):
@@ -204,14 +205,44 @@ async def download_all(
     if not documents:
         raise HTTPException(status_code=404, detail="No files found in folder to download")
         
-    z = zipstream.ZipStream()
-    for doc, filename in documents:
-        z.add(sync_chunk_generator(loop_instance, client, doc), filename)
+    import tempfile
+    import shutil
+    import zipfile
+    
+    worker_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    temp_dir = os.path.join(worker_dir, 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Create unique temporary folder for download task
+    temp_job_dir = tempfile.mkdtemp(dir=temp_dir, prefix="zip_job_")
+    
+    try:
+        print(f"[API] Downloading {len(documents)} files for ZIP generation in: {temp_job_dir}...", flush=True)
+        for doc, filename in documents:
+            dest_path = os.path.join(temp_job_dir, filename)
+            await client.download_file(doc, dest_path)
+            
+        # Create ZIP file
+        zip_path = os.path.join(temp_dir, f"zip_out_{tempfile.mktemp(dir='')}.zip")
+        print(f"[API] Creating ZIP archive at: {zip_path}...", flush=True)
         
-    headers = {
-        "Content-Disposition": f"attachment; filename=folder_{folder_id or 'root'}.zip"
-    }
-    return StreamingResponse(z, media_type="application/zip", headers=headers)
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_f:
+            for filename in os.listdir(temp_job_dir):
+                file_path = os.path.join(temp_job_dir, filename)
+                zip_f.write(file_path, filename)
+                
+        # Register post-completion cleanup task
+        background_tasks.add_task(cleanup_files, temp_job_dir, zip_path)
+        
+        headers = {
+            "Content-Disposition": f"attachment; filename=folder_{folder_id or 'root'}.zip"
+        }
+        return FileResponse(zip_path, media_type="application/zip", headers=headers)
+        
+    except Exception as e:
+        cleanup_files(temp_job_dir, None)
+        print(f"[API] ZIP download-all job failed: {e}", file=sys.stderr, flush=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate ZIP archive: {str(e)}")
 
 @app.post("/api/v1/remote-upload")
 async def remote_upload(
