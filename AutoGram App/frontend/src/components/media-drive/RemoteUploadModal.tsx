@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, Globe, ChevronDown, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Globe, X, Loader2 } from 'lucide-react';
 
 export interface DriveFolderOption {
   id: number;
@@ -19,27 +20,41 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setUrl('');
+    setFolderId(null);
+    setErrorMsg('');
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     
-    if (!url.trim()) {
+    const targetUrl = url.trim();
+    if (!targetUrl) {
       setErrorMsg('Silakan masukkan URL file.');
       return;
     }
     
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
       setErrorMsg('URL harus diawali dengan http:// atau https://');
       return;
     }
     
     setSubmitting(true);
     try {
-      await onUpload(url.trim(), folderId);
-      setUrl('');
-      setFolderId(null);
+      await onUpload(targetUrl, folderId);
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || 'Gagal melakukan remote upload.');
@@ -48,99 +63,116 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
     }
   };
 
-  return (
-    <div 
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-all duration-150 animate-in fade-in"
-      onClick={onClose}
-    >
+  const node = (
+    <div className="td-confirm-overlay" role="presentation" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
-        className="w-[450px] overflow-hidden rounded-xl border border-[var(--border-color,rgba(255,255,255,0.08))] bg-[var(--bg-panel,#171821)] text-[var(--text-normal,#e2e8f0)] shadow-2xl transition-all duration-150 animate-in fade-in zoom-in-95"
+        className="td-confirm-panel input-dialog td-dialog-kind-rename"
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
+        style={{ width: '450px', height: 'auto', minHeight: '300px' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-color,rgba(255,255,255,0.08))] p-4">
-          <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--primary,#e2a532)]">
-            <Globe className="h-5 h-5" />
-            Remote Upload (URL)
-          </h3>
+        <header className="td-confirm-head">
+          <span className="td-confirm-icon input" aria-hidden>
+            <Globe size={20} strokeWidth={2} />
+          </span>
+          <div className="td-confirm-head-text">
+            <h2>Remote Upload (URL)</h2>
+            <p className="td-confirm-desc">Unggah file langsung dari URL publik ke Telegram Cloud</p>
+          </div>
           <button 
             type="button" 
+            className="td-confirm-close" 
             onClick={onClose} 
-            className="rounded-lg p-1 text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
+            disabled={submitting}
+            aria-label="Tutup"
           >
-            <X className="h-5 w-5" />
+            <X size={18} />
           </button>
-        </div>
+        </header>
 
-        {/* Body */}
-        <div className="p-5 space-y-4">
+        <div className="td-input-body" style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {errorMsg && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400">
+            <p className="td-input-error" role="alert" style={{ marginBottom: 0 }}>
               {errorMsg}
-            </div>
+            </p>
           )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400">URL File</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label className="td-input-label" htmlFor="td-remote-url" style={{ fontSize: '11px', textTransform: 'uppercase', tracking: '0.05em', opacity: 0.6 }}>
+              URL File Sumber
+            </label>
             <input
+              id="td-remote-url"
+              className="td-input-field"
               type="text"
-              placeholder="https://example.com/movie.mp4"
+              placeholder="https://example.com/file.zip"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (errorMsg) setErrorMsg('');
+              }}
               disabled={submitting}
-              className="w-full rounded-lg border border-[var(--border-color,rgba(255,255,255,0.08))] bg-black/20 px-3 py-2 text-sm outline-none focus:border-[var(--primary,#e2a532)]/50 transition-colors"
+              autoComplete="off"
+              spellCheck={false}
               autoFocus
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400">Folder / Channel Tujuan</label>
-            <div className="relative">
-              <select
-                value={folderId === null ? '' : folderId}
-                onChange={(e) => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
-                disabled={submitting}
-                className="w-full appearance-none rounded-lg border border-[var(--border-color,rgba(255,255,255,0.08))] bg-black/20 pl-3 pr-10 py-2 text-sm outline-none cursor-pointer focus:border-[var(--primary,#e2a532)]/50 transition"
-              >
-                <option value="">Pesan Tersimpan (Saved Messages)</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-slate-400" />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label className="td-input-label" htmlFor="td-remote-folder" style={{ fontSize: '11px', textTransform: 'uppercase', tracking: '0.05em', opacity: 0.6 }}>
+              Folder / Channel Tujuan
+            </label>
+            <select
+              id="td-remote-folder"
+              className="td-input-field"
+              value={folderId === null ? '' : folderId}
+              onChange={(e) => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
+              disabled={submitting}
+              style={{ paddingRight: '32px', cursor: 'pointer', appearance: 'auto' }}
+            >
+              <option value="">Pesan Tersimpan (Saved Messages)</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 justify-end border-t border-[var(--border-color,rgba(255,255,255,0.08))] bg-white/[0.02] p-4">
-          <button
-            type="button"
-            onClick={onClose}
+        <footer className="td-confirm-foot" style={{ marginTop: '8px' }}>
+          <button 
+            type="button" 
+            className="td-confirm-btn ghost" 
+            onClick={onClose} 
             disabled={submitting}
-            className="rounded-lg border border-[var(--border-color,rgba(255,255,255,0.08))] hover:bg-white/5 px-4 py-2 text-sm font-semibold transition"
           >
             Batal
           </button>
           <button
             type="submit"
-            disabled={submitting}
-            className="flex items-center gap-2 rounded-lg bg-[var(--primary,#e2a532)] hover:bg-[var(--primary,#e2a532)]/90 px-4 py-2 text-sm font-semibold text-black transition disabled:opacity-50"
+            className="td-confirm-btn primary"
+            disabled={submitting || !url.trim()}
           >
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Mengunggah...
+                <span>Mengunggah...</span>
               </>
             ) : (
-              'Mulai Unggah'
+              <>
+                <Globe size={15} strokeWidth={2.25} />
+                <span>Mulai Unggah</span>
+              </>
             )}
           </button>
-        </div>
+        </footer>
       </form>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 }
