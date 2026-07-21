@@ -429,12 +429,11 @@ class ProgressiveMedia:
     def mark_done(self) -> None:
         with self.cv:
             self.done = True
-            have = self._contiguous_from_zero_unlocked()
-            if self.total_size > 0 and have >= self.total_size:
-                self._ranges = [(0, self.total_size)]
-            self.downloaded = sum(e - s for s, e in self._ranges)
             if self.total_size <= 0:
-                self.total_size = max(self.downloaded, self._safe_size())
+                self.total_size = max(sum(e - s for s, e in self._ranges), self._safe_size())
+            if self.total_size > 0:
+                self._ranges = [(0, self.total_size)]
+            self.downloaded = self.total_size
             self.cv.notify_all()
         # Write final manifest to disk
         if hasattr(self, "_manifest_cache") and self._manifest_cache:

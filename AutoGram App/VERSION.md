@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.59
+AutoGram Version: v2.1.60
 
 Current State:
-Optimasi Sensitivitas Startup & Reduksi Budget Buffer Awal/Tail Video Dokumen Besar (>100MB)
+Penyelarasan Range Sesi Selesai (mark_done) untuk Resolusi Galat 'Failed to Fetch' Preview Dokumen
 
 Previous:
+v2.1.59 Optimasi Sensitivitas Startup & Reduksi Budget Buffer Awal/Tail Video Dokumen Besar (>100MB)
 v2.1.58 Penyelarasan Mime-Type PDF In-App & Peningkatan Kecepatan Buffering Progressive Streaming
 v2.1.57 Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
 v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level

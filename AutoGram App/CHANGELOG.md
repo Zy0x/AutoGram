@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.60 Penyelarasan Range Sesi Selesai (mark_done) untuk Resolusi Galat 'Failed to Fetch' Preview Dokumen
+
+Fixed:
+- Memperbaiki kegagalan pembacaan (*Failed to fetch*) pada pratinjau dokumen bertipe teks (`.txt`, `.json`, dll) dan PDF (`.pdf`) yang diunduh secara penuh. Masalah ini dipicu oleh tidak terisinya daftar jangkauan yang solid (`self._ranges`) pada pemanggilan `mark_done` untuk aliran data non-progresif. Akibatnya, server lokal mengirimkan tanggapan kosong (0 byte) meskipun header `Content-Length` terisi penuh, yang berujung pada pemutusan koneksi sepihak dan galat penarikan data (*fetch TypeError*) di peramban.
+
 ## v2.1.59 Optimasi Sensitivitas Startup & Reduksi Budget Buffer Awal/Tail Video Dokumen Besar (>100MB)
 
 Fixed & Optimized:
