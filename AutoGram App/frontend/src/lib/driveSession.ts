@@ -18,7 +18,7 @@ export const API_SERVER_JOB_ID = 991005;
 export const CIRCUIT_BREAKER_THRESHOLD = 3;
 export const CIRCUIT_BREAKER_COOLDOWN_MS = 30000; // 30s
 export const BACKOFF_DELAYS = [5000, 10000, 20000]; // 5s, 10s, 20s
-export const GRACEFUL_SHUTDOWN_MS = 2000; // 2s
+export const GRACEFUL_SHUTDOWN_MS = 200; // 200ms fast shutdown for instant session switching
 
 // Session key -> consecutive failures
 const consecutiveFailures: Record<string, number> = {};
@@ -424,12 +424,13 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         cleanStartupTimers();
         reject(new Error('Ghost drive session start timeout'));
       }, 20000);
+      // Soft poll only — settleLine already flips `ready`; avoid 40ms busy interval.
       onReadyCheck = setInterval(() => {
         if (ready && processAssigned) {
           cleanStartupTimers();
           resolve();
         }
-      }, 40);
+      }, 120);
 
       spawnDaemonJob({
         jobId: DRIVE_SERVE_JOB_ID,
@@ -445,7 +446,13 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         ],
         pipeStdin: true,
         allowShellFallback: false,
-        onStdoutLine: (line) => settleCurrentLine(line),
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
         onStderrLine: (line) => console.warn('[drive-serve-ghost]', line),
         onClose: () => undefined,
       })
@@ -464,6 +471,10 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
             },
           };
           processAssigned = true;
+          if (ready) {
+            cleanStartupTimers();
+            resolve();
+          }
         })
         .catch((e) => {
           if (onReadyCheck) clearInterval(onReadyCheck);
@@ -650,12 +661,13 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         cleanStartupTimers();
         reject(new Error('Drive session start timeout'));
       }, 20000);
+      // Event-driven settle preferred; 120ms poll is only a safety net.
       onReadyCheck = setInterval(() => {
         if (ready && processAssigned) {
           cleanStartupTimers();
           resolve();
         }
-      }, 40);
+      }, 120);
 
       spawnDaemonJob({
         jobId: currentActiveJobId,
@@ -671,7 +683,13 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         ],
         pipeStdin: true,
         allowShellFallback: false,
-        onStdoutLine: (line) => settleCurrentLine(line),
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
         onStderrLine: (line) => console.warn('[drive-serve]', line),
         onClose: () => undefined,
       })
@@ -690,6 +708,10 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
             },
           };
           processAssigned = true;
+          if (ready) {
+            cleanStartupTimers();
+            resolve();
+          }
         })
         .catch((e) => {
           if (onReadyCheck) clearInterval(onReadyCheck);
@@ -714,7 +736,12 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
 
 /**
  * Start warm drive-serve if possible.
- * Supports spawning Ghost session if needPreview is true (bypassing transfer leases).
+ *
+ * needPreview=true means the caller can tolerate (and may need) a ghost
+ * `_preview` session when Media Studio holds an exclusive transfer lease.
+ * When no transfer is active we always prefer the main session — spawning
+ * ghost unconditionally races with list/bootstrap and causes "session in use"
+ * / SQLite lock conflicts.
  */
 export async function ensureDriveSession(
   creds: DriveCredentials,
@@ -743,21 +770,25 @@ export async function ensureDriveSession(
       }
     }
 
+    const transferLease = await hasTransferLease(creds);
+
     if (!needPreview) {
-      // Normal mode: check lease
-      if (await hasTransferLease(creds)) return false;
+      // Normal mode: exclusive transfer owns the session
+      if (transferLease) return false;
       if (mode === 'main' && isDriveSessionReadyFor(creds)) return true;
     } else {
-      // Ghost mode / Preview mode:
-      // 1. If main session is already running and ready, reuse it!
+      // Preview mode:
+      // 1. Prefer a warm main session (no clone thrash)
       if (mode === 'main' && isDriveSessionReadyFor(creds) && ready) {
         return true;
       }
-      // 2. If ghost session is already running and ready, reuse it!
+      // 2. Ghost already serving preview during transfer
       if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
         cancelGhostTransition();
         return true;
       }
+      // 3. Transfer owns main — only ghost can open without clobbering it
+      // (spawn happens below). If no lease, fall through to main spawn.
     }
 
     // Wait for any in-flight startup to settle
@@ -781,11 +812,18 @@ export async function ensureDriveSession(
 
     if (!detectTauriRuntime()) return false;
 
+    // Re-check lease after wait — transfer may have started/finished
+    const leaseNow = await hasTransferLease(creds);
+
     const startPromise = (async () => {
-      if (needPreview) {
+      if (needPreview && leaseNow) {
+        // Media Studio holds main .session — use isolated ghost for preview/stream
         await spawnGhostSession(creds);
+      } else if (leaseNow) {
+        // Non-preview caller during transfer: do not fight for the session
+        return;
       } else {
-        if (await hasTransferLease(creds)) return;
+        // No exclusive transfer: always use main (even for preview open)
         await spawnMainSession(creds);
       }
     })();
@@ -794,11 +832,12 @@ export async function ensureDriveSession(
     try {
       await startPromise;
       if (needPreview) {
-        return (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) ||
-               (mode === 'main' && isDriveSessionReadyFor(creds) && ready);
-      } else {
-        return mode === 'main' && isDriveSessionReadyFor(creds);
+        return (
+          (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) ||
+          (mode === 'main' && isDriveSessionReadyFor(creds) && ready)
+        );
       }
+      return mode === 'main' && isDriveSessionReadyFor(creds);
     } catch (e) {
       console.warn('[drive-serve] ensureDriveSession failed', e);
       return false;
@@ -896,7 +935,22 @@ export async function driveSessionCallFor(
   timeoutMs = 120000
 ): Promise<any> {
   const expected = credKey(creds);
-  const needPreview = mode === 'ghost';
+  // Preview/stream RPCs may need ghost during transfer; list/bootstrap stay on main.
+  const previewCmds = new Set([
+    'preview',
+    'preview_stream',
+    'stream_preview',
+    'preview_warm',
+    'warm_preview',
+    'stream_status',
+    'preview_status',
+    'stop_stream',
+    'stream_stop',
+    'stream_seek',
+    'seek_stream',
+    'preview_seek',
+  ]);
+  const needPreview = mode === 'ghost' || previewCmds.has(String(cmd || '').toLowerCase()) || activePreviews > 0;
   const maxAttempts = 3;
   let lastErr: any = null;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {

@@ -2129,22 +2129,18 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     session_file = os.path.join(session_dir, session_name)
     from core.network_env import vpn_mode
 
-    connect_timeout = 20.0 * (3 if vpn_mode() else 1)
-    connect_timeout = min(max(connect_timeout, 15.0), 60.0)
-    
-    for attempt in range(8):
+    for attempt in range(6):
+        connect_timeout = 7.0 if attempt == 0 else (12.0 if not vpn_mode() else 20.0)
         _patch_session_wal(session_file)
         client = None
         try:
             client = _session_client(session_name, api_id, api_hash)
-            # Timeout scales with VPN optimizer (slow networks/proxies)
             await asyncio.wait_for(client.connect(), timeout=connect_timeout)
             if not await client.is_user_authorized():
                 try:
                     await asyncio.wait_for(client.disconnect(), timeout=0.8)
                 except Exception:
                     pass
-                # Attempt DB string_session repair once if file session was unauthorized
                 if attempt == 0:
                     try:
                         from database.queries import get_session
@@ -2175,7 +2171,6 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
                 except Exception:
                     pass
             
-            # Check if this error is transient and can be retried (locked DB or network/timeout issues)
             is_transient = (
                 "locked" in msg 
                 or "database is locked" in msg
@@ -2188,8 +2183,7 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
                 or isinstance(e, (OSError, ConnectionError, asyncio.TimeoutError))
             )
             if is_transient:
-                # Linear backoff with jitter fallback
-                await asyncio.sleep(0.5 + attempt * 0.5)
+                await asyncio.sleep(0.15)
                 continue
             raise
     raise RuntimeError(str(last_err) if last_err else "Session connect failed")
