@@ -237,10 +237,20 @@ async def list_sessions_action(api_id, api_hash, verify: bool = False):
 
     print(json.dumps({"sessions": list(by_name.values())}), flush=True)
 
-async def delete_session_action(session_name):
+async def delete_session_action(session_name, api_id=None, api_hash=None):
     try:
+        if api_id and api_hash:
+            try:
+                client, _ = get_client_and_string(session_name, api_id, api_hash)
+                await asyncio.wait_for(client.connect(), timeout=10.0)
+                if await client.is_user_authorized():
+                    await client.log_out()
+                await client.disconnect()
+            except Exception:
+                pass
+
         delete_session(session_name)
-        sessions_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+        sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), 'sessions'))
         for ext in ('.session', '.grammers.json', '.session-journal', '.session.lock'):
             target_path = os.path.join(sessions_dir, f"{session_name}{ext}")
             if os.path.exists(target_path):
@@ -369,7 +379,7 @@ def main():
     if args.action == 'list-sessions':
         asyncio.run(list_sessions_action(args.api_id, args.api_hash, verify=bool(args.verify)))
     elif args.action == 'delete-session':
-        asyncio.run(delete_session_action(args.session))
+        asyncio.run(delete_session_action(args.session, args.api_id, args.api_hash))
     elif args.action == 'send-code':
         asyncio.run(send_code(args.session, args.phone, args.api_id, args.api_hash))
     elif args.action == 'sign-in':

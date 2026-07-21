@@ -344,11 +344,16 @@ export function Accounts() {
     
     setIsLoading(true);
     try {
+      const { apiId, apiHash } = await getApiCredentials();
       const result = await runAuthManagerOnce([
         '--action',
         'delete-session',
         '--session',
         name,
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
       ]);
 
       if (!result.stdout && result.stderr) {
