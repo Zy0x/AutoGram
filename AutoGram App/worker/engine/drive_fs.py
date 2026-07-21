@@ -2171,6 +2171,15 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
                 except Exception:
                     pass
             
+            if "unregistered" in msg or "auth_key_unregistered" in msg or "key is not registered" in msg:
+                for ext in (".session", ".grammers.json", ".session-journal", ".session-wal", ".session-shm"):
+                    p = os.path.join(session_dir, f"{session_name}{ext}")
+                    if os.path.exists(p):
+                        try:
+                            os.remove(p)
+                        except Exception:
+                            pass
+                raise RuntimeError("AUTH_KEY_UNREGISTERED")
             is_transient = (
                 "locked" in msg 
                 or "database is locked" in msg
