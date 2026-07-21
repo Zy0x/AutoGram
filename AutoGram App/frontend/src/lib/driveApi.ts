@@ -361,6 +361,63 @@ export async function driveListChats(
   if (cursor?.offset_peer_id) params.offset_peer_id = cursor.offset_peer_id;
   if (opts?.chatFolderId) params.chat_folder_id = opts.chatFolderId;
 
+  // Grammers dual-path: first page only, no chat-folder filter, no Telethon warm hold
+  const firstPage =
+    offset === 0 &&
+    !cursor?.offset_id &&
+    !cursor?.offset_date &&
+    !cursor?.offset_peer_id &&
+    !opts?.chatFolderId;
+  const telethonWarm = isDriveSessionReadyFor(creds);
+  if (firstPage && detectTauriRuntime() && !telethonWarm) {
+    try {
+      const { tgListDialogs, shouldTryGrammersPath } = await import('./telegramBackend');
+      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgListDialogs({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          limit,
+        });
+        if (gr?.ok && Array.isArray(gr.data) && gr.data.length > 0) {
+          const chats = gr.data.map((d) => {
+            const title = String(d.title || d.id);
+            const isTd = title.includes('[TD]');
+            const type = d.isUser
+              ? 'user'
+              : d.isChannel
+                ? 'channel'
+                : d.isGroup
+                  ? 'group'
+                  : 'unknown';
+            return {
+              id: Number(d.id),
+              name: isTd ? title.replace(/\s*\[TD\]\s*$/i, '').trim() || title : title,
+              title_raw: title,
+              type,
+              is_drive_folder: isTd,
+              is_forum: false,
+              username: null as string | null,
+            };
+          });
+          return {
+            status: 'success',
+            chats,
+            has_more: chats.length >= limit,
+            next_offset: chats.length,
+            next_offset_id: null,
+            next_offset_date: null,
+            next_offset_peer_id: null,
+            backend: 'grammers',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[driveListChats] Grammers list_dialogs miss → Telethon', e);
+    }
+  }
+
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_chats', params);
   }
@@ -410,6 +467,35 @@ export async function driveThumbnailsBatch(
     opts?.batchSize ??
     (quality === 'saver' ? 14 : quality === 'sharp' ? 8 : 12);
   const ids = messageIds.slice(0, batch);
+
+  // Grammers thumbs when Telethon warm is not holding the session
+  const telethonWarm = isDriveSessionReadyFor(creds);
+  if (detectTauriRuntime() && !telethonWarm) {
+    try {
+      const { tgThumbsBatch, shouldTryGrammersPath } = await import('./telegramBackend');
+      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+        const chatId = folderId == null ? 'me' : String(folderId);
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgThumbsBatch({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          chatId,
+          messageIds: ids,
+        });
+        if (gr?.ok && gr.data?.thumbs) {
+          return {
+            status: 'success',
+            thumbs: gr.data.thumbs as Record<string, string | null>,
+            backend: 'grammers',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[driveThumbnailsBatch] Grammers miss → Telethon', e);
+    }
+  }
+
   // CRITICAL: never one-shot spawn Python for thumbs during load — that freezes
   // WebView ("Not Responding") and can force-close the desktop app on low-end PCs.
   if (!(await ensureWarmDriveSession(creds))) {
@@ -705,7 +791,60 @@ export async function driveListFiles(
   };
   const pythonSortMode = sortModeMap[sortMode] || sortMode;
 
-  // 2. Fallback to network
+  // 2. Optional Grammers dual-path (newest-only, no topic).
+  // Skip when Telethon warm drive-serve already holds the auth_key (exclusive session).
+  const sortIsNewest = sortMode === 'newest' || !opts?.sortMode;
+  const telethonWarm = isDriveSessionReadyFor(creds);
+  if (topicId == null && sortIsNewest && detectTauriRuntime() && !telethonWarm) {
+    try {
+      const { tgListMedia, shouldTryGrammersPath } = await import('./telegramBackend');
+      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+        const chatId = folderId == null ? 'me' : String(folderId);
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgListMedia({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          chatId,
+          limit: pageSize,
+          offsetId: opts?.offsetId ?? null,
+        });
+        if (gr?.ok && gr.data?.files) {
+          const files = gr.data.files.map((f) => ({
+            id: Number(f.id),
+            folder_id: f.folderId ?? folderId,
+            name: f.name,
+            size: Number(f.size || 0),
+            mime_type: f.mimeType ?? null,
+            icon_type: f.iconType || 'file',
+            created_at: f.createdAt ?? undefined,
+            has_thumb: !!f.hasThumb,
+            as_document: !!f.asDocument,
+          }));
+          return {
+            status: 'success',
+            folder_id: folderId,
+            topic_id: null,
+            files,
+            total: files.length,
+            page_size: pageSize,
+            has_more: !!gr.data.hasMore,
+            next_offset_id: gr.data.nextOffsetId ?? null,
+            total_count: null,
+            total_bytes: null,
+            stats_accurate: false,
+            stats_pending: true,
+            cached: false,
+            backend: 'grammers',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[driveListFiles] Grammers list_media miss → Telethon', e);
+    }
+  }
+
+  // 3. Telethon network (drive-serve / one-shot)
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_files', {
       folder_id: folderId,
@@ -825,6 +964,38 @@ export async function driveMediaStats(
 }
 
 export async function driveListTopics(creds: DriveCredentials, chatId: number) {
+  const telethonWarm = isDriveSessionReadyFor(creds);
+  if (detectTauriRuntime() && !telethonWarm) {
+    try {
+      const { tgListTopics, shouldTryGrammersPath } = await import('./telegramBackend');
+      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgListTopics({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          chatId,
+        });
+        if (gr?.ok && gr.data) {
+          const topics = (gr.data.topics || []).map((t) => ({
+            id: Number(t.id),
+            title: t.title,
+            top_message: t.topMessage ?? null,
+            closed: !!t.closed,
+          }));
+          return {
+            status: 'success',
+            topics,
+            is_forum: !!gr.data.isForum,
+            cached: !!gr.data.cached,
+            backend: 'grammers',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[driveListTopics] Grammers miss → Telethon', e);
+    }
+  }
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_topics', { folder_id: chatId });
   }
@@ -948,6 +1119,46 @@ export async function drivePreview(
     skip_poster: skipPoster,
   };
 
+  // Progressive VIDEO preview uses Telethon warm + media_stream (moov/multi-DC
+  // seek). Grammers sequential progressive is only used for small full-image
+  // downloads below — not for playable video (avoids buffer remount loops).
+  const telethonWarm = isDriveSessionReadyFor(creds);
+  if (!needsTranscode && detectTauriRuntime() && !telethonWarm) {
+    try {
+      const { tgPreviewStream, shouldTryGrammersPath } = await import('./telegramBackend');
+      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+        const chatId = folderId == null ? 'me' : String(folderId);
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgPreviewStream({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          chatId,
+          messageId,
+        });
+        if (gr?.ok && gr.data) {
+          const d = gr.data;
+          return {
+            status: 'success',
+            stream_url: d.streamUrl || null,
+            stream_id: d.streamId || null,
+            path: d.path || null,
+            mime_type: d.mimeType,
+            size: d.size,
+            data_url: d.dataUrl ?? null,
+            cached: false,
+            preview_kind: d.previewKind || (d.streaming ? 'stream' : 'image'),
+            streaming: !!d.streaming,
+            too_large: false,
+            backend: 'grammers',
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[drivePreview] Grammers preview miss → Telethon', e);
+    }
+  }
+
   await ensureDriveSession(creds, true);
   if (isDriveSessionReadyFor(creds)) {
     try {
@@ -1008,6 +1219,47 @@ export async function drivePreviewWarm(
 }
 
 export async function driveStreamStatus(creds: DriveCredentials, streamId: string) {
+  // Prefer Telethon stream_status when warm — includes moov_ready / filled islands.
+  // Rust registry alone lacks moov_ready and caused "buffer tinggi tapi tidak play".
+  if (isDriveSessionReadyFor(creds)) {
+    try {
+      const py = await driveSessionCallFor(
+        creds,
+        'stream_status',
+        { stream_id: streamId },
+        8000
+      );
+      if (py && String(py.status || '') !== 'missing' && String(py.status || '') !== 'unknown') {
+        return py;
+      }
+    } catch {
+      /* fall through to local Rust */
+    }
+  }
+  if (detectTauriRuntime() && streamId) {
+    try {
+      const { streamStatusLocal } = await import('./rustBackend');
+      const st = await streamStatusLocal(streamId);
+      if (st && String((st as any).status || '') !== 'missing') {
+        return {
+          status: (st as any).status,
+          stream_id: (st as any).streamId ?? streamId,
+          path: (st as any).path,
+          total: (st as any).total,
+          downloaded: (st as any).downloaded,
+          prefix_bytes: (st as any).prefixBytes ?? (st as any).downloaded,
+          percent: (st as any).percent,
+          done: !!(st as any).done,
+          mime_type: (st as any).mimeType,
+          stream_ready: !!(st as any).streamReady,
+          moov_ready: true, // Rust path has no moov probe — don't block play nudge
+          backend: (st as any).backend || 'rust',
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   if (!isDriveSessionReadyFor(creds)) {
     await ensureDriveSession(creds, true);
   }
@@ -1025,9 +1277,22 @@ export async function driveStreamStatus(creds: DriveCredentials, streamId: strin
 export async function driveStopStream(
   creds: DriveCredentials,
   streamId: string | null | undefined,
-  opts?: { stopAll?: boolean; incompleteOnly?: boolean }
+  opts?: { stopAll?: boolean; incompleteOnly?: boolean; deletePartial?: boolean }
 ) {
   if (!opts?.stopAll && !streamId) return { status: 'missing' };
+  // Keep partial files by default so reopen/resume can continue buffer growth.
+  // Deleting partial was zeroing progress and left buffer stuck at 0–1%.
+  const deletePartial = opts?.deletePartial === true;
+  // Grammers progressive cancel (local)
+  if (streamId && detectTauriRuntime() && !opts?.stopAll) {
+    try {
+      const { tgStopStream } = await import('./telegramBackend');
+      const ok = await tgStopStream(streamId);
+      if (ok) return { status: 'stopped', backend: 'grammers' };
+    } catch {
+      /* continue Telethon */
+    }
+  }
   try {
     if (!isDriveSessionReadyFor(creds)) {
       await ensureDriveSession(creds, true);
@@ -1037,8 +1302,12 @@ export async function driveStopStream(
       creds,
       'stop_stream',
       opts?.stopAll
-        ? { stop_all: true, incomplete_only: opts.incompleteOnly !== false }
-        : { stream_id: streamId, delete_partial: true },
+        ? {
+            stop_all: true,
+            incomplete_only: opts.incompleteOnly !== false,
+            delete_partial: deletePartial,
+          }
+        : { stream_id: streamId, delete_partial: deletePartial },
       15000
     );
   } catch {
@@ -1302,6 +1571,39 @@ export async function driveDownloadOpenSpawn(
       restarted = true;
       void ensureDriveSession(creds).catch(() => undefined);
     };
+
+    // Grammers full download (≤200MB) while Telethon session is free after warm stop
+    if (detectTauriRuntime()) {
+      try {
+        const { tgDownloadFile, shouldTryGrammersPath } = await import('./telegramBackend');
+        if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+          const chatId = folderId == null ? 'me' : String(folderId);
+          const apiId = Number(creds.apiId) || 0;
+          const gr = await tgDownloadFile({
+            session: creds.session,
+            apiId,
+            apiHash: creds.apiHash,
+            chatId,
+            messageId,
+            destPath: savePath,
+          });
+          if (gr?.ok && gr.data?.path) {
+            handlers.onStdoutLine?.(
+              `[JSON_OUTPUT]${JSON.stringify({ status: 'success', path: gr.data.path, backend: 'grammers' })}`
+            );
+            try {
+              handlers.onClose?.(0);
+            } finally {
+              restartWarm();
+            }
+            return { jobId: DRIVE_OPEN_JOB_ID, dispose: () => undefined };
+          }
+        }
+      } catch (e) {
+        console.warn('[driveDownloadOpenSpawn] Grammers download miss → Telethon', e);
+      }
+    }
+
     try {
       return await spawnDaemonJob({
         jobId: DRIVE_OPEN_JOB_ID,
@@ -1418,6 +1720,59 @@ async function releaseTransferLease(): Promise<void> {
 
 export function isTransferJobActive(): boolean {
   return transferJobActive;
+}
+
+/**
+ * Hold exclusive Telegram session ownership for transfer work (upload/download).
+ * Stops warm drive-serve, acquires lease, then runs `fn`. Restarts warm session after.
+ * Used by media-studio spawn and Rust studio orchestrator.
+ */
+export async function withExclusiveTransferSession<T>(
+  creds: DriveCredentials,
+  transferId: string,
+  fn: () => Promise<T>,
+  opts?: { skipRestartWarm?: boolean; skipKillWorker?: boolean }
+): Promise<T> {
+  return enqueueDrive(async () => {
+    if (transferJobActive) {
+      throw new Error(
+        'Transfer lain masih berjalan. Tunggu selesai atau Stop dulu di Transfer Manager.'
+      );
+    }
+    if (!opts?.skipKillWorker) {
+      try {
+        await killWorkerJob(DRIVE_JOB_ID);
+        await sleep(220);
+      } catch {
+        /* ignore */
+      }
+    }
+    await acquireTransferLease(creds, transferId);
+    const hadWarm = isDriveSessionReady();
+    transferChainNeedsWarmRestart = transferChainNeedsWarmRestart || hadWarm;
+    if (hadWarm) {
+      await stopDriveSession();
+      await sleep(250);
+    }
+    let restarted = false;
+    const restartWarm = () => {
+      if (opts?.skipRestartWarm) return;
+      if (restarted || !transferChainNeedsWarmRestart) return;
+      restarted = true;
+      transferChainNeedsWarmRestart = false;
+      setTimeout(() => {
+        void ensureDriveSession(creds).catch(() => undefined);
+      }, 1200);
+    };
+    transferJobActive = true;
+    try {
+      return await fn();
+    } finally {
+      transferJobActive = false;
+      await releaseTransferLease();
+      restartWarm();
+    }
+  });
 }
 
 /**
