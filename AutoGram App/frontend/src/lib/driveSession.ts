@@ -35,6 +35,7 @@ const pending = new Map<string, Pending>();
 let activeCredsKey = '';
 let scheduledStop: ReturnType<typeof setTimeout> | null = null;
 let sessionGeneration = 0;
+let bootstrapLock: Promise<boolean> = Promise.resolve(true);
 
 
 // GHOST SESSION STATES
@@ -222,8 +223,8 @@ function scheduleGhostToMainTransition(creds: DriveCredentials): void {
     } catch (e) {
       console.warn('[GhostSession] Cleanup failed:', e);
     }
-    // Re-spawn main session
-    await spawnMainSession(creds);
+    // Re-spawn main session via serialized queue
+    await ensureDriveSession(creds, false);
   }, GHOST_GRACE_MS);
 }
 
@@ -617,64 +618,69 @@ export async function ensureDriveSession(
   creds: DriveCredentials,
   needPreview: boolean = false
 ): Promise<boolean> {
-  cancelScheduledDriveSessionStop();
+  const run = async () => {
+    cancelScheduledDriveSessionStop();
 
-
-  if (!needPreview) {
-    // Normal mode: check lease
-    if (await hasTransferLease(creds)) return false;
-    if (mode === 'main' && isDriveSessionReadyFor(creds)) return true;
-  } else {
-    // Ghost mode: bypass lease, reuse if ghost already ready
-    if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
-      cancelGhostTransition();
-      return true;
+    if (!needPreview) {
+      // Normal mode: check lease
+      if (await hasTransferLease(creds)) return false;
+      if (mode === 'main' && isDriveSessionReadyFor(creds)) return true;
+    } else {
+      // Ghost mode: bypass lease, reuse if ghost already ready
+      if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
+        cancelGhostTransition();
+        return true;
+      }
     }
-  }
 
-  // Wait for any in-flight startup to settle
-  while (starting) {
-    const inFlight = starting;
+    // Wait for any in-flight startup to settle
+    while (starting) {
+      const inFlight = starting;
+      try {
+        await inFlight;
+      } catch {
+        // ignore
+      }
+      if (!needPreview && mode === 'main' && isDriveSessionReadyFor(creds)) return true;
+      if (needPreview && mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
+        cancelGhostTransition();
+        return true;
+      }
+      if (starting === inFlight) break;
+    }
+
+    if (!detectTauriRuntime()) return false;
+
+    const startPromise = (async () => {
+      if (needPreview) {
+        await spawnGhostSession(creds);
+      } else {
+        if (await hasTransferLease(creds)) return;
+        await spawnMainSession(creds);
+      }
+    })();
+    starting = startPromise;
+
     try {
-      await inFlight;
-    } catch {
-      // ignore
+      await startPromise;
+      if (needPreview) {
+        return mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady;
+      } else {
+        return mode === 'main' && isDriveSessionReadyFor(creds);
+      }
+    } catch (e) {
+      console.warn('[drive-serve] ensureDriveSession failed', e);
+      return false;
+    } finally {
+      if (starting === startPromise) {
+        starting = null;
+      }
     }
-    if (!needPreview && mode === 'main' && isDriveSessionReadyFor(creds)) return true;
-    if (needPreview && mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
-      cancelGhostTransition();
-      return true;
-    }
-    if (starting === inFlight) break;
-  }
+  };
 
-  if (!detectTauriRuntime()) return false;
-
-  const startPromise = (async () => {
-    if (needPreview) {
-      await spawnGhostSession(creds);
-    } else {
-      if (await hasTransferLease(creds)) return;
-      await spawnMainSession(creds);
-    }
-  })();
-  starting = startPromise;
-
-  try {
-    await startPromise;
-    if (needPreview) {
-      return mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady;
-    } else {
-      return mode === 'main' && isDriveSessionReadyFor(creds);
-    }
-  } catch (e) {
-    console.warn('[drive-serve] ensureDriveSession failed', e);
-    return false;
-  } finally {
-    if (starting === startPromise) {
-      starting = null;
-    }
-  }
+  const next = bootstrapLock.then(run, run);
+  bootstrapLock = next;
+  return next;
 }
 
 export function scheduleDriveSessionStop(delayMs = 750): void {

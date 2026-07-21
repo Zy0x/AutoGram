@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
+
+Fixed & Optimized:
+- Mengimplementasikan **serialized queue lock** (`bootstrapLock`) pada `ensureDriveSession` (`driveSession.ts`) untuk mencegah kondisi balapan (*race condition*) ketika beberapa permintaan pemuatan/inisiatif drive terjadi secara bersamaan. Hal ini mencegah proses baru membunuh instansi proses lain yang baru saja dibuat, yang sebelumnya sering memicu error *broken pipe* / *no stdin*.
+- Memperbarui fungsi penjadwalan `scheduleGhostToMainTransition` agar menggunakan `ensureDriveSession` yang ter-serialize alih-alih `spawnMainSession` secara langsung.
+- Memperbarui `friendlyDriveError` pada `driveApi.ts` untuk menyembunyikan galat internal tingkat rendah `no stdin for job` dan `is drive-serve running` selama siklus hidup pergantian sesi/restrukturisasi, sehingga tidak lagi menampilkan spanduk merah yang mengganggu pengguna.
+
 ## v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
 
 Added & Optimized:

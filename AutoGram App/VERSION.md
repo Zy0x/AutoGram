@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.55
+AutoGram Version: v2.1.56
 
 Current State:
-Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
+Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
 
 Previous:
+v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
 v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
 v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
 v2.1.47 Fitur Pembersihan Proses Latar Belakang Otomatis untuk Fresh Start Remote
