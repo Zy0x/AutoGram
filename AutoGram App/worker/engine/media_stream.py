@@ -17,6 +17,7 @@ Filled byte ranges are tracked explicitly so sparse seek writes never look like
 from __future__ import annotations
 
 import asyncio
+from aiohttp import web
 import os
 import re
 import threading
@@ -192,9 +193,11 @@ class ProgressiveMedia:
         from collections import OrderedDict
         self._ram_cache = OrderedDict()  # part_off -> data
 
-        # Aligned part size and layer configs
-        self.part_size = 512 * 1024 if self.total_size > 1024 * 1024 * 1024 else (256 * 1024 if self.total_size > 50 * 1024 * 1024 else 128 * 1024)
+        # Aligned part size and layer configs (Always use 512KB for SW alignment and Telegram throughput)
+        self.part_size = 512 * 1024
         self.config = get_streaming_config(self.total_size)
+        self._manifest_cache: Dict[str, Any] = {}
+        self._last_manifest_write = 0.0
         self.avg_speed = None
         self._speed_samples: List[float] = []
         self.sequential_only = False
@@ -280,17 +283,27 @@ class ProgressiveMedia:
         with self._seek_lock:
             return not self.cancelled and generation == self._seek_generation
 
-    def read_from_cache(self, pos: int, to_read: int) -> Optional[memoryview]:
-        part_off = (pos // self.part_size) * self.part_size
-        intra_off = pos - part_off
+    def read_from_cache(self, pos: int, to_read: int) -> Optional[bytes]:
+        """Stitch multiple parts from RAM cache if they exist to support unaligned reads."""
         with self.cv:
-            if part_off in self._ram_cache:
+            res = bytearray()
+            curr = pos
+            needed = to_read
+            while needed > 0:
+                part_off = (curr // self.part_size) * self.part_size
+                intra_off = curr - part_off
+                if part_off not in self._ram_cache:
+                    return None
                 self._ram_cache.move_to_end(part_off)
                 chunk_data = self._ram_cache[part_off]
                 avail = len(chunk_data) - intra_off
-                if avail >= to_read:
-                    return memoryview(chunk_data)[intra_off : intra_off + to_read]
-        return None
+                if avail <= 0:
+                    return None
+                take = min(needed, avail)
+                res.extend(chunk_data[intra_off : intra_off + take])
+                curr += take
+                needed -= take
+            return bytes(res)
 
     def bind_telegram(
         self,
@@ -422,6 +435,15 @@ class ProgressiveMedia:
             if self.total_size <= 0:
                 self.total_size = max(self.downloaded, self._safe_size())
             self.cv.notify_all()
+        # Write final manifest to disk
+        if hasattr(self, "_manifest_cache") and self._manifest_cache:
+            try:
+                import json
+                manifest_path = self.path + ".manifest.json"
+                with open(manifest_path, "w", encoding="utf-8") as mf:
+                    json.dump(self._manifest_cache, mf, indent=2)
+            except Exception:
+                pass
 
     def mark_error(self, err: str) -> None:
         with self.cv:
@@ -624,7 +646,7 @@ async def write_media_range_to_response(response, media: ProgressiveMedia, start
                         filled_end = media.contiguous_end_from(pos)
                 if filled_end <= pos:
                     break
-            read_block_size = 256 * 1024 if media.total_size > 300 * 1024 * 1024 else 64 * 1024
+            read_block_size = 512 * 1024 if media.total_size > 50 * 1024 * 1024 else 256 * 1024
             to_read = min(
                 read_block_size,
                 length - sent,
@@ -1280,23 +1302,24 @@ async def _download_parts_concurrent(
                         while len(media._ram_cache) > cache_limit:
                             media._ram_cache.popitem(last=False)
                     
-                    # Update manifest JSON
-                    manifest_path = media.path + ".manifest.json"
-                    try:
-                        import json
-                        manifest = {}
-                        if os.path.exists(manifest_path):
-                            with open(manifest_path, "r", encoding="utf-8") as mf:
-                                manifest = json.load(mf)
-                        manifest[str(part_off)] = {
-                            "checksum": computed_checksum,
-                            "len": len(data),
-                            "timestamp": time.time()
-                        }
-                        with open(manifest_path, "w", encoding="utf-8") as mf:
-                            json.dump(manifest, mf, indent=2)
-                    except Exception:
-                        pass
+                    # Update manifest in-memory cache and write to disk with throttle
+                    if not hasattr(media, "_manifest_cache"):
+                        media._manifest_cache = {}
+                    media._manifest_cache[str(part_off)] = {
+                        "checksum": computed_checksum,
+                        "len": len(data),
+                        "timestamp": time.time()
+                    }
+                    now = time.time()
+                    if media.done or (now - getattr(media, "_last_manifest_write", 0.0) >= 3.0):
+                        media._last_manifest_write = now
+                        manifest_path = media.path + ".manifest.json"
+                        try:
+                            import json
+                            with open(manifest_path, "w", encoding="utf-8") as mf:
+                                json.dump(media._manifest_cache, mf, indent=2)
+                        except Exception:
+                            pass
                 media.mark_range(part_off, len(data))
 
         await asyncio.to_thread(_write)
@@ -1479,6 +1502,7 @@ def _resume_partial_file_ranges(media: ProgressiveMedia, existing: int) -> None:
             with open(manifest_path, "r", encoding="utf-8") as mf:
                 manifest = json.load(mf)
             if manifest:
+                media._manifest_cache = manifest
                 for part_off_str, info in manifest.items():
                     part_off = int(part_off_str)
                     length = info.get("len", 0)
