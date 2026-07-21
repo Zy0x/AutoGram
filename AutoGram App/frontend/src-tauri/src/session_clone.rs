@@ -77,24 +77,10 @@ pub async fn ensure_ghost_session(
     let worker = crate::resolve_worker_dir(&app)?;
     let preview_path = worker.join("sessions").join(format!("{}_preview.session", session_name));
     
-    // Jika sudah ada dan valid, skip clone
-    if preview_path.exists() {
-        if let Ok(conn) = rusqlite::Connection::open_with_flags(
-            &preview_path,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-        ) {
-            let valid: bool = conn.query_row(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'",
-                [],
-                |_| Ok(true),
-            ).unwrap_or(false);
-            
-            if valid {
-                return Ok(true);
-            }
-        }
-        let _ = fs::remove_file(&preview_path);
-    }
+    // Bersihkan file preview lama (WAL/SHM) agar clone baru benar-benar fresh
+    let _ = fs::remove_file(&preview_path);
+    let _ = fs::remove_file(worker.join("sessions").join(format!("{}_preview.session-wal", session_name)));
+    let _ = fs::remove_file(worker.join("sessions").join(format!("{}_preview.session-shm", session_name)));
 
     clone_telegram_session_atomic(&app, &session_name, 5000)?;
     Ok(true)
