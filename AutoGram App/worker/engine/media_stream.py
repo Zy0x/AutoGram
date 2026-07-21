@@ -721,25 +721,24 @@ async def serve_stream(request):
             range_start_probe = 0
     if range_start_probe <= 0:
         first_need = min(64 * 1024, media.total_size or 64 * 1024)
-        await asyncio.to_thread(media.wait_for_bytes, first_need, 25.0)
         if media.contiguous_from_zero() < first_need and not media.done:
             media.schedule_seek(
                 0,
                 window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
                 priority=1,
             )
-            await asyncio.to_thread(media.wait_for_bytes, first_need, 20.0)
+        await asyncio.to_thread(media.wait_for_bytes, first_need, 35.0)
         if media.error and media.contiguous_from_zero() <= 0:
             return web.Response(status=502, text=media.error or "stream error")
         if media.contiguous_from_zero() <= 0 and not media.done:
-            # Range not verified at all: return 202 Accepted + SSE location
+            # Range not verified at all: return 503 Service Unavailable + SSE location
             headers = {
                 "Retry-After": "1",
                 "Cache-Control": "no-cache",
                 "X-AutoGram-Buffer": "head-loading",
                 "Location": f"/stream/{stream_id}/events"
             }
-            return web.Response(status=202, headers=headers, text="Buffer head-loading")
+            return web.Response(status=503, headers=headers, text="Buffer head-loading")
 
     file_size_known = media.total_size if media.total_size > 0 else None
     start = 0
@@ -792,7 +791,7 @@ async def serve_stream(request):
                     "X-AutoGram-Buffer": "seek-loading",
                     "Location": f"/stream/{stream_id}/events"
                 }
-                return web.Response(status=202, headers=headers, text="Buffer seek-loading")
+                return web.Response(status=503, headers=headers, text="Buffer seek-loading")
 
         if not media.has_byte(start) and media.done:
             return web.Response(status=416, text="range not satisfiable")

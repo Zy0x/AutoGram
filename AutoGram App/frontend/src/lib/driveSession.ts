@@ -748,7 +748,12 @@ export async function ensureDriveSession(
       if (await hasTransferLease(creds)) return false;
       if (mode === 'main' && isDriveSessionReadyFor(creds)) return true;
     } else {
-      // Ghost mode: bypass lease, reuse if ghost already ready
+      // Ghost mode / Preview mode:
+      // 1. If main session is already running and ready, reuse it!
+      if (mode === 'main' && isDriveSessionReadyFor(creds) && ready) {
+        return true;
+      }
+      // 2. If ghost session is already running and ready, reuse it!
       if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
         cancelGhostTransition();
         return true;
@@ -764,9 +769,12 @@ export async function ensureDriveSession(
         // ignore
       }
       if (!needPreview && mode === 'main' && isDriveSessionReadyFor(creds)) return true;
-      if (needPreview && mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
-        cancelGhostTransition();
-        return true;
+      if (needPreview) {
+        if (mode === 'main' && isDriveSessionReadyFor(creds) && ready) return true;
+        if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
+          cancelGhostTransition();
+          return true;
+        }
       }
       if (starting === inFlight) break;
     }
@@ -786,7 +794,8 @@ export async function ensureDriveSession(
     try {
       await startPromise;
       if (needPreview) {
-        return mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady;
+        return (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) ||
+               (mode === 'main' && isDriveSessionReadyFor(creds) && ready);
       } else {
         return mode === 'main' && isDriveSessionReadyFor(creds);
       }

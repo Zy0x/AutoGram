@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.58 Penyelarasan Mime-Type PDF In-App & Optimalisasi Sensitivitas Buffering Pemuatan Awal Progressive Streaming
+
+Fixed & Optimized:
+- Mengatasi masalah pratinjau berkas PDF (`.pdf`) yang tidak tampil di dalam aplikasi dengan memaksa pengaitan *MIME type* ke `application/pdf` secara konsisten pada proses pembuatan maupun pembacaan cache, membebaskannya dari kesalahan pendugaan tipe pada sistem operasi Windows (*Windows Registry default guess failure*).
+- Menghilangkan jeda *buffering* (penangguhan awal) selama 25 detik pada pemutaran media baru dengan memindahkan inisialisasi penjadwalan pencarian data (*schedule seek 0*) ke bagian sebelum pemanggilan sinkronisasi penunggu *byte* awal.
+- Mengubah tanggapan lokal *streaming server* dari `HTTP 202 Accepted` menjadi `HTTP 503 Service Unavailable` saat data *buffer* belum siap (baik pada pemuatan awal maupun pemutaran tengah/seek). Perubahan ini mencegah *browser player engine* mengalami kegagalan baca (*decoding error*) yang memicu pemuatan ulang media secara berulang-ulang (*infinite buffering loop*).
+
 ## v2.1.57 Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
 
 Added & Optimized:

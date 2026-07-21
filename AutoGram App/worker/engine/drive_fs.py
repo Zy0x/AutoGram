@@ -6436,6 +6436,8 @@ async def start_preview_stream_on_client(
             if os.path.isfile(fpath) and os.path.getsize(fpath) > 0:
                 fext = _file_ext(fname) or ext
                 fmime = mimetypes.guess_type(fpath)[0] or mime
+                if fext.lower() == "pdf":
+                    fmime = "application/pdf"
                 fkind = "file"
                 if fmime == "application/pdf" or fext == "pdf" or dkind == "pdf":
                     fkind = "pdf"
@@ -7502,6 +7504,8 @@ async def get_preview(
                 if os.path.isfile(path) and os.path.getsize(path) > 0:
                     # Prefer streaming complete file for video-capable players
                     mime = mimetypes.guess_type(path)[0] or ""
+                    if (_file_ext(path) or "").lower() == "pdf":
+                        mime = "application/pdf"
                     if mime.startswith("video/") or mime.startswith("audio/"):
                         from engine.media_stream import get_stream, register_stream
 
@@ -7531,6 +7535,8 @@ async def get_preview(
                         return result
                     fext = _file_ext(path) or ""
                     fmime = mimetypes.guess_type(path)[0] or ""
+                    if fext.lower() == "pdf":
+                        fmime = "application/pdf"
                     fkind = "file"
                     if fmime == "application/pdf" or fext == "pdf":
                         fkind = "pdf"
@@ -7642,6 +7648,9 @@ def _preview_result(
     """
     abs_path = os.path.abspath(path)
     mime = mimetypes.guess_type(abs_path)[0] or "application/octet-stream"
+    fext = (_file_ext(abs_path) or "").lower()
+    if fext == "pdf":
+        mime = "application/pdf"
     size = os.path.getsize(abs_path)
     data_url = None
     # CRITICAL: never base64 large blobs — crashes the app via huge JSON + IPC

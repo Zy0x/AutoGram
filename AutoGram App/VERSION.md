@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.57
+AutoGram Version: v2.1.58
 
 Current State:
-Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
+Penyelarasan Mime-Type PDF In-App & Optimalisasi Sensitivitas Buffering Pemuatan Awal Progressive Streaming
 
 Previous:
+v2.1.57 Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
 v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
 v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
 v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
