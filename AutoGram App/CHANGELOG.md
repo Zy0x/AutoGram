@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
+
+Added:
+- Implementasi sinkronisasi status pemutaran (Play/Pause) antara UI React (`DrivePreviewModal`) dengan local streaming server di backend Python (`media_stream.py`). Engine akan menunda (*suspend*) pengunduhan sekuensial di latar belakang seketika saat video di-pause untuk menghemat kuota data internet pengguna.
+- Registrasi endpoint baru `/stream/{stream_id}/pause` dan `/stream/{stream_id}/resume` di lokal HTTP server dengan penyesuaian CORS middleware untuk mendukung komunikasi POST.
+
 ## v2.1.53 Perbaikan Kritikal Sistem Preview & Streaming (Otentikasi Sesi Drive)
 
 Fixed:

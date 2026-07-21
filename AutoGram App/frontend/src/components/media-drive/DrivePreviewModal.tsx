@@ -875,8 +875,29 @@ export function DrivePreviewModal({
     // Already buffered in the browser — nothing to do
     if (timeInBuffered(v, t, 1.25)) return;
 
-    flashSeekWarn('Memuat titik seek…');
   }, [streamUrl, timeInBuffered, flashSeekWarn]);
+
+  const getStreamBaseUrl = useCallback((url: string, sid: string) => {
+    const idx = url.indexOf('/stream/');
+    if (idx < 0) return null;
+    return url.slice(0, idx) + `/stream/${sid}`;
+  }, []);
+
+  const handlePause = useCallback(() => {
+    if (!streamUrl || !streamId) return;
+    const baseUrl = getStreamBaseUrl(streamUrl, streamId);
+    if (baseUrl) {
+      fetch(`${baseUrl}/pause`, { method: 'POST' }).catch(() => undefined);
+    }
+  }, [streamUrl, streamId, getStreamBaseUrl]);
+
+  const handlePlay = useCallback(() => {
+    if (!streamUrl || !streamId) return;
+    const baseUrl = getStreamBaseUrl(streamUrl, streamId);
+    if (baseUrl) {
+      fetch(`${baseUrl}/resume`, { method: 'POST' }).catch(() => undefined);
+    }
+  }, [streamUrl, streamId, getStreamBaseUrl]);
 
   useEffect(() => {
     return () => {
@@ -2502,9 +2523,16 @@ export function DrivePreviewModal({
                     setPlayerHint('Buffering…');
                   }
                 }}
+                onPlay={() => {
+                  handlePlay();
+                }}
+                onPause={() => {
+                  handlePause();
+                }}
                 onPlaying={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  handlePlay();
                   if (seekWarn && seekWarn.startsWith('Memuat')) {
                     setSeekWarn(null);
                   }

@@ -169,6 +169,7 @@ class ProgressiveMedia:
         self.cv = threading.Condition()
         self.refcount = 0
         self.cancelled = False
+        self.paused = False
         self.in_memory = False
         self.ram_buffer = None
         # Explicit filled ranges [start, end) — source of truth for seek/serve
@@ -586,6 +587,26 @@ async def serve_options(request):
     return web.Response(status=204)
 
 
+async def serve_pause(request):
+    stream_id = request.match_info['stream_id']
+    media = get_stream(stream_id)
+    if media:
+        media.paused = True
+        log_debug(f"Stream {stream_id} PAUSED")
+        return web.Response(status=200, text="paused")
+    return web.Response(status=404, text="stream not found")
+
+
+async def serve_resume(request):
+    stream_id = request.match_info['stream_id']
+    media = get_stream(stream_id)
+    if media:
+        media.paused = False
+        log_debug(f"Stream {stream_id} RESUMED")
+        return web.Response(status=200, text="resumed")
+    return web.Response(status=404, text="stream not found")
+
+
 async def serve_events(request):
     stream_id = request.match_info['stream_id']
     media = get_stream(stream_id)
@@ -874,6 +895,10 @@ def _ensure_server() -> int:
             app.router.add_options('/stream/{stream_id}/{filename}', serve_options)
             app.router.add_options('/stream/{stream_id}', serve_options)
             app.router.add_get('/stream/{stream_id}/events', serve_events)
+            app.router.add_post('/stream/{stream_id}/pause', serve_pause)
+            app.router.add_post('/stream/{stream_id}/resume', serve_resume)
+            app.router.add_options('/stream/{stream_id}/pause', serve_options)
+            app.router.add_options('/stream/{stream_id}/resume', serve_options)
 
             # CORS middleware
             async def cors_middleware(app, handler):
@@ -883,7 +908,7 @@ def _ensure_server() -> int:
                     except web.HTTPException as ex:
                         response = ex
                     response.headers["Access-Control-Allow-Origin"] = "*"
-                    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS, POST"
                     response.headers["Access-Control-Allow-Headers"] = "Range, Content-Type"
                     response.headers["Access-Control-Expose-Headers"] = (
                         "Content-Length, Content-Range, Accept-Ranges, Retry-After, "
@@ -2001,6 +2026,12 @@ async def fill_stream_from_telegram(
         while not media.cancelled:
             # Active seek generation monitoring
             generation = media._seek_generation
+
+            # Pause check: suspend background pipeline downloading if player is paused
+            if getattr(media, "paused", False):
+                await asyncio.sleep(0.5)
+                continue
+
             playhead = media._active_seek_offset or 0
             pos = max(media.contiguous_from_zero(), playhead)
             if total > 0 and pos >= total:
