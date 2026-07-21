@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.63 Optimalisasi Bandwidth dan Pencegahan Starvation Koneksi Video Playback
+
+Fixed:
+- Mengatasi masalah pemutaran video yang macet/freeze meskipun indikator buffer browser sudah tinggi. Masalah ini disebabkan oleh starvation koneksi Telegram akibat prefetching paralel terhadap file-file tetangga (neighbor files) yang memicu puluhan stream aktif secara bersamaan dan memicu pembatasan kecepatan (rate-limiting) Telegram. Prefetching kini otomatis dinonaktifkan jika file aktif yang sedang diputar berupa video, memastikan seluruh bandwidth dan slot koneksi dialokasikan khusus untuk pemutaran video utama.
+
 ## v2.1.62 Perbaikan Tabrakan ID Pekerja Tauri (991005) dan Penyelarasan Aligment Seek Keyframe Video
 
 Fixed:

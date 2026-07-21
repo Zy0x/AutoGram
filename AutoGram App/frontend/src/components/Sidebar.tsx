@@ -62,7 +62,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </nav>
 
       <div className="sidebar-footer">
-        <p>AutoGram v2.1.62</p>
+        <p>AutoGram v2.1.63</p>
       </div>
     </aside>
   );

@@ -572,9 +572,9 @@ export function DrivePreviewModal({
         !!hit && !!(hit.stream_url || hit.path || hit.data_url);
       if (hasUsable && hit) {
         applyResult(hit, qNorm, true);
-        // Prefetch neighbors ASAP (next/prev feels instant)
+        // Prefetch neighbors ASAP (next/prev feels instant) - skip if current file is a video to prioritize bandwidth
         const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
-        if (ids.length) prefetchPreviews(creds, folderId, ids, qNorm);
+        if (ids.length && !isVideoDriveFile(file)) prefetchPreviews(creds, folderId, ids, qNorm);
 
         // Complete local only — hollow `.stream.` paths need a live stream re-RPC
         const solidLocal =
@@ -613,7 +613,7 @@ export function DrivePreviewModal({
         applyResult(res, qNorm, false);
 
         const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
-        if (ids.length) prefetchPreviews(creds, folderId, ids, qNorm);
+        if (ids.length && !isVideoDriveFile(file)) prefetchPreviews(creds, folderId, ids, qNorm);
       } catch (e: any) {
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
