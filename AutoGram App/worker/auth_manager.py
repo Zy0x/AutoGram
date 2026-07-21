@@ -252,8 +252,7 @@ async def delete_session_action(session_name):
     except Exception as e:
         print(json.dumps({"error": str(e)}))
 
-async def qr_export_action(session_name, api_id, api_hash):
-    import time
+async def qr_login_action(session_name, api_id, api_hash):
     client, _ = get_client_and_string(session_name, api_id, api_hash)
     try:
         await asyncio.wait_for(client.connect(), timeout=15.0)
@@ -263,9 +262,7 @@ async def qr_export_action(session_name, api_id, api_hash):
             return
 
         qr_login = await client.qr_login()
-        save_client_session(session_name, client)
-        expires = int(qr_login.expires.timestamp()) if getattr(qr_login, "expires", None) else (int(time.time()) + 60)
-        
+        expires = int(qr_login.expires.timestamp()) if getattr(qr_login, "expires", None) else 0
         print(
             json.dumps({
                 "status": "qr_code",
@@ -275,39 +272,71 @@ async def qr_export_action(session_name, api_id, api_hash):
             }),
             flush=True,
         )
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), flush=True)
-    finally:
-        try:
-            await client.disconnect()
-        except Exception:
-            pass
 
-async def qr_check_action(session_name, api_id, api_hash):
-    client, _ = get_client_and_string(session_name, api_id, api_hash)
-    try:
-        await asyncio.wait_for(client.connect(), timeout=10.0)
-        if await client.is_user_authorized():
-            save_client_session(session_name, client)
-            print(json.dumps({"status": "success"}), flush=True)
-            return
-        
-        try:
-            qr_login = await client.qr_login()
-            user = await qr_login.wait(timeout=2.0)
-            save_client_session(session_name, client)
-            print(json.dumps({"status": "success", "username": getattr(user, "username", "") or ""}), flush=True)
-        except SessionPasswordNeededError:
-            save_client_session(session_name, client)
-            print(json.dumps({"status": "2fa_required"}), flush=True)
-        except asyncio.TimeoutError:
-            print(json.dumps({"status": "pending"}), flush=True)
-        except Exception as e:
-            msg = str(e).lower()
-            if "expired" in msg:
-                print(json.dumps({"error": "qr_expired"}), flush=True)
-            else:
-                print(json.dumps({"status": "pending"}), flush=True)
+        while True:
+            try:
+                user = await qr_login.wait(timeout=20.0)
+                save_client_session(session_name, client)
+                
+                sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), "sessions"))
+                grammers_file = os.path.join(sessions_dir, f"{session_name}.grammers.json")
+                if os.path.exists(grammers_file):
+                    try:
+                        os.remove(grammers_file)
+                    except Exception:
+                        pass
+
+                print(json.dumps({"status": "success", "username": getattr(user, "username", "") or ""}), flush=True)
+                break
+            except SessionPasswordNeededError:
+                save_client_session(session_name, client)
+                
+                sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), "sessions"))
+                grammers_file = os.path.join(sessions_dir, f"{session_name}.grammers.json")
+                if os.path.exists(grammers_file):
+                    try:
+                        os.remove(grammers_file)
+                    except Exception:
+                        pass
+
+                print(json.dumps({"status": "2fa_required"}), flush=True)
+                break
+            except asyncio.TimeoutError:
+                try:
+                    await qr_login.recreate()
+                    new_exp = int(qr_login.expires.timestamp()) if getattr(qr_login, "expires", None) else 0
+                    print(
+                        json.dumps({
+                            "status": "qr_code",
+                            "url": qr_login.url,
+                            "token": qr_login.token.hex() if hasattr(qr_login.token, "hex") else str(qr_login.token),
+                            "expires": new_exp,
+                        }),
+                        flush=True,
+                    )
+                except Exception:
+                    pass
+            except Exception as e:
+                msg = str(e).lower()
+                if "expired" in msg:
+                    try:
+                        await qr_login.recreate()
+                        new_exp = int(qr_login.expires.timestamp()) if getattr(qr_login, "expires", None) else 0
+                        print(
+                            json.dumps({
+                                "status": "qr_code",
+                                "url": qr_login.url,
+                                "token": qr_login.token.hex() if hasattr(qr_login.token, "hex") else str(qr_login.token),
+                                "expires": new_exp,
+                            }),
+                            flush=True,
+                        )
+                    except Exception as err:
+                        print(json.dumps({"error": str(err)}), flush=True)
+                        break
+                else:
+                    print(json.dumps({"error": str(e)}), flush=True)
+                    break
     except Exception as e:
         print(json.dumps({"error": str(e)}), flush=True)
     finally:
@@ -347,10 +376,8 @@ def main():
         asyncio.run(sign_in(args.session, args.phone, args.code, args.hash, args.api_id, args.api_hash))
     elif args.action == 'sign-in-2fa':
         asyncio.run(sign_in_2fa(args.session, args.password, args.api_id, args.api_hash))
-    elif args.action in ('qr-login', 'qr-export'):
-        asyncio.run(qr_export_action(args.session, args.api_id, args.api_hash))
-    elif args.action == 'qr-check':
-        asyncio.run(qr_check_action(args.session, args.api_id, args.api_hash))
+    elif args.action == 'qr-login':
+        asyncio.run(qr_login_action(args.session, args.api_id, args.api_hash))
 
 if __name__ == '__main__':
     main()

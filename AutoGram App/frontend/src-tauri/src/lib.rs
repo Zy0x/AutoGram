@@ -1,4 +1,6 @@
 // AutoGram desktop core — isolated worker process management + P0 secrets
+// Hybrid: pure-local logic in `core` (Rust-first); Telegram stays Python.
+mod core;
 mod open_file;
 mod secrets;
 mod session_clone;
@@ -234,6 +236,61 @@ fn build_python_command_with_stdin(daemon: &Path, args: &[String], pipe_stdin: b
     // Worker relative imports need cwd = worker directory
     if let Some(parent) = daemon.parent() {
         cmd.current_dir(parent);
+        // Hybrid stream: Python GetFile + Rust Range HTTP
+        let reg = parent.join("cache").join("stream_registry");
+        let _ = std::fs::create_dir_all(&reg);
+        let port = core::stream_server::stream_port();
+        if port > 0 {
+            cmd.env("AUTOGRAM_STREAM_PORT", port.to_string());
+            cmd.env("AUTOGRAM_STREAM_REGISTRY", reg.display().to_string());
+            cmd.env("AUTOGRAM_STREAM_BACKEND", "rust");
+        }
+        // Proxy / VPN optimizer → Telethon (Python companion)
+        for (k, v) in core::network::worker_env_map() {
+            cmd.env(k, v);
+        }
+        // Propagate debug mode so Python workers emit [DEBUG] / DebugLog
+        let debug_flag = parent.join("temp").join("autogram_debug.txt");
+        let debug_on = std::env::var("AUTOGRAM_DEBUG")
+            .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+            .unwrap_or(false)
+            || std::fs::read_to_string(&debug_flag)
+                .map(|s| {
+                    let t = s.trim().to_ascii_lowercase();
+                    !t.is_empty() && t != "0" && t != "false" && t != "off" && t != "no"
+                })
+                .unwrap_or(false);
+        if debug_on {
+            cmd.env("AUTOGRAM_DEBUG", "1");
+            cmd.env("AUTOGRAM_TRANSFER_DEBUG", "1");
+            core::tg_log::info(
+                "rust_worker",
+                "spawn",
+                format!("debug=1 python_worker cwd={}", parent.display()),
+            );
+        } else {
+            core::tg_log::debug(
+                "rust_worker",
+                "spawn",
+                "debug=0 (enable Settings → Debug Mode)",
+            );
+        }
+        // Session dir for dual-path Grammers helpers
+        let sessions = parent.join("sessions");
+        cmd.env("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
+        // Default Grammers for ops that support it; Drive/stream workers still Telethon inside Python.
+        let backend =
+            std::env::var("AUTOGRAM_TELEGRAM_BACKEND").unwrap_or_else(|_| "grammers".into());
+        cmd.env("AUTOGRAM_TELEGRAM_BACKEND", &backend);
+        core::tg_log::info(
+            "rust_worker",
+            "spawn_env",
+            format!(
+                "tg_backend={} stream_port={}",
+                backend,
+                core::stream_server::stream_port()
+            ),
+        );
     }
     #[cfg(windows)]
     {
@@ -377,6 +434,119 @@ async fn start_worker_job(
         }
         release_session_leases_for_job(job_id);
         // Small delay so last stdout lines flush through the other threads
+        thread::sleep(std::time::Duration::from_millis(80));
+        let _ = app_wait.emit(
+            "worker-exit",
+            WorkerExitPayload {
+                job_id,
+                code,
+            },
+        );
+    });
+
+    Ok(())
+}
+
+/// Long-running auth_manager.py job: streams lines via events `worker-line` / `worker-exit`.
+#[tauri::command]
+async fn start_auth_manager_job(
+    app: AppHandle,
+    job_id: i64,
+    args: Vec<String>,
+) -> Result<(), String> {
+    secrets::validate_worker_args(&args)?;
+
+    {
+        if let Ok(mut map) = worker_stdins().lock() {
+            map.remove(&job_id);
+        }
+        let old_pid = if let Ok(mut map) = worker_pids().lock() {
+            map.remove(&job_id)
+        } else {
+            None
+        };
+        if let Some(pid) = old_pid {
+            kill_pid_tree(pid);
+            thread::sleep(std::time::Duration::from_millis(180));
+        }
+    }
+
+    let daemon = resolve_daemon_script(&app)?;
+    let auth = daemon
+        .parent()
+        .map(|p| p.join("auth_manager.py"))
+        .ok_or_else(|| "auth_manager.py parent missing".to_string())?;
+    if !auth.exists() {
+        return Err(format!("auth_manager.py not found at {}", auth.display()));
+    }
+
+    let py = resolve_python_bin(&auth);
+    let mut cmd = build_python_command_with_stdin(&auth, &args, false);
+    let mut child = cmd.spawn().map_err(|e| {
+        format!(
+            "Failed to spawn auth_manager: {e} (python={}, script={})",
+            py.display(),
+            auth.display()
+        )
+    })?;
+
+    let pid = child.id();
+    if let Ok(mut map) = worker_pids().lock() {
+        map.insert(job_id, pid);
+    }
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Failed to capture auth_manager stdout".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Failed to capture auth_manager stderr".to_string())?;
+
+    let app_out = app.clone();
+    let jid_out = job_id;
+    thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        for line in reader.lines().flatten() {
+            let _ = app_out.emit(
+                "worker-line",
+                WorkerLinePayload {
+                    job_id: jid_out,
+                    line,
+                    stream: "stdout".into(),
+                },
+            );
+        }
+    });
+
+    let app_err = app.clone();
+    let jid_err = job_id;
+    thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().flatten() {
+            let _ = app_err.emit(
+                "worker-line",
+                WorkerLinePayload {
+                    job_id: jid_err,
+                    line: line.clone(),
+                    stream: "stderr".into(),
+                },
+            );
+            let _ = app_err.emit("worker-stderr", line);
+        }
+    });
+
+    let app_wait = app.clone();
+    thread::spawn(move || {
+        let code = match child.wait() {
+            Ok(status) => status.code().unwrap_or(0),
+            Err(_) => 1,
+        };
+        if let Ok(mut map) = worker_pids().lock() {
+            map.remove(&job_id);
+        }
+        release_session_leases_for_job(job_id);
         thread::sleep(std::time::Duration::from_millis(80));
         let _ = app_wait.emit(
             "worker-exit",
@@ -638,6 +808,324 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// Hybrid capability map (Rust / Python / hybrid owners).
+#[tauri::command]
+fn backend_capabilities() -> Vec<core::capability::CapabilityEntry> {
+    core::capability::capability_catalog()
+}
+
+/// Streaming size-tier policy (Rust source of truth for desktop).
+#[tauri::command]
+fn streaming_config_for_size(total_size: u64) -> core::streaming_policy::StreamingConfig {
+    core::streaming_policy::get_streaming_config(total_size)
+}
+
+/// Local text/code/office preview without Python (cache path on disk).
+#[tauri::command]
+fn preview_local_document(path: String) -> Result<core::doc_preview::LocalDocPreview, String> {
+    core::doc_preview::preview_local_document(&path)
+}
+
+/// Path policy check used by desktop UI / transfers.
+#[tauri::command]
+fn path_policy_check(path: String) -> Result<bool, String> {
+    core::path_policy::assert_safe_transfer_path(&path).map(|_| true)
+}
+
+#[tauri::command]
+fn stream_server_port() -> u16 {
+    core::stream_server::stream_port()
+}
+
+#[tauri::command]
+fn stream_status_local(stream_id: String) -> core::stream_server::StreamStatusDto {
+    core::stream_server::status_of(&stream_id)
+}
+
+#[tauri::command]
+fn stream_register_local(
+    path: String,
+    total_size: Option<u64>,
+    mime: Option<String>,
+    label: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let (sid, url, port) = core::stream_server::register_local_file(
+        &path,
+        total_size.unwrap_or(0),
+        mime.as_deref().unwrap_or("application/octet-stream"),
+        label.as_deref().unwrap_or("media"),
+    )?;
+    Ok(serde_json::json!({
+        "streamId": sid,
+        "streamUrl": url,
+        "port": port,
+        "backend": "rust",
+    }))
+}
+
+#[tauri::command]
+fn stream_unregister(stream_id: String) {
+    core::stream_server::remove_entry(&stream_id);
+}
+
+#[tauri::command]
+fn zip_list_local(path: String) -> Result<core::zip_local::ZipListResult, String> {
+    core::zip_local::list_zip(&path)
+}
+
+#[tauri::command]
+fn zip_preview_entry(path: String, entry_name: String) -> Result<core::zip_local::ZipEntryPreview, String> {
+    core::zip_local::preview_zip_entry(&path, &entry_name)
+}
+
+#[tauri::command]
+fn file_sha256(path: String) -> Result<core::hash_util::FileHashResult, String> {
+    core::hash_util::sha256_file(&path)
+}
+
+#[tauri::command]
+fn file_quick_fingerprint(path: String) -> Result<core::hash_util::FileHashResult, String> {
+    core::hash_util::quick_fingerprint(&path)
+}
+
+#[tauri::command]
+fn compute_progress_rate(
+    done_bytes: u64,
+    total_bytes: u64,
+    elapsed_secs: f64,
+) -> core::progress_rate::ProgressSnapshot {
+    core::progress_rate::compute_progress(done_bytes, total_bytes, elapsed_secs)
+}
+
+#[tauri::command]
+fn normalize_job_config(raw: serde_json::Value) -> serde_json::Value {
+    core::config_normalize::normalize_job_config(raw)
+}
+
+#[tauri::command]
+fn network_get_config() -> core::network::NetworkConfigSnapshot {
+    core::network::snapshot()
+}
+
+#[tauri::command]
+fn network_apply_proxy(proxy: core::network::ProxyConfig) -> Result<(), String> {
+    core::network::apply_proxy(proxy)
+}
+
+#[tauri::command]
+fn network_apply_vpn(vpn: core::network::VpnConfig) -> Result<(), String> {
+    core::network::apply_vpn(vpn)
+}
+
+#[tauri::command]
+fn network_apply_all(config: core::network::NetworkConfigSnapshot) -> Result<(), String> {
+    core::network::apply_all(config)
+}
+
+#[tauri::command]
+fn network_test_proxy() -> core::network::ProxyStatus {
+    core::network::test_proxy_tcp()
+}
+
+#[tauri::command]
+fn network_is_available() -> bool {
+    core::network::is_network_available()
+}
+
+#[tauri::command]
+fn network_detect_vpn() -> bool {
+    core::network::detect_vpn_heuristic()
+}
+
+#[tauri::command]
+fn studio_enqueue(
+    request: core::job_queue::CreateTransferRequest,
+) -> Result<core::job_queue::TransferRecord, String> {
+    core::studio_orch::enqueue(request)
+}
+
+#[tauri::command]
+fn studio_list_transfers() -> Vec<core::job_queue::TransferRecord> {
+    core::job_queue::list_transfers()
+}
+
+#[tauri::command]
+fn studio_get_transfer(transfer_id: String) -> Option<core::job_queue::TransferRecord> {
+    core::job_queue::get_transfer(&transfer_id)
+}
+
+/// Phase 3: Rust orchestrates queue; Python studio-serve runs Telethon upload_one steps.
+#[tauri::command]
+async fn studio_run_orchestrated(
+    app: AppHandle,
+    request: core::job_queue::CreateTransferRequest,
+) -> Result<core::studio_orch::OrchStartResult, String> {
+    let daemon = resolve_daemon_script(&app)?;
+    let py = resolve_python_bin(&daemon);
+    let mut env_extra = core::network::worker_env_map();
+    if let Some(parent) = daemon.parent() {
+        let reg = parent.join("cache").join("stream_registry");
+        let port = core::stream_server::stream_port();
+        if port > 0 {
+            env_extra.push(("AUTOGRAM_STREAM_PORT".into(), port.to_string()));
+            env_extra.push((
+                "AUTOGRAM_STREAM_REGISTRY".into(),
+                reg.display().to_string(),
+            ));
+        }
+        // Grammers / dual-path session root
+        let sessions = parent.join("sessions");
+        env_extra.push((
+            "AUTOGRAM_SESSIONS_DIR".into(),
+            sessions.display().to_string(),
+        ));
+        std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
+    }
+    let req = request;
+    tauri::async_runtime::spawn_blocking(move || {
+        core::studio_orch::run_orchestrated_blocking(&req, &daemon, &py, &env_extra)
+    })
+    .await
+    .map_err(|e| format!("orch join: {e}"))?
+}
+
+// ── Phase 4 Grammers / dual-path Telegram ops ─────────────────────────────
+
+fn ensure_sessions_dir_env(app: &AppHandle) {
+    if std::env::var("AUTOGRAM_SESSIONS_DIR").is_ok() {
+        return;
+    }
+    if let Ok(daemon) = resolve_daemon_script(app) {
+        if let Some(parent) = daemon.parent() {
+            let sessions = parent.join("sessions");
+            std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
+        }
+    }
+}
+
+#[tauri::command]
+fn tg_backend_status(app: AppHandle) -> core::telegram_ops::BackendStatus {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::backend_status()
+}
+
+#[tauri::command]
+fn tg_set_backend(app: AppHandle, backend: String) -> core::telegram_ops::OpResult<core::telegram_ops::BackendStatus> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_set_backend(backend)
+}
+
+#[tauri::command]
+fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::SessionProbeResult {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_probe_session(session)
+}
+
+#[tauri::command]
+fn tg_import_telethon_session(
+    app: AppHandle,
+    session: String,
+) -> core::telegram_ops::OpResult<String> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_import_telethon_session(session)
+}
+
+#[tauri::command]
+fn tg_auth_status(
+    app: AppHandle,
+    identity: core::telegram_ops::TelegramIdentity,
+) -> core::telegram_ops::OpResult<core::telegram_ops::AuthStatus> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_auth_status(identity)
+}
+
+#[tauri::command]
+fn tg_list_dialogs(
+    app: AppHandle,
+    identity: core::telegram_ops::TelegramIdentity,
+    limit: Option<usize>,
+) -> core::telegram_ops::OpResult<Vec<core::telegram_ops::DialogEntry>> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_list_dialogs(identity, limit)
+}
+
+#[tauri::command]
+fn tg_list_media(
+    app: AppHandle,
+    request: core::telegram_ops::ListMediaRequest,
+) -> core::telegram_ops::OpResult<core::grammers_ops::ListMediaResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_list_media(request)
+}
+
+#[tauri::command]
+fn tg_upload_file(
+    app: AppHandle,
+    request: core::telegram_ops::UploadFileRequest,
+) -> core::telegram_ops::OpResult<core::telegram_ops::UploadStepResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_upload_file(request)
+}
+
+#[tauri::command]
+fn tg_login(
+    app: AppHandle,
+    request: core::grammers_ops::LoginRequest,
+) -> core::telegram_ops::OpResult<core::grammers_ops::LoginResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_login(request)
+}
+
+#[tauri::command]
+fn tg_download_file(
+    app: AppHandle,
+    request: core::telegram_ops::DownloadFileRequest,
+) -> core::telegram_ops::OpResult<core::grammers_ops::DownloadFileResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_download_file(request)
+}
+
+#[tauri::command]
+fn tg_list_topics(
+    app: AppHandle,
+    request: core::telegram_ops::ListTopicsRequest,
+) -> core::telegram_ops::OpResult<core::grammers_media::ListTopicsResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_list_topics(request)
+}
+
+#[tauri::command]
+fn tg_thumbs_batch(
+    app: AppHandle,
+    request: core::telegram_ops::ThumbsBatchRequest,
+) -> core::telegram_ops::OpResult<core::grammers_media::ThumbsBatchResult> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_thumbs_batch(request)
+}
+
+#[tauri::command]
+fn tg_preview_stream(
+    app: AppHandle,
+    request: core::telegram_ops::PreviewStreamRequest,
+) -> core::telegram_ops::OpResult<core::grammers_media::PreviewStreamResult> {
+    ensure_sessions_dir_env(&app);
+    // Ensure Range HTTP is up before progressive register
+    if let Ok(worker) = resolve_worker_dir(&app) {
+        let reg = worker.join("cache").join("stream_registry");
+        let _ = core::stream_server::ensure_started(reg);
+    }
+    core::telegram_ops::tg_preview_stream(request)
+}
+
+#[tauri::command]
+fn tg_stop_stream(
+    app: AppHandle,
+    stream_id: String,
+) -> core::telegram_ops::OpResult<bool> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_stop_stream(stream_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -647,6 +1135,45 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            backend_capabilities,
+            streaming_config_for_size,
+            preview_local_document,
+            path_policy_check,
+            stream_server_port,
+            stream_status_local,
+            stream_register_local,
+            stream_unregister,
+            zip_list_local,
+            zip_preview_entry,
+            file_sha256,
+            file_quick_fingerprint,
+            compute_progress_rate,
+            normalize_job_config,
+            network_get_config,
+            network_apply_proxy,
+            network_apply_vpn,
+            network_apply_all,
+            network_test_proxy,
+            network_is_available,
+            network_detect_vpn,
+            studio_enqueue,
+            studio_list_transfers,
+            studio_get_transfer,
+            studio_run_orchestrated,
+            tg_backend_status,
+            tg_set_backend,
+            tg_probe_session,
+            tg_import_telethon_session,
+            tg_auth_status,
+            tg_list_dialogs,
+            tg_list_media,
+            tg_upload_file,
+            tg_login,
+            tg_download_file,
+            tg_list_topics,
+            tg_thumbs_batch,
+            tg_preview_stream,
+            tg_stop_stream,
             start_worker_job,
             kill_worker_job,
             acquire_worker_session_lease,
@@ -656,6 +1183,7 @@ pub fn run() {
             write_worker_stdin,
             run_worker_once,
             run_auth_manager_once,
+            start_auth_manager_job,
             secrets::get_credential,
             secrets::set_credential,
             secrets::delete_credential,
@@ -677,6 +1205,21 @@ pub fn run() {
             let _ = secrets::ensure_secure_dirs(app.handle().clone());
             // Clear any leftover ghost sessions on disk
             let _ = session_clone::clear_ghost_sessions_disk(app.handle());
+            // Hybrid: start Rust Range HTTP server (Python GetFile publishes registry)
+            if let Ok(worker) = resolve_worker_dir(app.handle()) {
+                let reg = worker.join("cache").join("stream_registry");
+                let port = core::stream_server::ensure_started(reg);
+                if port > 0 {
+                    eprintln!("[autogram] rust stream server on 127.0.0.1:{port}");
+                }
+            }
+            // Network (proxy/VPN) config under app data
+            if let Ok(dir) = app.handle().path().app_local_data_dir() {
+                let net_path = dir.join("AutoGram").join("network_settings.json");
+                core::network::init_config_path(net_path);
+                let q_path = dir.join("AutoGram").join("studio_queue.json");
+                core::job_queue::init_queue_path(q_path);
+            }
             Ok(())
         })
         .build(tauri::generate_context!())

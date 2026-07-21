@@ -5,6 +5,8 @@ import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../lib/secureCredentials';
 import { runAuthManagerOnce } from '../lib/workerBridge';
 
@@ -139,18 +141,22 @@ export function Accounts() {
   const [loginMethod, setLoginMethod] = useState<'qr' | 'phone'>('qr');
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrExpiresIn, setQrExpiresIn] = useState<number>(0);
-  const qrCheckTimerRef = useRef<any>(null);
+  const QR_JOB_ID = 888888;
+  const unlistenQrRef = useRef<(() => void) | null>(null);
   const qrCountdownTimerRef = useRef<any>(null);
 
-  const stopQrTimers = () => {
-    if (qrCheckTimerRef.current) {
-      clearInterval(qrCheckTimerRef.current);
-      qrCheckTimerRef.current = null;
+  const stopQrTimers = async () => {
+    if (unlistenQrRef.current) {
+      unlistenQrRef.current();
+      unlistenQrRef.current = null;
     }
     if (qrCountdownTimerRef.current) {
       clearInterval(qrCountdownTimerRef.current);
       qrCountdownTimerRef.current = null;
     }
+    try {
+      await invoke('kill_worker_job', { jobId: QR_JOB_ID });
+    } catch {}
   };
 
   useEffect(() => {
@@ -274,82 +280,71 @@ export function Accounts() {
 
     if (!(await checkApiCredentials())) return;
 
-    stopQrTimers();
+    await stopQrTimers();
     setIsProcessing(true);
     setErrorMsg('');
     setQrDataUrl(null);
 
     try {
       const { apiId, apiHash } = await getApiCredentials();
-      const result = await runAuthManagerOnce([
-        '--action',
-        'qr-export',
-        '--session',
-        sessionName,
-        '--api-id',
-        apiId || '',
-        '--api-hash',
-        apiHash || '',
-      ]);
-      const data = parseAuthJson(result.stdout, result.stderr);
 
-      if (data.error) {
-        handleError(data);
-        setIsProcessing(false);
-      } else if (data.status === 'already_authorized') {
-        setIsWizardOpen(false);
-        loadSessions();
-        setIsProcessing(false);
-      } else if (data.status === 'qr_code' && data.url) {
-        const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
-        setQrDataUrl(dataUrl);
+      const unlisten = await listen<{ job_id: number; line: string }>('worker-line', async (event) => {
+        if (event.payload.job_id !== QR_JOB_ID) return;
+        const line = event.payload.line || '';
+        try {
+          const data = JSON.parse(line);
+          if (data.status === 'already_authorized') {
+            await stopQrTimers();
+            setIsWizardOpen(false);
+            loadSessions();
+            setIsProcessing(false);
+          } else if (data.status === 'qr_code' && data.url) {
+            const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
+            setQrDataUrl(dataUrl);
 
-        const exp = Number(data.expires) || 0;
-        const nowSec = Math.floor(Date.now() / 1000);
-        const rem = Math.max(0, exp - nowSec) || 60;
-        setQrExpiresIn(rem);
-        setIsProcessing(false);
+            const exp = Number(data.expires) || 0;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const rem = Math.max(0, exp - nowSec) || 60;
+            setQrExpiresIn(rem);
+            setIsProcessing(false);
 
-        qrCountdownTimerRef.current = setInterval(() => {
-          setQrExpiresIn((prev) => {
-            if (prev <= 1) {
-              stopQrTimers();
-              setErrorMsg('QR Code kedaluwarsa. Klik "Muat Ulang QR Code" untuk memperbarui.');
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-
-        qrCheckTimerRef.current = setInterval(async () => {
-          try {
-            const checkRes = await runAuthManagerOnce([
-              '--action',
-              'qr-check',
-              '--session',
-              sessionName,
-              '--api-id',
-              apiId || '',
-              '--api-hash',
-              apiHash || '',
-            ]);
-            const checkData = parseAuthJson(checkRes.stdout, checkRes.stderr);
-            if (checkData.status === 'success') {
-              stopQrTimers();
-              setIsWizardOpen(false);
-              loadSessions();
-            } else if (checkData.status === '2fa_required') {
-              stopQrTimers();
-              setStep(3);
-            } else if (checkData.error === 'qr_expired') {
-              stopQrTimers();
-              setErrorMsg('QR Code kedaluwarsa. Klik "Muat Ulang QR Code" untuk memperbarui.');
-            }
-          } catch {
-            /* ignore polling errors */
+            if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+            qrCountdownTimerRef.current = setInterval(() => {
+              setQrExpiresIn((prev) => Math.max(0, prev - 1));
+            }, 1000);
+          } else if (data.status === 'success') {
+            await stopQrTimers();
+            setIsWizardOpen(false);
+            loadSessions();
+            setIsProcessing(false);
+          } else if (data.status === '2fa_required') {
+            await stopQrTimers();
+            setStep(3);
+            setIsProcessing(false);
+          } else if (data.error) {
+            setErrorMsg(data.error);
+            setIsProcessing(false);
           }
-        }, 2500);
-      }
+        } catch {
+          /* ignore non-json lines */
+        }
+      });
+
+      unlistenQrRef.current = unlisten;
+
+      await invoke('start_auth_manager_job', {
+        jobId: QR_JOB_ID,
+        args: [
+          '--action',
+          'qr-login',
+          '--session',
+          sessionName,
+          '--api-id',
+          apiId || '',
+          '--api-hash',
+          apiHash || '',
+        ],
+      });
     } catch (e: any) {
       setErrorMsg(String(e));
       setIsProcessing(false);
