@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.59 Optimasi Sensitivitas Startup & Reduksi Budget Buffer Awal/Tail Video Dokumen Besar (>100MB)
+
+Fixed & Optimized:
+- Mengurangi ukuran penyangga awal (*initial head buffer*) untuk berkas video bertipe dokumen dari rentang 8MB–16MB menjadi **1MB–4MB** saja (1% dari ukuran berkas). Hal ini sangat memotong durasi tunggu sekuensial awal sehingga video besar dapat langsung mulai diputar.
+- Membatasi anggaran penyangga dinamis ekor berkas (*fallback dynamic moov tail budget*) untuk video dokumen dari 32MB menjadi **8MB** (atau 1/16 dari total ukuran) guna mempercepat proses unduhan metadata `moov` jika deteksi posisi atom presisi tidak berhasil.
+- Mengabaikan pemeriksaan nomor generasi seek (*seek generation check*) khusus untuk unduhan latar belakang inisiasi moov tail (`_bootstrap_moov_at_end`). Hal ini mencegah pembatalan tak sengaja pada unduhan metadata krusial saat pemutar peramban menginisiasi pemutaran pada playhead 0.
+- Meningkatkan batas penundaan waktu tunggu HTTP read socket stream (*wait_for_bytes*) menjadi **120 detik** (2 menit). Peningkatan batas penundaan ini mencegah server lokal mengembalikan kode `503` terlalu dini pada jaringan yang lambat, sehingga menghindarkan pemutar media peramban dari siklus galat dan pemuatan ulang tanpa henti (*infinite reload loop*).
+
 ## v2.1.58 Penyelarasan Mime-Type PDF In-App & Optimalisasi Sensitivitas Buffering Pemuatan Awal Progressive Streaming
 
 Fixed & Optimized:

@@ -727,7 +727,7 @@ async def serve_stream(request):
                 window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
                 priority=1,
             )
-        await asyncio.to_thread(media.wait_for_bytes, first_need, 35.0)
+        await asyncio.to_thread(media.wait_for_bytes, first_need, 120.0)
         if media.error and media.contiguous_from_zero() <= 0:
             return web.Response(status=502, text=media.error or "stream error")
         if media.contiguous_from_zero() <= 0 and not media.done:
@@ -783,7 +783,7 @@ async def serve_stream(request):
 
         if not media.has_byte(start) and not media.done:
             if start <= prefix + 512 * 1024:
-                await asyncio.to_thread(media.wait_for_bytes, start + 64 * 1024, 25.0)
+                await asyncio.to_thread(media.wait_for_bytes, start + 64 * 1024, 120.0)
             if not media.has_byte(start):
                 headers = {
                     "Retry-After": "1",
@@ -1704,9 +1704,9 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
         tail_len = total - tail_off
         log_debug(f"MP4 exact moov offset parsed: start={tail_off} length={tail_len}")
     else:
-        # Fallback ke dynamic budget dengan batas maksimum ditingkatkan hingga 32MB (dari sebelumnya 2MB)
+        # Fallback ke dynamic budget dengan batas maksimum dibatasi hingga 8MB (1-2MB biasanya cukup)
         # Tail budget: large re-encodes can have multi-MB moov
-        max_budget = min(32 * 1024 * 1024, max(_MOOV_TAIL_MIN, total // 8))
+        max_budget = min(8 * 1024 * 1024, max(_MOOV_TAIL_MIN, total // 16))
         tail_budget = max_budget
         if total < 4 * 1024 * 1024:
             tail_budget = max(_MOOV_TAIL_MIN, min(tail_budget, total // 2))
@@ -1732,7 +1732,7 @@ async def _bootstrap_moov_at_end(media: ProgressiveMedia) -> bool:
         length=tail_len,
         workers=min(12, media.get_stream_workers()),
         head_first=True,
-        seek_generation=media._seek_generation,
+        seek_generation=None,  # Bypass seek generation check for background moov boot
     )
     if media.cancelled:
         return False
@@ -1902,8 +1902,9 @@ async def fill_stream_from_telegram(
                 is_doc = True
 
         if is_doc:
-            # 2% of file size, minimum 8MB, maximum 16MB
-            doc_head = min(max(int(total * 0.02), 8 * 1024 * 1024), 16 * 1024 * 1024)
+            # Let's reduce the initial head size so it starts playing faster!
+            # Minimum 1MB, maximum 4MB is more than enough for initial sniffer and play.
+            doc_head = min(max(int(total * 0.01), 1 * 1024 * 1024), 4 * 1024 * 1024)
             media.config["initial_head"] = min(doc_head, total if total > 0 else doc_head)
             media.config["workers"] = max(media.config.get("workers", 16), 20)
             if not media.mime or media.mime == "application/octet-stream":

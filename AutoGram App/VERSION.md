@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.58
+AutoGram Version: v2.1.59
 
 Current State:
-Penyelarasan Mime-Type PDF In-App & Optimalisasi Sensitivitas Buffering Pemuatan Awal Progressive Streaming
+Optimasi Sensitivitas Startup & Reduksi Budget Buffer Awal/Tail Video Dokumen Besar (>100MB)
 
 Previous:
+v2.1.58 Penyelarasan Mime-Type PDF In-App & Peningkatan Kecepatan Buffering Progressive Streaming
 v2.1.57 Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
 v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
 v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
