@@ -26,6 +26,11 @@ import type { DriveDropTarget } from '../../lib/driveDrag';
 import type { DriveRecent } from '../../lib/driveRecents';
 import { recentDisplayLabel } from '../../lib/driveRecents';
 import {
+  isDriveSessionCircuitTripped,
+  getDriveSessionError,
+  resetDriveSessionCircuit,
+} from '../../lib/driveSession';
+import {
   applyDropEffect,
   beginFolderDrag,
   canAcceptDriveDrop,
@@ -2219,8 +2224,26 @@ export function DriveSidebar({
         )}
       </nav>
 
-      <div className="td-sidebar-foot td-only-expanded">
-        {statusText && <p className="td-status-foot">{statusText}</p>}
+      <div className="td-sidebar-foot td-only-expanded p-3 border-t border-gray-100 dark:border-gray-800">
+        {creds && isDriveSessionCircuitTripped(creds) ? (
+          <div className="flex flex-col gap-2 p-2 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg">
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium break-words leading-relaxed">
+              {getDriveSessionError(creds) || 'Drive gagal terhubung.'}
+            </p>
+            <button
+              type="button"
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-md transition-colors shadow-sm cursor-pointer"
+              onClick={() => {
+                resetDriveSessionCircuit(creds);
+              }}
+            >
+              <RefreshCw className="w-3 h-3 animate-pulse" />
+              Coba Lagi
+            </button>
+          </div>
+        ) : (
+          statusText && <p className="td-status-foot">{statusText}</p>
+        )}
       </div>
     </aside>
   );

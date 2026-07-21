@@ -2109,8 +2109,9 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     
     for attempt in range(8):
         _patch_session_wal(session_file)
-        client = _session_client(session_name, api_id, api_hash)
+        client = None
         try:
+            client = _session_client(session_name, api_id, api_hash)
             # Increased timeout to 20.0s for slow networks/VPNs/Proxies
             await asyncio.wait_for(client.connect(), timeout=20.0)
             if not await client.is_user_authorized():
@@ -2123,10 +2124,11 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
         except Exception as e:
             last_err = e
             msg = str(e).lower()
-            try:
-                await asyncio.wait_for(client.disconnect(), timeout=0.8)
-            except Exception:
-                pass
+            if client is not None:
+                try:
+                    await asyncio.wait_for(client.disconnect(), timeout=0.8)
+                except Exception:
+                    pass
             
             # Check if this error is transient and can be retried (locked DB or network/timeout issues)
             is_transient = (

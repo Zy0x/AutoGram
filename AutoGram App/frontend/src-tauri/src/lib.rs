@@ -355,10 +355,11 @@ async fn start_worker_job(
                 "worker-line",
                 WorkerLinePayload {
                     job_id: jid_err,
-                    line,
+                    line: line.clone(),
                     stream: "stderr".into(),
                 },
             );
+            let _ = app_err.emit("worker-stderr", line);
         }
     });
 

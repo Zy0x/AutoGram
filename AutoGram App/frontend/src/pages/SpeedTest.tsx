@@ -90,6 +90,9 @@ import {
   driveSessionCall,
   stopDriveSession,
   isPreviewActive,
+  isDriveSessionCircuitTripped,
+  getDriveSessionError,
+  resetDriveSessionCircuit,
 } from '../lib/driveSession';
 
 import {
@@ -829,10 +832,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (active) {
           setPingState({ status: 'disconnected', ms: null });
           if (creds) {
-            const needPreview = isPreviewActive();
-            ensureDriveSession(creds, needPreview).then(ok => {
-              if (ok && active) setDriveReady(true);
-            }).catch(() => {});
+            if (isDriveSessionCircuitTripped(creds)) {
+              setDriveReady(false);
+              const err = getDriveSessionError(creds) || 'Drive gagal terhubung';
+              setStatusText(`Drive gagal terhubung · ${err}`);
+            } else {
+              const needPreview = isPreviewActive();
+              ensureDriveSession(creds, needPreview).then(ok => {
+                if (ok && active) setDriveReady(true);
+              }).catch(() => {});
+            }
           }
         }
         consecutiveFailures = 0;

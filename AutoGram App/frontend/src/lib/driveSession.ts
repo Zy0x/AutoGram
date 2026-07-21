@@ -15,8 +15,68 @@ export const DRIVE_SERVE_JOB_ID_BASE = 991000;
 export const DRIVE_SERVE_JOB_ID = 991003;
 export const API_SERVER_JOB_ID = 991005;
 
+export const CIRCUIT_BREAKER_THRESHOLD = 3;
+export const CIRCUIT_BREAKER_COOLDOWN_MS = 30000; // 30s
+export const BACKOFF_DELAYS = [5000, 10000, 20000]; // 5s, 10s, 20s
+export const GRACEFUL_SHUTDOWN_MS = 2000; // 2s
+
+// Session key -> consecutive failures
+const consecutiveFailures: Record<string, number> = {};
+// Session key -> is circuit breaker tripped
+const isTripped: Record<string, boolean> = {};
+// Session key -> error message (classified permanent/fatal)
+const sessionErrors: Record<string, string> = {};
+// Session key -> last failure timestamp
+const lastFailureTime: Record<string, number> = {};
+
 let activeJobId = DRIVE_SERVE_JOB_ID;
 
+function handleStderrLine(creds: DriveCredentials, line: string) {
+  const text = String(line || '').trim();
+  if (!text) return;
+  const lower = text.toLowerCase();
+  const key = credKey(creds);
+  
+  const isPermanent =
+    lower.includes('session not authorized') ||
+    lower.includes('unauthorized') ||
+    lower.includes('api_id/api_hash required') ||
+    lower.includes('api_id required') ||
+    lower.includes('api_hash required') ||
+    lower.includes('invalid api_id') ||
+    lower.includes('sessionpasswordneedederror') ||
+    lower.includes('authkeyunregisterederror') ||
+    lower.includes('passwordrequired') ||
+    lower.includes('authkeyerror');
+    
+  if (isPermanent) {
+    console.error('[drive-serve] Permanent failure detected in stderr:', text);
+    sessionErrors[key] = text;
+    isTripped[key] = true;
+    lastFailureTime[key] = Date.now();
+    consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD;
+  }
+}
+
+function handleSpawnFailure(creds: DriveCredentials, code: number) {
+  const key = credKey(creds);
+  if (isTripped[key] && sessionErrors[key] && !sessionErrors[key].includes('Attempt')) {
+    // If it's already tripped with a permanent failure, don't overwrite it
+    return;
+  }
+  
+  consecutiveFailures[key] = (consecutiveFailures[key] || 0) + 1;
+  lastFailureTime[key] = Date.now();
+  
+  if (consecutiveFailures[key] >= CIRCUIT_BREAKER_THRESHOLD) {
+    isTripped[key] = true;
+    sessionErrors[key] = `Drive session failed to start after 3 attempts (Exit Code: ${code})`;
+    console.error(`[drive-serve] Circuit breaker tripped for ${key}: ${sessionErrors[key]}`);
+  } else {
+    sessionErrors[key] = `Drive session exited with code ${code} (Attempt ${consecutiveFailures[key]}/3)`;
+    console.warn(`[drive-serve] Spawn attempt failed (${consecutiveFailures[key]}/3) for ${key}`);
+  }
+}
 
 type Pending = {
   resolve: (v: any) => void;
@@ -248,14 +308,21 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
 
     // 2. Stop main session
     await stopDriveSession();
-    await new Promise<void>((resolve) => setTimeout(resolve, 350));
+    await new Promise<void>((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
 
     // 3. Spawn drive-serve with ghost session (_preview)
     const generation = ++sessionGeneration;
     activeCredsKey = key;
     ready = false;
     const settleCurrentLine = (line: string) => {
-      if (generation === sessionGeneration) settleLine(line);
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
     };
 
     const unsubs: UnlistenFn[] = [];
@@ -287,11 +354,18 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
       }
       if (p.stream === 'stderr') {
         console.warn('[drive-serve-ghost]', p.line);
+        handleStderrLine(creds, p.line);
       } else {
         settleCurrentLine(p.line);
       }
     });
     unsubs.push(unsub);
+
+    const uStderr = await listen<string>('worker-stderr', (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
 
     unsubExit = await listen<{ jobId: number; code: number }>('worker-exit', (ev) => {
       const p = ev.payload as any;
@@ -321,14 +395,18 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         if (startupReject) {
           startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
         }
+        handleSpawnFailure(creds, p.code);
         return;
       }
 
       // Log abnormal exits for diagnostics
       if (p.code !== 0) {
         console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+        handleSpawnFailure(creds, p.code);
       } else {
         console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
       }
       try {
         pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
@@ -450,7 +528,12 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     ghostReady = false;
 
     await stopDriveSession();
-    await new Promise<void>((resolve) => setTimeout(resolve, 350));
+    await new Promise<void>((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
+    try {
+      await invoke('cleanup_ghost_session', { sessionName: creds.session });
+    } catch (e) {
+      console.warn('[drive-serve] cleanup_ghost_session failed:', e);
+    }
 
     const generation = ++sessionGeneration;
     activeJobId = DRIVE_SERVE_JOB_ID_BASE + (generation % 1000);
@@ -458,7 +541,14 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     activeCredsKey = key;
     ready = false;
     const settleCurrentLine = (line: string) => {
-      if (generation === sessionGeneration) settleLine(line);
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
     };
 
     const unsubs: UnlistenFn[] = [];
@@ -490,11 +580,18 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
       }
       if (p.stream === 'stderr') {
         console.warn('[drive-serve]', p.line);
+        handleStderrLine(creds, p.line);
       } else {
         settleCurrentLine(p.line);
       }
     });
     unsubs.push(unsub);
+
+    const uStderr = await listen<string>('worker-stderr', (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
 
     unsubExit = await listen<{ jobId: number; code: number }>('worker-exit', (ev) => {
       const p = ev.payload as any;
@@ -524,13 +621,18 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         if (startupReject) {
           startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
         }
+        handleSpawnFailure(creds, p.code);
         return;
       }
 
+      // Log abnormal exits for diagnostics
       if (p.code !== 0) {
         console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+        handleSpawnFailure(creds, p.code);
       } else {
         console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
       }
       try {
         pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
@@ -620,6 +722,26 @@ export async function ensureDriveSession(
 ): Promise<boolean> {
   const run = async () => {
     cancelScheduledDriveSessionStop();
+
+    const key = credKey(creds);
+
+    // 1. Check Circuit Breaker
+    if (isDriveSessionCircuitTripped(creds)) {
+      console.warn(`[drive-serve] Spawn blocked: Circuit breaker tripped for ${key}`);
+      return false;
+    }
+
+    // 2. Check backoff cooldown
+    const failures = consecutiveFailures[key] || 0;
+    if (failures > 0) {
+      const delay = BACKOFF_DELAYS[Math.min(failures - 1, BACKOFF_DELAYS.length - 1)];
+      const elapsed = Date.now() - (lastFailureTime[key] || 0);
+      if (elapsed < delay) {
+        const remaining = delay - elapsed;
+        console.log(`[drive-serve] Backoff active for ${key}. Waiting ${remaining}ms before spawning...`);
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+    }
 
     if (!needPreview) {
       // Normal mode: check lease
@@ -727,7 +849,11 @@ export async function stopDriveSession(): Promise<void> {
       await new Promise<void>((resolve) => setTimeout(resolve, 320));
     }
     try {
-      await killWorkerJob(child?.jobId ?? activeJobId);
+      await killWorkerJob(DRIVE_SERVE_JOB_ID);
+      await killWorkerJob(activeJobId);
+      if (child?.jobId) {
+        await killWorkerJob(child.jobId);
+      }
     } catch {
       /* ignore */
     }
@@ -847,4 +973,31 @@ export async function driveSessionCall(
       reject(e);
     });
   });
+}
+
+export function getDriveSessionError(creds: DriveCredentials): string | null {
+  const key = credKey(creds);
+  return sessionErrors[key] || null;
+}
+
+export function isDriveSessionCircuitTripped(creds: DriveCredentials): boolean {
+  const key = credKey(creds);
+  if (isTripped[key]) {
+    const timeSinceLastFailure = Date.now() - (lastFailureTime[key] || 0);
+    if (timeSinceLastFailure > CIRCUIT_BREAKER_COOLDOWN_MS) {
+      isTripped[key] = false;
+      consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD - 1;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+export function resetDriveSessionCircuit(creds: DriveCredentials): void {
+  const key = credKey(creds);
+  consecutiveFailures[key] = 0;
+  isTripped[key] = false;
+  delete sessionErrors[key];
+  delete lastFailureTime[key];
 }
