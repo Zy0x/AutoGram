@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../lib/secureCredentials';
 import { runAuthManagerOnce } from '../lib/workerBridge';
 
@@ -144,6 +143,7 @@ export function Accounts() {
   const QR_JOB_ID = 888888;
   const unlistenQrRef = useRef<(() => void) | null>(null);
   const qrCountdownTimerRef = useRef<any>(null);
+  const qrRefreshTimerRef = useRef<any>(null);
 
   const stopQrTimers = async () => {
     if (unlistenQrRef.current) {
@@ -153,6 +153,10 @@ export function Accounts() {
     if (qrCountdownTimerRef.current) {
       clearInterval(qrCountdownTimerRef.current);
       qrCountdownTimerRef.current = null;
+    }
+    if (qrRefreshTimerRef.current) {
+      clearInterval(qrRefreshTimerRef.current);
+      qrRefreshTimerRef.current = null;
     }
     try {
       await invoke('kill_worker_job', { jobId: QR_JOB_ID });
@@ -288,88 +292,88 @@ export function Accounts() {
     try {
       const { apiId, apiHash } = await getApiCredentials();
 
-      const handlePayloadData = async (data: any) => {
-        if (!data) return;
-        if (data.session && data.session !== sessionName) return;
+      const res = await runAuthManagerOnce([
+        '--action',
+        'qr-export',
+        '--session',
+        sessionName,
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
+      ]);
 
-        if (data.status === 'already_authorized') {
-          await stopQrTimers();
-          setIsWizardOpen(false);
-          loadSessions();
-          setIsProcessing(false);
-        } else if (data.status === 'qr_code' && data.url) {
-          const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
-          setQrDataUrl(dataUrl);
+      if (!res.stdout && res.stderr) {
+        throw new Error(res.stderr);
+      }
 
-          const exp = Number(data.expires) || 0;
-          const nowSec = Math.floor(Date.now() / 1000);
-          const rem = Math.max(0, exp - nowSec) || 60;
-          setQrExpiresIn(rem);
-          setIsProcessing(false);
-
-          if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
-          qrCountdownTimerRef.current = setInterval(() => {
-            setQrExpiresIn((prev) => Math.max(0, prev - 1));
-          }, 1000);
-        } else if (data.status === 'success') {
-          await stopQrTimers();
-          setIsWizardOpen(false);
-          loadSessions();
-          setIsProcessing(false);
-        } else if (data.status === '2fa_required') {
-          await stopQrTimers();
-          setStep(3);
-          setIsProcessing(false);
-        } else if (data.error) {
-          setErrorMsg(data.error);
-          setIsProcessing(false);
-        }
-      };
-
-      const unlisten1 = await listen<any>('qr-event', async (event) => {
-        await handlePayloadData(event.payload);
-      });
-
-      const unlisten2 = await listen<{ job_id: number; line: string }>('worker-line', async (event) => {
-        if (event.payload.job_id !== QR_JOB_ID) return;
-        try {
-          await handlePayloadData(JSON.parse(event.payload.line));
-        } catch {}
-      });
-
-      unlistenQrRef.current = () => {
-        unlisten1();
-        unlisten2();
-      };
-
+      let data: any = {};
       try {
-        await invoke('start_rust_qr_login', {
-          session: sessionName,
-          apiId: Number(apiId) || 0,
-          apiHash: apiHash || '',
-        });
-      } catch (err: any) {
-        const msg = String(err?.message || err);
-        if (/not allowed|not found/i.test(msg)) {
-          await invoke('start_auth_manager_job', {
-            jobId: QR_JOB_ID,
-            args: [
+        data = JSON.parse((res.stdout || '').trim());
+      } catch {
+        throw new Error('Gagal membaca respon QR code dari backend.');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.status === 'already_authorized') {
+        await stopQrTimers();
+        setIsWizardOpen(false);
+        loadSessions();
+        setIsProcessing(false);
+        return;
+      }
+
+      if (data.status === 'qr_code' && data.url) {
+        const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
+        setQrDataUrl(dataUrl);
+
+        const exp = Number(data.expires) || 0;
+        const nowSec = Math.floor(Date.now() / 1000);
+        const rem = Math.max(0, exp - nowSec) || 60;
+        setQrExpiresIn(rem);
+        setIsProcessing(false);
+
+        if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+        qrCountdownTimerRef.current = setInterval(() => {
+          setQrExpiresIn((prev) => Math.max(0, prev - 1));
+        }, 1000);
+
+        if (qrRefreshTimerRef.current) clearInterval(qrRefreshTimerRef.current);
+        qrRefreshTimerRef.current = setInterval(async () => {
+          try {
+            const checkRes = await runAuthManagerOnce([
               '--action',
-              'qr-login',
+              'qr-check',
               '--session',
               sessionName,
               '--api-id',
               apiId || '',
               '--api-hash',
               apiHash || '',
-            ],
-          });
-        } else {
-          throw err;
-        }
+            ]);
+            if (checkRes.stdout) {
+              const checkData = JSON.parse(checkRes.stdout.trim());
+              if (checkData.status === 'success') {
+                await stopQrTimers();
+                setIsWizardOpen(false);
+                loadSessions();
+                setIsProcessing(false);
+              } else if (checkData.status === '2fa_required') {
+                await stopQrTimers();
+                setStep(3);
+                setIsProcessing(false);
+              } else if (checkData.error === 'qr_expired') {
+                handleStartQrLogin();
+              }
+            }
+          } catch {}
+        }, 2500);
       }
     } catch (e: any) {
-      setErrorMsg(String(e));
+      setErrorMsg(String(e?.message || e));
       setIsProcessing(false);
     }
   };
