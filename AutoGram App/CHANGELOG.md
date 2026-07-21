@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.61 Resolusi Galat CORS/Fetch pada Pratinjau Dokumen, Penanganan exception Streaming Server, dan Penyelarasan is_doc
+
+Fixed:
+- Memperbaiki kegagalan pembacaan (*Failed to fetch* / CORS error) pada pratinjau dokumen teks dan PDF yang diakses via browser. Masalah ini disebabkan oleh hilangnya argument `media` saat memanggil `write_media_range_to_response` pada skenario Full GET stream server lokal, yang memicu AttributeError internal dan CORS blocking.
+- Mengatasi resiko kegagalan pembandingan tipe `None` (*TypeError*) pada pengecekan jangkauan bytes di stream server jika ukuran file tidak diketahui secara pasti.
+- Menambahkan penangkap exception global (*try...except*) pada endpoint `serve_stream` dan `serve_events` untuk memastikan server lokal selalu memberikan respon HTTP terstruktur dengan CORS header lengkap, mencegah *Failed to fetch* akibat kegagalan unhandled.
+- Mengoreksi penentuan mode berkas video `is_doc` agar tidak salah mengklasifikasikan dokumen dokumen non-video (seperti `.txt` atau `.pdf` berukuran kecil) sebagai video mp4, yang sebelumnya mengganggu pendeteksian tipe media di frontend.
+
 ## v2.1.60 Penyelarasan Range Sesi Selesai (mark_done) untuk Resolusi Galat 'Failed to Fetch' Preview Dokumen
 
 Fixed:
