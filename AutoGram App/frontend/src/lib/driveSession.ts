@@ -35,7 +35,7 @@ const pending = new Map<string, Pending>();
 let activeCredsKey = '';
 let scheduledStop: ReturnType<typeof setTimeout> | null = null;
 let sessionGeneration = 0;
-let readyAt = 0;
+
 
 // GHOST SESSION STATES
 let mode: 'main' | 'ghost' | 'ghost-starting' = 'main';
@@ -151,7 +151,6 @@ function settleLine(line: string) {
     const msg = JSON.parse(text);
     if (msg.type === 'ready') {
       ready = true;
-      readyAt = Date.now();
       return;
     }
     if (
@@ -299,6 +298,10 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
       if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
       if (generation !== sessionGeneration) return;
       if (!processAssigned) return;
+
+      const wasReady = ready;
+      ready = false; // Mark not ready immediately to prevent any new writeStdin/RPC calls
+
       const markEnded = () => {
         if (generation !== sessionGeneration) return;
         ready = false;
@@ -311,13 +314,15 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         }
         pending.clear();
       };
-      if (!ready) {
+
+      if (!wasReady) {
         cleanStartupTimers();
         if (startupReject) {
           startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
         }
         return;
       }
+
       // Log abnormal exits for diagnostics
       if (p.code !== 0) {
         console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
@@ -330,10 +335,7 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
       } catch {
         /* ignore */
       }
-      if (Date.now() - readyAt < 5_000) {
-        return;
-      }
-      void driveSessionCall('ping', {}, 1500).catch(markEnded);
+      markEnded();
     });
     unsubs.push(unsubExit);
 
@@ -499,6 +501,10 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
       if (Number(jid) !== currentActiveJobId) return;
       if (generation !== sessionGeneration) return;
       if (!processAssigned) return;
+
+      const wasReady = ready;
+      ready = false; // Mark not ready immediately to prevent any new writeStdin/RPC calls
+
       const markEnded = () => {
         if (generation !== sessionGeneration) return;
         ready = false;
@@ -511,17 +517,27 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         }
         pending.clear();
       };
-      if (!ready) {
+
+      if (!wasReady) {
         cleanStartupTimers();
         if (startupReject) {
           startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
         }
         return;
       }
-      if (Date.now() - readyAt < 5_000) {
-        return;
+
+      if (p.code !== 0) {
+        console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+      } else {
+        console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
       }
-      void driveSessionCall('ping', {}, 1500).catch(markEnded);
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+        /* ignore */
+      }
+      markEnded();
     });
     unsubs.push(unsubExit);
 
@@ -773,7 +789,7 @@ export async function driveSessionCallFor(
       const isSessionErr =
         code === 'DRIVE_SESSION_STOPPED' ||
         code === 'DRIVE_SESSION_ENDED' ||
-        /drive session stopped|drive session ended|drive session not ready|session not ready|drive session changed/i.test(msg);
+        /drive session stopped|drive session ended|drive session not ready|session not ready|drive session changed|no stdin for job|is drive-serve running/i.test(msg);
 
       if (isSessionErr && attempt < maxAttempts - 1) {
         try {
