@@ -261,6 +261,10 @@ class TelegramResilientClient:
             except CircuitBreakerOpen:
                 raise
             except Exception as exc:
+                if self._is_auth_key_unregistered_error(exc):
+                    log.error("[TelegramResilient] Sesi Telegram tidak terdaftar (AUTH_KEY_UNREGISTERED): %s", exc)
+                    self.CB.record_failure(self.entity_id)
+                    raise RuntimeError("Sesi Telegram telah kedaluwarsa atau dicabut oleh Telegram (AUTH_KEY_UNREGISTERED). Silakan login ulang sesi ini.") from exc
                 if self._is_connection_error(exc):
                     consec_conn_failures += 1
                     if consec_conn_failures <= 5:
@@ -420,5 +424,22 @@ class TelegramResilientClient:
                 "broken pipe",
                 "connection reset",
                 "socket",
+            )
+        )
+
+    @staticmethod
+    def _is_auth_key_unregistered_error(exc: Exception) -> bool:
+        if exc is None:
+            return False
+        msg = str(exc or "").lower()
+        return any(
+            x in msg
+            for x in (
+                "the key is not registered in the system",
+                "auth_key_unregistered",
+                "authkeyunregistered",
+                "user_deactivated",
+                "session_revoked",
+                "session_expired",
             )
         )

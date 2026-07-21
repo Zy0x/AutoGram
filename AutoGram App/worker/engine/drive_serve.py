@@ -73,6 +73,20 @@ def _is_disconnect_error(err: BaseException) -> bool:
     )
 
 
+def _is_unregistered_error(err: BaseException) -> bool:
+    if err is None:
+        return False
+    msg = str(err or "").lower()
+    return (
+        "the key is not registered in the system" in msg
+        or "auth_key_unregistered" in msg
+        or "authkeyunregistered" in msg
+        or "user_deactivated" in msg
+        or "session_revoked" in msg
+        or "session_expired" in msg
+    )
+
+
 async def _ensure_connected(
     client: Any,
     *,
@@ -622,9 +636,12 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
 
         sid = str(req.get("stream_id") or "").strip()
         stop_all = bool(req.get("stop_all") or req.get("all"))
+        # Default: keep partials so buffer can resume (delete only if explicit true)
+        del_partial = bool(req.get("delete_partial") is True)
         if stop_all or sid in ("*", "all", "__all__"):
             return stop_all_streams(
-                incomplete_only=bool(req.get("incomplete_only", True))
+                incomplete_only=bool(req.get("incomplete_only", True)),
+                delete_partial=del_partial,
             )
         if not sid:
             raise ValueError("stream_id required (or stop_all=true)")
@@ -632,7 +649,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             "status": "success",
             **stop_stream(
                 sid,
-                delete_partial=bool(req.get("delete_partial", True)),
+                delete_partial=del_partial,
             ),
         }
 
@@ -1033,7 +1050,7 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
                 except Exception as e:
                     last_err = e
                     # One hard reconnect + retry (covers half-open sockets)
-                    if attempt == 0 and (
+                    if attempt == 0 and not _is_unregistered_error(e) and (
                         _is_disconnect_error(e) or isinstance(e, (ConnectionError, OSError, AuthKeyError))
                     ):
                         async with connect_lock:
@@ -1062,7 +1079,11 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
             })
             return
         err_msg = str(last_err) if last_err else "Drive serve error"
-        if _is_disconnect_error(last_err or Exception(err_msg)):
+        if _is_unregistered_error(last_err or Exception(err_msg)):
+            err_msg = (
+                "Sesi Telegram telah kedaluwarsa atau dicabut oleh Telegram (AUTH_KEY_UNREGISTERED). Silakan login ulang akun ini di menu Akun."
+            )
+        elif _is_disconnect_error(last_err or Exception(err_msg)):
             err_msg = (
                 "Koneksi Telegram terputus. Coba lagi — Drive akan menyambung ulang otomatis."
             )
