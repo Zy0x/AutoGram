@@ -43,6 +43,7 @@ import {
   cleanupPartialDownloads,
   driveDownload,
   driveStopStream,
+  driveStreamSeek,
   driveStreamStatus,
 } from '../../lib/driveApi';
 import { getCachedThumb } from '../../lib/thumbBatcher';
@@ -263,7 +264,12 @@ function resolvePreviewKind(
   if (/\.(mp3|wav|ogg|m4a|aac|flac|opus)$/i.test(name)) return 'audio';
   if (/\.pdf$/i.test(name)) return 'pdf';
   if (/\.zip$/i.test(name)) return 'zip';
-  if (/\.(json|txt|md|markdown|csv|tsv|log|xml|ya?ml|ini|cfg|conf|html|htm|css|js|ts|py|rs|go|sql|toml|env)$/i.test(name)) return 'text';
+  if (
+    /\.(json|jsonc|json5|jsonl|txt|text|md|markdown|mdx|rst|csv|tsv|log|xml|ya?ml|ini|cfg|conf|config|properties|env|toml|plist|html?|xhtml|css|scss|sass|less|jsx?|mjs|cjs|tsx?|vue|svelte|astro|py|pyi|rb|php|pl|sh|bash|zsh|ps1|bat|cmd|lua|r|jl|exs?|java|kt|kts|swift|dart|go|rs|c|cc|cpp|cxx|h|hh|hpp|cs|fsx?|sql|prisma|graphql|gql|proto|tf|hcl|nix|diff|patch|dockerfile|makefile|cmake|docx|odt|rtf|xlsx|ods|pptx|odp)$/i.test(
+      name
+    )
+  )
+    return 'text';
   return 'other';
 }
 
@@ -401,6 +407,23 @@ export function DrivePreviewModal({
   const userSeekPendingRef = useRef(false);
   /** Skip N seeked events from resume/load (not user scrub) */
   const ignoreSeekEventsRef = useRef(0);
+  /** Debounce Telegram seek kicks while the scrub bar is dragged */
+  const lastSeekKickRef = useRef(0);
+  /** One-shot auto-recover when stream_status reports missing/cancelled */
+  const streamRecoverRef = useRef(false);
+  /** Consecutive missing/cancelled poll hits before recover (avoid thrash) */
+  const streamMissingHitsRef = useRef(0);
+  /** Guard media onError → loadPreview loop during progressive buffer holes */
+  const mediaErrorRecoverAtRef = useRef(0);
+  const mediaErrorCountRef = useRef(0);
+  /** Sticky stream id for current file — avoid soft reload replacing live URL */
+  const liveStreamIdRef = useRef<string | null>(null);
+  /**
+   * Only forward pause → worker after real playback has started.
+   * Failed autoplay / load still fire pause and would freeze Telegram fill
+   * (moov tail + pipeline), leaving "buffer tinggi tapi video tak start".
+   */
+  const hasUserPlayRef = useRef(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
@@ -504,18 +527,55 @@ export function DrivePreviewModal({
     (res: CachedPreview, q: string, cachedHit: boolean) => {
       const nextData = res.data_url || null;
       const nextPath = res.path || null;
-      const nextStream = res.stream_url || null;
-      const usable = !!(nextData || nextPath || nextStream);
+      // Prefer live stream only when no inline text — text previews use text_content
+      let nextStream = res.stream_url || null;
+      const nextSid = res.stream_id || null;
+      // Keep an already-live progressive URL when soft revalidate returns a
+      // different stream_id (would remount <video> and restart buffer forever).
+      if (
+        liveStreamIdRef.current &&
+        nextSid &&
+        liveStreamIdRef.current !== nextSid &&
+        streamUrl &&
+        isHttpStreamUrl(streamUrl) &&
+        !streamDone
+      ) {
+        nextStream = streamUrl;
+      } else if (nextSid) {
+        liveStreamIdRef.current = nextSid;
+      } else if (nextStream) {
+        liveStreamIdRef.current = liveStreamIdRef.current || nextSid;
+      }
+      const usable = !!(
+        nextData ||
+        nextPath ||
+        nextStream ||
+        (res.text_content != null && res.text_content !== '')
+      );
       setDataUrl(nextData);
       setPath(nextPath);
-      setStreamUrl(nextStream);
-      setStreamId(res.stream_id || null);
+      // Only update stream URL when it actually changes (string) — prevents
+      // React key/effect churn when poll/soft revalidate repaints same stream.
+      setStreamUrl((prev) => {
+        if (prev && nextStream && prev === nextStream) return prev;
+        if (!nextStream && prev && !streamDone && liveStreamIdRef.current) return prev;
+        return nextStream;
+      });
+      setStreamId((prev) => {
+        if (liveStreamIdRef.current && !streamDone) return liveStreamIdRef.current;
+        return nextSid || prev;
+      });
       setMime(res.mime_type || null);
       setPoster(res.poster_url || gridThumb);
       setTooLarge(!!res.too_large);
       setHint(res.message || null);
       setPreviewKind(res.preview_kind || null);
-      setTextBody(null);
+      // Inline text from worker — skip fragile HTTP stream fetch
+      if (res.text_content != null && res.text_content !== '') {
+        setTextBody(res.text_content);
+      } else {
+        setTextBody(null);
+      }
       setFromCache(cachedHit);
       setHasVideoFrame(false);
       setMediaWidth(res.video_width || null);
@@ -529,9 +589,17 @@ export function DrivePreviewModal({
       } else {
         setQuality(q);
       }
+      // Complete PDF/text docs: mark stream done so iframe can open immediately
+      const isCompleteDoc =
+        res.preview_kind === 'pdf' ||
+        res.preview_kind === 'text' ||
+        (!res.streaming &&
+          !!res.path &&
+          !/\.stream\./i.test(res.path || '') &&
+          (!!res.buffered && !!res.size ? res.buffered >= res.size * 0.98 : true));
       if (res.buffered && res.size) {
         setBufferPct(Math.min(100, Math.round((100 * res.buffered) / res.size)));
-      } else if (cachedHit && res.stream_url && !res.streaming) {
+      } else if (isCompleteDoc || (cachedHit && res.stream_url && !res.streaming)) {
         setBufferPct(100);
         setStreamDone(true);
       } else if (cachedHit && res.stream_url && res.streaming) {
@@ -541,7 +609,11 @@ export function DrivePreviewModal({
           setBufferPct(Math.min(99, Math.round((100 * res.buffered) / res.size)));
         }
       }
-      if (res.streaming && !cachedHit) {
+      if (isCompleteDoc) {
+        setStreamDone(true);
+        setBufferPct(100);
+      }
+      if (res.streaming && !cachedHit && !isCompleteDoc) {
         setPlayerHint(res.message || 'Streaming…');
       }
       setLoading(false);
@@ -552,24 +624,42 @@ export function DrivePreviewModal({
         setError(null);
       }
     },
-    [gridThumb]
+    [gridThumb, streamUrl, streamDone]
   );
 
   const loadPreview = useCallback(
-    async (q: string, opts?: { resumeAt?: number; soft?: boolean; deferredRetryCount?: number }) => {
+    async (
+      q: string,
+      opts?: { resumeAt?: number; soft?: boolean; deferredRetryCount?: number; force?: boolean }
+    ) => {
       if (mountGenRef.current !== activeMountGen) return;
       const seq = ++loadSeq.current;
       const soft = !!opts?.soft;
+      const force = !!opts?.force;
       const qNorm = q || 'auto';
 
       if (opts?.resumeAt != null && opts.resumeAt > 0) {
         resumeAtRef.current = opts.resumeAt;
       }
 
-      // Instant paint from cache
-      const hit = getCachedPreview(folderId, file.id, qNorm);
+      // Soft revalidate while progressive is already live: do not open a second
+      // stream (new stream_id remounts video → endless buffer restart).
+      if (
+        soft &&
+        !force &&
+        liveStreamIdRef.current &&
+        !streamDoneRef.current &&
+        streamUrl &&
+        isHttpStreamUrl(streamUrl)
+      ) {
+        return;
+      }
+
+      // Instant paint from cache (skip when force-retry after Failed to fetch)
+      const hit = force ? null : getCachedPreview(folderId, file.id, qNorm);
       const hasUsable =
-        !!hit && !!(hit.stream_url || hit.path || hit.data_url);
+        !!hit &&
+        !!(hit.stream_url || hit.path || hit.data_url || hit.text_content);
       if (hasUsable && hit) {
         applyResult(hit, qNorm, true);
         // Prefetch neighbors ASAP (next/prev feels instant) - skip if current file is a video to prioritize bandwidth
@@ -578,11 +668,21 @@ export function DrivePreviewModal({
 
         // Complete local only — hollow `.stream.` paths need a live stream re-RPC
         const solidLocal =
+          !!(hit.text_content != null && hit.text_content !== '') ||
           !!hit.data_url ||
-          (!!hit.path && !/\.stream\./i.test(hit.path) && !hit.streaming);
+          (!!hit.path && !/\.stream\./i.test(hit.path) && !hit.streaming) ||
+          (hit.preview_kind === 'text' && !!hit.path && !/\.stream\./i.test(hit.path || ''));
         if (solidLocal) return;
-        // Fresh stream only — older local ports often die after StrictMode/worker bounce
-        if (hit.stream_url && Date.now() - hit.cachedAt < 90_000 && isHttpStreamUrl(hit.stream_url))
+        // Fresh stream only — shorter TTL for progressive to avoid dead ports
+        // after multi-video handoff (was 90s → thrash reload).
+        const streamTtl = hit.streaming ? 25_000 : 90_000;
+        if (
+          hit.preview_kind !== 'text' &&
+          hit.preview_kind !== 'pdf' &&
+          hit.stream_url &&
+          Date.now() - hit.cachedAt < streamTtl &&
+          isHttpStreamUrl(hit.stream_url)
+        )
           return;
         // Stale / partial stream: revalidate in background (soft keeps frame)
       } else if (!soft) {
@@ -601,13 +701,16 @@ export function DrivePreviewModal({
         setRateOpen(false);
         setMediaWidth(null);
         setMediaHeight(null);
+        if (force) setTextBody(null);
       } else {
         // Soft switch: keep current frame, show poster skeleton if nothing
         setPoster((p) => p || gridThumb);
       }
 
       try {
-        const res = await loadPreviewCached(creds, file.id, folderId, qNorm);
+        const res = await loadPreviewCached(creds, file.id, folderId, qNorm, {
+          force,
+        });
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
         applyResult(res, qNorm, false);
@@ -657,6 +760,13 @@ export function DrivePreviewModal({
     resetViewTools();
     setMediaWidth(null);
     setMediaHeight(null);
+    streamRecoverRef.current = false;
+    streamMissingHitsRef.current = 0;
+    mediaErrorCountRef.current = 0;
+    mediaErrorRecoverAtRef.current = 0;
+    liveStreamIdRef.current = null;
+    lastSeekKickRef.current = 0;
+    hasUserPlayRef.current = false;
     // ZIP: browser lists central dir — skip heavy media stream/download path
     if (isZipDriveFile(file)) {
       setLoading(false);
@@ -686,26 +796,34 @@ export function DrivePreviewModal({
 
   /**
    * Abort progressive Telegram download for a stream id.
-   * Critical: closing the modal must not leave fill_stream running.
+   * Keep partial on disk (deletePartial=false) so buffer can resume.
    */
   const stopPreviewStream = useCallback(
     (sid: string | null | undefined, opts?: { stopAllIncomplete?: boolean }) => {
       if (!sid && !opts?.stopAllIncomplete) return;
       const c = credsRef.current;
       if (!c) return;
-      void driveStopStream(c, sid, {
-        stopAll: !!opts?.stopAllIncomplete,
-        incompleteOnly: true,
-      });
+      // Never stopAll by default — that cancelled every live fill and froze the
+      // buffer bar at ~0.5–1.5MB (see worker/cache/stream_registry cancelled=true).
+      if (opts?.stopAllIncomplete) {
+        void driveStopStream(c, null, {
+          stopAll: true,
+          incompleteOnly: true,
+          deletePartial: false,
+        });
+        return;
+      }
+      if (sid) {
+        void driveStopStream(c, sid, { deletePartial: false });
+      }
     },
     []
   );
 
   /**
-   * Unmount / close: kill active + incomplete fills.
-   * StrictMode remounts once on open — a synchronous stopAll here kills the
-   * live stream and leaves a black video with a dead http://127.0.0.1 URL.
-   * Defer teardown and skip if a newer mount generation is already alive.
+   * Unmount / close: stop only THIS stream id.
+   * StrictMode remounts once on open — stopAll was killing live fills and
+   * leaving cancelled registry entries (buffer never rises).
    */
   useEffect(() => {
     const gen = ++globalStreamTeardownGen;
@@ -720,8 +838,8 @@ export function DrivePreviewModal({
         // Remounted (StrictMode or fast re-open) — do not kill the new session
         if (globalStreamTeardownGen !== gen) return;
         if (!c) return;
-        if (sid) void driveStopStream(c, sid);
-        void driveStopStream(c, null, { stopAll: true, incompleteOnly: true });
+        if (sid) void driveStopStream(c, sid, { deletePartial: false });
+        // Do NOT stopAll incomplete — thrash-cancel of multi-video fills
         try {
           invalidatePreview(fid, mid);
         } catch {
@@ -753,28 +871,53 @@ export function DrivePreviewModal({
     prevStreamForNav.current = streamId;
   }, [streamId, stopPreviewStream]);
 
-  // Stream progress poll — playable prefix (document videos: moov tail ≠ playable yet)
+  // Stream progress poll — stable deps only (avoid re-create interval → overhead loop).
+  // seekWarn / loadPreview / setState must not be effect deps.
+  const loadPreviewRef = useRef(loadPreview);
+  loadPreviewRef.current = loadPreview;
+  const seekWarnRef = useRef(seekWarn);
+  seekWarnRef.current = seekWarn;
+  const playNudgeAtRef = useRef(0);
+  const pollInFlightRef = useRef(false);
+
   useEffect(() => {
     if (!streamId || streamDone) return;
     let alive = true;
+    let intervalMs = 600; // cold start
+    let timer: any = null;
+
+    const schedule = (ms: number) => {
+      if (timer) clearInterval(timer);
+      intervalMs = ms;
+      timer = window.setInterval(() => {
+        void tick();
+      }, intervalMs);
+    };
+
     const tick = async () => {
+      if (!alive || pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
       try {
         const st = await driveStreamStatus(creds, streamId);
         if (!alive) return;
         const total = Number(st.total || file.size || 0);
-        // Prefer explicit playable metrics from worker
         const prefix = Number(
           st.prefix_bytes != null ? st.prefix_bytes : st.downloaded != null ? st.downloaded : 0
         );
         const filled = Number(
-          st.downloaded_filled != null ? st.downloaded_filled : st.downloaded != null ? st.downloaded : 0
+          st.downloaded_filled != null
+            ? st.downloaded_filled
+            : st.downloaded != null
+              ? st.downloaded
+              : 0
         );
         let pct = Number(st.percent);
         if (!Number.isFinite(pct) || pct < 0) {
           pct = total > 0 ? (100 * prefix) / total : 0;
         }
-        // Merge browser TimeRanges (local decoded buffer) so bar moves while watching
         const v = videoRef.current;
+        let browserPct = 0;
+        let browserHasData = false;
         if (v && Number.isFinite(v.duration) && v.duration > 0) {
           try {
             const b = v.buffered;
@@ -783,62 +926,165 @@ export function DrivePreviewModal({
               for (let i = 0; i < b.length; i++) {
                 end = Math.max(end, b.end(i));
               }
-              const browserPct = (100 * end) / v.duration;
-              pct = Math.max(pct, browserPct);
+              browserPct = (100 * end) / v.duration;
+              browserHasData = end > 0.05;
             }
           } catch {
             /* ignore */
           }
         }
-        setBufferPct(Math.min(100, Math.round(pct)));
+        // Prefer playable prefix % (what <video> can start with). Never artificially
+        // cap at 35% — that hid multi-MB heads as "stuck low" in the UI.
+        let displayPct = Math.max(pct, browserPct);
+        if (!Number.isFinite(displayPct) || displayPct < 0) displayPct = 0;
+        setBufferPct(Math.min(100, Math.round(displayPct)));
+
+        // If pipeline was paused (autoplay→pause race), resume while user is on preview
+        if (st.paused === true && streamUrl && streamId && hasUserPlayRef.current === false) {
+          try {
+            const idx = streamUrl.indexOf('/stream/');
+            if (idx >= 0) {
+              const base = streamUrl.slice(0, idx) + `/stream/${streamId}`;
+              void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // Poll faster while not playing; back off only after real playback
+        const healthy =
+          (!!v && !v.paused && browserHasData) ||
+          st.stream_ready === true ||
+          prefix >= 1024 * 1024;
+        const wantMs = healthy ? 1500 : 400;
+        if (wantMs !== intervalMs) schedule(wantMs);
+
         if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {
+          streamMissingHitsRef.current = 0;
           setStreamDone(true);
           setBufferPct(100);
           setPlayerHint(null);
           setSeekWarn(null);
         } else if (st.status === 'missing' || st.status === 'cancelled') {
-          setPlayerHint('Stream terputus — memuat ulang…');
+          streamMissingHitsRef.current += 1;
+          const playingOk =
+            !!v &&
+            !v.error &&
+            (browserHasData || v.readyState >= 2 || (!v.paused && v.currentTime > 0.2));
+          if (playingOk) {
+            setPlayerHint((h) => h || 'Buffering…');
+          } else if (
+            streamMissingHitsRef.current >= 4 &&
+            !streamRecoverRef.current
+          ) {
+            // One resume: force re-RPC so worker re-registers path (reuses disk
+            // partial + continues GetFile). Do not invalidate cache thrash.
+            streamRecoverRef.current = true;
+            liveStreamIdRef.current = null;
+            setPlayerHint('Melanjutkan unduhan stream…');
+            window.setTimeout(() => {
+              if (mountGenRef.current !== activeMountGen) return;
+              loadPreviewRef.current(quality, { soft: true, force: true });
+            }, 1200);
+          } else if (streamMissingHitsRef.current >= 1) {
+            setPlayerHint(st.status === 'cancelled' ? 'Stream dihentikan — menunggu…' : 'Menunggu stream…');
+          }
+        } else {
+          streamMissingHitsRef.current = 0;
         }
         if (st.status === 'error') setHint(st.error || 'Stream error');
-        // Nudge play when we have a solid head (document progressive)
+
+        // Aggressive first-play nudge (≤900ms). Screenshot case: frame+duration ready
+        // but stuck on "Buffering… menunggu data stream" after MEDIA_ERR during fill.
+        const now = Date.now();
+        const streamReady =
+          st.stream_ready === true ||
+          st.moov_ready === true ||
+          prefix >= 128 * 1024 ||
+          browserHasData ||
+          (!!v && v.readyState >= 2) ||
+          (!!v && Number.isFinite(v.duration) && v.duration > 0 && prefix >= 64 * 1024);
         if (
           v &&
           v.paused &&
           !v.ended &&
-          prefix >= 64 * 1024 &&
-          st.status === 'downloading' &&
-          !seekWarn
+          !seekWarnRef.current &&
+          streamReady &&
+          now - playNudgeAtRef.current > 900
         ) {
           const nearEnd =
-            Number.isFinite(v.duration) && v.duration > 0 && v.currentTime >= v.duration - 0.35;
-          if (!nearEnd && v.readyState < 3) v.play().catch(() => undefined);
+            Number.isFinite(v.duration) &&
+            v.duration > 0 &&
+            v.currentTime >= v.duration - 0.35;
+          if (!nearEnd) {
+            playNudgeAtRef.current = now;
+            // Media error freezes the element — rebind same URL once to clear error
+            if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
+              const t = v.currentTime || 0;
+              try {
+                const sticky = streamUrl;
+                v.removeAttribute('src');
+                v.load();
+                v.src = sticky;
+                if (t > 0.25) {
+                  ignoreSeekEventsRef.current += 1;
+                  v.currentTime = t;
+                }
+              } catch {
+                /* ignore */
+              }
+            }
+            void v.play().then(() => {
+              hasUserPlayRef.current = true;
+              setHasVideoFrame(true);
+              setPlayerHint(null);
+              setLoading(false);
+            }).catch(() => undefined);
+          }
         }
-        // Hint when moov/tail is still cold (document originals)
+
         if (
           st.seek_capable &&
           st.moov_ready === false &&
           prefix > 0 &&
           filled > prefix + 64 * 1024 &&
-          !seekWarn
+          !seekWarnRef.current
+        ) {
+          setPlayerHint('Menyiapkan metadata…');
+        } else if (v && !v.paused && v.readyState >= 2) {
+          setPlayerHint(null);
+        } else if (
+          streamReady &&
+          v &&
+          v.paused &&
+          (browserHasData || v.readyState >= 2 || (Number.isFinite(v.duration) && v.duration > 0))
         ) {
           setPlayerHint((h) =>
-            h && h !== 'Menyiapkan metadata (moov)…' ? h : 'Menyiapkan metadata (moov)…'
+            h && /menunggu data stream|Buffering/i.test(h) ? 'Memulai pemutaran…' : h || 'Memulai pemutaran…'
           );
+        } else if (st.moov_ready === false && prefix > 0 && !browserHasData) {
+          setPlayerHint((h) => h || 'Menyiapkan metadata…');
         } else if (st.moov_ready) {
-          setPlayerHint((h) => (h === 'Menyiapkan metadata (moov)…' ? null : h));
+          setPlayerHint((h) =>
+            h === 'Menyiapkan metadata…' || h === 'Menyiapkan metadata (moov)…' ? null : h
+          );
         }
       } catch {
         /* ignore */
+      } finally {
+        pollInFlightRef.current = false;
       }
     };
-    tick();
-    // Slightly faster poll for document progressive feel
-    const t = window.setInterval(tick, 900);
+
+    void tick();
+    schedule(600);
     return () => {
       alive = false;
-      window.clearInterval(t);
+      if (timer) clearInterval(timer);
     };
-  }, [streamId, streamDone, creds, file.size, seekWarn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional stable poll (refs for loadPreview/seekWarn)
+  }, [streamId, streamDone, creds, file.size, file.id, folderId, quality]);
 
   /** True if `t` sits inside any browser buffered range (with slack). */
   const timeInBuffered = useCallback((v: HTMLVideoElement, t: number, slack = 0.75) => {
@@ -866,20 +1112,71 @@ export function DrivePreviewModal({
   /**
    * YouTube-like seek: ask worker to pull Telegram bytes at the jump target
    * (concurrent GetFile at offset), then nudge <video> to re-request HTTP Range.
-   * Only runs after a user scrub (seeking event), not on load/resume seeked.
+   * Fired from onSeeking (early) and onSeeked (confirm) — unbuffered seeks may
+   * never emit seeked until data arrives, so waiting only on seeked deadlocks.
    */
   const handleSeekJump = useCallback(() => {
     if (streamDoneRef.current) return;
     if (!userSeekPendingRef.current) return;
-    userSeekPendingRef.current = false;
     const v = videoRef.current;
-    if (!v || !streamUrl) return;
+    const sid = streamIdRef.current;
+    if (!v || !streamUrl || !sid) return;
     const t = v.currentTime;
     if (!Number.isFinite(t) || t < 0.05) return;
 
     // Already buffered in the browser — nothing to do
-    if (timeInBuffered(v, t, 1.25)) return;
+    if (timeInBuffered(v, t, 1.25)) {
+      userSeekPendingRef.current = false;
+      return;
+    }
 
+    // Debounce rapid scrub events (seeking fires continuously while dragging)
+    const now = Date.now();
+    if (now - lastSeekKickRef.current < 280) return;
+    lastSeekKickRef.current = now;
+    userSeekPendingRef.current = false;
+
+    const dur = Number.isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+    const c = credsRef.current;
+    if (!c) return;
+    const target = t;
+
+    flashSeekWarn('Memuat titik seek…');
+    void (async () => {
+      try {
+        await driveStreamSeek(c, sid, {
+          time_s: target,
+          duration_s: dur > 0 ? dur : undefined,
+        });
+      } catch {
+        /* worker may be restarting */
+      }
+      // Retry nudge a few times while offset download lands (player re-ranges)
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => window.setTimeout(r, 260 + i * 110));
+        const vv = videoRef.current;
+        if (!vv || streamIdRef.current !== sid) return;
+        if (timeInBuffered(vv, target, 1.5)) {
+          try {
+            // Avoid treating this resume scrub as a new user seek
+            ignoreSeekEventsRef.current += 1;
+            vv.currentTime = target;
+            void vv.play().catch(() => undefined);
+          } catch {
+            ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
+          }
+          setSeekWarn(null);
+          return;
+        }
+        try {
+          ignoreSeekEventsRef.current += 1;
+          vv.currentTime = target;
+        } catch {
+          ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
+        }
+      }
+      setSeekWarn(null);
+    })();
   }, [streamUrl, timeInBuffered, flashSeekWarn]);
 
   const getStreamBaseUrl = useCallback((url: string, sid: string) => {
@@ -889,6 +1186,8 @@ export function DrivePreviewModal({
   }, []);
 
   const handlePause = useCallback(() => {
+    // Never suspend Telegram fill before the user/autoplay has actually played.
+    if (!hasUserPlayRef.current) return;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -897,6 +1196,7 @@ export function DrivePreviewModal({
   }, [streamUrl, streamId, getStreamBaseUrl]);
 
   const handlePlay = useCallback(() => {
+    hasUserPlayRef.current = true;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -1134,80 +1434,158 @@ export function DrivePreviewModal({
 
   const activeSrc = srcOverride || mediaSrc;
 
-  // Reset override when file/sources change
+  // Reset override only on file change — not every mediaSrc string refresh
+  // (progressive soft revalidate used to flip mediaSrc and remount <video>).
   useEffect(() => {
     setSrcOverride(null);
-  }, [file.id, mediaSrc]);
+  }, [file.id]);
 
   const showVideo = !!activeSrc && isVideo;
   const showImage = !!activeSrc && isImage;
   const showAudio = !!activeSrc && isAudio;
   const pdfSrc = useMemo(() => {
     if (!isPdf) return null;
-    // Prefer HTTP stream (complete file registered by worker) — more reliable than asset://
-    if (streamUrl && /^https?:\/\//i.test(streamUrl)) return streamUrl;
-    if (path && detectTauriRuntime()) {
+    // Never feed incomplete progressive streams into the PDF iframe —
+    // Chromium/WebView2 shows "We can't open this file" for partial PDFs.
+    const completeEnough =
+      streamDone ||
+      bufferPct >= 98 ||
+      (!!path && !/\.stream\./i.test(path));
+    // Prefer local file path (asset protocol) when we have a complete cache file
+    if (completeEnough && path && detectTauriRuntime() && !/\.stream\./i.test(path)) {
       try {
         return convertFileSrc(path);
       } catch {
         /* fall through */
       }
     }
-    if (dataUrl && dataUrl.startsWith('data:')) return dataUrl;
+    // HTTP only when stream is done / fully buffered
+    if (completeEnough && streamUrl && /^https?:\/\//i.test(streamUrl)) {
+      // Hint PDF viewer; some engines need explicit type via fragment
+      return streamUrl.includes('#') ? streamUrl : `${streamUrl}#toolbar=1`;
+    }
+    if (dataUrl && dataUrl.startsWith('data:application/pdf')) return dataUrl;
     return null;
-  }, [isPdf, streamUrl, path, dataUrl]);
+  }, [isPdf, streamUrl, path, dataUrl, streamDone, bufferPct]);
 
-  // Load text body for text/json preview once we have a complete local/HTTP source
+  // Load text body — hybrid: Rust local path first, then Python stream/HTTP fallback.
   useEffect(() => {
     if (!isText) {
-      setTextBody(null);
+      return;
+    }
+    // Already set from applyResult(text_content)
+    if (textBody != null && textBody !== '') {
+      setLoading(false);
       return;
     }
     let cancelled = false;
-    const url =
-      streamUrl ||
-      (path && detectTauriRuntime()
-        ? (() => {
-            try {
-              return convertFileSrc(path);
-            } catch {
-              return null;
-            }
-          })()
-        : null) ||
-      dataUrl;
-    if (!url) {
-      // Still downloading / RPC in flight
-      return;
-    }
+
+    const formatText = (raw: string) => {
+      let text = raw;
+      const name = (file.name || '').toLowerCase();
+      const isJson =
+        name.endsWith('.json') ||
+        (mime || '').includes('json') ||
+        text.trim().startsWith('{') ||
+        text.trim().startsWith('[');
+      if (isJson) {
+        try {
+          text = JSON.stringify(JSON.parse(text), null, 2);
+        } catch {
+          /* keep raw */
+        }
+      }
+      return text.length > 800_000 ? text.slice(0, 800_000) + '\n\n… (dipotong)' : text;
+    };
+
+    const tryFetch = async (url: string) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return formatText(await res.text());
+    };
+
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        let text = await res.text();
-        const name = (file.name || '').toLowerCase();
-        const isJson =
-          name.endsWith('.json') ||
-          (mime || '').includes('json') ||
-          previewKind === 'text' && text.trim().startsWith('{');
-        if (isJson || name.endsWith('.json') || (mime || '').includes('json')) {
+        // 0) RUST-first: local cache path (no Python / no HTTP stream)
+        if (path && detectTauriRuntime()) {
           try {
-            text = JSON.stringify(JSON.parse(text), null, 2);
+            const { previewLocalDocument } = await import('../../lib/rustBackend');
+            const rustPrev = await previewLocalDocument(path);
+            if (rustPrev?.textContent != null && rustPrev.textContent !== '') {
+              if (!cancelled) {
+                setTextBody(
+                  formatText(
+                    rustPrev.textContent.length > 800_000
+                      ? rustPrev.textContent.slice(0, 800_000) + '\n\n… (dipotong)'
+                      : rustPrev.textContent
+                  )
+                );
+                setLoading(false);
+                setError(null);
+              }
+              return;
+            }
           } catch {
-            /* keep raw */
+            /* fall through */
+          }
+        }
+        // 1) data: URL
+        if (dataUrl && dataUrl.startsWith('data:')) {
+          const comma = dataUrl.indexOf(',');
+          const payload = comma >= 0 ? dataUrl.slice(comma + 1) : '';
+          const isB64 = /;base64/i.test(dataUrl.slice(0, Math.max(0, comma)));
+          const raw = isB64 ? atob(payload) : decodeURIComponent(payload);
+          if (!cancelled) {
+            setTextBody(formatText(raw));
+            setLoading(false);
+            setError(null);
+          }
+          return;
+        }
+        // 2) Local path via Tauri asset protocol
+        if (path && detectTauriRuntime()) {
+          try {
+            const localUrl = convertFileSrc(path);
+            const text = await tryFetch(localUrl);
+            if (!cancelled) {
+              setTextBody(text);
+              setLoading(false);
+              setError(null);
+            }
+            return;
+          } catch {
+            /* fall through to stream */
+          }
+        }
+        // 3) HTTP stream (Python media_stream) — fallback only
+        if (streamUrl && /^https?:\/\//i.test(streamUrl)) {
+          try {
+            const text = await tryFetch(streamUrl);
+            if (!cancelled) {
+              setTextBody(text);
+              setLoading(false);
+              setError(null);
+            }
+            return;
+          } catch {
+            /* fall through */
           }
         }
         if (!cancelled) {
-          setTextBody(
-            text.length > 800_000 ? text.slice(0, 800_000) + '\n\n… (dipotong)' : text
+          setError(
+            'Gagal memuat teks. Klik Coba lagi untuk mengunduh ulang dari Telegram.'
           );
           setLoading(false);
-          setError(null);
         }
       } catch (e: any) {
         if (!cancelled) {
-          setError(String(e?.message || e || 'Gagal membaca teks'));
+          const msg = String(e?.message || e || 'Gagal membaca teks');
+          setError(
+            /failed to fetch/i.test(msg)
+              ? 'Gagal memuat teks (stream putus). Klik Coba lagi.'
+              : msg
+          );
           setLoading(false);
         }
       }
@@ -1215,7 +1593,7 @@ export function DrivePreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [isText, streamUrl, path, dataUrl, file.name, mime, previewKind]);
+  }, [isText, textBody, streamUrl, path, dataUrl, file.name, mime, previewKind]);
 
   /** Always offer resolution menu for video (Telegram-style) */
   const resolutionOptions =
@@ -2148,7 +2526,7 @@ export function DrivePreviewModal({
                   setError(null);
                   setTextBody(null);
                   setHasVideoFrame(false);
-                  loadPreview(isVideo ? quality : 'auto');
+                  loadPreview(isVideo ? quality : 'auto', { force: true });
                 }}
               >
                 <RefreshCw size={15} className={loading ? 'spin' : ''} />
@@ -2308,6 +2686,7 @@ export function DrivePreviewModal({
                 onClick={() => {
                   invalidatePreview(folderId, file.id);
                   setError(null);
+                  setTextBody(null);
                   setLoading(true);
                   // Hard bounce session then reconnect warm before reload
                   void (async () => {
@@ -2320,7 +2699,7 @@ export function DrivePreviewModal({
                     } catch {
                       /* ignore */
                     }
-                    loadPreview(isVideo ? quality : 'auto');
+                    loadPreview(isVideo ? quality : 'auto', { force: true });
                   })();
                 }}
               >
@@ -2453,7 +2832,9 @@ export function DrivePreviewModal({
               )}
               <video
                 ref={videoRef}
-                key={`${file.id}-${srcOverride || 'primary'}:${quality}`}
+                // Stable key: remount only on file/quality — never on stream URL
+                // churn (that was restarting buffer load in a loop).
+                key={`vid-${file.id}-${quality}`}
                 src={activeSrc!}
                 poster={poster || gridThumb || undefined}
                 controls
@@ -2502,8 +2883,9 @@ export function DrivePreviewModal({
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
-                  // Mark user scrub so seeked can pull Telegram offset
+                  // Mark + kick early: seeked may never fire until Range data exists
                   userSeekPendingRef.current = true;
+                  handleSeekJump();
                 }}
                 onSeeked={() => {
                   if (ignoreSeekEventsRef.current > 0) {
@@ -2511,7 +2893,8 @@ export function DrivePreviewModal({
                     userSeekPendingRef.current = false;
                     return;
                   }
-                  // After user scrub: pull Telegram bytes at this time (YouTube-style)
+                  // Confirm after scrub settles (debounced kick may already be in flight)
+                  userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
                 onEnded={() => {
@@ -2552,6 +2935,11 @@ export function DrivePreviewModal({
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint('Menunggu data…');
+                    // Stalled with data available — re-kick playback
+                    const v = videoRef.current;
+                    if (v && v.paused && v.readyState >= 2) {
+                      void v.play().catch(() => undefined);
+                    }
                   }
                 }}
                 onError={(e) => {
@@ -2559,17 +2947,66 @@ export function DrivePreviewModal({
                   if (mediaErr && mediaErr.code === 1) {
                     return; // MEDIA_ERR_ABORTED is not a failure
                   }
+                  // Progressive buffer hole / 503: do NOT tear down the stream.
+                  // WebView2 often fires MEDIA_ERR_NETWORK while fill catches up;
+                  // full reload restarts GetFile. Clear error by rebinding same URL.
+                  const progressiveFilling = !!streamUrl && !streamDone;
+                  if (progressiveFilling) {
+                    mediaErrorCountRef.current += 1;
+                    const v = videoRef.current;
+                    const n = mediaErrorCountRef.current;
+                    // First few errors: soft rebind same src (clears MEDIA_ERR sticky state)
+                    if (v && streamUrl && n <= 4) {
+                      setPlayerHint('Buffering… menyambung putar');
+                      const t = v.currentTime || 0;
+                      const sticky = streamUrl;
+                      window.setTimeout(() => {
+                        const vv = videoRef.current;
+                        if (!vv || mountGenRef.current !== activeMountGen) return;
+                        try {
+                          if (vv.error) {
+                            vv.removeAttribute('src');
+                            vv.load();
+                            vv.src = sticky;
+                            if (t > 0.25) {
+                              ignoreSeekEventsRef.current += 1;
+                              vv.currentTime = t;
+                            }
+                          }
+                          void vv.play().then(() => {
+                            hasUserPlayRef.current = true;
+                            setPlayerHint(null);
+                          }).catch(() => undefined);
+                        } catch {
+                          /* ignore */
+                        }
+                      }, 350);
+                      return;
+                    }
+                    setPlayerHint('Buffering… menunggu data stream');
+                    // NEVER force-reload progressive fill from onError thrash.
+                    // force loadPreview cancelled the live GetFile pipeline and
+                    // left registry entries cancelled=true with frozen buffer %.
+                    if (mediaErrorCountRef.current >= 12) {
+                      setPlayerHint('Buffer lambat — coba tombol Play, atau Muat ulang');
+                    }
+                    return;
+                  }
                   if (tryNextSrc()) return;
                   // Stale stream URL after worker restart / StrictMode teardown
                   if (streamUrl) {
+                    const now = Date.now();
+                    if (now - mediaErrorRecoverAtRef.current < 5000) return;
+                    mediaErrorRecoverAtRef.current = now;
                     invalidatePreview(folderId, file.id);
                     setHasVideoFrame(false);
+                    liveStreamIdRef.current = null;
                     setStreamUrl(null);
                     setStreamId(null);
                     setPlayerHint('Menyambung stream…');
                     window.setTimeout(() => {
-                      loadPreview(quality, { soft: false });
-                    }, 400);
+                      loadPreview(quality, { soft: false, force: true });
+                    }, 800);
                     return;
                   }
                   if (!loading) {
@@ -2774,7 +3211,7 @@ export function DrivePreviewModal({
               {/* Audio player element */}
               <audio
                 ref={videoRef}
-                key={`${file.id}-${srcOverride || 'primary'}`}
+                key={`aud-${file.id}-${quality}`}
                 src={activeSrc!}
                 controls
                 playsInline
@@ -2817,6 +3254,7 @@ export function DrivePreviewModal({
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
                   userSeekPendingRef.current = true;
+                  handleSeekJump();
                 }}
                 onSeeked={() => {
                   if (ignoreSeekEventsRef.current > 0) {
@@ -2824,6 +3262,7 @@ export function DrivePreviewModal({
                     userSeekPendingRef.current = false;
                     return;
                   }
+                  userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
                 onEnded={() => {
@@ -2865,6 +3304,10 @@ export function DrivePreviewModal({
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint('Menunggu data…');
+                    const v = videoRef.current;
+                    if (v && v.paused && v.readyState >= 2) {
+                      void v.play().catch(() => undefined);
+                    }
                   }
                 }}
                 onError={(e) => {
@@ -2872,16 +3315,23 @@ export function DrivePreviewModal({
                   if (mediaErr && mediaErr.code === 1) {
                     return; // MEDIA_ERR_ABORTED is not a failure
                   }
+                  if (streamUrl && !streamDone) {
+                    setPlayerHint('Buffering… menunggu data stream');
+                    return;
+                  }
                   if (tryNextSrc()) return;
                   if (streamUrl) {
+                    const now = Date.now();
+                    if (now - mediaErrorRecoverAtRef.current < 5000) return;
+                    mediaErrorRecoverAtRef.current = now;
                     invalidatePreview(folderId, file.id);
-                    setHasVideoFrame(false);
+                    liveStreamIdRef.current = null;
                     setStreamUrl(null);
                     setStreamId(null);
                     setPlayerHint('Menyambung stream…');
                     window.setTimeout(() => {
-                      loadPreview(quality, { soft: false });
-                    }, 400);
+                      loadPreview(quality, { soft: false, force: true });
+                    }, 800);
                     return;
                   }
                   if (!loading) {
@@ -2924,12 +3374,36 @@ export function DrivePreviewModal({
               />
             </div>
           )}
-          {isPdf && !pdfSrc && !loading && !error && (
+          {isPdf && !pdfSrc && loading && (
+            <div className="drive-empty">
+              <Loader2 size={32} className="spin" />
+              <p>Mengunduh PDF lengkap…</p>
+              {bufferPct > 0 && (
+                <p className="field-hint">Buffer {bufferPct}%</p>
+              )}
+            </div>
+          )}
+          {isPdf && !pdfSrc && !loading && (
             <div className="drive-empty">
               <FileText size={40} className="td-type-ico doc" />
-              <p>{tooLarge ? (hint || 'PDF terlalu besar untuk pratinjau.') : 'PDF belum siap. Coba lagi atau Buka di aplikasi.'}</p>
+              <p>
+                {tooLarge
+                  ? hint || 'PDF terlalu besar untuk pratinjau.'
+                  : error ||
+                    'PDF belum siap. Coba lagi atau buka di aplikasi sistem.'}
+              </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button type="button" className="td-btn-primary" onClick={() => loadPreview(quality)}>
+                <button
+                  type="button"
+                  className="td-btn-primary"
+                  onClick={() => {
+                    invalidatePreview(folderId, file.id);
+                    setError(null);
+                    setStreamDone(false);
+                    setBufferPct(0);
+                    loadPreview(quality, { force: true });
+                  }}
+                >
                   <RefreshCw size={14} /> Coba lagi
                 </button>
                 {isDesktop() && (
@@ -2937,6 +3411,9 @@ export function DrivePreviewModal({
                     <ExternalLink size={14} /> Buka
                   </button>
                 )}
+                <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>
+                  <Download size={14} /> Download
+                </button>
               </div>
             </div>
           )}
@@ -2951,7 +3428,16 @@ export function DrivePreviewModal({
             <div className="drive-empty">
               <FileText size={40} className="td-type-ico doc" />
               <p>Teks belum termuat. Coba lagi.</p>
-              <button type="button" className="td-btn-primary" onClick={() => loadPreview(quality)}>
+              <button
+                type="button"
+                className="td-btn-primary"
+                onClick={() => {
+                  invalidatePreview(folderId, file.id);
+                  setError(null);
+                  setTextBody(null);
+                  loadPreview(quality, { force: true });
+                }}
+              >
                 <RefreshCw size={14} /> Coba lagi
               </button>
             </div>
@@ -3027,7 +3513,15 @@ export function DrivePreviewModal({
                     </button>
                   </>
                 )}
-                <button type="button" className="td-btn-primary" onClick={() => loadPreview(quality)}>
+                <button
+                  type="button"
+                  className="td-btn-primary"
+                  onClick={() => {
+                    invalidatePreview(folderId, file.id);
+                    setError(null);
+                    loadPreview(quality, { force: true });
+                  }}
+                >
                   <RefreshCw size={14} /> Coba lagi
                 </button>
                 <button type="button" className="td-btn-primary" onClick={handleDownload} disabled={saving}>

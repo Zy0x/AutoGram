@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft } from 'lucide-react';
+import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
+import QRCode from 'qrcode';
 import { getApiCredentials } from '../lib/secureCredentials';
 import { runAuthManagerOnce } from '../lib/workerBridge';
 
@@ -134,6 +135,30 @@ export function Accounts() {
   const [password, setPassword] = useState("");
   const [phoneCodeHash, setPhoneCodeHash] = useState("");
   
+  // QR Login State
+  const [loginMethod, setLoginMethod] = useState<'qr' | 'phone'>('qr');
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrExpiresIn, setQrExpiresIn] = useState<number>(0);
+  const qrCheckTimerRef = useRef<any>(null);
+  const qrCountdownTimerRef = useRef<any>(null);
+
+  const stopQrTimers = () => {
+    if (qrCheckTimerRef.current) {
+      clearInterval(qrCheckTimerRef.current);
+      qrCheckTimerRef.current = null;
+    }
+    if (qrCountdownTimerRef.current) {
+      clearInterval(qrCountdownTimerRef.current);
+      qrCountdownTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopQrTimers();
+    };
+  }, []);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -228,13 +253,107 @@ export function Accounts() {
   }, []);
 
   const openWizard = () => {
+    stopQrTimers();
     setStep(1);
+    setLoginMethod("qr");
+    setQrDataUrl(null);
+    setQrExpiresIn(0);
     setSessionName("");
     setPhone("");
     setCode("");
     setPassword("");
     setErrorMsg("");
     setIsWizardOpen(true);
+  };
+
+  const handleStartQrLogin = async () => {
+    if (!sessionName) {
+      setErrorMsg('Nama sesi wajib diisi.');
+      return;
+    }
+
+    if (!(await checkApiCredentials())) return;
+
+    stopQrTimers();
+    setIsProcessing(true);
+    setErrorMsg('');
+    setQrDataUrl(null);
+
+    try {
+      const { apiId, apiHash } = await getApiCredentials();
+      const result = await runAuthManagerOnce([
+        '--action',
+        'qr-export',
+        '--session',
+        sessionName,
+        '--api-id',
+        apiId || '',
+        '--api-hash',
+        apiHash || '',
+      ]);
+      const data = parseAuthJson(result.stdout, result.stderr);
+
+      if (data.error) {
+        handleError(data);
+        setIsProcessing(false);
+      } else if (data.status === 'already_authorized') {
+        setIsWizardOpen(false);
+        loadSessions();
+        setIsProcessing(false);
+      } else if (data.status === 'qr_code' && data.url) {
+        const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
+        setQrDataUrl(dataUrl);
+
+        const exp = Number(data.expires) || 0;
+        const nowSec = Math.floor(Date.now() / 1000);
+        const rem = Math.max(0, exp - nowSec) || 60;
+        setQrExpiresIn(rem);
+        setIsProcessing(false);
+
+        qrCountdownTimerRef.current = setInterval(() => {
+          setQrExpiresIn((prev) => {
+            if (prev <= 1) {
+              stopQrTimers();
+              setErrorMsg('QR Code kedaluwarsa. Klik "Muat Ulang QR Code" untuk memperbarui.');
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        qrCheckTimerRef.current = setInterval(async () => {
+          try {
+            const checkRes = await runAuthManagerOnce([
+              '--action',
+              'qr-check',
+              '--session',
+              sessionName,
+              '--api-id',
+              apiId || '',
+              '--api-hash',
+              apiHash || '',
+            ]);
+            const checkData = parseAuthJson(checkRes.stdout, checkRes.stderr);
+            if (checkData.status === 'success') {
+              stopQrTimers();
+              setIsWizardOpen(false);
+              loadSessions();
+            } else if (checkData.status === '2fa_required') {
+              stopQrTimers();
+              setStep(3);
+            } else if (checkData.error === 'qr_expired') {
+              stopQrTimers();
+              setErrorMsg('QR Code kedaluwarsa. Klik "Muat Ulang QR Code" untuk memperbarui.');
+            }
+          } catch {
+            /* ignore polling errors */
+          }
+        }, 2500);
+      }
+    } catch (e: any) {
+      setErrorMsg(String(e));
+      setIsProcessing(false);
+    }
   };
 
   const handleDeleteSession = async (name: string) => {
@@ -558,44 +677,127 @@ export function Accounts() {
               
               {step === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Method Tabs */}
+                  <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod('qr'); stopQrTimers(); setQrDataUrl(null); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: loginMethod === 'qr' ? 'var(--primary)' : 'transparent',
+                        color: loginMethod === 'qr' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <QrCode size={16} /> Scan QR Code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMethod('phone'); stopQrTimers(); setQrDataUrl(null); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: loginMethod === 'phone' ? 'var(--primary)' : 'transparent',
+                        color: loginMethod === 'phone' ? '#fff' : 'var(--text-muted)',
+                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Phone size={16} /> Nomor Telepon & OTP
+                    </button>
+                  </div>
+
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">{t('accounts.session_name')}</label>
-                    <input id="session-name-input" type="text" className="input-field" placeholder="MyAccount" value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" onKeyDown={e => { 
-                      if (e.key === 'Enter') {
-                        if (sessionName && phone && !isProcessing) handleSendCode();
-                        else if (!phone) document.getElementById('phone-input')?.focus();
-                      }
-                    }} disabled={isProcessing} />
+                    <input id="session-name-input" type="text" className="input-field" placeholder="MyAccount" value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" disabled={isProcessing} />
                   </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Phone size={14} /> {t('accounts.phone_number')}
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <PhoneInput
-                        id="phone-input"
-                        countrySelectComponent={CustomCountrySelect}
-                        placeholder="62878xxxx"
-                        value={phone}
-                        onChange={setPhone}
-                        onKeyDown={(e: any) => { 
-                          if (e.key === 'Enter') {
-                            if (sessionName && phone && !isProcessing) handleSendCode();
-                            else if (!sessionName) document.getElementById('session-name-input')?.focus();
-                          }
-                        }}
-                        autoComplete="off"
-                        international
-                        withCountryCallingCode
-                        className="input-field phone-input-container"
-                        disabled={isProcessing}
-                        style={{ width: '100%' }}
-                      />
+
+                  {loginMethod === 'qr' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
+                      {!qrDataUrl ? (
+                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleStartQrLogin} disabled={isProcessing || !sessionName}>
+                          {isProcessing ? <RefreshCcw className="spin" size={18} /> : <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><QrCode size={18} /> Buat QR Code Login</span>}
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
+                          <div style={{ background: '#ffffff', padding: '12px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <img src={qrDataUrl} alt="Telegram Login QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
+                            {qrExpiresIn > 0 && (
+                              <span style={{ fontSize: '0.75rem', color: '#333', fontWeight: '600', marginTop: '6px' }}>
+                                Masa berlaku: {qrExpiresIn}s
+                              </span>
+                            )}
+                          </div>
+
+                          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-muted)', width: '100%' }}>
+                            <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Smartphone size={16} color="var(--primary)" /> Langkah-langkah scan di HP:
+                            </div>
+                            <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
+                              <li>Buka aplikasi <strong>Telegram</strong> di Smartphone Anda.</li>
+                              <li>Masuk ke <strong>Pengaturan (Settings) &gt; Perangkat (Devices)</strong>.</li>
+                              <li>Ketuk <strong>Hubungkan Perangkat (Link Desktop Device)</strong>.</li>
+                              <li>Arahkan kamera HP ke QR Code di atas.</li>
+                            </ol>
+                          </div>
+
+                          <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleStartQrLogin} disabled={isProcessing}>
+                            <RefreshCcw size={16} className={isProcessing ? 'spin' : ''} /> Muat Ulang QR Code
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !sessionName || !phone}>
-                    {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.send_code')}
-                  </button>
+                  ) : (
+                    <>
+                      <div className="input-group" style={{ marginBottom: 0 }}>
+                        <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Phone size={14} /> {t('accounts.phone_number')}
+                        </label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <PhoneInput
+                            id="phone-input"
+                            countrySelectComponent={CustomCountrySelect}
+                            placeholder="62878xxxx"
+                            value={phone}
+                            onChange={setPhone}
+                            onKeyDown={(e: any) => { 
+                              if (e.key === 'Enter') {
+                                if (sessionName && phone && !isProcessing) handleSendCode();
+                                else if (!sessionName) document.getElementById('session-name-input')?.focus();
+                              }
+                            }}
+                            autoComplete="off"
+                            international
+                            withCountryCallingCode
+                            className="input-field phone-input-container"
+                            disabled={isProcessing}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      </div>
+                      <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !sessionName || !phone}>
+                        {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.send_code')}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
