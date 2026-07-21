@@ -2051,7 +2051,10 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
         system_version = "V2-Reborn"
         app_version = "2.1.52"
         
-        # Optimized: connection_retries=15, retry_delay=3, flood_sleep_threshold=86400
+        from core.network_env import apply_client_post_create, telethon_client_kwargs, vpn_mode
+
+        net_kw = telethon_client_kwargs()
+        ctor = {k: v for k, v in net_kw.items() if not str(k).startswith("_autogram_")}
         client = TelegramClient(
             string_session,
             int(api_id),
@@ -2059,12 +2062,9 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
             device_model=device_model,
             system_version=system_version,
             app_version=app_version,
-            connection_retries=15,
-            retry_delay=3,
-            auto_reconnect=True,
-            flood_sleep_threshold=86400,
+            **ctor,
         )
-        client.request_retries = 10
+        apply_client_post_create(client, dict(net_kw))
         
         # Optimization: preview clients don't need update dispatch
         if purpose == "preview":
@@ -2080,23 +2080,44 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
     # PATH B: STANDARD FILE-BASED SESSION (Canonical)
     # ================================================================
     session_file = os.path.join(session_dir, session_name)
+    actual_sess_path = session_file if session_file.endswith(".session") else session_file + ".session"
+
+    # Auto-repair .session file from DB string_session if missing or empty
+    if not os.path.exists(actual_sess_path) or os.path.getsize(actual_sess_path) == 0:
+        try:
+            from database.queries import get_session
+            from core.encryption import decrypt_data
+            db_s = get_session(session_name)
+            if db_s and db_s.get("session_string"):
+                dec_str = decrypt_data(db_s["session_string"])
+                if dec_str:
+                    tmp_client = TelegramClient(StringSession(dec_str), int(api_id), str(api_hash))
+                    file_client = TelegramClient(session_file, int(api_id), str(api_hash))
+                    file_client.session.auth_key = tmp_client.session.auth_key
+                    file_client.session.server_address = tmp_client.session.server_address
+                    file_client.session.port = tmp_client.session.port
+                    file_client.session.dc_id = tmp_client.session.dc_id
+                    file_client.session.save()
+                    logger.info(f"[CANONICAL] Restored .session file for '{session_name}' from DB")
+        except Exception as e:
+            logger.warning(f"Failed to auto-repair session file from DB: {e}")
     
     # Apply WAL patch (existing behavior preserved)
     _patch_session_wal(session_file)
     
     logger.info(f"[CANONICAL] Loading file session: {session_file}")
     
-    # Optimized: connection_retries=15, retry_delay=3, flood_sleep_threshold=86400
+    from core.network_env import apply_client_post_create, telethon_client_kwargs
+
+    net_kw = telethon_client_kwargs()
+    ctor = {k: v for k, v in net_kw.items() if not str(k).startswith("_autogram_")}
     client = TelegramClient(
         session_file,
         int(api_id),
         str(api_hash),
-        connection_retries=15,
-        retry_delay=3,
-        auto_reconnect=True,
-        flood_sleep_threshold=86400,
+        **ctor,
     )
-    client.request_retries = 10
+    apply_client_post_create(client, dict(net_kw))
     return client
 
 
@@ -2106,19 +2127,43 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
     last_err: Optional[Exception] = None
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     session_file = os.path.join(session_dir, session_name)
+    from core.network_env import vpn_mode
+
+    connect_timeout = 20.0 * (3 if vpn_mode() else 1)
+    connect_timeout = min(max(connect_timeout, 15.0), 60.0)
     
     for attempt in range(8):
         _patch_session_wal(session_file)
         client = None
         try:
             client = _session_client(session_name, api_id, api_hash)
-            # Increased timeout to 20.0s for slow networks/VPNs/Proxies
-            await asyncio.wait_for(client.connect(), timeout=20.0)
+            # Timeout scales with VPN optimizer (slow networks/proxies)
+            await asyncio.wait_for(client.connect(), timeout=connect_timeout)
             if not await client.is_user_authorized():
                 try:
                     await asyncio.wait_for(client.disconnect(), timeout=0.8)
                 except Exception:
                     pass
+                # Attempt DB string_session repair once if file session was unauthorized
+                if attempt == 0:
+                    try:
+                        from database.queries import get_session
+                        from core.encryption import decrypt_data
+                        from telethon.sessions import StringSession
+                        db_s = get_session(session_name)
+                        if db_s and db_s.get("session_string"):
+                            dec_str = decrypt_data(db_s["session_string"])
+                            if dec_str:
+                                tmp_client = TelegramClient(StringSession(dec_str), int(api_id), str(api_hash))
+                                file_client = TelegramClient(session_file, int(api_id), str(api_hash))
+                                file_client.session.auth_key = tmp_client.session.auth_key
+                                file_client.session.server_address = tmp_client.session.server_address
+                                file_client.session.port = tmp_client.session.port
+                                file_client.session.dc_id = tmp_client.session.dc_id
+                                file_client.session.save()
+                                continue
+                    except Exception:
+                        pass
                 raise RuntimeError("Session not authorized")
             return client
         except Exception as e:
@@ -2236,36 +2281,136 @@ _VIDEO_EXTS = frozenset(
     {"mp4", "mov", "mkv", "webm", "avi", "m4v", "3gp", "3gpp", "mpeg", "mpg", "ts", "m2ts", "wmv", "flv"}
 )
 _PDF_EXTS = frozenset({"pdf"})
+# Text + source code + config — in-app preview as monospaced body
 _TEXT_EXTS = frozenset(
     {
+        # plain / data
         "txt",
+        "text",
         "json",
+        "jsonc",
+        "json5",
+        "jsonl",
+        "ndjson",
         "md",
         "markdown",
+        "mdx",
+        "rst",
         "csv",
         "tsv",
         "log",
         "xml",
+        "svg",  # as text source when not treated as image elsewhere
         "yaml",
         "yml",
         "ini",
         "cfg",
         "conf",
+        "config",
+        "properties",
+        "env",
+        "gitignore",
+        "dockerignore",
+        "editorconfig",
+        "npmrc",
+        "prettierrc",
+        "eslintrc",
+        "babelrc",
+        "lock",
+        "toml",
+        "plist",
+        # web
         "html",
         "htm",
+        "xhtml",
         "css",
+        "scss",
+        "sass",
+        "less",
         "js",
+        "jsx",
+        "mjs",
+        "cjs",
         "ts",
+        "tsx",
+        "vue",
+        "svelte",
+        "astro",
+        # systems / scripting
         "py",
-        "rs",
+        "pyi",
+        "pyw",
+        "rb",
+        "php",
+        "pl",
+        "pm",
+        "sh",
+        "bash",
+        "zsh",
+        "fish",
+        "ps1",
+        "psm1",
+        "bat",
+        "cmd",
+        "lua",
+        "r",
+        "jl",
+        "ex",
+        "exs",
+        "erl",
+        "hrl",
+        "clj",
+        "cljs",
+        "scala",
+        "kt",
+        "kts",
+        "swift",
+        "dart",
+        "groovy",
+        "gradle",
+        # systems languages
+        "c",
+        "cc",
+        "cpp",
+        "cxx",
+        "h",
+        "hh",
+        "hpp",
+        "hxx",
+        "m",
+        "mm",
+        "cs",
+        "fs",
+        "fsx",
         "go",
+        "rs",
+        "java",
         "sql",
-        "toml",
-        "env",
+        "prisma",
+        "graphql",
+        "gql",
+        "proto",
+        "thrift",
+        "wasm",  # listed; may be binary — preview path still tries decode
+        # devops / infra
+        "dockerfile",
+        "makefile",
+        "cmake",
+        "tf",
+        "hcl",
+        "nix",
+        "vim",
+        "diff",
+        "patch",
+        "http",
+        "rest",
     }
 )
+_OFFICE_TEXT_EXTS = frozenset({"docx", "odt", "rtf", "xlsx", "ods", "pptx", "odp"})
 # Caps for document preview / thumb generation (on-demand)
-DOC_PREVIEW_MAX_BYTES = 28 * 1024 * 1024
+DOC_PREVIEW_MAX_BYTES = 48 * 1024 * 1024  # progressive docs up to 48MB
+DOC_TEXT_INLINE_MAX_BYTES = 2 * 1024 * 1024  # embed body in RPC (fast, no HTTP)
+DOC_TEXT_FAST_DOWNLOAD_MAX = 2 * 1024 * 1024  # blocking full download
 DOC_THUMB_PDF_MAX_BYTES = 12 * 1024 * 1024
 DOC_THUMB_TEXT_MAX_BYTES = 256 * 1024
 
@@ -2376,10 +2521,97 @@ def _message_doc_kind(msg) -> Optional[str]:
         mime = (mimetypes.guess_type(name)[0] or "").lower()
     if mime == "application/pdf" or "pdf" in mime or ext in _PDF_EXTS:
         return "pdf"
-    if mime.startswith("text/") or ext in _TEXT_EXTS:
+    if (
+        mime.startswith("text/")
+        or mime in ("application/json", "application/xml", "application/javascript", "application/typescript")
+        or "json" in mime
+        or "xml" in mime
+        or "yaml" in mime
+        or "javascript" in mime
+        or "ecmascript" in mime
+        or ext in _TEXT_EXTS
+    ):
+        return "text"
+    # Office packages with extractable plain text for in-app preview
+    if ext in _OFFICE_TEXT_EXTS:
         return "text"
     if any(x in mime for x in ("json", "xml", "yaml", "javascript", "csv")):
         return "text"
+    return None
+
+
+def _extract_office_plain_text(path: str, ext: str, max_chars: int = 400_000) -> Optional[str]:
+    """Best-effort plain text from Office Open XML / ODT / RTF for in-app preview."""
+    ext = (ext or "").lower().lstrip(".")
+    try:
+        if ext == "rtf":
+            with open(path, "rb") as f:
+                raw = f.read(min(os.path.getsize(path), 2 * 1024 * 1024))
+            try:
+                s = raw.decode("utf-8", errors="replace")
+            except Exception:
+                s = raw.decode("latin-1", errors="replace")
+            import re as _re
+
+            s = _re.sub(r"\\'[0-9a-fA-F]{2}", " ", s)
+            s = _re.sub(r"\\[a-zA-Z]+\d* ?", " ", s)
+            s = _re.sub(r"[{}]", " ", s)
+            s = _re.sub(r"\s+", " ", s).strip()
+            if not s:
+                return None
+            return (s[:max_chars] + "\n\n… (dipotong)") if len(s) > max_chars else s
+
+        if ext in ("docx", "odt", "xlsx", "ods", "pptx", "odp"):
+            import zipfile
+            import re as _re
+            from xml.etree import ElementTree as ET
+
+            texts: list[str] = []
+            with zipfile.ZipFile(path, "r") as zf:
+                names = zf.namelist()
+                if ext == "xlsx":
+                    targets = [
+                        n
+                        for n in names
+                        if n.endswith("sharedStrings.xml") or "/worksheets/sheet" in n
+                    ]
+                elif ext == "pptx":
+                    targets = sorted(
+                        n
+                        for n in names
+                        if n.startswith("ppt/slides/slide") and n.endswith(".xml")
+                    )
+                elif ext in ("odt", "ods", "odp"):
+                    targets = ["content.xml"] if "content.xml" in names else []
+                else:  # docx
+                    targets = ["word/document.xml"] if "word/document.xml" in names else []
+
+                for member in targets[:24]:
+                    try:
+                        data = zf.read(member)
+                        try:
+                            root = ET.fromstring(data)
+                            parts = [t for t in root.itertext() if t and str(t).strip()]
+                            if parts:
+                                texts.append(" ".join(parts))
+                                continue
+                        except Exception:
+                            pass
+                        raw = data.decode("utf-8", errors="replace")
+                        raw = _re.sub(r"<[^>]+>", " ", raw)
+                        raw = _re.sub(r"\s+", " ", raw).strip()
+                        if raw:
+                            texts.append(raw)
+                    except Exception:
+                        continue
+            body = "\n\n".join(texts).strip()
+            if not body:
+                return None
+            if len(body) > max_chars:
+                return body[:max_chars] + "\n\n… (dipotong)"
+            return body
+    except Exception:
+        return None
     return None
 
 
@@ -6566,7 +6798,7 @@ async def start_preview_stream_on_client(
             if not str(e):
                 pass
 
-    # ── PDF / text: cache hit or fast path for small docs, otherwise progressive stream ──
+    # ── PDF / text / code / office: cache hit or fast path, otherwise progressive ──
     if dkind in ("pdf", "text") and not is_video and not is_image:
         if size > DOC_PREVIEW_MAX_BYTES > 0:
             return {
@@ -6592,27 +6824,58 @@ async def start_preview_stream_on_client(
         if dkind == "pdf":
             doc_ext = "pdf"
         doc_dest = os.path.join(PREVIEW_DIR, f"{key}.{doc_ext}")
-        
-        # A. If already cached completely, return cache hit instantly
+
+        # A. Cache hit
         if (
             os.path.isfile(doc_dest)
             and os.path.getsize(doc_dest) > 0
             and (size <= 0 or os.path.getsize(doc_dest) >= max(size * 0.95, 1))
         ):
             return _preview_result(doc_dest, cached=True, kind=dkind, emit=False)
-            
-        # B. Small docs <= 512KB: fast blocking download
-        if 0 < size <= 512 * 1024:
+
+        # B. Fast blocking download
+        # PDF MUST be complete before the browser viewer opens — partial Range
+        # streams cause "We can't open this file" in Chromium/WebView2.
+        # Text/code: 2MB, office: 4MB, PDF: up to DOC_PREVIEW_MAX (full file).
+        office_ext = (_file_ext(name) or doc_ext or "").lower()
+        is_office = office_ext in _OFFICE_TEXT_EXTS
+        fast_cap = DOC_TEXT_FAST_DOWNLOAD_MAX
+        if dkind == "pdf":
+            fast_cap = DOC_PREVIEW_MAX_BYTES  # full PDF for in-app iframe
+        elif is_office:
+            fast_cap = 4 * 1024 * 1024
+        if 0 < size <= fast_cap:
             try:
                 path = await client.download_media(msg, file=doc_dest)
                 if not path or not os.path.isfile(str(path)):
                     raise RuntimeError("Download dokumen gagal")
                 doc_dest = str(path)
-                return _preview_result(doc_dest, cached=True, kind=dkind, emit=False)
-            except Exception:
-                pass # fall through to progressive stream
-                
-        # C. Larger files: skip blocking and fall through to progressive stream
+                # Guard: refuse incomplete PDF (Telegram download truncated)
+                if dkind == "pdf":
+                    disk = os.path.getsize(doc_dest)
+                    if size > 0 and disk < size * 0.98:
+                        raise RuntimeError(
+                            f"PDF unduhan tidak lengkap ({disk}/{size})"
+                        )
+                    # Sanity: PDF magic
+                    with open(doc_dest, "rb") as pf:
+                        magic = pf.read(5)
+                    if magic != b"%PDF-":
+                        raise RuntimeError("Berkas bukan PDF valid (%PDF- header hilang)")
+                return _preview_result(doc_dest, cached=False, kind=dkind, emit=False)
+            except Exception as e:
+                try:
+                    print(f"[drive_fs] doc fast download skip: {e}", flush=True)
+                except Exception:
+                    pass
+                # PDF: do NOT fall through to progressive — viewer cannot open partials
+                if dkind == "pdf":
+                    raise RuntimeError(
+                        f"Gagal mengunduh PDF lengkap untuk pratinjau: {e}"
+                    ) from e
+                # text/office may still use progressive
+
+        # C. Larger text/office only: progressive stream
 
     # ── Lower quality: download original → ffmpeg transcode → stream ──
     need_h = _PLAY_QUALITY_HEIGHT.get(q)
@@ -6883,29 +7146,72 @@ async def start_preview_stream_on_client(
     except RuntimeError:
         await _runner()
 
-    # Return stream_url ASAP — UI attaches <video> while head finishes.
-    # Gate: tiny for large files so URL is returned after 64KB instead of 2.5MB.
-    # Reduced wait_s to maximum 0.2s for instant UI transition (non-blocking).
+    # Return stream_url after tiered first_play head (see get_streaming_config).
+    # Large (1–4GB+) files use smaller first_play so open feels instant.
     if is_image and not is_video:
         min_buf = 48 * 1024
-        wait_s = 0.2
-    elif size > 200 * 1024 * 1024:
-        # Large file (>200MB): return URL immediately after minimal head
-        min_buf = 64 * 1024
-        wait_s = 0.1
+        wait_s = 0.3
     else:
-        min_buf = 64 * 1024
-        if size > 0:
-            min_buf = max(48 * 1024, min(128 * 1024, max(size // 400, 48 * 1024)))
-        wait_s = 0.2 if pre_bytes < min_buf else 0.1
+        try:
+            from engine.media_stream import first_play_bytes, get_streaming_config
+
+            cfg = get_streaming_config(size)
+            min_buf = int(cfg.get("first_play") or first_play_bytes(size))
+        except Exception:
+            min_buf = 192 * 1024
+        # Wait budget scales with size: small files can wait a bit longer to
+        # return a denser head; huge files fail-fast so UI attaches early.
+        # Slightly longer wait on mid-size files so first Range has a denser head
+        # (reduces sticky MEDIA_ERR / "Buffering… menunggu data stream" on open).
+        if size > 2000 * 1024 * 1024:
+            wait_s = 1.0
+        elif size > 500 * 1024 * 1024:
+            wait_s = 1.2
+        elif size > 100 * 1024 * 1024:
+            wait_s = 1.6
+        elif size > 20 * 1024 * 1024:
+            wait_s = 1.2
+        else:
+            wait_s = 0.85 if pre_bytes < min_buf else 0.2
     if pre_bytes < min_buf:
         await asyncio.to_thread(media.wait_for_bytes, min_buf, wait_s)
 
-    # Document / moov-at-end: kick tail seek fire-and-forget for ALL sizes.
-    # We do NOT block the caller RPC thread. Senders are borrowed and moov is resolved in background.
+    # Document / moov-at-end: kick tail earlier (after ~96KB head) so duration
+    # + decode can start without waiting for multi-MB sequential prefix.
     if is_video and is_doc_video and size > 512 * 1024 and not media.done:
-        tail_off = max(0, size - min(4 * 1024 * 1024, max(size // 10, 256 * 1024)))
-        media.schedule_seek(tail_off, window=4 * 1024 * 1024, priority=2)
+        head_ready = media.contiguous_from_zero()
+        tail_win = min(3 * 1024 * 1024, max(size // 12, 512 * 1024))
+
+        async def _kick_moov_when_ready() -> None:
+            import time as _time
+
+            deadline = _time.time() + 10.0
+            while _time.time() < deadline:
+                if media.cancelled or media.done:
+                    return
+                if media.contiguous_from_zero() >= min(96 * 1024, size):
+                    break
+                await asyncio.sleep(0.08)
+            if media.cancelled or media.done:
+                return
+            try:
+                from engine.media_stream import _bootstrap_moov_at_end
+
+                if await _bootstrap_moov_at_end(media):
+                    return
+            except Exception:
+                pass
+            tail_off = max(0, size - tail_win)
+            if media.contiguous_from_zero() >= min(64 * 1024, size):
+                media.schedule_seek(tail_off, window=tail_win, priority=2)
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_kick_moov_when_ready())
+        except RuntimeError:
+            if head_ready >= min(96 * 1024, size):
+                tail_off = max(0, size - tail_win)
+                media.schedule_seek(tail_off, window=tail_win, priority=2)
 
     if media.error and media.contiguous_from_zero() <= 0 and media._safe_size() <= 0:
         raise RuntimeError(f"Stream gagal: {media.error}")
@@ -7651,8 +7957,11 @@ def _preview_result(
     fext = (_file_ext(abs_path) or "").lower()
     if fext == "pdf":
         mime = "application/pdf"
+    if fext == "json" or mime in ("application/json", "text/json"):
+        mime = "application/json"
     size = os.path.getsize(abs_path)
     data_url = None
+    text_content = None
     # CRITICAL: never base64 large blobs — crashes the app via huge JSON + IPC
     if mime.startswith("image/") and size <= PREVIEW_INLINE_MAX_BYTES:
         try:
@@ -7661,25 +7970,6 @@ def _preview_result(
             data_url = f"data:{mime};base64,{b64}"
         except Exception:
             data_url = None
-    # Also expose progressive HTTP so <img>/<video> can load without asset protocol
-    stream_url = None
-    stream_id = None
-    try:
-        from engine.media_stream import get_stream, register_stream
-
-        info = register_stream(
-            path=abs_path,
-            total_size=size,
-            mime=mime,
-            label=os.path.basename(abs_path),
-        )
-        m = get_stream(info["stream_id"])
-        if m:
-            m.mark_done()
-        stream_url = info["stream_url"]
-        stream_id = info["stream_id"]
-    except Exception:
-        pass
 
     fext = (_file_ext(abs_path) or "").lower()
     if mime.startswith("image/"):
@@ -7699,17 +7989,77 @@ def _preview_result(
     else:
         kind_out = kind if kind else ("inline" if data_url else "file")
 
+    # Text / code / office: embed body in RPC (no fragile HTTP stream fetch).
+    if kind_out == "text" and 0 < size <= DOC_TEXT_INLINE_MAX_BYTES:
+        try:
+            if fext in _OFFICE_TEXT_EXTS:
+                text_content = _extract_office_plain_text(abs_path, fext)
+            else:
+                with open(abs_path, "rb") as f:
+                    raw = f.read()
+                # Skip obvious binary (null density)
+                if raw and raw.count(0) > max(8, len(raw) // 50):
+                    text_content = (
+                        f"[Binary / non-text file — {size} bytes]\n"
+                        "Buka dengan aplikasi sistem atau Download."
+                    )
+                else:
+                    try:
+                        text_content = raw.decode("utf-8")
+                    except UnicodeDecodeError:
+                        text_content = raw.decode("utf-8", errors="replace")
+                    if fext == "json" or "json" in (mime or ""):
+                        try:
+                            import json as _json
+
+                            text_content = _json.dumps(
+                                _json.loads(text_content), indent=2, ensure_ascii=False
+                            )
+                        except Exception:
+                            pass
+        except Exception:
+            text_content = None
+
+    # Also expose progressive HTTP so <img>/<video>/PDF can load without asset protocol
+    stream_url = None
+    stream_id = None
+    try:
+        from engine.media_stream import get_stream, register_stream
+
+        # PDF: force application/pdf so browser viewer accepts the stream
+        reg_mime = "application/pdf" if kind_out == "pdf" else mime
+        info = register_stream(
+            path=abs_path,
+            total_size=size,
+            mime=reg_mime,
+            label=os.path.basename(abs_path),
+        )
+        m = get_stream(info["stream_id"])
+        if m:
+            m.mark_done()
+            # Ensure full solid range for complete files
+            if size > 0:
+                m.mark_range(0, size)
+                m.mark_done()
+        stream_url = info["stream_url"]
+        stream_id = info["stream_id"]
+    except Exception:
+        pass
+
     result = {
         "status": "success",
         "path": abs_path,
-        "mime_type": mime,
+        "mime_type": "application/pdf" if kind_out == "pdf" else mime,
         "size": size,
         "data_url": data_url,
+        "text_content": text_content,
         "stream_url": stream_url,
         "stream_id": stream_id,
         "cached": cached,
         "preview_kind": kind_out,
-        "streaming": bool(stream_url),
+        # Complete local file: not progressive — PDF iframe needs full bytes
+        "streaming": False,
+        "buffered": size,
         "too_large": False,
         "quality": "original",
         "qualities": [
@@ -7722,6 +8072,10 @@ def _preview_result(
             }
         ],
     }
+    if kind_out == "text" and text_content is not None:
+        result["streaming"] = False
+    if kind_out in ("video", "audio") and stream_url:
+        result["streaming"] = True
     if emit:
         _json_out(result)
     return result

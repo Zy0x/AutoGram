@@ -38,6 +38,31 @@ def save_client_session(session_name, client):
     encrypted_str = encrypt_data(session_str)
     save_session(session_name, encrypted_str, status='active')
 
+    sessions_dir = os.path.join(os.path.dirname(__file__), "sessions")
+    os.makedirs(sessions_dir, exist_ok=True)
+    
+    file_sess_path = os.path.join(sessions_dir, f"{session_name}.session")
+    grammers_sess_path = os.path.join(sessions_dir, f"{session_name}.grammers.json")
+    
+    # Remove stale grammers json cache so Rust re-imports fresh auth_key automatically
+    if os.path.exists(grammers_sess_path):
+        try:
+            os.remove(grammers_sess_path)
+        except Exception:
+            pass
+
+    # Ensure worker/sessions/<session_name>.session contains SQLite auth_key
+    try:
+        if getattr(client.session, 'auth_key', None):
+            file_client = TelegramClient(file_sess_path, client.api_id, client.api_hash)
+            file_client.session.auth_key = client.session.auth_key
+            file_client.session.server_address = client.session.server_address
+            file_client.session.port = client.session.port
+            file_client.session.dc_id = client.session.dc_id
+            file_client.session.save()
+    except Exception:
+        pass
+
 async def send_code(session_name, phone, api_id, api_hash):
     client, _ = get_client_and_string(session_name, api_id, api_hash)
     
@@ -215,9 +240,14 @@ async def list_sessions_action(api_id, api_hash, verify: bool = False):
 async def delete_session_action(session_name):
     try:
         delete_session(session_name)
-        old_path = os.path.join(os.path.dirname(__file__), 'sessions', f"{session_name}.session")
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        sessions_dir = os.path.join(os.path.dirname(__file__), 'sessions')
+        for ext in ('.session', '.grammers.json', '.session-journal', '.session.lock'):
+            target_path = os.path.join(sessions_dir, f"{session_name}{ext}")
+            if os.path.exists(target_path):
+                try:
+                    os.remove(target_path)
+                except Exception:
+                    pass
         print(json.dumps({"status": "success", "message": f"Session {session_name} deleted"}))
     except Exception as e:
         print(json.dumps({"error": str(e)}))

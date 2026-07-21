@@ -1,0 +1,1235 @@
+//! Production Grammers MTProto operations (Phase 4).
+//!
+//! Dual-path: used when `AUTOGRAM_TELEGRAM_BACKEND=grammers` (or force flag).
+//! Telethon companion remains default for Drive progressive stream / migration
+//! until those subsystems are ported.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use grammers_client::message::InputMessage;
+use grammers_client::{Client, SignInError};
+use grammers_mtsender::SenderPool;
+use grammers_session::storages::MemorySession;
+use grammers_session::SessionData;
+use serde::{Deserialize, Serialize};
+use tokio::runtime::Runtime;
+
+use super::path_policy;
+use super::telethon_session_import::{
+    grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
+    read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
+};
+use super::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
+use super::tg_log;
+use super::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
+
+const BACKEND: &str = "grammers";
+
+/// Convert grammers PeerId → stable i64 for UI (Bot API dialog id preferred).
+pub(crate) fn peer_id_i64(id: grammers_session::types::PeerId) -> i64 {
+    id.bot_api_dialog_id()
+        .or_else(|| id.bare_id())
+        .unwrap_or(0)
+}
+
+fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
+    UserProfile {
+        id: peer_id_i64(u.id()),
+        first_name: u.first_name().map(|s| s.to_string()),
+        username: u.username().map(|s| s.to_string()),
+    }
+}
+
+async fn peer_to_ref(peer: &grammers_client::peer::Peer) -> Result<grammers_session::types::PeerRef, TgError> {
+    peer.to_ref()
+        .await
+        .map_err(|e| TgError::new(TgErrorCode::PeerNotFound, format!("peer.to_ref: {e}")))?
+        .ok_or_else(|| {
+            TgError::new(
+                TgErrorCode::PeerNotFound,
+                "peer has no usable PeerRef in session cache — open dialog once",
+            )
+        })
+}
+
+async fn user_to_ref(user: &grammers_client::peer::User) -> Result<grammers_session::types::PeerRef, TgError> {
+    if let Some(r) = user
+        .to_ref()
+        .await
+        .map_err(|e| TgError::new(TgErrorCode::PeerNotFound, format!("user.to_ref: {e}")))?
+    {
+        return Ok(r);
+    }
+    if user.is_self() {
+        return Ok(grammers_session::types::PeerId::self_user().to_ambient_ref());
+    }
+    Ok(user.id().to_ambient_ref())
+}
+
+/// Resolve worker/sessions directory from daemon path or env.
+pub fn resolve_sessions_dir(daemon_hint: Option<&Path>) -> PathBuf {
+    if let Ok(p) = std::env::var("AUTOGRAM_SESSIONS_DIR") {
+        let pb = PathBuf::from(p);
+        if !pb.as_os_str().is_empty() {
+            return pb;
+        }
+    }
+    if let Some(daemon) = daemon_hint {
+        if let Some(parent) = daemon.parent() {
+            return parent.join("sessions");
+        }
+    }
+    // Walk from cwd
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut dir = cwd.clone();
+    for _ in 0..8 {
+        let candidate = dir.join("worker").join("sessions");
+        if candidate.is_dir() {
+            return candidate;
+        }
+        let candidate2 = dir.join("sessions");
+        if candidate2.is_dir() {
+            return candidate2;
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+    cwd.join("worker").join("sessions")
+}
+
+pub(crate) fn runtime() -> Result<Runtime, TgError> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(2)
+        .thread_name("autogram-grammers")
+        .build()
+        .map_err(|e| TgError::new(TgErrorCode::Internal, format!("tokio runtime: {e}")))
+}
+
+/// Ensure Grammers JSON session file exists; import from Telethon when needed.
+pub async fn ensure_grammers_session(
+    sessions_dir: &Path,
+    session_name: &str,
+    import_if_missing: bool,
+) -> Result<PathBuf, TgError> {
+    let g_path = grammers_session_path(sessions_dir, session_name);
+    let t_path = telethon_session_path(sessions_dir, session_name);
+
+    let needs_import = if t_path.is_file() {
+        if !g_path.is_file() {
+            true
+        } else {
+            let t_mtime = std::fs::metadata(&t_path).and_then(|m| m.modified()).ok();
+            let g_mtime = std::fs::metadata(&g_path).and_then(|m| m.modified()).ok();
+            let t_newer = match (t_mtime, g_mtime) {
+                (Some(tm), Some(gm)) => tm > gm,
+                _ => false,
+            };
+            let no_auth = read_session_data(&g_path)
+                .map(|d| d.dc_options.values().all(|dc| dc.auth_key.is_none()))
+                .unwrap_or(true);
+            t_newer || no_auth
+        }
+    } else {
+        false
+    };
+
+    if import_if_missing && needs_import {
+        tg_log::info(
+            BACKEND,
+            "session_import_start",
+            format!(
+                "telethon={} → grammers={}",
+                t_path.file_name().and_then(|s| s.to_str()).unwrap_or("?"),
+                g_path.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+            ),
+        );
+        import_telethon_to_grammers_file(&t_path, &g_path).await?;
+        return Ok(g_path);
+    }
+
+    if g_path.is_file() {
+        tg_log::debug(
+            BACKEND,
+            "session_ready",
+            format!(
+                "grammers_session={}",
+                g_path.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+            ),
+        );
+        return Ok(g_path);
+    }
+    // Create empty grammers session (login required later)
+    write_session_data(&g_path, &SessionData::default())?;
+    tg_log::warn(
+        BACKEND,
+        "session_empty",
+        "created empty grammers session — login required",
+    );
+    Ok(g_path)
+}
+
+fn open_memory_session(path: &Path) -> Result<Arc<MemorySession>, TgError> {
+    let data = read_session_data(path)?;
+    Ok(Arc::new(MemorySession::from(data)))
+}
+
+pub(crate) fn persist_memory_session(session: &MemorySession, path: &Path) -> Result<(), TgError> {
+    use grammers_session::Session;
+    // Export live home DC + auth_key via Session trait (no From reverse required).
+    let home = session
+        .home_dc_id()
+        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("home_dc: {e}")))?;
+    let dc_opt = session
+        .dc_option(home)
+        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("dc_option: {e}")))?;
+    let Some(dc) = dc_opt else {
+        return Err(TgError::new(
+            TgErrorCode::SessionImportFailed,
+            "no home dc_option to persist",
+        ));
+    };
+    let Some(key) = dc.auth_key else {
+        // Still not authorized — leave existing file untouched if present
+        if path.is_file() {
+            return Ok(());
+        }
+        return Err(TgError::new(
+            TgErrorCode::NotAuthorized,
+            "session has no auth_key yet",
+        ));
+    };
+    let mut data = SessionData::default();
+    data.home_dc = home;
+    if let Some(slot) = data.dc_options.get_mut(&home) {
+        slot.auth_key = Some(key);
+        slot.ipv4 = dc.ipv4;
+    } else {
+        data.dc_options.insert(home, dc);
+    }
+    write_session_data(path, &data)
+}
+
+pub(crate) struct LiveClient {
+    pub client: Client,
+    pub session: Arc<MemorySession>,
+    pub session_path: PathBuf,
+    /// Keep runner task alive
+    pub _runner: tokio::task::JoinHandle<()>,
+}
+
+pub(crate) async fn connect_client(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    import_if_missing: bool,
+) -> Result<LiveClient, TgError> {
+    if identity.api_id <= 0 {
+        return Err(TgError::new(
+            TgErrorCode::NotConfigured,
+            "api_id invalid",
+        ));
+    }
+    if identity.api_hash.trim().is_empty() {
+        return Err(TgError::new(
+            TgErrorCode::NotConfigured,
+            "api_hash missing",
+        ));
+    }
+
+    let g_path = ensure_grammers_session(sessions_dir, &identity.session, import_if_missing).await?;
+    tg_log::info(
+        BACKEND,
+        "connect_start",
+        format!(
+            "{} api_id={}",
+            tg_log::session_label(&identity.session),
+            identity.api_id
+        ),
+    );
+
+    let session = open_memory_session(&g_path)?;
+
+    let SenderPool { runner, handle, .. } =
+        SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+    let client = Client::new(handle);
+    let runner_handle = tokio::spawn(async move {
+        runner.run().await;
+    });
+
+    // Brief settle so pool connects
+    tokio::time::sleep(Duration::from_millis(80)).await;
+
+    Ok(LiveClient {
+        client,
+        session,
+        session_path: g_path,
+        _runner: runner_handle,
+    })
+}
+
+pub(crate) async fn with_client<F, T>(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    import_if_missing: bool,
+    f: F,
+) -> Result<T, TgError>
+where
+    F: for<'a> FnOnce(&'a Client) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>>,
+{
+    let live = connect_client(sessions_dir, identity, import_if_missing).await?;
+    let result = f(&live.client).await;
+    // Persist peer cache / auth updates
+    if let Err(e) = persist_memory_session(&live.session, &live.session_path) {
+        tg_log::warn(BACKEND, "session_persist", e.to_string());
+    }
+    live.client.disconnect();
+    // Drop runner shortly after
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    result
+}
+
+/// Blocking wrappers for Tauri `spawn_blocking` / sync call sites.
+pub fn probe_sessions_blocking(
+    sessions_dir: &Path,
+    session_name: &str,
+) -> SessionProbeResult {
+    let t = telethon_session_path(sessions_dir, session_name);
+    let g = grammers_session_path(sessions_dir, session_name);
+    SessionProbeResult {
+        session: session_name.to_string(),
+        telethon: probe_telethon_session(&t),
+        grammers_exists: g.is_file(),
+        grammers_path_name: g
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string(),
+        backend: BACKEND.to_string(),
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionProbeResult {
+    pub session: String,
+    pub telethon: TelethonSessionProbe,
+    pub grammers_exists: bool,
+    pub grammers_path_name: String,
+    pub backend: String,
+}
+
+pub fn import_session_blocking(sessions_dir: &Path, session_name: &str) -> Result<(), TgError> {
+    let rt = runtime()?;
+    rt.block_on(async {
+        let t = telethon_session_path(sessions_dir, session_name);
+        let g = grammers_session_path(sessions_dir, session_name);
+        import_telethon_to_grammers_file(&t, &g).await
+    })
+}
+
+pub fn auth_status_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+) -> Result<AuthStatus, TgError> {
+    let rt = runtime()?;
+    let session_name = identity.session.clone();
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, move |client| {
+            let session_name = session_name.clone();
+            Box::pin(async move {
+                let authorized = client.is_authorized().await.map_err(|e| map_invocation(&e))?;
+                let mut profile = None;
+                if authorized {
+                    match client.get_me().await {
+                        Ok(u) => {
+                            profile = Some(user_profile_from(&u));
+                        }
+                        Err(e) => {
+                            tg_log::warn(BACKEND, "get_me", map_invocation(&e).to_string());
+                        }
+                    }
+                }
+                tg_log::info(
+                    BACKEND,
+                    "auth_status",
+                    format!(
+                        "{} authorized={} user={}",
+                        tg_log::session_label(&session_name),
+                        authorized,
+                        profile
+                            .as_ref()
+                            .map(|p| p.id.to_string())
+                            .unwrap_or_else(|| "-".into())
+                    ),
+                );
+                Ok(AuthStatus {
+                    backend: BACKEND.to_string(),
+                    authorized,
+                    session: session_name,
+                    user: profile,
+                })
+            })
+        })
+        .await
+    })
+}
+
+pub fn list_dialogs_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    limit: usize,
+) -> Result<Vec<DialogEntry>, TgError> {
+    let rt = runtime()?;
+    let limit = limit.clamp(1, 500);
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(
+                        TgErrorCode::NotAuthorized,
+                        "not authorized",
+                    ));
+                }
+                let mut out = Vec::new();
+                let mut dialogs = client.iter_dialogs();
+                while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
+                    let peer = dialog.peer();
+                    let id = peer_id_i64(peer.id());
+                    let title = peer
+                        .name()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| id.to_string());
+                    out.push(DialogEntry {
+                        id,
+                        title,
+                        is_user: matches!(peer, grammers_client::peer::Peer::User(_)),
+                        is_channel: matches!(
+                            peer,
+                            grammers_client::peer::Peer::Channel(_)
+                        ),
+                        is_group: matches!(peer, grammers_client::peer::Peer::Group(_)),
+                    });
+                    if out.len() >= limit {
+                        break;
+                    }
+                }
+                tg_log::info(
+                    BACKEND,
+                    "list_dialogs",
+                    format!("count={} limit={}", out.len(), limit),
+                );
+                Ok(out)
+            })
+        })
+        .await
+    })
+}
+
+pub(crate) async fn resolve_peer(
+    client: &Client,
+    chat_id: &str,
+) -> Result<grammers_session::types::PeerRef, TgError> {
+    let s = chat_id.trim();
+    if s.is_empty() {
+        return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
+    }
+    if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
+        let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
+        return user_to_ref(&me).await;
+    }
+    // Username
+    if s.starts_with('@') || s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        let uname = s.trim_start_matches('@');
+        if uname.chars().any(|c| c.is_ascii_alphabetic()) {
+            if let Some(peer) = client
+                .resolve_username(uname)
+                .await
+                .map_err(|e| map_invocation(&e))?
+            {
+                return peer_to_ref(&peer).await;
+            }
+            return Err(TgError::new(
+                TgErrorCode::PeerNotFound,
+                format!("username @{uname} not found"),
+            ));
+        }
+    }
+    // Numeric Telegram id — search dialogs for matching peer id
+    let want: i64 = s
+        .parse()
+        .map_err(|_| TgError::new(TgErrorCode::PeerNotFound, format!("invalid chat_id: {s}")))?;
+
+    let mut dialogs = client.iter_dialogs();
+    while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
+        let peer = dialog.peer();
+        let pid = peer_id_i64(peer.id());
+        if pid == want {
+            return peer_to_ref(&peer).await;
+        }
+        // Also match bare channel id without -100 prefix
+        if want < 0 {
+            let bare = want
+                .to_string()
+                .trim_start_matches("-100")
+                .parse::<i64>()
+                .unwrap_or(0);
+            if bare != 0 {
+                if let Some(bid) = peer.id().bare_id() {
+                    if bid == bare {
+                        return peer_to_ref(&peer).await;
+                    }
+                }
+            }
+        }
+    }
+    Err(TgError::new(
+        TgErrorCode::PeerNotFound,
+        format!(
+            "peer {want} not in dialogs — open the chat in Telegram once, then retry"
+        ),
+    ))
+}
+
+/// Drive-compatible media row (subset of frontend DriveFile).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaFileRow {
+    pub id: i64,
+    pub folder_id: Option<i64>,
+    pub name: String,
+    pub size: u64,
+    pub mime_type: Option<String>,
+    pub icon_type: String,
+    pub created_at: Option<String>,
+    pub has_thumb: bool,
+    pub as_document: bool,
+    pub backend: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListMediaResult {
+    pub status: String,
+    pub folder_id: Option<i64>,
+    pub files: Vec<MediaFileRow>,
+    pub total: usize,
+    pub page_size: usize,
+    pub has_more: bool,
+    pub next_offset_id: Option<i64>,
+    pub backend: String,
+    pub cached: bool,
+}
+
+fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
+    use grammers_client::media::Media;
+    let media = msg.media()?;
+    let id = msg.id() as i64;
+    let created = Some(msg.date().to_rfc3339());
+    let caption = msg.text().trim();
+    // Size before match: Media::size borrows self; pattern binds move Photo/Document.
+    let size = media.size().unwrap_or(0) as u64;
+    match media {
+        Media::Photo(_p) => {
+            let name = if !caption.is_empty() {
+                format!("{caption}.jpg")
+            } else {
+                format!("photo_{id}.jpg")
+            };
+            Some(MediaFileRow {
+                id,
+                folder_id,
+                name,
+                size,
+                mime_type: Some("image/jpeg".into()),
+                icon_type: "image".into(),
+                created_at: created,
+                has_thumb: true,
+                as_document: false,
+                backend: BACKEND.into(),
+            })
+        }
+        Media::Document(doc) => {
+            let n = doc
+                .name()
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .or_else(|| {
+                    if !caption.is_empty() {
+                        Some(caption.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| format!("file_{id}"));
+            let mime = doc.mime_type().map(|s| s.to_string());
+            let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
+            let icon = if mime_l.starts_with("video/") {
+                "video"
+            } else if mime_l.starts_with("audio/") {
+                "audio"
+            } else if mime_l.starts_with("image/") {
+                "image"
+            } else {
+                "document"
+            };
+            Some(MediaFileRow {
+                id,
+                folder_id,
+                name: n,
+                size,
+                mime_type: mime,
+                icon_type: icon.into(),
+                created_at: created,
+                has_thumb: true,
+                as_document: true,
+                backend: BACKEND.into(),
+            })
+        }
+        Media::Sticker(_) => Some(MediaFileRow {
+            id,
+            folder_id,
+            name: format!("sticker_{id}.webp"),
+            size,
+            mime_type: Some("image/webp".into()),
+            icon_type: "image".into(),
+            created_at: created,
+            has_thumb: true,
+            as_document: true,
+            backend: BACKEND.into(),
+        }),
+        _ => None,
+    }
+}
+
+/// List media messages in a chat (newest first). Dual-path alternative to drive list_files.
+pub fn list_media_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    let rt = runtime()?;
+    let limit = limit.clamp(1, 100);
+    let chat = chat_id.to_string();
+    let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
+        None
+    } else {
+        chat.parse().ok()
+    };
+
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let peer = resolve_peer(client, &chat).await?;
+                let mut iter = client.iter_messages(peer).limit(limit + 8);
+                // offset_id: exclusive start (fetch older than this message id)
+                if let Some(oid) = offset_id {
+                    if oid > 0 {
+                        iter = iter.offset_id(oid as i32);
+                    }
+                }
+                let mut files = Vec::new();
+                let mut last_id: Option<i64> = None;
+                while let Some(msg) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                    last_id = Some(msg.id() as i64);
+                    if let Some(row) = media_to_row(&msg, folder_id) {
+                        files.push(row);
+                        if files.len() >= limit {
+                            break;
+                        }
+                    }
+                }
+                let has_more = files.len() >= limit;
+                let next_offset_id = if has_more {
+                    files.last().map(|f| f.id).or(last_id)
+                } else {
+                    None
+                };
+                tg_log::info(
+                    BACKEND,
+                    "list_media",
+                    format!("chat={} n={} has_more={}", chat, files.len(), has_more),
+                );
+                Ok(ListMediaResult {
+                    status: "success".into(),
+                    folder_id,
+                    total: files.len(),
+                    page_size: limit,
+                    has_more,
+                    next_offset_id,
+                    files,
+                    backend: BACKEND.into(),
+                    cached: false,
+                })
+            })
+        })
+        .await
+    })
+}
+
+/// Local multi-file album (2–10 items). Photos preferred; documents when as_document.
+pub fn upload_album_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    files: &[(String, String)], // path, caption
+    as_document: bool,
+    silent: bool,
+) -> Result<Vec<UploadStepResult>, TgError> {
+    if files.len() < 2 {
+        return Err(TgError::new(
+            TgErrorCode::Internal,
+            "album requires at least 2 files",
+        ));
+    }
+    if files.len() > 10 {
+        return Err(TgError::new(
+            TgErrorCode::Internal,
+            "album max 10 files",
+        ));
+    }
+    for (p, _) in files {
+        path_policy::assert_safe_transfer_path(p)
+            .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
+        if !PathBuf::from(p).is_file() {
+            return Err(TgError::new(
+                TgErrorCode::Io,
+                format!("file not found: {p}"),
+            ));
+        }
+    }
+    let rt = runtime()?;
+    let chat = chat_id.to_string();
+    let items: Vec<(PathBuf, String)> = files
+        .iter()
+        .map(|(p, c)| (PathBuf::from(p), c.clone()))
+        .collect();
+
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let peer = resolve_peer(client, &chat).await?;
+                use grammers_client::media::InputMedia;
+                let mut medias = Vec::with_capacity(items.len());
+                for (i, (path_buf, cap)) in items.iter().enumerate() {
+                    let uploaded = client
+                        .upload_file(path_buf)
+                        .await
+                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?;
+                    let ext = path_buf
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    let mut im = InputMedia::new().caption(cap.clone());
+                    // Only first item caption is typically shown for albums
+                    if i > 0 {
+                        im = InputMedia::new().caption("");
+                    }
+                    im = if as_document {
+                        im.document(uploaded)
+                    } else if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp") {
+                        im.photo(uploaded)
+                    } else {
+                        im.document(uploaded)
+                    };
+                    if silent {
+                        // InputMedia silent if available — best-effort via document/photo only
+                    }
+                    medias.push(im);
+                    tg_log::info(
+                        BACKEND,
+                        "album_upload_part",
+                        format!("i={i} file={}", path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")),
+                    );
+                }
+                let sent = client
+                    .send_album(peer, medias)
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
+                let mut out = Vec::new();
+                for (i, msg) in sent.into_iter().enumerate() {
+                    let mid = msg.as_ref().map(|m| m.id() as i64);
+                    out.push(UploadStepResult {
+                        status: if mid.is_some() {
+                            "done".into()
+                        } else {
+                            "failed".into()
+                        },
+                        message_id: mid,
+                        error: if mid.is_none() {
+                            Some("album item missing".into())
+                        } else {
+                            None
+                        },
+                        index: i,
+                        backend: Some(BACKEND.into()),
+                    });
+                }
+                tg_log::info(
+                    BACKEND,
+                    "album_ok",
+                    format!("n={} chat={chat}", out.len()),
+                );
+                Ok(out)
+            })
+        })
+        .await
+    })
+}
+
+pub fn upload_file_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    path: &str,
+    caption: &str,
+    as_document: bool,
+    silent: bool,
+    index: usize,
+) -> Result<UploadStepResult, TgError> {
+    path_policy::assert_safe_transfer_path(path)
+        .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
+    let path_buf = PathBuf::from(path);
+    if !path_buf.is_file() {
+        return Err(TgError::new(
+            TgErrorCode::Io,
+            format!("file not found: {}", path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")),
+        ));
+    }
+    let size = std::fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
+    let rt = runtime()?;
+    let chat = chat_id.to_string();
+    let cap = caption.to_string();
+
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let peer = resolve_peer(client, &chat).await?;
+                tg_log::info(
+                    BACKEND,
+                    "upload_start",
+                    format!(
+                        "chat={} size={} file={} as_document={}",
+                        chat,
+                        size,
+                        path_buf
+                            .file_name()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("?"),
+                        as_document
+                    ),
+                );
+                let uploaded = client
+                    .upload_file(&path_buf)
+                    .await
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?;
+
+                let mut msg = InputMessage::new().text(cap).silent(silent);
+                // Prefer document for fidelity (matches Studio force-document / ORIGINAL)
+                msg = if as_document {
+                    msg.document(uploaded)
+                } else {
+                    let ext = path_buf
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp") {
+                        msg.photo(uploaded)
+                    } else {
+                        msg.document(uploaded)
+                    }
+                };
+
+                let sent = match client.send_message(peer, msg).await {
+                    Ok(m) => m,
+                    Err(e) => {
+                        let mapped = map_invocation(&e);
+                        // Auto-retry once on short flood wait
+                        if let Some(secs) = mapped.flood_wait_secs() {
+                            if secs <= 45 {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "flood_wait_sleep",
+                                    format!("secs={secs}"),
+                                );
+                                tokio::time::sleep(Duration::from_secs(secs as u64 + 1)).await;
+                                // re-upload not needed — need new upload? Telegram may expire;
+                                // for simplicity fail with flood after wait on second path
+                                return Err(mapped);
+                            }
+                        }
+                        return Err(mapped);
+                    }
+                };
+
+                let mid = sent.id() as i64;
+                tg_log::info(
+                    BACKEND,
+                    "upload_ok",
+                    format!("message_id={mid} index={index}"),
+                );
+                Ok(UploadStepResult {
+                    status: "done".into(),
+                    message_id: Some(mid),
+                    error: None,
+                    index,
+                    backend: Some(BACKEND.into()),
+                })
+            })
+        })
+        .await
+    })
+}
+
+/// Full-file download (not progressive Range stream). Dual-path for open/cache of small-mid media.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadFileResult {
+    pub status: String,
+    pub path: String,
+    pub message_id: i64,
+    pub size: u64,
+    pub name: Option<String>,
+    pub mime_type: Option<String>,
+    pub backend: String,
+}
+
+/// Download media of a single message into `dest_path` (parent dirs created).
+/// Caps at ~200MB to avoid hanging UI on multi-GB files (those stay on Telethon progressive stream).
+pub fn download_file_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    message_id: i64,
+    dest_path: &str,
+) -> Result<DownloadFileResult, TgError> {
+    if message_id <= 0 {
+        return Err(TgError::new(TgErrorCode::Internal, "message_id required"));
+    }
+    path_policy::assert_safe_transfer_path(dest_path)
+        .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
+    let dest = PathBuf::from(dest_path);
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            TgError::new(TgErrorCode::Io, format!("create dest dir: {e}"))
+        })?;
+    }
+    let rt = runtime()?;
+    let chat = chat_id.to_string();
+    let mid = message_id as i32;
+
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let peer = resolve_peer(client, &chat).await?;
+                let msgs = client
+                    .get_messages_by_id(peer, &[mid])
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
+                let msg = msgs
+                    .into_iter()
+                    .flatten()
+                    .next()
+                    .ok_or_else(|| {
+                        TgError::new(
+                            TgErrorCode::PeerNotFound,
+                            format!("message {message_id} not found in chat"),
+                        )
+                    })?;
+                let media = msg.media().ok_or_else(|| {
+                    TgError::new(
+                        TgErrorCode::PeerNotFound,
+                        "message has no downloadable media",
+                    )
+                })?;
+                let size = media.size().unwrap_or(0) as u64;
+                const MAX_FULL: u64 = 200 * 1024 * 1024;
+                if size > MAX_FULL {
+                    return Err(TgError::new(
+                        TgErrorCode::TelethonFallbackRequired,
+                        format!(
+                            "file too large for full Grammers download ({size} bytes); use progressive stream"
+                        ),
+                    ));
+                }
+                let name = match &media {
+                    grammers_client::media::Media::Document(d) => {
+                        d.name().map(|s| s.to_string())
+                    }
+                    grammers_client::media::Media::Photo(_) => {
+                        Some(format!("photo_{message_id}.jpg"))
+                    }
+                    grammers_client::media::Media::Sticker(_) => {
+                        Some(format!("sticker_{message_id}.webp"))
+                    }
+                    _ => None,
+                };
+                let mime = match &media {
+                    grammers_client::media::Media::Document(d) => {
+                        d.mime_type().map(|s| s.to_string())
+                    }
+                    grammers_client::media::Media::Photo(_) => Some("image/jpeg".into()),
+                    grammers_client::media::Media::Sticker(_) => Some("image/webp".into()),
+                    _ => None,
+                };
+
+                tg_log::info(
+                    BACKEND,
+                    "download_start",
+                    format!("chat={chat} mid={message_id} size={size}"),
+                );
+                client
+                    .download_media(&media, &dest)
+                    .await
+                    .map_err(|e| {
+                        TgError::new(TgErrorCode::Io, format!("download_media: {e}"))
+                    })?;
+                let final_size = std::fs::metadata(&dest)
+                    .map(|m| m.len())
+                    .unwrap_or(size);
+                tg_log::info(
+                    BACKEND,
+                    "download_ok",
+                    format!("mid={message_id} bytes={final_size}"),
+                );
+                Ok(DownloadFileResult {
+                    status: "done".into(),
+                    path: dest.display().to_string(),
+                    message_id,
+                    size: final_size,
+                    name,
+                    mime_type: mime,
+                    backend: BACKEND.into(),
+                })
+            })
+        })
+        .await
+    })
+}
+
+// For login we use a simpler request/sign_in flow in one blocking call with phone+code together.
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub phone: String,
+    pub code: Option<String>,
+    pub password: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginResult {
+    pub status: String,
+    pub needs_code: bool,
+    pub needs_password: bool,
+    pub password_hint: Option<String>,
+    pub user: Option<UserProfile>,
+    pub message: String,
+    pub error: Option<TgErrorPublic>,
+}
+
+/// Two-phase login: without code → request_login_code (returns needs_code).
+/// With code → sign_in (+ password if needed).
+pub fn login_blocking(
+    sessions_dir: &Path,
+    req: &LoginRequest,
+) -> Result<LoginResult, TgError> {
+    let identity = TelegramIdentity {
+        session: req.session.clone(),
+        api_id: req.api_id,
+        api_hash: req.api_hash.clone(),
+    };
+    let phone = req.phone.trim().to_string();
+    if phone.is_empty() {
+        return Err(TgError::new(TgErrorCode::Auth, "phone required"));
+    }
+    let rt = runtime()?;
+    rt.block_on(async {
+        // Do not import telethon on brand-new login — use fresh grammers file
+        let g_path = grammers_session_path(sessions_dir, &identity.session);
+        if let Some(parent) = g_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let session = open_memory_session(&g_path)?;
+        let SenderPool { runner, handle, .. } =
+            SenderPool::new(Arc::clone(&session), identity.api_id as i32);
+        let client = Client::new(handle);
+        let _runner = tokio::spawn(async move {
+            runner.run().await;
+        });
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        if client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+            let u = client.get_me().await.map_err(|e| map_invocation(&e))?;
+            let _ = persist_memory_session(&session, &g_path);
+            client.disconnect();
+            return Ok(LoginResult {
+                status: "already_authorized".into(),
+                needs_code: false,
+                needs_password: false,
+                password_hint: None,
+                user: Some(user_profile_from(&u)),
+                message: "Session already authorized".into(),
+                error: None,
+            });
+        }
+
+        let code = req.code.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        if code.is_none() {
+            // Request code only
+            match client
+                .request_login_code(&phone, &identity.api_hash)
+                .await
+            {
+                Ok(_token) => {
+                    // Token cannot be persisted easily across process calls without storing it.
+                    // Document: second call must happen soon; we store token in static map.
+                    store_login_token(&identity.session, _token);
+                    client.disconnect();
+                    tg_log::info(BACKEND, "login_code_sent", "phone_ok=1");
+                    return Ok(LoginResult {
+                        status: "code_sent".into(),
+                        needs_code: true,
+                        needs_password: false,
+                        password_hint: None,
+                        user: None,
+                        message: "Kode login dikirim. Masukkan code dari Telegram.".into(),
+                        error: None,
+                    });
+                }
+                Err(e) => {
+                    client.disconnect();
+                    return Err(map_invocation(&e));
+                }
+            }
+        }
+
+        let token = take_login_token(&identity.session).ok_or_else(|| {
+            TgError::new(
+                TgErrorCode::Auth,
+                "login token missing — request code again",
+            )
+        })?;
+        let code = code.unwrap();
+        match client.sign_in(&token, code).await {
+            Ok(u) => {
+                let prof = user_profile_from(&u);
+                let _ = persist_memory_session(&session, &g_path);
+                client.disconnect();
+                tg_log::info(BACKEND, "login_ok", format!("user_id={}", prof.id));
+                Ok(LoginResult {
+                    status: "authorized".into(),
+                    needs_code: false,
+                    needs_password: false,
+                    password_hint: None,
+                    user: Some(prof),
+                    message: "Login Grammers berhasil".into(),
+                    error: None,
+                })
+            }
+            Err(SignInError::PasswordRequired(pw_token)) => {
+                let hint = pw_token.hint().map(|s| s.to_string());
+                if let Some(pw) = req.password.as_deref().filter(|s| !s.is_empty()) {
+                    match client.check_password(pw_token, pw.as_bytes()).await {
+                        Ok(u) => {
+                            let prof = user_profile_from(&u);
+                            let _ = persist_memory_session(&session, &g_path);
+                            client.disconnect();
+                            Ok(LoginResult {
+                                status: "authorized".into(),
+                                needs_code: false,
+                                needs_password: false,
+                                password_hint: None,
+                                user: Some(prof),
+                                message: "Login 2FA berhasil".into(),
+                                error: None,
+                            })
+                        }
+                        Err(e) => {
+                            client.disconnect();
+                            Err(TgError::new(TgErrorCode::Auth, format!("2FA failed: {e}")))
+                        }
+                    }
+                } else {
+                    client.disconnect();
+                    Ok(LoginResult {
+                        status: "password_required".into(),
+                        needs_code: false,
+                        needs_password: true,
+                        password_hint: hint,
+                        user: None,
+                        message: "Akun memakai 2FA. Kirim password cloud.".into(),
+                        error: None,
+                    })
+                }
+            }
+            Err(e) => {
+                client.disconnect();
+                let msg = e.to_string();
+                if msg.to_ascii_lowercase().contains("sign up")
+                    || msg.to_ascii_lowercase().contains("signup")
+                {
+                    return Err(TgError::new(
+                        TgErrorCode::Auth,
+                        "Sign-up required — complete registration in official Telegram first",
+                    ));
+                }
+                Err(TgError::new(TgErrorCode::Auth, format!("sign_in: {e}")))
+            }
+        }
+    })
+}
+
+// --- Login token stash (single pending per session name) ---
+use parking_lot::Mutex;
+use std::collections::HashMap;
+use std::sync::OnceLock;
+
+fn login_tokens() -> &'static Mutex<HashMap<String, grammers_client::client::LoginToken>> {
+    static MAP: OnceLock<Mutex<HashMap<String, grammers_client::client::LoginToken>>> =
+        OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn store_login_token(session: &str, token: grammers_client::client::LoginToken) {
+    login_tokens().lock().insert(session.to_string(), token);
+}
+
+fn take_login_token(session: &str) -> Option<grammers_client::client::LoginToken> {
+    login_tokens().lock().remove(session)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sessions_dir_nonempty() {
+        let d = resolve_sessions_dir(None);
+        assert!(!d.as_os_str().is_empty());
+    }
+}
