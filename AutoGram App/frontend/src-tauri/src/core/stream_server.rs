@@ -380,9 +380,9 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
 
-            // Wait up to 3 seconds for Telegram download to reach start
+            // Wait up to 8 seconds for Telegram download to reach start
             let mut waited = 0;
-            while waited < 3000 {
+            while waited < 8000 {
                 let r = if entry.ranges.is_empty() {
                     vec![]
                 } else {
@@ -403,70 +403,12 @@ fn handle_stream(request: Request, sid: &str) {
             }
 
             if have_end <= start && !entry.done {
-                // If still not ready past start, serve nearest solid slice from zero or start
-                // so HTML5 player stays in smooth buffering state without fatal 503 reload loops.
-                let serve_start = if start == 0 || start >= total { 0 } else { start.min(prefix) };
-                let solid = if serve_start == 0 {
-                    prefix.max(1).min(total.max(1))
-                } else {
-                    (serve_start + 1).min(total.max(1))
-                };
-                let end_incl = solid.saturating_sub(1);
-                let length = end_incl.saturating_sub(serve_start).saturating_add(1);
-                let mut file = match File::open(&path) {
-                    Ok(f) => f,
-                    Err(_) => {
-                        let mut res =
-                            Response::from_string("open failed").with_status_code(StatusCode(500));
-                        for h in cors_headers() {
-                            res.add_header(h);
-                        }
-                        let _ = request.respond(res);
-                        return;
-                    }
-                };
-                if file.seek(SeekFrom::Start(serve_start)).is_err() {
-                    let mut res =
-                        Response::from_string("seek failed").with_status_code(StatusCode(500));
-                    for h in cors_headers() {
-                        res.add_header(h);
-                    }
-                    let _ = request.respond(res);
-                    return;
-                }
-                let mut buf = vec![0u8; length.min(8 * 1024 * 1024) as usize];
-                let mut out = Vec::with_capacity(length as usize);
-                let mut remaining = length;
-                while remaining > 0 {
-                    let chunk = remaining.min(buf.len() as u64) as usize;
-                    match file.read(&mut buf[..chunk]) {
-                        Ok(0) => break,
-                        Ok(n) => {
-                            out.extend_from_slice(&buf[..n]);
-                            remaining -= n as u64;
-                        }
-                        Err(_) => break,
-                    }
-                }
-                let mime = if entry.mime.is_empty() {
-                    "application/octet-stream"
-                } else {
-                    &entry.mime
-                };
-                let mut res = Response::from_data(out).with_status_code(StatusCode(206));
+                let mut res = Response::from_string("Range Not Satisfiable")
+                    .with_status_code(StatusCode(416));
                 for h in cors_headers() {
                     res.add_header(h);
                 }
-                if let Ok(h) = Header::from_bytes(&b"Content-Type"[..], mime.as_bytes()) {
-                    res.add_header(h);
-                }
-                res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
-                let cr = format!("bytes {serve_start}-{end_incl}/{total}");
-                if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
-                    res.add_header(h);
-                }
-                let avail = format!("{prefix}");
-                if let Ok(h) = Header::from_bytes(&b"X-AutoGram-Available"[..], avail.as_bytes()) {
+                if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes()) {
                     res.add_header(h);
                 }
                 let _ = request.respond(res);
@@ -482,9 +424,9 @@ fn handle_stream(request: Request, sid: &str) {
         if end <= start {
             end = (start + 1).min(solid_end.max(start + 1));
         }
-        // Cap first-play open-ended range for incomplete
+        // Progressive stream range chunk size (up to 16 MiB for high speed smooth video buffering)
         if re.is_none() && !entry.done {
-            let cap = (start + 512 * 1024).min(solid_end);
+            let cap = (start + 16 * 1024 * 1024).min(solid_end);
             end = end.min(cap).max(start.saturating_add(1).min(solid_end));
         }
         if end <= start && solid_end > start {

@@ -262,6 +262,31 @@ export function Accounts() {
     loadSessions();
   }, []);
 
+  const closeWizard = async () => {
+    if (isProcessing) return;
+    await stopQrTimers();
+    if (sessionName) {
+      const current = sessions.find((s) => s.name === sessionName);
+      if (!current || (current.status !== 'authorized' && current.status !== 'active')) {
+        try {
+          const { apiId, apiHash } = await getApiCredentials();
+          await runAuthManagerOnce([
+            '--action',
+            'delete-session',
+            '--session',
+            sessionName,
+            '--api-id',
+            apiId || '',
+            '--api-hash',
+            apiHash || '',
+          ]);
+        } catch {}
+      }
+    }
+    setIsWizardOpen(false);
+    loadSessions();
+  };
+
   const openWizard = () => {
     stopQrTimers();
     setStep(1);
@@ -664,7 +689,7 @@ export function Accounts() {
 
       {/* Login Wizard Modal */}
       {isWizardOpen && (
-        <div className="modal-overlay" onClick={() => !isProcessing && setIsWizardOpen(false)}>
+        <div className="modal-overlay" onClick={closeWizard}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {step > 1 && (

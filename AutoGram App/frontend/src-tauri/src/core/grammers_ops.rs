@@ -1255,7 +1255,12 @@ pub async fn grammers_qr_login(
     }
 
     let except_ids = Vec::new();
-    loop {
+    let mut login_success = false;
+    let max_attempts = 10;
+    let mut attempts = 0;
+
+    while attempts < max_attempts && !login_success {
+        attempts += 1;
         let res = live
             .client
             .invoke(&grammers_client::tl::functions::auth::ExportLoginToken {
@@ -1279,12 +1284,32 @@ pub async fn grammers_qr_login(
                     }),
                 );
 
-                tokio::time::sleep(Duration::from_secs(3)).await;
+                // Wait up to 25 seconds for user to scan current token, checking every 1s
+                let start_wait = std::time::Instant::now();
+                while start_wait.elapsed().as_secs() < 25 {
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
+                    if live.client.is_authorized().await.unwrap_or(false) {
+                        login_success = true;
+                        let _ = persist_memory_session(&live.session, &live.session_path);
+                        let t_path = telethon_session_path(&sessions_dir, &session_name);
+                        let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+
+                        let _ = app.emit(
+                            "qr-event",
+                            serde_json::json!({
+                                "status": "success",
+                                "session": session_name
+                            }),
+                        );
+                        break;
+                    }
+                }
             }
             Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(_)) => {
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
             Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
+                login_success = true;
                 let _ = persist_memory_session(&live.session, &live.session_path);
                 let t_path = telethon_session_path(&sessions_dir, &session_name);
                 let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
@@ -1301,6 +1326,7 @@ pub async fn grammers_qr_login(
             Err(e) => {
                 let err_str = e.to_string();
                 if err_str.contains("SESSION_PASSWORD_NEEDED") {
+                    login_success = true;
                     let _ = persist_memory_session(&live.session, &live.session_path);
                     let t_path = telethon_session_path(&sessions_dir, &session_name);
                     let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
@@ -1327,6 +1353,17 @@ pub async fn grammers_qr_login(
                     break;
                 }
             }
+        }
+    }
+
+    // Clean up unauthorized session files if scan was not completed
+    if !login_success {
+        let t_path = telethon_session_path(&sessions_dir, &session_name);
+        if t_path.exists() {
+            let _ = std::fs::remove_file(&t_path);
+        }
+        if live.session_path.exists() {
+            let _ = std::fs::remove_file(&live.session_path);
         }
     }
 
