@@ -288,8 +288,8 @@ export function Accounts() {
     try {
       const { apiId, apiHash } = await getApiCredentials();
 
-      const unlisten = await listen<any>('qr-event', async (event) => {
-        const data = event.payload || {};
+      const handlePayloadData = async (data: any) => {
+        if (!data) return;
         if (data.session && data.session !== sessionName) return;
 
         if (data.status === 'already_authorized') {
@@ -324,15 +324,50 @@ export function Accounts() {
           setErrorMsg(data.error);
           setIsProcessing(false);
         }
+      };
+
+      const unlisten1 = await listen<any>('qr-event', async (event) => {
+        await handlePayloadData(event.payload);
       });
 
-      unlistenQrRef.current = unlisten;
-
-      await invoke('start_rust_qr_login', {
-        session: sessionName,
-        apiId: Number(apiId) || 0,
-        apiHash: apiHash || '',
+      const unlisten2 = await listen<{ job_id: number; line: string }>('worker-line', async (event) => {
+        if (event.payload.job_id !== QR_JOB_ID) return;
+        try {
+          await handlePayloadData(JSON.parse(event.payload.line));
+        } catch {}
       });
+
+      unlistenQrRef.current = () => {
+        unlisten1();
+        unlisten2();
+      };
+
+      try {
+        await invoke('start_rust_qr_login', {
+          session: sessionName,
+          apiId: Number(apiId) || 0,
+          apiHash: apiHash || '',
+        });
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (/not allowed|not found/i.test(msg)) {
+          await invoke('start_auth_manager_job', {
+            jobId: QR_JOB_ID,
+            args: [
+              '--action',
+              'qr-login',
+              '--session',
+              sessionName,
+              '--api-id',
+              apiId || '',
+              '--api-hash',
+              apiHash || '',
+            ],
+          });
+        } else {
+          throw err;
+        }
+      }
     } catch (e: any) {
       setErrorMsg(String(e));
       setIsProcessing(false);
