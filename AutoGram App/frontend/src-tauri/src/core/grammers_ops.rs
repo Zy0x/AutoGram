@@ -1284,24 +1284,73 @@ pub async fn grammers_qr_login(
                     }),
                 );
 
-                // Wait up to 25 seconds for user to scan current token, checking every 1s
+                // Continuously poll ExportLoginToken every 1.5s for up to 28 seconds while user scans token
                 let start_wait = std::time::Instant::now();
-                while start_wait.elapsed().as_secs() < 25 {
-                    tokio::time::sleep(Duration::from_millis(1000)).await;
-                    if live.client.is_authorized().await.unwrap_or(false) {
-                        login_success = true;
-                        let _ = persist_memory_session(&live.session, &live.session_path);
-                        let t_path = telethon_session_path(&sessions_dir, &session_name);
-                        let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+                while start_wait.elapsed().as_secs() < 28 {
+                    tokio::time::sleep(Duration::from_millis(1500)).await;
+                    let check_res = live
+                        .client
+                        .invoke(&grammers_client::tl::functions::auth::ExportLoginToken {
+                            api_id: api_id as i32,
+                            api_hash: api_hash.clone(),
+                            except_ids: except_ids.clone(),
+                        })
+                        .await;
 
-                        let _ = app.emit(
-                            "qr-event",
-                            serde_json::json!({
-                                "status": "success",
-                                "session": session_name
-                            }),
-                        );
-                        break;
+                    match check_res {
+                        Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
+                            login_success = true;
+                            let _ = persist_memory_session(&live.session, &live.session_path);
+                            let t_path = telethon_session_path(&sessions_dir, &session_name);
+                            let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+
+                            let _ = app.emit(
+                                "qr-event",
+                                serde_json::json!({
+                                    "status": "success",
+                                    "session": session_name
+                                }),
+                            );
+                            break;
+                        }
+                        Ok(grammers_client::tl::enums::auth::LoginToken::Token(refreshed_t)) => {
+                            let new_token_b64 = B64_URL.encode(&refreshed_t.token);
+                            if new_token_b64 != token_b64 {
+                                let url = format!("tg://login?token={}", new_token_b64);
+                                let _ = app.emit(
+                                    "qr-event",
+                                    serde_json::json!({
+                                        "status": "qr_code",
+                                        "url": url,
+                                        "expires": refreshed_t.expires,
+                                        "session": session_name
+                                    }),
+                                );
+                            }
+                        }
+                        Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(_)) => {
+                            tokio::time::sleep(Duration::from_secs(1)).await;
+                        }
+                        Err(e) => {
+                            let err_str = e.to_string();
+                            if err_str.contains("SESSION_PASSWORD_NEEDED") {
+                                login_success = true;
+                                let _ = persist_memory_session(&live.session, &live.session_path);
+                                let t_path = telethon_session_path(&sessions_dir, &session_name);
+                                let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+
+                                let _ = app.emit(
+                                    "qr-event",
+                                    serde_json::json!({
+                                        "status": "2fa_required",
+                                        "session": session_name
+                                    }),
+                                );
+                                break;
+                            } else if err_str.contains("AUTH_TOKEN_EXPIRED") || err_str.contains("AUTH_TOKEN_INVALID") {
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -1368,6 +1417,23 @@ pub async fn grammers_qr_login(
     }
 
     live.client.disconnect();
+    Ok(())
+}
+
+pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> {
+    let sessions_dir = resolve_sessions_dir(None);
+    let s_name = session_name.trim().trim_end_matches(".session");
+    for ext in &[".session", ".grammers.json", ".session-journal", ".session.lock"] {
+        let p = sessions_dir.join(format!("{}{}", s_name, ext));
+        if p.exists() {
+            for _ in 0..4 {
+                if std::fs::remove_file(&p).is_ok() {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+    }
     Ok(())
 }
 

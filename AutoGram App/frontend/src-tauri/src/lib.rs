@@ -461,6 +461,13 @@ async fn start_rust_qr_login(
     Ok(())
 }
 
+/// Delete session files locally from Rust before invoking python cleanup
+#[tauri::command]
+fn delete_session_rust(session: String) -> Result<(), String> {
+    core::grammers_ops::delete_grammers_session_files(&session)
+        .map_err(|e| e.to_string())
+}
+
 /// Long-running auth_manager.py job: streams lines via events `worker-line` / `worker-exit`.
 #[tauri::command]
 async fn start_auth_manager_job(
@@ -1199,6 +1206,7 @@ pub fn run() {
             run_auth_manager_once,
             start_auth_manager_job,
             start_rust_qr_login,
+            delete_session_rust,
             secrets::get_credential,
             secrets::set_credential,
             secrets::delete_credential,

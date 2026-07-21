@@ -242,22 +242,27 @@ async def delete_session_action(session_name, api_id=None, api_hash=None):
         if api_id and api_hash:
             try:
                 client, _ = get_client_and_string(session_name, api_id, api_hash)
-                await asyncio.wait_for(client.connect(), timeout=10.0)
+                await asyncio.wait_for(client.connect(), timeout=3.0)
                 if await client.is_user_authorized():
-                    await client.log_out()
+                    await asyncio.wait_for(client.log_out(), timeout=3.0)
                 await client.disconnect()
             except Exception:
                 pass
 
         delete_session(session_name)
         sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), 'sessions'))
+        s_name = session_name.strip().removesuffix('.session')
+
         for ext in ('.session', '.grammers.json', '.session-journal', '.session.lock'):
-            target_path = os.path.join(sessions_dir, f"{session_name}{ext}")
+            target_path = os.path.join(sessions_dir, f"{s_name}{ext}")
             if os.path.exists(target_path):
-                try:
-                    os.remove(target_path)
-                except Exception:
-                    pass
+                for attempt in range(5):
+                    try:
+                        os.remove(target_path)
+                        break
+                    except Exception:
+                        await asyncio.sleep(0.1)
+
         print(json.dumps({"status": "success", "message": f"Session {session_name} deleted"}))
     except Exception as e:
         print(json.dumps({"error": str(e)}))
@@ -285,6 +290,23 @@ async def qr_export_action(session_name, api_id, api_hash):
             }),
             flush=True,
         )
+
+        try:
+            await qr_login.wait(timeout=50)
+            save_client_session(session_name, client)
+            sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), "sessions"))
+            grammers_file = os.path.join(sessions_dir, f"{session_name}.grammers.json")
+            if os.path.exists(grammers_file):
+                try:
+                    os.remove(grammers_file)
+                except Exception:
+                    pass
+            print(json.dumps({"status": "success"}), flush=True)
+        except errors.SessionPasswordNeededError:
+            save_client_session(session_name, client)
+            print(json.dumps({"status": "2fa_required"}), flush=True)
+        except Exception:
+            pass
     except Exception as e:
         print(json.dumps({"error": str(e)}), flush=True)
     finally:

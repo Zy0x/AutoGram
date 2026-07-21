@@ -325,6 +325,8 @@ pub fn export_grammers_to_telethon_file(
     let conn = Connection::open(telethon_path)
         .map_err(|e| TgError::new(TgErrorCode::Io, format!("open sqlite telethon session: {e}")))?;
 
+    let _ = conn.execute_batch("PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;");
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS sessions (
             dc_id INTEGER PRIMARY KEY,

@@ -5,7 +5,8 @@ import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../lib/secureCredentials';
 import { runAuthManagerOnce } from '../lib/workerBridge';
 
@@ -317,85 +318,136 @@ export function Accounts() {
     try {
       const { apiId, apiHash } = await getApiCredentials();
 
-      const res = await runAuthManagerOnce([
-        '--action',
-        'qr-export',
-        '--session',
-        sessionName,
-        '--api-id',
-        apiId || '',
-        '--api-hash',
-        apiHash || '',
-      ]);
+      if (isTauri()) {
+        const unlisten = await listen<any>('qr-event', async (event) => {
+          const payload = event.payload || {};
+          if (payload.session && payload.session !== sessionName) return;
 
-      if (!res.stdout && res.stderr) {
-        throw new Error(res.stderr);
-      }
+          if (payload.status === 'already_authorized') {
+            await stopQrTimers();
+            setIsWizardOpen(false);
+            loadSessions();
+            setIsProcessing(false);
+          } else if (payload.status === 'qr_code' && payload.url) {
+            const dataUrl = await QRCode.toDataURL(payload.url, { margin: 2, width: 240 });
+            setQrDataUrl(dataUrl);
 
-      let data: any = {};
-      try {
-        data = JSON.parse((res.stdout || '').trim());
-      } catch {
-        throw new Error('Gagal membaca respon QR code dari backend.');
-      }
+            const exp = Number(payload.expires) || 0;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const rem = Math.max(0, exp - nowSec) || 60;
+            setQrExpiresIn(rem);
+            setIsProcessing(false);
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
+            if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+            qrCountdownTimerRef.current = setInterval(() => {
+              setQrExpiresIn((prev) => Math.max(0, prev - 1));
+            }, 1000);
+          } else if (payload.status === 'success') {
+            await stopQrTimers();
+            setIsWizardOpen(false);
+            setIsProcessing(false);
+            setTimeout(() => {
+              loadSessions();
+            }, 400);
+          } else if (payload.status === '2fa_required') {
+            await stopQrTimers();
+            setStep(3);
+            setIsProcessing(false);
+          } else if (payload.status === 'error') {
+            await stopQrTimers();
+            setErrorMsg(payload.error || 'Gagal login via QR code');
+            setIsProcessing(false);
+          }
+        });
 
-      if (data.status === 'already_authorized') {
-        await stopQrTimers();
-        setIsWizardOpen(false);
-        loadSessions();
-        setIsProcessing(false);
-        return;
-      }
+        unlistenQrRef.current = unlisten;
 
-      if (data.status === 'qr_code' && data.url) {
-        const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
-        setQrDataUrl(dataUrl);
+        await invoke('start_rust_qr_login', {
+          session: sessionName,
+          apiId: Number(apiId),
+          apiHash: apiHash || '',
+        });
+      } else {
+        const res = await runAuthManagerOnce([
+          '--action',
+          'qr-export',
+          '--session',
+          sessionName,
+          '--api-id',
+          apiId || '',
+          '--api-hash',
+          apiHash || '',
+        ]);
 
-        const exp = Number(data.expires) || 0;
-        const nowSec = Math.floor(Date.now() / 1000);
-        const rem = Math.max(0, exp - nowSec) || 60;
-        setQrExpiresIn(rem);
-        setIsProcessing(false);
+        if (!res.stdout && res.stderr) {
+          throw new Error(res.stderr);
+        }
 
-        if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
-        qrCountdownTimerRef.current = setInterval(() => {
-          setQrExpiresIn((prev) => Math.max(0, prev - 1));
-        }, 1000);
+        let data: any = {};
+        try {
+          data = JSON.parse((res.stdout || '').trim());
+        } catch {
+          throw new Error('Gagal membaca respon QR code dari backend.');
+        }
 
-        if (qrRefreshTimerRef.current) clearInterval(qrRefreshTimerRef.current);
-        qrRefreshTimerRef.current = setInterval(async () => {
-          try {
-            const checkRes = await runAuthManagerOnce([
-              '--action',
-              'qr-check',
-              '--session',
-              sessionName,
-              '--api-id',
-              apiId || '',
-              '--api-hash',
-              apiHash || '',
-            ]);
-            if (checkRes.stdout) {
-              const checkData = JSON.parse(checkRes.stdout.trim());
-              if (checkData.status === 'success') {
-                await stopQrTimers();
-                setIsWizardOpen(false);
-                loadSessions();
-                setIsProcessing(false);
-              } else if (checkData.status === '2fa_required') {
-                await stopQrTimers();
-                setStep(3);
-                setIsProcessing(false);
-              } else if (checkData.error === 'qr_expired') {
-                handleStartQrLogin();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        if (data.status === 'already_authorized') {
+          await stopQrTimers();
+          setIsWizardOpen(false);
+          loadSessions();
+          setIsProcessing(false);
+          return;
+        }
+
+        if (data.status === 'qr_code' && data.url) {
+          const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
+          setQrDataUrl(dataUrl);
+
+          const exp = Number(data.expires) || 0;
+          const nowSec = Math.floor(Date.now() / 1000);
+          const rem = Math.max(0, exp - nowSec) || 60;
+          setQrExpiresIn(rem);
+          setIsProcessing(false);
+
+          if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+          qrCountdownTimerRef.current = setInterval(() => {
+            setQrExpiresIn((prev) => Math.max(0, prev - 1));
+          }, 1000);
+
+          if (qrRefreshTimerRef.current) clearInterval(qrRefreshTimerRef.current);
+          qrRefreshTimerRef.current = setInterval(async () => {
+            try {
+              const checkRes = await runAuthManagerOnce([
+                '--action',
+                'qr-check',
+                '--session',
+                sessionName,
+                '--api-id',
+                apiId || '',
+                '--api-hash',
+                apiHash || '',
+              ]);
+              if (checkRes.stdout) {
+                const checkData = JSON.parse(checkRes.stdout.trim());
+                if (checkData.status === 'success') {
+                  await stopQrTimers();
+                  setIsWizardOpen(false);
+                  loadSessions();
+                  setIsProcessing(false);
+                } else if (checkData.status === '2fa_required') {
+                  await stopQrTimers();
+                  setStep(3);
+                  setIsProcessing(false);
+                } else if (checkData.error === 'qr_expired') {
+                  handleStartQrLogin();
+                }
               }
-            }
-          } catch {}
-        }, 2000);
+            } catch {}
+          }, 2000);
+        }
       }
     } catch (e: any) {
       setErrorMsg(String(e?.message || e));
@@ -405,11 +457,20 @@ export function Accounts() {
 
   const handleDeleteSession = async (name: string) => {
     if (!window.confirm(t('accounts.delete_confirm', { name }))) return;
-    
+
     setIsLoading(true);
+    setSessions((prev) => prev.filter((s) => s.name !== name));
+    setActiveSessions((prev) => prev.filter((p) => p !== name));
+
     try {
+      if (isTauri()) {
+        try {
+          await invoke('delete_session_rust', { session: name });
+        } catch {}
+      }
+
       const { apiId, apiHash } = await getApiCredentials();
-      const result = await runAuthManagerOnce([
+      await runAuthManagerOnce([
         '--action',
         'delete-session',
         '--session',
@@ -420,14 +481,11 @@ export function Accounts() {
         apiHash || '',
       ]);
 
-      if (!result.stdout && result.stderr) {
-        throw new Error(t('error.python_error', { error: result.stderr }));
-      }
-      
       await loadSessions();
     } catch (e) {
       console.error(e);
-      alert(String(e));
+      await loadSessions();
+    } finally {
       setIsLoading(false);
     }
   };

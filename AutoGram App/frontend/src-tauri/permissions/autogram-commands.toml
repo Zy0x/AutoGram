@@ -55,6 +55,7 @@ allow = [
     "run_auth_manager_once",
     "start_auth_manager_job",
     "start_rust_qr_login",
+    "delete_session_rust",
     "get_credential",
     "set_credential",
     "delete_credential",
