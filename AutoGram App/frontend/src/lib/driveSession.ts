@@ -11,7 +11,7 @@ import type { DriveCredentials } from './driveApi';
 import { detectTauriRuntime } from './platform';
 import { isDebugMode } from './debugMode';
 
-export const DRIVE_SERVE_JOB_ID_BASE = 991000;
+export const DRIVE_SERVE_JOB_ID_BASE = 992000;
 export const DRIVE_SERVE_JOB_ID = 991003;
 export const API_SERVER_JOB_ID = 991005;
 

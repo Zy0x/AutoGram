@@ -483,8 +483,9 @@ class ProgressiveMedia:
                 ORDER BY byte_offset DESC LIMIT 1
             """, (file_id, off)).fetchone()
             if row:
-                off = row[0]
-                log_debug(f"schedule_seek: adjusted off from {byte_offset} to keyframe {off}")
+                keyframe_off = row[0]
+                off = (keyframe_off // self.part_size) * self.part_size
+                log_debug(f"schedule_seek: adjusted off from {byte_offset} to keyframe {keyframe_off} (aligned: {off})")
             else:
                 off = (off // self.part_size) * self.part_size
         except Exception:

@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.1.62 Perbaikan Tabrakan ID Pekerja Tauri (991005) dan Penyelarasan Aligment Seek Keyframe Video
+
+Fixed:
+- Memperbaiki galat `No stdin for job 991005` yang menyebabkan kegagalan koneksi (*Lost Connection*) saat menekan tombol "Coba lagi" (Retry) di pratinjau media. Masalah ini disebabkan oleh tabrakan alokasi ID pekerjaan (`activeJobId` generasi) dengan `API_SERVER_JOB_ID` (991005). Nilai `DRIVE_SERVE_JOB_ID_BASE` kini digeser ke `992000` agar alokasi ID pekerjaan terpisah sepenuhnya secara eksklusif.
+- Memperbaiki masalah pemutaran video yang lambat dimuat atau macet pada buffering (*infinite buffering loop*) saat melakukan seek. Penyelarasan kini memaksa offset byte yang didapat dari indeks keyframe untuk selalu disejajarkan (*aligned*) ke kelipatan ukuran part Telegram (`self.part_size`), mencegah galat `OFFSET_INVALID` dari server Telegram.
+
 ## v2.1.61 Resolusi Galat CORS/Fetch pada Pratinjau Dokumen, Penanganan exception Streaming Server, dan Penyelarasan is_doc
 
 Fixed:
