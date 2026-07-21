@@ -560,322 +560,341 @@ class ProgressiveMedia:
             return False
 
 
+async def serve_options(request):
+    return web.Response(status=204)
+
+
+async def serve_events(request):
+    stream_id = request.match_info['stream_id']
+    media = get_stream(stream_id)
+    if not media:
+        return web.Response(status=404, text="Stream not found")
+
+    response = web.StreamResponse(
+        status=200,
+        reason='OK',
+        headers={
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        }
+    )
+    await response.prepare(request)
+
+    # Send initial event
+    await response.write(b"data: {\"type\": \"connected\"}\n\n")
+
+    last_filled = -1
+    while not media.cancelled and not media.done:
+        filled = media.filled_bytes()
+        if filled != last_filled:
+            await response.write(
+                f"data: {{\"type\": \"buffer_ready\", \"filled\": {filled}, \"total\": {media.total_size or 0}}}\n\n".encode('utf-8')
+            )
+            last_filled = filled
+        await asyncio.sleep(1.0)
+
+    if media.done:
+        await response.write(b"data: {\"type\": \"buffer_ready\", \"verified\": true}\n\n")
+
+    return response
+
+
+async def write_media_range_to_response(response, media: ProgressiveMedia, start: int, length: int, grow: bool = False):
+    sent = 0
+    f = None
+    try:
+        while sent < length:
+            if media.cancelled:
+                return
+            pos = start + sent
+            filled_end = media.contiguous_end_from(pos)
+            if filled_end <= pos:
+                if media.done:
+                    break
+                # Prefer pulling the missing tip (esp. head) instead of spinning
+                if pos == 0 or grow:
+                    media.schedule_seek(pos, window=media.get_pipeline_window(), priority=1)
+                # Wait for bytes to arrive
+                await asyncio.to_thread(media.wait_for_range, pos, 64 * 1024, 15.0)
+                filled_end = media.contiguous_end_from(pos)
+                if filled_end <= pos and grow:
+                    while not media.done and not media.cancelled and not media.error and filled_end <= pos:
+                        await asyncio.to_thread(media.wait_for_range, pos, 16 * 1024, 10.0)
+                        filled_end = media.contiguous_end_from(pos)
+                if filled_end <= pos:
+                    break
+            read_block_size = 256 * 1024 if media.total_size > 300 * 1024 * 1024 else 64 * 1024
+            to_read = min(
+                read_block_size,
+                length - sent,
+                filled_end - pos,
+            )
+            if to_read <= 0:
+                break
+
+            # Try RAM cache first
+            chunk = media.read_from_cache(pos, to_read)
+            if chunk is None:
+                if getattr(media, "in_memory", False) and media.ram_buffer is not None:
+                    chunk = bytes(media.ram_buffer[pos : pos + to_read])
+                else:
+                    if f is None:
+                        f = await asyncio.to_thread(open, media.path, "rb")
+                    await asyncio.to_thread(f.seek, pos)
+                    chunk = await asyncio.to_thread(f.read, to_read)
+
+            if not chunk:
+                break
+            try:
+                await response.write(chunk)
+                with media._seek_lock:
+                    media._active_seek_offset = pos + len(chunk)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                return
+            sent += len(chunk)
+    except Exception:
+        return
+    finally:
+        if f is not None:
+            try:
+                await asyncio.to_thread(f.close)
+            except Exception:
+                pass
+
+
+async def serve_stream(request):
+    stream_id = request.match_info['stream_id']
+    media = get_stream(stream_id)
+    if not media:
+        return web.Response(status=404, text="Stream expired")
+
+    range_probe = request.headers.get("Range") or request.headers.get("range") or ""
+    range_start_probe = 0
+    if range_probe.startswith("bytes="):
+        try:
+            range_start_probe = int(range_probe[6:].split(",", 1)[0].split("-", 1)[0] or 0)
+        except Exception:
+            range_start_probe = 0
+    if range_start_probe <= 0:
+        first_need = min(64 * 1024, media.total_size or 64 * 1024)
+        await asyncio.to_thread(media.wait_for_bytes, first_need, 25.0)
+        if media.contiguous_from_zero() < first_need and not media.done:
+            media.schedule_seek(
+                0,
+                window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
+                priority=1,
+            )
+            await asyncio.to_thread(media.wait_for_bytes, first_need, 20.0)
+        if media.error and media.contiguous_from_zero() <= 0:
+            return web.Response(status=502, text=media.error or "stream error")
+        if media.contiguous_from_zero() <= 0 and not media.done:
+            # Range not verified at all: return 202 Accepted + SSE location
+            headers = {
+                "Retry-After": "1",
+                "Cache-Control": "no-cache",
+                "X-AutoGram-Buffer": "head-loading",
+                "Location": f"/stream/{stream_id}/events"
+            }
+            return web.Response(status=202, headers=headers, text="Buffer head-loading")
+
+    file_size_known = media.total_size if media.total_size > 0 else None
+    start = 0
+    end_req = None
+
+    if range_probe and range_probe.startswith("bytes="):
+        try:
+            spec = range_probe.replace("bytes=", "").strip()
+            if "," in spec:
+                spec = spec.split(",", 1)[0]
+            a, _, b = spec.partition("-")
+            start = int(a) if a else 0
+            end_req = int(b) if b else None
+        except Exception:
+            start = 0
+            end_req = None
+
+        with media._seek_lock:
+            media._active_seek_offset = start
+
+        # YouTube-like seek
+        prefix = media.contiguous_from_zero()
+        if start > 0 and not media.done and not media.has_byte(start):
+            total_sz = media.total_size or 0
+            near_end = total_sz > 0 and start >= max(0, total_sz - _MOOV_TAIL_BUDGET)
+            win = (
+                min(_MOOV_TAIL_BUDGET, total_sz - start)
+                if near_end and total_sz > start
+                else media.get_seek_window()
+            )
+            media.schedule_seek(
+                start,
+                window=max(win, 256 * 1024),
+                priority=3,
+            )
+            await asyncio.to_thread(
+                media.wait_for_range,
+                start,
+                min(32 * 1024, total_sz - start if total_sz > start else 32 * 1024),
+                55.0
+            )
+
+        if not media.has_byte(start) and not media.done:
+            if start <= prefix + 512 * 1024:
+                await asyncio.to_thread(media.wait_for_bytes, start + 64 * 1024, 25.0)
+            if not media.has_byte(start):
+                headers = {
+                    "Retry-After": "1",
+                    "Cache-Control": "no-cache",
+                    "X-AutoGram-Buffer": "seek-loading",
+                    "Location": f"/stream/{stream_id}/events"
+                }
+                return web.Response(status=202, headers=headers, text="Buffer seek-loading")
+
+        if not media.has_byte(start) and media.done:
+            return web.Response(status=416, text="range not satisfiable")
+
+        filled_end = media.contiguous_end_from(start)
+        if media.done:
+            chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
+            if end_req is not None:
+                chunk_end = min(chunk_end, end_req)
+        else:
+            window = media.get_seek_window()
+            aligned_start = (start // media.part_size) * media.part_size
+            target_end = aligned_start + window - 1
+            if file_size_known:
+                target_end = min(target_end, file_size_known - 1)
+            if end_req is not None:
+                target_end = min(target_end, end_req)
+            chunk_end = target_end
+
+        if not media.done and chunk_end < start + 32 * 1024:
+            media.schedule_seek(start, window=window, priority=3)
+            await asyncio.to_thread(
+                media.wait_for_range,
+                start,
+                min(64 * 1024, file_size_known - start if file_size_known > start else 64 * 1024),
+                6.0
+            )
+            filled_end = media.contiguous_end_from(start)
+            if media.done:
+                chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
+                if end_req is not None:
+                    chunk_end = min(chunk_end, end_req)
+
+        length = max(0, chunk_end - start + 1)
+        total_for_range = (
+            file_size_known
+            if file_size_known
+            else max(filled_end, chunk_end + 1)
+        )
+
+        response = web.StreamResponse(
+            status=206,
+            reason="Partial Content",
+            headers={
+                "Content-Type": media.mime,
+                "Accept-Ranges": "bytes",
+                "Content-Range": f"bytes {start}-{chunk_end}/{total_for_range}",
+                "Content-Length": str(length),
+                "Cache-Control": "no-cache",
+                "X-AutoGram-Available": str(media.contiguous_from_zero()),
+                "X-AutoGram-Filled": str(media.filled_bytes()),
+                "X-AutoGram-Seek-Offset": str(media._active_seek_offset if media._active_seek_offset is not None else -1),
+                "X-AutoGram-Seek-Generation": str(media._seek_generation),
+            }
+        )
+        await response.prepare(request)
+        await write_media_range_to_response(response, media, start, length, grow=not media.done)
+        return response
+
+    # Full GET
+    await asyncio.to_thread(media.wait_for_bytes, min(256 * 1024, media.total_size or 256 * 1024), 20.0)
+    prefix = media.contiguous_from_zero()
+    length = file_size_known if file_size_known else max(prefix, 1)
+
+    response = web.StreamResponse(
+        status=200,
+        reason="OK",
+        headers={
+            "Content-Type": media.mime,
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(length),
+            "Cache-Control": "no-cache",
+            "X-AutoGram-Available": str(media.contiguous_from_zero()),
+            "X-AutoGram-Filled": str(media.filled_bytes()),
+            "X-AutoGram-Seek-Offset": str(media._active_seek_offset if media._active_seek_offset is not None else -1),
+            "X-AutoGram-Seek-Generation": str(media._seek_generation),
+        }
+    )
+    await response.prepare(request)
+    await write_media_range_to_response(response, 0, length, grow=True)
+    return response
+
+
 def _ensure_server() -> int:
     global _SERVER, _SERVER_THREAD, _PORT
     with _LOCK:
         if _SERVER is not None and _PORT:
             return _PORT
 
-        class Handler(BaseHTTPRequestHandler):
-            protocol_version = "HTTP/1.1"
+        from queue import Queue
+        port_queue = Queue()
 
-            def log_message(self, fmt: str, *args) -> None:  # noqa: A003
-                return  # quiet
+        def run_loop():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            app = web.Application(client_max_size=1024**3 * 10)
+            app.router.add_get('/stream/{stream_id}/{filename}', serve_stream)
+            app.router.add_get('/stream/{stream_id}', serve_stream)
+            app.router.add_options('/stream/{stream_id}/{filename}', serve_options)
+            app.router.add_options('/stream/{stream_id}', serve_options)
+            app.router.add_get('/stream/{stream_id}/events', serve_events)
 
-            def _cors(self) -> None:
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
-                self.send_header("Access-Control-Allow-Headers", "Range, Content-Type")
-                self.send_header(
-                    "Access-Control-Expose-Headers",
-                    "Content-Length, Content-Range, Accept-Ranges, Retry-After, "
-                    "X-AutoGram-Buffer, X-AutoGram-Available, X-AutoGram-Filled, "
-                    "X-AutoGram-Seek-Offset, X-AutoGram-Seek-Generation",
-                )
-
-            def _stream_metrics(self, media: ProgressiveMedia) -> None:
-                self.send_header("X-AutoGram-Available", str(media.contiguous_from_zero()))
-                self.send_header("X-AutoGram-Filled", str(media.filled_bytes()))
-                self.send_header(
-                    "X-AutoGram-Seek-Offset",
-                    str(media._active_seek_offset if media._active_seek_offset is not None else -1),
-                )
-                self.send_header("X-AutoGram-Seek-Generation", str(media._seek_generation))
-
-            def do_OPTIONS(self) -> None:  # noqa: N802
-                self.send_response(204)
-                self._cors()
-                self.end_headers()
-
-            def do_HEAD(self) -> None:  # noqa: N802
-                self._serve(head_only=True)
-
-            def do_GET(self) -> None:  # noqa: N802
-                self._serve(head_only=False)
-
-            def _serve(self, head_only: bool) -> None:
-                path = unquote(self.path or "")
-                m = re.match(r"^/stream/([a-zA-Z0-9_-]+)(?:/.*)?$", path)
-                if not m:
-                    self.send_error(404, "not found")
-                    return
-                sid = m.group(1)
-                with _LOCK:
-                    media = _STREAMS.get(sid)
-                if not media:
-                    self.send_error(404, "stream expired")
-                    return
-
-                # Need moov / file head first (small — open video ASAP)
-                # Parse the requested start before waiting for the head. A far
-                # Range seek must bypass prefix buffering entirely.
-                range_probe = self.headers.get("Range") or self.headers.get("range") or ""
-                range_start_probe = 0
-                if range_probe.startswith("bytes="):
+            # CORS middleware
+            async def cors_middleware(app, handler):
+                async def middleware_handler(request):
                     try:
-                        range_start_probe = int(range_probe[6:].split(",", 1)[0].split("-", 1)[0] or 0)
-                    except Exception:
-                        range_start_probe = 0
-                if range_start_probe <= 0:
-                    first_need = min(64 * 1024, media.total_size or 64 * 1024)
-                    media.wait_for_bytes(first_need, timeout=25.0)
-                    if media.contiguous_from_zero() < first_need and not media.done:
-                        media.schedule_seek(
-                            0,
-                            window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
-                            priority=1,
-                        )
-                        media.wait_for_bytes(first_need, timeout=20.0)
-                    if media.error and media.contiguous_from_zero() <= 0:
-                        self.send_error(502, media.error or "stream error")
-                        return
-                    if media.contiguous_from_zero() <= 0 and not media.done:
-                        self.send_response(503)
-                        self._cors()
-                        self.send_header("Content-Length", "0")
-                        self.send_header("Retry-After", "1")
-                        self.send_header("Cache-Control", "no-cache")
-                        self.send_header("X-AutoGram-Buffer", "head-loading")
-                        self._stream_metrics(media)
-                        self.end_headers()
-                        return
-
-                file_size_known = media.total_size if media.total_size > 0 else None
-                range_hdr = self.headers.get("Range") or self.headers.get("range")
-                start = 0
-                end_req: Optional[int] = None
-
-                if range_hdr and range_hdr.startswith("bytes="):
-                    try:
-                        spec = range_hdr.replace("bytes=", "").strip()
-                        if "," in spec:
-                            spec = spec.split(",", 1)[0]
-                        a, _, b = spec.partition("-")
-                        start = int(a) if a else 0
-                        end_req = int(b) if b else None
-                    except Exception:
-                        start = 0
-                        end_req = None
-
-                    # Update playhead position to let the background downloader know where we are
-                    with media._seek_lock:
-                        media._active_seek_offset = start
-
-                    # --- YouTube-like: if range is ahead of prefix, pull that offset ---
-                    prefix = media.contiguous_from_zero()
-                    if start > 0 and not media.done and not media.has_byte(start):
-                        # Tail/moov requests (near EOF) need a larger window for document MP4
-                        total_sz = media.total_size or 0
-                        near_end = total_sz > 0 and start >= max(0, total_sz - _MOOV_TAIL_BUDGET)
-                        win = (
-                            min(_MOOV_TAIL_BUDGET, total_sz - start)
-                            if near_end and total_sz > start
-                            else media.get_seek_window()
-                        )
-                        log_debug(f"Seek Range Request start={start} near_end={near_end} win={win}")
-                        media.schedule_seek(
-                            start,
-                            window=max(win, 256 * 1024),
-                            priority=3,
-                        )
-                        res = media.wait_for_range(start, min(32 * 1024, total_sz - start if total_sz > start else 32 * 1024), timeout=55.0)
-                        log_debug(f"Seek Range Request wait_for_range returned={res} has_byte={media.has_byte(start)}")
-
-                    if not media.has_byte(start) and not media.done:
-                        # Still cold — brief tip wait if near sequential prefix
-                        if start <= prefix + 512 * 1024:
-                            media.wait_for_bytes(start + 64 * 1024, timeout=25.0)
-                        if not media.has_byte(start):
-                            log_debug(f"Seek Range Request returning 503 for start={start} has_byte={media.has_byte(start)}")
-                            self.send_response(503)
-                            self._cors()
-                            self.send_header("Retry-After", "1")
-                            self.send_header("Content-Length", "0")
-                            self.send_header("Cache-Control", "no-cache")
-                            self.send_header("X-AutoGram-Buffer", "seek-loading")
-                            self._stream_metrics(media)
-                            self.end_headers()
-                            return
-
-                    if not media.has_byte(start) and media.done:
-                        self.send_error(416, "range not satisfiable")
-                        return
-
-                    # Serve a bounded streaming Range. Advertise the current
-                    # seek window (not merely the first 512 KiB that happened
-                    # to arrive) and block-read only bytes explicitly marked
-                    # filled. This avoids repeated HTTP round trips while the
-                    # Telegram parts are already landing in the background.
-                    filled_end = media.contiguous_end_from(start)
-                    if media.done:
-                        # File is fully downloaded; serve the entire remaining requested range without chunking
-                        chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
-                        if end_req is not None:
-                            chunk_end = min(chunk_end, end_req)
-                    else:
-                        window = media.get_seek_window()
-                        aligned_start = (start // media.part_size) * media.part_size
-                        target_end = aligned_start + window - 1
-                        if file_size_known:
-                            target_end = min(target_end, file_size_known - 1)
-                        if end_req is not None:
-                            target_end = min(target_end, end_req)
-                        chunk_end = target_end
-
-                    # Grow a bit if still filling this region
-                    if not media.done and chunk_end < start + 32 * 1024:
-                        media.schedule_seek(start, window=window, priority=3)
-                        media.wait_for_range(start, min(64 * 1024, file_size_known - start if file_size_known > start else 64 * 1024), timeout=6.0)
-                        filled_end = media.contiguous_end_from(start)
-                        if media.done:
-                            chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
-                            if end_req is not None:
-                                chunk_end = min(chunk_end, end_req)
-
-                    length = max(0, chunk_end - start + 1)
-                    total_for_range = (
-                        file_size_known
-                        if file_size_known
-                        else max(filled_end, chunk_end + 1)
+                        response = await handler(request)
+                    except web.HTTPException as ex:
+                        response = ex
+                    response.headers["Access-Control-Allow-Origin"] = "*"
+                    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+                    response.headers["Access-Control-Allow-Headers"] = "Range, Content-Type"
+                    response.headers["Access-Control-Expose-Headers"] = (
+                        "Content-Length, Content-Range, Accept-Ranges, Retry-After, "
+                        "X-AutoGram-Buffer, X-AutoGram-Available, X-AutoGram-Filled, "
+                        "X-AutoGram-Seek-Offset, X-AutoGram-Seek-Generation"
                     )
+                    return response
+                return middleware_handler
+            
+            app.middlewares.append(cors_middleware)
 
-                    self.send_response(206)
-                    self._cors()
-                    self.send_header("Content-Type", media.mime)
-                    self.send_header("Accept-Ranges", "bytes")
-                    self.send_header(
-                        "Content-Range", f"bytes {start}-{chunk_end}/{total_for_range}"
-                    )
-                    self.send_header("Content-Length", str(length))
-                    self.send_header("Cache-Control", "no-cache")
-                    self._stream_metrics(media)
-                    self.end_headers()
-                    if head_only or length <= 0:
-                        return
-                    self._write_file_range(media, start, length, grow=not media.done)
-                    return
+            runner = web.AppRunner(app)
+            loop.run_until_complete(runner.setup())
+            site = web.TCPSite(runner, "127.0.0.1", 0)
+            loop.run_until_complete(site.start())
 
-                # Full GET — grow body as contiguous prefix fills (never claim
-                # full size while holes exist — that freezes the player at 0:00).
-                media.wait_for_bytes(
-                    min(256 * 1024, media.total_size or 256 * 1024), timeout=20.0
-                )
-                prefix = media.contiguous_from_zero()
-                if media.done and file_size_known:
-                    length = file_size_known
-                elif file_size_known and media.done:
-                    length = file_size_known
-                elif file_size_known:
-                    # Progressive: advertise final size; body waits for real bytes
-                    length = file_size_known
-                else:
-                    length = max(prefix, 1)
+            port = site._server.sockets[0].getsockname()[1]
+            port_queue.put(port)
 
-                self.send_response(200)
-                self._cors()
-                self.send_header("Content-Type", media.mime)
-                self.send_header("Accept-Ranges", "bytes")
-                self.send_header("Content-Length", str(length))
-                self.send_header("Cache-Control", "no-cache")
-                self._stream_metrics(media)
-                self.end_headers()
-                if head_only or length <= 0:
-                    return
-                # Stream from 0, blocking until each next byte is *really* filled
-                self._write_file_range(media, 0, length, grow=True)
+            try:
+                loop.run_forever()
+            finally:
+                loop.run_until_complete(runner.cleanup())
+                loop.close()
 
-            def _write_file_range(
-                self,
-                media: ProgressiveMedia,
-                start: int,
-                length: int,
-                grow: bool = False,
-            ) -> None:
-                sent = 0
-                f = None
-                try:
-                    while sent < length:
-                        if media.cancelled:
-                            return
-                        pos = start + sent
-                        filled_end = media.contiguous_end_from(pos)
-                        if filled_end <= pos:
-                            if media.done:
-                                break
-                            # Prefer pulling the missing tip (esp. head) instead of spinning
-                            if pos == 0 or grow:
-                                media.schedule_seek(pos, window=media.get_pipeline_window(), priority=1)
-                            # Wait for bytes to arrive. If grow is True, we can wait multiple times
-                            # as long as the download is still active (not done/cancelled/error).
-                            # If grow is False, we only wait once.
-                            media.wait_for_range(pos, 64 * 1024, timeout=15.0)
-                            filled_end = media.contiguous_end_from(pos)
-                            if filled_end <= pos and grow:
-                                while not media.done and not media.cancelled and not media.error and filled_end <= pos:
-                                    media.wait_for_range(pos, 16 * 1024, timeout=10.0)
-                                    filled_end = media.contiguous_end_from(pos)
-                            if filled_end <= pos:
-                                break
-                        read_block_size = 256 * 1024 if media.total_size > 300 * 1024 * 1024 else 64 * 1024
-                        to_read = min(
-                            read_block_size,
-                            length - sent,
-                            filled_end - pos,
-                        )
-                        if to_read <= 0:
-                            break
-                        
-                        # Try RAM cache first
-                        chunk = media.read_from_cache(pos, to_read)
-                        if chunk is None:
-                            if getattr(media, "in_memory", False) and media.ram_buffer is not None:
-                                chunk = bytes(media.ram_buffer[pos : pos + to_read])
-                            else:
-                                if f is None:
-                                    f = open(media.path, "rb")
-                                f.seek(pos)
-                                chunk = f.read(to_read)
-                        
-                        if not chunk:
-                            break
-                        try:
-                            self.wfile.write(chunk)
-                            with media._seek_lock:
-                                media._active_seek_offset = pos + len(chunk)
-                        except (
-                            BrokenPipeError,
-                            ConnectionResetError,
-                            ConnectionAbortedError,
-                        ):
-                            return
-                        sent += len(chunk)
-                except Exception:
-                    return
-                finally:
-                    if f is not None:
-                        try:
-                            f.close()
-                        except Exception:
-                            pass
-
-        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        port = int(server.server_address[1])
-        t = threading.Thread(target=server.serve_forever, name="ag-media-stream", daemon=True)
+        t = threading.Thread(target=run_loop, name="ag-media-stream-v2", daemon=True)
         t.start()
-        _SERVER = server
+
+        _PORT = port_queue.get(timeout=10.0)
+        _SERVER = t
         _SERVER_THREAD = t
-        _PORT = port
         return _PORT
+
 
 
 def register_stream(
@@ -1235,6 +1254,9 @@ async def _download_parts_concurrent(
             return
 
         def _write():
+            import zlib
+            computed_checksum = zlib.crc32(data)
+
             if getattr(media, "in_memory", False) and media.ram_buffer is not None:
                 with media._write_lock:
                     end_pos = part_off + len(data)
@@ -1257,6 +1279,24 @@ async def _download_parts_concurrent(
                         cache_limit = max(100, (media.get_seek_window() // part_size) + 20)
                         while len(media._ram_cache) > cache_limit:
                             media._ram_cache.popitem(last=False)
+                    
+                    # Update manifest JSON
+                    manifest_path = media.path + ".manifest.json"
+                    try:
+                        import json
+                        manifest = {}
+                        if os.path.exists(manifest_path):
+                            with open(manifest_path, "r", encoding="utf-8") as mf:
+                                manifest = json.load(mf)
+                        manifest[str(part_off)] = {
+                            "checksum": computed_checksum,
+                            "len": len(data),
+                            "timestamp": time.time()
+                        }
+                        with open(manifest_path, "w", encoding="utf-8") as mf:
+                            json.dump(manifest, mf, indent=2)
+                    except Exception:
+                        pass
                 media.mark_range(part_off, len(data))
 
         await asyncio.to_thread(_write)
@@ -1422,9 +1462,7 @@ def _solid_prefix_from_sample(data: bytes, zero_run: int = 64 * 1024) -> int:
 def _resume_partial_file_ranges(media: ProgressiveMedia, existing: int) -> None:
     """
     Restore range map after process restart / warm head.
-
-    Never treat getsize==total as fully filled — sparse head+tail files
-    (moov-at-end bootstrap) have full size with a hollow middle.
+    Prefer reading from manifest JSON; fall back to binary inspection if missing.
     """
     total = media.total_size or 0
     if existing < 32 * 1024:
@@ -1432,6 +1470,24 @@ def _resume_partial_file_ranges(media: ProgressiveMedia, existing: int) -> None:
     # Caller already registered ranges (warm path in start_preview)
     if media.contiguous_from_zero() > 0:
         return
+
+    # Try loading verified segments from manifest first
+    manifest_path = media.path + ".manifest.json"
+    if os.path.exists(manifest_path):
+        try:
+            import json
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                manifest = json.load(mf)
+            if manifest:
+                for part_off_str, info in manifest.items():
+                    part_off = int(part_off_str)
+                    length = info.get("len", 0)
+                    if length > 0:
+                        media.mark_range(part_off, length)
+                media.notify()
+                return
+        except Exception:
+            pass
 
     # Sequential partial (warm / interrupted): size < declared total
     if total <= 0 or existing < total:

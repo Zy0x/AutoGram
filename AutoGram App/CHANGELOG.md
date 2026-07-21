@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.52 Implementasi AutoGram V2 Reborn Architecture (In-Memory Session Views & Async Streaming Engine)
+
+Fixed & Added:
+- Refaktor penuh sistem Session Management dengan mengintegrasikan `SessionAuthority` (Singleton) dan `GhostSessionView` untuk mendukung in-memory `StringSession` concurrent read-only preview/streaming, mengeliminasi 100% database lock conflict akibat file-copy.
+- Depresiasi sistem physical file cloning dan file-based pause flag `drive_pause.txt` di Rust Tauri command dan Python worker.
+- Overhaul Media Streaming Engine dengan beralih ke asynchronous server `aiohttp.web.Application` yang mendukung streaming range requests, Server-Sent Events (SSE) buffering notifications, dan non-blocking concurrent request handling.
+- Penambahan verifikasi integritas data berbasis per-segment checksum manifest (.manifest.json) untuk pemulihan dan validasi status unduhan parsial yang instan tanpa pemindaian binary manual.
+- Implementasi Distributed Rate Limiter berbasis database migrator pusat tanpa lockfiles fisik.
+
 ## v2.1.51 Perbaikan Reconnect Self-Healing & Rekreasi Client Instan pada Database Locks
 
 Fixed:

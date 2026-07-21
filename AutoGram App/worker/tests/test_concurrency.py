@@ -60,17 +60,12 @@ class TestGhostSessionManager(unittest.TestCase):
         ghost_name = GhostSessionManager.ensure_ghost(self.session_name)
         self.assertEqual(ghost_name, f"{self.session_name}_migration")
 
+        # In V2, no physical session copy is created on disk
         ghost_file = WORKER_ROOT / "sessions" / f"{ghost_name}.session"
-        self.assertTrue(ghost_file.exists())
-        
-        # Verify content copied
-        with open(ghost_file, "r") as f:
-            content = f.read()
-            self.assertIn("DummySessionContent", content)
-
-        # Cleanup
-        GhostSessionManager.cleanup_ghost(self.session_name)
         self.assertFalse(ghost_file.exists())
+
+        # Cleanup should run without error
+        GhostSessionManager.cleanup_ghost(self.session_name)
 
 
 if __name__ == "__main__":

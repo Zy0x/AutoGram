@@ -130,17 +130,24 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
     """
     Prefer worker/sessions/<name>.session (file) — same as daemon execute-job / Media Studio.
     Fall back to encrypted StringSession in SQLite if no file exists.
+    Supports in-memory ghost clients derived from the canonical database session string.
     """
     api_id, api_hash = get_credentials(api_id_arg, api_hash_arg)
-    file_base = resolve_session_path(session_name)
-    file_session = file_base + '.session'
 
-    if os.path.isfile(file_session):
-        # File-based session (Lavender.session, Mantan Gadis.session, …)
-        _patch_session_wal(file_base)
-        client = TelegramClient(file_base, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
-    else:
-        session_data = get_session(session_name)
+    # Detect if session_name is a ghost session view
+    is_ghost = False
+    base_name = session_name
+    purpose = "unknown"
+    for suffix in ["_migration", "_preview"]:
+        if suffix in session_name:
+            is_ghost = True
+            purpose = suffix.replace("_", "")
+            base_name = session_name.split(suffix)[0]
+            break
+
+    if is_ghost:
+        # Ghost Session: Completely in-memory using derived StringSession
+        session_data = get_session(base_name)
         if session_data and session_data.get('session_string'):
             try:
                 decrypted_str = decrypt_data(session_data['session_string'])
@@ -149,7 +156,41 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
                 string_session = StringSession()
         else:
             string_session = StringSession()
-        client = TelegramClient(string_session, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
+
+        device_model = f"AutoGram Ghost {purpose.capitalize()}"
+        system_version = "V2-Reborn"
+        app_version = "2.1.52"
+
+        client = TelegramClient(
+            string_session,
+            api_id,
+            api_hash,
+            device_model=device_model,
+            system_version=system_version,
+            app_version=app_version,
+            connection_retries=connection_retries,
+            auto_reconnect=True
+        )
+    else:
+        # Standard Session: File-based if file exists, else StringSession
+        file_base = resolve_session_path(session_name)
+        file_session = file_base + '.session'
+
+        if os.path.isfile(file_session):
+            # File-based session (Lavender.session, Mantan Gadis.session, …)
+            _patch_session_wal(file_base)
+            client = TelegramClient(file_base, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
+        else:
+            session_data = get_session(session_name)
+            if session_data and session_data.get('session_string'):
+                try:
+                    decrypted_str = decrypt_data(session_data['session_string'])
+                    string_session = StringSession(decrypted_str)
+                except Exception:
+                    string_session = StringSession()
+            else:
+                string_session = StringSession()
+            client = TelegramClient(string_session, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
 
     await client.connect()
     if not await client.is_user_authorized():
@@ -180,3 +221,4 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
             pass
 
     return client
+

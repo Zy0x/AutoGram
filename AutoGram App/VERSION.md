@@ -1,4 +1,4 @@
-AutoGram Version: v2.1.51
+AutoGram Version: v2.1.52
 
 Current State:
 Perbaikan Reconnect Self-Healing & Rekreasi Client Instan pada Database Locks

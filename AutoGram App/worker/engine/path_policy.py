@@ -57,19 +57,8 @@ def transfer_pause_flag_path() -> str:
 
 
 def is_transfer_paused() -> bool:
-    """True when UI requested soft-pause between files."""
-    path = transfer_pause_flag_path()
-    try:
-        if not os.path.isfile(path):
-            return False
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
-            body = (f.read() or "").strip()
-        # "0" or empty after write-before-delete race → not paused
-        if body in ("", "0", "false", "False"):
-            return False
-        return True
-    except OSError:
-        return False
+    """Disable file-based pause checks in V2."""
+    return False
 
 
 def _home() -> str:
