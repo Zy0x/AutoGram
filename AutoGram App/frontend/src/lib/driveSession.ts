@@ -210,6 +210,10 @@ export function isGhostSessionReady(creds: DriveCredentials): boolean {
   return activeCredsKey === key && mode === 'ghost' && ghostReady;
 }
 
+export function isPreviewActive(): boolean {
+  return mode === 'ghost' || mode === 'ghost-starting' || activePreviews > 0;
+}
+
 function scheduleGhostToMainTransition(creds: DriveCredentials): void {
   cancelGhostTransition();
   ghostTimer = setTimeout(async () => {

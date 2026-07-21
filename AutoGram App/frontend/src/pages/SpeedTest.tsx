@@ -89,6 +89,7 @@ import {
   isDriveSessionReadyFor,
   driveSessionCall,
   stopDriveSession,
+  isPreviewActive,
 } from '../lib/driveSession';
 
 import {
@@ -828,7 +829,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (active) {
           setPingState({ status: 'disconnected', ms: null });
           if (creds) {
-            ensureDriveSession(creds).then(ok => {
+            const needPreview = isPreviewActive();
+            ensureDriveSession(creds, needPreview).then(ok => {
               if (ok && active) setDriveReady(true);
             }).catch(() => {});
           }

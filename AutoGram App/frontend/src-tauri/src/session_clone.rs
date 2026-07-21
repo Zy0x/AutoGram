@@ -29,8 +29,8 @@ pub fn clone_telegram_session_atomic(
     fs::write(&pause_flag, "ghost_session_clone")
         .map_err(|e| format!("Failed to write pause flag: {e}"))?;
 
-    // STEP 2: Tunggu settle (worker polling ~500ms-1s)
-    let settle = Duration::from_millis(800);
+    // STEP 2: Tunggu settle (worker polling ~150ms-200ms cukup untuk file session kecil)
+    let settle = Duration::from_millis(150);
     std::thread::sleep(settle);
 
     // STEP 3: Atomic SQLite Backup
@@ -50,11 +50,11 @@ pub fn clone_telegram_session_atomic(
         let mut dest_conn = rusqlite::Connection::open(&dest)
             .map_err(|e| format!("Cannot create dest session: {e}"))?;
 
-        // Online backup: 10 pages per step, 50ms antar step
+        // Online backup: 100 pages per step, 5ms antar step (sangat cepat untuk file kecil)
         let backup = rusqlite::backup::Backup::new(&src_conn, &mut dest_conn)
             .map_err(|e| format!("Backup init failed: {e}"))?;
         
-        backup.run_to_completion(10, Duration::from_millis(50), None)
+        backup.run_to_completion(100, Duration::from_millis(5), None)
             .map_err(|e| format!("Backup failed: {e}"))?;
 
         Ok(())
