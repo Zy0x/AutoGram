@@ -288,62 +288,50 @@ export function Accounts() {
     try {
       const { apiId, apiHash } = await getApiCredentials();
 
-      const unlisten = await listen<{ job_id: number; line: string }>('worker-line', async (event) => {
-        if (event.payload.job_id !== QR_JOB_ID) return;
-        const line = event.payload.line || '';
-        try {
-          const data = JSON.parse(line);
-          if (data.status === 'already_authorized') {
-            await stopQrTimers();
-            setIsWizardOpen(false);
-            loadSessions();
-            setIsProcessing(false);
-          } else if (data.status === 'qr_code' && data.url) {
-            const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
-            setQrDataUrl(dataUrl);
+      const unlisten = await listen<any>('qr-event', async (event) => {
+        const data = event.payload || {};
+        if (data.session && data.session !== sessionName) return;
 
-            const exp = Number(data.expires) || 0;
-            const nowSec = Math.floor(Date.now() / 1000);
-            const rem = Math.max(0, exp - nowSec) || 60;
-            setQrExpiresIn(rem);
-            setIsProcessing(false);
+        if (data.status === 'already_authorized') {
+          await stopQrTimers();
+          setIsWizardOpen(false);
+          loadSessions();
+          setIsProcessing(false);
+        } else if (data.status === 'qr_code' && data.url) {
+          const dataUrl = await QRCode.toDataURL(data.url, { margin: 2, width: 240 });
+          setQrDataUrl(dataUrl);
 
-            if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
-            qrCountdownTimerRef.current = setInterval(() => {
-              setQrExpiresIn((prev) => Math.max(0, prev - 1));
-            }, 1000);
-          } else if (data.status === 'success') {
-            await stopQrTimers();
-            setIsWizardOpen(false);
-            loadSessions();
-            setIsProcessing(false);
-          } else if (data.status === '2fa_required') {
-            await stopQrTimers();
-            setStep(3);
-            setIsProcessing(false);
-          } else if (data.error) {
-            setErrorMsg(data.error);
-            setIsProcessing(false);
-          }
-        } catch {
-          /* ignore non-json lines */
+          const exp = Number(data.expires) || 0;
+          const nowSec = Math.floor(Date.now() / 1000);
+          const rem = Math.max(0, exp - nowSec) || 60;
+          setQrExpiresIn(rem);
+          setIsProcessing(false);
+
+          if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+          qrCountdownTimerRef.current = setInterval(() => {
+            setQrExpiresIn((prev) => Math.max(0, prev - 1));
+          }, 1000);
+        } else if (data.status === 'success') {
+          await stopQrTimers();
+          setIsWizardOpen(false);
+          loadSessions();
+          setIsProcessing(false);
+        } else if (data.status === '2fa_required') {
+          await stopQrTimers();
+          setStep(3);
+          setIsProcessing(false);
+        } else if (data.error) {
+          setErrorMsg(data.error);
+          setIsProcessing(false);
         }
       });
 
       unlistenQrRef.current = unlisten;
 
-      await invoke('start_auth_manager_job', {
-        jobId: QR_JOB_ID,
-        args: [
-          '--action',
-          'qr-login',
-          '--session',
-          sessionName,
-          '--api-id',
-          apiId || '',
-          '--api-hash',
-          apiHash || '',
-        ],
+      await invoke('start_rust_qr_login', {
+        session: sessionName,
+        apiId: Number(apiId) || 0,
+        apiHash: apiHash || '',
       });
     } catch (e: any) {
       setErrorMsg(String(e));

@@ -1223,6 +1223,117 @@ fn take_login_token(session: &str) -> Option<grammers_client::client::LoginToken
     login_tokens().lock().remove(session)
 }
 
+pub async fn grammers_qr_login(
+    app: tauri::AppHandle,
+    session_name: String,
+    api_id: i64,
+    api_hash: String,
+) -> Result<(), TgError> {
+    use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64_URL;
+    use base64::Engine as _;
+    use tauri::Emitter;
+    use super::telethon_session_import::export_grammers_to_telethon_file;
+
+    let sessions_dir = resolve_sessions_dir(None);
+    let identity = TelegramIdentity {
+        session: session_name.clone(),
+        api_id,
+        api_hash: api_hash.clone(),
+    };
+
+    let live = connect_client(&sessions_dir, &identity, false).await?;
+
+    if live.client.is_authorized().await.unwrap_or(false) {
+        let _ = app.emit(
+            "qr-event",
+            serde_json::json!({
+                "status": "already_authorized",
+                "session": session_name
+            }),
+        );
+        return Ok(());
+    }
+
+    let except_ids = Vec::new();
+    loop {
+        let res = live
+            .client
+            .invoke(&grammers_client::tl::functions::auth::ExportLoginToken {
+                api_id: api_id as i32,
+                api_hash: api_hash.clone(),
+                except_ids: except_ids.clone(),
+            })
+            .await;
+
+        match res {
+            Ok(grammers_client::tl::enums::auth::LoginToken::Token(t)) => {
+                let token_b64 = B64_URL.encode(&t.token);
+                let url = format!("tg://login?token={}", token_b64);
+                let _ = app.emit(
+                    "qr-event",
+                    serde_json::json!({
+                        "status": "qr_code",
+                        "url": url,
+                        "expires": t.expires,
+                        "session": session_name
+                    }),
+                );
+
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+            Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(_)) => {
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+            Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
+                let _ = persist_memory_session(&live.session, &live.session_path);
+                let t_path = telethon_session_path(&sessions_dir, &session_name);
+                let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+
+                let _ = app.emit(
+                    "qr-event",
+                    serde_json::json!({
+                        "status": "success",
+                        "session": session_name
+                    }),
+                );
+                break;
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                if err_str.contains("SESSION_PASSWORD_NEEDED") {
+                    let _ = persist_memory_session(&live.session, &live.session_path);
+                    let t_path = telethon_session_path(&sessions_dir, &session_name);
+                    let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
+
+                    let _ = app.emit(
+                        "qr-event",
+                        serde_json::json!({
+                            "status": "2fa_required",
+                            "session": session_name
+                        }),
+                    );
+                    break;
+                } else if err_str.contains("AUTH_TOKEN_EXPIRED") {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                } else {
+                    let _ = app.emit(
+                        "qr-event",
+                        serde_json::json!({
+                            "status": "error",
+                            "error": err_str,
+                            "session": session_name
+                        }),
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    live.client.disconnect();
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

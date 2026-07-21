@@ -447,6 +447,20 @@ async fn start_worker_job(
     Ok(())
 }
 
+/// Pure Rust Grammers QR Login
+#[tauri::command]
+async fn start_rust_qr_login(
+    app: AppHandle,
+    session: String,
+    api_id: i64,
+    api_hash: String,
+) -> Result<(), String> {
+    tokio::spawn(async move {
+        let _ = core::grammers_ops::grammers_qr_login(app, session, api_id, api_hash).await;
+    });
+    Ok(())
+}
+
 /// Long-running auth_manager.py job: streams lines via events `worker-line` / `worker-exit`.
 #[tauri::command]
 async fn start_auth_manager_job(
@@ -1184,6 +1198,7 @@ pub fn run() {
             run_worker_once,
             run_auth_manager_once,
             start_auth_manager_job,
+            start_rust_qr_login,
             secrets::get_credential,
             secrets::set_credential,
             secrets::delete_credential,
