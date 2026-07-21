@@ -180,7 +180,7 @@ function settleLine(line: string) {
 
 async function writeStdin(line: string) {
   if (!detectTauriRuntime()) throw new Error('drive-serve requires desktop app');
-  await invoke('write_worker_stdin', { jobId: DRIVE_SERVE_JOB_ID, line });
+  await invoke('write_worker_stdin', { jobId: activeJobId, line });
 }
 
 export function isDriveSessionReady() {
@@ -237,6 +237,7 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
   try {
     mode = 'ghost-starting';
     ghostReady = false;
+    activeJobId = DRIVE_SERVE_JOB_ID;
 
     // 1. Clone session via Rust (with automatic pause flag)
     await invoke('ensure_ghost_session', { sessionName: creds.session });
