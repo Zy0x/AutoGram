@@ -28,19 +28,32 @@ class GhostSessionManager:
 
         suffix = suffix or cls.GHOST_SUFFIX
         ghost_name = f"{session_name}{suffix}"
+        
+        # Best-effort: clear old ghost files for this name
+        cls.cleanup_ghost(session_name, suffix)
         return ghost_name
 
     @classmethod
     def cleanup_stale_ghosts(cls, session_name: str, suffix: str = None, max_age_seconds: int = 900):
-        """No-op in V2 as no SQLite files are created for ghosts."""
-        pass
+        """Clean up stale ghost session files on disk if they exist."""
+        cls.cleanup_ghost(session_name, suffix)
 
     @classmethod
     def cleanup_ghost(cls, session_name: str, suffix: str = None):
-        """No-op in V2 as no SQLite files are created for ghosts."""
-        pass
+        """Clean up ghost session files on disk if they exist."""
+        # Clean both suffix patterns just in case
+        for s in [cls.GHOST_SUFFIX, cls.PREVIEW_SUFFIX]:
+            name = f"{session_name}{s}"
+            for ext in [".session", ".session-journal", ".session-wal", ".session-shm"]:
+                path = SESSION_DIR / f"{name}{ext}"
+                try:
+                    if path.exists():
+                        path.unlink()
+                except Exception:
+                    pass
 
     @classmethod
     def cleanup_all_ghosts(cls, session_name: str):
-        """No-op in V2 as no SQLite files are created for ghosts."""
-        pass
+        """Clean up all ghost session files for this session."""
+        cls.cleanup_ghost(session_name, cls.GHOST_SUFFIX)
+        cls.cleanup_ghost(session_name, cls.PREVIEW_SUFFIX)

@@ -674,10 +674,17 @@ pub fn run() {
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env
             let _ = secrets::ensure_secure_dirs(app.handle().clone());
+            // Clear any leftover ghost sessions on disk
+            let _ = session_clone::clear_ghost_sessions_disk(app.handle());
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                let _ = session_clone::clear_ghost_sessions_disk(app_handle);
+            }
+        });
 }
 
 #[cfg(test)]
