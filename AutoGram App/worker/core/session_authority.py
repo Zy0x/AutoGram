@@ -181,9 +181,12 @@ class SessionAuthority:
                 device_model=device_model,
                 system_version=system_version,
                 app_version=app_version,
-                connection_retries=3,
-                auto_reconnect=True
+                connection_retries=15,
+                retry_delay=3,
+                auto_reconnect=True,
+                flood_sleep_threshold=86400
             )
+            ghost.client.request_retries = 10
 
             self._ghost_registry[view_id] = ghost
             logger.debug(f"ghost.acquire.success: view_id={view_id}, purpose={purpose}, nonce={self._session_nonce}")

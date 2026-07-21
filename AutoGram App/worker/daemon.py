@@ -1171,7 +1171,16 @@ async def main():
                         _patch_session_wal(session_file)
                     except Exception:
                         pass
-                    client = TelegramClient(session_file, int(effective_api_id), effective_api_hash, connection_retries=5, auto_reconnect=True)
+                    client = TelegramClient(
+                        session_file,
+                        int(effective_api_id),
+                        effective_api_hash,
+                        connection_retries=15,
+                        retry_delay=3,
+                        auto_reconnect=True,
+                        flood_sleep_threshold=86400
+                    )
+                    client.request_retries = 10
                     await client.connect()
                     if not await client.is_user_authorized():
                         print("[EVENT] {\"type\": \"FatalError\", \"error\": \"Sesi tidak valid. Silakan login kembali.\"}", flush=True)
@@ -1306,7 +1315,16 @@ async def main():
         config['dest_topic_id'] = dest_topic_id
         
         try:
-            client = TelegramClient(session_file, int(args.api_id) if args.api_id else int(config.get('api_id', 0)), args.api_hash or config.get('api_hash', ''), connection_retries=5, auto_reconnect=True)
+            client = TelegramClient(
+                session_file,
+                int(args.api_id) if args.api_id else int(config.get('api_id', 0)),
+                args.api_hash or config.get('api_hash', ''),
+                connection_retries=15,
+                retry_delay=3,
+                auto_reconnect=True,
+                flood_sleep_threshold=86400
+            )
+            client.request_retries = 10
             await client.connect()
             if not await client.is_user_authorized():
                 print("[ERROR] Sesi tidak valid untuk Sync.", flush=True)

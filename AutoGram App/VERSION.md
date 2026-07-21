@@ -1,10 +1,10 @@
-AutoGram Version: v2.1.54
+AutoGram Version: v2.1.55
 
 Current State:
-Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
+Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
 
 Previous:
-v2.1.53 Perbaikan Kritikal Sistem Preview & Streaming (Otentikasi Sesi Drive)
+v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
 v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
 v2.1.47 Fitur Pembersihan Proses Latar Belakang Otomatis untuk Fresh Start Remote
 v2.1.45 Optimasi Kloning Sesi SQLite Atomis & Sensitivitas Buffer Progressive Streaming

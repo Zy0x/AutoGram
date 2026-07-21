@@ -2051,6 +2051,7 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
         system_version = "V2-Reborn"
         app_version = "2.1.52"
         
+        # Optimized: connection_retries=15, retry_delay=3, flood_sleep_threshold=86400
         client = TelegramClient(
             string_session,
             int(api_id),
@@ -2058,9 +2059,12 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
             device_model=device_model,
             system_version=system_version,
             app_version=app_version,
-            connection_retries=5,
+            connection_retries=15,
+            retry_delay=3,
             auto_reconnect=True,
+            flood_sleep_threshold=86400,
         )
+        client.request_retries = 10
         
         # Optimization: preview clients don't need update dispatch
         if purpose == "preview":
@@ -2082,13 +2086,18 @@ def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramCl
     
     logger.info(f"[CANONICAL] Loading file session: {session_file}")
     
-    return TelegramClient(
+    # Optimized: connection_retries=15, retry_delay=3, flood_sleep_threshold=86400
+    client = TelegramClient(
         session_file,
         int(api_id),
         str(api_hash),
-        connection_retries=5,
-        auto_reconnect=True
+        connection_retries=15,
+        retry_delay=3,
+        auto_reconnect=True,
+        flood_sleep_threshold=86400,
     )
+    client.request_retries = 10
+    return client
 
 
 
@@ -2102,7 +2111,8 @@ async def _connect(session_name: str, api_id: int, api_hash: str) -> TelegramCli
         _patch_session_wal(session_file)
         client = _session_client(session_name, api_id, api_hash)
         try:
-            await asyncio.wait_for(client.connect(), timeout=10.0)
+            # Increased timeout to 20.0s for slow networks/VPNs/Proxies
+            await asyncio.wait_for(client.connect(), timeout=20.0)
             if not await client.is_user_authorized():
                 try:
                     await asyncio.wait_for(client.disconnect(), timeout=0.8)

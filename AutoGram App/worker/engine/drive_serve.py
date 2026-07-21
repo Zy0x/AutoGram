@@ -863,6 +863,53 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
 
     connect_task = asyncio.create_task(_bg_connect())
 
+    async def _keep_alive_loop() -> None:
+        import random
+        from telethon.functions import PingRequest
+        while True:
+            try:
+                await asyncio.sleep(45.0)
+                client = state.get("client")
+                if client is not None:
+                    if client.is_connected():
+                        try:
+                            # Send lightweight MTProto ping
+                            await asyncio.wait_for(
+                                client(PingRequest(ping_id=random.randint(0, 1000000))),
+                                timeout=3.0
+                            )
+                        except Exception as ping_err:
+                            try:
+                                print(f"[keep_alive] Ping failed: {ping_err}. Disconnecting and reconnecting...", flush=True)
+                            except Exception:
+                                pass
+                            async with connect_lock:
+                                try:
+                                    await asyncio.wait_for(client.disconnect(), timeout=0.8)
+                                except Exception:
+                                    pass
+                                try:
+                                    state["client"] = await _connect(
+                                        state["session_name"],
+                                        state["api_id"],
+                                        state["api_hash"],
+                                    )
+                                    _register_event_handlers(state["client"])
+                                except Exception as re_err:
+                                    try:
+                                        print(f"[keep_alive] Reconnection failed: {re_err}", flush=True)
+                                    except Exception:
+                                        pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                try:
+                    print(f"[keep_alive] Unexpected error in loop: {e}", flush=True)
+                except Exception:
+                    pass
+
+    keep_alive_task = asyncio.create_task(_keep_alive_loop())
+
     # Media work is bounded so a fast frontend cannot multiply one thumbnail
     # batch into enough concurrent Telegram work to exhaust memory/sockets.
     thumb_sem = asyncio.Semaphore(4)
@@ -1087,6 +1134,7 @@ async def run_drive_serve(*, session_name: str, api_id: int, api_hash: str) -> N
                     done = {x for x in tasks if x.done()}
                     tasks -= done
     finally:
+        keep_alive_task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         try:

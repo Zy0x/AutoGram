@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
+
+Added & Optimized:
+- Implementasi **background keep-alive ping loop** pada `drive_serve.py` yang mengirimkan MTProto `PingRequest` secara periodik setiap 45 detik untuk mencegah socket TCP menjadi idle atau ditutup sepihak oleh router/proxy/VPN. Loop ini otomatis mendeteksi kegagalan ping dan memicu penyambungan ulang secara tertib.
+- Peningkatan timeout inisiasi koneksi pada `_connect` (`drive_fs.py`) dari 10 detik menjadi **20 detik** untuk toleransi yang lebih tinggi pada jaringan lambat, proxy, atau VPN.
+- Optimasi parameter koneksi `TelegramClient` di seluruh sistem (`client.py`, `session_authority.py`, `drive_fs.py`, `daemon.py`):
+  - Mengubah batas retry koneksi (`connection_retries`) menjadi **15 kali** dengan penundaan (`retry_delay`) selama **3 detik** di antara setiap percobaan.
+  - Menyetel toleransi rate limit (`flood_sleep_threshold`) secara otomatis hingga **24 jam** (`86400` detik) untuk menangani error `FloodWaitError` dengan aman tanpa crash.
+  - Meningkatkan retry pengiriman request (`request_retries`) secara internal menjadi **10 kali** guna meminimalisasi error intermiten selama proses pengiriman media/perintah.
+
 ## v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
 
 Added:

@@ -168,9 +168,12 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
             device_model=device_model,
             system_version=system_version,
             app_version=app_version,
-            connection_retries=connection_retries,
-            auto_reconnect=True
+            connection_retries=max(connection_retries or 5, 15),
+            retry_delay=3,
+            auto_reconnect=True,
+            flood_sleep_threshold=86400
         )
+        client.request_retries = 10
     else:
         # Standard Session: File-based if file exists, else StringSession
         file_base = resolve_session_path(session_name)
@@ -179,7 +182,16 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
         if os.path.isfile(file_session):
             # File-based session (Lavender.session, Mantan Gadis.session, …)
             _patch_session_wal(file_base)
-            client = TelegramClient(file_base, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
+            client = TelegramClient(
+                file_base,
+                api_id,
+                api_hash,
+                connection_retries=max(connection_retries or 5, 15),
+                retry_delay=3,
+                auto_reconnect=True,
+                flood_sleep_threshold=86400
+            )
+            client.request_retries = 10
         else:
             session_data = get_session(session_name)
             if session_data and session_data.get('session_string'):
@@ -190,7 +202,16 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
                     string_session = StringSession()
             else:
                 string_session = StringSession()
-            client = TelegramClient(string_session, api_id, api_hash, connection_retries=connection_retries, auto_reconnect=True)
+            client = TelegramClient(
+                string_session,
+                api_id,
+                api_hash,
+                connection_retries=max(connection_retries or 5, 15),
+                retry_delay=3,
+                auto_reconnect=True,
+                flood_sleep_threshold=86400
+            )
+            client.request_retries = 10
 
     await client.connect()
     if not await client.is_user_authorized():
