@@ -14,6 +14,9 @@ import { isDebugMode } from './debugMode';
 export const DRIVE_SERVE_JOB_ID = 991003;
 export const API_SERVER_JOB_ID = 991005;
 
+let activeJobId = DRIVE_SERVE_JOB_ID;
+
+
 type Pending = {
   resolve: (v: any) => void;
   reject: (e: Error) => void;
@@ -441,6 +444,8 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     await new Promise<void>((resolve) => setTimeout(resolve, 350));
 
     const generation = ++sessionGeneration;
+    activeJobId = DRIVE_SERVE_JOB_ID_BASE + (generation % 1000);
+    const currentActiveJobId = activeJobId;
     activeCredsKey = key;
     ready = false;
     const settleCurrentLine = (line: string) => {
@@ -467,7 +472,7 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     unsub = await listen<{ jobId: number; line: string; stream: string }>('worker-line', (ev) => {
       const p = ev.payload as any;
       const jid = p?.jobId ?? p?.job_id;
-      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (Number(jid) !== currentActiveJobId) return;
       if (generation !== sessionGeneration) return;
       try {
         pushWorkerLog(`[main ${String(p.stream || '')}] ${String(p.line || '')}`);
@@ -485,7 +490,7 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
     unsubExit = await listen<{ jobId: number; code: number }>('worker-exit', (ev) => {
       const p = ev.payload as any;
       const jid = p?.jobId ?? p?.job_id;
-      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (Number(jid) !== currentActiveJobId) return;
       if (generation !== sessionGeneration) return;
       if (!processAssigned) return;
       const markEnded = () => {
@@ -528,7 +533,7 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
       }, 40);
 
       spawnDaemonJob({
-        jobId: DRIVE_SERVE_JOB_ID,
+        jobId: currentActiveJobId,
         args: [
           '--action',
           'drive-serve',
@@ -694,7 +699,7 @@ export async function stopDriveSession(): Promise<void> {
       await new Promise<void>((resolve) => setTimeout(resolve, 320));
     }
     try {
-      await killWorkerJob(DRIVE_SERVE_JOB_ID);
+      await killWorkerJob(child?.jobId ?? activeJobId);
     } catch {
       /* ignore */
     }

@@ -3,6 +3,7 @@
 import os
 import shutil
 import time
+import glob
 from pathlib import Path
 
 WORKER_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -17,12 +18,27 @@ class GhostSessionManager:
 
     @classmethod
     def ensure_ghost(cls, session_name: str, suffix: str = None) -> str:
-        # If session_name already has suffix, do not double append
-        suffix = suffix or cls.GHOST_SUFFIX
-        if session_name.endswith(suffix):
+        """
+        Ensures a ghost session exists. 
+        Uses dynamic suffixes on Windows to avoid WinError 32 (file in use).
+        """
+        # If session_name already has a known suffix, do not double append
+        if any(s in session_name for s in [cls.GHOST_SUFFIX, cls.PREVIEW_SUFFIX]):
             return session_name
 
-        ghost_name = f'{session_name}{suffix}'
+        suffix = suffix or cls.GHOST_SUFFIX
+        
+        # Proactively cleanup old ghost files before creating a new one
+        try:
+            cls.cleanup_stale_ghosts(session_name, suffix)
+        except Exception:
+            pass
+
+        # Use dynamic suffix to prevent WinError 32 on Windows
+        # Example: Lavender_preview_171819
+        timestamp = int(time.time())
+        ghost_name = f"{session_name}{suffix}_{timestamp}"
+        
         original_path = SESSION_DIR / f'{session_name}.session'
         ghost_path = SESSION_DIR / f'{ghost_name}.session'
 
@@ -63,6 +79,14 @@ class GhostSessionManager:
                         
                 dest_conn = sqlite3.connect(str(temp_path))
                 src_conn.backup(dest_conn)
+                
+                # Explicitly close connections BEFORE performing file operations (os.replace)
+                # to prevent file lock (WinError 32) on Windows
+                dest_conn.close()
+                dest_conn = None
+                src_conn.close()
+                src_conn = None
+                
                 backup_success = True
                 
                 if temp_path.exists():
@@ -105,7 +129,10 @@ class GhostSessionManager:
                 try:
                     shutil.copy2(str(original_path), str(temp_path))
                     if ghost_path.exists():
-                        ghost_path.unlink()
+                        try:
+                            ghost_path.unlink()
+                        except Exception:
+                            pass
                     os.replace(str(temp_path), str(ghost_path))
                     
                     # Copy companion journal/wal files if they exist to keep session completely synced
@@ -126,19 +153,48 @@ class GhostSessionManager:
         return ghost_name
 
     @classmethod
-    def cleanup_ghost(cls, session_name: str, suffix: str = None):
+    def cleanup_stale_ghosts(cls, session_name: str, suffix: str = None, max_age_seconds: int = 900):
+        """Removes ghost files older than max_age_seconds (default 15 mins)."""
         suffix = suffix or cls.GHOST_SUFFIX
-        ghost_name = f'{session_name}{suffix}'
-        ghost_path = SESSION_DIR / f'{ghost_name}.session'
+        # Match pattern: session_name_suffix_*
+        pattern = str(SESSION_DIR / f"{session_name}{suffix}_*")
         
-        # Delete session file and potential WAL/journal files
-        for ext in ['.session', '.session-wal', '.session-shm', '.session.journal']:
-            f = SESSION_DIR / f'{ghost_name}{ext}'
-            if f.exists():
-                try:
-                    f.unlink()
-                except OSError:
-                    pass
+        for file_path in glob.glob(pattern):
+            try:
+                p = Path(file_path)
+                # Check file age
+                if time.time() - p.stat().st_mtime > max_age_seconds:
+                    # Try to delete session and its journals
+                    base_name = p.stem # filename without extension
+                    for ext in ['.session', '.session-wal', '.session-shm', '.session.journal']:
+                        f = SESSION_DIR / f'{base_name}{ext}'
+                        if f.exists():
+                            try:
+                                f.unlink()
+                            except OSError:
+                                pass
+            except Exception:
+                pass
+
+    @classmethod
+    def cleanup_ghost(cls, session_name: str, suffix: str = None):
+        """Cleans up all ghost sessions matching the prefix/suffix."""
+        suffix = suffix or cls.GHOST_SUFFIX
+        pattern = str(SESSION_DIR / f"{session_name}{suffix}_*")
+        
+        for file_path in glob.glob(pattern):
+            try:
+                p = Path(file_path)
+                base_name = p.stem
+                for ext in ['.session', '.session-wal', '.session-shm', '.session.journal']:
+                    f = SESSION_DIR / f'{base_name}{ext}'
+                    if f.exists():
+                        try:
+                            f.unlink()
+                        except OSError:
+                            pass
+            except Exception:
+                pass
 
     @classmethod
     def cleanup_all_ghosts(cls, session_name: str):

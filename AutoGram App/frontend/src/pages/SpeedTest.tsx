@@ -827,6 +827,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (!creds || !isDriveSessionReadyFor(creds)) {
         if (active) {
           setPingState({ status: 'disconnected', ms: null });
+          if (creds) {
+            ensureDriveSession(creds).then(ok => {
+              if (ok && active) setDriveReady(true);
+            }).catch(() => {});
+          }
         }
         consecutiveFailures = 0;
         scheduleNext(3000);
@@ -852,6 +857,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           consecutiveFailures++;
           if (consecutiveFailures >= 3) {
             setPingState({ status: 'disconnected', ms: null });
+            stopDriveSession().catch(() => {});
           }
         }
       } catch (err) {
@@ -859,6 +865,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           consecutiveFailures++;
           if (consecutiveFailures >= 3) {
             setPingState({ status: 'disconnected', ms: null });
+            stopDriveSession().catch(() => {});
           }
         }
       }

@@ -95,6 +95,7 @@ from database.queries import (
 from database.db import get_connection
 
 async def list_dialogs(session_name, api_id, api_hash, chat_folder_id=None):
+    client = None
     try:
         try:
             from core.ghost_session import GhostSessionManager
@@ -166,15 +167,20 @@ async def list_dialogs(session_name, api_id, api_hash, chat_folder_id=None):
             # Limit to first 100 for performance
             if len(dialogs_list) >= 100:
                 break
-            
-        await client.disconnect()
         
         # Print exactly one line of JSON for the Tauri app to parse
         print(f"[JSON_OUTPUT]{json.dumps(dialogs_list)}")
     except Exception as e:
         print(f"[JSON_OUTPUT]{json.dumps({'error': str(e)})}")
+    finally:
+        if client:
+            try:
+                await client.disconnect()
+            except Exception:
+                pass
 
 async def list_topics(session_name, chat_id, api_id, api_hash):
+    client = None
     try:
         try:
             from core.ghost_session import GhostSessionManager
@@ -210,10 +216,15 @@ async def list_topics(session_name, chat_id, api_id, api_hash):
         except Exception as e:
             pass
             
-        await client.disconnect()
         print(f"[JSON_OUTPUT]{json.dumps(topics_list)}")
     except Exception as e:
         print(f"[JSON_OUTPUT]{json.dumps({'error': str(e)})}")
+    finally:
+        if client:
+            try:
+                await client.disconnect()
+            except Exception:
+                pass
 
 def start_parent_watcher() -> None:
     """Spawns a background thread to watch the parent process.
