@@ -309,31 +309,13 @@ async def qr_check_action(session_name, api_id, api_hash):
             print(json.dumps({"status": "success"}), flush=True)
             return
 
-        try:
-            qr_login = await client.qr_login()
-            user = await qr_login.wait(timeout=1.5)
-            save_client_session(session_name, client)
-            sessions_dir = os.environ.get("AUTOGRAM_SESSIONS_DIR", os.path.join(os.path.dirname(__file__), "sessions"))
-            grammers_file = os.path.join(sessions_dir, f"{session_name}.grammers.json")
-            if os.path.exists(grammers_file):
-                try:
-                    os.remove(grammers_file)
-                except Exception:
-                    pass
-            print(json.dumps({"status": "success", "username": getattr(user, "username", "") or ""}), flush=True)
-        except SessionPasswordNeededError:
-            save_client_session(session_name, client)
-            print(json.dumps({"status": "2fa_required"}), flush=True)
-        except asyncio.TimeoutError:
-            print(json.dumps({"status": "pending"}), flush=True)
-        except Exception as e:
-            msg = str(e).lower()
-            if "expired" in msg:
-                print(json.dumps({"error": "qr_expired"}), flush=True)
-            else:
-                print(json.dumps({"status": "pending"}), flush=True)
+        print(json.dumps({"status": "pending"}), flush=True)
     except Exception as e:
-        print(json.dumps({"error": str(e)}), flush=True)
+        msg = str(e).lower()
+        if "unregistered" in msg or "expired" in msg:
+            print(json.dumps({"error": "qr_expired"}), flush=True)
+        else:
+            print(json.dumps({"status": "pending"}), flush=True)
     finally:
         try:
             await client.disconnect()
