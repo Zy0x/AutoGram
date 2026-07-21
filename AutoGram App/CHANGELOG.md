@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.57 Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
+
+Added & Optimized:
+- Implementasi dukungan **Pratinjau Audio Progresif (Audio Preview)** in-app di dalam `DrivePreviewModal`. Berkas audio (`.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac`, `.flac`, `.opus`) kini dapat diputar langsung secara progresif (aliran data bertahap layaknya video) tanpa unduhan penuh di awal.
+- Desain antarmuka pemutar audio yang sangat estetik dengan piringan hitam (*vinyl disk rotation*) yang berputar lembut saat audio aktif, visualisasi cover art/thumbnail, kontrol kecepatan putar (*playback rate*), slider volume/mute, serta visualisasi progres penyangga buffer.
+- Penyelarasan format berkas teks dan kode developer antara frontend dengan backend. Mendukung pratinjau teks/kode inline instan untuk berkas berekstensi `.py`, `.rs`, `.go`, `.sql`, `.js`, `.ts`, `.jsx`, `.tsx`, `.toml`, `.env`, `.ini`, `.cfg`, `.conf`, `.html`, `.css`.
+- Penyelarasan ekstensi gambar (`.svg`, `.ico`) dan video (`.ogv`) pada penentuan tipe pratinjau di frontend.
+
 ## v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
 
 Fixed & Optimized:

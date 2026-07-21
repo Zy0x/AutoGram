@@ -61,6 +61,7 @@ import {
   formatDriveKindLabel,
   isImageDriveFile,
   isVideoDriveFile,
+  isAudioDriveFile,
   isPdfDriveFile,
   isTextDriveFile,
   isOfficeDriveFile,
@@ -235,30 +236,34 @@ function resolvePreviewKind(
   file: DriveFile,
   mime: string | null,
   previewKind: string | null
-): 'image' | 'video' | 'pdf' | 'text' | 'zip' | 'other' {
+): 'image' | 'video' | 'audio' | 'pdf' | 'text' | 'zip' | 'other' {
   const m = (mime || file.mime_type || '').toLowerCase();
   if (m.startsWith('image/')) return 'image';
   if (m.startsWith('video/')) return 'video';
+  if (m.startsWith('audio/') || previewKind === 'audio' || isAudioDriveFile(file)) return 'audio';
   if (m === 'application/pdf' || previewKind === 'pdf' || isPdfDriveFile(file)) return 'pdf';
   if (m.startsWith('text/') || previewKind === 'text' || isTextDriveFile(file)) return 'text';
   if (isZipDriveFile(file) || m.includes('zip') || previewKind === 'zip') return 'zip';
-  if (m.startsWith('audio/')) return 'other';
   // Explicit backend kinds
   if (previewKind === 'image' || previewKind === 'file' || previewKind === 'inline') {
     if (isImageDriveFile(file)) return 'image';
     if (isVideoDriveFile(file)) return 'video';
+    if (isAudioDriveFile(file)) return 'audio';
   }
   if (previewKind === 'video') return 'video';
+  if (previewKind === 'audio') return 'audio';
   // File metadata (extension / icon) — never use previewKind==="stream" alone
   if (isImageDriveFile(file) && !isVideoDriveFile(file)) return 'image';
   if (isVideoDriveFile(file)) return 'video';
+  if (isAudioDriveFile(file)) return 'audio';
   // Stream of unknown type: guess from filename
   const name = (file.name || file.original_name || '').toLowerCase();
-  if (/\.(jpe?g|png|gif|webp|bmp|heic|avif)$/i.test(name)) return 'image';
-  if (/\.(mp4|mov|mkv|webm|avi|m4v|3gp)$/i.test(name)) return 'video';
+  if (/\.(jpe?g|png|gif|webp|bmp|heic|avif|svg|ico)$/i.test(name)) return 'image';
+  if (/\.(mp4|mov|mkv|webm|avi|m4v|3gp|ogv)$/i.test(name)) return 'video';
+  if (/\.(mp3|wav|ogg|m4a|aac|flac|opus)$/i.test(name)) return 'audio';
   if (/\.pdf$/i.test(name)) return 'pdf';
   if (/\.zip$/i.test(name)) return 'zip';
-  if (/\.(json|txt|md|csv|log|xml|ya?ml)$/i.test(name)) return 'text';
+  if (/\.(json|txt|md|markdown|csv|tsv|log|xml|ya?ml|ini|cfg|conf|html|htm|css|js|ts|py|rs|go|sql|toml|env)$/i.test(name)) return 'text';
   return 'other';
 }
 
@@ -1074,6 +1079,7 @@ export function DrivePreviewModal({
   const mediaKind = useMemo(() => {
     if (isImageDriveFile(file) && !isVideoDriveFile(file)) return 'image' as const;
     if (isVideoDriveFile(file) && !isImageDriveFile(file)) return 'video' as const;
+    if (isAudioDriveFile(file)) return 'audio' as const;
     if (isPdfDriveFile(file)) return 'pdf' as const;
     if (isTextDriveFile(file)) return 'text' as const;
     if (isZipDriveFile(file)) return 'zip' as const;
@@ -1081,24 +1087,25 @@ export function DrivePreviewModal({
   }, [file, mime, previewKind]);
   const isVideo = mediaKind === 'video';
   const isImage = mediaKind === 'image';
+  const isAudio = mediaKind === 'audio';
   const isPdf = mediaKind === 'pdf';
   const isText = mediaKind === 'text';
   const isZip = mediaKind === 'zip';
   const isDocOther = mediaKind === 'other';
 
-  // Close video-only menus when media kind changes (e.g. next to a photo)
+  // Close video/audio-only menus when media kind changes (e.g. next to a photo)
   useEffect(() => {
-    if (!isVideo) {
+    if (!isVideo && !isAudio) {
       setRateOpen(false);
       setQualityOpen(false);
       setPlaybackRate(1);
       setMuted(false);
     }
-  }, [isVideo, file.id]);
+  }, [isVideo, isAudio, file.id]);
 
   const mediaSrc = useMemo(
-    () => buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo }),
-    [streamUrl, dataUrl, path, isImage, isVideo]
+    () => buildMediaSrc(streamUrl, dataUrl, path, isImage, { forVideo: isVideo || isAudio }),
+    [streamUrl, dataUrl, path, isImage, isVideo, isAudio]
   );
 
   // Fallback sources if primary fails — never inject poster/thumb into <video>
@@ -1134,6 +1141,7 @@ export function DrivePreviewModal({
 
   const showVideo = !!activeSrc && isVideo;
   const showImage = !!activeSrc && isImage;
+  const showAudio = !!activeSrc && isAudio;
   const pdfSrc = useMemo(() => {
     if (!isPdf) return null;
     // Prefer HTTP stream (complete file registered by worker) — more reliable than asset://
@@ -1981,40 +1989,42 @@ export function DrivePreviewModal({
               </div>
             )}
 
-            {isVideo && (
-              <div className="drive-tool-group" role="group" aria-label="Pemutaran video">
-                <span className="drive-tool-group-label">Video</span>
-                <div className="drive-quality-wrap">
-                  <button
-                    ref={qualityBtnRef}
-                    type="button"
-                    className="drive-tool-btn drive-tool-btn-accent"
-                    title="Resolusi stream (Otomatis / Asli / 720p…)"
-                    onClick={() => {
-                      setRateOpen(false);
-                      setRateMenuPos(null);
-                      setQualityOpen((o) => {
-                        const next = !o;
-                        if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current));
-                        else setQualityMenuPos(null);
-                        return next;
-                      });
-                    }}
-                    disabled={switchingQuality}
-                    aria-expanded={qualityOpen}
-                    aria-haspopup="menu"
-                    aria-label="Resolusi video"
-                  >
-                    {switchingQuality ? (
-                      <Loader2 size={15} className="spin" />
-                    ) : (
-                      <Settings2 size={14} />
-                    )}
-                    <span className="drive-tool-btn-label">
-                      {activeResolution?.label || activeQuality?.label || 'Otomatis'}
-                    </span>
-                  </button>
-                </div>
+            {(isVideo || isAudio) && (
+              <div className="drive-tool-group" role="group" aria-label="Pemutaran media">
+                <span className="drive-tool-group-label">{isVideo ? 'Video' : 'Audio'}</span>
+                {isVideo && (
+                  <div className="drive-quality-wrap">
+                    <button
+                      ref={qualityBtnRef}
+                      type="button"
+                      className="drive-tool-btn drive-tool-btn-accent"
+                      title="Resolusi stream (Otomatis / Asli / 720p…)"
+                      onClick={() => {
+                        setRateOpen(false);
+                        setRateMenuPos(null);
+                        setQualityOpen((o) => {
+                          const next = !o;
+                          if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current));
+                          else setQualityMenuPos(null);
+                          return next;
+                        });
+                      }}
+                      disabled={switchingQuality}
+                      aria-expanded={qualityOpen}
+                      aria-haspopup="menu"
+                      aria-label="Resolusi video"
+                    >
+                      {switchingQuality ? (
+                        <Loader2 size={15} className="spin" />
+                      ) : (
+                        <Settings2 size={14} />
+                      )}
+                      <span className="drive-tool-btn-label">
+                        {activeResolution?.label || activeQuality?.label || 'Otomatis'}
+                      </span>
+                    </button>
+                  </div>
+                )}
                 <div className="drive-quality-wrap">
                   <button
                     ref={rateBtnRef}
@@ -2665,6 +2675,240 @@ export function DrivePreviewModal({
             </div>
           )}
 
+          {!error && showAudio && (
+            <div
+              className="drive-preview-media-wrap drive-preview-audio-wrap"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '24px',
+                padding: '40px',
+                width: '100%',
+                maxWidth: '500px',
+                margin: '0 auto',
+                background: 'rgba(15, 23, 42, 0.45)',
+                backdropFilter: 'blur(16px)',
+                borderRadius: '24px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <style>{`
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+                .drive-audio-disk-container.is-playing {
+                  animation: spin 12s linear infinite;
+                }
+              `}</style>
+              
+              {/* Rotating Cover / Vinyl disk */}
+              <div
+                className={`drive-audio-disk-container ${!loading && hasVideoFrame ? 'is-playing' : ''}`}
+                style={{
+                  width: '180px',
+                  height: '180px',
+                  borderRadius: '50%',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, #1e1b4b, #311042)',
+                  border: '8px solid rgba(255, 255, 255, 0.05)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255,255,255,0.05)',
+                  overflow: 'hidden',
+                }}
+              >
+                {poster || gridThumb ? (
+                  <img
+                    src={poster || gridThumb || ''}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: '50%',
+                    }}
+                    draggable={false}
+                  />
+                ) : (
+                  <div style={{ color: '#818cf8', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <Volume2 size={48} />
+                  </div>
+                )}
+                {/* Center hole */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: '#0b0f19',
+                    border: '4px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: 'inset 0 0 8px rgba(0,0,0,0.8)',
+                  }}
+                />
+              </div>
+
+              {/* Title & Metadata */}
+              <div style={{ textAlign: 'center', width: '100%' }}>
+                <h3 style={{
+                  color: '#f8fafc',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  marginBottom: '6px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {displayName}
+                </h3>
+                <p style={{ color: '#94a3b8', fontSize: '13px' }}>
+                  {durationLabel ? `${durationLabel} · ` : ''}{formatDriveBytes(file.size)}
+                </p>
+              </div>
+
+              {/* Audio player element */}
+              <audio
+                ref={videoRef}
+                key={`${file.id}-${srcOverride || 'primary'}`}
+                src={activeSrc!}
+                controls
+                playsInline
+                autoPlay
+                loop={loopVideo}
+                preload="auto"
+                style={{
+                  width: '100%',
+                  borderRadius: '12px',
+                  outline: 'none',
+                }}
+                onLoadedMetadata={() => {
+                  const v = videoRef.current;
+                  const t = resumeAtRef.current;
+                  if (v) {
+                    v.playbackRate = playbackRate;
+                    v.muted = muted;
+                    v.loop = loopVideo;
+                  }
+                  if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
+                    try {
+                      ignoreSeekEventsRef.current += 1;
+                      userSeekPendingRef.current = false;
+                      v.currentTime = t;
+                    } catch {
+                      ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
+                    }
+                  }
+                  resumeAtRef.current = 0;
+                  setLoading(false);
+                }}
+                onLoadedData={() => {
+                  setHasVideoFrame(true);
+                  setLoading(false);
+                }}
+                onCanPlay={() => {
+                  setHasVideoFrame(true);
+                  setLoading(false);
+                }}
+                onSeeking={() => {
+                  if (ignoreSeekEventsRef.current > 0) return;
+                  userSeekPendingRef.current = true;
+                }}
+                onSeeked={() => {
+                  if (ignoreSeekEventsRef.current > 0) {
+                    ignoreSeekEventsRef.current -= 1;
+                    userSeekPendingRef.current = false;
+                    return;
+                  }
+                  handleSeekJump();
+                }}
+                onEnded={() => {
+                  if (!loopVideo) return;
+                  const v = videoRef.current;
+                  if (!v) return;
+                  try {
+                    ignoreSeekEventsRef.current += 1;
+                    userSeekPendingRef.current = false;
+                    v.currentTime = 0;
+                    void v.play().catch(() => undefined);
+                  } catch {
+                    ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
+                  }
+                }}
+                onWaiting={() => {
+                  if (streamUrl && !streamDone && !seekWarn) {
+                    setPlayerHint('Buffering…');
+                  }
+                }}
+                onPlay={() => {
+                  handlePlay();
+                  setHasVideoFrame(true);
+                }}
+                onPause={() => {
+                  handlePause();
+                  setHasVideoFrame(false);
+                }}
+                onPlaying={() => {
+                  setHasVideoFrame(true);
+                  setLoading(false);
+                  handlePlay();
+                  if (seekWarn && seekWarn.startsWith('Memuat')) {
+                    setSeekWarn(null);
+                  }
+                  if (!seekWarn && streamUrl && !streamDone) setPlayerHint(null);
+                  else if (!streamUrl || streamDone) setPlayerHint(null);
+                }}
+                onStalled={() => {
+                  if (streamUrl && !streamDone && !seekWarn) {
+                    setPlayerHint('Menunggu data…');
+                  }
+                }}
+                onError={(e) => {
+                  const mediaErr = videoRef.current?.error || (e.target as HTMLAudioElement)?.error;
+                  if (mediaErr && mediaErr.code === 1) {
+                    return; // MEDIA_ERR_ABORTED is not a failure
+                  }
+                  if (tryNextSrc()) return;
+                  if (streamUrl) {
+                    invalidatePreview(folderId, file.id);
+                    setHasVideoFrame(false);
+                    setStreamUrl(null);
+                    setStreamId(null);
+                    setPlayerHint('Menyambung stream…');
+                    window.setTimeout(() => {
+                      loadPreview(quality, { soft: false });
+                    }, 400);
+                    return;
+                  }
+                  if (!loading) {
+                    setError('Gagal memutar audio. Coba Download.');
+                  }
+                }}
+              />
+
+              {/* Progressive buffer status for audio */}
+              {streamUrl && !streamDone && bufferPct < 100 && (
+                <div
+                  className={`drive-stream-bar${seekWarn ? ' is-seek-warn' : ''}`}
+                  style={{ width: '100%', marginTop: '-12px' }}
+                >
+                  <div className="drive-stream-fill" style={{ width: `${bufferPct}%` }} />
+                  <span className="drive-stream-label">
+                    {seekWarn
+                      ? seekWarn
+                      : playerHint
+                        ? `${playerHint} · ${bufferPct}%`
+                        : `Buffer ${bufferPct}%`}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* PDF in-app viewer (iframe / native embed) */}
           {isPdf && pdfSrc && (
             <div className="drive-preview-doc drive-preview-pdf">
@@ -2730,8 +2974,10 @@ export function DrivePreviewModal({
             !error &&
             !showImage &&
             !showVideo &&
+            !showAudio &&
             !isVideo &&
             !isImage &&
+            !isAudio &&
             !showThumbSkeleton &&
             !isPdf &&
             !isText &&

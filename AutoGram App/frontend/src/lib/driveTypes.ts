@@ -860,6 +860,15 @@ const OFFICE_EXTS = new Set([
   'rtf',
 ]);
 
+const AUDIO_EXTS = new Set(['mp3', 'm4a', 'ogg', 'flac', 'wav', 'opus', 'aac', 'wma']);
+
+export function isAudioDriveFile(file: DriveFile): boolean {
+  if (file.icon_type === 'audio' || file.icon_type === 'voice') return true;
+  const mime = (file.mime_type || '').toLowerCase();
+  if (mime.startsWith('audio/')) return true;
+  return AUDIO_EXTS.has(driveFileExt(file));
+}
+
 export function isImageDriveFile(file: DriveFile): boolean {
   if (file.icon_type === 'image') return true;
   const mime = (file.mime_type || '').toLowerCase();
@@ -898,7 +907,7 @@ export function isZipDriveFile(file: DriveFile): boolean {
 
 export function isTextDriveFile(file: DriveFile): boolean {
   if (file.icon_type === 'link') return false;
-  if (isPdfDriveFile(file) || isImageDriveFile(file) || isVideoDriveFile(file)) return false;
+  if (isPdfDriveFile(file) || isImageDriveFile(file) || isVideoDriveFile(file) || isAudioDriveFile(file)) return false;
   const mime = (file.mime_type || '').toLowerCase();
   if (mime.startsWith('text/')) return true;
   if (
@@ -932,6 +941,7 @@ export function canPreviewInApp(file: DriveFile): boolean {
   return (
     isImageDriveFile(file) ||
     isVideoDriveFile(file) ||
+    isAudioDriveFile(file) ||
     isPdfDriveFile(file) ||
     isTextDriveFile(file) ||
     isZipDriveFile(file)

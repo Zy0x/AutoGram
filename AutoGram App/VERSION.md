@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.56
+AutoGram Version: v2.1.57
 
 Current State:
-Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
+Dukungan Pratinjau Audio Progresif In-App & Penyelarasan Ekstensi File Kode Developer
 
 Previous:
+v2.1.56 Pencegahan Balapan Bootstrap (Serialization Lock) & Penanganan Galat Stdin Rendah Level
 v2.1.55 Peningkatan Kestabilan Koneksi & Keep-Alive Ping Loop (Resiliensi Jaringan Telethon)
 v2.1.54 Sinkronisasi Play/Pause & Optimasi Efisiensi Data Progressive Streaming
 v2.1.50 Pencegahan Koneksi Hang (Stuck) & Resiliensi Reconnect Sesi Drive saat Streaming
