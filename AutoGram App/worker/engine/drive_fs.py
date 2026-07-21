@@ -1974,28 +1974,121 @@ def _patch_session_wal(session_file: str) -> None:
 
 
 def _session_client(session_name: str, api_id: int, api_hash: str) -> TelegramClient:
+    #
+    # Factory for TelegramClient with V2 in-memory ghost session support.
+    #
+    # Rules:
+    # - Suffix _preview / _migration → StringSession in-memory (NO FILE ON DISK)
+    # - Normal session              → file-based SQLite session (WAL patched)
+    #
+    # Args:
+    #     session_name: Name of the session. Ghost sessions have _preview or
+    #                   _migration suffix.
+    #     api_id:       Telegram API ID.
+    #     api_hash:     Telegram API hash.
+    #
+    # Returns:
+    #     Configured TelegramClient instance.
+    #
+    from telethon.sessions import StringSession
+    import logging
+    logger = logging.getLogger("autogram.drive_fs")
     session_dir = os.path.join(WORKER_ROOT, "sessions")
     os.makedirs(session_dir, exist_ok=True)
-    session_file = os.path.join(session_dir, session_name)
-    _patch_session_wal(session_file)
     
-    is_ghost = session_name.endswith('_preview')
+    # --- GHOST SESSION DETECTION ---
+    is_ghost = False
+    base_name = session_name
+    purpose = "unknown"
+    
+    for suffix in ["_migration", "_preview"]:
+        if suffix in session_name:
+            is_ghost = True
+            purpose = suffix.lstrip("_")  # "migration" or "preview"
+            base_name = session_name.split(suffix)[0]
+            break
+    
+    # ================================================================
+    # PATH A: IN-MEMORY GHOST SESSION (V2 Architecture)
+    # ================================================================
     if is_ghost:
+        logger.info(
+            f"[GHOST] Creating in-memory client for '{session_name}' "
+            f"(base='{base_name}', purpose='{purpose}')"
+        )
+        
+        string_session: Optional[StringSession] = None
+        
+        try:
+            # Load encrypted session string from internal database
+            from database.queries import get_session
+            from core.encryption import decrypt_data
+            
+            session_data = get_session(base_name)
+            
+            if session_data and session_data.get("session_string"):
+                decrypted_str = decrypt_data(session_data["session_string"])
+                string_session = StringSession(decrypted_str)
+                logger.info(
+                    f"[GHOST] Loaded StringSession for '{base_name}' "
+                    f"from encrypted DB"
+                )
+            else:
+                logger.error(
+                    f"[GHOST] No session_string found for '{base_name}' "
+                    f"in database! Ghost will fail to authenticate."
+                )
+                string_session = StringSession()  # Empty — will fail auth
+                
+        except Exception as e:
+            logger.exception(
+                f"[GHOST] Failed to load StringSession for '{base_name}': {e}"
+            )
+            string_session = StringSession()
+        
+        # Build client with ghost identity
+        device_model = f"AutoGram Ghost {purpose.capitalize()}"
+        system_version = "V2-Reborn"
+        app_version = "2.1.52"
+        
         client = TelegramClient(
-            session_file,
+            string_session,
             int(api_id),
             str(api_hash),
-            receive_updates=False,
+            device_model=device_model,
+            system_version=system_version,
+            app_version=app_version,
             connection_retries=5,
             auto_reconnect=True,
         )
-        # Drop all incoming updates without processing
-        async def _drop_update(*args, **kwargs):
-            pass
-        client._dispatch_update = _drop_update
-        return client
         
-    return TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=5, auto_reconnect=True)
+        # Optimization: preview clients don't need update dispatch
+        if purpose == "preview":
+            client.receive_updates = False
+            async def _drop_update(*args, **kwargs):
+                pass
+            client._dispatch_update = _drop_update
+            logger.debug("[GHOST] Update dispatch disabled for preview client")
+        
+        return client
+    
+    # ================================================================
+    # PATH B: STANDARD FILE-BASED SESSION (Canonical)
+    # ================================================================
+    session_file = os.path.join(session_dir, session_name)
+    
+    # Apply WAL patch (existing behavior preserved)
+    _patch_session_wal(session_file)
+    
+    logger.info(f"[CANONICAL] Loading file session: {session_file}")
+    
+    return TelegramClient(
+        session_file,
+        int(api_id),
+        str(api_hash),
+        connection_retries=5,
+        auto_reconnect=True
+    )
 
 
 

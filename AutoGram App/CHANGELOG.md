@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.53 Perbaikan Kritikal Sistem Preview & Streaming (Otentikasi Sesi Drive)
+
+Fixed:
+- Memperbaiki kegagalan inisialisasi sesi ghost preview/migration pada modul backend drive filesystem agar memuat StringSession dari memori database secara in-memory, mencegah pembuatan file sesi SQLite kosong pada disk yang dapat memicu kegagalan otentikasi Telegram.
+
 ## v2.1.52 Implementasi AutoGram V2 Reborn Architecture (In-Memory Session Views & Async Streaming Engine)
 
 Fixed & Added:
