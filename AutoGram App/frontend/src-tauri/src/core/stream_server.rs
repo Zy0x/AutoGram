@@ -372,16 +372,47 @@ fn handle_stream(request: Request, sid: &str) {
     // Default: first solid slice (fast start)
     let (start, end_incl, status) = if let Some((rs, re)) = parse_range(range_hdr.as_deref()) {
         let start = rs;
-        let have_end = contiguous_end_from(&ranges, start);
+        let mut have_end = contiguous_end_from(&ranges, start);
         if have_end <= start && !entry.done {
-            // Prefer 206 of nearest available prefix for head requests so the
-            // HTML5 player does not treat progressive holes as fatal media errors
-            // (WebView2 often remounts/reloads on hard 503 loops).
-            if start == 0 {
-                let solid = prefix.max(1).min(total.max(1));
+            // Auto-resume download if it was paused by a browser pause event
+            if entry.paused {
+                entry.paused = false;
+                upsert_entry(entry.clone());
+            }
+
+            // Wait up to 3 seconds for Telegram download to reach start
+            let mut waited = 0;
+            while waited < 3000 {
+                let r = if entry.ranges.is_empty() {
+                    vec![]
+                } else {
+                    entry.ranges.clone()
+                };
+                let have = contiguous_end_from(&r, start);
+                if have > start || entry.done {
+                    have_end = have;
+                    break;
+                }
+                thread::sleep(Duration::from_millis(50));
+                waited += 50;
+                if let Some(updated) = get_entry(sid) {
+                    entry = updated;
+                } else {
+                    break;
+                }
+            }
+
+            if have_end <= start && !entry.done {
+                // If still not ready past start, serve nearest solid slice from zero or start
+                // so HTML5 player stays in smooth buffering state without fatal 503 reload loops.
+                let serve_start = if start == 0 || start >= total { 0 } else { start.min(prefix) };
+                let solid = if serve_start == 0 {
+                    prefix.max(1).min(total.max(1))
+                } else {
+                    (serve_start + 1).min(total.max(1))
+                };
                 let end_incl = solid.saturating_sub(1);
-                // Fall through by rewriting to serve [0, solid)
-                let length = solid;
+                let length = end_incl.saturating_sub(serve_start).saturating_add(1);
                 let mut file = match File::open(&path) {
                     Ok(f) => f,
                     Err(_) => {
@@ -394,7 +425,7 @@ fn handle_stream(request: Request, sid: &str) {
                         return;
                     }
                 };
-                if file.seek(SeekFrom::Start(0)).is_err() {
+                if file.seek(SeekFrom::Start(serve_start)).is_err() {
                     let mut res =
                         Response::from_string("seek failed").with_status_code(StatusCode(500));
                     for h in cors_headers() {
@@ -430,7 +461,7 @@ fn handle_stream(request: Request, sid: &str) {
                     res.add_header(h);
                 }
                 res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
-                let cr = format!("bytes 0-{end_incl}/{total}");
+                let cr = format!("bytes {serve_start}-{end_incl}/{total}");
                 if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
                     res.add_header(h);
                 }
@@ -441,21 +472,6 @@ fn handle_stream(request: Request, sid: &str) {
                 let _ = request.respond(res);
                 return;
             }
-            // Not ready at seek point — 503 (Retry-After) without killing the element
-            let mut res = Response::from_string("Buffer seek-loading")
-                .with_status_code(StatusCode(503));
-            for h in cors_headers() {
-                res.add_header(h);
-            }
-            res.add_header(Header::from_bytes(&b"Retry-After"[..], &b"1"[..]).unwrap());
-            if let Ok(h) = Header::from_bytes(
-                &b"X-AutoGram-Available"[..],
-                format!("{prefix}").as_bytes(),
-            ) {
-                res.add_header(h);
-            }
-            let _ = request.respond(res);
-            return;
         }
         let solid_end = if entry.done {
             total
