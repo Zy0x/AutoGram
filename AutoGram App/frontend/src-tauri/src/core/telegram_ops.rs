@@ -65,6 +65,9 @@ pub struct DialogEntry {
     pub is_user: bool,
     pub is_channel: bool,
     pub is_group: bool,
+    /// True when peer is a forum (topics UI). Megagroup channels with forum flag.
+    #[serde(default)]
+    pub is_forum: bool,
 }
 
 /// Backend ownership label for capability / UI diagnostics.
@@ -135,21 +138,13 @@ pub fn backend_status() -> BackendStatus {
             "import_telethon_session",
             "probe_session",
         ],
-        telethon_ops: vec![
-            "drive_serve_warm",
-            "media_stream_seek_multidc",
-            "media_studio_pipeline",
-            "migration",
-            "studio_serve_fallback",
-            "thumbs_fallback",
-        ],
+        telethon_ops: vec![],
         notes: vec![
-            "Account, session inventory/status, Drive browse, documents, and preview use Grammers (Rust).",
-            "Progressive preview uses a persistent Rust runtime, concurrent Range HTTP, moov readiness, and native seek.",
-            "One interactive account owns session state; same-account operations are serialized.",
-            "Legacy companion is not allowed to take over Account or desktop Preview after a native error.",
-            "Import Telethon .session → .grammers.json before first Grammers connect.",
-            "The runtime backend selector is locked to Grammers for these interactive surfaces.",
+            "FORCE: backend is Grammers (Rust) only — Telethon/Python runtime is disabled.",
+            "Drive browse, CRUD, thumbs, topics, avatars, and progressive preview use Grammers.",
+            "Studio upload/album use Grammers orch; Telethon studio-serve fallback is removed.",
+            "Import legacy Telethon .session → .grammers.json once; runtime uses JSON only.",
+            "Jobs/migration MTProto is being ported fully to Grammers (no Telethon companion).",
         ],
     }
 }
@@ -239,6 +234,11 @@ fn sessions_dir_from_env() -> std::path::PathBuf {
     super::grammers_ops::resolve_sessions_dir(None)
 }
 
+pub fn tg_disconnect_session(session: String) -> OpResult<bool> {
+    super::grammers_ops::disconnect_session_blocking(&session);
+    ok_result("grammers", true)
+}
+
 pub fn tg_probe_session(session: String) -> super::grammers_ops::SessionProbeResult {
     let dir = sessions_dir_from_env();
     super::grammers_ops::probe_sessions_blocking(&dir, &session)
@@ -319,6 +319,7 @@ pub struct ListMediaRequest {
     pub chat_id: String,
     pub limit: Option<usize>,
     pub offset_id: Option<i64>,
+    pub topic_id: Option<i64>,
 }
 
 pub fn tg_list_media(
@@ -331,12 +332,13 @@ pub fn tg_list_media(
         api_hash: req.api_hash,
     };
     let limit = req.limit.unwrap_or(40);
-    match super::grammers_ops::list_media_blocking(
+    match super::grammers_ops::list_media_blocking_topic(
         &dir,
         &identity,
         &req.chat_id,
         limit,
         req.offset_id,
+        req.topic_id,
     ) {
         Ok(v) => ok_result("grammers", v),
         Err(e) => {
@@ -595,6 +597,232 @@ pub fn tg_set_backend(backend: String) -> OpResult<BackendStatus> {
     ok_result(active_telegram_backend().label(), backend_status())
 }
 
+// ---------------------------------------------------------------------------
+// Drive RPC (Grammers-only — formerly Telethon drive-serve)
+// ---------------------------------------------------------------------------
+
+fn identity_from(session: String, api_id: i64, api_hash: String) -> TelegramIdentity {
+    TelegramIdentity {
+        session,
+        api_id,
+        api_hash,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteMessagesRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub chat_id: String,
+    pub message_ids: Vec<i64>,
+}
+
+pub fn tg_delete_messages(
+    req: DeleteMessagesRequest,
+) -> OpResult<super::drive_rpc::DeleteMessagesResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::delete_messages_blocking(
+        &dir,
+        &identity,
+        &req.chat_id,
+        &req.message_ids,
+    ) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFolderRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub name: String,
+    pub parent_id: Option<i64>,
+}
+
+pub fn tg_create_folder(req: CreateFolderRequest) -> OpResult<super::drive_rpc::FolderOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::create_folder_blocking(&dir, &identity, &req.name, req.parent_id) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameFolderRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub folder_id: i64,
+    pub name: String,
+}
+
+pub fn tg_rename_folder(req: RenameFolderRequest) -> OpResult<super::drive_rpc::FolderOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::rename_folder_blocking(&dir, &identity, req.folder_id, &req.name) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetFolderParentRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub folder_id: i64,
+    pub parent_id: Option<i64>,
+}
+
+pub fn tg_set_folder_parent(
+    req: SetFolderParentRequest,
+) -> OpResult<super::drive_rpc::FolderOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::set_folder_parent_blocking(
+        &dir,
+        &identity,
+        req.folder_id,
+        req.parent_id,
+    ) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteFolderRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub folder_id: i64,
+}
+
+pub fn tg_delete_folder(req: DeleteFolderRequest) -> OpResult<super::drive_rpc::FolderOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::delete_folder_blocking(&dir, &identity, req.folder_id) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanFoldersRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+}
+
+pub fn tg_scan_folders(req: ScanFoldersRequest) -> OpResult<super::drive_rpc::ScanFoldersResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::scan_folders_blocking(&dir, &identity) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicMutRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub chat_id: i64,
+    pub topic_id: Option<i64>,
+    pub title: Option<String>,
+}
+
+pub fn tg_create_topic(req: TopicMutRequest) -> OpResult<super::drive_rpc::TopicOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    let title = req.title.unwrap_or_default();
+    match super::drive_rpc::create_topic_blocking(&dir, &identity, req.chat_id, &title) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+pub fn tg_rename_topic(req: TopicMutRequest) -> OpResult<super::drive_rpc::TopicOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    let topic_id = req.topic_id.unwrap_or(0);
+    let title = req.title.unwrap_or_default();
+    match super::drive_rpc::rename_topic_blocking(&dir, &identity, req.chat_id, topic_id, &title)
+    {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+pub fn tg_delete_topic(req: TopicMutRequest) -> OpResult<super::drive_rpc::TopicOpResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    let topic_id = req.topic_id.unwrap_or(0);
+    match super::drive_rpc::delete_topic_blocking(&dir, &identity, req.chat_id, topic_id) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AvatarsBatchRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub peer_ids: Vec<i64>,
+}
+
+pub fn tg_avatars_batch(req: AvatarsBatchRequest) -> OpResult<super::drive_rpc::AvatarsBatchResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::avatars_batch_blocking(&dir, &identity, &req.peer_ids) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoveMessagesRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub source_chat: String,
+    pub dest_chat: String,
+    pub message_ids: Vec<i64>,
+    pub delete_source: Option<bool>,
+}
+
+pub fn tg_move_messages(req: MoveMessagesRequest) -> OpResult<super::drive_rpc::MoveMessagesResult> {
+    let dir = sessions_dir_from_env();
+    let identity = identity_from(req.session, req.api_id, req.api_hash);
+    match super::drive_rpc::move_messages_blocking(
+        &dir,
+        &identity,
+        &req.source_chat,
+        &req.dest_chat,
+        &req.message_ids,
+        req.delete_source.unwrap_or(true),
+    ) {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -603,9 +831,8 @@ mod tests {
     fn backend_status_lists_grammers_ops() {
         let s = backend_status();
         assert!(s.grammers_compiled);
-        assert!(s.grammers_ops.iter().any(|o| *o == "upload_file"));
-        assert_eq!(s.active, TelegramBackendKind::Grammers);
-        assert!(s.telethon_ops.iter().any(|o| *o == "drive_serve_warm"));
+        assert!(s.telethon_ops.is_empty());
+        assert!(s.grammers_ops.iter().any(|o| *o == "preview_stream"));
     }
 
     #[test]

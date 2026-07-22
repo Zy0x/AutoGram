@@ -333,6 +333,15 @@ fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
     Some(header)
 }
 
+fn photo_size_dimensions(s: &PhotoSize) -> (i32, i32) {
+    match s {
+        PhotoSize::Size(sz) => (sz.width, sz.height),
+        PhotoSize::Progressive(p) => (p.width, p.height),
+        PhotoSize::Cached(c) => (c.width, c.height),
+        _ => (0, 0),
+    }
+}
+
 fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     let mode = quality.to_lowercase();
     let saver = mode.contains("hemat") || mode.contains("saver");
@@ -351,22 +360,42 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
         // Fall through to smallest downloadable if no inline
     }
 
-    // Filter static downloadable layers (ordered by Telegram from smallest to largest resolution)
-    let downloadable: Vec<&PhotoSize> = sizes
+    // Filter static downloadable layers and sort by pixel area (width * height)
+    let mut downloadable: Vec<&PhotoSize> = sizes
         .iter()
         .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)))
         .collect();
 
+    downloadable.sort_by_key(|s| {
+        let (w, h) = photo_size_dimensions(s);
+        w * h
+    });
+
     if !downloadable.is_empty() {
         if sharp {
-            // Jelas: largest static layer available in Telegram
-            return downloadable.last().map(|s| (*s).clone());
+            // Jelas: largest static layer available in Telegram.
+            // If static layer max dimension is < 300px, return None to trigger HD photo chunk download or 1080p FFmpeg video frame extraction.
+            let best = downloadable.last().copied()?;
+            let (w, h) = photo_size_dimensions(best);
+            if w > 0 && h > 0 && w.max(h) < 300 {
+                return None;
+            }
+            return Some(best.clone());
         }
         if saver {
             // Hemat downloadable fallback: smallest non-stripped layer
             return downloadable.first().map(|s| (*s).clone());
         }
-        // Seimbang: upper-mid / clear medium layer (~320px-800px)
+        // Seimbang: clear medium layer (~320px-800px).
+        // If max static layer is tiny (< 200px, e.g. 90x90 default video thumb), return None to trigger photo chunk / FFmpeg frame.
+        let max_dim = downloadable.last().map(|s| {
+            let (w, h) = photo_size_dimensions(s);
+            w.max(h)
+        }).unwrap_or(0);
+        if max_dim > 0 && max_dim < 200 {
+            return None;
+        }
+
         let len = downloadable.len();
         if len <= 2 {
             return downloadable.last().map(|s| (*s).clone());
