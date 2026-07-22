@@ -382,10 +382,63 @@ async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<
     while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
         out.extend_from_slice(&chunk);
         if out.len() > 512 * 1024 {
-            break; // Section
+            break;
         }
     }
     Ok(out)
+}
+
+async fn download_media_thumb(
+    client: &Client,
+    media: &Media,
+    quality: &str,
+) -> Result<Vec<u8>, TgError> {
+    let sizes = media_thumbs(media);
+
+    // Tier 1: Try selected quality size
+    if let Some(pick) = pick_thumb(&sizes, quality) {
+        if let Ok(bytes) = download_thumb_bytes(client, &pick).await {
+            if !bytes.is_empty() {
+                return Ok(bytes);
+            }
+        }
+    }
+
+    // Tier 2: Try inline stripped / cached data from any size
+    for s in &sizes {
+        if let Some(data) = s.to_data() {
+            let bytes = unstrip_jpeg(&data).unwrap_or(data);
+            if !bytes.is_empty() {
+                return Ok(bytes);
+            }
+        }
+    }
+
+    // Tier 3: Try any downloadable size in sizes
+    for s in &sizes {
+        if let Ok(bytes) = download_thumb_bytes(client, s).await {
+            if !bytes.is_empty() {
+                return Ok(bytes);
+            }
+        }
+    }
+
+    // Tier 4: Fallback for photos (download first 128KB chunk)
+    if let Media::Photo(p) = media {
+        let mut out = Vec::new();
+        let mut iter = client.iter_download(p).chunk_size(64 * 1024);
+        while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+            out.extend_from_slice(&chunk);
+            if out.len() >= 128 * 1024 {
+                break;
+            }
+        }
+        if !out.is_empty() {
+            return Ok(out);
+        }
+    }
+
+    Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
 }
 
 fn to_data_url(bytes: &[u8]) -> Option<String> {
@@ -506,22 +559,16 @@ pub fn thumbs_batch_blocking(
                         thumbs.insert(key, None);
                         continue;
                     };
-                    let sizes = media_thumbs(&media);
-                    let Some(pick) = pick_thumb(&sizes, &quality_owned) else {
-                        thumbs.insert(key, None);
-                        continue;
-                    };
-
+                    let media_cloned = media.clone();
                     let client_ref = client.clone();
                     let mid_val = *mid;
-                    let sizes_cloned = sizes.clone();
                     let q_sub = quality_owned.clone();
                     let c_sub = chat_safe.clone();
                     let t_sub = t_dir.clone();
 
                     set.spawn(async move {
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
-                        match download_thumb_bytes(&client_ref, &pick).await {
+                        match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
                                 let _ = std::fs::write(&cache_file, &bytes);
                                 let url = to_data_url(&bytes);
@@ -531,14 +578,6 @@ pub fn thumbs_batch_blocking(
                                 (mid_val.to_string(), url)
                             }
                             Err(e) => {
-                                // Fallback: extract inline stripped/cached bytes if downloadable fails
-                                for s in &sizes_cloned {
-                                    if let Some(data) = s.to_data() {
-                                        let bytes = unstrip_jpeg(&data).unwrap_or(data);
-                                        let _ = std::fs::write(&cache_file, &bytes);
-                                        return (mid_val.to_string(), to_data_url(&bytes));
-                                    }
-                                }
                                 tg_log::warn(BACKEND, "thumb_fail", format!("mid={mid_val} {e}"));
                                 (mid_val.to_string(), None)
                             }
