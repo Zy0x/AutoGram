@@ -334,6 +334,7 @@ export function DrivePreviewModal({
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [path, setPath] = useState<string | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
@@ -363,6 +364,59 @@ export function DrivePreviewModal({
   const streamIdRef = useRef<string | null>(null);
   const credsRef = useRef(creds);
   credsRef.current = creds;
+
+  // Auto-detect Telegram FloodWait duration and set countdown timer
+  useEffect(() => {
+    if (!error) {
+      setFloodCountdown(null);
+      return;
+    }
+    const match =
+      error.match(/(?:Tunggu|tunggu|wait)\s+(\d+)\s*(?:detik|s|sec)?/i) ||
+      error.match(/(\d+)\s*detik/i);
+    if (match) {
+      const secs = parseInt(match[1], 10);
+      if (secs > 0 && secs <= 600) {
+        setFloodCountdown(secs);
+      } else {
+        setFloodCountdown(null);
+      }
+    } else {
+      setFloodCountdown(null);
+    }
+  }, [error]);
+
+  // Countdown timer effect for automatic retry on Telegram FloodWait
+  useEffect(() => {
+    if (floodCountdown === null || floodCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setFloodCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          // Auto-trigger retry when countdown reaches zero
+          invalidatePreview(folderId, file.id);
+          setError(null);
+          setTextBody(null);
+          setLoading(true);
+          void (async () => {
+            try {
+              const { stopDriveSession, ensureDriveSession } = await import(
+                '../../lib/driveSession'
+              );
+              await stopDriveSession();
+              if (credsRef.current) await ensureDriveSession(credsRef.current, true);
+            } catch {
+              /* ignore */
+            }
+            loadPreviewRef.current('auto', { force: true });
+          })();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [floodCountdown, folderId, file.id]);
 
   useEffect(() => {
     if (creds) {
@@ -689,7 +743,7 @@ export function DrivePreviewModal({
           return;
         // Stale / partial stream: revalidate in background (soft keeps frame)
       } else if (!soft) {
-        setLoading(true);
+        // Instant shell: poster from grid thumb so UI never sits on a blank spinner.
         setError(null);
         setDataUrl(null);
         setPath(null);
@@ -697,9 +751,11 @@ export function DrivePreviewModal({
         setStreamId(null);
         setBufferPct(0);
         setStreamDone(false);
-        setPlayerHint(null);
+        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream…' : 'Memuat…');
         setSeekWarn(null);
         setPoster(gridThumb);
+        // Keep spinner only when we have no poster at all
+        setLoading(!gridThumb);
         setQualityOpen(false);
         setRateOpen(false);
         setMediaWidth(null);
@@ -718,7 +774,8 @@ export function DrivePreviewModal({
         if (seq !== loadSeq.current) return;
         applyResult(res, qNorm, false);
 
-        const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
+        // Never prefetch neighbors for video — steals GetFile from the open player.
+        const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
         if (ids.length && !isVideoDriveFile(file)) prefetchPreviews(creds, folderId, ids, qNorm);
       } catch (e: any) {
         if (mountGenRef.current !== activeMountGen) return;
@@ -2683,12 +2740,18 @@ export function DrivePreviewModal({
           {!loading && error && (
             <div className="drive-empty drive-error">
               <p>{error}</p>
+              {floodCountdown !== null && floodCountdown > 0 && (
+                <p className="drive-muted" style={{ fontSize: '0.85rem', marginTop: 4, color: '#eab308' }}>
+                  ⏳ Mencoba lagi otomatis dalam <strong>{floodCountdown}</strong> detik…
+                </p>
+              )}
               <button
                 type="button"
                 className="td-btn-primary"
                 onClick={() => {
                   invalidatePreview(folderId, file.id);
                   setError(null);
+                  setFloodCountdown(null);
                   setTextBody(null);
                   setLoading(true);
                   // Hard bounce session then reconnect warm before reload
@@ -2706,7 +2769,8 @@ export function DrivePreviewModal({
                   })();
                 }}
               >
-                <RefreshCw size={14} /> Coba lagi
+                <RefreshCw size={14} className={floodCountdown !== null ? 'spin' : ''} />
+                {floodCountdown !== null ? 'Coba lagi sekarang' : 'Coba lagi'}
               </button>
               {isDesktop() && (
                 <button

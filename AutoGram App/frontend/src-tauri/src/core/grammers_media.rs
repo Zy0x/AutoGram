@@ -1316,10 +1316,13 @@ pub fn start_preview_stream_blocking(
     let session_name = identity.session.clone();
     let key = preview_key(&session_name, &chat, message_id);
 
-    // Fail-fast during FloodWait — do not pile more GetFile on a hot account.
-    if let Err(e) = session_rate::ensure_not_flooded(&session_name) {
-        session_rate::note_error(&session_name, &e);
-        return Err(e);
+    // Fail-fast during long FloodWait (>35s); short FloodWait (<=35s) will be waited out inside inner async block.
+    if let Some(secs) = session_rate::flood_remaining_secs(&session_name) {
+        if secs > 35 {
+            let e = TgError::with_flood(secs, "FLOOD_WAIT");
+            session_rate::note_error(&session_name, &e);
+            return Err(e);
+        }
     }
 
     // Instant hit: already opened / still streaming this message.
@@ -1434,8 +1437,8 @@ fn start_preview_stream_inner(
 
     // Shared Grammers pool — never dual-open / disconnect the live Studio client.
     rt.block_on(async {
-        // Fail-fast if flooded (no multi-second sleep inside open).
-        session_rate::ensure_not_flooded(&session_name)?;
+        // Smart wait if flood duration is short (<= 35s), otherwise fail fast
+        session_rate::wait_if_flooded_capped(&session_name, Duration::from_secs(35)).await?;
 
         let live = obtain_live_client(sessions_dir, identity, true, false).await?;
         let client = &live.client;
@@ -1444,14 +1447,39 @@ fn start_preview_stream_inner(
         }
         let peer = resolve_peer(client, chat).await?;
         let mid = message_id as i32;
-        let msgs = client
-            .get_messages_by_id(peer, &[mid])
-            .await
-            .map_err(|e| {
+        let msgs = match client.get_messages_by_id(peer, &[mid]).await {
+            Ok(m) => m,
+            Err(e) => {
                 let err = map_invocation(&e);
                 session_rate::note_error(&session_name, &err);
-                err
-            })?;
+                if err.code() == TgErrorCode::FloodWait {
+                    if let Some(secs) = err.flood_wait_secs() {
+                        if secs <= 35 {
+                            tg_log::warn(
+                                "grammers",
+                                "preview_stream",
+                                format!("FloodWait ({secs}s) hit during get_messages, auto-retrying..."),
+                            );
+                            tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                            client
+                                .get_messages_by_id(peer, &[mid])
+                                .await
+                                .map_err(|retry_err| {
+                                    let mapped = map_invocation(&retry_err);
+                                    session_rate::note_error(&session_name, &mapped);
+                                    mapped
+                                })?
+                        } else {
+                            return Err(err);
+                        }
+                    } else {
+                        return Err(err);
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
+        };
         let msg = msgs
             .into_iter()
             .flatten()
@@ -1662,6 +1690,19 @@ fn start_preview_stream_inner(
                     Err(e) => {
                         let err = map_invocation(&e);
                         session_rate::note_error(&session_name, &err);
+                        if err.code() == TgErrorCode::FloodWait {
+                            if let Some(secs) = err.flood_wait_secs() {
+                                if secs <= 35 {
+                                    tg_log::warn(
+                                        "grammers",
+                                        "preview_stream",
+                                        format!("FloodWait ({secs}s) hit during boot chunk download, auto-retrying..."),
+                                    );
+                                    tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                    continue;
+                                }
+                            }
+                        }
                         session_rate::untrack_stream(&session_name, &stream_id);
                         return Err(err);
                     }
