@@ -1,14 +1,12 @@
-//! Grammers media helpers — progressive stream fill, thumbnails, forum topics.
-//!
-//! Dual-path companions to Python drive-serve / media_stream. Not full multi-DC
-//! seek parity yet: sequential progressive fill + registry updates for Rust Range HTTP.
+//! Grammers media helpers: adaptive progressive fill, thumbnails, documents, and topics.
+//! Desktop preview is served by the native Rust Range HTTP registry.
 
 use std::collections::HashMap;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use grammers_client::media::{Downloadable, Media, PhotoSize};
@@ -27,8 +25,8 @@ use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::tg_log;
 
 const BACKEND: &str = "grammers";
-/// Sequential progressive fill caps at this size; larger files still stream but take longer.
-const PROGRESSIVE_MAX: u64 = 2 * 1024 * 1024 * 1024; // 2 GiB soft cap for background fill
+/// Keep sparse-file allocation bounded to Telegram's large-file desktop tier.
+const PROGRESSIVE_MAX: u64 = 4 * 1024 * 1024 * 1024;
 /// Prefer thumbs under this size for grid.
 const THUMB_TARGET_MAX: usize = 96 * 1024;
 
@@ -62,6 +60,41 @@ fn cancel_flags() -> &'static Mutex<HashMap<String, Arc<AtomicBool>>> {
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// Latest byte requested by WebView for every live progressive stream.
+/// The fill loop consumes this before its next Telegram GetFile request.
+fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
+    static REQUESTS: OnceLock<Mutex<HashMap<String, u64>>> = OnceLock::new();
+    REQUESTS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
+    if !cancel_flags().lock().contains_key(stream_id) {
+        return false;
+    }
+    seek_requests().lock().insert(stream_id.to_string(), offset);
+    true
+}
+
+fn take_seek_request(stream_id: &str) -> Option<u64> {
+    seek_requests().lock().remove(stream_id)
+}
+
+fn first_missing_offset(ranges: &[(u64, u64)], total: u64) -> Option<u64> {
+    let mut sorted = ranges.to_vec();
+    sorted.sort_unstable_by_key(|range| range.0);
+    let mut covered = 0u64;
+    for (start, end) in sorted {
+        if start > covered {
+            return Some(covered);
+        }
+        covered = covered.max(end);
+        if covered >= total {
+            return None;
+        }
+    }
+    (covered < total).then_some(covered)
+}
+
 fn register_cancel(sid: &str) -> Arc<AtomicBool> {
     let flag = Arc::new(AtomicBool::new(false));
     cancel_flags().lock().insert(sid.to_string(), flag.clone());
@@ -73,6 +106,7 @@ fn take_cancel(sid: &str) -> Option<Arc<AtomicBool>> {
 }
 
 pub fn cancel_progressive(stream_id: &str) -> bool {
+    seek_requests().lock().remove(stream_id);
     let mut hit = false;
     if let Some(f) = cancel_flags().lock().get(stream_id) {
         f.store(true, Ordering::SeqCst);
@@ -322,7 +356,38 @@ pub fn thumbs_batch_blocking(
     }
     let rt = runtime()?;
     let chat = chat_id.to_string();
-    let _ = std::fs::create_dir_all(thumb_dir(sessions_dir));
+    let chat_safe: String = chat
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    let t_dir = thumb_dir(sessions_dir);
+    let _ = std::fs::create_dir_all(&t_dir);
+
+    // Fast-path: read cached thumbs directly from local disk (0 network latency)
+    let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
+    let mut uncached_ids: Vec<i32> = Vec::new();
+
+    for &mid in &ids {
+        let key = mid.to_string();
+        let cache_file = t_dir.join(format!("{chat_safe}_{mid}.jpg"));
+        if cache_file.is_file() {
+            if let Ok(bytes) = std::fs::read(&cache_file) {
+                if !bytes.is_empty() {
+                    thumbs.insert(key, to_data_url(&bytes));
+                    continue;
+                }
+            }
+        }
+        uncached_ids.push(mid);
+    }
+
+    if uncached_ids.is_empty() {
+        return Ok(ThumbsBatchResult {
+            status: "success".into(),
+            thumbs,
+            backend: BACKEND.into(),
+        });
+    }
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
@@ -332,11 +397,13 @@ pub fn thumbs_batch_blocking(
                 }
                 let peer = resolve_peer(client, &chat).await?;
                 let msgs = client
-                    .get_messages_by_id(peer, &ids)
+                    .get_messages_by_id(peer, &uncached_ids)
                     .await
                     .map_err(|e| map_invocation(&e))?;
-                let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
-                for (i, mid) in ids.iter().enumerate() {
+
+                let mut set = tokio::task::JoinSet::new();
+
+                for (i, mid) in uncached_ids.iter().enumerate() {
                     let key = mid.to_string();
                     let Some(Some(msg)) = msgs.get(i) else {
                         thumbs.insert(key, None);
@@ -351,23 +418,39 @@ pub fn thumbs_batch_blocking(
                         thumbs.insert(key, None);
                         continue;
                     };
-                    match download_thumb_bytes(client, &pick).await {
-                        Ok(bytes) => {
-                            thumbs.insert(key, to_data_url(&bytes));
+
+                    let client_ref = client.clone();
+                    let cache_file = t_dir.join(format!("{chat_safe}_{mid}.jpg"));
+                    let mid_val = *mid;
+
+                    set.spawn(async move {
+                        match download_thumb_bytes(&client_ref, &pick).await {
+                            Ok(bytes) => {
+                                let _ = std::fs::write(&cache_file, &bytes);
+                                (mid_val.to_string(), to_data_url(&bytes))
+                            }
+                            Err(e) => {
+                                tg_log::warn(BACKEND, "thumb_fail", format!("mid={mid_val} {e}"));
+                                (mid_val.to_string(), None)
+                            }
                         }
-                        Err(e) => {
-                            tg_log::warn(BACKEND, "thumb_fail", format!("mid={mid} {e}"));
-                            thumbs.insert(key, None);
-                        }
+                    });
+                }
+
+                while let Some(res) = set.join_next().await {
+                    if let Ok((k, v)) = res {
+                        thumbs.insert(k, v);
                     }
                 }
+
                 tg_log::info(
                     BACKEND,
                     "thumbs_batch",
                     format!(
-                        "chat={} n={} ok={}",
+                        "chat={} total={} uncached={} ok={}",
                         chat,
                         ids.len(),
+                        uncached_ids.len(),
                         thumbs.values().filter(|v| v.is_some()).count()
                     ),
                 );
@@ -394,6 +477,7 @@ pub struct PreviewStreamResult {
     pub mime_type: String,
     pub size: u64,
     pub data_url: Option<String>,
+    pub text_content: Option<String>,
     pub preview_kind: String,
     pub streaming: bool,
     pub backend: String,
@@ -507,7 +591,7 @@ fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation
     }
 }
 
-/// Start progressive sequential fill. Returns immediately with stream_url once
+/// Start adaptive progressive fill. Returns immediately with stream_url once
 /// the first registry entry is published; download continues in a background task.
 pub fn start_preview_stream_blocking(
     sessions_dir: &Path,
@@ -561,8 +645,8 @@ pub fn start_preview_stream_blocking(
         if size > PROGRESSIVE_MAX {
             client.disconnect();
             return Err(TgError::new(
-                TgErrorCode::TelethonFallbackRequired,
-                format!("media {size} exceeds progressive cap — use Telethon path"),
+                TgErrorCode::Internal,
+                format!("media {size} melebihi batas sparse preview native 4 GiB"),
             ));
         }
 
@@ -571,6 +655,48 @@ pub fn start_preview_stream_blocking(
         let is_image = mime.starts_with("image/") && !mime.contains("gif");
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
+
+        // Documents/code are latency-sensitive but do not benefit from a
+        // hollow sparse stream. Download modest files directly with Grammers'
+        // concurrent downloader, then parse them locally in Rust.
+        if !is_image && !is_video && !is_audio && size <= 64 * 1024 * 1024 {
+            let pdir = preview_dir(&sessions_dir);
+            let _ = std::fs::create_dir_all(&pdir);
+            let safe_name: String = name
+                .chars()
+                .map(|c| if c.is_ascii_alphanumeric() || ".-_".contains(c) { c } else { '_' })
+                .take(120)
+                .collect();
+            let dest = pdir.join(format!("{}_{}_{}", chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_"), message_id, safe_name));
+            path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
+                .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
+            client
+                .download_media(&media, &dest)
+                .await
+                .map_err(|e| TgError::new(TgErrorCode::Io, format!("download document: {e}")))?;
+            let _ = persist_memory_session(&live.session, &live.session_path);
+            client.disconnect();
+            let local = super::doc_preview::preview_local_document(dest.to_str().unwrap_or(""));
+            let (kind, text_content) = match local {
+                Ok(p) => (p.preview_kind, p.text_content),
+                Err(_) if mime == "application/pdf" => ("pdf".into(), None),
+                Err(_) => ("file".into(), None),
+            };
+            return Ok(PreviewStreamResult {
+                status: "success".into(),
+                stream_id: String::new(),
+                stream_url: String::new(),
+                path: dest.display().to_string(),
+                mime_type: mime,
+                size,
+                data_url: None,
+                text_content,
+                preview_kind: kind,
+                streaming: false,
+                backend: BACKEND.into(),
+                message: "document downloaded and parsed by Rust".into(),
+            });
+        }
 
         // Small images: full download, no stream
         if is_image && size <= 8 * 1024 * 1024 {
@@ -604,6 +730,7 @@ pub fn start_preview_stream_blocking(
                 mime_type: mime,
                 size: final_size,
                 data_url,
+                text_content: None,
                 preview_kind: "image".into(),
                 streaming: false,
                 backend: BACKEND.into(),
@@ -659,10 +786,11 @@ pub fn start_preview_stream_blocking(
             let mut ranges: Vec<(u64, u64)> = Vec::new();
             let mut moov_bootstrapped = false;
             let result = async {
+                const CHUNK_SIZE: u64 = 512 * 1024;
                 let mut iter = live
                     .client
                     .iter_download(&fill_media)
-                    .chunk_size(512 * 1024);
+                    .chunk_size(CHUNK_SIZE as i32);
                 let mut file = std::fs::OpenOptions::new()
                     .write(true)
                     .read(true)
@@ -689,6 +817,31 @@ pub fn start_preview_stream_blocking(
                             break;
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                    }
+                    // Browser Range requests and explicit seeks take priority.
+                    // DownloadIter keeps Grammers' FILE_MIGRATE handling, so a
+                    // random jump also works when the media belongs to another DC.
+                    if let Some(requested) = take_seek_request(&sid) {
+                        let requested = requested.min(size.saturating_sub(1));
+                        let aligned = (requested / CHUNK_SIZE) * CHUNK_SIZE;
+                        let already_available = ranges
+                            .iter()
+                            .any(|(start, end)| *start <= requested && requested < *end);
+                        if !already_available && aligned != offset {
+                            let skip = (aligned / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                            iter = live
+                                .client
+                                .iter_download(&fill_media)
+                                .chunk_size(CHUNK_SIZE as i32)
+                                .skip_chunks(skip);
+                            offset = aligned;
+                            tg_log::info(
+                                BACKEND,
+                                "progressive_seek",
+                                format!("sid={sid} offset={aligned}"),
+                            );
+                            continue;
+                        }
                     }
                     let len = chunk.len() as u64;
                     if len == 0 {
@@ -752,10 +905,24 @@ pub fn start_preview_stream_blocking(
                         updated_at_ms: now_ms(),
                     });
                     if offset >= size {
+                        if let Some(missing) = first_missing_offset(&ranges, size) {
+                            let aligned = (missing / CHUNK_SIZE) * CHUNK_SIZE;
+                            let skip = (aligned / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                            iter = live
+                                .client
+                                .iter_download(&fill_media)
+                                .chunk_size(CHUNK_SIZE as i32)
+                                .skip_chunks(skip);
+                            offset = aligned;
+                            continue;
+                        }
                         break;
                     }
                 }
                 let _ = file.flush();
+                if let Some(missing) = first_missing_offset(&ranges, size) {
+                    return Err(format!("download ended with an unfilled range at {missing}"));
+                }
                 Ok::<(), String>(())
             }
             .await;
@@ -804,7 +971,18 @@ pub fn start_preview_stream_blocking(
             let _ = persist_memory_session(&live.session, &live.session_path);
             live.client.disconnect();
             let _ = take_cancel(&sid);
+            seek_requests().lock().remove(&sid);
         });
+
+        // Avoid handing WebView2 a URL that immediately answers 503 before the
+        // first Telegram chunk is published. Usually this exits in one tick.
+        for _ in 0..40 {
+            let status = stream_server::status_of(&stream_id);
+            if status.prefix_bytes > 0 || status.error.is_some() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
 
         let kind = if is_video {
             "stream"
@@ -830,15 +1008,16 @@ pub fn start_preview_stream_blocking(
             mime_type: mime,
             size,
             data_url: None,
+            text_content: None,
             preview_kind: kind.into(),
             streaming: true,
             backend: BACKEND.into(),
-            message: "progressive fill started (Grammers sequential GetFile)".into(),
+            message: "progressive fill started (Grammers adaptive range GetFile)".into(),
         })
     })
 }
 
-/// Warm first N bytes via sequential download into registry (best-effort).
+/// Warm first N bytes via native progressive download into registry (best-effort).
 pub fn warm_preview_head_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -846,7 +1025,7 @@ pub fn warm_preview_head_blocking(
     message_id: i64,
     head_bytes: u64,
 ) -> Result<PreviewStreamResult, TgError> {
-    // Reuse full progressive start — sequential fill warms head first naturally.
+    // Reuse full progressive start; the head is prioritized until a seek arrives.
     let _ = head_bytes;
     start_preview_stream_blocking(sessions_dir, identity, chat_id, message_id)
 }
@@ -865,5 +1044,16 @@ mod tests {
     #[test]
     fn cancel_unknown_false() {
         assert!(!cancel_progressive("no-such-stream-xyz"));
+    }
+
+    #[test]
+    fn seek_unknown_stream_is_rejected() {
+        assert!(!request_progressive_range("no-such-stream-xyz", 1024));
+    }
+
+    #[test]
+    fn seek_islands_resume_at_first_gap() {
+        assert_eq!(first_missing_offset(&[(0, 512), (1024, 2048)], 2048), Some(512));
+        assert_eq!(first_missing_offset(&[(1024, 2048), (0, 1024)], 2048), None);
     }
 }
