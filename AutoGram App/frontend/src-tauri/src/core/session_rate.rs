@@ -198,12 +198,31 @@ pub fn untrack_stream(session: &str, stream_id: &str) {
 }
 
 pub fn streams_to_cancel(session: &str, keep: &str) -> Vec<String> {
+    let msg_prefix = keep.split('-').next().unwrap_or(keep);
     with_rate(session, |e| {
-        e.active_streams
-            .iter()
-            .filter(|s| s.as_str() != keep)
-            .cloned()
-            .collect()
+        let mut to_cancel = Vec::new();
+        // 1. Cancel older streams for the SAME message_id (e.g. g33-...)
+        for s in &e.active_streams {
+            if s != keep && s.starts_with(msg_prefix) {
+                to_cancel.push(s.clone());
+            }
+        }
+        // 2. If active streams count exceeds max capacity (4), evict oldest excess streams
+        let remaining_count = e.active_streams.len() - to_cancel.len();
+        if remaining_count > 4 {
+            let overflow = remaining_count - 4;
+            let mut evicted = 0;
+            for s in &e.active_streams {
+                if s != keep && !to_cancel.contains(s) {
+                    to_cancel.push(s.clone());
+                    evicted += 1;
+                    if evicted >= overflow {
+                        break;
+                    }
+                }
+            }
+        }
+        to_cancel
     })
 }
 
@@ -237,5 +256,27 @@ pub fn note_error(session: &str, err: &TgError) {
     }
     if let Some(secs) = parse_flood_secs(&err.to_string()) {
         note_flood_wait(session, secs);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn streams_to_cancel_only_cancels_same_msg_or_excess() {
+        let sess = "test-session-streams";
+        track_stream(sess, "g33-100-1");
+        track_stream(sess, "g34-100-2");
+
+        // Opening a new stream for g34 should cancel older g34 stream, but NOT g33 stream
+        let cancel = streams_to_cancel(sess, "g34-100-3");
+        assert!(!cancel.contains(&"g33-100-1".to_string()));
+
+        // Opening a new stream for g33 should cancel older g33-100-1
+        track_stream(sess, "g34-100-3");
+        let cancel33 = streams_to_cancel(sess, "g33-100-9");
+        assert!(cancel33.contains(&"g33-100-1".to_string()));
+        assert!(!cancel33.contains(&"g34-100-2".to_string()));
     }
 }

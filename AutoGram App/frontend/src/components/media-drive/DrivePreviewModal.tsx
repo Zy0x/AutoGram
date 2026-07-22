@@ -1035,21 +1035,18 @@ export function DrivePreviewModal({
             (browserHasData || v.readyState >= 2 || (!v.paused && v.currentTime > 0.2));
           if (playingOk) {
             setPlayerHint((h) => h || 'Buffering…');
-          } else if (
-            streamMissingHitsRef.current >= 4 &&
-            !streamRecoverRef.current
-          ) {
-            // One resume: force re-RPC so worker re-registers path (reuses disk
+          } else if (streamMissingHitsRef.current >= 2) {
+            // Automatic resume: force re-RPC so native stream re-establishes (reuses disk
             // partial + continues GetFile). Do not invalidate cache thrash.
-            streamRecoverRef.current = true;
+            streamMissingHitsRef.current = 0;
             liveStreamIdRef.current = null;
             setPlayerHint('Melanjutkan unduhan stream…');
             window.setTimeout(() => {
               if (mountGenRef.current !== activeMountGen) return;
               loadPreviewRef.current(quality, { soft: true, force: true });
-            }, 1200);
+            }, 500);
           } else if (streamMissingHitsRef.current >= 1) {
-            setPlayerHint(st.status === 'cancelled' ? 'Stream dihentikan — menunggu…' : 'Menunggu stream…');
+            setPlayerHint('Melanjutkan stream…');
           }
         } else {
           streamMissingHitsRef.current = 0;
