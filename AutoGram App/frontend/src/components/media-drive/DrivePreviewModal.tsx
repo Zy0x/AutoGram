@@ -416,6 +416,8 @@ export function DrivePreviewModal({
   /** Guard media onError → loadPreview loop during progressive buffer holes */
   const mediaErrorRecoverAtRef = useRef(0);
   const mediaErrorCountRef = useRef(0);
+  /** Backend-confirmed playable prefix (including MP4 metadata availability). */
+  const nativeStreamReadyRef = useRef(false);
   /** Sticky stream id for current file — avoid soft reload replacing live URL */
   const liveStreamIdRef = useRef<string | null>(null);
   /**
@@ -542,6 +544,7 @@ export function DrivePreviewModal({
       ) {
         nextStream = streamUrl;
       } else if (nextSid) {
+        if (liveStreamIdRef.current !== nextSid) nativeStreamReadyRef.current = false;
         liveStreamIdRef.current = nextSid;
       } else if (nextStream) {
         liveStreamIdRef.current = liveStreamIdRef.current || nextSid;
@@ -764,6 +767,7 @@ export function DrivePreviewModal({
     streamMissingHitsRef.current = 0;
     mediaErrorCountRef.current = 0;
     mediaErrorRecoverAtRef.current = 0;
+    nativeStreamReadyRef.current = false;
     liveStreamIdRef.current = null;
     lastSeekKickRef.current = 0;
     hasUserPlayRef.current = false;
@@ -1000,11 +1004,10 @@ export function DrivePreviewModal({
         const now = Date.now();
         const streamReady =
           st.stream_ready === true ||
-          st.moov_ready === true ||
-          prefix >= 128 * 1024 ||
           browserHasData ||
           (!!v && v.readyState >= 2) ||
-          (!!v && Number.isFinite(v.duration) && v.duration > 0 && prefix >= 64 * 1024);
+          (!!v && Number.isFinite(v.duration) && v.duration > 0 && browserHasData);
+        nativeStreamReadyRef.current = st.stream_ready === true;
         if (
           v &&
           v.paused &&
@@ -2956,7 +2959,7 @@ export function DrivePreviewModal({
                     const v = videoRef.current;
                     const n = mediaErrorCountRef.current;
                     // First few errors: soft rebind same src (clears MEDIA_ERR sticky state)
-                    if (v && streamUrl && n <= 4) {
+                    if (v && streamUrl && nativeStreamReadyRef.current && n <= 2) {
                       setPlayerHint('Buffering… menyambung putar');
                       const t = v.currentTime || 0;
                       const sticky = streamUrl;
@@ -2983,7 +2986,11 @@ export function DrivePreviewModal({
                       }, 350);
                       return;
                     }
-                    setPlayerHint('Buffering… menunggu data stream');
+                    setPlayerHint(
+                      nativeStreamReadyRef.current
+                        ? 'Buffering… menunggu data stream'
+                        : 'Menyiapkan metadata dan buffer awal…'
+                    );
                     // NEVER force-reload progressive fill from onError thrash.
                     // force loadPreview cancelled the live GetFile pipeline and
                     // left registry entries cancelled=true with frozen buffer %.

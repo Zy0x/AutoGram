@@ -1,5 +1,260 @@
 # Changelog
 
+## v2.1.82 Session & Chat List Load Speed Optimization
+
+### Optimization Summary
+- **Concurrent MTProto Requests (`grammers_ops.rs`)**: Converted `session_operation_lock` from an exclusive Mutex to a concurrent `tokio::sync::RwLock<()>`. Read operations (`list_dialogs`, `list_media`, `list_topics`, `auth_status`) now execute in parallel over Grammers `SenderPool` instead of running serially.
+- **Authorization Profile Cache**: Cached user profile authorization in `CachedLiveClient`, skipping redundant MTProto `get_me` network RPC calls on warm sessions.
+- **Parallel Credential & Session Boot**: Optimized session picker boot flow to resolve local session inventory in parallel with credential bootstrap.
+
+## v2.1.81 Stream cancel thrash + Grammers album
+
+### Root cause (buffer % macet + “Stream bermasalah”)
+Dari `worker/cache/stream_registry` + `worker/temp`:
+- Semua stream aktif berakhir `cancelled:true` dengan range kecil (0.25–1.5MB).
+- `stopAll incomplete` + `delete_partial=true` mematikan GetFile dan menghapus partial.
+- Hard-recover `onError` → force `loadPreview` memperburuk thrash.
+
+### Fixes
+- Jangan `stopAll` saat unmount; stop hanya stream id aktif.
+- Default **jangan hapus partial** (resume unduhan).
+- `register_stream` **reuse** path yang masih live.
+- Resume disk/manifest untuk file large progressive.
+- Hapus hard-reload “Stream bermasalah” dari onError thrash.
+
+### Migrasi Grammers
+- **Album lokal 2–10 file** via `send_album` (orch dual-path).
+
+## v2.1.80 Video play stuck + buffer speed (34.mp4 class)
+
+### Screenshot issue (buffer ada, video di 0:00)
+- **stream_status**: prefer Telethon `moov_ready` (Rust registry saja tidak punya moov → play nudge macet).
+- **onError progressive**: rebind URL yang sama untuk clear `MEDIA_ERR` sticky, lalu `play()` — bukan stuck di “menunggu data stream”.
+- **Play nudge** agresif (≤900ms) saat prefix/moov/duration siap; auto-resume jika pipeline `paused`.
+- Buffer bar: tidak lagi di-cap palsu 35%.
+
+### Kecepatan load / buffer
+- Tier streaming (~100MB): workers 24–26, chunk 512KB, initial_head lebih padat.
+- Slow link: **tambah** worker (bukan potong) — latency-bound GetFile.
+- Document MP4: kick moov-tail lebih awal (~96KB head) + bootstrap async.
+- first_play wait sedikit lebih sabar agar head padat sebelum handoff.
+
+## v2.1.79 Fix video preview reload loop + stream hardening
+
+### Critical fix
+- **Preview video tidak lagi memuat ulang terus-menerus saat buffering** (multi-video).
+- Akar: `onError` → `loadPreview` penuh pada progressive hole/503; remount `<video>` tiap ganti URL; soft revalidate bikin `stream_id` baru; cache stream mati 90s.
+- Perbaikan: sticky stream URL/id, key video stabil, onError soft (cooldown), missing status ≥3×, cache progressive TTL pendek, video progressive wajib Telethon (moov/seek).
+- Rust stream: `stream_ready` lebih ketat; Range head lebih toleran.
+
+### Catatan migrasi
+- Grammers tetap: list/thumbs/topics/upload/download image.
+- Video progressive: Telethon + Rust Range (hybrid) sampai multi-DC seek di Grammers siap.
+
+## v2.1.78 Phase 6 — Progressive stream + thumbs + topics (Grammers)
+
+### Progressive stream (Rust)
+- **`tg_preview_stream` / `grammers_media`:** sequential GetFile fill → preallocated partial file → registry → Rust Range HTTP.
+- Small images: full download (no stream). Video/audio: play-while-download sequential.
+- **`tg_stop_stream`:** cancel progressive fill.
+- `drivePreview` dual-path when Telethon warm idle + quality auto (transcode tetap Telethon/ffmpeg).
+- `driveStreamStatus` prefers local Rust registry first.
+
+### Thumbs + topics
+- **`tg_thumbs_batch`:** batch message thumbs via Grammers PhotoSize (inline cached first, then mid-size download).
+- **`tg_list_topics`:** `messages.getForumTopics` raw TL.
+- Wired into `driveThumbnailsBatch` / `driveListTopics` with exclusive-session guard.
+
+### Masih Python (sengaja)
+- Multi-DC concurrent seek stream, album/reencode, migration engine.
+
+## v2.1.77 Phase 5 — Drive dual-path list + Grammers download
+
+### Grammers / full-Rust progress
+- **Drive list dual-path:** `driveListFiles` / `driveListChats` mencoba Grammers dulu **hanya jika** warm Telethon `drive-serve` tidak memegang session (anti AUTH_KEY_DUPLICATED).
+- **`tg_download_file`:** unduh penuh media ≤200MB via Grammers; file lebih besar tetap progressive Telethon stream.
+- **Open/doc download dual-path:** `driveDownloadOpenSpawn` mencoba Grammers setelah exclusive session, fallback Telethon download.
+- **Settings → Telegram Backend:** toggle runtime Grammers vs Telethon-only.
+- Compile-fix Grammers 0.10: `offset_id` (bukan `max_id`), media size sebelum partial move.
+
+### Masih Python (sengaja)
+- Progressive GetFile / multi-DC stream, thumbs batch, topics, album/reencode, migration engine.
+
+## v2.1.76 Grammers-first studio orch (honest hybrid, not full cutover)
+
+### Status
+- **Belum full Grammers.** Drive warm RPC, progressive GetFile, media-studio album/reencode, migration tetap **Python Telethon**.
+- **Sudah Grammers-first:** studio orchestrator upload lokal → `grammers_ops::upload_file` dulu; gagal → `studio-serve` Telethon; UI masih bisa media-studio.
+- Default env preferensi: `AUTOGRAM_TELEGRAM_BACKEND=grammers` (force telethon: `=telethon`).
+- Import session Telethon → `.grammers.json` otomatis saat orch Grammers.
+
+### Masih Python (sengaja)
+- drive-serve, media_stream GetFile, full media_studio, migration engine, auth_manager legacy.
+
+## v2.1.75 Fix overhead looping (preview poll + session ready)
+
+### Performance
+- **DrivePreviewModal** stream poll: hapus `seekWarn`/`loadPreview` dari deps effect (mencegah interval di-recreate tiap setState → overhead loop).
+- Poll stream: 600ms cold → 1800ms setelah healthy; play-nudge max 1×/2.5s; skip tick overlap (`pollInFlight`).
+- **driveSession** ready wait: interval 40ms → 120ms + resolve event-driven saat stdout `ready`.
+- Live sync interval sedikit lebih longgar (low/mid/high).
+
+### Remote
+- `frontend.exe` path: `npm run build:exe` / auto-build di ensure.
+- Suite minimal `run.mjs`; probe scripts dibersihkan.
+
+## v2.1.74 Grammers dual-path compile-fix + multi-layer debug logs
+
+### Stability (pasca migrasi)
+- Perbaikan kompilasi Grammers 0.10: `PeerId` → i64, `Peer/User::to_ref`, FloodWait `Option<u32>`, `UploadFileRequest` Deserialize, lifetime async orch.
+- Default runtime **tetap Telethon companion** untuk Drive/stream/studio; Grammers ops opsional via env/`tg_*` commands.
+- Cleanup bloat: hapus `target/`, archive, Source ref, CDP probes (build ulang `frontend.exe` diperlukan).
+
+### Debug mode (lengkap lintas layer)
+- **Frontend:** buffer 800 baris; `debugLogLayer`; ingest `[autogram:tg]`, FloodWait, traceback, studio-serve.
+- **Rust:** `tg_log` gate by `AUTOGRAM_DEBUG` / flag file; worker spawn log env (backend, stream port, debug).
+- **Python:** `dlog` + `layer=python` + `tg_backend`; daemon start logs stream/proxy/backend.
+- Env worker: `AUTOGRAM_DEBUG`, `AUTOGRAM_SESSIONS_DIR`, `AUTOGRAM_TELEGRAM_BACKEND` di-inject saat spawn.
+
+### Catatan testing
+- Remote CDP butuh `npm run tauri build -- --debug` setelah target di-clean.
+- Aktifkan **Settings → Debug Mode** untuk log detail di UI + `worker/temp/autogram_debug.log`.
+
+## v2.1.73 Upload UI → Rust Orchestrator Default + Full-Rust Scaffold
+
+### Upload path (UI)
+- **Default:** Media Studio upload queue memakai `studioRunUploadDefault` (Rust `studio_run_orchestrated` + Python `studio-serve`).
+- **Fallback otomatis:** legacy `driveUploadSpawn` / media-studio jika:
+  - remote URL (`http`/`https`),
+  - multi-file album (`group_as_album`),
+  - runtime non-Tauri, atau
+  - orch gagal / command tidak tersedia.
+- Exclusive session: `withExclusiveTransferSession` (lease + stop warm drive-serve) dipakai orch path agar tidak bentrok `.session`.
+- Saved Messages: `chat_id = "me"`.
+
+### Full Rust bertahap (scaffold)
+- `core/telegram_ops.rs`: trait `TelegramOps`, `TelethonCompanionOps`, `GrammersStubOps` (belum diaktifkan).
+- Capability `telegram_ops_trait`; backend produksi tetap hybrid Telethon.
+
+### Catatan
+- Progress live per-byte masih lebih kaya di path media-studio; orch memetakan status terminal item dari `TransferRecord`.
+- Grammers **tidak** di-wire ke upload — hanya stub + docs.
+
+## v2.1.72 Phase 3 — Studio Job Queue di Rust (Python Step Upload)
+
+### Orkestrasi
+- **Rust** `job_queue` + `studio_orch`: antrean transfer/item, FSM (pending→uploading→done/failed), persist `studio_queue.json`.
+- **Python** `studio-serve` (daemon `--action studio-serve`): RPC stdin `begin` / `upload_one` / `finish` / `quit`.
+- Upload per-item memanggil pipeline fastlane existing (satu file) — Telethon tetap di Python.
+- Tauri: `studio_enqueue`, `studio_list_transfers`, `studio_get_transfer`, `studio_run_orchestrated`.
+- Frontend helper: `src/lib/studioOrch.ts` (dual-path; legacy `media-studio` utuh).
+
+### Catatan
+- Legacy full-batch `media-studio` **tidak dihapus**.
+- Orchestrator mengurutkan item (ordered commit tetap di pipeline item tunggal).
+
+## v2.1.71 PDF Preview: Full Download (Anti Partial Stream)
+
+Fixed:
+- PDF ~700KB+ gagal di iframe dengan **We can't open this file** karena unduhan partial/progressive (batas lama 512KB) masuk stream Range yang tidak diterima viewer PDF Chromium/WebView2.
+- PDF kini diunduh **lengkap** (hingga `DOC_PREVIEW_MAX` 48MB) sebelum pratinjau; validasi header `%PDF-`.
+- Frontend hanya memasang `iframe` src jika file complete (path cache atau stream done); prefer `convertFileSrc(path)`.
+
+## v2.1.70 Proxy/VPN dari Telegram-Drive + Telethon Hybrid
+
+### Proxy & VPN Optimizer (fitur Telegram-Drive → AutoGram)
+- Rust `core/network.rs`: simpan `network_settings.json`, SOCKS5/HTTP/MTProto fields, VPN timeout/retry/bandwidth knobs.
+- Commands: `network_get_config`, `network_apply_*`, `network_test_proxy`, `network_is_available`, `network_detect_vpn`.
+- Env worker: `AUTOGRAM_PROXY_*`, `AUTOGRAM_VPN_*` di-inject saat spawn Python.
+- Python `core/network_env.py` + `client.py` / `drive_fs` / `media_studio`: Telethon memakai proxy + retries VPN.
+- UI **Settings → Proxy & VPN Optimizer** (desktop).
+- Deps: `python-socks`, `PySocks`.
+
+### Catatan
+- Setelah ubah proxy: reconnect Drive session agar worker baru memuat env.
+- MTProto proxy butuh secret hex valid; SOCKS5 paling stabil.
+
+## v2.1.69 Hybrid Phase 2 — Rust Stream Server + Local Utilities
+
+### Stream (Rust + Python companion)
+- **Rust Range HTTP** (`core/stream_server.rs`, tiny_http): serve progressive/complete media from registry.
+- Python **GetFile** only: publishes ranges via `POST /register` + `cache/stream_registry/*.json`.
+- Env `AUTOGRAM_STREAM_PORT` / `AUTOGRAM_STREAM_REGISTRY` injected when spawning workers.
+- When Rust aktif: Python **tidak** start aiohttp; `stream_url` → `127.0.0.1:{rust}`.
+- Fallback: tanpa env port, perilaku lama (aiohttp Python) tetap utuh.
+- Pause/resume di Rust + flag registry dibaca Python fill loop.
+
+### Local utilities (Rust)
+- `zip_local` — list + preview entry ZIP cache
+- `hash_util` — SHA256 + quick fingerprint
+- `progress_rate` — % / Bps / ETA
+- `config_normalize` — job config cleaning
+- Tauri commands + `rustBackend.ts` wrappers
+
+## v2.1.68 Hybrid Rust-First Backend Foundation
+
+Architecture:
+- Dokumen `HYBRID_RUST_PYTHON.md`: batas kepemilikan Rust vs Python (Telethon tetap companion).
+- Modul Rust `core/`: `capability`, `streaming_policy`, `path_policy`, `doc_preview`.
+- Tauri commands: `backend_capabilities`, `streaming_config_for_size`, `preview_local_document`, `path_policy_check`.
+- Frontend `rustBackend.ts` + pratinjau teks **Rust-first** saat path cache ada (fallback Python/stream).
+
+Safety:
+- Tidak memindahkan Telethon; upload/migration/drive-serve tetap Python.
+- Dual-path: kegagalan Rust local preview tidak memutus alur unduh Telegram.
+
+## v2.1.67 Start Video Multi-Tier + Pratinjau Dokumen/Kode Cepat
+
+### Video (semua ukuran)
+- **17 size tier** streaming: &lt;10 / 20 / 50 / 100 / 150 / 200 / 250 / 300 / 500 / 1000 / 1500 / 2000 / 2500 / 3000 / 3500 / 4000 / 4000+ MB.
+- Tiap tier punya `first_play`, `initial_head`, `window`, `throttle`, `workers`, `chunk` terpisah — file besar start dengan head lebih ramping; file kecil head lebih padat.
+- Hand-off `stream_url`, HTTP 206 pertama, dan `stream_ready` memakai **first_play** tier (bukan window multi-MB).
+- Document-mode video tidak lagi memaksa head 1–4MB; prioritaskan first_play + worker media DC.
+- Poll UI 450ms + nudge play agresif (≥96KB / HAVE_METADATA).
+
+### Dokumen & kode
+- Ekstensi teks/kode diperluas (JS/TS/Py/Go/Rust/Java/C/C++/Shell/SQL/GraphQL/infra, dll.) di worker + frontend.
+- **Office in-app**: docx/odt/rtf/xlsx/ods/pptx/odp → ekstraksi plain text untuk pratinjau langsung.
+- Inline `text_content` hingga **2MB**; fast download teks hingga 2MB / office 4MB / PDF 512KB.
+- Batas pratinjau dokumen progresif naik ke **48MB**.
+
+## v2.1.66 Perbaikan Pratinjau Dokumen/JSON (Failed to Fetch)
+
+Fixed:
+- **detail.json / teks gagal preview**: file lengkap di-register ke stream HTTP dengan `ram_buffer` kosong sehingga respons berisi null-byte; kini file complete dilayani dari disk + `mark_done` benar.
+- **Inline text**: worker mengembalikan `text_content` untuk dokumen ≤1MB agar UI tidak bergantung fetch `http://127.0.0.1/stream/...`.
+- **Coba lagi stuck**: cache stream URL mati (port lama) dipakai ulang; retry kini `force` + invalidate cache.
+- **Fallback fetch teks**: urutan inline → data URL → path Tauri → HTTP stream, dengan pesan error yang jelas.
+
+## v2.1.65 Start Playback Cepat untuk Video Besar (Anti Buffering Awal)
+
+Fixed & Optimized:
+- **Akar "Buffering… 40%" di 0:00**: server HTTP Range sebelumnya mengklaim window multi-MB di `Content-Range` meskipun data solid belum siap, sehingga browser menunggu seluruh window → buffering panjang. Kini respons hanya mengklaim **byte solid yang sudah terisi** (slice pertama ≤512KB) dan menutup response cepat agar player re-Range.
+- **Full GET tanpa Range** tidak lagi mengirim `Content-Length` = ukuran file penuh saat unduhan belum selesai (penyebab klasik hang buffering).
+- **Prioritas head**: unduhan head playable (256–512KB) diselesaikan dulu; moov/tail baru setelahnya — menghentikan starvation bandwidth di file ≥30–100MB+.
+- **Tail seek ditunda** sampai head siap (bukan fire-and-forget 4MB tail bersamaan buka preview).
+- **Konfigurasi layer** media besar: `initial_head` lebih ramping, worker head lebih agresif; document-mode head 0.5–1.5MB.
+- **UI**: indikator buffer tidak lagi menampilkan % unduhan Telegram seolah-olah player sudah siap; cap display sampai frame browser tersedia.
+
+## v2.1.64 Perbaikan Celah Session Drive, Seek Video, dan Start Playback saat Buffer Tinggi
+
+Fixed:
+- **Regresi seek video**: memulihkan body `handleSeekJump` yang hilang (tanpa pemanggilan `driveStreamSeek`) sehingga scrub ke area di luar buffer browser kembali memicu unduhan offset Telegram (mode YouTube) dan men-nudge `<video>` setelah data tiba.
+- **Seek deadlock**: kick seek sekarang juga dari `onSeeking` (bukan hanya `onSeeked`) dengan debounce, karena seek ke hole sering tidak memancarkan `seeked` sampai data Range siap.
+- **Video tak start padahal buffer tinggi**:
+  - Nudge `play()` diperbaiki agar tidak berhenti ketika `readyState >= 3` tetapi elemen masih `paused`.
+  - Event `pause` dari autoplay gagal tidak lagi membekukan unduhan Telegram (`/pause`) sebelum playback sungguhan dimulai.
+  - Pipeline worker tidak menunda unduhan head playable meskipun flag `paused` true.
+  - `stream_ready` kini mensyaratkan `moov` (head/tail) untuk MP4 dokumen, agar UI tidak menganggap stream siap saat metadata belum ada.
+- **Konflik session / “drive session sedang digunakan”**:
+  - `ensureDriveSession(needPreview=true)` hanya memakai ghost `_preview` saat transfer lease aktif; di luar transfer selalu memakai session main (menghindari thrash clone + race lock).
+  - `driveSessionCallFor` menandai RPC preview/stream agar re-bootstrap yang benar saat session putus.
+- **Stream putus**: auto-recover satu kali saat `stream_status` melaporkan `missing`/`cancelled`.
+
+Tests:
+- Unit worker: 20 tests stream (seek, stop, moov, status ready) lulus.
+- Frontend Vitest: 112 tests lulus.
+
 ## v2.1.63 Optimalisasi Bandwidth dan Pencegahan Starvation Koneksi Video Playback
 
 Fixed:

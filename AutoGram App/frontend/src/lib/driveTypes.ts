@@ -816,10 +816,18 @@ const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 
 const VIDEO_EXTS = new Set(['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', '3gp', 'mpeg', 'mpg', 'ts', 'wmv', 'flv']);
 const PDF_EXTS = new Set(['pdf']);
 const TEXT_EXTS = new Set([
+  // plain / data
   'txt',
+  'text',
   'json',
+  'jsonc',
+  'json5',
+  'jsonl',
+  'ndjson',
   'md',
   'markdown',
+  'mdx',
+  'rst',
   'csv',
   'tsv',
   'log',
@@ -829,23 +837,102 @@ const TEXT_EXTS = new Set([
   'ini',
   'cfg',
   'conf',
+  'config',
+  'properties',
+  'env',
+  'toml',
+  'plist',
+  'lock',
+  // web
   'html',
   'htm',
+  'xhtml',
   'css',
+  'scss',
+  'sass',
+  'less',
   'js',
-  'ts',
   'jsx',
+  'mjs',
+  'cjs',
+  'ts',
   'tsx',
+  'vue',
+  'svelte',
+  'astro',
+  // scripting / backend
   'py',
-  'rs',
-  'go',
-  'java',
+  'pyi',
+  'pyw',
+  'rb',
+  'php',
+  'pl',
+  'pm',
+  'sh',
+  'bash',
+  'zsh',
+  'fish',
+  'ps1',
+  'psm1',
+  'bat',
+  'cmd',
+  'lua',
+  'r',
+  'jl',
+  'ex',
+  'exs',
+  'erl',
+  'clj',
+  'cljs',
+  'scala',
+  'kt',
+  'kts',
+  'swift',
+  'dart',
+  'groovy',
+  'gradle',
+  // systems languages
   'c',
+  'cc',
   'cpp',
+  'cxx',
   'h',
+  'hh',
+  'hpp',
+  'hxx',
+  'm',
+  'mm',
+  'cs',
+  'fs',
+  'fsx',
+  'go',
+  'rs',
+  'java',
   'sql',
-  'toml',
-  'env',
+  'prisma',
+  'graphql',
+  'gql',
+  'proto',
+  // devops
+  'dockerfile',
+  'makefile',
+  'cmake',
+  'tf',
+  'hcl',
+  'nix',
+  'vim',
+  'diff',
+  'patch',
+  'http',
+  'rest',
+  // office (plain-text extract in worker)
+  'docx',
+  'odt',
+  'rtf',
+  'xlsx',
+  'ods',
+  'pptx',
+  'odp',
 ]);
 const OFFICE_EXTS = new Set([
   'doc',
@@ -915,11 +1002,20 @@ export function isTextDriveFile(file: DriveFile): boolean {
     mime.includes('xml') ||
     mime.includes('yaml') ||
     mime.includes('javascript') ||
-    mime.includes('csv')
+    mime.includes('ecmascript') ||
+    mime.includes('typescript') ||
+    mime.includes('csv') ||
+    mime.includes('toml') ||
+    mime.includes('graphql') ||
+    mime === 'application/x-sh' ||
+    mime === 'application/sql'
   ) {
     return true;
   }
-  return TEXT_EXTS.has(driveFileExt(file));
+  // Office OOXML / ODF / RTF — worker extracts plain text for in-app body
+  const ext = driveFileExt(file);
+  if (['docx', 'odt', 'rtf', 'xlsx', 'ods', 'pptx', 'odp'].includes(ext)) return true;
+  return TEXT_EXTS.has(ext);
 }
 
 export function isOfficeDriveFile(file: DriveFile): boolean {

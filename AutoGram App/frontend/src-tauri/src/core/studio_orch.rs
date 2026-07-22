@@ -1,0 +1,523 @@
+//! Studio orchestrator — Rust owns queue order.
+//!
+//! Upload steps (dual-path):
+//! 1. **Grammers** (default when not forced off) — pure Rust MTProto upload
+//! 2. **Python studio-serve** (Telethon) — fallback if Grammers fails / env=telethon
+//!
+//! UI may still fall back further to legacy media-studio spawn.
+
+use serde::Serialize;
+use serde_json::json;
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicI64, Ordering};
+use std::thread;
+use std::time::Duration;
+
+use super::grammers_ops::{self, resolve_sessions_dir};
+use super::job_queue::{self, CreateTransferRequest, ItemState, TransferRecord, TransferState};
+use super::telegram_ops::{active_telegram_backend, TelegramBackendKind, TelegramIdentity};
+use super::tg_log;
+
+static ORCH_JOB_SEQ: AtomicI64 = AtomicI64::new(993_100);
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrchStartResult {
+    pub transfer_id: String,
+    pub mode: String,
+    pub items: usize,
+    pub message: String,
+}
+
+/// Create queue entry only (UI may list it before run).
+pub fn enqueue(req: CreateTransferRequest) -> Result<TransferRecord, String> {
+    job_queue::create_transfer(req)
+}
+
+fn finalize_transfer(tid: &str, items_len: usize, mode: &str) -> OrchStartResult {
+    if let Some(r) = job_queue::get_transfer(tid) {
+        if r.state == TransferState::Running {
+            let st = if r.failed_count == 0 && r.done_count > 0 {
+                TransferState::Completed
+            } else if r.done_count == 0 && r.failed_count > 0 {
+                TransferState::Failed
+            } else if r.done_count + r.failed_count >= r.items.len() {
+                TransferState::Completed
+            } else {
+                TransferState::Failed
+            };
+            let _ = job_queue::set_transfer_state(tid, st);
+        }
+    }
+    let final_rec = job_queue::get_transfer(tid);
+    let msg = match final_rec {
+        Some(r) if r.failed_count == 0 => {
+            format!("Orchestrated upload complete: {} done", r.done_count)
+        }
+        Some(r) => format!(
+            "Orchestrated upload finished: {} done, {} failed",
+            r.done_count, r.failed_count
+        ),
+        None => "Orchestrated upload finished".into(),
+    };
+    OrchStartResult {
+        transfer_id: tid.to_string(),
+        mode: mode.into(),
+        items: items_len,
+        message: msg,
+    }
+}
+
+/// Prefer Grammers for each local file; returns Err only if entire batch should try Telethon.
+fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartResult, String> {
+    let rec = job_queue::create_transfer(req.clone())?;
+    let tid = rec.transfer_id.clone();
+    job_queue::set_transfer_state(&tid, TransferState::Running)?;
+
+    let sessions = resolve_sessions_dir(None);
+    std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
+
+    // Best-effort import Telethon session → Grammers JSON once
+    let _ = grammers_ops::import_session_blocking(&sessions, &rec.session);
+
+    let identity = TelegramIdentity {
+        session: rec.session.clone(),
+        api_id: rec.api_id,
+        api_hash: req.api_hash.clone(),
+    };
+
+    // as_document from options
+    let as_doc = rec
+        .options
+        .get("quality_mode")
+        .and_then(|v| v.as_str())
+        .map(|s| s.eq_ignore_ascii_case("ORIGINAL") || s.eq_ignore_ascii_case("DOCUMENT"))
+        .unwrap_or(true)
+        || rec
+            .options
+            .get("force_document")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+    let silent = rec
+        .options
+        .get("silent")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    tg_log::info(
+        "studio_orch",
+        "grammers_start",
+        format!(
+            "transfer={} items={} chat={}",
+            tid,
+            rec.items.len(),
+            rec.chat_id
+        ),
+    );
+
+    let album = rec
+        .options
+        .get("group_as_album")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || rec
+            .options
+            .get("groupAsAlbum")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+    // Grammers native album (2–10 local files)
+    if album && rec.items.len() >= 2 && rec.items.len() <= 10 {
+        let files: Vec<(String, String)> = rec
+            .items
+            .iter()
+            .map(|it| (it.path.clone(), it.caption.clone()))
+            .collect();
+        for item in &rec.items {
+            let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
+        }
+        match grammers_ops::upload_album_blocking(
+            &sessions,
+            &identity,
+            &rec.chat_id,
+            &files,
+            as_doc,
+            silent,
+        ) {
+            Ok(results) => {
+                let mut any_ok = false;
+                for r in results {
+                    let st = match r.status.as_str() {
+                        "done" | "success" => {
+                            any_ok = true;
+                            ItemState::Done
+                        }
+                        _ => ItemState::Failed,
+                    };
+                    let _ = job_queue::update_item(
+                        &tid,
+                        r.index,
+                        st,
+                        r.message_id,
+                        r.error.clone(),
+                    );
+                }
+                if any_ok {
+                    return Ok(finalize_transfer(
+                        &tid,
+                        rec.items.len(),
+                        "rust_orch_grammers_album",
+                    ));
+                }
+                let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+                return Err("grammers album upload failed".into());
+            }
+            Err(e) => {
+                tg_log::warn("studio_orch", "grammers_album_fail", e.user_message());
+                let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+                return Err(format!("grammers album: {}", e.user_message()));
+            }
+        }
+    }
+
+    let mut any_ok = false;
+    let mut first_fatal: Option<String> = None;
+
+    for item in &rec.items {
+        let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
+        match grammers_ops::upload_file_blocking(
+            &sessions,
+            &identity,
+            &rec.chat_id,
+            &item.path,
+            &item.caption,
+            as_doc,
+            silent,
+            item.index,
+        ) {
+            Ok(r) => {
+                let st = match r.status.as_str() {
+                    "done" | "success" => {
+                        any_ok = true;
+                        ItemState::Done
+                    }
+                    "skipped" => {
+                        any_ok = true;
+                        ItemState::Skipped
+                    }
+                    _ => ItemState::Failed,
+                };
+                let _ = job_queue::update_item(
+                    &tid,
+                    item.index,
+                    st,
+                    r.message_id,
+                    r.error.clone(),
+                );
+                if r.error.is_some() && first_fatal.is_none() {
+                    first_fatal = r.error;
+                }
+            }
+            Err(e) => {
+                let msg = e.user_message();
+                tg_log::warn("studio_orch", "grammers_item_fail", &msg);
+                let _ = job_queue::update_item(
+                    &tid,
+                    item.index,
+                    ItemState::Failed,
+                    None,
+                    Some(msg.clone()),
+                );
+                if first_fatal.is_none() {
+                    first_fatal = Some(msg);
+                }
+                // Auth/session missing → abort batch so Telethon path can take over
+                if matches!(
+                    e.code(),
+                    super::tg_error::TgErrorCode::NotAuthorized
+                        | super::tg_error::TgErrorCode::SessionMissing
+                        | super::tg_error::TgErrorCode::SessionImportFailed
+                        | super::tg_error::TgErrorCode::NotConfigured
+                ) {
+                    let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+                    return Err(format!(
+                        "grammers unavailable: {}",
+                        first_fatal.unwrap_or_else(|| e.to_string())
+                    ));
+                }
+            }
+        }
+    }
+
+    if !any_ok {
+        let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+        return Err(format!(
+            "grammers upload all failed: {}",
+            first_fatal.unwrap_or_else(|| "unknown".into())
+        ));
+    }
+
+    Ok(finalize_transfer(
+        &tid,
+        rec.items.len(),
+        "rust_orch_grammers",
+    ))
+}
+
+/// Run orchestrated transfer: Grammers first, else Python studio-serve (Telethon).
+pub fn run_orchestrated_blocking(
+    req: &CreateTransferRequest,
+    daemon: &std::path::Path,
+    python: &std::path::Path,
+    env_extra: &[(String, String)],
+) -> Result<OrchStartResult, String> {
+    // Default: try Grammers unless explicitly forced to telethon-only.
+    let force_telethon = matches!(
+        active_telegram_backend(),
+        TelegramBackendKind::TelethonCompanion
+    ) && std::env::var("AUTOGRAM_TELEGRAM_BACKEND")
+        .map(|v| v.eq_ignore_ascii_case("telethon") || v.eq_ignore_ascii_case("python"))
+        .unwrap_or(false);
+
+    if !force_telethon {
+        match run_orchestrated_grammers(req) {
+            Ok(r) => {
+                tg_log::info("studio_orch", "done", format!("mode={}", r.mode));
+                return Ok(r);
+            }
+            Err(e) => {
+                tg_log::warn(
+                    "studio_orch",
+                    "grammers_fallback_telethon",
+                    e.as_str(),
+                );
+            }
+        }
+    }
+
+    run_orchestrated_telethon_blocking(req, daemon, python, env_extra)
+}
+
+/// Python studio-serve Telethon steps (fallback / forced).
+fn run_orchestrated_telethon_blocking(
+    req: &CreateTransferRequest,
+    daemon: &std::path::Path,
+    python: &std::path::Path,
+    env_extra: &[(String, String)],
+) -> Result<OrchStartResult, String> {
+    let api_hash = req.api_hash.clone();
+    let rec = job_queue::create_transfer(req.clone())?;
+    let tid = rec.transfer_id.clone();
+    job_queue::set_transfer_state(&tid, TransferState::Running)?;
+
+    let mut cmd = Command::new(python);
+    cmd.arg("-u");
+    cmd.arg(daemon);
+    cmd.args([
+        "--action",
+        "studio-serve",
+        "--session",
+        &rec.session,
+        "--api-id",
+        &rec.api_id.to_string(),
+        "--api-hash",
+        &api_hash,
+    ]);
+    cmd.stdin(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+    if let Some(parent) = daemon.parent() {
+        cmd.current_dir(parent);
+    }
+    for (k, v) in env_extra {
+        cmd.env(k, v);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+        cmd.creation_flags(CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP);
+    }
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("spawn studio-serve: {e}"))?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| "no stdin for studio-serve".to_string())?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "no stdout for studio-serve".to_string())?;
+
+    let mut reader = BufReader::new(stdout);
+    let mut line = String::new();
+    let mut ready = false;
+    for _ in 0..200 {
+        line.clear();
+        match reader.read_line(&mut line) {
+            Ok(0) => break,
+            Ok(_) => {
+                if line.contains("ready") {
+                    ready = true;
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    if !ready {
+        let _ = child.kill();
+        return Err("studio-serve did not become ready".into());
+    }
+
+    let mut seq = 1i64;
+    let mut write_cmd = |id: i64, mut body: serde_json::Value| -> Result<(), String> {
+        if let Some(m) = body.as_object_mut() {
+            m.insert("id".into(), json!(id.to_string()));
+        }
+        let line = serde_json::to_string(&body).map_err(|e| e.to_string())? + "\n";
+        stdin
+            .write_all(line.as_bytes())
+            .map_err(|e| format!("stdin write: {e}"))?;
+        stdin.flush().map_err(|e| format!("stdin flush: {e}"))
+    };
+
+    let mut read_reply = |want_id: &str| -> Result<serde_json::Value, String> {
+        let mut line = String::new();
+        for _ in 0..2000 {
+            line.clear();
+            let n = reader
+                .read_line(&mut line)
+                .map_err(|e| format!("stdout: {e}"))?;
+            if n == 0 {
+                return Err("studio-serve closed".into());
+            }
+            let t = line.trim();
+            if !t.starts_with('{') {
+                continue;
+            }
+            if t.contains("studio_event") {
+                continue;
+            }
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(t) {
+                let id = v
+                    .get("id")
+                    .map(|x| match x {
+                        serde_json::Value::String(s) => s.clone(),
+                        serde_json::Value::Number(n) => n.to_string(),
+                        _ => String::new(),
+                    })
+                    .unwrap_or_default();
+                if id == want_id || want_id.is_empty() {
+                    if v.get("ok").and_then(|x| x.as_bool()) == Some(false) {
+                        let err = v
+                            .get("error")
+                            .and_then(|x| x.as_str())
+                            .unwrap_or("studio step failed");
+                        return Err(err.to_string());
+                    }
+                    return Ok(v);
+                }
+            }
+        }
+        Err("timeout waiting studio reply".into())
+    };
+
+    let begin_id = seq;
+    seq += 1;
+    write_cmd(
+        begin_id,
+        json!({
+            "cmd": "begin",
+            "session": rec.session,
+            "api_id": rec.api_id,
+            "api_hash": api_hash,
+            "chat_id": rec.chat_id,
+            "options": rec.options,
+            "transfer_id": tid,
+        }),
+    )?;
+    read_reply(&begin_id.to_string())?;
+
+    for item in &rec.items {
+        let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
+        let id_num = seq;
+        seq += 1;
+        write_cmd(
+            id_num,
+            json!({
+                "cmd": "upload_one",
+                "transfer_id": tid,
+                "item": {
+                    "path": item.path,
+                    "caption": item.caption,
+                    "index": item.index,
+                    "item_id": item.item_id,
+                }
+            }),
+        )?;
+        match read_reply(&id_num.to_string()) {
+            Ok(v) => {
+                let result = v.get("result").cloned().unwrap_or(json!({}));
+                let status = result
+                    .get("status")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("failed");
+                let mid = result.get("message_id").and_then(|x| x.as_i64());
+                let err = result
+                    .get("error")
+                    .and_then(|x| x.as_str())
+                    .map(|s| s.to_string());
+                let st = match status {
+                    "done" | "success" => ItemState::Done,
+                    "skipped" => ItemState::Skipped,
+                    _ => ItemState::Failed,
+                };
+                let _ = job_queue::update_item(&tid, item.index, st, mid, err);
+            }
+            Err(e) => {
+                let _ = job_queue::update_item(
+                    &tid,
+                    item.index,
+                    ItemState::Failed,
+                    None,
+                    Some(e),
+                );
+            }
+        }
+    }
+
+    let fin = seq;
+    let _ = write_cmd(fin, json!({"cmd": "finish"}));
+    let _ = read_reply(&fin.to_string());
+    let _ = write_cmd(fin + 1, json!({"cmd": "quit"}));
+    thread::sleep(Duration::from_millis(200));
+    let _ = child.kill();
+    let _ = child.wait();
+
+    Ok(finalize_transfer(
+        &tid,
+        rec.items.len(),
+        "rust_orch_telethon_step",
+    ))
+}
+
+pub fn next_orch_job_id() -> i64 {
+    ORCH_JOB_SEQ.fetch_add(1, Ordering::SeqCst)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn job_id_increments() {
+        let a = next_orch_job_id();
+        let b = next_orch_job_id();
+        assert!(b > a);
+    }
+}

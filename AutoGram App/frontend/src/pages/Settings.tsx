@@ -10,7 +10,21 @@ import {
   FileText,
   AlertTriangle,
   Terminal,
+  Network,
+  Zap,
+  Wifi,
+  Loader2,
 } from 'lucide-react';
+import { detectTauriRuntime } from '../lib/platform';
+import {
+  networkApplyAll,
+  networkDetectVpn,
+  networkGetConfig,
+  networkIsAvailable,
+  networkTestProxy,
+  type NetworkConfigSnapshot,
+  type ProxyStatus,
+} from '../lib/rustBackend';
 import { useTranslation } from 'react-i18next';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { runDaemonOnce } from '../lib/workerBridge';
@@ -35,6 +49,10 @@ import {
   debugLog,
   copyTextWithFallback,
 } from '../lib/debugMode';
+import {
+  tgBackendStatus,
+  type TgBackendStatus,
+} from '../lib/telegramBackend';
 
 export function Settings() {
   const { t, i18n } = useTranslation();
@@ -47,6 +65,7 @@ export function Settings() {
   const [debugBusy, setDebugBusy] = useState(false);
   const [logSnap, setLogSnap] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [tgBackend, setTgBackend] = useState<TgBackendStatus | null>(null);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -55,6 +74,14 @@ export function Settings() {
 
   const [isClearingDb, setIsClearingDb] = useState(false);
   const [dbClearStatus, setDbClearStatus] = useState<"idle" | "success" | "error">("idle");
+
+  // Proxy / VPN (Rust-owned; applied to Telethon via worker env)
+  const [netCfg, setNetCfg] = useState<NetworkConfigSnapshot | null>(null);
+  const [netBusy, setNetBusy] = useState(false);
+  const [netMsg, setNetMsg] = useState<string | null>(null);
+  const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
+  const [netAvail, setNetAvail] = useState<boolean | null>(null);
+  const [vpnHint, setVpnHint] = useState<boolean | null>(null);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -228,6 +255,66 @@ export function Settings() {
     };
   }, []);
 
+  // Load network (proxy/VPN) from Rust
+  useEffect(() => {
+    if (!detectTauriRuntime()) return;
+    let cancelled = false;
+    (async () => {
+      const cfg = await networkGetConfig();
+      if (!cancelled && cfg) setNetCfg(cfg);
+      const avail = await networkIsAvailable();
+      if (!cancelled) setNetAvail(avail);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Telegram MTProto backend (Grammers / Telethon dual-path)
+  useEffect(() => {
+    if (!detectTauriRuntime()) return;
+    let cancelled = false;
+    (async () => {
+      const st = await tgBackendStatus();
+      if (!cancelled && st) setTgBackend(st);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  const saveNetwork = async () => {
+    if (!netCfg) return;
+    setNetBusy(true);
+    setNetMsg(null);
+    try {
+      const ok = await networkApplyAll(netCfg);
+      setNetMsg(
+        ok
+          ? 'Network settings saved. Restart Drive session / reconnect so Telethon picks up proxy.'
+          : 'Failed to save network settings.'
+      );
+    } finally {
+      setNetBusy(false);
+    }
+  };
+
+  const testProxy = async () => {
+    setNetBusy(true);
+    try {
+      if (netCfg) await networkApplyAll(netCfg);
+      const st = await networkTestProxy();
+      setProxyStatus(st);
+      const hint = await networkDetectVpn();
+      setVpnHint(hint);
+      const avail = await networkIsAvailable();
+      setNetAvail(avail);
+    } finally {
+      setNetBusy(false);
+    }
+  };
+
   useEffect(() => {
     return subscribeDebugMode((on) => {
       setDebugOn(on);
@@ -373,6 +460,297 @@ export function Settings() {
             </div>
           )}
         </div>
+
+        {detectTauriRuntime() && (
+          <div className="glass-panel card">
+            <div className="card-header">
+              <Terminal size={20} color="var(--primary)" />
+              <h3>Telegram Backend Native</h3>
+            </div>
+            <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
+              <strong>Grammers</strong> adalah backend MTProto aktif untuk Account, Session, daftar media,
+              preview dokumen, progressive video, chunk, dan seek.
+            </p>
+            <div className="page-stack" style={{ gap: '0.75rem' }}>
+              <p className="field-hint" style={{ margin: 0 }}>
+                Aktif:{' '}
+                <strong style={{ color: 'var(--primary)' }}>
+                  {tgBackend?.activeLabel || tgBackend?.active || '…'}
+                </strong>
+                {tgBackend?.grammersCompiled ? ' · Grammers compiled' : ''}
+              </p>
+              <p className="field-hint" style={{ margin: 0 }}>
+                Account, perpindahan session, preview dokumen, dan progressive video dikunci ke
+                Grammers + Rust agar hanya ada satu sumber koneksi dan satu pemilik session.
+              </p>
+              {tgBackend?.notes?.length ? (
+                <ul className="field-hint" style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.45 }}>
+                  {tgBackend.notes.slice(0, 4).map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {detectTauriRuntime() && netCfg && (
+          <div className="glass-panel card">
+            <div className="card-header">
+              <Network size={20} color="var(--primary)" />
+              <h3>Proxy &amp; VPN Optimizer</h3>
+            </div>
+            <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
+              Diambil dari fitur Telegram-Drive: routing SOCKS5/HTTP/MTProto + penyesuaian timeout/retry
+              untuk jaringan lambat/VPN. Disimpan di Rust; worker Python (Telethon) memakainya lewat env.
+            </p>
+
+            <div className="page-stack" style={{ gap: '1rem' }}>
+              <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={netCfg.proxy.enabled}
+                  onChange={(e) =>
+                    setNetCfg({
+                      ...netCfg,
+                      proxy: { ...netCfg.proxy, enabled: e.target.checked },
+                    })
+                  }
+                />
+                Enable Proxy
+              </label>
+
+              {netCfg.proxy.enabled && (
+                <>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Type</label>
+                    <select
+                      className="input-field"
+                      value={netCfg.proxy.proxyType}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          proxy: { ...netCfg.proxy, proxyType: e.target.value },
+                        })
+                      }
+                    >
+                      <option value="socks5">SOCKS5</option>
+                      <option value="http">HTTP</option>
+                      <option value="https">HTTPS</option>
+                      <option value="mtproto">MTProto (Telegram)</option>
+                    </select>
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Host</label>
+                    <input
+                      className="input-field"
+                      value={netCfg.proxy.host}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          proxy: { ...netCfg.proxy, host: e.target.value },
+                        })
+                      }
+                      placeholder="127.0.0.1"
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Port</label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      value={netCfg.proxy.port}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          proxy: {
+                            ...netCfg.proxy,
+                            port: Math.max(1, Math.min(65535, Number(e.target.value) || 1080)),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Username (opsional)</label>
+                    <input
+                      className="input-field"
+                      value={netCfg.proxy.username}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          proxy: { ...netCfg.proxy, username: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Password (opsional)</label>
+                    <input
+                      className="input-field"
+                      type="password"
+                      value={netCfg.proxy.password}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          proxy: { ...netCfg.proxy, password: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  {netCfg.proxy.proxyType === 'mtproto' && (
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label">MTProto secret (hex)</label>
+                      <input
+                        className="input-field"
+                        value={netCfg.proxy.secret || ''}
+                        onChange={(e) =>
+                          setNetCfg({
+                            ...netCfg,
+                            proxy: { ...netCfg.proxy, secret: e.target.value },
+                          })
+                        }
+                        placeholder="dd… or ee…"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <hr style={{ border: 0, borderTop: '1px solid var(--border)', margin: '0.25rem 0' }} />
+
+              <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={netCfg.vpn.enabled}
+                  onChange={(e) =>
+                    setNetCfg({
+                      ...netCfg,
+                      vpn: { ...netCfg.vpn, enabled: e.target.checked },
+                    })
+                  }
+                />
+                <Zap size={16} /> VPN Optimizer (timeout &amp; retry agresif)
+              </label>
+
+              {netCfg.vpn.enabled && (
+                <>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Timeout multiplier (1–8)</label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      min={1}
+                      max={8}
+                      value={netCfg.vpn.timeoutMultiplier}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          vpn: {
+                            ...netCfg.vpn,
+                            timeoutMultiplier: Math.max(1, Math.min(8, Number(e.target.value) || 3)),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Connection retries</label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      min={3}
+                      max={30}
+                      value={netCfg.vpn.connectionRetries}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          vpn: {
+                            ...netCfg.vpn,
+                            connectionRetries: Math.max(3, Math.min(30, Number(e.target.value) || 15)),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: 0 }}>
+                    <label className="input-label">Keep-alive (detik, 0=off)</label>
+                    <input
+                      className="input-field"
+                      type="number"
+                      min={0}
+                      max={180}
+                      value={netCfg.vpn.keepAliveIntervalSec}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          vpn: {
+                            ...netCfg.vpn,
+                            keepAliveIntervalSec: Math.max(0, Math.min(180, Number(e.target.value) || 0)),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={netCfg.vpn.floodWaitRespect}
+                      onChange={(e) =>
+                        setNetCfg({
+                          ...netCfg,
+                          vpn: { ...netCfg.vpn, floodWaitRespect: e.target.checked },
+                        })
+                      }
+                    />
+                    Hormati FloodWait panjang
+                  </label>
+                </>
+              )}
+
+              <div className="page-header-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={netBusy}
+                  onClick={() => void saveNetwork()}
+                >
+                  {netBusy ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
+                  Simpan Network
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={netBusy}
+                  onClick={() => void testProxy()}
+                >
+                  <Wifi size={16} /> Test proxy / DC
+                </button>
+              </div>
+
+              {netMsg && <p className="field-hint">{netMsg}</p>}
+              {proxyStatus && (
+                <p className="field-hint">
+                  Proxy TCP:{' '}
+                  <strong style={{ color: proxyStatus.reachable ? 'var(--success)' : 'var(--danger)' }}>
+                    {proxyStatus.reachable ? 'OK' : 'Gagal'}
+                  </strong>
+                  {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
+                </p>
+              )}
+              {netAvail != null && (
+                <p className="field-hint">
+                  Telegram DC / proxy reachability: <strong>{netAvail ? 'tersedia' : 'tidak tersedia'}</strong>
+                </p>
+              )}
+              {vpnHint != null && vpnHint && (
+                <p className="field-hint">
+                  Hint: DC Telegram lambat/gagal — pertimbangkan aktifkan VPN Optimizer atau Proxy.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className={`glass-panel card dbg-card ${debugOn ? 'is-on' : ''}`}>
           <div className="dbg-head">

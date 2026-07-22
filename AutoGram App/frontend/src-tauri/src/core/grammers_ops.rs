@@ -126,15 +126,15 @@ pub(crate) fn runtime() -> Result<&'static Runtime, TgError> {
     })
 }
 
-fn session_operation_lock(session_name: &str) -> Arc<tokio::sync::Mutex<()>> {
-    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
+fn session_operation_lock(session_name: &str) -> Arc<tokio::sync::RwLock<()>> {
+    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::RwLock<()>>>>> =
         OnceLock::new();
     let locks = LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut guard = locks.lock();
     Arc::clone(
         guard
             .entry(session_name.to_string())
-            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(()))),
+            .or_insert_with(|| Arc::new(tokio::sync::RwLock::new(()))),
     )
 }
 
@@ -252,6 +252,19 @@ pub(crate) struct LiveClient {
 struct CachedLiveClient {
     api_id: i64,
     live: Arc<LiveClient>,
+    user_profile: Option<UserProfile>,
+}
+
+fn get_cached_user_profile(session_name: &str) -> Option<UserProfile> {
+    let clients = live_clients().lock();
+    clients.get(session_name).and_then(|c| c.user_profile.clone())
+}
+
+fn set_cached_user_profile(session_name: &str, profile: UserProfile) {
+    let mut clients = live_clients().lock();
+    if let Some(c) = clients.get_mut(session_name) {
+        c.user_profile = Some(profile);
+    }
 }
 
 fn live_clients() -> &'static Mutex<HashMap<String, CachedLiveClient>> {
@@ -324,10 +337,9 @@ pub(crate) async fn with_client<F, T>(
 where
     F: for<'a> FnOnce(&'a Client) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>>,
 {
-    // One interactive owner per account prevents concurrent commands from
-    // racing session persistence or opening competing MTProto senders.
+    // Concurrent readers share the MTProto SenderPool; exclusive writers (login/delete) block.
     let operation_lock = session_operation_lock(&identity.session);
-    let _operation_guard = operation_lock.lock().await;
+    let _operation_guard = operation_lock.read().await;
     let cached = {
         let clients = live_clients().lock();
         clients
@@ -345,6 +357,7 @@ where
                 CachedLiveClient {
                     api_id: identity.api_id,
                     live: Arc::clone(&live),
+                    user_profile: None,
                 },
             );
             live
@@ -463,12 +476,18 @@ pub fn auth_status_blocking(
                 let authorized = client.is_authorized().await.map_err(|e| map_invocation(&e))?;
                 let mut profile = None;
                 if authorized {
-                    match client.get_me().await {
-                        Ok(u) => {
-                            profile = Some(user_profile_from(&u));
-                        }
-                        Err(e) => {
-                            tg_log::warn(BACKEND, "get_me", map_invocation(&e).to_string());
+                    if let Some(cached) = get_cached_user_profile(&session_name) {
+                        profile = Some(cached);
+                    } else {
+                        match client.get_me().await {
+                            Ok(u) => {
+                                let p = user_profile_from(&u);
+                                set_cached_user_profile(&session_name, p.clone());
+                                profile = Some(p);
+                            }
+                            Err(e) => {
+                                tg_log::warn(BACKEND, "get_me", map_invocation(&e).to_string());
+                            }
                         }
                     }
                 }
@@ -1241,7 +1260,7 @@ pub fn login_blocking(
     let rt = runtime()?;
     rt.block_on(async {
         let operation_lock = session_operation_lock(&identity.session);
-        let _operation_guard = operation_lock.lock().await;
+        let _operation_guard = operation_lock.write().await;
         disconnect_cached_session(&identity.session);
         // Do not import telethon on brand-new login — use fresh grammers file
         let g_path = grammers_session_path(sessions_dir, &identity.session);
@@ -1479,7 +1498,7 @@ pub async fn grammers_qr_login(
         api_hash: api_hash.clone(),
     };
     let operation_lock = session_operation_lock(&session_name);
-    let _operation_guard = operation_lock.lock().await;
+    let _operation_guard = operation_lock.write().await;
     disconnect_cached_session(&session_name);
 
     let live = connect_client(&sessions_dir, &identity, false).await?;
@@ -1726,7 +1745,7 @@ pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> 
     let session_name = session_name.to_string();
     runtime()?.block_on(async move {
         let operation_lock = session_operation_lock(&session_name);
-        let _operation_guard = operation_lock.lock().await;
+        let _operation_guard = operation_lock.write().await;
         disconnect_cached_session(&session_name);
         let sessions_dir = resolve_sessions_dir(None);
         let s_name = session_name.trim().trim_end_matches(".session");

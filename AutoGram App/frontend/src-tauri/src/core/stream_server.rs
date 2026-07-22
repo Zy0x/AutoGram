@@ -48,12 +48,17 @@ pub struct StreamStatusDto {
     pub path: String,
     pub total: u64,
     pub downloaded: u64,
+    pub downloaded_filled: u64,
     pub prefix_bytes: u64,
     pub percent: f64,
     pub done: bool,
     pub mime_type: String,
     pub backend: String,
     pub stream_ready: bool,
+    pub moov_ready: bool,
+    pub seek_capable: bool,
+    pub paused: bool,
+    pub error: Option<String>,
 }
 
 fn now_ms() -> u128 {
@@ -121,6 +126,39 @@ fn filled_bytes(ranges: &[(u64, u64)]) -> u64 {
     ranges.iter().map(|(s, e)| e.saturating_sub(*s)).sum()
 }
 
+fn range_contains_atom(path: &Path, ranges: &[(u64, u64)], atom: &[u8; 4]) -> bool {
+    let Ok(mut file) = File::open(path) else {
+        return false;
+    };
+    for &(start, end) in ranges {
+        if end <= start {
+            continue;
+        }
+        // Scan only the edges of an available island. MP4 metadata is normally
+        // in the head or tail, and status polling must remain bounded.
+        let len = (end - start).min(2 * 1024 * 1024) as usize;
+        let mut buf = vec![0u8; len];
+        if file.seek(SeekFrom::Start(start)).is_ok() {
+            if let Ok(n) = file.read(&mut buf) {
+                if buf[..n].windows(4).any(|w| w == atom) {
+                    return true;
+                }
+            }
+        }
+        if end - start > 2 * 1024 * 1024 {
+            let tail_start = end.saturating_sub(2 * 1024 * 1024);
+            if file.seek(SeekFrom::Start(tail_start)).is_ok() {
+                if let Ok(n) = file.read(&mut buf) {
+                    if buf[..n].windows(4).any(|w| w == atom) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
 fn registry_path(sid: &str) -> Option<PathBuf> {
     REGISTRY_DIR
         .get()
@@ -179,15 +217,21 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             path: String::new(),
             total: 0,
             downloaded: 0,
+            downloaded_filled: 0,
             prefix_bytes: 0,
             percent: 0.0,
             done: false,
             mime_type: String::new(),
             backend: "rust".into(),
             stream_ready: false,
+            moov_ready: false,
+            seek_capable: false,
+            paused: false,
+            error: None,
         },
         Some(e) => {
             let prefix = contiguous_from_zero(&e.ranges);
+            let filled = filled_bytes(&e.ranges);
             let total = e.total_size;
             let pct = if total > 0 {
                 (prefix as f64) * 100.0 / (total as f64)
@@ -205,23 +249,34 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             };
             // Align with Python first_play tiers (~96–384 KiB). Too-high thresholds
             // leave UI stuck on "Buffering" while bytes already sit on disk.
-            let mut first_play = 192 * 1024u64;
-            if total > 0 && total < first_play {
-                first_play = total;
-            }
-            let stream_ready = e.done || prefix >= first_play.min(total.max(1));
+            let first_play = super::streaming_policy::first_play_bytes(total);
+            let lower_label = e.label.to_ascii_lowercase();
+            let is_mp4 = e.mime.eq_ignore_ascii_case("video/mp4")
+                || lower_label.ends_with(".mp4")
+                || lower_label.ends_with(".m4v")
+                || lower_label.ends_with(".mov");
+            let moov_ready = !is_mp4
+                || e.done
+                || range_contains_atom(Path::new(&e.path), &e.ranges, b"moov");
+            let stream_ready =
+                e.done || (prefix >= first_play.min(total.max(1)) && moov_ready);
             StreamStatusDto {
                 status: status.into(),
                 stream_id: e.stream_id,
                 path: e.path,
                 total,
                 downloaded: prefix,
+                downloaded_filled: filled,
                 prefix_bytes: prefix,
                 percent: (pct * 100.0).round() / 100.0,
                 done: e.done,
                 mime_type: e.mime,
                 backend: "rust".into(),
                 stream_ready,
+                moov_ready,
+                seek_capable: !e.done && !e.cancelled,
+                paused: e.paused,
+                error: e.error,
             }
         }
     }
@@ -374,6 +429,9 @@ fn handle_stream(request: Request, sid: &str) {
         let start = rs;
         let mut have_end = contiguous_end_from(&ranges, start);
         if have_end <= start && !entry.done {
+            // Tell the Grammers fill loop to jump here before we wait. This is
+            // the critical path for scrub/seek on a partially downloaded file.
+            let _ = super::grammers_media::request_progressive_range(sid, start);
             // Auto-resume download if it was paused by a browser pause event
             if entry.paused {
                 entry.paused = false;
@@ -646,7 +704,11 @@ pub fn ensure_started(registry: PathBuf) -> u16 {
         .name("autogram-stream".into())
         .spawn(move || {
             for request in server.incoming_requests() {
-                handle(request);
+                // Range handlers may wait for Telegram bytes. Keep status,
+                // resume, and parallel media requests responsive meanwhile.
+                let _ = thread::Builder::new()
+                    .name("autogram-range".into())
+                    .spawn(move || handle(request));
             }
         })
         .ok();

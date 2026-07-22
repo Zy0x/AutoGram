@@ -30,5 +30,25 @@ rand = "0.8"
 base64 = "0.22"
 keyring = "3"
 rusqlite = { version = "0.32", features = ["backup", "bundled"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+tiny_http = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+parking_lot = "0.12"
+# Phase 4 — Grammers MTProto (dual-path with Telethon companion)
+# NOTE: do NOT enable grammers-session default `sqlite-storage` (libsql) —
+# it duplicates sqlite symbols with rusqlite `bundled` on Windows (LNK2005).
+grammers-client = "0.10"
+grammers-session = { version = "0.10", default-features = false, features = ["serde"] }
+grammers-mtsender = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "fs", "io-util"] }
+log = "0.4"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[features]
+default = ["grammers"]
+# Compile-time enable of Grammers backend (runtime still dual-path via AUTOGRAM_TELEGRAM_BACKEND)
+grammers = []
 
 

@@ -74,10 +74,13 @@ export async function loadSelectableSessions(opts?: {
     return sessionsMemCache.list;
   }
 
-  await bootstrapSecureCredentials();
+  // Fetch native session inventory and credentials in parallel
+  const [raw] = await Promise.all([
+    tgListSessions(),
+    bootstrapSecureCredentials(),
+  ]);
   const { apiId, apiHash } = await getApiCredentials();
 
-  const raw = await tgListSessions();
   let all: SessionOption[] = raw
     .map((s) => ({
       name: String(s?.name || '').trim(),
