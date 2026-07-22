@@ -16,9 +16,10 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use super::grammers_ops::{
-    connect_client, persist_memory_session, resolve_peer, runtime, with_client,
+    obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
 };
 use super::path_policy;
+use super::session_rate;
 use super::stream_server::{self, StreamEntry};
 use super::telegram_ops::TelegramIdentity;
 use super::tg_error::{map_invocation, TgError, TgErrorCode};
@@ -150,7 +151,9 @@ pub fn list_topics_blocking(
     let rt = runtime()?;
     let chat = chat_id.to_string();
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
                 if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
@@ -240,6 +243,7 @@ pub fn list_topics_blocking(
                         Err(map_invocation(&e))
                     }
                 }
+            })
             })
         })
         .await
@@ -331,8 +335,11 @@ fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
 
 fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     let mode = quality.to_lowercase();
-    if mode.contains("hemat") || mode.contains("saver") {
-        // Section
+    let saver = mode.contains("hemat") || mode.contains("saver");
+    let sharp = mode.contains("jelas") || mode.contains("sharp");
+
+    // Hemat / Saver: prefer free inline stripped/cached (tiny).
+    if saver {
         for s in sizes {
             if s.to_data().is_some() {
                 match s {
@@ -341,36 +348,45 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
                 }
             }
         }
+        // Fall through to smallest downloadable if no inline
     }
 
-    // Section
-    let mut downloadable: Vec<&PhotoSize> = sizes
+    // Filter static downloadable layers (ordered by Telegram from smallest to largest resolution)
+    let downloadable: Vec<&PhotoSize> = sizes
         .iter()
         .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)))
         .collect();
 
     if !downloadable.is_empty() {
-        downloadable.sort_by_key(|s| s.size());
-        if mode.contains("jelas") || mode.contains("sharp") {
-            // Section
+        if sharp {
+            // Jelas: largest static layer available in Telegram
             return downloadable.last().map(|s| (*s).clone());
         }
-        // Section
-        let mid_index = if downloadable.len() >= 2 {
-            downloadable.len() / 2
-        } else {
-            0
-        };
-        return downloadable.get(mid_index).map(|s| (*s).clone());
+        if saver {
+            // Hemat downloadable fallback: smallest non-stripped layer
+            return downloadable.first().map(|s| (*s).clone());
+        }
+        // Seimbang: upper-mid / clear medium layer (~320px-800px)
+        let len = downloadable.len();
+        if len <= 2 {
+            return downloadable.last().map(|s| (*s).clone());
+        }
+        // len >= 3: pick upper-mid static layer (e.g. index 2 out of 4)
+        let idx = (len * 2 / 3).min(len - 1);
+        return downloadable.get(idx).map(|s| (*s).clone());
     }
 
-    // Section
-    for s in sizes {
-        if s.to_data().is_some() {
-            return Some(s.clone());
+    // No downloadable static layer: saver accepts stripped as final
+    if saver {
+        for s in sizes {
+            if s.to_data().is_some() {
+                return Some(s.clone());
+            }
         }
     }
-    sizes.first().cloned()
+
+    // For seimbang/jelas, return None so download_media_thumb falls back to photo chunk / FFmpeg frame
+    None
 }
 
 fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
@@ -380,6 +396,22 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
         Media::Sticker(s) => s.document.thumbs(),
         _ => vec![],
     }
+}
+
+/// Inline stripped JPEG (Telegram mini-thumb) as data-URL — no network GetFile.
+/// Used by list_media so the grid paints like the official app on first paint.
+pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
+    for s in media_thumbs(media) {
+        if let Some(data) = s.to_data() {
+            let bytes = unstrip_jpeg(&data).unwrap_or(data);
+            if !bytes.is_empty() {
+                if let Some(url) = to_data_url(&bytes) {
+                    return Some(url);
+                }
+            }
+        }
+    }
+    None
 }
 
 async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<u8>, TgError> {
@@ -406,42 +438,58 @@ async fn download_media_thumb(
     quality: &str,
 ) -> Result<Vec<u8>, TgError> {
     let sizes = media_thumbs(media);
+    let mode = quality.to_lowercase();
+    let saver = mode.contains("hemat") || mode.contains("saver");
 
     // Tier 1: Try selected quality size
     if let Some(pick) = pick_thumb(&sizes, quality) {
         if let Ok(bytes) = download_thumb_bytes(client, &pick).await {
-            if !bytes.is_empty() {
+            // Reject tiny stripped payloads for seimbang/jelas (look blurry on grid)
+            let min_ok = if saver { 32 } else { 2_500 };
+            if bytes.len() >= min_ok {
                 return Ok(bytes);
             }
         }
     }
 
-    // Tier 2: Try inline stripped / cached data from any size
-    for s in &sizes {
-        if let Some(data) = s.to_data() {
-            let bytes = unstrip_jpeg(&data).unwrap_or(data);
-            if !bytes.is_empty() {
-                return Ok(bytes);
+    // Tier 2: Inline stripped only for Saver mode
+    if saver {
+        for s in &sizes {
+            if let Some(data) = s.to_data() {
+                let bytes = unstrip_jpeg(&data).unwrap_or(data);
+                if !bytes.is_empty() {
+                    return Ok(bytes);
+                }
             }
         }
     }
 
-    // Tier 3: Try any downloadable size in sizes
-    for s in &sizes {
+    // Tier 3: Any downloadable size (largest-first for non-saver)
+    let mut downloadable: Vec<&PhotoSize> = sizes
+        .iter()
+        .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)))
+        .collect();
+    if !saver {
+        downloadable.reverse();
+    }
+    for s in downloadable {
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
-            if !bytes.is_empty() {
+            if bytes.len() >= 2_500 || saver {
                 return Ok(bytes);
             }
         }
     }
 
-    // Tier 4: Fallback for photos (download first 128KB chunk)
+    // Tier 4: Fallback for photos (download first chunk)
     if let Media::Photo(p) = media {
+        let mode = quality.to_lowercase();
+        let sharp = mode.contains("jelas") || mode.contains("sharp");
+        let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
         let mut out = Vec::new();
         let mut iter = client.iter_download(p).chunk_size(64 * 1024);
         while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
             out.extend_from_slice(&chunk);
-            if out.len() >= 128 * 1024 {
+            if out.len() >= max_bytes {
                 break;
             }
         }
@@ -470,11 +518,14 @@ async fn download_media_thumb(
             || name.ends_with(".bmp");
 
         if is_image {
+            let mode = quality.to_lowercase();
+            let sharp = mode.contains("jelas") || mode.contains("sharp");
+            let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
             let mut out = Vec::new();
             let mut iter = client.iter_download(d).chunk_size(64 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 out.extend_from_slice(&chunk);
-                if out.len() >= 256 * 1024 {
+                if out.len() >= max_bytes {
                     break;
                 }
             }
@@ -482,17 +533,20 @@ async fn download_media_thumb(
                 return Ok(out);
             }
         } else if is_video {
+            let mode = quality.to_lowercase();
+            let sharp = mode.contains("jelas") || mode.contains("sharp");
+            let max_sample = if sharp { 4096 * 1024 } else if saver { 1536 * 1024 } else { 2560 * 1024 };
             let mut sample_bytes = Vec::new();
-            // Download sample bytes (up to 2.5MB for FFmpeg frame extraction)
+            // Download sample bytes (up to 4MB for high-res FFmpeg frame extraction)
             let mut iter = client.iter_download(d).chunk_size(128 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 sample_bytes.extend_from_slice(&chunk);
-                if sample_bytes.len() >= 2560 * 1024 {
+                if sample_bytes.len() >= max_sample {
                     break;
                 }
             }
             if !sample_bytes.is_empty() {
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes) {
+                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality) {
                     return Ok(frame_bytes);
                 }
             }
@@ -502,7 +556,7 @@ async fn download_media_thumb(
     Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
 }
 
-fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
+pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
     if let Some(path) = which_path("ffmpeg") {
         return Some(path);
     }
@@ -560,8 +614,20 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-fn extract_ffmpeg_frame_sync(sample_bytes: &[u8]) -> Option<Vec<u8>> {
+fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str) -> Option<Vec<u8>> {
     let ff_exe = find_ffmpeg_binary()?;
+    let mode = quality.to_lowercase();
+    let sharp = mode.contains("jelas") || mode.contains("sharp");
+    let saver = mode.contains("hemat") || mode.contains("saver");
+
+    let (scale_arg, q_val) = if sharp {
+        ("scale='min(1080,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "2")
+    } else if saver {
+        ("scale='min(360,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "6")
+    } else {
+        ("scale='min(720,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "3")
+    };
+
     let temp_dir = std::env::temp_dir();
     let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     let sample_path = temp_dir.join(format!("autogram_vid_sample_{rand_id}.mp4"));
@@ -586,9 +652,9 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8]) -> Option<Vec<u8>> {
         .arg("-update")
         .arg("1")
         .arg("-vf")
-        .arg("scale='min(360,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p")
+        .arg(scale_arg)
         .arg("-q:v")
-        .arg("5")
+        .arg(q_val)
         .arg(&frame_path)
         .output();
 
@@ -602,6 +668,113 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8]) -> Option<Vec<u8>> {
     let _ = std::fs::remove_file(&frame_path);
 
     result
+}
+
+/// Find an existing full preview file for this chat+message (photo/doc reopen).
+fn find_cached_preview_file(pdir: &Path, chat_safe: &str, message_id: i64) -> Option<PathBuf> {
+    let prefix = format!("{chat_safe}_{message_id}");
+    let rd = std::fs::read_dir(pdir).ok()?;
+    let mut best: Option<(u64, PathBuf)> = None;
+    for entry in rd.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if !name.starts_with(&prefix) {
+            continue;
+        }
+        if name.ends_with(".partial") {
+            continue;
+        }
+        let path = entry.path();
+        let len = entry.metadata().map(|m| m.len()).unwrap_or(0);
+        if len < 32 {
+            continue;
+        }
+        if best.as_ref().map(|(l, _)| len > *l).unwrap_or(true) {
+            best = Some((len, path));
+        }
+    }
+    best.map(|(_, p)| p)
+}
+
+fn mime_from_path(path: &Path) -> String {
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg".into(),
+        "png" => "image/png".into(),
+        "webp" => "image/webp".into(),
+        "gif" => "image/gif".into(),
+        "pdf" => "application/pdf".into(),
+        "txt" | "md" | "json" | "csv" | "log" | "xml" | "html" | "css" | "js" | "ts" | "py"
+        | "rs" => "text/plain".into(),
+        _ => "application/octet-stream".into(),
+    }
+}
+
+fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
+    let meta = std::fs::metadata(path).ok()?;
+    let size = meta.len();
+    if size == 0 {
+        return None;
+    }
+    let mime = mime_from_path(path);
+    let path_str = path.to_string_lossy().to_string();
+    if mime.starts_with("image/") {
+        let bytes = std::fs::read(path).ok()?;
+        if bytes.len() > 16 * 1024 * 1024 {
+            return None;
+        }
+        return Some(PreviewStreamResult {
+            status: "success".into(),
+            stream_id: String::new(),
+            stream_url: String::new(),
+            path: path_str,
+            mime_type: mime,
+            size,
+            data_url: to_data_url(&bytes),
+            text_content: None,
+            preview_kind: "image".into(),
+            streaming: false,
+            backend: BACKEND.into(),
+            message: "image cache hit".into(),
+        });
+    }
+    if let Ok(local) = super::doc_preview::preview_local_document(&path_str) {
+        return Some(PreviewStreamResult {
+            status: "success".into(),
+            stream_id: String::new(),
+            stream_url: String::new(),
+            path: path_str,
+            mime_type: mime,
+            size,
+            data_url: None,
+            text_content: local.text_content,
+            preview_kind: local.preview_kind,
+            streaming: false,
+            backend: BACKEND.into(),
+            message: "document cache hit".into(),
+        });
+    }
+    if mime == "application/pdf" {
+        return Some(PreviewStreamResult {
+            status: "success".into(),
+            stream_id: String::new(),
+            stream_url: String::new(),
+            path: path_str,
+            mime_type: mime,
+            size,
+            data_url: None,
+            text_content: None,
+            preview_kind: "pdf".into(),
+            streaming: false,
+            backend: BACKEND.into(),
+            message: "pdf cache hit".into(),
+        });
+    }
+    None
 }
 
 fn to_data_url(bytes: &[u8]) -> Option<String> {
@@ -686,14 +859,20 @@ pub fn thumbs_batch_blocking_app(
             }
         }
         if found_url.is_none() {
+            // Prefer exact quality file; fall back to hemat (stripped) so grid
+            // reopens like Telegram without re-hitting the network.
+            // Exact quality file only — never serve hemat blur as seimbang/jelas.
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    if !bytes.is_empty() {
+                    let min_disk = if q_key == "hemat" { 32 } else { 2_500 };
+                    if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
-                            thumb_mem_cache().lock().insert(cache_key, url.clone());
+                            thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
                             found_url = Some(url);
                         }
+                    } else {
+                        let _ = std::fs::remove_file(&cache_file);
                     }
                 }
             }
@@ -728,69 +907,143 @@ pub fn thumbs_batch_blocking_app(
     let app_owned = app.cloned();
 
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            let mut uncached_ids = uncached_ids.clone();
+            let t_dir = t_dir.clone();
+            let chat_safe = chat_safe.clone();
+            let mut thumbs = thumbs.clone();
+            let ids = ids.clone();
+            let app_owned = app_owned.clone();
+            let session_name = identity.session.clone();
+            with_client(sessions_dir, identity, true, move |client| {
             let app_ref = app_owned.clone();
+            let session_name = session_name.clone();
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !super::grammers_ops::session_known_authorized(&session_name)
+                    && !client
+                        .is_authorized()
+                        .await
+                        .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
+                // Keep the requested id list so we can index results by id, not by
+                // position after the stripped fast-path filters some ids out.
+                let fetch_ids = uncached_ids.clone();
                 let msgs = client
-                    .get_messages_by_id(peer, &uncached_ids)
+                    .get_messages_by_id(peer, &fetch_ids)
                     .await
                     .map_err(|e| map_invocation(&e))?;
 
-                let mut set = tokio::task::JoinSet::new();
-                let quality_owned = q_key.to_string();
-
-                // Fast-path: extract inline stripped bytes synchronously in < 1ms for instant paint
-                let mut remaining = Vec::new();
-                for (i, mid) in uncached_ids.iter().enumerate() {
-                    let key = mid.to_string();
-                    let mut loaded = false;
+                // Align messages to message_id. After hemat stripped filtering,
+                // enumerating remaining ids with msgs.get(i) would map the wrong
+                // media onto the wrong card (missing / swapped thumbs).
+                let mut msg_by_id: HashMap<i32, grammers_client::message::Message> =
+                    HashMap::with_capacity(fetch_ids.len());
+                for (i, mid) in fetch_ids.iter().enumerate() {
                     if let Some(Some(msg)) = msgs.get(i) {
+                        msg_by_id.insert(*mid, msg.clone());
+                    }
+                }
+
+                // Hemat: stripped = final (fast). Seimbang/Jelas: download real
+                // layers so quality pills actually change the grid.
+                let quality_owned = q_key.to_string();
+                let hemat_only = q_key == "hemat";
+                let mut need_download: Vec<i32> = Vec::new();
+
+                for mid in fetch_ids.iter().copied() {
+                    let key = mid.to_string();
+                    let mut got_stripped = false;
+                    if let Some(msg) = msg_by_id.get(&mid) {
                         if let Some(media) = msg.media() {
                             let sizes = media_thumbs(&media);
                             for s in &sizes {
                                 if let Some(data) = s.to_data() {
                                     let bytes = unstrip_jpeg(&data).unwrap_or(data);
-                                    if !bytes.is_empty() {
-                                        let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{q_key}.jpg"));
+                                    if bytes.is_empty() {
+                                        continue;
+                                    }
+                                    if let Some(url) = to_data_url(&bytes) {
+                                        // Always keep stripped under hemat only
+                                        let cache_file = t_dir
+                                            .join(format!("{chat_safe}_{mid}_hemat.jpg"));
                                         let _ = std::fs::write(&cache_file, &bytes);
-                                        if let Some(url) = to_data_url(&bytes) {
-                                            thumb_mem_cache().lock().insert(format!("{chat_safe}_{mid}_{q_key}"), url.clone());
+                                        thumb_mem_cache().lock().insert(
+                                            format!("{chat_safe}_{mid}_hemat"),
+                                            url.clone(),
+                                        );
+                                        got_stripped = true;
+                                        if hemat_only {
                                             thumbs.insert(key.clone(), Some(url.clone()));
                                             if let Some(app_handle) = app_ref.as_ref() {
                                                 let _ = app_handle.emit(
                                                     "thumb_single_ready",
                                                     ThumbSinglePayload {
                                                         chat_id: chat.clone(),
-                                                        message_id: *mid as i64,
+                                                        message_id: mid as i64,
+                                                        quality: "hemat".into(),
+                                                        url,
+                                                        is_placeholder: false,
+                                                    },
+                                                );
+                                            }
+                                        } else {
+                                            // Placeholder paint while seimbang/jelas downloads
+                                            if let Some(app_handle) = app_ref.as_ref() {
+                                                let _ = app_handle.emit(
+                                                    "thumb_single_ready",
+                                                    ThumbSinglePayload {
+                                                        chat_id: chat.clone(),
+                                                        message_id: mid as i64,
                                                         quality: q_key.to_string(),
                                                         url,
                                                         is_placeholder: true,
                                                     },
                                                 );
                                             }
-                                            if q_key == "hemat" {
-                                                loaded = true;
-                                            }
-                                            break;
                                         }
+                                        break;
                                     }
                                 }
                             }
                         }
                     }
-                    if !loaded {
-                        remaining.push(*mid);
+                    if hemat_only {
+                        if !got_stripped {
+                            need_download.push(mid);
+                        }
+                    } else {
+                        // seimbang/jelas always need a real download when not on disk
+                        need_download.push(mid);
                     }
                 }
-                uncached_ids = remaining;
 
-                for (i, mid) in uncached_ids.iter().enumerate() {
+                let mut set = tokio::task::JoinSet::new();
+                for mid in need_download.iter().copied() {
                     let key = mid.to_string();
-                    let Some(Some(msg)) = msgs.get(i) else {
+                    // Disk hit for THIS quality only (never fall back to hemat blur here)
+                    let q_cache = format!("{chat_safe}_{mid}_{q_key}");
+                    if let Some(url) = thumb_mem_cache().lock().get(&q_cache).cloned() {
+                        thumbs.insert(key, Some(url));
+                        continue;
+                    }
+                    let q_file = t_dir.join(format!("{q_cache}.jpg"));
+                    if q_file.is_file() {
+                        if let Ok(bytes) = std::fs::read(&q_file) {
+                            let min_ok = if hemat_only { 32 } else { 2_500 };
+                            if bytes.len() >= min_ok {
+                                if let Some(url) = to_data_url(&bytes) {
+                                    thumb_mem_cache().lock().insert(q_cache, url.clone());
+                                    thumbs.insert(key, Some(url));
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    let Some(msg) = msg_by_id.get(&mid) else {
                         thumbs.insert(key, None);
                         continue;
                     };
@@ -800,7 +1053,7 @@ pub fn thumbs_batch_blocking_app(
                     };
                     let media_cloned = media.clone();
                     let client_ref = client.clone();
-                    let mid_val = *mid;
+                    let mid_val = mid;
                     let q_sub = quality_owned.clone();
                     let c_sub = chat_safe.clone();
                     let t_sub = t_dir.clone();
@@ -809,15 +1062,27 @@ pub fn thumbs_batch_blocking_app(
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
+                                // Reject tiny stripped payloads for seimbang/jelas
+                                let min_ok = if q_sub == "hemat" { 32 } else { 2_500 };
+                                if bytes.len() < min_ok {
+                                    return (mid_val.to_string(), None);
+                                }
                                 let _ = std::fs::write(&cache_file, &bytes);
                                 let url = to_data_url(&bytes);
                                 if let Some(ref u) = url {
-                                    thumb_mem_cache().lock().insert(format!("{c_sub}_{mid_val}_{q_sub}"), u.clone());
+                                    thumb_mem_cache().lock().insert(
+                                        format!("{c_sub}_{mid_val}_{q_sub}"),
+                                        u.clone(),
+                                    );
                                 }
                                 (mid_val.to_string(), url)
                             }
                             Err(e) => {
-                                tg_log::warn(BACKEND, "thumb_fail", format!("mid={mid_val} {e}"));
+                                tg_log::debug(
+                                    BACKEND,
+                                    "thumb_miss",
+                                    format!("mid={mid_val} {e}"),
+                                );
                                 (mid_val.to_string(), None)
                             }
                         }
@@ -848,11 +1113,11 @@ pub fn thumbs_batch_blocking_app(
                     BACKEND,
                     "thumbs_batch",
                     format!(
-                        "chat={} q={} total={} uncached={} ok={}",
+                        "chat={} q={} total={} download={} ok={}",
                         chat,
                         q_key,
                         ids.len(),
-                        uncached_ids.len(),
+                        need_download.len(),
                         thumbs.values().filter(|v| v.is_some()).count()
                     ),
                 );
@@ -861,6 +1126,7 @@ pub fn thumbs_batch_blocking_app(
                     thumbs,
                     backend: BACKEND.into(),
                 })
+            })
             })
         })
         .await
@@ -993,6 +1259,46 @@ fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation
     }
 }
 
+/// Live progressive preview results keyed by session|chat|msg — prevents
+/// duplicate progressive_start for the same video (warm + open + prefetch).
+fn live_preview_map() -> &'static Mutex<HashMap<String, PreviewStreamResult>> {
+    static MAP: OnceLock<Mutex<HashMap<String, PreviewStreamResult>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn preview_key(session: &str, chat: &str, msg: i64) -> String {
+    format!("{session}|{chat}|{msg}")
+}
+
+/// Shared single-flight for concurrent open/prefetch of the same message.
+/// Waiters join the leader instead of failing with "sedang diproses".
+struct SharedPreviewFlight {
+    done: bool,
+    /// Ok payload or error user message
+    outcome: Option<Result<PreviewStreamResult, String>>,
+}
+
+type SharedPreviewCell = Arc<(Mutex<SharedPreviewFlight>, parking_lot::Condvar)>;
+
+fn preview_inflight() -> &'static Mutex<HashMap<String, SharedPreviewCell>> {
+    static MAP: OnceLock<Mutex<HashMap<String, SharedPreviewCell>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn usable_live_preview(r: &PreviewStreamResult) -> bool {
+    if r.data_url.as_ref().is_some_and(|u| !u.is_empty()) {
+        return true;
+    }
+    if !r.streaming && !r.path.is_empty() {
+        return true;
+    }
+    if r.streaming && !r.stream_id.is_empty() {
+        let st = stream_server::status_of(&r.stream_id);
+        return st.status != "missing" && st.error.is_none();
+    }
+    false
+}
+
 /// Section
 /// Section
 pub fn start_preview_stream_blocking(
@@ -1007,22 +1313,145 @@ pub fn start_preview_stream_blocking(
     let sessions_dir = sessions_dir.to_path_buf();
     let identity = identity.clone();
     let chat = chat_id.to_string();
-    let rt = runtime()?;
+    let session_name = identity.session.clone();
+    let key = preview_key(&session_name, &chat, message_id);
 
-    // Section
+    // Fail-fast during FloodWait — do not pile more GetFile on a hot account.
+    if let Err(e) = session_rate::ensure_not_flooded(&session_name) {
+        session_rate::note_error(&session_name, &e);
+        return Err(e);
+    }
+
+    // Instant hit: already opened / still streaming this message.
+    if let Some(existing) = live_preview_map().lock().get(&key).cloned() {
+        if usable_live_preview(&existing) {
+            return Ok(existing);
+        }
+    }
+
+    // Single-flight: one leader runs MTProto; concurrent opens wait for the same result.
+    let (cell, is_leader) = {
+        let mut map = preview_inflight().lock();
+        if let Some(existing) = map.get(&key) {
+            (Arc::clone(existing), false)
+        } else {
+            let cell = Arc::new((
+                Mutex::new(SharedPreviewFlight {
+                    done: false,
+                    outcome: None,
+                }),
+                parking_lot::Condvar::new(),
+            ));
+            map.insert(key.clone(), Arc::clone(&cell));
+            (cell, true)
+        }
+    };
+
+    if !is_leader {
+        let (lock, cv) = &*cell;
+        let mut guard = lock.lock();
+        let deadline = std::time::Instant::now() + Duration::from_secs(90);
+        while !guard.done {
+            if let Some(existing) = live_preview_map().lock().get(&key).cloned() {
+                if usable_live_preview(&existing) {
+                    return Ok(existing);
+                }
+            }
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                break;
+            }
+            cv.wait_for(&mut guard, deadline - now);
+        }
+        if guard.done {
+            return match guard.outcome.clone() {
+                Some(Ok(r)) => Ok(r),
+                Some(Err(msg)) => Err(TgError::new(TgErrorCode::Internal, msg)),
+                None => Err(TgError::new(
+                    TgErrorCode::Internal,
+                    "preview flight finished without result",
+                )),
+            };
+        }
+        // Leader stuck past 90s — drop waiter path and run our own attempt.
+        drop(guard);
+        preview_inflight().lock().remove(&key);
+        let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
+        if let Ok(r) = &result {
+            if usable_live_preview(r) || r.streaming || !r.path.is_empty() {
+                live_preview_map().lock().insert(key, r.clone());
+            }
+        } else if let Err(e) = &result {
+            session_rate::note_error(&identity.session, e);
+        }
+        return result;
+    }
+
+    // Leader path — only one MTProto open per message; others wait above.
+    let result = start_preview_stream_inner(&sessions_dir, &identity, &chat, message_id);
+
+    match &result {
+        Ok(r) if usable_live_preview(r) || r.streaming || !r.path.is_empty() => {
+            live_preview_map().lock().insert(key.clone(), r.clone());
+        }
+        Err(e) => session_rate::note_error(&identity.session, e),
+        _ => {}
+    }
+
+    {
+        let (lock, cv) = &*cell;
+        let mut guard = lock.lock();
+        guard.done = true;
+        guard.outcome = Some(match &result {
+            Ok(r) => Ok(r.clone()),
+            Err(e) => Err(e.user_message()),
+        });
+        cv.notify_all();
+    }
+    preview_inflight().lock().remove(&key);
+
+    result
+}
+
+fn start_preview_stream_inner(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat: &str,
+    message_id: i64,
+) -> Result<PreviewStreamResult, TgError> {
+    let rt = runtime()?;
+    let pdir = preview_dir(sessions_dir);
+    let _ = std::fs::create_dir_all(&pdir);
+    let chat_safe = chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+    let session_name = identity.session.clone();
+
+    // Instant disk cache hit — no MTProto (reopen same photo/doc feels instant).
+    if let Some(cached) = find_cached_preview_file(&pdir, &chat_safe, message_id) {
+        if let Some(fast) = try_local_preview_fast(&cached) {
+            return Ok(fast);
+        }
+    }
+
+    // Shared Grammers pool — never dual-open / disconnect the live Studio client.
     rt.block_on(async {
-        let live = connect_client(&sessions_dir, &identity, true).await?;
-        let client = live.client.clone();
+        // Fail-fast if flooded (no multi-second sleep inside open).
+        session_rate::ensure_not_flooded(&session_name)?;
+
+        let live = obtain_live_client(sessions_dir, identity, true, false).await?;
+        let client = &live.client;
         if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
-            client.disconnect();
             return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
         }
-        let peer = resolve_peer(&client, &chat).await?;
+        let peer = resolve_peer(client, chat).await?;
         let mid = message_id as i32;
         let msgs = client
             .get_messages_by_id(peer, &[mid])
             .await
-            .map_err(|e| map_invocation(&e))?;
+            .map_err(|e| {
+                let err = map_invocation(&e);
+                session_rate::note_error(&session_name, &err);
+                err
+            })?;
         let msg = msgs
             .into_iter()
             .flatten()
@@ -1038,14 +1467,12 @@ pub fn start_preview_stream_blocking(
         })?;
         let size = media.size().unwrap_or(0) as u64;
         if size == 0 {
-            client.disconnect();
             return Err(TgError::new(
                 TgErrorCode::Internal,
                 "media size unknown / empty",
             ));
         }
         if size > PROGRESSIVE_MAX {
-            client.disconnect();
             return Err(TgError::new(
                 TgErrorCode::Internal,
                 format!("media {size} melebihi batas sparse preview native 4 GiB"),
@@ -1058,26 +1485,45 @@ pub fn start_preview_stream_blocking(
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
 
-        // Section
-        // Section
-        // Section
+        // Non-media (apk/zip/binaries): never progressive-stream as if video.
+        // Large files >64MB → instant metadata UI (download only).
+        if !is_image && !is_video && !is_audio && size > 64 * 1024 * 1024 {
+            let _ = persist_memory_session(&live.session, &live.session_path);
+            return Ok(PreviewStreamResult {
+                status: "success".into(),
+                stream_id: String::new(),
+                stream_url: String::new(),
+                path: String::new(),
+                mime_type: mime,
+                size,
+                data_url: None,
+                text_content: None,
+                preview_kind: "file".into(),
+                streaming: false,
+                backend: BACKEND.into(),
+                message: "File besar — gunakan Download / Buka dengan…".into(),
+            });
+        }
+
+        // Documents: download once, parse text/pdf locally — keep shared pool alive.
         if !is_image && !is_video && !is_audio && size <= 64 * 1024 * 1024 {
-            let pdir = preview_dir(&sessions_dir);
-            let _ = std::fs::create_dir_all(&pdir);
             let safe_name: String = name
                 .chars()
                 .map(|c| if c.is_ascii_alphanumeric() || ".-_".contains(c) { c } else { '_' })
                 .take(120)
                 .collect();
-            let dest = pdir.join(format!("{}_{}_{}", chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_"), message_id, safe_name));
+            let dest = pdir.join(format!("{chat_safe}_{message_id}_{safe_name}"));
             path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
                 .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
-            client
-                .download_media(&media, &dest)
-                .await
-                .map_err(|e| TgError::new(TgErrorCode::Io, format!("download document: {e}")))?;
+            if !(dest.is_file()
+                && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) == size)
+            {
+                client
+                    .download_media(&media, &dest)
+                    .await
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("download document: {e}")))?;
+            }
             let _ = persist_memory_session(&live.session, &live.session_path);
-            client.disconnect();
             let local = super::doc_preview::preview_local_document(dest.to_str().unwrap_or(""));
             let (kind, text_content) = match local {
                 Ok(p) => (p.preview_kind, p.text_content),
@@ -1100,14 +1546,10 @@ pub fn start_preview_stream_blocking(
             });
         }
 
-        // Section
-        if is_image && size <= 8 * 1024 * 1024 {
-            let pdir = preview_dir(&sessions_dir);
-            let _ = std::fs::create_dir_all(&pdir);
+        // Photos: reuse disk cache; never disconnect shared pool.
+        if is_image && size <= 12 * 1024 * 1024 {
             let dest = pdir.join(format!(
-                "{}_{}.{}",
-                chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_"),
-                message_id,
+                "{chat_safe}_{message_id}.{}",
                 Path::new(&name)
                     .extension()
                     .and_then(|s| s.to_str())
@@ -1115,12 +1557,15 @@ pub fn start_preview_stream_blocking(
             ));
             path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
                 .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
-            client
-                .download_media(&media, &dest)
-                .await
-                .map_err(|e| TgError::new(TgErrorCode::Io, format!("download: {e}")))?;
+            if !(dest.is_file()
+                && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10)
+            {
+                client
+                    .download_media(&media, &dest)
+                    .await
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("download: {e}")))?;
+            }
             let _ = persist_memory_session(&live.session, &live.session_path);
-            client.disconnect();
             let final_size = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(size);
             let bytes = std::fs::read(&dest).unwrap_or_default();
             let data_url = to_data_url(&bytes);
@@ -1136,23 +1581,31 @@ pub fn start_preview_stream_blocking(
                 preview_kind: "image".into(),
                 streaming: false,
                 backend: BACKEND.into(),
-                message: "image downloaded".into(),
+                message: "image ready".into(),
             });
         }
 
-        let pdir = preview_dir(&sessions_dir);
-        let _ = std::fs::create_dir_all(&pdir);
+        // Video/audio progressive — return stream URL as soon as the first
+        // head bytes are on disk. NEVER hold the media slot for the full file
+        // (that froze the UI on "Memuat…" for huge MP4s).
         let stream_id = format!(
             "g{}-{}-{}",
             message_id,
             now_ms() % 1_000_000,
             (now_ms() / 7) % 99991
         );
+        for old in session_rate::streams_to_cancel(&session_name, &stream_id) {
+            cancel_progressive(&old);
+        }
+        // Brief yield so cancelled fills release GetFile / sockets.
+        tokio::time::sleep(Duration::from_millis(30)).await;
+
+        session_rate::track_stream(&session_name, &stream_id);
+
         let dest = pdir.join(format!("{stream_id}.partial"));
         path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
             .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
 
-        // Section
         {
             let f = std::fs::File::create(&dest)
                 .map_err(|e| TgError::new(TgErrorCode::Io, format!("create partial: {e}")))?;
@@ -1177,22 +1630,93 @@ pub fn start_preview_stream_blocking(
         let cancel = register_cancel(&stream_id);
         let stream_url = stream_public_url(&stream_id, &name);
 
-        // Section
+        // Bootstrap ~512 KiB head under a short-lived slot — enough for most
+        // players to start; full file fills in background (1–3s open target).
+        let mut boot_ranges: Vec<(u64, u64)> = Vec::new();
+        {
+            let _boot_slot = session_rate::acquire_media_slot(&session_name).await?;
+            const BOOT_CHUNK: u64 = 256 * 1024;
+            const BOOT_TARGET: u64 = 512 * 1024;
+            let mut iter = live
+                .client
+                .iter_download(&media)
+                .chunk_size(BOOT_CHUNK as i32);
+            let mut offset: u64 = 0;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .read(true)
+                .open(&dest)
+                .map_err(|e| TgError::new(TgErrorCode::Io, format!("open partial: {e}")))?;
+            while offset < BOOT_TARGET {
+                match iter.next().await {
+                    Ok(Some(chunk)) if !chunk.is_empty() => {
+                        file.seek(SeekFrom::Start(offset))
+                            .map_err(|e| TgError::new(TgErrorCode::Io, format!("seek: {e}")))?;
+                        file.write_all(&chunk)
+                            .map_err(|e| TgError::new(TgErrorCode::Io, format!("write: {e}")))?;
+                        let end = offset + chunk.len() as u64;
+                        boot_ranges.push((offset, end));
+                        offset = end;
+                    }
+                    Ok(Some(_)) | Ok(None) => break,
+                    Err(e) => {
+                        let err = map_invocation(&e);
+                        session_rate::note_error(&session_name, &err);
+                        session_rate::untrack_stream(&session_name, &stream_id);
+                        return Err(err);
+                    }
+                }
+            }
+            let _ = file.flush();
+            if !boot_ranges.is_empty() {
+                stream_server::upsert_entry(StreamEntry {
+                    stream_id: stream_id.clone(),
+                    path: dest.display().to_string(),
+                    total_size: size,
+                    mime: mime.clone(),
+                    label: name.clone(),
+                    done: false,
+                    ranges: boot_ranges.clone(),
+                    cancelled: false,
+                    error: None,
+                    paused: false,
+                    updated_at_ms: now_ms(),
+                });
+            }
+            // _boot_slot dropped here — UI can open another video without waiting for full fill.
+        }
+
         let dest_path = dest.clone();
         let sid = stream_id.clone();
         let mime_bg = mime.clone();
         let fill_media = media;
+        let live_bg = Arc::clone(&live);
+        let session_bg = session_name.clone();
+        let boot_end = boot_ranges.last().map(|r| r.1).unwrap_or(0);
         tokio::spawn(async move {
+            // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
+            let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
+            let live = live_bg;
             let flag = cancel;
-            let mut offset: u64 = 0;
-            let mut ranges: Vec<(u64, u64)> = Vec::new();
-            let mut moov_bootstrapped = false;
+            let mut offset: u64 = boot_end;
+            let mut ranges: Vec<(u64, u64)> = boot_ranges;
+            let mut moov_bootstrapped = boot_end > 0;
             let result = async {
+                // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
+                let skip = if boot_end > 0 {
+                    ((boot_end / CHUNK_SIZE).min(i32::MAX as u64)) as i32
+                } else {
+                    0
+                };
                 let mut iter = live
                     .client
                     .iter_download(&fill_media)
                     .chunk_size(CHUNK_SIZE as i32);
+                if skip > 0 {
+                    iter = iter.skip_chunks(skip);
+                    offset = skip as u64 * CHUNK_SIZE;
+                }
                 let mut file = std::fs::OpenOptions::new()
                     .write(true)
                     .read(true)
@@ -1370,22 +1894,14 @@ pub fn start_preview_stream_blocking(
                     }
                 }
             }
+            // Keep shared pool alive for Studio / Forwarder — do NOT disconnect.
             let _ = persist_memory_session(&live.session, &live.session_path);
-            live.client.disconnect();
             let _ = take_cancel(&sid);
             seek_requests().lock().remove(&sid);
+            session_rate::untrack_stream(&session_bg, &sid);
         });
 
-        // Section
-        // Section
-        for _ in 0..40 {
-            let status = stream_server::status_of(&stream_id);
-            if status.prefix_bytes > 0 || status.error.is_some() {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(25)).await;
-        }
-
+        // Return immediately — head bytes already on disk; fill continues in background.
         let kind = if is_video {
             "stream"
         } else if is_audio {
@@ -1399,7 +1915,10 @@ pub fn start_preview_stream_blocking(
         tg_log::info(
             BACKEND,
             "progressive_start",
-            format!("sid={stream_id} size={size} mime={mime}"),
+            format!(
+                "sid={stream_id} size={size} mime={mime} boot={}",
+                boot_end
+            ),
         );
 
         Ok(PreviewStreamResult {
@@ -1414,12 +1933,13 @@ pub fn start_preview_stream_blocking(
             preview_kind: kind.into(),
             streaming: true,
             backend: BACKEND.into(),
-            message: "progressive fill started (Grammers adaptive range GetFile)".into(),
+            message: "streaming (head ready)".into(),
         })
     })
 }
 
-/// Section
+/// Light warm: download only the first ~head_bytes. Does **not** start a full
+/// progressive fill (that was flooding Telegram with parallel GetFile).
 pub fn warm_preview_head_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -1427,9 +1947,129 @@ pub fn warm_preview_head_blocking(
     message_id: i64,
     head_bytes: u64,
 ) -> Result<PreviewStreamResult, TgError> {
-    // Section
-    let _ = head_bytes;
-    start_preview_stream_blocking(sessions_dir, identity, chat_id, message_id)
+    if message_id <= 0 {
+        return Err(TgError::new(TgErrorCode::Internal, "message_id required"));
+    }
+    let session = identity.session.as_str();
+    // Never warm during FloodWait or while a progressive GetFile holds the slot.
+    session_rate::ensure_not_flooded(session)?;
+    let Some(_slot) = session_rate::try_acquire_media_slot(session) else {
+        return Ok(PreviewStreamResult {
+            status: "skipped".into(),
+            stream_id: String::new(),
+            stream_url: String::new(),
+            path: String::new(),
+            mime_type: String::new(),
+            size: 0,
+            data_url: None,
+            text_content: None,
+            preview_kind: "warm_busy".into(),
+            streaming: false,
+            backend: BACKEND.into(),
+            message: "warm skipped — media slot busy".into(),
+        });
+    };
+
+    let head_bytes = head_bytes.clamp(64 * 1024, 768 * 1024);
+    let chat = chat_id.to_string();
+    let sessions_dir = sessions_dir.to_path_buf();
+    let identity = identity.clone();
+    let pdir = preview_dir(&sessions_dir);
+    let _ = std::fs::create_dir_all(&pdir);
+    let chat_safe = chat.replace(|c: char| !c.is_ascii_alphanumeric(), "_");
+    let warm_path = pdir.join(format!("{chat_safe}_{message_id}.warm"));
+
+    // Already warmed enough?
+    if warm_path.is_file() {
+        if let Ok(meta) = std::fs::metadata(&warm_path) {
+            if meta.len() >= head_bytes / 2 {
+                return Ok(PreviewStreamResult {
+                    status: "ok".into(),
+                    stream_id: String::new(),
+                    stream_url: String::new(),
+                    path: warm_path.display().to_string(),
+                    mime_type: String::new(),
+                    size: meta.len(),
+                    data_url: None,
+                    text_content: None,
+                    preview_kind: "warm".into(),
+                    streaming: false,
+                    backend: BACKEND.into(),
+                    message: "warm cache hit".into(),
+                });
+            }
+        }
+    }
+
+    let rt = runtime()?;
+    rt.block_on(async {
+        let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
+        let client = &live.client;
+        if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+            return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+        }
+        let peer = resolve_peer(client, &chat).await?;
+        let msgs = client
+            .get_messages_by_id(peer, &[message_id as i32])
+            .await
+            .map_err(|e| {
+                let err = map_invocation(&e);
+                session_rate::note_error(&identity.session, &err);
+                err
+            })?;
+        let msg = msgs
+            .into_iter()
+            .flatten()
+            .next()
+            .ok_or_else(|| {
+                TgError::new(TgErrorCode::PeerNotFound, format!("message {message_id} not found"))
+            })?;
+        let media = msg
+            .media()
+            .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "no media"))?;
+        let size = media.size().unwrap_or(0) as u64;
+        if size == 0 {
+            return Err(TgError::new(TgErrorCode::Internal, "empty media"));
+        }
+
+        let mut iter = client
+            .iter_download(&media)
+            .chunk_size((head_bytes.min(256 * 1024)) as i32);
+        let mut got: u64 = 0;
+        let mut file = std::fs::File::create(&warm_path)
+            .map_err(|e| TgError::new(TgErrorCode::Io, format!("warm create: {e}")))?;
+        while got < head_bytes {
+            match iter.next().await {
+                Ok(Some(chunk)) if !chunk.is_empty() => {
+                    file.write_all(&chunk)
+                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("warm write: {e}")))?;
+                    got += chunk.len() as u64;
+                }
+                Ok(Some(_)) | Ok(None) => break,
+                Err(e) => {
+                    let err = map_invocation(&e);
+                    session_rate::note_error(&identity.session, &err);
+                    return Err(err);
+                }
+            }
+        }
+        let _ = file.flush();
+        let _ = persist_memory_session(&live.session, &live.session_path);
+        Ok(PreviewStreamResult {
+            status: "ok".into(),
+            stream_id: String::new(),
+            stream_url: String::new(),
+            path: warm_path.display().to_string(),
+            mime_type: String::new(),
+            size: got,
+            data_url: None,
+            text_content: None,
+            preview_kind: "warm".into(),
+            streaming: false,
+            backend: BACKEND.into(),
+            message: format!("warmed {got} bytes"),
+        })
+    })
 }
 
 #[cfg(test)]

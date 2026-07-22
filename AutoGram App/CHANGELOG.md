@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.83 Penyelarasan Kualitas & Kerapian Thumbnail (Hemat, Seimbang, Jelas)
+
+### Perbaikan Utama Kualitas Thumbnail
+- **Penyelarasan Urutan Resolusi Layers**: Mengoreksi logika pemilihan layer thumbnail pada media (foto & video). Sebelumnya, pengurutan ukuran layer berdasarkan byte `size` menyebabkan layer resolusi tinggi yang memiliki `size == 0` terdorong ke urutan awal dan menyajikan thumbnail mini/blur (90px / 32px) pada mode Seimbang dan Jelas.
+- **Penyelarasan Mode Hemat, Seimbang & Jelas**:
+  - **Mode Hemat**: Menggunakan mini-thumb/stripped (32x32) atau layer terkecil untuk menghemat penggunaan kuota internet.
+  - **Mode Seimbang**: Memilih layer thumbnail resolusi menengah-tinggi (320px–800px) yang jernih dan tajam pada kartu grid tanpa mengunduh berkas utuh.
+  - **Mode Jelas**: Memilih layer thumbnail resolusi tertinggi yang tersedia di Telegram (hingga 1280px/2560px), serta mengekstrak frame video HD (1080p) pada JPEG quality tinggi untuk tampilan visual maksimal.
+- **Pencegahan Blur Placeholder pada Non-Saver**: Memastikan komponen kartu grid tidak mengunci tampilan pada gambar mini buram saat mode Seimbang atau Jelas aktif, melainkan memuat dan menampilkan thumbnail resolusi tinggi yang sesuai.
+
 ## v2.1.82 Session & Chat List Load Speed Optimization
 
 ### Optimization Summary

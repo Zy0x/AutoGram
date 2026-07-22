@@ -2625,11 +2625,16 @@ body.td-dnd-external {
   box-sizing: border-box;
   max-width: 100%;
   min-width: 0;
+  /* Isolate row paint so scroll doesn't reflow siblings */
+  contain: layout style;
 }
 .td-grid-row > .td-file-card {
   min-width: 0 !important;
   max-width: 100% !important;
   width: 100% !important;
+  /* Skip offscreen paint work in WebView2 when supported */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 140px;
 }
 .td-explorer img,
 .td-file-card img,
@@ -2770,6 +2775,8 @@ body.td-dnd-external {
   box-sizing: border-box;
   user-select: none;
   -webkit-user-select: none;
+  /* Contain paint of card chrome; thumb swaps shouldn't thrash layout */
+  contain: layout paint style;
 }
 .td-file-card * {
   user-select: none;
@@ -8761,12 +8768,6 @@ body:has(.td-page),
   min-width: 0;
   max-width: 100%;
 }
-/* Explorer horizontal inset is JS GRID_PAD_X on virtual rows — no extra CSS pad */
-.td-grid {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
 .td-file-card-name,
 .td-file-card .td-file-meta {
   overflow: hidden;
@@ -11488,4 +11489,93 @@ body:has(.td-page),
 @media (max-width: 540px) {
   .rub-modal { max-width: 100%; max-height: 90vh; border-radius: 12px 12px 0 0; position: fixed; bottom: 0; left: 0; right: 0; }
   .rub-overlay { align-items: flex-end; }
+}
+
+/* ---------- Dashboard Forwarder / Drives hub ---------- */
+.dash-pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.dash-pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: var(--card-pad);
+}
+.dash-pillar-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-pillar-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+.dash-pillar-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  flex: 1;
+}
+.dash-pillar-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.dash-pillar .btn {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+}
+.dash-section-title {
+  margin: 0 0 0.75rem;
+  font-size: var(--fs-md);
+}
+.dash-steps-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.dash-step-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+.dash-step-link:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.dash-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+.dash-safety-grid strong {
+  color: var(--text-main);
+}
+.dash-safety-grid p {
+  margin: 0.35rem 0 0;
 }

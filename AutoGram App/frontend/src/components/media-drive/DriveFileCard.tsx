@@ -12,7 +12,11 @@ import {
   type DriveFile,
 } from '../../lib/driveTypes';
 import { usePointerDragPrime } from '../../lib/pointerDragPrime';
-import { getCachedThumb, requestThumb } from '../../lib/thumbBatcher';
+import {
+  getCachedThumb,
+  invalidateThumb,
+  requestThumb,
+} from '../../lib/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
@@ -120,10 +124,14 @@ function DriveFileCardInner({
     return () => window.clearTimeout(timer);
   }, [file.id, file.recently_uploaded_at]);
 
+  const inlineThumb =
+    (file.thumb_data_url || file.thumbDataUrl || '') as string;
   const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
-  const [thumb, setThumb] = useState<string | null>(() =>
-    cached === undefined ? null : cached
-  );
+  const [thumb, setThumb] = useState<string | null>(() => {
+    if (cached) return cached;
+    if (inlineThumb.startsWith('data:image/')) return inlineThumb;
+    return null;
+  });
   const [thumbLoading, setThumbLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -131,13 +139,87 @@ function DriveFileCardInner({
     setImgError(false);
     if (!canThumb) return;
     const hit = getCachedThumb(folderId, file.id);
-    if (hit !== undefined) {
+    if (hit !== undefined && hit !== null) {
       setThumb(hit);
       setThumbLoading(false);
+      return;
+    }
+    const inline = file.thumb_data_url || file.thumbDataUrl;
+    if (inline && String(inline).startsWith('data:image/')) {
+      setThumb(String(inline));
+      setThumbLoading(thumbQuality !== 'saver');
+    }
+    // Quality switch: keep previous thumb painted until the new quality arrives
+    // (no blank gap / lag). Only clear when folder/file identity changes.
+  }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
+
+  // Clear painted thumb only when the card identity changes (not on quality switch).
+  useEffect(() => {
+    const hit = getCachedThumb(folderId, file.id);
+    const inline = file.thumb_data_url || file.thumbDataUrl;
+    if (hit) {
+      setThumb(hit);
+    } else if (inline && String(inline).startsWith('data:image/')) {
+      setThumb(String(inline));
     } else {
       setThumb(null);
     }
-  }, [canThumb, folderId, file.id, thumbQuality]);
+    setImgError(false);
+  }, [folderId, file.id, file.thumb_data_url, file.thumbDataUrl]);
+
+  // Streaming / late fills: thumb may arrive after the initial request resolved null,
+  // or a sharper frame may replace a stripped placeholder.
+  useEffect(() => {
+    if (!canThumb) return;
+    const onReady = () => {
+      const hit = getCachedThumb(folderId, file.id);
+      if (hit) {
+        setThumb(hit);
+        setThumbLoading(false);
+        setImgError(false);
+      }
+    };
+    const onQuality = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as
+        | { quality?: string; forceRefetch?: boolean }
+        | undefined;
+      const hit = getCachedThumb(folderId, file.id);
+      // Saver hits are instant; seimbang/jelas must not keep painting hemat blur
+      // if the hit is missing for the new quality key.
+      if (hit && !detail?.forceRefetch) {
+        setThumb(hit);
+        setThumbLoading(false);
+        return;
+      }
+      if (hit && detail?.quality === 'saver') {
+        setThumb(hit);
+        setThumbLoading(false);
+        return;
+      }
+      // Keep previous frame until sharper arrives, but mark loading.
+      if (visible && creds) {
+        setThumbLoading(true);
+        void requestThumb(creds, folderId, file.id, {
+          priority: 'visible',
+          bypassCache: detail?.forceRefetch === true && detail?.quality !== 'saver',
+        }).then((url) => {
+          if (url) {
+            setThumb(url);
+            setThumbLoading(false);
+            setImgError(false);
+          } else {
+            setThumbLoading(false);
+          }
+        });
+      }
+    };
+    window.addEventListener('autogram-thumb-ready', onReady);
+    window.addEventListener('autogram-thumb-quality', onQuality);
+    return () => {
+      window.removeEventListener('autogram-thumb-ready', onReady);
+      window.removeEventListener('autogram-thumb-quality', onQuality);
+    };
+  }, [canThumb, folderId, file.id, thumbQuality, visible, creds]);
 
   useEffect(() => {
     if (!creds || !canThumb || !visible) return;
@@ -150,9 +232,14 @@ function DriveFileCardInner({
     }
     let cancelled = false;
     let retryTimer: number | undefined;
-    setThumb(null);
-    setThumbLoading(true);
-    const MAX_RETRIES = 6;
+    // Spinner only when nothing is painted yet or when only saver stripped placeholder is painted for non-saver mode.
+    const inlineNow = file.thumb_data_url || file.thumbDataUrl;
+    const alreadyPainted = !!(
+      getCachedThumb(folderId, file.id) ||
+      (thumbQuality === 'saver' && inlineNow && String(inlineNow).startsWith('data:image/'))
+    );
+    setThumbLoading(!alreadyPainted);
+    const MAX_RETRIES = 4;
     const load = (attempt: number) => {
       requestThumb(creds, folderId, file.id, {
         priority: 'visible',
@@ -164,11 +251,12 @@ function DriveFileCardInner({
           if (url) {
             setThumb(url);
             setThumbLoading(false);
+            setImgError(false);
             return;
           }
           if (attempt < MAX_RETRIES) {
-            setThumbLoading(true);
-            const nextDelay = Math.min(1000 + attempt * 1000, 4500);
+            if (!alreadyPainted) setThumbLoading(true);
+            const nextDelay = Math.min(200 + attempt * 250, 1200);
             retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
           } else {
             setThumbLoading(false);
@@ -178,7 +266,7 @@ function DriveFileCardInner({
           if (cancelled) return;
           if (attempt < MAX_RETRIES) {
             setThumbLoading(true);
-            const nextDelay = Math.min(1200 + attempt * 1000, 4500);
+            const nextDelay = Math.min(1000 + attempt * 800, 4000);
             retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
           } else {
             setThumbLoading(false);
@@ -297,10 +385,28 @@ function DriveFileCardInner({
               src={thumb}
               alt=""
               draggable={false}
-              loading="lazy"
+              // Visible grid cards should paint immediately; lazy + revoked blob
+              // URLs left empty tiles after LRU eviction.
+              loading="eager"
               decoding="async"
               onError={() => {
                 setImgError(true);
+                setThumb(null);
+                // Blob may have been revoked by the LRU — drop cache and refetch.
+                invalidateThumb(folderId, file.id, creds?.session);
+                if (creds && canThumb && visible) {
+                  setThumbLoading(true);
+                  void requestThumb(creds, folderId, file.id, {
+                    priority: 'visible',
+                    bypassCache: true,
+                  }).then((url) => {
+                    if (url) {
+                      setThumb(url);
+                      setImgError(false);
+                    }
+                    setThumbLoading(false);
+                  });
+                }
               }}
             />
             <div className="td-file-thumb-grad" />
@@ -417,4 +523,30 @@ function DriveFileCardInner({
   );
 }
 
-export const DriveFileCard = memo(DriveFileCardInner);
+export const DriveFileCard = memo(DriveFileCardInner, (prev, next) => {
+  // Skip re-render when only parent identity objects churn during scroll.
+  return (
+    prev.file.id === next.file.id &&
+    prev.file.size === next.file.size &&
+    prev.file.name === next.file.name &&
+    prev.file.icon_type === next.file.icon_type &&
+    prev.file.recently_uploaded_at === next.file.recently_uploaded_at &&
+    prev.selected === next.selected &&
+    prev.isDragSource === next.isDragSource &&
+    prev.visible === next.visible &&
+    prev.folderId === next.folderId &&
+    prev.thumbQuality === next.thumbQuality &&
+    prev.creds?.session === next.creds?.session &&
+    prev.onClick === next.onClick &&
+    prev.onDoubleClick === next.onDoubleClick &&
+    prev.onContextMenu === next.onContextMenu &&
+    prev.onToggleSelection === next.onToggleSelection &&
+    prev.onPreview === next.onPreview &&
+    prev.onDownload === next.onDownload &&
+    prev.onDelete === next.onDelete &&
+    prev.onDragStartFile === next.onDragStartFile &&
+    prev.onDragEndFile === next.onDragEndFile &&
+    prev.onMediaDragPrime === next.onMediaDragPrime &&
+    prev.onWarmPreview === next.onWarmPreview
+  );
+});
