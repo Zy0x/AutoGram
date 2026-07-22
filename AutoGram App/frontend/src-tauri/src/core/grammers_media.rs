@@ -549,6 +549,39 @@ pub fn thumbs_batch_blocking(
                 let mut set = tokio::task::JoinSet::new();
                 let quality_owned = q_key.to_string();
 
+                // Fast-path for Mode Hemat: extract inline bytes synchronously in < 1ms
+                if q_key == "hemat" {
+                    let mut remaining = Vec::new();
+                    for (i, mid) in uncached_ids.iter().enumerate() {
+                        let key = mid.to_string();
+                        let mut loaded = false;
+                        if let Some(Some(msg)) = msgs.get(i) {
+                            if let Some(media) = msg.media() {
+                                let sizes = media_thumbs(&media);
+                                for s in &sizes {
+                                    if let Some(data) = s.to_data() {
+                                        let bytes = unstrip_jpeg(&data).unwrap_or(data);
+                                        if !bytes.is_empty() {
+                                            let cache_file = t_dir.join(format!("{chat_safe}_{mid}_hemat.jpg"));
+                                            let _ = std::fs::write(&cache_file, &bytes);
+                                            if let Some(url) = to_data_url(&bytes) {
+                                                thumb_mem_cache().lock().insert(format!("{chat_safe}_{mid}_hemat"), url.clone());
+                                                thumbs.insert(key.clone(), Some(url));
+                                                loaded = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if !loaded {
+                            remaining.push(*mid);
+                        }
+                    }
+                    uncached_ids = remaining;
+                }
+
                 for (i, mid) in uncached_ids.iter().enumerate() {
                     let key = mid.to_string();
                     let Some(Some(msg)) = msgs.get(i) else {
