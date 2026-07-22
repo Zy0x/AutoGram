@@ -53,7 +53,7 @@ function base64ToBlob(base64: string, mimeType = 'image/jpeg'): Blob {
 
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
-  private readonly MAX_SIZE = 150;
+  private readonly MAX_SIZE = 1000;
 
   get(key: string): string | undefined {
     const value = this.cache.get(key);
@@ -152,7 +152,7 @@ function batchLimit(_q: DriveThumbQuality): number {
   const configured = Math.max(2, getDrivePerfProfile().thumbBatch);
   if (!bootstrapMode) return configured;
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 12 : tier === 'mid' ? 8 : 4;
+  const startupCap = tier === 'high' ? 48 : tier === 'mid' ? 24 : 12;
   return Math.min(configured, startupCap);
 }
 
@@ -164,15 +164,13 @@ function queueMax(): number {
   const configured = getDrivePerfProfile().thumbQueueMax;
   if (!bootstrapMode) return configured;
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 64 : tier === 'mid' ? 40 : 16;
+  const startupCap = tier === 'high' ? 160 : tier === 'mid' ? 80 : 32;
   return Math.min(configured, startupCap);
 }
 
 function maxConcurrent(): number {
   if (bootstrapMode) {
-    // The worker has its own global media semaphore. Two small startup batches
-    // are safe on strong desktops, while low/mid devices remain single-flight.
-    return getDrivePerfProfile().tier === 'high' ? 2 : 1;
+    return getDrivePerfProfile().tier === 'high' ? 4 : 2;
   }
   return Math.max(1, getDrivePerfProfile().thumbConcurrent || 1);
 }

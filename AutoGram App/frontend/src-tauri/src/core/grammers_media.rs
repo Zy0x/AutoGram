@@ -260,7 +260,7 @@ pub struct ThumbsBatchResult {
 
 fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
     static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(2048)))
+    CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(10000)))
 }
 
 fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
@@ -603,7 +603,7 @@ pub fn thumbs_batch_blocking(
     let ids: Vec<i32> = message_ids
         .iter()
         .filter(|&&id| id > 0)
-        .take(48)
+        .take(64)
         .map(|&id| id as i32)
         .collect();
     if ids.is_empty() {
@@ -682,38 +682,38 @@ pub fn thumbs_batch_blocking(
                 let mut set = tokio::task::JoinSet::new();
                 let quality_owned = q_key.to_string();
 
-                // Fast-path for Mode Hemat: extract inline bytes synchronously in < 1ms
-                if q_key == "hemat" {
-                    let mut remaining = Vec::new();
-                    for (i, mid) in uncached_ids.iter().enumerate() {
-                        let key = mid.to_string();
-                        let mut loaded = false;
-                        if let Some(Some(msg)) = msgs.get(i) {
-                            if let Some(media) = msg.media() {
-                                let sizes = media_thumbs(&media);
-                                for s in &sizes {
-                                    if let Some(data) = s.to_data() {
-                                        let bytes = unstrip_jpeg(&data).unwrap_or(data);
-                                        if !bytes.is_empty() {
-                                            let cache_file = t_dir.join(format!("{chat_safe}_{mid}_hemat.jpg"));
-                                            let _ = std::fs::write(&cache_file, &bytes);
-                                            if let Some(url) = to_data_url(&bytes) {
-                                                thumb_mem_cache().lock().insert(format!("{chat_safe}_{mid}_hemat"), url.clone());
-                                                thumbs.insert(key.clone(), Some(url));
+                // Fast-path: extract inline stripped bytes synchronously in < 1ms for instant paint
+                let mut remaining = Vec::new();
+                for (i, mid) in uncached_ids.iter().enumerate() {
+                    let key = mid.to_string();
+                    let mut loaded = false;
+                    if let Some(Some(msg)) = msgs.get(i) {
+                        if let Some(media) = msg.media() {
+                            let sizes = media_thumbs(&media);
+                            for s in &sizes {
+                                if let Some(data) = s.to_data() {
+                                    let bytes = unstrip_jpeg(&data).unwrap_or(data);
+                                    if !bytes.is_empty() {
+                                        let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{q_key}.jpg"));
+                                        let _ = std::fs::write(&cache_file, &bytes);
+                                        if let Some(url) = to_data_url(&bytes) {
+                                            thumb_mem_cache().lock().insert(format!("{chat_safe}_{mid}_{q_key}"), url.clone());
+                                            thumbs.insert(key.clone(), Some(url));
+                                            if q_key == "hemat" {
                                                 loaded = true;
-                                                break;
                                             }
+                                            break;
                                         }
                                     }
                                 }
                             }
                         }
-                        if !loaded {
-                            remaining.push(*mid);
-                        }
                     }
-                    uncached_ids = remaining;
+                    if !loaded {
+                        remaining.push(*mid);
+                    }
                 }
+                uncached_ids = remaining;
 
                 for (i, mid) in uncached_ids.iter().enumerate() {
                     let key = mid.to_string();
