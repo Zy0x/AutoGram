@@ -126,8 +126,10 @@ function DriveFileCardInner({
   );
   const [thumbLoading, setThumbLoading] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
+    setImgError(false);
     if (!canThumb) return;
     const hit = getCachedThumb(folderId, file.id);
     if (hit !== undefined) {
@@ -334,9 +336,19 @@ function DriveFileCardInner({
     >
       <div className="td-file-card-inner">
         {recentlyUploaded && <span className="td-new-upload-badge">Baru diunggah</span>}
-        {thumb ? (
+        {thumb && !imgError ? (
           <div className="td-file-thumb-full">
-            <img src={thumb} alt="" draggable={false} loading="lazy" decoding="async" />
+            <img
+              src={thumb}
+              alt=""
+              draggable={false}
+              loading="lazy"
+              decoding="async"
+              onError={() => {
+                setImgError(true);
+                setThumbFailed(true);
+              }}
+            />
             <div className="td-file-thumb-grad" />
             {isVideo && (
               <span className="td-video-play" aria-hidden>

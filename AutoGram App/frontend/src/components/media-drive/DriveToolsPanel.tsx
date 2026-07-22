@@ -635,8 +635,10 @@ function DupFileThumb({
     cached === undefined ? null : cached
   );
   const [loading, setLoading] = useState(false);
+  const [imgErr, setImgErr] = useState(false);
 
   useEffect(() => {
+    setImgErr(false);
     if (!canThumb) {
       setThumb(null);
       setLoading(false);
@@ -676,9 +678,9 @@ function DupFileThumb({
 
   return (
     <span className="td-tools-dup-thumb" aria-hidden>
-      {thumb ? (
+      {thumb && !imgErr ? (
         <>
-          <img src={thumb} alt="" loading="lazy" decoding="async" />
+          <img src={thumb} alt="" loading="lazy" decoding="async" onError={() => setImgErr(true)} />
           {isVideo && (
             <span className="td-tools-dup-thumb-play">
               <Play size={10} fill="currentColor" />
