@@ -483,10 +483,11 @@ async fn download_media_thumb(
             }
         } else if is_video {
             let mut sample_bytes = Vec::new();
-            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
+            // Download sample bytes (up to 2.5MB for FFmpeg frame extraction)
+            let mut iter = client.iter_download(d).chunk_size(128 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 sample_bytes.extend_from_slice(&chunk);
-                if sample_bytes.len() >= 1024 * 1024 {
+                if sample_bytes.len() >= 2560 * 1024 {
                     break;
                 }
             }
@@ -505,15 +506,33 @@ fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
     if let Some(path) = which_path("ffmpeg") {
         return Some(path);
     }
-    if let Ok(current_dir) = std::env::current_dir() {
-        let candidates = [
-            current_dir.join("worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
-            current_dir.join("../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
-            current_dir.join("AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
-        ];
-        for dir in &candidates {
-            if dir.exists() {
-                if let Ok(entries) = std::fs::read_dir(dir) {
+    let mut search_dirs = Vec::new();
+    if let Ok(cd) = std::env::current_dir() {
+        let mut cur = Some(cd.as_path());
+        while let Some(dir) = cur {
+            search_dirs.push(dir.to_path_buf());
+            cur = dir.parent();
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let mut cur = exe.parent();
+        while let Some(dir) = cur {
+            search_dirs.push(dir.to_path_buf());
+            cur = dir.parent();
+        }
+    }
+
+    let sub_paths = [
+        "worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
+        "AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
+        "../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
+    ];
+
+    for base in &search_dirs {
+        for sub in &sub_paths {
+            let candidate_dir = base.join(sub);
+            if candidate_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&candidate_dir) {
                     for entry in entries.flatten() {
                         let p = entry.path();
                         if p.is_file() {
@@ -550,25 +569,24 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8]) -> Option<Vec<u8>> {
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    let probe_size = sample_bytes.len().to_string();
     let status = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
-        .arg("-probesize")
-        .arg(&probe_size)
-        .arg("-analyzeduration")
-        .arg(&probe_size)
+        .arg("-err_detect")
+        .arg("ignore_err")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
+        .arg("-ss")
+        .arg("00:00:00.100")
         .arg("-frames:v")
         .arg("1")
         .arg("-update")
         .arg("1")
         .arg("-vf")
-        .arg("scale='min(320,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p")
+        .arg("scale='min(360,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p")
         .arg("-q:v")
         .arg("5")
         .arg(&frame_path)

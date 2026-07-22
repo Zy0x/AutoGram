@@ -366,12 +366,11 @@ function DriveFileCardInner({
             ) : (
               <div className="td-thumb-placeholder">
                 <FileTypeIcon file={file} size="lg" />
-                {isVideo && !thumbFailed && <span className="td-placeholder-label">Video</span>}
-                {isVideo && thumbFailed && (
+                {isVideo && (
                   <button
                     type="button"
                     className="td-retry-thumb-btn"
-                    title="Klik untuk muat ulang thumbnail video"
+                    title="Memuat preview video…"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -384,8 +383,10 @@ function DriveFileCardInner({
                     }}
                     onPointerDown={(e) => e.stopPropagation()}
                   >
-                    <span>Tanpa preview</span>
-                    <span className="td-retry-thumb-sub">Coba muat ulang</span>
+                    <span className="td-video-play" aria-hidden style={{ margin: '0 auto 4px auto' }}>
+                      <Play size={16} fill="currentColor" />
+                    </span>
+                    <span>{thumbFailed ? 'Muat Ulang Preview' : 'Memuat Video'}</span>
                   </button>
                 )}
               </div>
