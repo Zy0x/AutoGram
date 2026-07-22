@@ -438,7 +438,140 @@ async fn download_media_thumb(
         }
     }
 
+    // Tier 5: Fallback for Documents (videos/photos uploaded "as file" without Telegram static thumbs)
+    if let Media::Document(d) = media {
+        let mime = d.mime_type().unwrap_or("").to_lowercase();
+        let name = d.name().unwrap_or("").to_lowercase();
+        let is_video = mime.starts_with("video/")
+            || name.ends_with(".mp4")
+            || name.ends_with(".mov")
+            || name.ends_with(".mkv")
+            || name.ends_with(".webm")
+            || name.ends_with(".avi")
+            || name.ends_with(".m4v")
+            || name.ends_with(".3gp");
+        let is_image = mime.starts_with("image/")
+            || name.ends_with(".jpg")
+            || name.ends_with(".jpeg")
+            || name.ends_with(".png")
+            || name.ends_with(".webp")
+            || name.ends_with(".bmp");
+
+        if is_image {
+            let mut out = Vec::new();
+            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
+            while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                out.extend_from_slice(&chunk);
+                if out.len() >= 256 * 1024 {
+                    break;
+                }
+            }
+            if !out.is_empty() {
+                return Ok(out);
+            }
+        } else if is_video {
+            let mut sample_bytes = Vec::new();
+            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
+            while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                sample_bytes.extend_from_slice(&chunk);
+                if sample_bytes.len() >= 1024 * 1024 {
+                    break;
+                }
+            }
+            if !sample_bytes.is_empty() {
+                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes) {
+                    return Ok(frame_bytes);
+                }
+            }
+        }
+    }
+
     Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
+}
+
+fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
+    if let Ok(path) = which_path("ffmpeg") {
+        return Some(path);
+    }
+    if let Ok(current_dir) = std::env::current_dir() {
+        let candidates = [
+            current_dir.join("worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
+            current_dir.join("../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
+            current_dir.join("AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries"),
+        ];
+        for dir in &candidates {
+            if dir.exists() {
+                if let Ok(entries) = std::fs::read_dir(dir) {
+                    for entry in entries.flatten() {
+                        let p = entry.path();
+                        if p.is_file() {
+                            let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                            if name.starts_with("ffmpeg") && (name.ends_with(".exe") || !cfg!(windows)) {
+                                return Some(p);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        let full = if cfg!(windows) { dir.join(format!("{cmd}.exe")) } else { dir.join(cmd) };
+        if full.is_file() {
+            return Some(full);
+        }
+    }
+    None
+}
+
+fn extract_ffmpeg_frame_sync(sample_bytes: &[u8]) -> Option<Vec<u8>> {
+    let ff_exe = find_ffmpeg_binary()?;
+    let temp_dir = std::env::temp_dir();
+    let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let sample_path = temp_dir.join(format!("autogram_vid_sample_{rand_id}.mp4"));
+    let frame_path = temp_dir.join(format!("autogram_vid_frame_{rand_id}.jpg"));
+
+    let _ = std::fs::write(&sample_path, sample_bytes);
+
+    let probe_size = sample_bytes.len().to_string();
+    let status = std::process::Command::new(&ff_exe)
+        .arg("-hide_banner")
+        .arg("-loglevel")
+        .arg("error")
+        .arg("-y")
+        .arg("-probesize")
+        .arg(&probe_size)
+        .arg("-analyzeduration")
+        .arg(&probe_size)
+        .arg("-i")
+        .arg(&sample_path)
+        .arg("-an")
+        .arg("-frames:v")
+        .arg("1")
+        .arg("-update")
+        .arg("1")
+        .arg("-vf")
+        .arg("scale='min(320,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p")
+        .arg("-q:v")
+        .arg("5")
+        .arg(&frame_path)
+        .output();
+
+    let result = if status.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
+        std::fs::read(&frame_path).ok()
+    } else {
+        None
+    };
+
+    let _ = std::fs::remove_file(&sample_path);
+    let _ = std::fs::remove_file(&frame_path);
+
+    result
 }
 
 fn to_data_url(bytes: &[u8]) -> Option<String> {
