@@ -1103,7 +1103,9 @@ def _mark_file_sparse_windows(path: str, full_size: int) -> None:
 
 # Cap virtual sparse sample size — huge files waste I/O even with NTFS sparse.
 # Above this, use head+tail concat only (may fail moov-at-end; stream sample tiers handle it).
-SPARSE_SAMPLE_MAX_BYTES = 256 * 1024 * 1024
+# Cap virtual sparse sample size — huge files waste I/O even with NTFS sparse.
+# Above this, use head+tail concat only (may fail moov-at-end; stream sample tiers handle it).
+SPARSE_SAMPLE_MAX_BYTES = 2048 * 1024 * 1024
 
 
 def _build_sparse_mp4_sample(
@@ -1144,7 +1146,7 @@ def _build_sparse_mp4_sample(
             with open(out_path, "wb") as out:
                 out.write(head)
             return True
-        # P2: skip multi-hundred-MB sparse prealloc (disk + fsutil cost)
+        # P2: skip multi-GB sparse prealloc
         if int(full_size) > SPARSE_SAMPLE_MAX_BYTES:
             with open(out_path, "wb") as out:
                 out.write(head)
@@ -1189,10 +1191,12 @@ def _ffmpeg_frame_from_file_sync(
     """
     try:
         import subprocess
-
         import imageio_ffmpeg
 
-        if not os.path.isfile(video_path) or os.path.getsize(video_path) < 64:
+        if not os.path.isfile(video_path):
+            return None
+        file_sz = os.path.getsize(video_path)
+        if file_sz < 64:
             return None
         ff = imageio_ffmpeg.get_ffmpeg_exe()
         vf = (
@@ -1200,20 +1204,21 @@ def _ffmpeg_frame_from_file_sync(
             f"format=yuv420p"
         )
         
-        # Probe video codec and capabilities for GPU decode
-        from engine.media_meta import probe_with_ffmpeg, probe_encoder_capabilities
-        meta = probe_with_ffmpeg(video_path)
-        codec = (meta.get("video_codec") or "").lower()
         gpu_accel = None
-        if codec in ("h264", "hevc", "h265", "vp9", "av1"):
+        if not partial:
+            # Full file: Probe video codec and capabilities for GPU decode
             try:
-                caps = probe_encoder_capabilities()
-                if caps.get("nvidia", {}).get("usable"):
-                    gpu_accel = "cuda"
-                elif caps.get("intel", {}).get("usable"):
-                    gpu_accel = "qsv"
-                elif caps.get("amd", {}).get("usable"):
-                    gpu_accel = "d3d11va"
+                from engine.media_meta import probe_with_ffmpeg, probe_encoder_capabilities
+                meta = probe_with_ffmpeg(video_path)
+                codec = (meta.get("video_codec") or "").lower()
+                if codec in ("h264", "hevc", "h265", "vp9", "av1"):
+                    caps = probe_encoder_capabilities()
+                    if caps.get("nvidia", {}).get("usable"):
+                        gpu_accel = "cuda"
+                    elif caps.get("intel", {}).get("usable"):
+                        gpu_accel = "qsv"
+                    elif caps.get("amd", {}).get("usable"):
+                        gpu_accel = "d3d11va"
             except Exception:
                 pass
 
@@ -1221,9 +1226,13 @@ def _ffmpeg_frame_from_file_sync(
         if gpu_accel:
             gpu_in = ["-hwaccel", gpu_accel]
 
-        # Sparse samples must fail fast; the grid may request many posters at
-        # once. Successful decode keeps the same output edge and JPEG quality.
-        probe = "3M" if partial else "12M"
+        # For partial stream samples, bound probesize to actual byte length to prevent EOF abort
+        if partial:
+            probe_bytes = min(file_sz, 1024 * 1024)
+            probe = f"{max(64 * 1024, probe_bytes)}"
+        else:
+            probe = "12M"
+
         # -update 1 required for single JPEG (else image2 muxer can write 0 bytes)
         common_out = [
             "-an",
@@ -1253,12 +1262,13 @@ def _ffmpeg_frame_from_file_sync(
         ]
         attempts: List[List[str]] = []
         if partial:
-            if gpu_accel:
-                attempts.append(common_in + gpu_in + ["-i", video_path] + common_out)
             attempts.extend([
                 # Decode from start (sparse moov-at-end or progressive)
                 common_in + ["-i", video_path] + common_out,
-                common_in + ["-ss", "0.3", "-i", video_path] + common_out,
+                common_in + ["-ss", "0.0", "-i", video_path] + common_out,
+                common_in + ["-ss", "0.2", "-i", video_path] + common_out,
+                # Simple fallback without strict vf format
+                ["-hide_banner", "-loglevel", "error", "-y", "-i", video_path, "-an", "-frames:v", "1", "-vf", f"scale='min({int(max_edge)},iw)':-2", "-q:v", "5", out_path],
             ])
         else:
             if gpu_accel:
@@ -1281,7 +1291,7 @@ def _ffmpeg_frame_from_file_sync(
                 subprocess.run(
                     cmd,
                     check=True,
-                    timeout=4 if partial else 20,
+                    timeout=5 if partial else 20,
                     capture_output=True,
                 )
                 if os.path.isfile(out_path) and os.path.getsize(out_path) > 16:
@@ -1301,8 +1311,8 @@ def _thumb_nosample_path(key: str) -> str:
     return os.path.join(THUMB_DIR, f"{key}.nosample")
 
 
-def _thumb_nosample_active(key: str, *, max_age_s: int = 2 * 3600) -> bool:
-    """Soft-fail window: 2h (was 24h) so Refresh / later load can retry."""
+def _thumb_nosample_active(key: str, *, max_age_s: int = 180) -> bool:
+    """Soft-fail window: 3 minutes (was 2h) so retry or later scroll can reload smoothly."""
     path = _thumb_nosample_path(key)
     try:
         if not os.path.isfile(path):

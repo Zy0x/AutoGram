@@ -367,7 +367,27 @@ function DriveFileCardInner({
               <div className="td-thumb-placeholder">
                 <FileTypeIcon file={file} size="lg" />
                 {isVideo && !thumbFailed && <span className="td-placeholder-label">Video</span>}
-                {isVideo && thumbFailed && <span className="td-placeholder-label">Tanpa preview</span>}
+                {isVideo && thumbFailed && (
+                  <button
+                    type="button"
+                    className="td-retry-thumb-btn"
+                    title="Klik untuk muat ulang thumbnail video"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (creds) {
+                        setThumbFailed(false);
+                        setImgError(false);
+                        setThumbLoading(true);
+                        forceRetryThumb(creds, folderId, file.id);
+                      }
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <span>Tanpa preview</span>
+                    <span className="td-retry-thumb-sub">Coba muat ulang</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

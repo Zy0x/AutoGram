@@ -2948,6 +2948,35 @@ body.td-dnd-external {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.td-retry-thumb-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--td-sub);
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.18s ease;
+}
+.td-retry-thumb-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.td-retry-thumb-sub {
+  font-size: 0.58rem;
+  font-weight: 500;
+  opacity: 0.7;
+  text-transform: none;
+}
 /* Play overlay — only when real thumb exists */
 .td-video-play {
   position: absolute;
