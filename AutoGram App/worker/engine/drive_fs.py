@@ -1361,6 +1361,7 @@ async def _thumb_from_stream_sample(
     key: str,
     max_edge: int,
     quality: str = "balanced",
+    bypass_cache: bool = False,
 ) -> Optional[bytes]:
     """
     Grid thumb for videos WITHOUT Telegram static thumbs.
@@ -1376,7 +1377,7 @@ async def _thumb_from_stream_sample(
     base_key = _stream_sample_base_key(key)
     sample_key = base_key
 
-    if _thumb_nosample_active(sample_key):
+    if not bypass_cache and _thumb_nosample_active(sample_key):
         return None
 
     # Head + tail budgets. Tail must cover full moov (~1MB on long re-encodes).
@@ -3478,13 +3479,20 @@ def _mark_thumb_empty(folder_id: Optional[int], message_id: int) -> None:
 def _clear_thumb_empty_mark(folder_id: Optional[int], message_id: int) -> None:
     _ensure_dirs()
     key = _cache_key(folder_id, message_id)
-    for stale in (f"{key}.empty", f"{key}.empty2"):
+    for stale in (f"{key}.empty", f"{key}.empty2", f"{key}.nosample"):
         sp = os.path.join(THUMB_DIR, stale)
         if os.path.isfile(sp):
             try:
                 os.remove(sp)
             except OSError:
                 pass
+    try:
+        clear_thumb_nosample(key)
+        for q in ("saver", "balanced", "sharp", "lite"):
+            clear_thumb_nosample(f"{key}.{q}")
+    except Exception:
+        pass
+
 
 
 
@@ -5304,6 +5312,7 @@ async def _fetch_thumb_data_url_impl(
                             key=f"{key}.{qname}",
                             max_edge=sample_edge,
                             quality=qname,
+                            bypass_cache=bypass_cache,
                         )
                         if frame:
                             raw = frame

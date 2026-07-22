@@ -559,7 +559,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                                 message_preloaded=mid in preloaded,
                                 bypass_cache=bypass_cache,
                             ),
-                            timeout=15.0
+                            timeout=45.0
                         )
                         return mid, url
                     except Exception:

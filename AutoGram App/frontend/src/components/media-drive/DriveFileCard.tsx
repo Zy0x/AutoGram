@@ -152,6 +152,7 @@ function DriveFileCardInner({
     let retryTimer: number | undefined;
     setThumb(null);
     setThumbLoading(true);
+    const MAX_RETRIES = 6;
     const load = (attempt: number) => {
       requestThumb(creds, folderId, file.id, {
         priority: 'visible',
@@ -165,16 +166,23 @@ function DriveFileCardInner({
             setThumbLoading(false);
             return;
           }
-          // Continuous auto-retry in background (never block on manual user click)
-          setThumbLoading(true);
-          const nextDelay = Math.min(1200 + attempt * 800, 6000);
-          retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
+          if (attempt < MAX_RETRIES) {
+            setThumbLoading(true);
+            const nextDelay = Math.min(1000 + attempt * 1000, 4500);
+            retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
+          } else {
+            setThumbLoading(false);
+          }
         })
         .catch(() => {
           if (cancelled) return;
-          setThumbLoading(true);
-          const nextDelay = Math.min(1500 + attempt * 1000, 6000);
-          retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
+          if (attempt < MAX_RETRIES) {
+            setThumbLoading(true);
+            const nextDelay = Math.min(1200 + attempt * 1000, 4500);
+            retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
+          } else {
+            setThumbLoading(false);
+          }
         });
     };
     load(0);
