@@ -499,6 +499,7 @@ pub fn thumbs_batch_blocking(
                     let client_ref = client.clone();
                     let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{quality_owned}.jpg"));
                     let mid_val = *mid;
+                    let sizes_cloned = sizes.clone();
 
                     set.spawn(async move {
                         match download_thumb_bytes(&client_ref, &pick).await {
@@ -507,6 +508,14 @@ pub fn thumbs_batch_blocking(
                                 (mid_val.to_string(), to_data_url(&bytes))
                             }
                             Err(e) => {
+                                // Fallback: extract inline stripped/cached bytes if downloadable fails
+                                for s in &sizes_cloned {
+                                    if let Some(data) = s.to_data() {
+                                        let bytes = unstrip_jpeg(&data).unwrap_or(data);
+                                        let _ = std::fs::write(&cache_file, &bytes);
+                                        return (mid_val.to_string(), to_data_url(&bytes));
+                                    }
+                                }
                                 tg_log::warn(BACKEND, "thumb_fail", format!("mid={mid_val} {e}"));
                                 (mid_val.to_string(), None)
                             }
