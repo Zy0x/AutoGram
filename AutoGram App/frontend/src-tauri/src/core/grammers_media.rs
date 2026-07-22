@@ -360,15 +360,15 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
         // Fall through to smallest downloadable if no inline
     }
 
-    // Filter static downloadable layers and sort by pixel area (width * height)
+    // Filter static downloadable layers with size() > 0 (ignoring 0-byte stripped mini-thumbs)
     let mut downloadable: Vec<&PhotoSize> = sizes
         .iter()
-        .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)))
+        .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)) && s.size() > 0)
         .collect();
 
     downloadable.sort_by_key(|s| {
         let (w, h) = photo_size_dimensions(s);
-        w * h
+        if w > 0 && h > 0 { w * h } else { s.size() as i32 }
     });
 
     if !downloadable.is_empty() {
@@ -1792,15 +1792,12 @@ fn start_preview_stream_inner(
                     .read(true)
                     .open(&dest_path)
                     .map_err(|e| format!("open partial: {e}"))?;
-                while let Some(chunk) = iter
-                    .next()
-                    .await
-                    .map_err(|e| format!("GetFile: {e}"))?
-                {
+
+                while offset < size {
                     if flag.load(Ordering::SeqCst) {
                         return Err("cancelled".into());
                     }
-                    // Section
+
                     loop {
                         if let Some(e) = stream_server::get_entry(&sid) {
                             if e.cancelled || flag.load(Ordering::SeqCst) {
@@ -1814,9 +1811,7 @@ fn start_preview_stream_inner(
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                     }
-                    // Section
-                    // Section
-                    // Section
+
                     if let Some(requested) = take_seek_request(&sid) {
                         let requested = requested.min(size.saturating_sub(1));
                         let aligned = (requested / CHUNK_SIZE) * CHUNK_SIZE;
@@ -1839,10 +1834,50 @@ fn start_preview_stream_inner(
                             continue;
                         }
                     }
-                    let len = chunk.len() as u64;
-                    if len == 0 {
-                        break;
-                    }
+
+                    // Resilient next-chunk fetch with retry loop
+                    let mut retries = 0;
+                    let chunk_opt = loop {
+                        match iter.next().await {
+                            Ok(c) => break Ok(c),
+                            Err(e) => {
+                                let err_msg = format!("{e}");
+                                let mapped = map_invocation(&e);
+                                session_rate::note_error(&session_bg, &mapped);
+
+                                if mapped.code() == TgErrorCode::FloodWait {
+                                    if let Some(secs) = mapped.flood_wait_secs() {
+                                        tg_log::warn(
+                                            BACKEND,
+                                            "progressive_flood",
+                                            format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
+                                        );
+                                        tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                    }
+                                } else {
+                                    tokio::time::sleep(Duration::from_millis(400 * (1 << retries))).await;
+                                }
+
+                                retries += 1;
+                                if retries > 5 {
+                                    break Err(err_msg);
+                                }
+
+                                let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                                iter = live
+                                    .client
+                                    .iter_download(&fill_media)
+                                    .chunk_size(CHUNK_SIZE as i32)
+                                    .skip_chunks(skip);
+                            }
+                        }
+                    };
+
+                    let chunk = match chunk_opt {
+                        Ok(Some(c)) => c,
+                        Ok(None) => break,
+                        Err(e) => return Err(format!("GetFile: {e}")),
+                    };
                     file.seek(SeekFrom::Start(offset))
                         .map_err(|e| format!("seek: {e}"))?;
                     file.write_all(&chunk)
