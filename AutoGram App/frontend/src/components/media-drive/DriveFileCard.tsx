@@ -171,12 +171,18 @@ function DriveFileCardInner({
   // or a sharper frame may replace a stripped placeholder.
   useEffect(() => {
     if (!canThumb) return;
-    const onReady = () => {
+    const onReady = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as
+        | { key?: string; url?: string; isPlaceholder?: boolean }
+        | undefined;
       const hit = getCachedThumb(folderId, file.id);
       if (hit) {
         setThumb(hit);
         setThumbLoading(false);
         setImgError(false);
+      } else if (detail?.url && detail?.isPlaceholder && thumbQuality !== 'saver') {
+        // Transient blur placeholder: paint temporary preview without stopping loading state
+        setThumb(detail.url);
       }
     };
     const onQuality = (ev: Event) => {

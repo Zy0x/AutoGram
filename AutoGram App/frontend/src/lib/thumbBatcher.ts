@@ -93,6 +93,15 @@ class LRUThumbnailCache {
     return this.cache.has(key);
   }
 
+  delete(key: string): void {
+    if (!this.cache.has(key)) return;
+    const oldUrl = this.cache.get(key)!;
+    if (oldUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(oldUrl);
+    }
+    this.cache.delete(key);
+  }
+
   clear(): void {
     for (const url of this.cache.values()) {
       if (url.startsWith('blob:')) {
@@ -117,8 +126,10 @@ class LRUThumbnailCache {
 const memCache = new LRUThumbnailCache();
 const softFailAt = new Map<string, number>();
 const errorFailAt = new Map<string, number>();
+/** In-flight promise per cache key — collapses race after await loadPersistentThumb. */
+const inflightByKey = new Map<string, Promise<string | null>>();
 
-const ERROR_COOLDOWN_MS = 3500;
+const ERROR_COOLDOWN_MS = 1200;
 
 const queue = new Map<string, Task>();
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -144,6 +155,26 @@ const metrics: ThumbSchedulerMetrics = {
  */
 let bootstrapMode = false;
 
+function mapRustThumbQuality(q?: string): DriveThumbQuality {
+  const s = String(q || '').toLowerCase();
+  if (s.includes('hemat') || s.includes('saver')) return 'saver';
+  if (s.includes('jelas') || s.includes('sharp')) return 'sharp';
+  return 'balanced';
+}
+
+function notifyThumbReady(key: string, url: string, isPlaceholder = false): void {
+  if (typeof window === 'undefined' || !url) return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent('autogram-thumb-ready', {
+        detail: { key, url, isPlaceholder },
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 // Setup Tauri event listener for real-time 1-by-1 per-item thumbnail streaming
 if (typeof window !== 'undefined') {
   import('@tauri-apps/api/event')
@@ -157,21 +188,43 @@ if (typeof window !== 'undefined') {
       }>('thumb_single_ready', (event) => {
         const p = event.payload;
         if (!p || !p.messageId || !p.url) return;
-        const mid = p.messageId;
-        for (const [k, task] of queue.entries()) {
-          if (task.messageId === mid) {
+        const mid = Number(p.messageId);
+        if (!Number.isFinite(mid) || mid <= 0) return;
+        const quality = mapRustThumbQuality(p.quality);
+        const chat = String(p.chatId || '');
+        const folderId =
+          !chat || chat === 'me' || chat === 'saved' ? null : Number(chat);
+        const folderPart = Number.isFinite(folderId as number) ? (folderId as number) : null;
+        const k = cacheKey(folderPart, mid, quality);
+
+        if (p.isPlaceholder) {
+          // Blur placeholder (32x32 stripped).
+          // NEVER write placeholder URL to memCache for balanced or sharp modes,
+          // and DO NOT resolve queued tasks so cards fetch crisp high-res thumbs.
+          if (quality === 'saver') {
             memCache.set(k, p.url);
             softFailAt.delete(k);
             errorFailAt.delete(k);
-            if (!p.isPlaceholder) {
-              void savePersistentThumb(k, p.url);
-              resolveTask(task, p.url);
-              queue.delete(k);
-            } else {
-              // Instant blur placeholder
-              resolveTask(task, p.url);
-            }
           }
+          notifyThumbReady(k, p.url, true);
+          return;
+        }
+
+        // Real high-resolution thumbnail arrived!
+        memCache.set(k, p.url);
+        softFailAt.delete(k);
+        errorFailAt.delete(k);
+        void savePersistentThumb(k, p.url);
+        notifyThumbReady(k, p.url, false);
+
+        for (const [taskKey, task] of queue.entries()) {
+          if (task.messageId !== mid) continue;
+          memCache.set(taskKey, p.url);
+          softFailAt.delete(taskKey);
+          errorFailAt.delete(taskKey);
+          void savePersistentThumb(taskKey, p.url);
+          resolveTask(task, p.url);
+          queue.delete(taskKey);
         }
       }).catch(() => {});
     })
@@ -179,7 +232,8 @@ if (typeof window !== 'undefined') {
 }
 
 function softFailMs(): number {
-  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 3_000);
+  // Empty misses must retry quickly so stripped-first batches can re-fill.
+  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 600);
 }
 
 
@@ -187,7 +241,8 @@ function batchLimit(_q: DriveThumbQuality): number {
   const configured = Math.max(2, getDrivePerfProfile().thumbBatch);
   if (!bootstrapMode) return configured;
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 48 : tier === 'mid' ? 24 : 12;
+  // Larger first batches so viewport fills without waiting for scroll.
+  const startupCap = tier === 'high' ? 64 : tier === 'mid' ? 36 : 16;
   return Math.min(configured, startupCap);
 }
 
@@ -204,8 +259,9 @@ function queueMax(): number {
 }
 
 function maxConcurrent(): number {
+  // Bootstrap still parallelizes visible cards — single-flight made first paint lag.
   if (bootstrapMode) {
-    return getDrivePerfProfile().tier === 'high' ? 4 : 2;
+    return getDrivePerfProfile().tier === 'high' ? 6 : getDrivePerfProfile().tier === 'mid' ? 4 : 2;
   }
   return Math.max(1, getDrivePerfProfile().thumbConcurrent || 1);
 }
@@ -266,7 +322,7 @@ export function getThumbQuality(): DriveThumbQuality {
 export function setThumbQuality(q: DriveThumbQuality): void {
   if (q === activeQuality) return;
   activeQuality = q;
-  memCache.clear();
+  // Per-quality mem keys stay (saver vs seimbang vs jelas are separate).
   softFailAt.clear();
   errorFailAt.clear();
   contextGeneration += 1;
@@ -275,6 +331,37 @@ export function setThumbQuality(q: DriveThumbQuality): void {
   }
   queue.clear();
   metrics.queued = 0;
+  // Notify cards — they must re-read getCachedThumb for the NEW quality key.
+  try {
+    window.dispatchEvent(
+      new CustomEvent('autogram-thumb-quality', {
+        detail: { quality: q, forceRefetch: q !== 'saver' },
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Prefetch a list of visible ids with visible priority (scroll / quality switch). */
+export function requestVisibleThumbs(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageIds: number[]
+): void {
+  if (!messageIds.length || !isDriveSessionReady()) return;
+  const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
+  for (const mid of ids) {
+    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    if (memCache.has(k)) continue;
+    void requestThumb(creds, folderId, mid, {
+      priority: 'visible',
+      contextKey: activeContextKey,
+    });
+  }
+  // Immediate multi-flight flush
+  const n = maxConcurrent();
+  for (let i = 0; i < n; i++) scheduleFlush(true);
 }
 
 export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {
@@ -295,22 +382,105 @@ export function primeThumbCache(
   dataUrl: string
 ): void {
   if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
-  const k = cacheKey(folderId, messageId, activeQuality, creds.session);
-  memCache.set(k, dataUrl);
-  softFailAt.delete(k);
-  errorFailAt.delete(k);
-  void savePersistentThumb(k, dataUrl);
+  const session = creds.session;
+  // ONLY prime "saver" (stripped). Never poison balanced/jelas keys with blur
+  // mini-thumbs — that made quality switch look like a no-op.
+  const saverKey = cacheKey(folderId, messageId, 'saver', session);
+  memCache.set(saverKey, dataUrl);
+  softFailAt.delete(saverKey);
+  errorFailAt.delete(saverKey);
+  void savePersistentThumb(saverKey, dataUrl);
+  // If UI is currently on saver, paint now. Other qualities must fetch properly.
+  if (activeQuality === 'saver') {
+    notifyThumbReady(saverKey, dataUrl, false);
+  }
+}
+
+/**
+ * Force-refresh visible tiles after quality switch (bypass mem for new quality).
+ */
+export function refreshVisibleThumbsForQuality(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageIds: number[]
+): void {
+  if (!messageIds.length || !isDriveSessionReady()) return;
+  softFailAt.clear();
+  errorFailAt.clear();
+  const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
+  for (const mid of ids) {
+    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    inflightByKey.delete(k);
+    if (activeQuality !== 'saver') {
+      memCache.delete(k);
+    }
+    void requestThumb(creds, folderId, mid, {
+      priority: 'visible',
+      contextKey: activeContextKey,
+      bypassCache: activeQuality !== 'saver',
+    });
+  }
+  const n = maxConcurrent();
+  for (let i = 0; i < n; i++) scheduleFlush(true);
+}
+
+/**
+ * After list_media: prime every file that carried an inline stripped thumb.
+ * This is the main Telegram-app parity path (paint without thumbs_batch wait).
+ * Returns count primed. Callers should strip thumb_data_url from React state
+ * after this to avoid multi-MB re-renders.
+ */
+export function primeThumbsFromFileList(
+  creds: DriveCredentials,
+  folderId: number | null,
+  files: Array<{ id: number; thumb_data_url?: string | null; thumbDataUrl?: string | null }>
+): number {
+  let n = 0;
+  for (const f of files) {
+    const url = f.thumb_data_url || f.thumbDataUrl;
+    if (!url || !f.id) continue;
+    primeThumbCache(creds, folderId, f.id, url);
+    n += 1;
+  }
+  return n;
+}
+
+/** Drop heavy inline thumb payloads after priming mem/disk cache. */
+export function stripInlineThumbsFromFiles<T extends { thumb_data_url?: string | null; thumbDataUrl?: string | null }>(
+  files: T[]
+): T[] {
+  return files.map((f) => {
+    if (!f.thumb_data_url && !f.thumbDataUrl) return f;
+    const { thumb_data_url: _a, thumbDataUrl: _b, ...rest } = f as T & {
+      thumb_data_url?: string | null;
+      thumbDataUrl?: string | null;
+    };
+    return rest as T;
+  });
 }
 
 export function clearThumbCache() {
   memCache.clear();
   softFailAt.clear();
   errorFailAt.clear();
+  inflightByKey.clear();
 }
 
 export function invalidateThumbFailures() {
   softFailAt.clear();
   errorFailAt.clear();
+}
+
+/** Drop a single broken/stale thumb (e.g. revoked blob URL) and clear fail cooldowns. */
+export function invalidateThumb(
+  folderId: number | null,
+  messageId: number,
+  session?: string
+): void {
+  const k = cacheKey(folderId, messageId, activeQuality, session || activeSession);
+  memCache.delete(k);
+  softFailAt.delete(k);
+  errorFailAt.delete(k);
 }
 
 /**
@@ -429,6 +599,7 @@ async function flushQueue() {
       batchSize: limit,
     });
     const thumbs = (res.thumbs || {}) as Record<string, string | null>;
+    const deferred = !!(res as { deferred?: boolean }).deferred;
     metrics.batches += 1;
     metrics.batchLatencyMs = Math.round(performance.now() - started);
     for (const task of tasks) {
@@ -440,21 +611,38 @@ async function flushQueue() {
         void savePersistentThumb(k, url);
         softFailAt.delete(k);
         errorFailAt.delete(k);
-      } else if (!(res as { deferred?: boolean }).deferred) {
-        softFailAt.set(k, Date.now());
-      } else {
-        // Deferred (session not ready) — requeue without soft-fail
+        notifyThumbReady(k, url, false);
+        resolveTask(task, url);
+      } else if (deferred) {
+        // Deferred (session not ready / native cold) — requeue without soft-fail
         if (task.generation === contextGeneration && task.contextKey === activeContextKey) {
           queue.set(k, task);
           metrics.retries += 1;
+        } else {
+          resolveTask(task, null);
         }
+      } else {
+        // Miss: short soft-fail so visible cards can re-request soon without hammering.
+        softFailAt.set(k, Date.now());
+        resolveTask(task, null);
       }
-      if (!(res as { deferred?: boolean }).deferred) resolveTask(task, url);
     }
   } catch {
     for (const task of tasks) {
       const k = task.key;
       errorFailAt.set(k, Date.now());
+      // Transient errors: requeue high-priority (visible) once generation is still current
+      if (
+        task.priority === 0 &&
+        task.generation === contextGeneration &&
+        task.contextKey === activeContextKey
+      ) {
+        queue.set(k, {
+          ...task,
+          waiters: [], // original waiters already resolved null; cards re-request
+        });
+        metrics.retries += 1;
+      }
       resolveTask(task, null);
     }
   }
@@ -477,66 +665,89 @@ export async function requestThumb(
   if (opts?.bypassCache) {
     softFailAt.delete(k);
     errorFailAt.delete(k);
-  }
-  const hit = memCache.get(k);
-  if (hit) return Promise.resolve(hit);
-
-  if (!opts?.bypassCache) {
+    inflightByKey.delete(k);
+    // Drop mem for this quality key so seimbang/jelas re-fetch (do not keep hemat blur).
+    memCache.delete(k);
+  } else {
+    const hit = memCache.get(k);
+    if (hit) return hit;
     const failAt = softFailAt.get(k);
     if (failAt != null && Date.now() - failAt < softFailMs()) {
-      return Promise.resolve(null);
+      return null;
     }
     const errAt = errorFailAt.get(k);
     if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) {
-      return Promise.resolve(null);
+      return null;
     }
+    const inflight = inflightByKey.get(k);
+    if (inflight) return inflight;
   }
 
+  const work = (async (): Promise<string | null> => {
+    // Re-check mem (list_media prime often races card mount by one tick).
+    const again = memCache.get(k);
+    if (again) return again;
 
-  const persisted = await loadPersistentThumb(k);
-  if (persisted) {
-    memCache.set(k, persisted);
-    softFailAt.delete(k);
-    errorFailAt.delete(k);
-    return persisted;
-  }
-
-  return new Promise((resolve) => {
-    const existing = queue.get(k);
-    if (existing) {
-      existing.priority = Math.min(existing.priority, priorityValue(opts?.priority));
-      existing.waiters.push({ resolve, signal: opts?.signal });
-      scheduleFlush(false);
-      return;
+    const persisted = await loadPersistentThumb(k);
+    if (persisted) {
+      memCache.set(k, persisted);
+      softFailAt.delete(k);
+      errorFailAt.delete(k);
+      return persisted;
     }
-    if (queue.size >= queueMax()) {
-      const evictable = [...queue.values()]
-        .filter((task) => task.priority > priorityValue(opts?.priority))
-        .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)[0];
-      if (!evictable) {
+
+    // Re-check after async gap — another caller may have filled mem or queue.
+    const afterPersist = memCache.get(k);
+    if (afterPersist) return afterPersist;
+
+    return new Promise<string | null>((resolve) => {
+      if (opts?.signal?.aborted) {
         resolve(null);
         return;
       }
-      queue.delete(evictable.key);
-      metrics.evictedPrefetch += 1;
-      resolveTask(evictable, null);
-    }
-    queue.set(k, {
-      key: k,
-      contextKey,
-      generation,
-      creds,
-      folderId,
-      messageId,
-      quality: activeQuality,
-      priority: priorityValue(opts?.priority),
-      sequence: taskSequence++,
-      waiters: [{ resolve, signal: opts?.signal }],
+      const existing = queue.get(k);
+      if (existing) {
+        existing.priority = Math.min(existing.priority, priorityValue(opts?.priority));
+        existing.waiters.push({ resolve, signal: opts?.signal });
+        scheduleFlush(false);
+        return;
+      }
+      if (queue.size >= queueMax()) {
+        const evictable = [...queue.values()]
+          .filter((task) => task.priority > priorityValue(opts?.priority))
+          .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)[0];
+        if (!evictable) {
+          resolve(null);
+          return;
+        }
+        queue.delete(evictable.key);
+        metrics.evictedPrefetch += 1;
+        resolveTask(evictable, null);
+      }
+      queue.set(k, {
+        key: k,
+        contextKey,
+        generation,
+        creds,
+        folderId,
+        messageId,
+        quality: activeQuality,
+        priority: priorityValue(opts?.priority),
+        sequence: taskSequence++,
+        waiters: [{ resolve, signal: opts?.signal }],
+      });
+      metrics.queued = queue.size;
+      const isVisible = opts?.priority === 'visible';
+      scheduleFlush(isVisible || (!bootstrapMode && getDrivePerfProfile().tier === 'high'));
     });
-    metrics.queued = queue.size;
-    const isVisible = opts?.priority === 'visible';
-    scheduleFlush(isVisible || (!bootstrapMode && getDrivePerfProfile().tier === 'high'));
-  });
+  })();
+
+  inflightByKey.set(k, work);
+  try {
+    return await work;
+  } finally {
+    if (inflightByKey.get(k) === work) inflightByKey.delete(k);
+  }
 }
 
 /**
