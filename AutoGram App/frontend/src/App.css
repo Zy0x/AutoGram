@@ -2886,7 +2886,14 @@ body.td-dnd-external {
   backface-visibility: hidden;
   /* Never flash browser default white while decoding */
   background: var(--td-surface, #17212b);
+  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.td-file-thumb-full img.td-thumb-is-placeholder {
+  filter: blur(10px);
+  transform: scale(1.12);
+}
+
 /* XL/XXL tiles: keep high-quality resampling (never pixelated) */
 .td-explorer.td-zoom-3 .td-file-thumb-full img,
 .td-explorer.td-zoom-4 .td-file-thumb-full img,

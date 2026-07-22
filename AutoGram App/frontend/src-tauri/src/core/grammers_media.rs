@@ -473,8 +473,8 @@ async fn download_media_thumb(
     // Tier 1: Try selected quality size
     if let Some(pick) = pick_thumb(&sizes, quality) {
         if let Ok(bytes) = download_thumb_bytes(client, &pick).await {
-            // Reject tiny stripped payloads for seimbang/jelas (look blurry on grid)
-            let min_ok = if saver { 32 } else { 2_500 };
+            // Reject tiny 32-byte stripped payloads for seimbang/jelas
+            let min_ok = if saver { 32 } else { 350 };
             if bytes.len() >= min_ok {
                 return Ok(bytes);
             }
@@ -503,7 +503,7 @@ async fn download_media_thumb(
     }
     for s in downloadable {
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
-            if bytes.len() >= 2_500 || saver {
+            if bytes.len() >= 350 || saver {
                 return Ok(bytes);
             }
         }
@@ -894,7 +894,7 @@ pub fn thumbs_batch_blocking_app(
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    let min_disk = if q_key == "hemat" { 32 } else { 2_500 };
+                    let min_disk = if q_key == "hemat" { 32 } else { 350 };
                     if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
                             thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
@@ -1062,7 +1062,7 @@ pub fn thumbs_batch_blocking_app(
                     let q_file = t_dir.join(format!("{q_cache}.jpg"));
                     if q_file.is_file() {
                         if let Ok(bytes) = std::fs::read(&q_file) {
-                            let min_ok = if hemat_only { 32 } else { 2_500 };
+                            let min_ok = if hemat_only { 32 } else { 350 };
                             if bytes.len() >= min_ok {
                                 if let Some(url) = to_data_url(&bytes) {
                                     thumb_mem_cache().lock().insert(q_cache, url.clone());
@@ -1091,8 +1091,8 @@ pub fn thumbs_batch_blocking_app(
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
-                                // Reject tiny stripped payloads for seimbang/jelas
-                                let min_ok = if q_sub == "hemat" { 32 } else { 2_500 };
+                                // Reject tiny 32-byte stripped payloads for seimbang/jelas
+                                let min_ok = if q_sub == "hemat" { 32 } else { 350 };
                                 if bytes.len() < min_ok {
                                     return (mid_val.to_string(), None);
                                 }

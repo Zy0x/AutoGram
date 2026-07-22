@@ -132,6 +132,10 @@ function DriveFileCardInner({
     if (thumbQuality === 'saver' && inlineThumb.startsWith('data:image/')) return inlineThumb;
     return null;
   });
+  const [isPlaceholderImg, setIsPlaceholderImg] = useState<boolean>(() => {
+    if (cached) return false;
+    return inlineThumb.startsWith('data:image/');
+  });
   const [thumbLoading, setThumbLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -141,12 +145,14 @@ function DriveFileCardInner({
     const hit = getCachedThumb(folderId, file.id);
     if (hit !== undefined && hit !== null) {
       setThumb(hit);
+      setIsPlaceholderImg(false);
       setThumbLoading(false);
       return;
     }
     const inline = file.thumb_data_url || file.thumbDataUrl;
     if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
+      setIsPlaceholderImg(true);
       setThumbLoading(false);
     } else {
       setThumbLoading(true);
@@ -159,10 +165,13 @@ function DriveFileCardInner({
     const inline = file.thumb_data_url || file.thumbDataUrl;
     if (hit) {
       setThumb(hit);
+      setIsPlaceholderImg(false);
     } else if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
+      setIsPlaceholderImg(true);
     } else {
       setThumb(null);
+      setIsPlaceholderImg(false);
     }
     setImgError(false);
   }, [folderId, file.id, file.thumb_data_url, file.thumbDataUrl, thumbQuality]);
@@ -178,11 +187,13 @@ function DriveFileCardInner({
       const hit = getCachedThumb(folderId, file.id);
       if (hit) {
         setThumb(hit);
+        setIsPlaceholderImg(false);
         setThumbLoading(false);
         setImgError(false);
       } else if (detail?.url && detail?.isPlaceholder && thumbQuality !== 'saver') {
         // Transient blur placeholder: paint temporary preview without stopping loading state
         setThumb(detail.url);
+        setIsPlaceholderImg(true);
       }
     };
     const onQuality = (ev: Event) => {
@@ -390,6 +401,7 @@ function DriveFileCardInner({
             <img
               src={thumb}
               alt=""
+              className={isPlaceholderImg ? 'td-thumb-is-placeholder' : ''}
               draggable={false}
               // Visible grid cards should paint immediately; lazy + revoked blob
               // URLs left empty tiles after LRU eviction.
