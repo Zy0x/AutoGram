@@ -259,8 +259,8 @@ export function DriveExplorer({
 
   const perf = getDrivePerfProfile();
   const gridOverscan = progressiveReady
-    ? perf.tier === 'high' ? 4 : perf.tier === 'mid' ? 3 : 2
-    : 1;
+    ? perf.tier === 'high' ? 6 : perf.tier === 'mid' ? 4 : 3
+    : 2;
   const listOverscan = progressiveReady
     ? perf.tier === 'high' ? 18 : perf.tier === 'mid' ? 12 : 8
     : 6;

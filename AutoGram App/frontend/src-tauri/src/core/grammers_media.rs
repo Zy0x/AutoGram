@@ -258,6 +258,11 @@ pub struct ThumbsBatchResult {
     pub backend: String,
 }
 
+fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(2048)))
+}
+
 fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
     if data.len() < 3 || data[0] != 0x01 {
         return None;
@@ -412,7 +417,7 @@ pub fn thumbs_batch_blocking(
     let ids: Vec<i32> = message_ids
         .iter()
         .filter(|&&id| id > 0)
-        .take(24)
+        .take(48)
         .map(|&id| id as i32)
         .collect();
     if ids.is_empty() {
@@ -445,12 +450,23 @@ pub fn thumbs_batch_blocking(
 
     for &mid in &ids {
         let key = mid.to_string();
-        let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{q_key}.jpg"));
+        let cache_key = format!("{chat_safe}_{mid}_{q_key}");
+        {
+            let mem = thumb_mem_cache().lock();
+            if let Some(url) = mem.get(&cache_key) {
+                thumbs.insert(key, Some(url.clone()));
+                continue;
+            }
+        }
+        let cache_file = t_dir.join(format!("{cache_key}.jpg"));
         if cache_file.is_file() {
             if let Ok(bytes) = std::fs::read(&cache_file) {
                 if !bytes.is_empty() {
-                    thumbs.insert(key, to_data_url(&bytes));
-                    continue;
+                    if let Some(url) = to_data_url(&bytes) {
+                        thumb_mem_cache().lock().insert(cache_key, url.clone());
+                        thumbs.insert(key, Some(url));
+                        continue;
+                    }
                 }
             }
         }
@@ -497,15 +513,22 @@ pub fn thumbs_batch_blocking(
                     };
 
                     let client_ref = client.clone();
-                    let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{quality_owned}.jpg"));
                     let mid_val = *mid;
                     let sizes_cloned = sizes.clone();
+                    let q_sub = quality_owned.clone();
+                    let c_sub = chat_safe.clone();
+                    let t_sub = t_dir.clone();
 
                     set.spawn(async move {
+                        let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
                         match download_thumb_bytes(&client_ref, &pick).await {
                             Ok(bytes) => {
                                 let _ = std::fs::write(&cache_file, &bytes);
-                                (mid_val.to_string(), to_data_url(&bytes))
+                                let url = to_data_url(&bytes);
+                                if let Some(ref u) = url {
+                                    thumb_mem_cache().lock().insert(format!("{c_sub}_{mid_val}_{q_sub}"), u.clone());
+                                }
+                                (mid_val.to_string(), url)
                             }
                             Err(e) => {
                                 // Fallback: extract inline stripped/cached bytes if downloadable fails
