@@ -301,6 +301,33 @@ function folderArg(folderId: number | null | undefined): string[] {
 }
 
 export async function driveScanFolders(creds: DriveCredentials) {
+  if (detectTauriRuntime()) {
+    try {
+      const { tgListDialogs } = await import('./telegramBackend');
+      const result = await tgListDialogs({
+        session: creds.session,
+        apiId: Number(creds.apiId),
+        apiHash: creds.apiHash,
+        limit: 500,
+      });
+      if (result?.ok && Array.isArray(result.data)) {
+        const folders = result.data
+          .filter((dialog) => /\[TD\]\s*$/i.test(String(dialog.title || '')))
+          .map((dialog) => ({
+            id: Number(dialog.id),
+            name: String(dialog.title || dialog.id).replace(/\s*\[TD\]\s*$/i, '').trim(),
+            title_raw: String(dialog.title || dialog.id),
+            username: null,
+            is_drive_folder: true,
+            parent_id: null,
+          }));
+        return { status: 'success', folders, backend: 'grammers' };
+      }
+      throw new Error(result?.userMessage || result?.error?.message || 'Daftar folder native gagal.');
+    } catch (e) {
+      throw new Error(`Scan folder Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
+    }
+  }
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'scan_folders');
   }
@@ -368,11 +395,10 @@ export async function driveListChats(
     !cursor?.offset_date &&
     !cursor?.offset_peer_id &&
     !opts?.chatFolderId;
-  const telethonWarm = isDriveSessionReadyFor(creds);
-  if (firstPage && detectTauriRuntime() && !telethonWarm) {
+  if (firstPage && detectTauriRuntime()) {
     try {
-      const { tgListDialogs, shouldTryGrammersPath } = await import('./telegramBackend');
-      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+      const { tgListDialogs } = await import('./telegramBackend');
+      {
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgListDialogs({
           session: creds.session,
@@ -380,7 +406,7 @@ export async function driveListChats(
           apiHash: creds.apiHash,
           limit,
         });
-        if (gr?.ok && Array.isArray(gr.data) && gr.data.length > 0) {
+        if (gr?.ok && Array.isArray(gr.data)) {
           const chats = gr.data.map((d) => {
             const title = String(d.title || d.id);
             const isTd = title.includes('[TD]');
@@ -412,9 +438,10 @@ export async function driveListChats(
             backend: 'grammers',
           };
         }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar chat native gagal.');
       }
     } catch (e) {
-      console.warn('[driveListChats] Grammers list_dialogs miss → Telethon', e);
+      throw new Error(`Daftar chat Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
   }
 
@@ -442,6 +469,22 @@ export async function driveListChatFolders(
   creds: DriveCredentials,
   opts?: { force?: boolean }
 ) {
+  if (detectTauriRuntime()) {
+    try {
+      const { tgListDialogFilters } = await import('./telegramBackend');
+      const result = await tgListDialogFilters({
+        session: creds.session,
+        apiId: Number(creds.apiId),
+        apiHash: creds.apiHash,
+      });
+      if (result?.ok && Array.isArray(result.data)) {
+        return { status: 'success', folders: result.data, backend: 'grammers' };
+      }
+      throw new Error(result?.userMessage || result?.error?.message || 'Filter chat native gagal.');
+    } catch (e) {
+      throw new Error(`Folder chat Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
+    }
+  }
   const params = { force: !!opts?.force };
   if (await ensureWarmDriveSession(creds)) {
     return driveSessionCallFor(creds, 'list_chat_folders', params);
@@ -469,11 +512,10 @@ export async function driveThumbnailsBatch(
   const ids = messageIds.slice(0, batch);
 
   // Grammers thumbs when Telethon warm is not holding the session
-  const telethonWarm = isDriveSessionReadyFor(creds);
-  if (detectTauriRuntime() && !telethonWarm) {
+  if (detectTauriRuntime()) {
     try {
-      const { tgThumbsBatch, shouldTryGrammersPath } = await import('./telegramBackend');
-      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+      const { tgThumbsBatch } = await import('./telegramBackend');
+      {
         const chatId = folderId == null ? 'me' : String(folderId);
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgThumbsBatch({
@@ -482,6 +524,7 @@ export async function driveThumbnailsBatch(
           apiHash: creds.apiHash,
           chatId,
           messageIds: ids,
+          quality,
         });
         if (gr?.ok && gr.data?.thumbs) {
           return {
@@ -490,9 +533,11 @@ export async function driveThumbnailsBatch(
             backend: 'grammers',
           };
         }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Thumbnail native gagal.');
       }
     } catch (e) {
-      console.warn('[driveThumbnailsBatch] Grammers miss → Telethon', e);
+      console.warn('[driveThumbnailsBatch] native thumbnail deferred', e);
+      return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
     }
   }
 
@@ -794,11 +839,10 @@ export async function driveListFiles(
   // 2. Optional Grammers dual-path (newest-only, no topic).
   // Skip when Telethon warm drive-serve already holds the auth_key (exclusive session).
   const sortIsNewest = sortMode === 'newest' || !opts?.sortMode;
-  const telethonWarm = isDriveSessionReadyFor(creds);
-  if (topicId == null && sortIsNewest && detectTauriRuntime() && !telethonWarm) {
+  if (topicId == null && sortIsNewest && detectTauriRuntime()) {
     try {
-      const { tgListMedia, shouldTryGrammersPath } = await import('./telegramBackend');
-      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+      const { tgListMedia } = await import('./telegramBackend');
+      {
         const chatId = folderId == null ? 'me' : String(folderId);
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgListMedia({
@@ -838,9 +882,10 @@ export async function driveListFiles(
             backend: 'grammers',
           };
         }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
       }
     } catch (e) {
-      console.warn('[driveListFiles] Grammers list_media miss → Telethon', e);
+      throw new Error(`Daftar media Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
   }
 
@@ -964,11 +1009,10 @@ export async function driveMediaStats(
 }
 
 export async function driveListTopics(creds: DriveCredentials, chatId: number) {
-  const telethonWarm = isDriveSessionReadyFor(creds);
-  if (detectTauriRuntime() && !telethonWarm) {
+  if (detectTauriRuntime()) {
     try {
-      const { tgListTopics, shouldTryGrammersPath } = await import('./telegramBackend');
-      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+      const { tgListTopics } = await import('./telegramBackend');
+      {
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgListTopics({
           session: creds.session,
@@ -991,9 +1035,10 @@ export async function driveListTopics(creds: DriveCredentials, chatId: number) {
             backend: 'grammers',
           };
         }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar topik native gagal.');
       }
     } catch (e) {
-      console.warn('[driveListTopics] Grammers miss → Telethon', e);
+      throw new Error(`Daftar topik Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
   }
   if (await ensureWarmDriveSession(creds)) {
@@ -1119,14 +1164,11 @@ export async function drivePreview(
     skip_poster: skipPoster,
   };
 
-  // Progressive VIDEO preview uses Telethon warm + media_stream (moov/multi-DC
-  // seek). Grammers sequential progressive is only used for small full-image
-  // downloads below — not for playable video (avoids buffer remount loops).
-  const telethonWarm = isDriveSessionReadyFor(creds);
-  if (!needsTranscode && detectTauriRuntime() && !telethonWarm) {
+  // Desktop preview has exactly one MTProto owner: Rust + Grammers.
+  if (detectTauriRuntime()) {
     try {
-      const { tgPreviewStream, shouldTryGrammersPath } = await import('./telegramBackend');
-      if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
+      const { tgPreviewStream } = await import('./telegramBackend');
+      {
         const chatId = folderId == null ? 'me' : String(folderId);
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgPreviewStream({
@@ -1146,16 +1188,19 @@ export async function drivePreview(
             mime_type: d.mimeType,
             size: d.size,
             data_url: d.dataUrl ?? null,
+            text_content: d.textContent ?? null,
             cached: false,
             preview_kind: d.previewKind || (d.streaming ? 'stream' : 'image'),
             streaming: !!d.streaming,
             too_large: false,
             backend: 'grammers',
+            message: d.message,
           };
         }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Preview native tidak tersedia.');
       }
     } catch (e) {
-      console.warn('[drivePreview] Grammers preview miss → Telethon', e);
+      throw new Error(`Preview Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
   }
 
@@ -1219,6 +1264,37 @@ export async function drivePreviewWarm(
 }
 
 export async function driveStreamStatus(creds: DriveCredentials, streamId: string) {
+  // Native stream ids are authoritative in the Rust registry. Query it before
+  // any legacy warm worker so Account switching cannot change status ownership.
+  if (detectTauriRuntime() && streamId) {
+    try {
+      const { streamStatusLocal } = await import('./rustBackend');
+      const st = await streamStatusLocal(streamId);
+      if (st) {
+        return {
+          status: (st as any).status,
+          stream_id: (st as any).streamId ?? streamId,
+          path: (st as any).path,
+          total: (st as any).total,
+          downloaded: (st as any).downloaded,
+          downloaded_filled: (st as any).downloadedFilled ?? (st as any).downloaded,
+          prefix_bytes: (st as any).prefixBytes ?? (st as any).downloaded,
+          percent: (st as any).percent,
+          done: !!(st as any).done,
+          mime_type: (st as any).mimeType,
+          stream_ready: !!(st as any).streamReady,
+          moov_ready: !!(st as any).moovReady,
+          seek_capable: !!(st as any).seekCapable,
+          paused: !!(st as any).paused,
+          error: (st as any).error || null,
+          backend: (st as any).backend || 'rust',
+        };
+      }
+    } catch {
+      return { status: 'error', error: 'Status stream Rust tidak tersedia', backend: 'rust' };
+    }
+    return { status: 'missing', stream_id: streamId, backend: 'rust' };
+  }
   // Prefer Telethon stream_status when warm — includes moov_ready / filled islands.
   // Rust registry alone lacks moov_ready and caused "buffer tinggi tapi tidak play".
   if (isDriveSessionReadyFor(creds)) {
@@ -1288,9 +1364,9 @@ export async function driveStopStream(
     try {
       const { tgStopStream } = await import('./telegramBackend');
       const ok = await tgStopStream(streamId);
-      if (ok) return { status: 'stopped', backend: 'grammers' };
+      return { status: ok ? 'stopped' : 'missing', backend: 'grammers' };
     } catch {
-      /* continue Telethon */
+      return { status: 'error', backend: 'grammers' };
     }
   }
   try {
@@ -1325,6 +1401,22 @@ export async function driveStreamSeek(
   opts: { time_s?: number; duration_s?: number; offset?: number }
 ) {
   if (!streamId) return { status: 'missing' };
+  if (detectTauriRuntime()) {
+    try {
+      const { tgSeekStream } = await import('./telegramBackend');
+      const target = await tgSeekStream(streamId, {
+        timeS: opts.time_s,
+        durationS: opts.duration_s,
+        offset: opts.offset,
+      });
+      if (target != null) {
+        return { status: 'queued', offset: target, backend: 'grammers' };
+      }
+      return { status: 'missing', backend: 'grammers' };
+    } catch {
+      return { status: 'error', backend: 'grammers' };
+    }
+  }
   try {
     if (!isDriveSessionReadyFor(creds)) {
       await ensureDriveSession(creds, true);

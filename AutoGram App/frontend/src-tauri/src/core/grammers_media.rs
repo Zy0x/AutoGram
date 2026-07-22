@@ -25,9 +25,9 @@ use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::tg_log;
 
 const BACKEND: &str = "grammers";
-/// Keep sparse-file allocation bounded to Telegram's large-file desktop tier.
+/// Section
 const PROGRESSIVE_MAX: u64 = 4 * 1024 * 1024 * 1024;
-/// Prefer thumbs under this size for grid.
+/// Section
 const THUMB_TARGET_MAX: usize = 96 * 1024;
 
 fn now_ms() -> u128 {
@@ -38,7 +38,7 @@ fn now_ms() -> u128 {
 }
 
 fn cache_root(sessions_dir: &Path) -> PathBuf {
-    // worker/sessions → worker/cache
+    // Section
     sessions_dir
         .parent()
         .map(|p| p.join("cache"))
@@ -53,15 +53,15 @@ fn thumb_dir(sessions_dir: &Path) -> PathBuf {
     cache_root(sessions_dir).join("thumbs")
 }
 
-// ── Cancel map for progressive jobs ───────────────────────────────────────
+// Section
 
 fn cancel_flags() -> &'static Mutex<HashMap<String, Arc<AtomicBool>>> {
     static MAP: OnceLock<Mutex<HashMap<String, Arc<AtomicBool>>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-/// Latest byte requested by WebView for every live progressive stream.
-/// The fill loop consumes this before its next Telegram GetFile request.
+/// Section
+/// Section
 fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
     static REQUESTS: OnceLock<Mutex<HashMap<String, u64>>> = OnceLock::new();
     REQUESTS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -121,7 +121,7 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
     hit
 }
 
-// ── Topics ────────────────────────────────────────────────────────────────
+// Section
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -216,7 +216,7 @@ pub fn list_topics_blocking(
                         })
                     }
                     Err(e) => {
-                        // Not a forum / no permission — honest empty pack (not hard error)
+                        // Section
                         let msg = e.to_string().to_ascii_lowercase();
                         if msg.contains("forum")
                             || msg.contains("topic")
@@ -246,7 +246,9 @@ pub fn list_topics_blocking(
     })
 }
 
-// ── Thumbnails ────────────────────────────────────────────────────────────
+// ----------------------------------------------------------------------------
+// Thumbnails
+// ----------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -256,35 +258,102 @@ pub struct ThumbsBatchResult {
     pub backend: String,
 }
 
-fn pick_thumb(sizes: &[PhotoSize]) -> Option<PhotoSize> {
-    // Prefer inlined data (no network)
-    for s in sizes {
-        if s.to_data().is_some() {
-            match s {
-                PhotoSize::Cached(_) | PhotoSize::Stripped(_) => return Some(s.clone()),
-                _ => {}
+fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
+    if data.len() < 3 || data[0] != 0x01 {
+        return None;
+    }
+    let w = data[1] as usize;
+    let h = data[2] as usize;
+    let scan = &data[3..];
+    let mut header = vec![
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x60,
+        0x00, 0x60, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x28, 0x1c, 0x1e, 0x23, 0x1e, 0x19, 0x28,
+        0x23, 0x21, 0x23, 0x2d, 0x2a, 0x28, 0x30, 0x3c, 0x64, 0x41, 0x3c, 0x37, 0x37, 0x3c, 0x7b, 0x58,
+        0x5d, 0x49, 0x64, 0x91, 0x80, 0x99, 0x96, 0x8f, 0x80, 0x8c, 0x8a, 0xa0, 0xb4, 0xe6, 0xc3, 0xa0,
+        0xaa, 0xda, 0xad, 0x8a, 0x8c, 0xc8, 0xff, 0x8c, 0xdc, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xdb, 0x00, 0x43, 0x01, 0x2b, 0x2d, 0x2d, 0x3c, 0x35, 0x3c, 0x76, 0x41, 0x41,
+        0x76, 0xf8, 0xa5, 0x8c, 0xa5, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8,
+        0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8,
+        0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0xf8,
+        0xff, 0xc0, 0x00, 0x11, 0x08, (h & 0xff) as u8, (w & 0xff) as u8, 0x03, 0x01, 0x21, 0x00, 0x02,
+        0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+        0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0xff, 0xc4, 0x00, 0xb5, 0x10, 0x00, 0x02, 0x01, 0x03, 0x03,
+        0x02, 0x04, 0x03, 0x05, 0x05, 0x04, 0x04, 0x00, 0x00, 0x01, 0x7d, 0x01, 0x02, 0x03, 0x00, 0x04,
+        0x11, 0x05, 0x12, 0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07, 0x22, 0x71, 0x14, 0x32, 0x81,
+        0x91, 0xa1, 0x08, 0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0, 0x24, 0x33, 0x62, 0x72, 0x82,
+        0x09, 0x0a, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x34, 0x35, 0x36,
+        0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56,
+        0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75, 0x76,
+        0x77, 0x78, 0x79, 0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95,
+        0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3,
+        0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca,
+        0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7,
+        0xe8, 0xe9, 0xea, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xff, 0xc4, 0x00,
+        0x1f, 0x01, 0x00, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0xff, 0xc4,
+        0x00, 0xb5, 0x11, 0x00, 0x02, 0x01, 0x02, 0x04, 0x04, 0x03, 0x04, 0x07, 0x05, 0x04, 0x04, 0x00,
+        0x01, 0x02, 0x77, 0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21, 0x31, 0x06, 0x12, 0x41, 0x51,
+        0x07, 0x61, 0x71, 0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91, 0xa1, 0xb1, 0xc1, 0x09, 0x23,
+        0x33, 0x52, 0xf0, 0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34, 0xe1, 0x25, 0xf1, 0x17, 0x18,
+        0x19, 0x1a, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45,
+        0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65,
+        0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x82, 0x83, 0x84,
+        0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2,
+        0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9,
+        0xba, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7,
+        0xd8, 0xd9, 0xda, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf2, 0xf3, 0xf4, 0xf5,
+        0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xff, 0xda, 0x00, 0x0c, 0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11,
+        0x00, 0x3f, 0x00,
+    ];
+    header.extend_from_slice(scan);
+    header.push(0xff);
+    header.push(0xd9);
+    Some(header)
+}
+
+fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
+    let mode = quality.to_lowercase();
+    if mode.contains("hemat") || mode.contains("saver") {
+        // Section
+        for s in sizes {
+            if s.to_data().is_some() {
+                match s {
+                    PhotoSize::Cached(_) | PhotoSize::Stripped(_) => return Some(s.clone()),
+                    _ => {}
+                }
             }
         }
     }
-    // Prefer mid-size downloadable thumbs
+
+    // Section
     let mut downloadable: Vec<&PhotoSize> = sizes
         .iter()
         .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)))
         .collect();
-    if downloadable.is_empty() {
-        return None;
+
+    if !downloadable.is_empty() {
+        downloadable.sort_by_key(|s| s.size());
+        if mode.contains("jelas") || mode.contains("sharp") {
+            // Section
+            return downloadable.last().map(|s| (*s).clone());
+        }
+        // Section
+        let mid_index = if downloadable.len() >= 2 {
+            downloadable.len() / 2
+        } else {
+            0
+        };
+        return downloadable.get(mid_index).map(|s| (*s).clone());
     }
-    downloadable.sort_by_key(|s| s.size());
-    // Pick largest under target, else smallest
-    let under: Vec<_> = downloadable
-        .iter()
-        .copied()
-        .filter(|s| s.size() > 0 && s.size() <= THUMB_TARGET_MAX)
-        .collect();
-    if let Some(best) = under.last() {
-        return Some((*best).clone());
+
+    // Section
+    for s in sizes {
+        if s.to_data().is_some() {
+            return Some(s.clone());
+        }
     }
-    downloadable.first().map(|s| (*s).clone())
+    sizes.first().cloned()
 }
 
 fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
@@ -298,7 +367,9 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
 
 async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<u8>, TgError> {
     if let Some(data) = thumb.to_data() {
-        // Stripped sizes may not be valid JPEG; still return for caller filter
+        if let Some(unstripped) = unstrip_jpeg(&data) {
+            return Ok(unstripped);
+        }
         return Ok(data);
     }
     let mut out = Vec::new();
@@ -306,7 +377,7 @@ async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<
     while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
         out.extend_from_slice(&chunk);
         if out.len() > 512 * 1024 {
-            break; // safety
+            break; // Section
         }
     }
     Ok(out)
@@ -316,7 +387,6 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
         return None;
     }
-    // Skip stripped JPEG headerless blobs that are too small / not JFIF
     let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
     let is_png = bytes.len() >= 8 && &bytes[0..4] == b"\x89PNG";
     let is_webp = bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP";
@@ -326,9 +396,6 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
         "image/png"
     } else if is_webp {
         "image/webp"
-    } else if bytes.len() < 64 {
-        // likely stripped / path vector — skip
-        return None;
     } else {
         "image/jpeg"
     };
@@ -340,6 +407,7 @@ pub fn thumbs_batch_blocking(
     identity: &TelegramIdentity,
     chat_id: &str,
     message_ids: &[i64],
+    quality: &str,
 ) -> Result<ThumbsBatchResult, TgError> {
     let ids: Vec<i32> = message_ids
         .iter()
@@ -356,6 +424,14 @@ pub fn thumbs_batch_blocking(
     }
     let rt = runtime()?;
     let chat = chat_id.to_string();
+    let q_mode = quality.to_lowercase();
+    let q_key = if q_mode.contains("hemat") || q_mode.contains("saver") {
+        "hemat"
+    } else if q_mode.contains("jelas") || q_mode.contains("sharp") {
+        "jelas"
+    } else {
+        "seimbang"
+    };
     let chat_safe: String = chat
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
@@ -363,13 +439,13 @@ pub fn thumbs_batch_blocking(
     let t_dir = thumb_dir(sessions_dir);
     let _ = std::fs::create_dir_all(&t_dir);
 
-    // Fast-path: read cached thumbs directly from local disk (0 network latency)
+    // Section
     let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
     let mut uncached_ids: Vec<i32> = Vec::new();
 
     for &mid in &ids {
         let key = mid.to_string();
-        let cache_file = t_dir.join(format!("{chat_safe}_{mid}.jpg"));
+        let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{q_key}.jpg"));
         if cache_file.is_file() {
             if let Ok(bytes) = std::fs::read(&cache_file) {
                 if !bytes.is_empty() {
@@ -402,6 +478,7 @@ pub fn thumbs_batch_blocking(
                     .map_err(|e| map_invocation(&e))?;
 
                 let mut set = tokio::task::JoinSet::new();
+                let quality_owned = q_key.to_string();
 
                 for (i, mid) in uncached_ids.iter().enumerate() {
                     let key = mid.to_string();
@@ -414,13 +491,13 @@ pub fn thumbs_batch_blocking(
                         continue;
                     };
                     let sizes = media_thumbs(&media);
-                    let Some(pick) = pick_thumb(&sizes) else {
+                    let Some(pick) = pick_thumb(&sizes, &quality_owned) else {
                         thumbs.insert(key, None);
                         continue;
                     };
 
                     let client_ref = client.clone();
-                    let cache_file = t_dir.join(format!("{chat_safe}_{mid}.jpg"));
+                    let cache_file = t_dir.join(format!("{chat_safe}_{mid}_{quality_owned}.jpg"));
                     let mid_val = *mid;
 
                     set.spawn(async move {
@@ -447,8 +524,9 @@ pub fn thumbs_batch_blocking(
                     BACKEND,
                     "thumbs_batch",
                     format!(
-                        "chat={} total={} uncached={} ok={}",
+                        "chat={} q={} total={} uncached={} ok={}",
                         chat,
+                        q_key,
                         ids.len(),
                         uncached_ids.len(),
                         thumbs.values().filter(|v| v.is_some()).count()
@@ -465,7 +543,7 @@ pub fn thumbs_batch_blocking(
     })
 }
 
-// ── Progressive stream ────────────────────────────────────────────────────
+// Section
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -591,8 +669,8 @@ fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation
     }
 }
 
-/// Start adaptive progressive fill. Returns immediately with stream_url once
-/// the first registry entry is published; download continues in a background task.
+/// Section
+/// Section
 pub fn start_preview_stream_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -607,7 +685,7 @@ pub fn start_preview_stream_blocking(
     let chat = chat_id.to_string();
     let rt = runtime()?;
 
-    // Phase A: resolve media metadata + create sparse file + register + spawn fill
+    // Section
     rt.block_on(async {
         let live = connect_client(&sessions_dir, &identity, true).await?;
         let client = live.client.clone();
@@ -656,9 +734,9 @@ pub fn start_preview_stream_blocking(
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
 
-        // Documents/code are latency-sensitive but do not benefit from a
-        // hollow sparse stream. Download modest files directly with Grammers'
-        // concurrent downloader, then parse them locally in Rust.
+        // Section
+        // Section
+        // Section
         if !is_image && !is_video && !is_audio && size <= 64 * 1024 * 1024 {
             let pdir = preview_dir(&sessions_dir);
             let _ = std::fs::create_dir_all(&pdir);
@@ -698,7 +776,7 @@ pub fn start_preview_stream_blocking(
             });
         }
 
-        // Small images: full download, no stream
+        // Section
         if is_image && size <= 8 * 1024 * 1024 {
             let pdir = preview_dir(&sessions_dir);
             let _ = std::fs::create_dir_all(&pdir);
@@ -750,7 +828,7 @@ pub fn start_preview_stream_blocking(
         path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
             .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
 
-        // Preallocate sparse-ish file
+        // Section
         {
             let f = std::fs::File::create(&dest)
                 .map_err(|e| TgError::new(TgErrorCode::Io, format!("create partial: {e}")))?;
@@ -775,7 +853,7 @@ pub fn start_preview_stream_blocking(
         let cancel = register_cancel(&stream_id);
         let stream_url = stream_public_url(&stream_id, &name);
 
-        // Move live client into fill task (do not disconnect here)
+        // Section
         let dest_path = dest.clone();
         let sid = stream_id.clone();
         let mime_bg = mime.clone();
@@ -804,7 +882,7 @@ pub fn start_preview_stream_blocking(
                     if flag.load(Ordering::SeqCst) {
                         return Err("cancelled".into());
                     }
-                    // Honor pause flag from HTTP /pause
+                    // Section
                     loop {
                         if let Some(e) = stream_server::get_entry(&sid) {
                             if e.cancelled || flag.load(Ordering::SeqCst) {
@@ -818,9 +896,9 @@ pub fn start_preview_stream_blocking(
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                     }
-                    // Browser Range requests and explicit seeks take priority.
-                    // DownloadIter keeps Grammers' FILE_MIGRATE handling, so a
-                    // random jump also works when the media belongs to another DC.
+                    // Section
+                    // Section
+                    // Section
                     if let Some(requested) = take_seek_request(&sid) {
                         let requested = requested.min(size.saturating_sub(1));
                         let aligned = (requested / CHUNK_SIZE) * CHUNK_SIZE;
@@ -855,7 +933,7 @@ pub fn start_preview_stream_blocking(
                     ranges.push((offset, end));
                     offset = end;
 
-                    // MP4 video bootstrap: if moov atom is at end of file, pre-fetch tail
+                    // Section
                     if is_video && size > 1024 * 1024 && !moov_bootstrapped {
                         moov_bootstrapped = true;
                         let has_moov_in_head = chunk.windows(4).any(|w| w == b"moov");
@@ -890,7 +968,7 @@ pub fn start_preview_stream_blocking(
                         }
                     }
 
-                    // Publish registry (throttled lightly by calling upsert each ~512KB)
+                    // Section
                     stream_server::upsert_entry(StreamEntry {
                         stream_id: sid.clone(),
                         path: dest_path.display().to_string(),
@@ -974,8 +1052,8 @@ pub fn start_preview_stream_blocking(
             seek_requests().lock().remove(&sid);
         });
 
-        // Avoid handing WebView2 a URL that immediately answers 503 before the
-        // first Telegram chunk is published. Usually this exits in one tick.
+        // Section
+        // Section
         for _ in 0..40 {
             let status = stream_server::status_of(&stream_id);
             if status.prefix_bytes > 0 || status.error.is_some() {
@@ -1017,7 +1095,7 @@ pub fn start_preview_stream_blocking(
     })
 }
 
-/// Warm first N bytes via native progressive download into registry (best-effort).
+/// Section
 pub fn warm_preview_head_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -1025,7 +1103,7 @@ pub fn warm_preview_head_blocking(
     message_id: i64,
     head_bytes: u64,
 ) -> Result<PreviewStreamResult, TgError> {
-    // Reuse full progressive start; the head is prioritized until a seek arrives.
+    // Section
     let _ = head_bytes;
     start_preview_stream_blocking(sessions_dir, identity, chat_id, message_id)
 }
