@@ -2157,7 +2157,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     const gen = ++peerGen.current;
     // Allow thumb re-fetch after manual refresh (soft-fails cleared; success cache kept)
     invalidateThumbFailures();
-    setThumbsPaused(true);
+    setThumbsPaused(false);
     setLoadingFiles(true);
     setStatsAccurate(false);
     setStatsByType(null);
@@ -2987,6 +2987,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         }
         setDriveReady(true);
         nativeDriveReadyRef.current = true;
+        setThumbsPaused(false);
+        invalidateThumbFailures();
         setStatusText('Grammers terhubung · memuat Drive…');
         const ok = nativeConnected;
         if (cancelled) return;

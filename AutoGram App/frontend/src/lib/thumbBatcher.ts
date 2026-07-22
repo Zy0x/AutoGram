@@ -381,8 +381,11 @@ function scheduleFlush(immediate = false) {
 async function flushQueue() {
   if (queue.size === 0) return;
   if (thumbsPaused) {
-    scheduleFlush();
-    return;
+    const hasVisible = [...queue.values()].some((t) => t.priority === 0);
+    if (!hasVisible) {
+      scheduleFlush();
+      return;
+    }
   }
   if (!isDriveSessionReady()) {
     scheduleFlush();
@@ -531,9 +534,8 @@ export async function requestThumb(
       waiters: [{ resolve, signal: opts?.signal }],
     });
     metrics.queued = queue.size;
-    // During bootstrap, leave a tiny coalescing window instead of spawning
-    // several high-end batches from child-card effects in the same frame.
-    scheduleFlush(!bootstrapMode && getDrivePerfProfile().tier === 'high');
+    const isVisible = opts?.priority === 'visible';
+    scheduleFlush(isVisible || (!bootstrapMode && getDrivePerfProfile().tier === 'high'));
   });
 }
 
