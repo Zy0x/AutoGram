@@ -456,129 +456,38 @@ async fn start_rust_qr_login(
     api_hash: String,
 ) -> Result<(), String> {
     tokio::spawn(async move {
-        let _ = core::grammers_ops::grammers_qr_login(app, session, api_id, api_hash).await;
+        let session_for_error = session.clone();
+        if let Err(error) = core::grammers_ops::grammers_qr_login(
+            app.clone(),
+            session,
+            api_id,
+            api_hash,
+        )
+        .await
+        {
+            let _ = app.emit(
+                "qr-event",
+                serde_json::json!({
+                    "status": "error",
+                    "error": error.to_string(),
+                    "session": session_for_error,
+                }),
+            );
+        }
     });
     Ok(())
 }
 
-/// Delete session files locally from Rust before invoking python cleanup
+/// Delete native and legacy migration-source session files locally.
 #[tauri::command]
 fn delete_session_rust(session: String) -> Result<(), String> {
     core::grammers_ops::delete_grammers_session_files(&session)
         .map_err(|e| e.to_string())
 }
 
-/// Long-running auth_manager.py job: streams lines via events `worker-line` / `worker-exit`.
 #[tauri::command]
-async fn start_auth_manager_job(
-    app: AppHandle,
-    job_id: i64,
-    args: Vec<String>,
-) -> Result<(), String> {
-    secrets::validate_worker_args(&args)?;
-
-    {
-        if let Ok(mut map) = worker_stdins().lock() {
-            map.remove(&job_id);
-        }
-        let old_pid = if let Ok(mut map) = worker_pids().lock() {
-            map.remove(&job_id)
-        } else {
-            None
-        };
-        if let Some(pid) = old_pid {
-            kill_pid_tree(pid);
-            thread::sleep(std::time::Duration::from_millis(180));
-        }
-    }
-
-    let daemon = resolve_daemon_script(&app)?;
-    let auth = daemon
-        .parent()
-        .map(|p| p.join("auth_manager.py"))
-        .ok_or_else(|| "auth_manager.py parent missing".to_string())?;
-    if !auth.exists() {
-        return Err(format!("auth_manager.py not found at {}", auth.display()));
-    }
-
-    let py = resolve_python_bin(&auth);
-    let mut cmd = build_python_command_with_stdin(&auth, &args, false);
-    let mut child = cmd.spawn().map_err(|e| {
-        format!(
-            "Failed to spawn auth_manager: {e} (python={}, script={})",
-            py.display(),
-            auth.display()
-        )
-    })?;
-
-    let pid = child.id();
-    if let Ok(mut map) = worker_pids().lock() {
-        map.insert(job_id, pid);
-    }
-
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Failed to capture auth_manager stdout".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Failed to capture auth_manager stderr".to_string())?;
-
-    let app_out = app.clone();
-    let jid_out = job_id;
-    thread::spawn(move || {
-        let reader = BufReader::new(stdout);
-        for line in reader.lines().flatten() {
-            let _ = app_out.emit(
-                "worker-line",
-                WorkerLinePayload {
-                    job_id: jid_out,
-                    line,
-                    stream: "stdout".into(),
-                },
-            );
-        }
-    });
-
-    let app_err = app.clone();
-    let jid_err = job_id;
-    thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        for line in reader.lines().flatten() {
-            let _ = app_err.emit(
-                "worker-line",
-                WorkerLinePayload {
-                    job_id: jid_err,
-                    line: line.clone(),
-                    stream: "stderr".into(),
-                },
-            );
-            let _ = app_err.emit("worker-stderr", line);
-        }
-    });
-
-    let app_wait = app.clone();
-    thread::spawn(move || {
-        let code = match child.wait() {
-            Ok(status) => status.code().unwrap_or(0),
-            Err(_) => 1,
-        };
-        if let Ok(mut map) = worker_pids().lock() {
-            map.remove(&job_id);
-        }
-        release_session_leases_for_job(job_id);
-        thread::sleep(std::time::Duration::from_millis(80));
-        let _ = app_wait.emit(
-            "worker-exit",
-            WorkerExitPayload {
-                job_id,
-                code,
-            },
-        );
-    });
-
-    Ok(())
+fn cancel_rust_qr_login(session: String) -> bool {
+    core::grammers_ops::cancel_qr_login(&session)
 }
 
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
@@ -794,29 +703,6 @@ async fn run_worker_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnce
     let output = cmd
         .output()
         .map_err(|e| format!("Failed to run worker once: {e}"))?;
-    Ok(WorkerOnceResult {
-        code: output.status.code().unwrap_or(1),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-    })
-}
-
-/// One-shot auth_manager.py (list-sessions, login, etc.)
-#[tauri::command]
-async fn run_auth_manager_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnceResult, String> {
-    secrets::validate_worker_args(&args)?;
-    let daemon = resolve_daemon_script(&app)?;
-    let auth = daemon
-        .parent()
-        .map(|p| p.join("auth_manager.py"))
-        .ok_or_else(|| "auth_manager.py parent missing".to_string())?;
-    if !auth.exists() {
-        return Err(format!("auth_manager.py not found at {}", auth.display()));
-    }
-    let mut cmd = build_python_command(&auth, &args);
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Failed to run auth_manager: {e}"))?;
     Ok(WorkerOnceResult {
         code: output.status.code().unwrap_or(1),
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
@@ -1043,99 +929,137 @@ fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::Sess
 }
 
 #[tauri::command]
-fn tg_import_telethon_session(
+fn tg_list_sessions(app: AppHandle) -> Vec<core::grammers_ops::NativeSessionSummary> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_list_sessions()
+}
+
+#[tauri::command]
+async fn tg_import_telethon_session(
     app: AppHandle,
     session: String,
-) -> core::telegram_ops::OpResult<String> {
+) -> Result<core::telegram_ops::OpResult<String>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_import_telethon_session(session)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_import_telethon_session(session))
+        .await
+        .map_err(|e| format!("native session import task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_auth_status(
+async fn tg_auth_status(
     app: AppHandle,
     identity: core::telegram_ops::TelegramIdentity,
-) -> core::telegram_ops::OpResult<core::telegram_ops::AuthStatus> {
+) -> Result<core::telegram_ops::OpResult<core::telegram_ops::AuthStatus>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_auth_status(identity)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_auth_status(identity))
+        .await
+        .map_err(|e| format!("native auth status task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_list_dialogs(
+async fn tg_list_dialogs(
     app: AppHandle,
     identity: core::telegram_ops::TelegramIdentity,
     limit: Option<usize>,
-) -> core::telegram_ops::OpResult<Vec<core::telegram_ops::DialogEntry>> {
+) -> Result<core::telegram_ops::OpResult<Vec<core::telegram_ops::DialogEntry>>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_list_dialogs(identity, limit)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_dialogs(identity, limit))
+        .await
+        .map_err(|e| format!("native dialog task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_list_media(
+async fn tg_list_dialog_filters(
+    app: AppHandle,
+    identity: core::telegram_ops::TelegramIdentity,
+) -> Result<core::telegram_ops::OpResult<Vec<core::grammers_ops::DialogFilterRow>>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_dialog_filters(identity))
+        .await
+        .map_err(|e| format!("native dialog filter task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_list_media(
     app: AppHandle,
     request: core::telegram_ops::ListMediaRequest,
-) -> core::telegram_ops::OpResult<core::grammers_ops::ListMediaResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::ListMediaResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_list_media(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_media(request))
+        .await
+        .map_err(|e| format!("native media list task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_upload_file(
+async fn tg_upload_file(
     app: AppHandle,
     request: core::telegram_ops::UploadFileRequest,
-) -> core::telegram_ops::OpResult<core::telegram_ops::UploadStepResult> {
+) -> Result<core::telegram_ops::OpResult<core::telegram_ops::UploadStepResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_upload_file(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_upload_file(request))
+        .await
+        .map_err(|e| format!("native upload task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_login(
+async fn tg_login(
     app: AppHandle,
     request: core::grammers_ops::LoginRequest,
-) -> core::telegram_ops::OpResult<core::grammers_ops::LoginResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::LoginResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_login(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_login(request))
+        .await
+        .map_err(|e| format!("native login task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_download_file(
+async fn tg_download_file(
     app: AppHandle,
     request: core::telegram_ops::DownloadFileRequest,
-) -> core::telegram_ops::OpResult<core::grammers_ops::DownloadFileResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_ops::DownloadFileResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_download_file(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_download_file(request))
+        .await
+        .map_err(|e| format!("native download task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_list_topics(
+async fn tg_list_topics(
     app: AppHandle,
     request: core::telegram_ops::ListTopicsRequest,
-) -> core::telegram_ops::OpResult<core::grammers_media::ListTopicsResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_media::ListTopicsResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_list_topics(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_topics(request))
+        .await
+        .map_err(|e| format!("native topic task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_thumbs_batch(
+async fn tg_thumbs_batch(
     app: AppHandle,
     request: core::telegram_ops::ThumbsBatchRequest,
-) -> core::telegram_ops::OpResult<core::grammers_media::ThumbsBatchResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_media::ThumbsBatchResult>, String> {
     ensure_sessions_dir_env(&app);
-    core::telegram_ops::tg_thumbs_batch(request)
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_thumbs_batch_app(request, Some(&app_handle)))
+        .await
+        .map_err(|e| format!("native thumbnail task failed: {e}"))
 }
 
 #[tauri::command]
-fn tg_preview_stream(
+async fn tg_preview_stream(
     app: AppHandle,
     request: core::telegram_ops::PreviewStreamRequest,
-) -> core::telegram_ops::OpResult<core::grammers_media::PreviewStreamResult> {
+) -> Result<core::telegram_ops::OpResult<core::grammers_media::PreviewStreamResult>, String> {
     ensure_sessions_dir_env(&app);
     // Ensure Range HTTP is up before progressive register
     if let Ok(worker) = resolve_worker_dir(&app) {
         let reg = worker.join("cache").join("stream_registry");
         let _ = core::stream_server::ensure_started(reg);
     }
-    core::telegram_ops::tg_preview_stream(request)
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_preview_stream(request))
+        .await
+        .map_err(|e| format!("native preview task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1145,6 +1069,18 @@ fn tg_stop_stream(
 ) -> core::telegram_ops::OpResult<bool> {
     ensure_sessions_dir_env(&app);
     core::telegram_ops::tg_stop_stream(stream_id)
+}
+
+#[tauri::command]
+fn tg_seek_stream(
+    app: AppHandle,
+    stream_id: String,
+    offset: Option<u64>,
+    time_s: Option<f64>,
+    duration_s: Option<f64>,
+) -> core::telegram_ops::OpResult<u64> {
+    ensure_sessions_dir_env(&app);
+    core::telegram_ops::tg_seek_stream(stream_id, offset, time_s, duration_s)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1184,9 +1120,11 @@ pub fn run() {
             tg_backend_status,
             tg_set_backend,
             tg_probe_session,
+            tg_list_sessions,
             tg_import_telethon_session,
             tg_auth_status,
             tg_list_dialogs,
+            tg_list_dialog_filters,
             tg_list_media,
             tg_upload_file,
             tg_login,
@@ -1195,6 +1133,7 @@ pub fn run() {
             tg_thumbs_batch,
             tg_preview_stream,
             tg_stop_stream,
+            tg_seek_stream,
             start_worker_job,
             kill_worker_job,
             acquire_worker_session_lease,
@@ -1203,10 +1142,9 @@ pub fn run() {
             cleanup_partial_downloads,
             write_worker_stdin,
             run_worker_once,
-            run_auth_manager_once,
-            start_auth_manager_job,
             start_rust_qr_login,
             delete_session_rust,
+            cancel_rust_qr_login,
             secrets::get_credential,
             secrets::set_credential,
             secrets::delete_credential,

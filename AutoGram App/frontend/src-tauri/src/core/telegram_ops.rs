@@ -471,6 +471,13 @@ pub struct ThumbsBatchRequest {
 pub fn tg_thumbs_batch(
     req: ThumbsBatchRequest,
 ) -> OpResult<super::grammers_media::ThumbsBatchResult> {
+    tg_thumbs_batch_app(req, None)
+}
+
+pub fn tg_thumbs_batch_app(
+    req: ThumbsBatchRequest,
+    app: Option<&tauri::AppHandle>,
+) -> OpResult<super::grammers_media::ThumbsBatchResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
         session: req.session,
@@ -478,12 +485,13 @@ pub fn tg_thumbs_batch(
         api_hash: req.api_hash,
     };
     let q = req.quality.as_deref().unwrap_or("balanced");
-    match super::grammers_media::thumbs_batch_blocking(
+    match super::grammers_media::thumbs_batch_blocking_app(
         &dir,
         &identity,
         &req.chat_id,
         &req.message_ids,
         q,
+        app,
     ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => {

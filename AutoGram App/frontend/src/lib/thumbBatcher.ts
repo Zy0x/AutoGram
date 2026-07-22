@@ -144,6 +144,40 @@ const metrics: ThumbSchedulerMetrics = {
  */
 let bootstrapMode = false;
 
+// Setup Tauri event listener for real-time 1-by-1 per-item thumbnail streaming
+if (typeof window !== 'undefined') {
+  import('@tauri-apps/api/event')
+    .then(({ listen }) => {
+      listen<{
+        chatId?: string;
+        messageId?: number;
+        quality?: string;
+        url?: string;
+        isPlaceholder?: boolean;
+      }>('thumb_single_ready', (event) => {
+        const p = event.payload;
+        if (!p || !p.messageId || !p.url) return;
+        const mid = p.messageId;
+        for (const [k, task] of queue.entries()) {
+          if (task.messageId === mid) {
+            memCache.set(k, p.url);
+            softFailAt.delete(k);
+            errorFailAt.delete(k);
+            if (!p.isPlaceholder) {
+              void savePersistentThumb(k, p.url);
+              resolveTask(task, p.url);
+              queue.delete(k);
+            } else {
+              // Instant blur placeholder
+              resolveTask(task, p.url);
+            }
+          }
+        }
+      }).catch(() => {});
+    })
+    .catch(() => {});
+}
+
 function softFailMs(): number {
   return Math.min(getDrivePerfProfile().thumbSoftFailMs, 90_000);
 }

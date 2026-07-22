@@ -247,6 +247,18 @@ pub fn list_topics_blocking(
 }
 
 // ----------------------------------------------------------------------------
+use tauri::Emitter;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbSinglePayload {
+    pub chat_id: String,
+    pub message_id: i64,
+    pub quality: String,
+    pub url: String,
+    pub is_placeholder: bool,
+}
+
 // Thumbnails
 // ----------------------------------------------------------------------------
 
@@ -600,6 +612,17 @@ pub fn thumbs_batch_blocking(
     message_ids: &[i64],
     quality: &str,
 ) -> Result<ThumbsBatchResult, TgError> {
+    thumbs_batch_blocking_app(sessions_dir, identity, chat_id, message_ids, quality, None)
+}
+
+pub fn thumbs_batch_blocking_app(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    message_ids: &[i64],
+    quality: &str,
+    app: Option<&tauri::AppHandle>,
+) -> Result<ThumbsBatchResult, TgError> {
     let ids: Vec<i32> = message_ids
         .iter()
         .filter(|&&id| id > 0)
@@ -637,24 +660,41 @@ pub fn thumbs_batch_blocking(
     for &mid in &ids {
         let key = mid.to_string();
         let cache_key = format!("{chat_safe}_{mid}_{q_key}");
+        let mut found_url: Option<String> = None;
         {
             let mem = thumb_mem_cache().lock();
             if let Some(url) = mem.get(&cache_key) {
-                thumbs.insert(key, Some(url.clone()));
-                continue;
+                found_url = Some(url.clone());
             }
         }
-        let cache_file = t_dir.join(format!("{cache_key}.jpg"));
-        if cache_file.is_file() {
-            if let Ok(bytes) = std::fs::read(&cache_file) {
-                if !bytes.is_empty() {
-                    if let Some(url) = to_data_url(&bytes) {
-                        thumb_mem_cache().lock().insert(cache_key, url.clone());
-                        thumbs.insert(key, Some(url));
-                        continue;
+        if found_url.is_none() {
+            let cache_file = t_dir.join(format!("{cache_key}.jpg"));
+            if cache_file.is_file() {
+                if let Ok(bytes) = std::fs::read(&cache_file) {
+                    if !bytes.is_empty() {
+                        if let Some(url) = to_data_url(&bytes) {
+                            thumb_mem_cache().lock().insert(cache_key, url.clone());
+                            found_url = Some(url);
+                        }
                     }
                 }
             }
+        }
+        if let Some(url) = found_url {
+            thumbs.insert(key, Some(url.clone()));
+            if let Some(app_handle) = app {
+                let _ = app_handle.emit(
+                    "thumb_single_ready",
+                    ThumbSinglePayload {
+                        chat_id: chat.clone(),
+                        message_id: mid as i64,
+                        quality: q_key.to_string(),
+                        url,
+                        is_placeholder: false,
+                    },
+                );
+            }
+            continue;
         }
         uncached_ids.push(mid);
     }
@@ -667,8 +707,11 @@ pub fn thumbs_batch_blocking(
         });
     }
 
+    let app_owned = app.cloned();
+
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
+            let app_ref = app_owned.clone();
             Box::pin(async move {
                 if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
@@ -698,7 +741,19 @@ pub fn thumbs_batch_blocking(
                                         let _ = std::fs::write(&cache_file, &bytes);
                                         if let Some(url) = to_data_url(&bytes) {
                                             thumb_mem_cache().lock().insert(format!("{chat_safe}_{mid}_{q_key}"), url.clone());
-                                            thumbs.insert(key.clone(), Some(url));
+                                            thumbs.insert(key.clone(), Some(url.clone()));
+                                            if let Some(app_handle) = app_ref.as_ref() {
+                                                let _ = app_handle.emit(
+                                                    "thumb_single_ready",
+                                                    ThumbSinglePayload {
+                                                        chat_id: chat.clone(),
+                                                        message_id: *mid as i64,
+                                                        quality: q_key.to_string(),
+                                                        url,
+                                                        is_placeholder: true,
+                                                    },
+                                                );
+                                            }
                                             if q_key == "hemat" {
                                                 loaded = true;
                                             }
@@ -753,6 +808,20 @@ pub fn thumbs_batch_blocking(
 
                 while let Some(res) = set.join_next().await {
                     if let Ok((k, v)) = res {
+                        if let (Ok(mid_i64), Some(ref url_str)) = (k.parse::<i64>(), v.as_ref()) {
+                            if let Some(app_handle) = app_ref.as_ref() {
+                                let _ = app_handle.emit(
+                                    "thumb_single_ready",
+                                    ThumbSinglePayload {
+                                        chat_id: chat.clone(),
+                                        message_id: mid_i64,
+                                        quality: q_key.to_string(),
+                                        url: (*url_str).clone(),
+                                        is_placeholder: false,
+                                    },
+                                );
+                            }
+                        }
                         thumbs.insert(k, v);
                     }
                 }
