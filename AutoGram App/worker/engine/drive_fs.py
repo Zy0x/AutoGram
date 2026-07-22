@@ -620,7 +620,7 @@ async def _download_thumb_bytes(
     msg,
     thumb_sel: Any,
     *,
-    max_bytes: int = 400 * 1024,
+    max_bytes: int = 2500 * 1024,
 ) -> Optional[bytes]:
     """
     Download ONE Telegram thumb into memory, with support for PhotoPathSize vectors
@@ -5181,13 +5181,15 @@ async def _fetch_thumb_data_url_impl(
         ) or ((getattr(doc, "mime_type", None) or "").lower().startswith("image/"))
         target_edge = int(prof["video_edge"] if is_video_pref else prof["edge"])
         prefer = int(prof.get("prefer", 1 if qname == "balanced" else (2 if qname == "sharp" else 0)))
-        # Caps for static TG layers only (Jelas lean: never multi‑MB pulls)
-        if qname == "sharp":
+        # Caps for static TG layers (generous for photos so high-res photo layers are accepted)
+        if is_image_pref:
+            raw_cap = 3 * 1024 * 1024
+        elif qname == "sharp":
             raw_cap = 180 * 1024 if is_video_pref else 280 * 1024
         elif is_video_pref:
             raw_cap = 280 * 1024
         else:
-            raw_cap = min(int(prof["video_raw_cap"]), 900 * 1024)
+            raw_cap = 3 * 1024 * 1024
         # Accept medium TG layers for lean Jelas (encode path makes them look clear)
         min_accept_bytes = 1024
         min_accept_edge = 0
@@ -5375,14 +5377,10 @@ async def _fetch_thumb_data_url_impl(
             if raw is None and best_soft is not None:
                 raw = best_soft
 
-        # Full-image fallback: tiny files only (Jelas ≤350 KB — never multi‑MB)
+        # Full-image fallback: allow images up to 8MB to generate crisp grid thumbnail
         if raw is None and is_image_pref:
             try:
-                max_full = (
-                    500 * 1024
-                    if qname == "saver"
-                    else (1200 * 1024 if qname == "balanced" else 350 * 1024)
-                )
+                max_full = 8 * 1024 * 1024
                 if 0 < full_size <= max_full:
                     result = await client.download_media(msg, file=bytes)
                     if (
@@ -5442,8 +5440,8 @@ async def _fetch_thumb_data_url_impl(
         if not raw or len(raw) < 16:
             return None
 
-        # Reject accidental multi‑MB payloads (safety)
-        if len(raw) > (350 * 1024 if qname == "sharp" else 4 * 1024 * 1024):
+        # Reject accidental multi‑MB non-image payloads (>10 MB)
+        if len(raw) > 10 * 1024 * 1024:
             return None
 
         data = _optimize_thumb_bytes(raw, quality=qname, is_video=is_video_pref)
