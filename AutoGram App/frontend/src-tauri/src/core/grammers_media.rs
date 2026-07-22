@@ -490,7 +490,7 @@ async fn download_media_thumb(
 }
 
 fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
-    if let Ok(path) = which_path("ffmpeg") {
+    if let Some(path) = which_path("ffmpeg") {
         return Some(path);
     }
     if let Ok(current_dir) = std::env::current_dir() {
