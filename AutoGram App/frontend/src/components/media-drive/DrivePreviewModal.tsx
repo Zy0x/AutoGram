@@ -46,7 +46,7 @@ import {
   driveStreamSeek,
   driveStreamStatus,
 } from '../../lib/driveApi';
-import { getCachedThumb } from '../../lib/thumbBatcher';
+import { getCachedThumb, setThumbsPaused } from '../../lib/thumbBatcher';
 import {
   getCachedPreview,
   invalidatePreview,
@@ -364,6 +364,14 @@ export function DrivePreviewModal({
   const streamIdRef = useRef<string | null>(null);
   const credsRef = useRef(creds);
   credsRef.current = creds;
+
+  // Pause background card/thumbnail RPCs while preview modal is open
+  useEffect(() => {
+    setThumbsPaused(true);
+    return () => {
+      setThumbsPaused(false);
+    };
+  }, []);
 
   // Auto-detect Telegram FloodWait duration and set countdown timer
   useEffect(() => {

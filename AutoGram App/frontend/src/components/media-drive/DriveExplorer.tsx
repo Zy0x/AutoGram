@@ -18,8 +18,8 @@ import {
   type DriveAdvFilter,
 } from '../../lib/drivePower';
 import { getDrivePerfProfile } from '../../lib/devicePerformance';
-import { prefetchThumbs } from '../../lib/thumbBatcher';
-import { warmPreviewHead, warmPreviewHeads } from '../../lib/previewCache';
+import { isThumbsPaused, prefetchThumbs, requestVisibleThumbs } from '../../lib/thumbBatcher';
+import { warmPreviewHead } from '../../lib/previewCache';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -258,12 +258,14 @@ export function DriveExplorer({
   const rowHeight = Math.round(cardWidth * CARD_ASPECT_H + GRID_GAP);
 
   const perf = getDrivePerfProfile();
+  // Slightly higher overscan reduces blank flash while scrolling without
+  // mounting the whole grid (main source of "patah"/jank on WebView2).
   const gridOverscan = progressiveReady
-    ? perf.tier === 'high' ? 6 : perf.tier === 'mid' ? 4 : 3
-    : 2;
+    ? perf.tier === 'high' ? 8 : perf.tier === 'mid' ? 6 : 4
+    : 3;
   const listOverscan = progressiveReady
-    ? perf.tier === 'high' ? 18 : perf.tier === 'mid' ? 12 : 8
-    : 6;
+    ? perf.tier === 'high' ? 22 : perf.tier === 'mid' ? 16 : 10
+    : 8;
 
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (hasMore ? 1 : 0),
@@ -319,38 +321,57 @@ export function DriveExplorer({
     };
   }, [scrollKey, onScrollPositionChange, loading]);
 
-  // Prefetch thumbs for visible + near-visible cards (high/mid) — fills grid faster
+  // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
+  // not enqueue dozens of batch RPCs per frame (main scroll jank source).
   useEffect(() => {
-    if (!progressiveReady || !creds || loading || !displayed.length) return;
-    const prefetchRows = perf.thumbPrefetchRows;
-    if (prefetchRows <= 0 && perf.tier === 'low') return;
-    let startIdx = 0;
-    let endIdx = Math.min(displayed.length, cols * 4);
-    if (viewMode === 'grid' && gridItems.length) {
-      const first = gridItems[0].index;
-      const last = gridItems[gridItems.length - 1].index;
-      startIdx = Math.max(0, first * cols);
-      endIdx = Math.min(displayed.length, (last + 1 + prefetchRows) * cols);
-    } else if (viewMode === 'list' && listItems.length) {
-      startIdx = Math.max(0, listItems[0].index);
-      endIdx = Math.min(
-        displayed.length,
-        listItems[listItems.length - 1].index + 1 + prefetchRows * cols
-      );
-    }
-    const ids: number[] = [];
-    const videoIds: number[] = [];
-    for (let i = startIdx; i < endIdx; i++) {
-      const f = displayed[i];
-      if (!f) continue;
-      if (canShowDriveThumb(f)) ids.push(f.id);
-      if (isVideoDriveFile(f)) videoIds.push(f.id);
-    }
-    if (ids.length) prefetchThumbs(creds, folderId, ids);
-    // Warm first ~768KB of a few visible videos so open-after-scroll is fast
-    if (videoIds.length && perf.tier !== 'low') {
-      warmPreviewHeads(creds, folderId, videoIds, perf.tier === 'high' ? 4 : 2);
-    }
+    if (!progressiveReady || !creds || loading || !displayed.length || isThumbsPaused()) return;
+    let raf = 0;
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
+      let startIdx = 0;
+      let endIdx = Math.min(displayed.length, cols * 6);
+      let visStart = 0;
+      let visEnd = Math.min(displayed.length, cols * 3);
+      if (viewMode === 'grid' && gridItems.length) {
+        const first = gridItems[0].index;
+        const last = gridItems[gridItems.length - 1].index;
+        visStart = Math.max(0, first * cols);
+        visEnd = Math.min(displayed.length, (last + 1) * cols);
+        startIdx = Math.max(0, first * cols - cols); // 1 row above
+        endIdx = Math.min(displayed.length, (last + 1 + prefetchRows + 1) * cols);
+      } else if (viewMode === 'list' && listItems.length) {
+        visStart = Math.max(0, listItems[0].index);
+        visEnd = Math.min(displayed.length, listItems[listItems.length - 1].index + 1);
+        startIdx = Math.max(0, visStart - cols);
+        endIdx = Math.min(displayed.length, visEnd + prefetchRows * cols);
+      }
+      const visibleIds: number[] = [];
+      const nearIds: number[] = [];
+      const videoIds: number[] = [];
+      for (let i = startIdx; i < endIdx; i++) {
+        const f = displayed[i];
+        if (!f) continue;
+        if (canShowDriveThumb(f)) {
+          if (i >= visStart && i < visEnd) visibleIds.push(f.id);
+          else nearIds.push(f.id);
+        }
+        if (isVideoDriveFile(f) && i >= visStart && i < visEnd) videoIds.push(f.id);
+      }
+      // Only request ids not already primed from list_media (mem cache).
+      // Avoid thumbs_batch storms when every card already has stripped data.
+      if (visibleIds.length) requestVisibleThumbs(creds, folderId, visibleIds);
+      if (nearIds.length) prefetchThumbs(creds, folderId, nearIds);
+      // Do NOT warm video previews while scrolling the grid — steals bandwidth
+      // from thumb/list and made first paint feel stuck.
+      void videoIds;
+    };
+    raf = requestAnimationFrame(run);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
   }, [
     creds,
     folderId,

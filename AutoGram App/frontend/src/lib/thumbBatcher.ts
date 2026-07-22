@@ -507,11 +507,25 @@ export function forceRetryThumb(
 }
 
 let thumbsPaused = false;
+let pauseSafetyTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function setThumbsPaused(paused: boolean) {
   thumbsPaused = paused;
-  if (!paused && queue.size) {
-    // Kick multiple flushes immediately on high-end
+  if (pauseSafetyTimer) {
+    clearTimeout(pauseSafetyTimer);
+    pauseSafetyTimer = null;
+  }
+  if (paused) {
+    // Safety auto-resume after 60s to prevent permanent lock if a modal unmounts unexpectedly
+    pauseSafetyTimer = setTimeout(() => {
+      thumbsPaused = false;
+      if (queue.size) {
+        const n = maxConcurrent();
+        for (let i = 0; i < n; i++) scheduleFlush(true);
+      }
+    }, 60000);
+  } else if (queue.size) {
+    // Kick multiple flushes immediately on unpause
     const n = maxConcurrent();
     for (let i = 0; i < n; i++) scheduleFlush(true);
   }
@@ -532,7 +546,7 @@ export function isThumbsPaused(): boolean {
 }
 
 function scheduleFlush(immediate = false) {
-  if (immediate) {
+  if (immediate && !thumbsPaused) {
     if (timer) {
       clearTimeout(timer);
       timer = null;
@@ -541,7 +555,7 @@ function scheduleFlush(immediate = false) {
     return;
   }
   if (timer) return;
-  const delay = thumbsPaused ? Math.max(200, flushDelayMs() * 3) : flushDelayMs();
+  const delay = thumbsPaused ? Math.max(300, flushDelayMs() * 3) : flushDelayMs();
   timer = setTimeout(() => {
     timer = null;
     void flushQueue();
@@ -551,11 +565,9 @@ function scheduleFlush(immediate = false) {
 async function flushQueue() {
   if (queue.size === 0) return;
   if (thumbsPaused) {
-    const hasVisible = [...queue.values()].some((t) => t.priority === 0);
-    if (!hasVisible) {
-      scheduleFlush();
-      return;
-    }
+    // Strictly hold all Telegram thumbnail RPCs while paused (e.g., active media streaming or preview modal open)
+    scheduleFlush();
+    return;
   }
   if (!isDriveSessionReady()) {
     scheduleFlush();
