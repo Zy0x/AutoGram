@@ -1513,9 +1513,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     // Staged load: paint chats/folders/files as each RPC finishes (never wait for all).
     // Warm session uses 3 parallel cmds; one-shot falls back to bootstrap.
     invalidateAvatarFailures();
-    setLoadingFolders(true);
-    setLoadingChats(true);
-    setLoadingFiles(true);
+    if (folders.length === 0) setLoadingFolders(true);
+    if (chats.length === 0) setLoadingChats(true);
+    if (files.length === 0) setLoadingFiles(true);
     setStatsAccurate(false);
     setStatsByType(null);
     setError(null);
@@ -1671,10 +1671,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (gen === peerGen.current) setLoadingFiles(false);
           });
 
-        // 2) Let the visible file page own the session first. Grammers serializes
-        // one account, so starting dialogs concurrently only created queued work.
-        const chatsP = filesP
-          .then(() => driveListChats(creds, { limit: perf.chatPage }))
+        // Run dialog list and file list in parallel over warm daemon session
+        const chatsP = driveListChats(creds, { limit: perf.chatPage })
           .then((cr) => {
             if (gen !== peerGen.current) return;
             const list = cr.chats || [];
@@ -2960,12 +2958,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     (async () => {
       try {
         setStatusText(switched ? 'Menyambungkan Drive…' : 'Memuat Drive…');
-        setLoadingFolders(true);
-        setLoadingChats(true);
-        setLoadingFiles(true);
-        // Freeze thumbs/avatars during connect+list — prevents Not Responding /
-        // force-close from one-shot thumb workers and flood of concurrent RPCs.
-        setThumbsPaused(true);
+        if (folders.length === 0) setLoadingFolders(true);
+        if (chats.length === 0) setLoadingChats(true);
+        if (files.length === 0) setLoadingFiles(true);
         try {
           const { setAvatarsPaused } = await import('../lib/avatarBatcher');
           setAvatarsPaused(true);
