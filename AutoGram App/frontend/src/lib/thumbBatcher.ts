@@ -179,8 +179,9 @@ if (typeof window !== 'undefined') {
 }
 
 function softFailMs(): number {
-  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 90_000);
+  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 3_000);
 }
+
 
 function batchLimit(_q: DriveThumbQuality): number {
   const configured = Math.max(2, getDrivePerfProfile().thumbBatch);
@@ -330,6 +331,7 @@ export function forceRetryThumb(
     void requestThumb(creds, folderId, messageId, {
       priority: 'visible',
       contextKey: activeContextKey,
+      bypassCache: true,
     });
   }
 }
@@ -463,23 +465,30 @@ export async function requestThumb(
   creds: DriveCredentials,
   folderId: number | null,
   messageId: number,
-  opts?: { priority?: ThumbPriority; contextKey?: string; signal?: AbortSignal }
+  opts?: { priority?: ThumbPriority; contextKey?: string; signal?: AbortSignal; bypassCache?: boolean }
 ): Promise<string | null> {
   if (opts?.signal?.aborted) return null;
   const contextKey = opts?.contextKey || activeContextKey;
   const generation = contextGeneration;
   const k = cacheKey(folderId, messageId, activeQuality, creds.session);
+  if (opts?.bypassCache) {
+    softFailAt.delete(k);
+    errorFailAt.delete(k);
+  }
   const hit = memCache.get(k);
   if (hit) return Promise.resolve(hit);
 
-  const failAt = softFailAt.get(k);
-  if (failAt != null && Date.now() - failAt < softFailMs()) {
-    return Promise.resolve(null);
+  if (!opts?.bypassCache) {
+    const failAt = softFailAt.get(k);
+    if (failAt != null && Date.now() - failAt < softFailMs()) {
+      return Promise.resolve(null);
+    }
+    const errAt = errorFailAt.get(k);
+    if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) {
+      return Promise.resolve(null);
+    }
   }
-  const errAt = errorFailAt.get(k);
-  if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) {
-    return Promise.resolve(null);
-  }
+
 
   const persisted = await loadPersistentThumb(k);
   if (persisted) {

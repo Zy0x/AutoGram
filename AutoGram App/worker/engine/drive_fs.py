@@ -3475,6 +3475,19 @@ def _mark_thumb_empty(folder_id: Optional[int], message_id: int) -> None:
         pass
 
 
+def _clear_thumb_empty_mark(folder_id: Optional[int], message_id: int) -> None:
+    _ensure_dirs()
+    key = _cache_key(folder_id, message_id)
+    for stale in (f"{key}.empty", f"{key}.empty2"):
+        sp = os.path.join(THUMB_DIR, stale)
+        if os.path.isfile(sp):
+            try:
+                os.remove(sp)
+            except OSError:
+                pass
+
+
+
 def _parse_parent_id_from_about(about: Optional[str]) -> Optional[int]:
     """Nested TD folders store parent peer id in channel about: parent=-100…"""
     if not about:
@@ -5054,6 +5067,7 @@ async def _fetch_thumb_data_url(
     quality: Optional[str] = None,
     preloaded_message: Any = None,
     message_preloaded: bool = False,
+    bypass_cache: bool = False,
 ) -> Optional[str]:
     try:
         res = await _fetch_thumb_data_url_impl(
@@ -5064,6 +5078,7 @@ async def _fetch_thumb_data_url(
             quality=quality,
             preloaded_message=preloaded_message,
             message_preloaded=message_preloaded,
+            bypass_cache=bypass_cache,
         )
         if res is None:
             _mark_thumb_empty(folder_id, message_id)
@@ -5083,13 +5098,18 @@ async def _fetch_thumb_data_url_impl(
     quality: Optional[str] = None,
     preloaded_message: Any = None,
     message_preloaded: bool = False,
+    bypass_cache: bool = False,
 ) -> Optional[str]:
     """
     Grid thumb: Telegram static photo thumbs → compact JPEG.
     Videos without server thumbs: lean stream sample only (~0.5–1.5 MB head/tail,
     ≈1–3s of bitstream) + ffmpeg single frame. NEVER full-download multi‑MB/GB files.
     """
+    if bypass_cache:
+        _clear_thumb_empty_mark(folder_id, message_id)
+
     qname = _normalize_thumb_quality(quality)
+
     prof = _thumb_profile(qname)
     hard_max = int(prof["max"])
     _ensure_dirs()

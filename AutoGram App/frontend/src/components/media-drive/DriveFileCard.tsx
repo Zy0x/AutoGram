@@ -12,7 +12,7 @@ import {
   type DriveFile,
 } from '../../lib/driveTypes';
 import { usePointerDragPrime } from '../../lib/pointerDragPrime';
-import { getCachedThumb, forceRetryThumb, requestThumb } from '../../lib/thumbBatcher';
+import { getCachedThumb, requestThumb } from '../../lib/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
@@ -125,7 +125,6 @@ function DriveFileCardInner({
     cached === undefined ? null : cached
   );
   const [thumbLoading, setThumbLoading] = useState(false);
-  const [thumbFailed, setThumbFailed] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -135,10 +134,8 @@ function DriveFileCardInner({
     if (hit !== undefined) {
       setThumb(hit);
       setThumbLoading(false);
-      setThumbFailed(!hit);
     } else {
       setThumb(null);
-      setThumbFailed(false);
     }
   }, [canThumb, folderId, file.id, thumbQuality]);
 
@@ -146,88 +143,38 @@ function DriveFileCardInner({
     if (!creds || !canThumb || !visible) return;
     const controller = new AbortController();
     const hit = getCachedThumb(folderId, file.id);
-    if (hit !== undefined) {
+    if (hit !== undefined && hit !== null) {
       setThumb(hit);
       setThumbLoading(false);
-      setThumbFailed(!hit);
-      // Soft-fail (null) may clear after cooldown — schedule one retry
-      if (hit === null) {
-        const t = window.setTimeout(() => {
-          const again = getCachedThumb(folderId, file.id);
-          if (again === undefined || again === null) {
-            // Bypass softFailAt cache — force a fresh network request
-            setThumbFailed(false);
-            setThumbLoading(true);
-            forceRetryThumb(creds, folderId, file.id);
-            // forceRetryThumb enqueues a fresh request; result arrives via
-            // the next render that finds the key in memCache / resolves the promise.
-            // Schedule a follow-up read so the component updates once cache is warm.
-            window.setTimeout(() => {
-              if (controller.signal.aborted) return;
-              const warm = getCachedThumb(folderId, file.id);
-              if (warm !== undefined) {
-                setThumb(warm);
-                setThumbFailed(!warm);
-                setThumbLoading(false);
-              } else {
-                // Still not ready — do a full requestThumb to get the promise
-                void requestThumb(creds, folderId, file.id, {
-                  priority: 'visible',
-                  signal: controller.signal,
-                }).then((url) => {
-                  if (controller.signal.aborted) return;
-                  setThumb(url);
-                  setThumbFailed(!url);
-                  setThumbLoading(false);
-                });
-              }
-            }, 2000);
-          }
-        }, 4500);
-        return () => {
-          controller.abort();
-          window.clearTimeout(t);
-        };
-      }
       return;
     }
     let cancelled = false;
     let retryTimer: number | undefined;
     setThumb(null);
-    setThumbFailed(false);
     setThumbLoading(true);
     const load = (attempt: number) => {
       requestThumb(creds, folderId, file.id, {
         priority: 'visible',
         signal: controller.signal,
+        bypassCache: attempt > 0,
       })
         .then((url) => {
           if (cancelled) return;
           if (url) {
             setThumb(url);
-            setThumbFailed(false);
             setThumbLoading(false);
             return;
           }
-          // No url: retry a few times (session may still be warming)
-          if (attempt < 3) {
-            setThumbLoading(true);
-            setThumbFailed(false);
-            retryTimer = window.setTimeout(() => load(attempt + 1), 1200 + attempt * 800);
-          } else {
-            setThumb(null);
-            setThumbFailed(true);
-            setThumbLoading(false);
-          }
+          // Continuous auto-retry in background (never block on manual user click)
+          setThumbLoading(true);
+          const nextDelay = Math.min(1200 + attempt * 800, 6000);
+          retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
         })
         .catch(() => {
           if (cancelled) return;
-          if (attempt < 3) {
-            retryTimer = window.setTimeout(() => load(attempt + 1), 1500);
-          } else {
-            setThumbFailed(true);
-            setThumbLoading(false);
-          }
+          setThumbLoading(true);
+          const nextDelay = Math.min(1500 + attempt * 1000, 6000);
+          retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
         });
     };
     load(0);
@@ -346,7 +293,6 @@ function DriveFileCardInner({
               decoding="async"
               onError={() => {
                 setImgError(true);
-                setThumbFailed(true);
               }}
             />
             <div className="td-file-thumb-grad" />
@@ -360,34 +306,17 @@ function DriveFileCardInner({
           <div className={`td-file-thumb-empty${isVideo ? ' is-video-empty' : ''}`}>
             {thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
-                <Loader2 size={26} className="spin" />
-                <span>Memuat…</span>
+                <Loader2 size={24} className="spin" />
+                <span>{isVideo ? 'Memuat Video…' : 'Memuat…'}</span>
               </div>
             ) : (
               <div className="td-thumb-placeholder">
                 <FileTypeIcon file={file} size="lg" />
                 {isVideo && (
-                  <button
-                    type="button"
-                    className="td-retry-thumb-btn"
-                    title="Memuat preview video…"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      if (creds) {
-                        setThumbFailed(false);
-                        setImgError(false);
-                        setThumbLoading(true);
-                        forceRetryThumb(creds, folderId, file.id);
-                      }
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <span className="td-video-play" aria-hidden style={{ margin: '0 auto 4px auto' }}>
-                      <Play size={16} fill="currentColor" />
-                    </span>
-                    <span>{thumbFailed ? 'Muat Ulang Preview' : 'Memuat Video'}</span>
-                  </button>
+                  <div className="td-video-auto-loading" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.8, fontSize: '0.75rem' }}>
+                    <Loader2 size={14} className="spin" />
+                    <span>Memuat Video…</span>
+                  </div>
                 )}
               </div>
             )}

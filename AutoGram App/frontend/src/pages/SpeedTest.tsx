@@ -2179,7 +2179,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
     const instantFiles = cachedFiles ?? persisted?.files;
     if (instantFiles) {
-      setFiles(dedupeByMsgId(instantFiles));
+      setFiles((prev) => (prev.length > instantFiles.length ? prev : dedupeByMsgId(instantFiles)));
       const cachedCount = filesTotalCountRef.current.get(cacheKey);
       if (cachedCount != null) setTotalFileCount(clampMediaTotal(cachedCount, instantFiles));
       else if (persisted?.totalCount != null) {
@@ -2192,12 +2192,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
       if (persisted) {
         filesCacheRef.current.set(cacheKey, persisted.files);
-        setFilesHasMore(persisted.hasMore);
-        setNextOffsetId(persisted.nextOffsetId);
+        if (files.length <= instantFiles.length) {
+          setFilesHasMore(persisted.hasMore);
+          setNextOffsetId(persisted.nextOffsetId);
+        }
         setLoadingFiles(false);
       }
     } else {
-      setFiles([]);
+      setFiles((prev) => (prev.length > 0 ? prev : []));
       setTotalFileCount(null);
       setTotalBytes(null);
     }
@@ -2245,7 +2247,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
 
       // Update cache — only apply totals that belong to this peer+topic key
-      filesCacheRef.current.set(cacheKey, page);
       liveSyncLastAtRef.current.set(cacheKey, Date.now());
       liveSyncFailuresRef.current = 0;
       liveSyncBackoffUntilRef.current = 0;
@@ -2279,10 +2280,20 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         } catch {}
       }
 
-      setFiles(page);
+      setFiles((prev) => {
+        if (prev.length > page.length) {
+          const merged = reconcileDriveLiveHead(prev, page, !!res.has_more);
+          filesCacheRef.current.set(cacheKey, merged);
+          return merged;
+        }
+        filesCacheRef.current.set(cacheKey, page);
+        return page;
+      });
       const hasMore = !!res.has_more;
-      setFilesHasMore(hasMore);
-      setNextOffsetId(res.next_offset_id ?? null);
+      if (files.length <= page.length) {
+        setFilesHasMore(hasMore);
+        setNextOffsetId(res.next_offset_id ?? null);
+      }
       try {
         saveDriveLocationSnapshot(localStorage, creds.session, peerId, tid, {
           files: page,
@@ -2441,21 +2452,33 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     };
   }, [creds, peerId, refreshFiles]);
 
+  const prevSortAndPeerRef = useRef<{ sortMode: string; peerId: number | null }>({
+    sortMode: String(sortMode),
+    peerId,
+  });
+
   // Sort mode changes or mount trigger for indexing
   useEffect(() => {
     if (!creds || !peerId) return;
     const sortModeStr = String(sortMode);
+    if (
+      prevSortAndPeerRef.current.sortMode === sortModeStr &&
+      prevSortAndPeerRef.current.peerId === peerId
+    ) {
+      return;
+    }
+    prevSortAndPeerRef.current = { sortMode: sortModeStr, peerId };
     const isTimeSort = sortModeStr === 'newest' || sortModeStr === 'oldest';
     if (isTimeSort) {
       setIndexingJob({ active: false, processed: 0, total: 0, text: '' });
-      void refreshFiles();
+      void refreshFilesRef.current?.();
       return;
     }
     
     const jobId = `index_chat_${peerId}${topicFilterRef.current ? `_topic_${topicFilterRef.current}` : ''}`;
     void getCheckpoint(jobId).then(async (cp) => {
       if (cp && cp.status === 'completed') {
-        void refreshFiles();
+        void refreshFilesRef.current?.();
       } else {
         setIndexingJob({
           active: true,
@@ -3118,7 +3141,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       void loadTopicsForPeer(peerId, meta);
     }
     void refreshFiles();
-  }, [peerId, creds, chats, refreshFiles, loadTopicsForPeer]);
+  }, [peerId, creds, chats.length, refreshFiles, loadTopicsForPeer]);
 
   const handleTopicFilter = useCallback(
     (t: DriveTopicFilter) => {

@@ -503,10 +503,15 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
         except Exception:
             pass
         ids = [int(x) for x in (req.get("message_ids") or [])][:batch]
+        bypass_cache = bool(req.get("bypass_cache") or req.get("bypassCache") or req.get("force"))
+        if bypass_cache:
+            from engine.drive_fs import _clear_thumb_empty_mark
+            for mid in ids:
+                _clear_thumb_empty_mark(folder_id, mid)
         thumbs: Dict[str, Optional[str]] = {}
         need = []
         for mid in ids:
-            hit = _disk_thumb_data_url(folder_id, mid, qname)
+            hit = None if bypass_cache else _disk_thumb_data_url(folder_id, mid, qname)
             if hit is not None:
                 thumbs[str(mid)] = hit or None
             else:
@@ -552,6 +557,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                                 quality=qname,
                                 preloaded_message=preloaded.get(mid),
                                 message_preloaded=mid in preloaded,
+                                bypass_cache=bypass_cache,
                             ),
                             timeout=15.0
                         )
