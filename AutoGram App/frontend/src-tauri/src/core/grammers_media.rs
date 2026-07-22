@@ -1882,7 +1882,7 @@ fn start_preview_stream_inner(
                         .map_err(|e| format!("seek: {e}"))?;
                     file.write_all(&chunk)
                         .map_err(|e| format!("write: {e}"))?;
-                    let end = offset + len;
+                    let end = offset + chunk.len() as u64;
                     ranges.push((offset, end));
                     offset = end;
 

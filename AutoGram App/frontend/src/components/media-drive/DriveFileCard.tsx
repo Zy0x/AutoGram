@@ -129,7 +129,7 @@ function DriveFileCardInner({
   const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
   const [thumb, setThumb] = useState<string | null>(() => {
     if (cached) return cached;
-    if (inlineThumb.startsWith('data:image/')) return inlineThumb;
+    if (thumbQuality === 'saver' && inlineThumb.startsWith('data:image/')) return inlineThumb;
     return null;
   });
   const [thumbLoading, setThumbLoading] = useState(false);
@@ -145,27 +145,27 @@ function DriveFileCardInner({
       return;
     }
     const inline = file.thumb_data_url || file.thumbDataUrl;
-    if (inline && String(inline).startsWith('data:image/')) {
+    if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
-      setThumbLoading(thumbQuality !== 'saver');
+      setThumbLoading(false);
+    } else {
+      setThumbLoading(true);
     }
-    // Quality switch: keep previous thumb painted until the new quality arrives
-    // (no blank gap / lag). Only clear when folder/file identity changes.
   }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
 
-  // Clear painted thumb only when the card identity changes (not on quality switch).
+  // Clear painted thumb only when the card identity changes or quality switches to non-saver.
   useEffect(() => {
     const hit = getCachedThumb(folderId, file.id);
     const inline = file.thumb_data_url || file.thumbDataUrl;
     if (hit) {
       setThumb(hit);
-    } else if (inline && String(inline).startsWith('data:image/')) {
+    } else if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
     } else {
       setThumb(null);
     }
     setImgError(false);
-  }, [folderId, file.id, file.thumb_data_url, file.thumbDataUrl]);
+  }, [folderId, file.id, file.thumb_data_url, file.thumbDataUrl, thumbQuality]);
 
   // Streaming / late fills: thumb may arrive after the initial request resolved null,
   // or a sharper frame may replace a stripped placeholder.
