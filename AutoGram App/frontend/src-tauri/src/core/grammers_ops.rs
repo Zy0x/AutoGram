@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use grammers_client::message::InputMessage;
+use grammers_client::client::PasswordToken;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -102,13 +103,39 @@ pub fn resolve_sessions_dir(daemon_hint: Option<&Path>) -> PathBuf {
     cwd.join("worker").join("sessions")
 }
 
-pub(crate) fn runtime() -> Result<Runtime, TgError> {
-    tokio::runtime::Builder::new_multi_thread()
+pub(crate) fn runtime() -> Result<&'static Runtime, TgError> {
+    static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+    if let Some(runtime) = RUNTIME.get() {
+        return Ok(runtime);
+    }
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .worker_threads(2)
         .thread_name("autogram-grammers")
         .build()
-        .map_err(|e| TgError::new(TgErrorCode::Internal, format!("tokio runtime: {e}")))
+        .map_err(|e| TgError::new(TgErrorCode::Internal, format!("tokio runtime: {e}")))?;
+    // A process-wide runtime is required because progressive preview tasks live
+    // beyond the command that returned the localhost stream URL to React.
+    let _ = RUNTIME.set(runtime);
+    RUNTIME.get().ok_or_else(|| {
+        TgError::new(
+            TgErrorCode::Internal,
+            "failed to initialize shared Grammers runtime",
+        )
+    })
+}
+
+fn session_operation_lock(session_name: &str) -> Arc<tokio::sync::Mutex<()>> {
+    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
+        OnceLock::new();
+    let locks = LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = locks.lock();
+    Arc::clone(
+        guard
+            .entry(session_name.to_string())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(()))),
+    )
 }
 
 /// Ensure Grammers JSON session file exists; import from Telethon when needed.
@@ -164,12 +191,11 @@ pub async fn ensure_grammers_session(
         );
         return Ok(g_path);
     }
-    // Create empty grammers session (login required later)
-    write_session_data(&g_path, &SessionData::default())?;
+    // Keep new sessions in memory until SenderPool negotiates an auth key.
     tg_log::warn(
         BACKEND,
         "session_empty",
-        "created empty grammers session — login required",
+        "using in-memory session until auth key is ready",
     );
     Ok(g_path)
 }
@@ -223,6 +249,22 @@ pub(crate) struct LiveClient {
     pub _runner: tokio::task::JoinHandle<()>,
 }
 
+struct CachedLiveClient {
+    api_id: i64,
+    live: Arc<LiveClient>,
+}
+
+fn live_clients() -> &'static Mutex<HashMap<String, CachedLiveClient>> {
+    static CLIENTS: OnceLock<Mutex<HashMap<String, CachedLiveClient>>> = OnceLock::new();
+    CLIENTS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn disconnect_cached_session(session_name: &str) {
+    if let Some(entry) = live_clients().lock().remove(session_name) {
+        entry.live.client.disconnect();
+    }
+}
+
 pub(crate) async fn connect_client(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -261,8 +303,9 @@ pub(crate) async fn connect_client(
         runner.run().await;
     });
 
-    // Brief settle so pool connects
-    tokio::time::sleep(Duration::from_millis(80)).await;
+    // SenderPool connects lazily on the first MTProto invocation; a fixed sleep
+    // only made every account switch slower without improving correctness.
+    tokio::task::yield_now().await;
 
     Ok(LiveClient {
         client,
@@ -281,15 +324,42 @@ pub(crate) async fn with_client<F, T>(
 where
     F: for<'a> FnOnce(&'a Client) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>>,
 {
-    let live = connect_client(sessions_dir, identity, import_if_missing).await?;
+    // One interactive owner per account prevents concurrent commands from
+    // racing session persistence or opening competing MTProto senders.
+    let operation_lock = session_operation_lock(&identity.session);
+    let _operation_guard = operation_lock.lock().await;
+    let cached = {
+        let clients = live_clients().lock();
+        clients
+            .get(&identity.session)
+            .filter(|entry| entry.api_id == identity.api_id)
+            .map(|entry| Arc::clone(&entry.live))
+    };
+    let live = match cached {
+        Some(live) => live,
+        None => {
+            disconnect_cached_session(&identity.session);
+            let live = Arc::new(connect_client(sessions_dir, identity, import_if_missing).await?);
+            live_clients().lock().insert(
+                identity.session.clone(),
+                CachedLiveClient {
+                    api_id: identity.api_id,
+                    live: Arc::clone(&live),
+                },
+            );
+            live
+        }
+    };
     let result = f(&live.client).await;
     // Persist peer cache / auth updates
     if let Err(e) = persist_memory_session(&live.session, &live.session_path) {
         tg_log::warn(BACKEND, "session_persist", e.to_string());
     }
-    live.client.disconnect();
-    // Drop runner shortly after
-    tokio::time::sleep(Duration::from_millis(50)).await;
+    // Disconnect cached session on error (especially NotAuthorized) so stale
+    // auth keys are immediately flushed for subsequent calls.
+    if result.is_err() {
+        disconnect_cached_session(&identity.session);
+    }
     result
 }
 
@@ -321,6 +391,54 @@ pub struct SessionProbeResult {
     pub grammers_exists: bool,
     pub grammers_path_name: String,
     pub backend: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeSessionSummary {
+    pub name: String,
+    pub status: String,
+    pub source: String,
+}
+
+/// Fast offline inventory. Network authorization is checked separately via
+/// `tg_auth_status`, allowing Account to paint immediately without spawning a
+/// Python process for every refresh.
+pub fn list_native_sessions(sessions_dir: &Path) -> Vec<NativeSessionSummary> {
+    let mut names: HashMap<String, (bool, bool)> = HashMap::new();
+    let Ok(entries) = std::fs::read_dir(sessions_dir) else {
+        return Vec::new();
+    };
+    for entry in entries.flatten() {
+        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        if let Some(name) = file_name.strip_suffix(".grammers.json") {
+            if !name.is_empty() && !name.ends_with("_preview") {
+                names.entry(name.to_string()).or_default().0 = true;
+            }
+        } else if let Some(name) = file_name.strip_suffix(".session") {
+            if !name.is_empty() && !name.ends_with("_preview") {
+                names.entry(name.to_string()).or_default().1 = true;
+            }
+        }
+    }
+    let mut result = names
+        .into_iter()
+        .map(|(name, (native, legacy))| NativeSessionSummary {
+            name,
+            status: if native { "checking" } else { "migration_required" }.into(),
+            source: match (native, legacy) {
+                (true, true) => "grammers+migration_source",
+                (true, false) => "grammers",
+                (false, true) => "telethon_migration_source",
+                _ => "unknown",
+            }
+            .into(),
+        })
+        .collect::<Vec<_>>();
+    result.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+    result
 }
 
 pub fn import_session_blocking(sessions_dir: &Path, session_name: &str) -> Result<(), TgError> {
@@ -424,6 +542,52 @@ pub fn list_dialogs_blocking(
                     format!("count={} limit={}", out.len(), limit),
                 );
                 Ok(out)
+            })
+        })
+        .await
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DialogFilterRow {
+    pub id: i32,
+    pub title: String,
+    pub kind: String,
+}
+
+pub fn list_dialog_filters_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+) -> Result<Vec<DialogFilterRow>, TgError> {
+    let rt = runtime()?;
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                let raw: grammers_client::tl::types::messages::DialogFilters = client
+                    .invoke(&grammers_client::tl::functions::messages::GetDialogFilters {})
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                    .into();
+                let mut rows = vec![DialogFilterRow {
+                    id: 0,
+                    title: "Semua Chat".into(),
+                    kind: "all".into(),
+                }];
+                for filter in raw.filters {
+                    match filter {
+                        grammers_client::tl::enums::DialogFilter::Filter(f) => {
+                            let grammers_client::tl::enums::TextWithEntities::Entities(title) = f.title;
+                            rows.push(DialogFilterRow { id: f.id, title: title.text, kind: "folder".into() });
+                        }
+                        grammers_client::tl::enums::DialogFilter::Chatlist(f) => {
+                            let grammers_client::tl::enums::TextWithEntities::Entities(title) = f.title;
+                            rows.push(DialogFilterRow { id: f.id, title: title.text, kind: "shared".into() });
+                        }
+                        grammers_client::tl::enums::DialogFilter::Default => {}
+                    }
+                }
+                Ok(rows)
             })
         })
         .await
@@ -1058,17 +1222,27 @@ pub fn login_blocking(
     sessions_dir: &Path,
     req: &LoginRequest,
 ) -> Result<LoginResult, TgError> {
+    if req.api_id <= 0 || req.api_hash.trim().is_empty() {
+        return Err(TgError::new(
+            TgErrorCode::NotConfigured,
+            "API ID atau API hash belum dikonfigurasi",
+        ));
+    }
     let identity = TelegramIdentity {
         session: req.session.clone(),
         api_id: req.api_id,
         api_hash: req.api_hash.clone(),
     };
     let phone = req.phone.trim().to_string();
-    if phone.is_empty() {
+    let has_password = req.password.as_deref().map(str::trim).is_some_and(|s| !s.is_empty());
+    if phone.is_empty() && !has_password {
         return Err(TgError::new(TgErrorCode::Auth, "phone required"));
     }
     let rt = runtime()?;
     rt.block_on(async {
+        let operation_lock = session_operation_lock(&identity.session);
+        let _operation_guard = operation_lock.lock().await;
+        disconnect_cached_session(&identity.session);
         // Do not import telethon on brand-new login — use fresh grammers file
         let g_path = grammers_session_path(sessions_dir, &identity.session);
         if let Some(parent) = g_path.parent() {
@@ -1098,6 +1272,43 @@ pub fn login_blocking(
             });
         }
 
+
+        // Third phase: 2FA password after a previous sign_in/QR response.
+        // Keep this independent from phone/code so the UI never has to resend
+        // an expired OTP merely to submit the cloud password.
+        if let Some(password) = req.password.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            if req.code.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_none() {
+                let pw_token = take_password_token(&identity.session).ok_or_else(|| {
+                    TgError::new(TgErrorCode::Auth, "2FA challenge expired — start login again")
+                })?;
+                match client.check_password(pw_token, password.as_bytes()).await {
+                    Ok(u) => {
+                        let prof = user_profile_from(&u);
+                        persist_memory_session(&session, &g_path)?;
+                        client.disconnect();
+                        return Ok(LoginResult {
+                            status: "authorized".into(),
+                            needs_code: false,
+                            needs_password: false,
+                            password_hint: None,
+                            user: Some(prof),
+                            message: "Login 2FA Grammers berhasil".into(),
+                            error: None,
+                        });
+                    }
+                    Err(SignInError::InvalidPassword(next_token)) => {
+                        store_password_token(&identity.session, next_token);
+                        client.disconnect();
+                        return Err(TgError::new(TgErrorCode::Auth, "invalid_password"));
+                    }
+                    Err(e) => {
+                        client.disconnect();
+                        return Err(TgError::new(TgErrorCode::Auth, format!("2FA failed: {e}")));
+                    }
+                }
+            }
+        }
+
         let code = req.code.as_deref().map(str::trim).filter(|s| !s.is_empty());
         if code.is_none() {
             // Request code only
@@ -1109,6 +1320,7 @@ pub fn login_blocking(
                     // Token cannot be persisted easily across process calls without storing it.
                     // Document: second call must happen soon; we store token in static map.
                     store_login_token(&identity.session, _token);
+                    persist_memory_session(&session, &g_path)?;
                     client.disconnect();
                     tg_log::info(BACKEND, "login_code_sent", "phone_ok=1");
                     return Ok(LoginResult {
@@ -1175,6 +1387,8 @@ pub fn login_blocking(
                         }
                     }
                 } else {
+                    persist_memory_session(&session, &g_path)?;
+                    store_password_token(&identity.session, pw_token);
                     client.disconnect();
                     Ok(LoginResult {
                         status: "password_required".into(),
@@ -1186,6 +1400,12 @@ pub fn login_blocking(
                         error: None,
                     })
                 }
+            }
+            Err(SignInError::InvalidCode) => {
+                store_login_token(&identity.session, token);
+                persist_memory_session(&session, &g_path)?;
+                client.disconnect();
+                Err(TgError::new(TgErrorCode::Auth, "invalid_otp"))
             }
             Err(e) => {
                 client.disconnect();
@@ -1223,27 +1443,51 @@ fn take_login_token(session: &str) -> Option<grammers_client::client::LoginToken
     login_tokens().lock().remove(session)
 }
 
+fn password_tokens() -> &'static Mutex<HashMap<String, PasswordToken>> {
+    static MAP: OnceLock<Mutex<HashMap<String, PasswordToken>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn store_password_token(session: &str, token: PasswordToken) {
+    password_tokens().lock().insert(session.to_string(), token);
+}
+
+fn take_password_token(session: &str) -> Option<PasswordToken> {
+    password_tokens().lock().remove(session)
+}
+
 pub async fn grammers_qr_login(
     app: tauri::AppHandle,
     session_name: String,
     api_id: i64,
     api_hash: String,
 ) -> Result<(), TgError> {
+    use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
     use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64_URL;
     use base64::Engine as _;
+    use grammers_session::Session;
     use tauri::Emitter;
-    use super::telethon_session_import::export_grammers_to_telethon_file;
 
     let sessions_dir = resolve_sessions_dir(None);
+    let cancel = Arc::new(AtomicBool::new(false));
+    if let Some(previous) = qr_cancel_flags().lock().insert(session_name.clone(), cancel.clone()) {
+        previous.store(true, AtomicOrdering::SeqCst);
+    }
     let identity = TelegramIdentity {
         session: session_name.clone(),
         api_id,
         api_hash: api_hash.clone(),
     };
+    let operation_lock = session_operation_lock(&session_name);
+    let _operation_guard = operation_lock.lock().await;
+    disconnect_cached_session(&session_name);
 
     let live = connect_client(&sessions_dir, &identity, false).await?;
 
     if live.client.is_authorized().await.unwrap_or(false) {
+        let _ = persist_memory_session(&live.session, &live.session_path);
+        live.client.disconnect();
+        qr_cancel_flags().lock().remove(&session_name);
         let _ = app.emit(
             "qr-event",
             serde_json::json!({
@@ -1256,11 +1500,8 @@ pub async fn grammers_qr_login(
 
     let except_ids = Vec::new();
     let mut login_success = false;
-    let max_attempts = 10;
-    let mut attempts = 0;
 
-    while attempts < max_attempts && !login_success {
-        attempts += 1;
+    while !login_success && !cancel.load(AtomicOrdering::SeqCst) {
         let res = live
             .client
             .invoke(&grammers_client::tl::functions::auth::ExportLoginToken {
@@ -1272,7 +1513,7 @@ pub async fn grammers_qr_login(
 
         match res {
             Ok(grammers_client::tl::enums::auth::LoginToken::Token(t)) => {
-                let token_b64 = B64_URL.encode(&t.token);
+                let mut token_b64 = B64_URL.encode(&t.token);
                 let url = format!("tg://login?token={}", token_b64);
                 let _ = app.emit(
                     "qr-event",
@@ -1286,7 +1527,7 @@ pub async fn grammers_qr_login(
 
                 // Continuously poll ExportLoginToken every 1.5s for up to 28 seconds while user scans token
                 let start_wait = std::time::Instant::now();
-                while start_wait.elapsed().as_secs() < 28 {
+                while start_wait.elapsed().as_secs() < 28 && !cancel.load(AtomicOrdering::SeqCst) {
                     tokio::time::sleep(Duration::from_millis(1500)).await;
                     let check_res = live
                         .client
@@ -1301,8 +1542,6 @@ pub async fn grammers_qr_login(
                         Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
                             login_success = true;
                             let _ = persist_memory_session(&live.session, &live.session_path);
-                            let t_path = telethon_session_path(&sessions_dir, &session_name);
-                            let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
 
                             let _ = app.emit(
                                 "qr-event",
@@ -1326,23 +1565,54 @@ pub async fn grammers_qr_login(
                                         "session": session_name
                                     }),
                                 );
+                                token_b64 = new_token_b64;
                             }
                         }
-                        Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(_)) => {
-                            tokio::time::sleep(Duration::from_secs(1)).await;
+                        Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(migrate)) => {
+                            live.session
+                                .set_home_dc_id(migrate.dc_id)
+                                .await
+                                .map_err(|e| TgError::new(TgErrorCode::Auth, format!("QR migrate DC: {e}")))?;
+                            match live
+                                .client
+                                .invoke(&grammers_client::tl::functions::auth::ImportLoginToken {
+                                    token: migrate.token,
+                                })
+                                .await
+                            {
+                                Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
+                                    login_success = true;
+                                    persist_memory_session(&live.session, &live.session_path)?;
+                                    let _ = app.emit(
+                                        "qr-event",
+                                        serde_json::json!({"status":"success","session":session_name}),
+                                    );
+                                    break;
+                                }
+                                Ok(_) => {}
+                                Err(err) => return Err(map_invocation(&err)),
+                            }
                         }
                         Err(e) => {
                             let err_str = e.to_string();
                             if err_str.contains("SESSION_PASSWORD_NEEDED") {
+                                let password: grammers_client::tl::types::account::Password = live
+                                    .client
+                                    .invoke(&grammers_client::tl::functions::account::GetPassword {})
+                                    .await
+                                    .map_err(|err| map_invocation(&err))?
+                                    .into();
+                                let token = PasswordToken::new(password);
+                                let hint = token.hint().map(str::to_string);
+                                store_password_token(&session_name, token);
                                 login_success = true;
                                 let _ = persist_memory_session(&live.session, &live.session_path);
-                                let t_path = telethon_session_path(&sessions_dir, &session_name);
-                                let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
 
                                 let _ = app.emit(
                                     "qr-event",
                                     serde_json::json!({
                                         "status": "2fa_required",
+                                        "password_hint": hint,
                                         "session": session_name
                                     }),
                                 );
@@ -1354,14 +1624,32 @@ pub async fn grammers_qr_login(
                     }
                 }
             }
-            Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(_)) => {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+            Ok(grammers_client::tl::enums::auth::LoginToken::MigrateTo(migrate)) => {
+                live.session
+                    .set_home_dc_id(migrate.dc_id)
+                    .await
+                    .map_err(|e| TgError::new(TgErrorCode::Auth, format!("QR migrate DC: {e}")))?;
+                match live
+                    .client
+                    .invoke(&grammers_client::tl::functions::auth::ImportLoginToken {
+                        token: migrate.token,
+                    })
+                    .await
+                {
+                    Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
+                        login_success = true;
+                        persist_memory_session(&live.session, &live.session_path)?;
+                        let _ = app.emit(
+                            "qr-event",
+                            serde_json::json!({"status":"success","session":session_name}),
+                        );
+                    }
+                    Ok(_) => {}
+                    Err(err) => return Err(map_invocation(&err)),
+                }
             }
             Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
-                login_success = true;
                 let _ = persist_memory_session(&live.session, &live.session_path);
-                let t_path = telethon_session_path(&sessions_dir, &session_name);
-                let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
 
                 let _ = app.emit(
                     "qr-event",
@@ -1375,15 +1663,22 @@ pub async fn grammers_qr_login(
             Err(e) => {
                 let err_str = e.to_string();
                 if err_str.contains("SESSION_PASSWORD_NEEDED") {
-                    login_success = true;
+                    let password: grammers_client::tl::types::account::Password = live
+                        .client
+                        .invoke(&grammers_client::tl::functions::account::GetPassword {})
+                        .await
+                        .map_err(|err| map_invocation(&err))?
+                        .into();
+                    let token = PasswordToken::new(password);
+                    let hint = token.hint().map(str::to_string);
+                    store_password_token(&session_name, token);
                     let _ = persist_memory_session(&live.session, &live.session_path);
-                    let t_path = telethon_session_path(&sessions_dir, &session_name);
-                    let _ = export_grammers_to_telethon_file(&live.session_path, &t_path);
 
                     let _ = app.emit(
                         "qr-event",
                         serde_json::json!({
                             "status": "2fa_required",
+                            "password_hint": hint,
                             "session": session_name
                         }),
                     );
@@ -1405,36 +1700,49 @@ pub async fn grammers_qr_login(
         }
     }
 
-    // Clean up unauthorized session files if scan was not completed
-    if !login_success {
-        let t_path = telethon_session_path(&sessions_dir, &session_name);
-        if t_path.exists() {
-            let _ = std::fs::remove_file(&t_path);
-        }
-        if live.session_path.exists() {
-            let _ = std::fs::remove_file(&live.session_path);
-        }
-    }
+    // Session material is intentionally retained after expiry/error so the
+    // automatic refresh or a 2FA retry never discards auth state in progress.
 
     live.client.disconnect();
+    qr_cancel_flags().lock().remove(&session_name);
     Ok(())
 }
 
+fn qr_cancel_flags() -> &'static Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>> {
+    static MAP: OnceLock<Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>> = OnceLock::new();
+    MAP.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn cancel_qr_login(session_name: &str) -> bool {
+    if let Some(flag) = qr_cancel_flags().lock().remove(session_name) {
+        flag.store(true, std::sync::atomic::Ordering::SeqCst);
+        true
+    } else {
+        false
+    }
+}
+
 pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> {
-    let sessions_dir = resolve_sessions_dir(None);
-    let s_name = session_name.trim().trim_end_matches(".session");
-    for ext in &[".session", ".grammers.json", ".session-journal", ".session.lock"] {
-        let p = sessions_dir.join(format!("{}{}", s_name, ext));
-        if p.exists() {
-            for _ in 0..4 {
-                if std::fs::remove_file(&p).is_ok() {
-                    break;
+    let session_name = session_name.to_string();
+    runtime()?.block_on(async move {
+        let operation_lock = session_operation_lock(&session_name);
+        let _operation_guard = operation_lock.lock().await;
+        disconnect_cached_session(&session_name);
+        let sessions_dir = resolve_sessions_dir(None);
+        let s_name = session_name.trim().trim_end_matches(".session");
+        for ext in &[".session", ".grammers.json", ".session-journal", ".session.lock"] {
+            let p = sessions_dir.join(format!("{}{}", s_name, ext));
+            if p.exists() {
+                for _ in 0..4 {
+                    if std::fs::remove_file(&p).is_ok() {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
                 }
-                std::thread::sleep(Duration::from_millis(50));
             }
         }
-    }
-    Ok(())
+        Ok(())
+    })
 }
 
 #[cfg(test)]
@@ -1445,5 +1753,31 @@ mod tests {
     fn sessions_dir_nonempty() {
         let d = resolve_sessions_dir(None);
         assert!(!d.as_os_str().is_empty());
+    }
+
+    #[test]
+    fn grammers_runtime_is_process_wide() {
+        let first = runtime().expect("runtime") as *const Runtime;
+        let second = runtime().expect("runtime") as *const Runtime;
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn fresh_login_does_not_persist_session_before_auth_key() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("autogram-fresh-session-{nonce}"));
+        std::fs::create_dir_all(&dir).expect("temp session dir");
+
+        let path = runtime()
+            .expect("runtime")
+            .block_on(ensure_grammers_session(&dir, "Lavender", false))
+            .expect("fresh in-memory session");
+
+        assert_eq!(path, dir.join("Lavender.grammers.json"));
+        assert!(!path.exists(), "session must wait for a negotiated auth key");
+        std::fs::remove_dir(&dir).expect("remove temp session dir");
     }
 }

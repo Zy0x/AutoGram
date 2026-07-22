@@ -31,7 +31,7 @@ import {
   getSecureTransferSettings,
   setSecureTransferSettings,
 } from '../lib/secureCredentials';
-import { loadSelectableSessionNames } from '../lib/sessionPicker';
+import { loadSelectableSessionNames, getActiveSessionTargets } from '../lib/sessionPicker';
 import {
   driveBootstrap,
   driveListChatFolders,
@@ -72,6 +72,12 @@ import {
   addDriveEventListener,
 } from '../lib/driveApi';
 import {
+  isStudioOrchEligible,
+  studioChatIdFromFolder,
+  studioRunUploadDefault,
+  mapOrchItemStatus,
+} from '../lib/studioOrch';
+import {
   saveCheckpoint,
   getCheckpoint,
   saveMediaRecords,
@@ -86,13 +92,7 @@ import {
   ensureDriveSession,
   isDriveSessionReady,
   scheduleDriveSessionStop,
-  isDriveSessionReadyFor,
-  driveSessionCall,
   stopDriveSession,
-  isPreviewActive,
-  isDriveSessionCircuitTripped,
-  getDriveSessionError,
-  resetDriveSessionCircuit,
 } from '../lib/driveSession';
 
 import {
@@ -208,7 +208,6 @@ import { clearAvatarCache, invalidateAvatarFailures } from '../lib/avatarBatcher
 import {
   CHAT_SOFT_PREFETCH_DELAY_MS,
   INITIAL_STATS_DELAY_MS,
-  MIN_FOLDER_SCAN_DELAY_MS,
   progressiveSettleDelayMs,
   stagedInitialPageSize,
   stagedLoadMorePageSize,
@@ -767,6 +766,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const [mediaDragActive, setMediaDragActive] = useState(false);
   /** Warm drive-serve connected (not just credentials filled) */
   const [driveReady, setDriveReady] = useState(false);
+  const nativeDriveReadyRef = useRef(false);
 
   interface PingState {
     status: 'offline' | 'disconnected' | 'excellent' | 'good' | 'fair' | 'poor' | 'transferring';
@@ -777,6 +777,20 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     status: 'disconnected',
     ms: null,
   });
+
+  const reportNativeLatency = useCallback((ms: number, connected = true) => {
+    if (!connected) {
+      setPingState({ status: 'disconnected', ms: null });
+      return;
+    }
+    const elapsed = Math.max(0, Math.round(ms));
+    let status: PingState['status'] = 'excellent';
+    if (elapsed < 150) status = 'excellent';
+    else if (elapsed < 300) status = 'good';
+    else if (elapsed < 600) status = 'fair';
+    else status = 'poor';
+    setPingState({ status, ms: elapsed });
+  }, []);
 
 
 
@@ -804,104 +818,30 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
   }, [session]);
 
+  // Measure connectivity from useful Grammers operations. A separate periodic
+  // auth probe opened another MTProto connection and competed with initial load.
   useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let consecutiveFailures = 0;
-
-    async function checkPing() {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        if (active) {
-          setPingState({ status: 'offline', ms: null });
-        }
-        consecutiveFailures = 0;
-        scheduleNext(3000);
-        return;
-      }
-
-      if (isTransferJobActive()) {
-        if (active) {
-          setPingState({ status: 'transferring', ms: null });
-        }
-        consecutiveFailures = 0;
-        scheduleNext(3000);
-        return;
-      }
-
-      if (!creds || !isDriveSessionReadyFor(creds)) {
-        if (active) {
-          setPingState({ status: 'disconnected', ms: null });
-          if (creds) {
-            if (isDriveSessionCircuitTripped(creds)) {
-              setDriveReady(false);
-              const err = getDriveSessionError(creds) || 'Drive gagal terhubung';
-              setStatusText(`Drive gagal terhubung · ${err}`);
-            } else {
-              const needPreview = isPreviewActive();
-              ensureDriveSession(creds, needPreview).then(ok => {
-                if (ok && active) setDriveReady(true);
-              }).catch(() => {});
-            }
-          }
-        }
-        consecutiveFailures = 0;
-        scheduleNext(3000);
-        return;
-      }
-
-      const t0 = Date.now();
-      try {
-        const res = await driveSessionCall('ping', {}, 2500);
-        if (!active) return;
-
-        if (res && res.connected) {
-          consecutiveFailures = 0;
-          const ms = typeof res.ms === 'number' ? res.ms : Date.now() - t0;
-          let status: PingState['status'] = 'excellent';
-          if (ms < 150) status = 'excellent';
-          else if (ms < 300) status = 'good';
-          else if (ms < 600) status = 'fair';
-          else status = 'poor';
-
-          setPingState({ status, ms });
-        } else {
-          consecutiveFailures++;
-          if (consecutiveFailures >= 3) {
-            setPingState({ status: 'disconnected', ms: null });
-            stopDriveSession().catch(() => {});
-          }
-        }
-      } catch (err) {
-        if (active) {
-          consecutiveFailures++;
-          if (consecutiveFailures >= 3) {
-            setPingState({ status: 'disconnected', ms: null });
-            stopDriveSession().catch(() => {});
-          }
-        }
-      }
-      scheduleNext(3000);
+    if (!creds) {
+      setPingState({ status: 'disconnected', ms: null });
+      return;
     }
-
-    function scheduleNext(delay: number) {
-      if (!active) return;
-      timer = setTimeout(() => {
-        void checkPing();
-      }, delay);
-    }
-
-    void checkPing();
-
+    const onOnline = () => setPingState((current) =>
+      current.status === 'offline' ? { status: 'disconnected', ms: null } : current
+    );
+    const onOffline = () => setPingState({ status: 'offline', ms: null });
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    if (typeof navigator !== 'undefined' && !navigator.onLine) onOffline();
     return () => {
-      active = false;
-      if (timer) clearTimeout(timer);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, [creds]);
 
   useEffect(() => {
     if (!creds) return;
     let cancelled = false;
-    void driveListChatFolders(creds)
+    const timer = window.setTimeout(() => void driveListChatFolders(creds)
       .then((res) => {
         if (cancelled) return;
         const incoming = (res?.folders || []) as DriveChatFolder[];
@@ -918,9 +858,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (!cancelled) {
           setChatFolders([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
         }
-      });
+      }), 8_000);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [creds]);
 
@@ -1143,6 +1084,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
     setStatusText('Mengganti session…');
     setDriveReady(false);
+    nativeDriveReadyRef.current = false;
     setSession(next);
   }, [session, invalidateDriveGenerations]);
 
@@ -1250,7 +1192,12 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
       // Resolve next session name without writing state yet
       let next = '';
-      if (session && list.includes(session)) {
+      const activeTargets = getActiveSessionTargets();
+      const activeTarget = activeTargets[0] || '';
+
+      if (activeTarget && list.includes(activeTarget)) {
+        next = activeTarget;
+      } else if (session && list.includes(session)) {
         next = session;
       } else {
         try {
@@ -1609,7 +1556,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       // Prefer staged RPCs when warm session is ready (true progressive UI).
       // The first file page gets exclusive network priority; secondary panels
       // start only after it paints so a large dialog/topic list cannot starve it.
-      if (isDriveSessionReady()) {
+      if (isDriveSessionReady() || nativeDriveReadyRef.current) {
         if (peerId == null) {
           setTopics([]);
           setIsForumChat(false);
@@ -1723,8 +1670,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (gen === peerGen.current) setLoadingFiles(false);
           });
 
-        // 2) Secondary panels run in parallel to unblock the sidebar instantly.
-        const chatsP = driveListChats(creds, { limit: perf.chatPage })
+        // 2) Let the visible file page own the session first. Grammers serializes
+        // one account, so starting dialogs concurrently only created queued work.
+        const chatsP = filesP
+          .then(() => driveListChats(creds, { limit: perf.chatPage }))
           .then((cr) => {
             if (gen !== peerGen.current) return;
             const list = cr.chats || [];
@@ -1806,49 +1755,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (gen === peerGen.current) setLoadingChats(false);
           });
 
-        // 3) Full folder scan after lightweight secondary panels.
-        const foldersP = chatsP.then(
-          () =>
-            new Promise<void>((resolve) => {
-              const run = () => {
-                void driveScanFolders(creds)
-                  .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
-                    if (gen !== peerGen.current) return;
-                    const list = (Array.isArray(fr) ? fr : fr?.folders || []) as DriveFolder[];
-                    nFolders = Array.isArray(list) ? list.length : 0;
-                    const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
-                    startTransition(() => {
-                      setFolders(normalized);
-                    });
-                    try {
-                      saveDriveSidebarSnapshot(localStorage, creds.session, {
-                        folders: normalized,
-                      });
-                    } catch {
-                      /* sidebar cache is best-effort */
-                    }
-                    setLoadingFolders(false);
-                    bumpStatus();
-                  })
-                  .catch(() => {
-                    /* keep provisional TD from chats */
-                  })
-                  .finally(() => {
-                    if (gen === peerGen.current) setLoadingFolders(false);
-                    resolve();
-                  });
-              };
-              // Keep the full dialog walk eventual/live without making it
-              // compete with first paint and visible thumbnails.
-              const d = Math.max(MIN_FOLDER_SCAN_DELAY_MS, getDrivePerfProfile().folderScanDelayMs);
-              if (d > 0) window.setTimeout(run, d);
-              else run();
-            })
-        );
+        // 3) Drives [TD] are derived incrementally from dialog pages. The old
+        // automatic 500-dialog scan could hold the account lock for 30-60s and
+        // make every click/reload wait behind invisible background work.
+        const foldersP = chatsP.finally(() => {
+          if (gen === peerGen.current) setLoadingFolders(false);
+        });
 
         // "Ready" means the grid is usable; sidebar/folders continue progressively.
         await filesP;
-        void chatsP;
+        // The grid has already painted; finishing the bounded first dialog page
+        // here prevents the warm health sample from including lock queue time.
+        await chatsP;
         void foldersP;
         if (gen !== peerGen.current) return;
         bumpStatus();
@@ -2126,6 +2044,23 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       });
       setChatsOffset(cr.next_offset ?? chatsOffset + incoming.length);
       setChatsHasMore(!!cr.has_more);
+      const incomingDrives = incoming
+        .filter((chat) => chat.is_drive_folder)
+        .map((chat): DriveFolder => ({
+          id: chat.id,
+          name: chat.name,
+          title_raw: chat.title_raw || chat.name,
+          username: chat.username ?? null,
+          is_drive_folder: true,
+          parent_id: null,
+        }));
+      if (incomingDrives.length) {
+        setFolders((previous) => {
+          const byId = new Map(previous.map((folder) => [folder.id, folder]));
+          for (const folder of incomingDrives) byId.set(folder.id, folder);
+          return withFolderOrphanFlags([...byId.values()]);
+        });
+      }
       if (cr.has_more) {
         chatsCursorRef.current = {
           offset_id: cr.next_offset_id ?? null,
@@ -2177,7 +2112,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (cancelled) return;
       if (typeof ric === 'function') idleId = ric(run, { timeout: 4_000 });
       else run();
-    }, Math.min(CHAT_SOFT_PREFETCH_DELAY_MS, 600));
+    }, Math.max(CHAT_SOFT_PREFETCH_DELAY_MS, 600));
     return () => {
       cancelled = true;
       if (idleId != null) {
@@ -2906,6 +2841,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     let cancelled = false;
     bootDone.current = false;
     setDriveReady(false);
+    nativeDriveReadyRef.current = false;
     softPrefetchDone.current = false;
     const switched = lastBootSessionRef.current !== creds.session;
     lastBootSessionRef.current = creds.session;
@@ -3012,18 +2948,54 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         } catch {
           /* ignore */
         }
-        const ok = await ensureDriveSession(creds);
+        const { tgAuthStatus } = await import('../lib/telegramBackend');
+        const authStartedAt = performance.now();
+        const native = await tgAuthStatus({
+          session: creds.session,
+          apiId: Number(creds.apiId),
+          apiHash: creds.apiHash,
+        });
+        if (cancelled) return;
+        const nativeConnected = !!native?.ok && !!native.data?.authorized;
+        reportNativeLatency(performance.now() - authStartedAt, nativeConnected);
+        if (!nativeConnected) {
+          throw new Error(native?.userMessage || 'Session belum terotorisasi di Telegram. Login ulang dari menu Account.');
+        }
+        setDriveReady(true);
+        nativeDriveReadyRef.current = true;
+        setStatusText('Grammers terhubung · memuat Drive…');
+        const ok = nativeConnected;
         if (cancelled) return;
         // Show "terhubung" as soon as worker is warm — don't wait for lists
         setDriveReady(ok || isDriveSessionReady());
         setStatusText(ok || isDriveSessionReady() ? 'Drive terhubung · memuat…' : 'Memuat Drive…');
         await refreshLocations();
+        // The first measurement includes TCP/MTProto cold connect. Once the
+        // visible grid is ready, sample the reused SenderPool once so the UI
+        // reports real warm latency instead of mislabeling cold startup time.
+        if (!cancelled) {
+          try {
+            const warmStartedAt = performance.now();
+            const warm = await tgAuthStatus({
+              session: creds.session,
+              apiId: Number(creds.apiId),
+              apiHash: creds.apiHash,
+            });
+            reportNativeLatency(
+              performance.now() - warmStartedAt,
+              !!warm?.ok && !!warm.data?.authorized
+            );
+          } catch {
+            // The successful file page remains authoritative; the next useful
+            // operation will evict/reconnect a stale cached SenderPool.
+          }
+        }
         if (!cancelled) {
           bootDone.current = true;
           setDriveReady(isDriveSessionReady() || ok);
           const perfHint = perfStatusHint();
           setStatusText(
-            isDriveSessionReady()
+            isDriveSessionReady() || nativeDriveReadyRef.current
               ? perfHint
                 ? `Drive siap · ${perfHint}`
                 : 'Drive siap'
@@ -3529,71 +3501,179 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           };
         });
 
-        const filesJson = await writeWorkerJson('drive_files', filesPayload);
-        const optionsJson = await writeWorkerJson('drive_opts', {
-          ...task.options,
-          // Persisted queue task id keeps upload file_id and commit random_id stable
-          // when this exact task is resumed/retried.
-          transfer_id: task.id,
-        });
-        
         let uploadError: string | null = null;
         let uploadedIds: number[] = [];
         let exitCode: number | null = 0;
+        let usedRustOrch = false;
 
-        try {
-          await new Promise<void>((resolve, reject) => {
-            driveUploadSpawn(creds!, task.targetFolderId ?? null, filesJson, optionsJson, {
-              onStdoutLine: (line) => {
-                const text = String(line);
-                onTransferStdout(text);
-                if (text.includes('[JSON_OUTPUT]')) {
-                  const data = parseJsonOutput(text);
-                  if (data?.status === 'error') {
-                    uploadError = data.error || 'Upload failed';
-                    setError(uploadError);
-                  } else if (data && Array.isArray((data as any).items)) {
-                    const ids = (data as any).items
-                      .map((x: any) => Number(x?.message_id))
-                      .filter((id: number) => Number.isFinite(id) && id > 0);
-                    if (ids.length) uploadedIds.push(...ids);
-                  }
-                }
-              },
-              onStderrLine: (line) => onTransferStdout(String(line)),
-              onClose: (code) => {
-                exitCode = code;
-                void flushTransferDebugLog(transferRef.current);
-                resolve();
-              },
-            }, { skipRestartWarm })
-              .then((c) => {
-                childRef.current = c;
-              })
-              .catch(reject);
+        // Default path: Rust orchestrator (ordered studio-serve steps).
+        // Fallback: legacy media-studio spawn (albums, remote URL, orch failure).
+        if (isStudioOrchEligible(task.paths || [], task.options)) {
+          setStatusText(`Upload (Rust orch)${label}: ${namesLabel}`);
+          setTransfer((t) => {
+            const nextItems = t.items.map((it, idx) => {
+              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+                if (it.status === 'done' || it.status === 'skipped') return it;
+                return { ...it, status: 'active' as const, phase: 'upload' as const };
+              }
+              return it;
+            });
+            return { ...t, items: nextItems, active: true };
           });
-        } finally {
-          void deleteWorkerTempFile(filesJson);
-          void deleteWorkerTempFile(optionsJson);
-          childRef.current = null;
+
+          const apiIdNum = Number(creds!.apiId) || 0;
+          const topicFromOpts =
+            task.topicId ??
+            (task.options?.topic_id != null
+              ? Number(task.options.topic_id)
+              : task.options?.topicId != null
+                ? Number(task.options.topicId)
+                : null);
+
+          const orchOutcome = await studioRunUploadDefault(
+            creds!,
+            {
+              session: creds!.session,
+              apiId: apiIdNum,
+              apiHash: creds!.apiHash,
+              chatId: studioChatIdFromFolder(task.targetFolderId ?? null),
+              topicId: topicFromOpts != null && topicFromOpts > 0 ? topicFromOpts : null,
+              files: filesPayload.map((f) => ({
+                path: f.path,
+                caption: f.caption,
+              })),
+              options: {
+                ...task.options,
+                transfer_id: task.id,
+              },
+              transferId: task.id,
+            },
+            { skipRestartWarm }
+          );
+
+          if (orchOutcome) {
+            usedRustOrch = true;
+            const rec = orchOutcome.record;
+            const items = rec?.items || [];
+            let orchSkipped = 0;
+            let orchDone = 0;
+            let orchFailed = 0;
+            for (const qi of items) {
+              const mid = Number(qi.messageId || 0);
+              if (mid > 0) uploadedIds.push(mid);
+              const st = mapOrchItemStatus(qi.state);
+              if (st === 'done') orchDone += 1;
+              else if (st === 'skipped') orchSkipped += 1;
+              else if (st === 'failed') orchFailed += 1;
+              const uiIdx = task.startIndex + Number(qi.index || 0);
+              setTransfer((t) =>
+                applyTransferEvent(t, {
+                  type: 'StudioItemDone',
+                  index: uiIdx,
+                  status: st === 'uploading' ? 'failed' : st,
+                  message_id: mid > 0 ? mid : undefined,
+                  error: qi.error || undefined,
+                  path: qi.path,
+                })
+              );
+              if (st === 'failed' && qi.error) {
+                uploadError = qi.error;
+              }
+            }
+            // All skipped (dup policy) counts as successful terminal without message_ids
+            if (uploadedIds.length === 0 && orchSkipped > 0 && orchFailed === 0) {
+              uploadedIds.push(-1); // sentinel: terminal ok without Telegram message_id
+            }
+            if (!items.length && orchOutcome.result.message) {
+              debugLog('drive', 'orch complete (no item detail)', {
+                tid: orchOutcome.result.transferId,
+              });
+            }
+            void flushTransferDebugLog(transferRef.current);
+            debugLog('drive', 'upload via rust orch', {
+              tid: orchOutcome.result.transferId,
+              mode: orchOutcome.result.mode,
+              done: orchDone || rec?.doneCount,
+              failed: orchFailed || rec?.failedCount,
+              skipped: orchSkipped,
+            });
+          } else {
+            debugLog('drive', 'orch unavailable → media-studio fallback', {
+              taskId: task.id,
+            });
+          }
+        }
+
+        if (!usedRustOrch) {
+          const filesJson = await writeWorkerJson('drive_files', filesPayload);
+          const optionsJson = await writeWorkerJson('drive_opts', {
+            ...task.options,
+            // Persisted queue task id keeps upload file_id and commit random_id stable
+            // when this exact task is resumed/retried.
+            transfer_id: task.id,
+          });
+
+          try {
+            await new Promise<void>((resolve, reject) => {
+              driveUploadSpawn(creds!, task.targetFolderId ?? null, filesJson, optionsJson, {
+                onStdoutLine: (line) => {
+                  const text = String(line);
+                  onTransferStdout(text);
+                  if (text.includes('[JSON_OUTPUT]')) {
+                    const data = parseJsonOutput(text);
+                    if (data?.status === 'error') {
+                      uploadError = data.error || 'Upload failed';
+                      setError(uploadError);
+                    } else if (data && Array.isArray((data as any).items)) {
+                      const ids = (data as any).items
+                        .map((x: any) => Number(x?.message_id))
+                        .filter((id: number) => Number.isFinite(id) && id > 0);
+                      if (ids.length) uploadedIds.push(...ids);
+                    }
+                  }
+                },
+                onStderrLine: (line) => onTransferStdout(String(line)),
+                onClose: (code) => {
+                  exitCode = code;
+                  void flushTransferDebugLog(transferRef.current);
+                  resolve();
+                },
+              }, { skipRestartWarm })
+                .then((c) => {
+                  childRef.current = c;
+                })
+                .catch(reject);
+            });
+          } finally {
+            void deleteWorkerTempFile(filesJson);
+            void deleteWorkerTempFile(optionsJson);
+            childRef.current = null;
+          }
         }
 
         // Post task finish checks
-        const isErrorExit = uploadError || (exitCode != null && exitCode !== 0);
+        const isErrorExit =
+          !!uploadError ||
+          (!usedRustOrch && exitCode != null && exitCode !== 0) ||
+          (usedRustOrch && uploadedIds.length === 0 && !!uploadError);
         if (uploadedIds.length > 0) {
-          debugLog('drive', 'upload chunk ok', { count: uploadedIds.length });
+          debugLog('drive', 'upload chunk ok', {
+            count: uploadedIds.length,
+            path: usedRustOrch ? 'rust_orch' : 'media_studio',
+          });
           setStatusText(`Upload selesai${label}: ${namesLabel}`);
           if (isErrorExit) {
             setError(
               `Upload terkirim, tetapi worker mengakhiri dengan peringatan` +
-                (exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
+                (!usedRustOrch && exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
                 (uploadError ? `: ${uploadError}` : '')
             );
           }
           // Terminal states are owned by StudioItemDone; never synthesize success here.
-        } else if (isErrorExit) {
+        } else if (isErrorExit || (usedRustOrch && uploadedIds.length === 0)) {
           setStatusText(`Upload gagal${label}`);
-          if (!uploadError && exitCode) setError(`Upload exit code ${exitCode}`);
+          if (!uploadError && !usedRustOrch && exitCode) setError(`Upload exit code ${exitCode}`);
+          else if (uploadError) setError(uploadError);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
@@ -3604,7 +3684,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             });
             return { ...t, items: nextItems };
           });
-        } else {
+        } else if (!usedRustOrch) {
           setStatusText(`Upload selesai${label}: ${namesLabel}`);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
@@ -3616,6 +3696,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             });
             return { ...t, items: nextItems };
           });
+        } else {
+          setStatusText(`Upload selesai${label}: ${namesLabel}`);
         }
       } else if (task.kind === 'download') {
         const idsJson = await writeWorkerJson('drive_ids', task.selectedIds!);
