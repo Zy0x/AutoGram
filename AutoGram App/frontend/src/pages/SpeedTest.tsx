@@ -907,6 +907,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const activePeerRef = useRef<number | null>(peerId);
   activePeerRef.current = peerId;
   const topicsRequestSeqRef = useRef(0);
+  const topicGenRef = useRef(0);
+  const topicDebounceTimerRef = useRef<number | null>(null);
 
   // Own every thumbnail request by session + location + topic. This cancels
   // queued work from the previous view before newly-visible cards mount.
@@ -1403,9 +1405,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setStatsLoading(true);
       if (opts?.force !== false) setStatsAccurate(false);
       const gen = peerGen.current;
+      const statsGen = topicGenRef.current;
 
       const applyRes = (res: any, _mode: 'progress' | 'final') => {
-        if (gen !== peerGen.current) return;
+        if (gen !== peerGen.current || statsGen !== topicGenRef.current) return;
         // Ignore stats that don't match the active topic scope (all ↔ topic)
         const activeTid =
           topicFilterRef.current != null && Number(topicFilterRef.current) > 0
@@ -2264,8 +2267,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
     }
     const instantFiles = cachedFiles ?? persisted?.files;
-    if (instantFiles) {
-      setFiles((prev) => (prev.length > instantFiles.length ? prev : dedupeByMsgId(instantFiles)));
+    if (instantFiles && instantFiles.length > 0) {
+      setFiles(dedupeByMsgId(instantFiles));
       const cachedCount = filesTotalCountRef.current.get(cacheKey);
       if (cachedCount != null) setTotalFileCount(clampMediaTotal(cachedCount, instantFiles));
       else if (persisted?.totalCount != null) {
@@ -3283,11 +3286,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (activePeerRef.current !== peerId) return;
       if (t != null && !topics.some((topic) => topic.id === t)) return;
       if (t === topicFilterRef.current) return;
+
+      const currentGen = ++topicGenRef.current;
       setTopicFilter(t);
       topicFilterRef.current = t;
       setError(null);
       setSelectedIds([]);
       selectionAnchorRef.current = null;
+
+      // Instantly wipe stale files state to prevent media bleeding from previous topic
+      setFiles([]);
+      setLoadingFiles(true);
+
       // Instantly clear thumbnail queue for previous topic scope
       setThumbContext(creds, peerId, t);
       // Drop previous location totals immediately so all-media count
@@ -3309,15 +3319,25 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setStatsByType(null);
       setStatsAccurate(false);
       setStatsLoading(true);
-      // Cancel deferred stats for previous topic scope
+
+      // Cancel deferred stats and previous topic switch timers for previous topic scope
       if (mediaStatsTimerRef.current != null) {
         window.clearTimeout(mediaStatsTimerRef.current);
         mediaStatsTimerRef.current = null;
       }
-      // Reload media for selected topic (or all media when null)
-      void refreshFiles();
+      if (topicDebounceTimerRef.current != null) {
+        window.clearTimeout(topicDebounceTimerRef.current);
+        topicDebounceTimerRef.current = null;
+      }
+
+      // Reload media for selected topic with 300ms debounce to prevent FloodWait from rapid clicks
+      topicDebounceTimerRef.current = window.setTimeout(() => {
+        if (currentGen === topicGenRef.current && activePeerRef.current === peerId) {
+          void refreshFiles();
+        }
+      }, 300);
     },
-    [refreshFiles, peerId, topics]
+    [refreshFiles, creds, peerId, topics]
   );
 
   const applyProgressEvent = useCallback((ev: any) => {

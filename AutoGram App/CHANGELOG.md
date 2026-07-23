@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.93 Perbaikan Race Condition & Stale Media Bleeding pada Perpindahan Antar Topik
+
+### Perbaikan Utama Navigasi Forum Topics & Drive UI
+- **Eliminasi Media Bleeding Antar Topik (`SpeedTest.tsx`)**:
+  - Mengoreksi logika pemuatan cache instant pada `refreshFiles`. Sebelumnya, `setFiles((prev) => (prev.length > instantFiles.length ? prev : ...))` mempertahankan daftar file dari topik lama jika jumlah filenya lebih banyak dari instant cache topik baru.
+  - Kini, state `files` dibersihkan secara instan (`setFiles([])`) setiap kali `topicFilter` berganti, menjamin kartu media dari topik sebelumnya tidak pernah bocor ke tampilan topik baru.
+- **Pencegahan FloodWait & Debounce Guard (`handleTopicFilter`)**:
+  - Menambahkan pembatas debounce (300ms) pada klik pill topik dan memasang `topicGenRef` (generasi tracker topik).
+  - Mengabaikan request RPC jaringan lama dan membatalkan timer pencarian stats ketika pengguna mengklik pill topik secara cepat beruntun.
+- **Pembatalan Loop Background Media Stats**:
+  - Menambahkan pemeriksaan generasi `statsGen !== topicGenRef.current` di dalam `refreshMediaStats` untuk menghentikan pemindaian halaman latar belakang ketika topik aktif berganti.
+
 ## v2.1.92 Perbaikan Rekonstruksi Faststart MP4 & Re-indexing Atom Chunk Offset
 
 ### Perbaikan Utama Visual Media & Grid
