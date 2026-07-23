@@ -4256,8 +4256,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (res?.topic_id != null) {
               setTopicFilter(res.topic_id);
               topicFilterRef.current = res.topic_id;
+              setFiles([]);
+              setLoadingFiles(true);
               setStatusText(`Topik siap: ${name}`);
-              refreshFiles();
+              void refreshFiles();
             } else {
               setStatusText(`Topik "${name}" berhasil dibuat.`);
             }
@@ -4302,7 +4304,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             if (topicFilterRef.current === topicId || topicFilter === topicId) {
               setTopicFilter(null);
               topicFilterRef.current = null;
-              refreshFiles();
+              setFiles([]);
+              setLoadingFiles(true);
+              void refreshFiles();
             }
             setStatusText(`Topik "${topicTitle}" berhasil dihapus.`);
           } catch (e: any) {
@@ -4777,6 +4781,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setActivePeerId(targetPeerId);
       setTopicFilter(topicId);
       topicFilterRef.current = topicId;
+      setFiles([]);
       setError(null);
       setTimeout(() => {
         const dest = chats.find((c) => c.id === targetPeerId)?.name || 'Gudang';
