@@ -621,13 +621,20 @@ async fn download_media_thumb(
                 let chunk_bytes = 256 * 1024;
                 if doc_size > sample_bytes.len() + chunk_bytes {
                     let total_chunks = doc_size / chunk_bytes;
-                    let skip = total_chunks.saturating_sub(2) as i32;
+                    let skip = total_chunks.saturating_sub(4) as i32;
                     let mut tail_bytes = Vec::new();
                     let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
                     while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
                         tail_bytes.extend_from_slice(&chunk);
                     }
                     if !tail_bytes.is_empty() {
+                        // 1. Faststart MP4 reconstruction (re-order moov before mdat for FFmpeg)
+                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                return Ok(frame_bytes);
+                            }
+                        }
+                        // 2. Fallback raw combined
                         let mut combined = sample_bytes.clone();
                         combined.extend_from_slice(&tail_bytes);
                         if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality, ext_hint) {
@@ -639,7 +646,72 @@ async fn download_media_thumb(
         }
     }
 
+    // Tier 6: Last-resort fallback: return stripped/cached inline JPEG if available (instead of leaving empty card)
+    for s in &sizes {
+        if let Some(data) = s.to_data() {
+            let bytes = unstrip_jpeg(&data).unwrap_or(data);
+            if !bytes.is_empty() {
+                return Ok(bytes);
+            }
+        }
+    }
+
     Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
+}
+
+fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
+    if sample_bytes.len() < 36 || tail_bytes.is_empty() {
+        return None;
+    }
+    let moov_tag = b"moov";
+    let mut moov_pos = None;
+    if tail_bytes.len() >= 8 {
+        for i in 4..=tail_bytes.len() - 4 {
+            if &tail_bytes[i..i + 4] == moov_tag {
+                moov_pos = Some(i - 4);
+                break;
+            }
+        }
+    }
+    let pos = moov_pos?;
+    let moov_size = u32::from_be_bytes([
+        tail_bytes[pos],
+        tail_bytes[pos + 1],
+        tail_bytes[pos + 2],
+        tail_bytes[pos + 3],
+    ]) as usize;
+
+    if pos + moov_size > tail_bytes.len() || moov_size < 8 {
+        return None;
+    }
+
+    let moov_slice = &tail_bytes[pos..pos + moov_size];
+
+    let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {
+        u32::from_be_bytes([
+            sample_bytes[0],
+            sample_bytes[1],
+            sample_bytes[2],
+            sample_bytes[3],
+        ]) as usize
+    } else {
+        32
+    };
+
+    let ftyp_len = ftyp_size.min(sample_bytes.len());
+    let mut out = Vec::with_capacity(ftyp_len + moov_size + sample_bytes.len() - ftyp_len);
+
+    out.extend_from_slice(&sample_bytes[0..ftyp_len]);
+    out.extend_from_slice(moov_slice);
+
+    let mut mdat_rem = sample_bytes[ftyp_len..].to_vec();
+    if mdat_rem.len() >= 8 && &mdat_rem[4..8] == b"mdat" {
+        let new_mdat_len = mdat_rem.len() as u32;
+        mdat_rem[0..4].copy_from_slice(&new_mdat_len.to_be_bytes());
+    }
+    out.extend_from_slice(&mdat_rem);
+
+    Some(out)
 }
 
 pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {

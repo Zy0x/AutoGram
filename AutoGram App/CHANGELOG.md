@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.86 Perbaikan Pemuatan Thumbnail Video MP4 Non-Faststart & Large Media
+
+### Perbaikan Utama Visual Media & Grid
+- **Ekstraksi Frame Video MP4 Non-Faststart (Snaptik/TikTok & Video >5MB)**:
+  - Mengoreksi penanganan berkas MP4 dengan struktur metadata `moov` berada di akhir berkas (seperti video hasil unduhan Snaptik/TikTok atau video berukuran besar >5MB).
+  - Melakukan rekonstruksi otomatis buffer video faststart (menempatkan atom `moov` di depan `mdat` dengan penyesuaian header ukuran atom) sebelum diproses oleh FFmpeg. Hal ini memungkinkan ekstraksi gambar mini (thumbnail HD) berhasil secara presisi tanpa perlu mengunduh seluruh berkas video yang berukuran puluhan hingga ratusan Megabyte.
+- **Dukungan Fallback Thumbnail Mini (Tier 6)**:
+  - Memastikan jika ekstraksi frame video HD tidak dapat dilakukan, sistem akan beralih menggunakan gambar mini (*mini-thumbnail*) resmi Telegram sebagai tampilan cadangan pada kartu grid, sehingga tidak ada kartu media yang tampil dengan ikon kosong/filmstrip.
+
 ## v2.1.85 Perbaikan Disconnect Loop & Handling FloodWait Telegram
 
 ### Perbaikan Utama Handling FloodWait & Rate Limit
