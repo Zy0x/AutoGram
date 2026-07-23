@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.90 Perbaikan Duplikasi Offset Chunk & Korupsi Header Sampel Media
+
+### Perbaikan Utama Visual Media & Grid
+- **Perbaikan Iterator Sampel Media Utuh (*Single Contiguous Iterator*)**:
+  - Mengoreksi logika unduh sampel media di `grammers_media.rs`.
+  - Sebelumnya, pemeriksaan sampel 64KB pertama menyebabkan pembagian offset `skip_chunks(64KB / 256KB)` bernilai `0`, yang mengakibatkan chunk 0 (0-256KB) diunduh dua kali dan digabungkan secara ganda.
+  - Duplikasi chunk 0 ini merusak struktur header berkas MP4/JPEG (header `ftyp` / `JPEG EOI` terduplikasi di tengah buffer), sehingga FFmpeg gagal memproses frame video dan mengembalikan error `no valid thumb found`.
+  - Kini, backend menggunakan iterator kontigu tunggal 256KB sejak awal, menghilangkan duplikasi header dan menjamin ekstraksi frame video MP4 berjalan 100% lancar.
+
 ## v2.1.89 Autodeteksi Magic-Bytes Media & Eliminasi Error 'No Valid Thumb'
 
 ### Perbaikan Utama Visual Media & Grid

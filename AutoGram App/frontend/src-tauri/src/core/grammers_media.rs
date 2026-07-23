@@ -581,111 +581,106 @@ async fn download_media_thumb(
             || name.ends_with(".ico")
             || name.ends_with(".jfif");
 
-        let mut first_chunk: Option<Vec<u8>> = None;
-        if !is_image && !is_video && (mime.is_empty() || mime.contains("octet-stream") || mime.contains("download") || !name.contains('.')) {
-            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
-            if let Ok(Some(chunk)) = iter.next().await {
-                if chunk.len() >= 4 {
+        if is_image || is_video || (mime.is_empty() || mime.contains("octet-stream") || mime.contains("download") || !name.contains('.')) {
+            let mut sample_bytes = Vec::new();
+            let mut iter = client.iter_download(d).chunk_size(256 * 1024);
+            if let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                sample_bytes.extend_from_slice(&chunk);
+            }
+
+            if !sample_bytes.is_empty() {
+                if !is_image && !is_video && sample_bytes.len() >= 4 {
                     // Image magic bytes: JPEG (0xFF 0xD8 0xFF), PNG (\x89PNG), WebP (RIFF...WEBP), GIF (GIF8), BMP (BM)
-                    if (chunk[0] == 0xff && chunk[1] == 0xd8 && chunk[2] == 0xff)
-                        || (chunk.starts_with(b"\x89PNG"))
-                        || (chunk.starts_with(b"RIFF") && chunk.len() >= 12 && &chunk[8..12] == b"WEBP")
-                        || (chunk.starts_with(b"GIF8"))
-                        || (chunk.starts_with(b"BM"))
+                    if (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8 && sample_bytes[2] == 0xff)
+                        || (sample_bytes.starts_with(b"\x89PNG"))
+                        || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"WEBP")
+                        || (sample_bytes.starts_with(b"GIF8"))
+                        || (sample_bytes.starts_with(b"BM"))
                     {
                         is_image = true;
                     }
                     // Video magic bytes: MP4/MOV (ftyp/moov/mdat at offset 4), MKV/WebM (0x1A 0x45 0xDF 0xA3), AVI (RIFF...AVI )
-                    else if (chunk.len() >= 8 && (&chunk[4..8] == b"ftyp" || &chunk[4..8] == b"moov" || &chunk[4..8] == b"mdat"))
-                        || (chunk.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]))
-                        || (chunk.starts_with(b"RIFF") && chunk.len() >= 12 && &chunk[8..12] == b"AVI ")
+                    else if (sample_bytes.len() >= 8 && (&sample_bytes[4..8] == b"ftyp" || &sample_bytes[4..8] == b"moov" || &sample_bytes[4..8] == b"mdat"))
+                        || (sample_bytes.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]))
+                        || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"AVI ")
                     {
                         is_video = true;
                     }
-                    first_chunk = Some(chunk);
                 }
-            }
-        }
 
-        if is_image {
-            let doc_size = d.size().unwrap_or(0) as usize;
-            let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
-                doc_size
-            } else {
-                2048 * 1024
-            };
-            let mut out = first_chunk.unwrap_or_default();
-            if out.len() < max_bytes {
-                let mut iter = client.iter_download(d).chunk_size(256 * 1024).skip_chunks((out.len() / (256 * 1024)) as i32);
-                while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
-                    out.extend_from_slice(&chunk);
-                    if out.len() >= max_bytes {
-                        break;
+                if is_image {
+                    let doc_size = d.size().unwrap_or(0) as usize;
+                    let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
+                        doc_size
+                    } else {
+                        2048 * 1024
+                    };
+                    while sample_bytes.len() < max_bytes {
+                        if let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                            sample_bytes.extend_from_slice(&chunk);
+                        } else {
+                            break;
+                        }
                     }
-                }
-            }
-            if !out.is_empty() {
-                return Ok(out);
-            }
-        } else if is_video {
-            let mode = quality.to_lowercase();
-            let sharp = mode.contains("jelas") || mode.contains("sharp");
-            let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
-            let mut sample_bytes = first_chunk.unwrap_or_default();
-            let ext_hint = if name.ends_with(".webm") {
-                "webm"
-            } else if name.ends_with(".mkv") {
-                "mkv"
-            } else if name.ends_with(".mov") {
-                "mov"
-            } else if name.ends_with(".avi") {
-                "avi"
-            } else if name.ends_with(".ts") {
-                "ts"
-            } else if name.ends_with(".flv") {
-                "flv"
-            } else if name.ends_with(".wmv") {
-                "wmv"
-            } else {
-                "mp4"
-            };
+                    return Ok(sample_bytes);
+                } else if is_video {
+                    let mode = quality.to_lowercase();
+                    let sharp = mode.contains("jelas") || mode.contains("sharp");
+                    let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
+                    let ext_hint = if name.ends_with(".webm") {
+                        "webm"
+                    } else if name.ends_with(".mkv") {
+                        "mkv"
+                    } else if name.ends_with(".mov") {
+                        "mov"
+                    } else if name.ends_with(".avi") {
+                        "avi"
+                    } else if name.ends_with(".ts") {
+                        "ts"
+                    } else if name.ends_with(".flv") {
+                        "flv"
+                    } else if name.ends_with(".wmv") {
+                        "wmv"
+                    } else {
+                        "mp4"
+                    };
 
-            if sample_bytes.len() < max_sample {
-                let mut iter = client.iter_download(d).chunk_size(256 * 1024).skip_chunks((sample_bytes.len() / (256 * 1024)) as i32);
-                while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
-                    sample_bytes.extend_from_slice(&chunk);
-                    if sample_bytes.len() >= max_sample {
-                        break;
+                    while sample_bytes.len() < max_sample {
+                        if let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                            sample_bytes.extend_from_slice(&chunk);
+                        } else {
+                            break;
+                        }
                     }
-                }
-            }
-            if !sample_bytes.is_empty() {
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                    return Ok(frame_bytes);
-                }
-                // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos)
-                let doc_size = d.size().unwrap_or(0) as usize;
-                let chunk_bytes = 256 * 1024;
-                if doc_size > sample_bytes.len() + chunk_bytes {
-                    let total_chunks = doc_size / chunk_bytes;
-                    let skip = total_chunks.saturating_sub(4) as i32;
-                    let mut tail_bytes = Vec::new();
-                    let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                    while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
-                        tail_bytes.extend_from_slice(&chunk);
+
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                        return Ok(frame_bytes);
                     }
-                    if !tail_bytes.is_empty() {
-                        // 1. Faststart MP4 reconstruction (re-order moov before mdat for FFmpeg)
-                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+
+                    // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos)
+                    let doc_size = d.size().unwrap_or(0) as usize;
+                    let chunk_bytes = 256 * 1024;
+                    if doc_size > sample_bytes.len() + chunk_bytes {
+                        let total_chunks = doc_size / chunk_bytes;
+                        let skip = total_chunks.saturating_sub(4) as i32;
+                        let mut tail_bytes = Vec::new();
+                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                        while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
+                            tail_bytes.extend_from_slice(&chunk);
+                        }
+                        if !tail_bytes.is_empty() {
+                            // 1. Faststart MP4 reconstruction (re-order moov before mdat for FFmpeg)
+                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                            }
+                            // 2. Fallback raw combined
+                            let mut combined = sample_bytes.clone();
+                            combined.extend_from_slice(&tail_bytes);
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality, ext_hint) {
                                 return Ok(frame_bytes);
                             }
-                        }
-                        // 2. Fallback raw combined
-                        let mut combined = sample_bytes.clone();
-                        combined.extend_from_slice(&tail_bytes);
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality, ext_hint) {
-                            return Ok(frame_bytes);
                         }
                     }
                 }
