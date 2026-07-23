@@ -598,6 +598,25 @@ async fn download_media_thumb(
                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality) {
                     return Ok(frame_bytes);
                 }
+                // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos)
+                let doc_size = d.size().unwrap_or(0) as usize;
+                let chunk_bytes = 256 * 1024;
+                if doc_size > sample_bytes.len() + chunk_bytes {
+                    let total_chunks = doc_size / chunk_bytes;
+                    let skip = total_chunks.saturating_sub(2) as i32;
+                    let mut tail_bytes = Vec::new();
+                    let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                    while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
+                        tail_bytes.extend_from_slice(&chunk);
+                    }
+                    if !tail_bytes.is_empty() {
+                        let mut combined = sample_bytes.clone();
+                        combined.extend_from_slice(&tail_bytes);
+                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality) {
+                            return Ok(frame_bytes);
+                        }
+                    }
+                }
             }
         }
     }
