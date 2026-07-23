@@ -1076,24 +1076,74 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                 .unwrap_or_else(|| format!("file_{id}"));
             let mime = doc.mime_type().map(|s| s.to_string());
             let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
-            let icon = if mime_l.starts_with("video/") {
+            let name_l = n.to_ascii_lowercase();
+
+            let is_video_file = mime_l.starts_with("video/")
+                || name_l.ends_with(".mp4")
+                || name_l.ends_with(".mov")
+                || name_l.ends_with(".mkv")
+                || name_l.ends_with(".webm")
+                || name_l.ends_with(".avi")
+                || name_l.ends_with(".m4v")
+                || name_l.ends_with(".3gp")
+                || name_l.ends_with(".flv")
+                || name_l.ends_with(".wmv")
+                || name_l.ends_with(".ts")
+                || name_l.ends_with(".m2ts")
+                || name_l.ends_with(".vob")
+                || name_l.ends_with(".ogv");
+
+            let is_image_file = mime_l.starts_with("image/")
+                || name_l.ends_with(".jpg")
+                || name_l.ends_with(".jpeg")
+                || name_l.ends_with(".png")
+                || name_l.ends_with(".webp")
+                || name_l.ends_with(".gif")
+                || name_l.ends_with(".bmp")
+                || name_l.ends_with(".tiff");
+
+            let is_audio_file = mime_l.starts_with("audio/")
+                || name_l.ends_with(".mp3")
+                || name_l.ends_with(".wav")
+                || name_l.ends_with(".flac")
+                || name_l.ends_with(".m4a")
+                || name_l.ends_with(".aac")
+                || name_l.ends_with(".ogg")
+                || name_l.ends_with(".opus");
+
+            let icon = if is_video_file {
                 "video"
-            } else if mime_l.starts_with("audio/") {
+            } else if is_audio_file {
                 "audio"
-            } else if mime_l.starts_with("image/") {
+            } else if is_image_file {
                 "image"
             } else {
                 "document"
             };
+
+            let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
+                if is_video_file {
+                    Some("video/mp4".to_string())
+                } else if is_image_file {
+                    Some("image/jpeg".to_string())
+                } else if is_audio_file {
+                    Some("audio/mpeg".to_string())
+                } else {
+                    mime
+                }
+            } else {
+                mime
+            };
+
             Some(MediaFileRow {
                 id,
                 folder_id,
                 name: n,
                 size,
-                mime_type: mime,
+                mime_type: final_mime,
                 icon_type: icon.into(),
                 created_at: created,
-                has_thumb,
+                has_thumb: has_thumb || is_video_file,
                 as_document: true,
                 backend: BACKEND.into(),
                 thumb_data_url,
