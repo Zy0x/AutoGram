@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.1.98 Alignment Presisi 1:1 Knob Slider & Teks Label Ukuran Cache
+
+### Perbaikan Visual & Layout UI Pengaturan
+- **Presisi Alignment Label Slider (`Settings.tsx`)**:
+  - Mengubah struktur layout teks label dari `display: flex; justify-content: space-between` menjadi *percentage relative positioning* presisi (`left: ${(idx / 7) * 100}%`).
+  - Menggunakan CSS transform (`translateX(-50%)` untuk label tengah, `none` untuk awal, dan `translateX(-100%)` untuk akhir) sehingga posisi tombol knob slider selaras 100% tepat berada tegak lurus di atas masing-masing teks label (`Bebas`, `1 GB`, `2 GB`, `5 GB`, `10 GB`, `20 GB`, `50 GB`, `100 GB`).
+
 ## v2.1.97 Penguatan Fungsi Seluruh Tombol Manajemen Cache & Rust Disk Trimming
 
 ### Perbaikan & Penyelarasan Tombol Pengaturan Penyimpanan

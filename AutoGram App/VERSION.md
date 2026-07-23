@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.97
+AutoGram Version: v2.1.98
 
 Current State:
-v2.1.97 Penguatan penuh seluruh tombol Manajemen Cache & Penyimpanan di Pengaturan. Penerapan standar ukuran biner presisi (1 GB = 1024 MB, 5 GB = 5120 MB), pengikatan fungsi pemangkasan disk cache backend Rust (`trim_disk_cache`), perbaikan tombol "Hitung Ukuran", "Pangkas Ke Batas", "Hapus Semua Cache", dan "Kosongkan Database Transfer" secara presisi 100%.
+v2.1.98 Perbaikan presisi alignment tata letak Slider Pembatas Ukuran Cache pada halaman Pengaturan. Mengubah layout flexbox statis menjadi persentase positioning presisi 100% (`left: ${pct}%`, `translateX(-50%)`) sehingga posisi tombol knob slider (thumb) selaras 1:1 tepat di atas teks label ukuran (Bebas, 1 GB, 2 GB, 5 GB, 10 GB, 20 GB, 50 GB, 100 GB).
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

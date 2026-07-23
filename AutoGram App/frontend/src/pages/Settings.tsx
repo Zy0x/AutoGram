@@ -974,44 +974,63 @@ export function Settings() {
                 </strong>
               </div>
 
-              <input
-                type="range"
-                min={0}
-                max={CACHE_LIMIT_STEPS.length - 1}
-                step={1}
-                value={CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) !== -1 ? CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) : 3}
-                onChange={(e) => {
-                  const idx = Number(e.target.value);
-                  handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5120);
-                }}
-                style={{
-                  width: '100%',
-                  accentColor: 'var(--primary)',
-                  cursor: 'pointer',
-                  height: '6px',
-                  borderRadius: '4px',
-                }}
-              />
+              {/* Custom Slider Container with Exact Step Ticks and Pixel-Perfect Label Alignment */}
+              <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={CACHE_LIMIT_STEPS.length - 1}
+                  step={1}
+                  value={CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) !== -1 ? CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) : 3}
+                  onChange={(e) => {
+                    const idx = Number(e.target.value);
+                    handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5120);
+                  }}
+                  style={{
+                    width: '100%',
+                    accentColor: 'var(--primary)',
+                    cursor: 'pointer',
+                    height: '6px',
+                    borderRadius: '4px',
+                    margin: 0,
+                    display: 'block',
+                  }}
+                />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {CACHE_LIMIT_LABELS.map((lbl, idx) => {
-                  const val = CACHE_LIMIT_STEPS[idx];
-                  const isSelected = val === cacheLimitMB;
-                  return (
-                    <span
-                      key={lbl}
-                      style={{
-                        color: isSelected ? 'var(--primary)' : 'inherit',
-                        fontWeight: isSelected ? 700 : 400,
-                        cursor: 'pointer',
-                        transition: 'color 0.2s ease',
-                      }}
-                      onClick={() => handleCacheLimitChange(val)}
-                    >
-                      {lbl}
-                    </span>
-                  );
-                })}
+                {/* Text Labels aligned 100% precisely under each tick */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '22px',
+                  marginTop: '10px',
+                }}>
+                  {CACHE_LIMIT_LABELS.map((lbl, idx) => {
+                    const val = CACHE_LIMIT_STEPS[idx];
+                    const isSelected = val === cacheLimitMB;
+                    const pct = (idx / (CACHE_LIMIT_STEPS.length - 1)) * 100;
+                    const transform = idx === 0 ? 'none' : idx === CACHE_LIMIT_STEPS.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)';
+
+                    return (
+                      <span
+                        key={lbl}
+                        style={{
+                          position: 'absolute',
+                          left: `${pct}%`,
+                          transform,
+                          fontSize: '0.73rem',
+                          color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
+                          fontWeight: isSelected ? 700 : 400,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'color 0.2s ease, font-weight 0.2s ease',
+                        }}
+                        onClick={() => handleCacheLimitChange(val)}
+                      >
+                        {lbl}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Cache Usage Progress Bar */}
