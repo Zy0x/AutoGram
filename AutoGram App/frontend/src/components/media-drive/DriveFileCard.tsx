@@ -129,7 +129,7 @@ function DriveFileCardInner({
   const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
   const [thumb, setThumb] = useState<string | null>(() => {
     if (cached) return cached;
-    if (thumbQuality === 'saver' && inlineThumb.startsWith('data:image/')) return inlineThumb;
+    if (inlineThumb.startsWith('data:image/')) return inlineThumb;
     return null;
   });
   const [isPlaceholderImg, setIsPlaceholderImg] = useState<boolean>(() => {
@@ -141,40 +141,28 @@ function DriveFileCardInner({
 
   useEffect(() => {
     setImgError(false);
-    if (!canThumb) return;
-    const hit = getCachedThumb(folderId, file.id);
-    if (hit !== undefined && hit !== null) {
-      setThumb(hit);
+    if (!canThumb) {
+      setThumb(null);
       setIsPlaceholderImg(false);
       setThumbLoading(false);
       return;
     }
-    const inline = file.thumb_data_url || file.thumbDataUrl;
-    if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
-      setThumb(String(inline));
-      setIsPlaceholderImg(true);
-      setThumbLoading(false);
-    } else {
-      setThumbLoading(true);
-    }
-  }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
-
-  // Clear painted thumb only when the card identity changes or quality switches to non-saver.
-  useEffect(() => {
     const hit = getCachedThumb(folderId, file.id);
     const inline = file.thumb_data_url || file.thumbDataUrl;
     if (hit) {
       setThumb(hit);
       setIsPlaceholderImg(false);
-    } else if (thumbQuality === 'saver' && inline && String(inline).startsWith('data:image/')) {
+      setThumbLoading(false);
+    } else if (inline && String(inline).startsWith('data:image/')) {
       setThumb(String(inline));
       setIsPlaceholderImg(true);
+      setThumbLoading(thumbQuality !== 'saver');
     } else {
       setThumb(null);
       setIsPlaceholderImg(false);
+      setThumbLoading(true);
     }
-    setImgError(false);
-  }, [folderId, file.id, file.thumb_data_url, file.thumbDataUrl, thumbQuality]);
+  }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
 
   // Streaming / late fills: thumb may arrive after the initial request resolved null,
   // or a sharper frame may replace a stripped placeholder.

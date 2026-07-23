@@ -39,17 +39,6 @@ export type ThumbSchedulerMetrics = {
   retries: number;
 };
 
-function base64ToBlob(base64: string, mimeType = 'image/jpeg'): Blob {
-  const parts = base64.split(';base64,');
-  const pureBase64 = parts.length > 1 ? parts[1] : parts[0];
-  const binary = atob(pureBase64);
-  const len = binary.length;
-  const buffer = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    buffer[i] = binary.charCodeAt(i);
-  }
-  return new Blob([buffer], { type: mimeType });
-}
 
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
@@ -65,15 +54,7 @@ class LRUThumbnailCache {
   }
 
   set(key: string, value: string): void {
-    let url = value;
-    if (value.startsWith('data:image/')) {
-      try {
-        const blob = base64ToBlob(value);
-        url = URL.createObjectURL(blob);
-      } catch (e) {
-        console.warn('Failed to convert base64 to Blob URL:', e);
-      }
-    }
+    const url = value;
 
     while (this.cache.size >= this.MAX_SIZE) {
       this.evictLRU();
@@ -233,7 +214,7 @@ if (typeof window !== 'undefined') {
 
 function softFailMs(): number {
   // Empty misses must retry quickly so stripped-first batches can re-fill.
-  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 600);
+  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 150);
 }
 
 
