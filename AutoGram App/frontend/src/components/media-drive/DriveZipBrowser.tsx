@@ -824,7 +824,6 @@ export function DriveZipBrowser({
                 ref={videoRef}
                 src={preview.dataUrl}
                 controls
-                autoPlay
                 loop={loop}
                 muted={muted}
                 className="drive-zip-img"
@@ -836,7 +835,7 @@ export function DriveZipBrowser({
           )}
           {preview?.kind === 'audio' && preview.dataUrl && (
             <div className="drive-zip-preview-empty">
-              <audio src={preview.dataUrl} controls autoPlay style={{ width: '100%', maxWidth: 400 }} />
+              <audio src={preview.dataUrl} controls style={{ width: '100%', maxWidth: 400 }} />
               <p title={preview.entry} style={{ marginTop: 12 }}>{entryLabel(preview.entry, cwd)}</p>
             </div>
           )}
