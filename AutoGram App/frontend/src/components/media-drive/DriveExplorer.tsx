@@ -112,7 +112,6 @@ export function DriveExplorer({
   hasMore,
   onLoadMore,
   progressiveReady = true,
-  scrollKey = 'default',
   initialScrollTop = 0,
   onScrollPositionChange,
   scaleHint,
@@ -147,16 +146,18 @@ export function DriveExplorer({
   onDragEndFile,
   onMediaDragPrime,
   thumbQuality,
+  scrollKey,
   onDisplayedIdsChange,
 }: Props) {
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
   const parentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRestoreRef = useRef<{ key: string; top: number } | null>(null);
   const lastScrollKeyRef = useRef<string | null>(null);
-  if (lastScrollKeyRef.current !== scrollKey) {
-    lastScrollKeyRef.current = scrollKey;
+  const activeScrollKey = scrollKey ?? 'default';
+  if (lastScrollKeyRef.current !== activeScrollKey) {
+    lastScrollKeyRef.current = activeScrollKey;
     pendingScrollRestoreRef.current = {
-      key: scrollKey,
+      key: activeScrollKey,
       top: Math.max(0, initialScrollTop || 0),
     };
   }
@@ -300,15 +301,16 @@ export function DriveExplorer({
   useLayoutEffect(() => {
     return () => {
       const el = parentRef.current;
-      if (el) onScrollPositionChange?.(scrollKey, el.scrollTop);
+      if (el && scrollKey) onScrollPositionChange?.(scrollKey, el.scrollTop);
     };
   }, [scrollKey, onScrollPositionChange]);
 
   useEffect(() => {
     const el = parentRef.current;
-    if (!el || !onScrollPositionChange) return;
+    if (!el || !onScrollPositionChange || !scrollKey) return;
+    const targetKey = scrollKey;
     let saveTimer: number | undefined;
-    const save = () => onScrollPositionChange(scrollKey, el.scrollTop);
+    const save = () => onScrollPositionChange(targetKey, el.scrollTop);
     const onScroll = () => {
       if (saveTimer != null) window.clearTimeout(saveTimer);
       saveTimer = window.setTimeout(save, 180);
@@ -322,11 +324,16 @@ export function DriveExplorer({
 
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).
+  // Also throttled on location/topic switches to keep switches snappy.
   useEffect(() => {
     if (!progressiveReady || !creds || loading || !displayed.length || isThumbsPaused()) return;
     let raf = 0;
     let cancelled = false;
+    let lastRun = 0;
     const run = () => {
+      const now = Date.now();
+      if (now - lastRun < 50) return; // throttle to ~20 runs/sec
+      lastRun = now;
       if (cancelled) return;
       const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
       let startIdx = 0;
