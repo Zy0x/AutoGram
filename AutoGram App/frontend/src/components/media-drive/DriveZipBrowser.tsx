@@ -382,6 +382,34 @@ export function DriveZipBrowser({
     }
   };
 
+  const handleExtractSingle = async (entryName: string) => {
+    setExtracting(entryName);
+    setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+    try {
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const basename = entryName.split('/').pop() || entryName;
+      const targetPath = await save({ defaultPath: basename });
+      if (!targetPath) return;
+
+      const res = await driveZipExtractEntry(
+        creds,
+        messageId,
+        folderId,
+        entryName,
+        targetPath,
+        passToUse
+      );
+      if (res?.status === 'success') {
+        setToastMsg(`Berhasil mengestrak ${basename} (${formatDriveBytes(res.bytesWritten)})`);
+      }
+    } catch (e: any) {
+      setError(`Gagal mengestrak file: ${String(e?.message || e)}`);
+    } finally {
+      setExtracting(null);
+    }
+  };
+
 
 
   const handleBatchExtract = async () => {
@@ -701,7 +729,7 @@ export function DriveZipBrowser({
               </div>
             )}
 
-            {selectedEntries.size > 0 && (
+            {selectedEntries.size > 0 ? (
               <button
                 type="button"
                 className="drive-zip-btn-extract"
@@ -711,7 +739,21 @@ export function DriveZipBrowser({
                 {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
                 Ekstrak ({selectedEntries.size}) Terpilih
               </button>
-            )}
+            ) : preview && preview.kind !== 'encrypted' ? (
+              <button
+                type="button"
+                className="drive-zip-btn-extract"
+                disabled={extracting === preview.entry}
+                onClick={() => void handleExtractSingle(preview.entry)}
+              >
+                {extracting === preview.entry ? (
+                  <Loader2 size={13} className="spin" />
+                ) : (
+                  <Download size={13} />
+                )}
+                Ekstrak File Ini
+              </button>
+            ) : null}
           </div>
         </div>
       )}
