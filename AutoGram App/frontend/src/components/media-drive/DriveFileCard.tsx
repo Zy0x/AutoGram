@@ -172,17 +172,21 @@ function DriveFileCardInner({
       const detail = (ev as CustomEvent).detail as
         | { key?: string; url?: string; isPlaceholder?: boolean }
         | undefined;
+      if (!detail?.key || !detail?.url) return;
+      const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
+      if (!detail.key.endsWith(targetSuffix)) return;
+
       const hit = getCachedThumb(folderId, file.id);
       if (hit) {
         setThumb(hit);
         setIsPlaceholderImg(false);
         setThumbLoading(false);
         setImgError(false);
-      } else if (detail?.url && detail?.isPlaceholder && thumbQuality !== 'saver') {
+      } else if (detail.isPlaceholder && thumbQuality !== 'saver') {
         // Transient blur placeholder: paint temporary preview without stopping loading state
         setThumb(detail.url);
         setIsPlaceholderImg(true);
-      } else if (detail?.url && !detail?.isPlaceholder) {
+      } else if (!detail.isPlaceholder) {
         // High-resolution thumbnail arrived directly from worker streaming event
         setThumb(detail.url);
         setIsPlaceholderImg(false);
