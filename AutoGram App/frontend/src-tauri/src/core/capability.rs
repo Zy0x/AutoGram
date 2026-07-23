@@ -57,8 +57,8 @@ pub fn capability_catalog() -> Vec<CapabilityEntry> {
         },
         CapabilityEntry {
             id: "telegram_drive_serve",
-            owner: BackendOwner::Hybrid,
-            description: "Drive list dual-path: Grammers when idle; warm RPC still Telethon",
+            owner: BackendOwner::Rust,
+            description: "Drive list/CRUD/thumbs/preview fully on Grammers (no Telethon)",
         },
         CapabilityEntry {
             id: "telegram_preview_download",
@@ -67,18 +67,18 @@ pub fn capability_catalog() -> Vec<CapabilityEntry> {
         },
         CapabilityEntry {
             id: "telegram_thumbs_topics",
-            owner: BackendOwner::Hybrid,
-            description: "Thumbs batch + forum topics: Grammers dual-path when session idle",
+            owner: BackendOwner::Rust,
+            description: "Thumbs batch + forum topics on Grammers",
         },
         CapabilityEntry {
             id: "telegram_media_studio",
-            owner: BackendOwner::Hybrid,
-            description: "Upload: Grammers-first orch; album/reencode still Telethon",
+            owner: BackendOwner::Rust,
+            description: "Studio upload/album on Grammers orch (reencode/remote still expanding)",
         },
         CapabilityEntry {
             id: "telegram_migration",
-            owner: BackendOwner::Python,
-            description: "Job migration daemon (Telethon until Grammers parity)",
+            owner: BackendOwner::Rust,
+            description: "Migration engine target: Grammers dual-session (port in progress)",
         },
         CapabilityEntry {
             id: "telegram_auth",
@@ -122,18 +122,18 @@ pub fn capability_catalog() -> Vec<CapabilityEntry> {
         },
         CapabilityEntry {
             id: "studio_orchestrator",
-            owner: BackendOwner::Hybrid,
-            description: "Rust orders items; Python studio-serve does upload steps",
+            owner: BackendOwner::Rust,
+            description: "Rust queue + Grammers upload only (no Python studio-serve)",
         },
         CapabilityEntry {
             id: "telegram_ops_trait",
             owner: BackendOwner::Rust,
-            description: "TelegramOps router + dual-path Telethon/Grammers",
+            description: "TelegramOps router locked to Grammers",
         },
         CapabilityEntry {
             id: "grammers_mtproto",
             owner: BackendOwner::Rust,
-            description: "Grammers: auth, dialogs, list media, upload, download, session import",
+            description: "Grammers: auth, dialogs, Drive CRUD, upload, download, session import",
         },
     ]
 }
@@ -143,11 +143,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn catalog_has_rust_and_python() {
+    fn catalog_is_rust_first() {
         let cat = capability_catalog();
         assert!(cat.iter().any(|c| c.owner == BackendOwner::Rust));
-        assert!(cat.iter().any(|c| c.owner == BackendOwner::Python));
-        assert!(cat.iter().any(|c| c.owner == BackendOwner::Hybrid));
         assert!(cat.iter().any(|c| c.id == "local_doc_preview"));
+        assert!(cat.iter().any(|c| c.id == "telegram_drive_serve"
+            && c.owner == BackendOwner::Rust));
+        // Telethon runtime domains must not remain Hybrid/Python after force cutover
+        assert!(!cat.iter().any(|c| c.id == "telegram_drive_serve"
+            && matches!(c.owner, BackendOwner::Python | BackendOwner::Hybrid)));
     }
 }

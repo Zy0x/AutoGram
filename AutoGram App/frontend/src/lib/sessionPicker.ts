@@ -14,18 +14,25 @@ export type SessionOption = {
 
 const ACTIVE_KEY = 'ACTIVE_SESSIONS';
 
+const MAX_ACTIVE_SESSIONS = 12;
+
 function readActiveTargets(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(ACTIVE_KEY) || '[]');
-    return Array.isArray(raw) ? raw.map(String).filter(Boolean).slice(0, 1) : [];
+    return Array.isArray(raw)
+      ? raw.map(String).filter(Boolean).slice(0, MAX_ACTIVE_SESSIONS)
+      : [];
   } catch {
     return [];
   }
 }
 
-/** Persist Active Target list (same key as Accounts page). */
+/** Persist Active Target list (same key as Accounts page). Multi-account allowed. */
 export function setActiveSessionTargets(names: string[]): void {
-  localStorage.setItem(ACTIVE_KEY, JSON.stringify(names.filter(Boolean).slice(0, 1)));
+  localStorage.setItem(
+    ACTIVE_KEY,
+    JSON.stringify(names.filter(Boolean).slice(0, MAX_ACTIVE_SESSIONS))
+  );
 }
 
 export function getActiveSessionTargets(): string[] {
@@ -109,9 +116,9 @@ export async function loadSelectableSessions(opts?: {
   const usable = all.filter((s) => isUsableStatus(s.status));
   let targets = readActiveTargets();
 
-  // No Active Target toggled yet → treat all usable as selectable
+  // No Active Target toggled yet → seed all usable (multi-account switch ready)
   if (!targets.length && usable.length && autoSeed) {
-    targets = [usable[0].name];
+    targets = usable.map((s) => s.name).slice(0, MAX_ACTIVE_SESSIONS);
     setActiveSessionTargets(targets);
   }
 

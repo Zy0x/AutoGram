@@ -80,6 +80,14 @@ def is_debug_enabled() -> bool:
     return on
 
 
+def backend_label() -> str:
+    """Which Telegram companion is active for this process (env dual-path)."""
+    v = (os.environ.get("AUTOGRAM_TELEGRAM_BACKEND") or "telethon").strip().lower()
+    if v in ("grammers", "rust", "grammers_client"):
+        return "grammers"
+    return "telethon"
+
+
 def invalidate_debug_cache() -> None:
     global _cache_enabled, _cache_t
     _cache_enabled = None
@@ -145,6 +153,8 @@ def dlog(
         "epoch": round(time.time(), 3),
         "level": (level or "INFO").upper(),
         "scope": scope or "app",
+        "layer": "python",
+        "tg_backend": backend_label(),
         "session": _session_id or None,
         "phase": phase or None,
         "msg": message,

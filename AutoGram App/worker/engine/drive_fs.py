@@ -3444,23 +3444,29 @@ def _disk_thumb_data_url(
             data = f.read()
         return f"data:image/jpeg;base64,{base64.b64encode(data).decode('ascii')}"
         
-    # 2. Honor empty markers within their 30-minute TTL
+    # 2. Honor empty markers briefly (must match fetch-path TTL).
+    # 30 minutes left cold-fail cards blank after transient TG/ffmpeg errors.
     import time
     for stale in (f"{key}.empty", f"{key}.empty2"):
         sp = os.path.join(THUMB_DIR, stale)
         if os.path.isfile(sp):
             try:
-                if time.time() - os.path.getmtime(sp) < 1800:
-                    return ""  # Cached empty marker -> return empty string to indicate "no thumbnail"
+                age = time.time() - os.path.getmtime(sp)
+                if age < 180:
+                    return ""  # Cached empty marker -> empty string ("no thumbnail")
+                # Expired — drop so the next batch can retry
+                os.remove(sp)
             except OSError:
                 pass
                 
-    # 3. Honor nosample markers within their 2-hour TTL
+    # 3. Honor nosample markers within the same short TTL as _thumb_nosample_active
     nsp = _thumb_nosample_path(_stream_sample_base_key(key))
     if os.path.isfile(nsp):
         try:
-            if time.time() - os.path.getmtime(nsp) < 2 * 3600:
-                return ""  # Cached nosample marker -> return empty string to indicate "no thumbnail"
+            age = time.time() - os.path.getmtime(nsp)
+            if age < 180:
+                return ""  # Cached nosample marker
+            os.remove(nsp)
         except OSError:
             pass
             

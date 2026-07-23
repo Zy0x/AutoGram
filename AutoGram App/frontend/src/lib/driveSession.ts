@@ -1,7 +1,9 @@
 /**
- * Persistent Drive worker session — one Telethon connection for the Media Studio tab.
- * Avoids multi-second reconnect cost on every list/thumb call.
- * Supports Ghost Session mode for concurrent media preview & streaming during uploads.
+ * Drive session boundary.
+ *
+ * FORCE RUST: interactive Drive no longer spawns Python Telethon `drive-serve`.
+ * Grammers (Tauri `tg_*`) owns all MTProto. This module still exposes readiness
+ * helpers so UI boot paths stay stable, and can kill leftover Python workers.
  */
 import { invoke } from '@tauri-apps/api/core';
 import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
@@ -10,6 +12,9 @@ import { spawnDaemonJob, killWorkerJob, type JobChild } from './jobProcess';
 import type { DriveCredentials } from './driveApi';
 import { detectTauriRuntime } from './platform';
 import { isDebugMode } from './debugMode';
+
+/** Hard cutover: never start Telethon drive-serve on desktop. */
+export const FORCE_RUST_DRIVE = true;
 
 export const DRIVE_SERVE_JOB_ID_BASE = 992000;
 export const DRIVE_SERVE_JOB_ID = 991003;
@@ -144,6 +149,10 @@ async function hasTransferLease(creds: DriveCredentials): Promise<boolean> {
  * folders, peers, and Saved Messages between accounts during a rapid switch.
  */
 export function isDriveSessionReadyFor(creds: DriveCredentials | null | undefined) {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    // Virtual ready: Grammers has no long-lived Python worker to warm.
+    return !!creds && (!activeCredsKey || activeCredsKey === credKey(creds));
+  }
   return !!creds && ready && activeCredsKey === credKey(creds);
 }
 
@@ -244,6 +253,7 @@ async function writeStdin(line: string) {
 }
 
 export function isDriveSessionReady() {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) return true;
   return ready;
 }
 
@@ -747,6 +757,24 @@ export async function ensureDriveSession(
   creds: DriveCredentials,
   needPreview: boolean = false
 ): Promise<boolean> {
+  // FORCE RUST: mark virtual session ready; kill any leftover Python drive-serve.
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    cancelScheduledDriveSessionStop();
+    const key = credKey(creds);
+    if (child || apiChild || (ready && activeCredsKey && activeCredsKey !== key)) {
+      try {
+        await stopDriveSession();
+      } catch {
+        /* ignore */
+      }
+    }
+    activeCredsKey = key;
+    ready = true;
+    mode = 'main';
+    ghostReady = false;
+    return true;
+  }
+
   const run = async () => {
     cancelScheduledDriveSessionStop();
 
@@ -934,6 +962,13 @@ export async function driveSessionCallFor(
   params: Record<string, any> = {},
   timeoutMs = 120000
 ): Promise<any> {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    const err = new Error(
+      `Telethon drive-serve dinonaktifkan (cmd=${cmd}). Gunakan Rust + Grammers.`
+    );
+    (err as any).code = 'TELETHON_DISABLED';
+    throw err;
+  }
   const expected = credKey(creds);
   // Preview/stream RPCs may need ghost during transfer; list/bootstrap stay on main.
   const previewCmds = new Set([

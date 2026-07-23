@@ -138,7 +138,63 @@ fn session_operation_lock(session_name: &str) -> Arc<tokio::sync::RwLock<()>> {
     )
 }
 
-/// Ensure Grammers JSON session file exists; import from Telethon when needed.
+/// Serialize connect/reconnect so concurrent callers never dual-open two
+/// SenderPools for the same session (that races AUTH_KEY and drops the pool).
+fn session_connect_lock(session_name: &str) -> Arc<tokio::sync::Mutex<()>> {
+    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> = OnceLock::new();
+    let locks = LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = locks.lock();
+    Arc::clone(
+        guard
+            .entry(session_name.to_string())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(()))),
+    )
+}
+
+/// True when the live SenderPool is dead / socket closed and a reconnect can help.
+fn is_pool_or_transport_error(err: &TgError) -> bool {
+    match err.code() {
+        TgErrorCode::Cancelled | TgErrorCode::Network | TgErrorCode::Io | TgErrorCode::Timeout | TgErrorCode::FloodWait => {
+            true
+        }
+        _ => {
+            let m = err.to_string().to_ascii_lowercase();
+            m.contains("sender pool")
+                || m.contains("pool stopped")
+                || m.contains("request dropped")
+                || m.contains("read 0 bytes")
+                || m.contains("connection reset")
+                || m.contains("broken pipe")
+                || m.contains("connection closed")
+                || m.contains("os error 10054")
+                || m.contains("os error 104")
+        }
+    }
+}
+
+/// Only these errors must flush the cached client permanently (stale auth key).
+fn is_fatal_auth_error(err: &TgError) -> bool {
+    matches!(
+        err.code(),
+        TgErrorCode::NotAuthorized | TgErrorCode::Auth | TgErrorCode::SessionMissing
+    ) || {
+        let m = err.to_string().to_ascii_lowercase();
+        m.contains("auth_key_unregistered")
+            || m.contains("session_revoked")
+            || m.contains("user_deactivated")
+            || m.contains("session_expired")
+    }
+}
+
+fn grammers_file_has_auth_key(path: &Path) -> bool {
+    read_session_data(path)
+        .map(|d| d.dc_options.values().any(|dc| dc.auth_key.is_some()))
+        .unwrap_or(false)
+}
+
+/// Ensure Grammers JSON session file exists; import from Telethon **only when
+/// Grammers has no auth_key**. Never overwrite a live Grammers login with a
+/// stale Telethon `.session` (that caused "not authorized" after successful auth).
 pub async fn ensure_grammers_session(
     sessions_dir: &Path,
     session_name: &str,
@@ -147,26 +203,23 @@ pub async fn ensure_grammers_session(
     let g_path = grammers_session_path(sessions_dir, session_name);
     let t_path = telethon_session_path(sessions_dir, session_name);
 
-    let needs_import = if t_path.is_file() {
-        if !g_path.is_file() {
-            true
-        } else {
-            let t_mtime = std::fs::metadata(&t_path).and_then(|m| m.modified()).ok();
-            let g_mtime = std::fs::metadata(&g_path).and_then(|m| m.modified()).ok();
-            let t_newer = match (t_mtime, g_mtime) {
-                (Some(tm), Some(gm)) => tm > gm,
-                _ => false,
-            };
-            let no_auth = read_session_data(&g_path)
-                .map(|d| d.dc_options.values().all(|dc| dc.auth_key.is_none()))
-                .unwrap_or(true);
-            t_newer || no_auth
-        }
-    } else {
-        false
-    };
+    if g_path.is_file() && grammers_file_has_auth_key(&g_path) {
+        tg_log::debug(
+            BACKEND,
+            "session_ready",
+            format!(
+                "grammers_session={}",
+                g_path.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+            ),
+        );
+        return Ok(g_path);
+    }
 
-    if import_if_missing && needs_import {
+    let needs_import = import_if_missing
+        && t_path.is_file()
+        && (!g_path.is_file() || !grammers_file_has_auth_key(&g_path));
+
+    if needs_import {
         tg_log::info(
             BACKEND,
             "session_import_start",
@@ -181,14 +234,6 @@ pub async fn ensure_grammers_session(
     }
 
     if g_path.is_file() {
-        tg_log::debug(
-            BACKEND,
-            "session_ready",
-            format!(
-                "grammers_session={}",
-                g_path.file_name().and_then(|s| s.to_str()).unwrap_or("?")
-            ),
-        );
         return Ok(g_path);
     }
     // Keep new sessions in memory until SenderPool negotiates an auth key.
@@ -258,6 +303,33 @@ struct CachedLiveClient {
 fn get_cached_user_profile(session_name: &str) -> Option<UserProfile> {
     let clients = live_clients().lock();
     clients.get(session_name).and_then(|c| c.user_profile.clone())
+}
+
+/// True if this session already proved authorized (skip extra is_authorized RPCs).
+pub(crate) fn session_known_authorized(session_name: &str) -> bool {
+    get_cached_user_profile(session_name).is_some()
+}
+
+async fn ensure_authorized(client: &Client, session_name: &str) -> Result<(), TgError> {
+    if session_known_authorized(session_name) {
+        return Ok(());
+    }
+    if client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+        // Soft-mark: profile may still be empty; insert placeholder so next calls skip
+        // full is_authorized until get_me fills real profile.
+        if get_cached_user_profile(session_name).is_none() {
+            set_cached_user_profile(
+                session_name,
+                UserProfile {
+                    id: 0,
+                    first_name: None,
+                    username: None,
+                },
+            );
+        }
+        return Ok(());
+    }
+    Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"))
 }
 
 fn set_cached_user_profile(session_name: &str, profile: UserProfile) {
@@ -335,45 +407,175 @@ pub(crate) async fn with_client<F, T>(
     f: F,
 ) -> Result<T, TgError>
 where
-    F: for<'a> FnOnce(&'a Client) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>>,
+    F: for<'a> FnOnce(
+        &'a Client,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<T, TgError>> + Send + 'a>,
+    >,
 {
     // Concurrent readers share the MTProto SenderPool; exclusive writers (login/delete) block.
     let operation_lock = session_operation_lock(&identity.session);
     let _operation_guard = operation_lock.read().await;
-    let cached = {
-        let clients = live_clients().lock();
-        clients
-            .get(&identity.session)
-            .filter(|entry| entry.api_id == identity.api_id)
-            .map(|entry| Arc::clone(&entry.live))
-    };
-    let live = match cached {
-        Some(live) => live,
-        None => {
-            disconnect_cached_session(&identity.session);
-            let live = Arc::new(connect_client(sessions_dir, identity, import_if_missing).await?);
-            live_clients().lock().insert(
-                identity.session.clone(),
-                CachedLiveClient {
-                    api_id: identity.api_id,
-                    live: Arc::clone(&live),
-                    user_profile: None,
-                },
-            );
-            live
-        }
-    };
+
+    let live = obtain_live_client(sessions_dir, identity, import_if_missing, false).await?;
     let result = f(&live.client).await;
-    // Persist peer cache / auth updates
+
+    // Best-effort persist (peer cache / auth updates).
     if let Err(e) = persist_memory_session(&live.session, &live.session_path) {
         tg_log::warn(BACKEND, "session_persist", e.to_string());
     }
-    // Disconnect cached session on error (especially NotAuthorized) so stale
-    // auth keys are immediately flushed for subsequent calls.
-    if result.is_err() {
-        disconnect_cached_session(&identity.session);
+
+    match &result {
+        Ok(_) => {}
+        Err(e) if is_fatal_auth_error(e) => {
+            // Stale/revoked auth — drop cache so next call re-imports or fails cleanly.
+            disconnect_cached_session(&identity.session);
+            tg_log::warn(
+                BACKEND,
+                "client_fatal_auth",
+                format!("{} {}", tg_log::session_label(&identity.session), e),
+            );
+        }
+        Err(e) if is_pool_or_transport_error(e) => {
+            // Dead SenderPool / TCP closed — drop so the *next* call reconnects.
+            // Do NOT disconnect on FloodWait / PeerNotFound (that killed concurrent
+            // Studio thumbs while list_dialogs raced and failed).
+            disconnect_cached_session(&identity.session);
+            tg_log::warn(
+                BACKEND,
+                "client_pool_reset",
+                format!("{} {}", tg_log::session_label(&identity.session), e),
+            );
+        }
+        Err(e) => {
+            // Record FLOOD_WAIT so preview/warm stop hammering Telegram.
+            super::session_rate::note_error(&identity.session, e);
+        }
     }
     result
+}
+
+/// Re-run an async MTProto op when the SenderPool dies mid-request.
+///
+/// Each `op` invocation must call `with_client` fresh so a rebuilt pool is used.
+/// Captures that are not `Copy` must be `.clone()`d inside the `FnMut` body.
+pub(crate) async fn with_pool_retry<T, Fut, F>(
+    session_name: &str,
+    mut op: F,
+) -> Result<T, TgError>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, TgError>>,
+{
+    const MAX_ATTEMPTS: u32 = 3;
+    let mut last_err: Option<TgError> = None;
+    for attempt in 1..=MAX_ATTEMPTS {
+        match op().await {
+            Ok(v) => return Ok(v),
+            Err(e) if is_pool_or_transport_error(&e) && attempt < MAX_ATTEMPTS => {
+                if let Some(flood) = e.flood_wait_secs() {
+                    tg_log::warn(
+                        BACKEND,
+                        "flood_wait_sleep",
+                        format!(
+                            "{} attempt={}/{} flood_wait={flood}s before reconnect",
+                            tg_log::session_label(session_name),
+                            attempt,
+                            MAX_ATTEMPTS,
+                        ),
+                    );
+                    tokio::time::sleep(Duration::from_secs(flood as u64)).await;
+                }
+                disconnect_cached_session(session_name);
+                tg_log::warn(
+                    BACKEND,
+                    "client_reconnect",
+                    format!(
+                        "{} attempt={}/{} err={}",
+                        tg_log::session_label(session_name),
+                        attempt,
+                        MAX_ATTEMPTS,
+                        e
+                    ),
+                );
+                last_err = Some(e);
+                tokio::time::sleep(Duration::from_millis(80 * u64::from(attempt))).await;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last_err.unwrap_or_else(|| {
+        TgError::new(TgErrorCode::Network, "Grammers client reconnect exhausted")
+    }))
+}
+
+/// Fetch a cached live client or connect (serialized). When `force_fresh` is
+/// true the cache is dropped first so a dead SenderPool is never reused.
+pub(crate) async fn obtain_live_client(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    import_if_missing: bool,
+    force_fresh: bool,
+) -> Result<Arc<LiveClient>, TgError> {
+    if force_fresh {
+        disconnect_cached_session(&identity.session);
+    } else {
+        let cached = {
+            let clients = live_clients().lock();
+            clients
+                .get(&identity.session)
+                .filter(|entry| entry.api_id == identity.api_id)
+                .map(|entry| Arc::clone(&entry.live))
+        };
+        if let Some(live) = cached {
+            return Ok(live);
+        }
+    }
+
+    let connect_lock = session_connect_lock(&identity.session);
+    let _connect_guard = connect_lock.lock().await;
+
+    // Double-check after waiting for the connect mutex (another task may have
+    // already rebuilt the pool while we queued).
+    if !force_fresh {
+        let cached = {
+            let clients = live_clients().lock();
+            clients
+                .get(&identity.session)
+                .filter(|entry| entry.api_id == identity.api_id)
+                .map(|entry| Arc::clone(&entry.live))
+        };
+        if let Some(live) = cached {
+            return Ok(live);
+        }
+    } else {
+        // Still force-fresh after lock: another reconnect may have inserted a
+        // brand-new pool — prefer that over dual-open.
+        let cached = {
+            let clients = live_clients().lock();
+            clients
+                .get(&identity.session)
+                .filter(|entry| entry.api_id == identity.api_id)
+                .map(|entry| Arc::clone(&entry.live))
+        };
+        if let Some(live) = cached {
+            // Only reuse if it was inserted after our disconnect (race-safe enough
+            // for reconnect storms). Fresh Arc from peer is fine.
+            return Ok(live);
+        }
+    }
+
+    disconnect_cached_session(&identity.session);
+    let live = Arc::new(connect_client(sessions_dir, identity, import_if_missing).await?);
+    live_clients().lock().insert(
+        identity.session.clone(),
+        CachedLiveClient {
+            api_id: identity.api_id,
+            live: Arc::clone(&live),
+            user_profile: None,
+        },
+    );
+    Ok(live)
 }
 
 /// Blocking wrappers for Tauri `spawn_blocking` / sync call sites.
@@ -469,51 +671,123 @@ pub fn auth_status_blocking(
 ) -> Result<AuthStatus, TgError> {
     let rt = runtime()?;
     let session_name = identity.session.clone();
+    // Offline fast-fail with clear message when no key on disk
+    let g_path = grammers_session_path(sessions_dir, &identity.session);
+    let t_path = telethon_session_path(sessions_dir, &identity.session);
+    if !grammers_file_has_auth_key(&g_path) && !t_path.is_file() {
+        return Ok(AuthStatus {
+            backend: BACKEND.to_string(),
+            authorized: false,
+            session: session_name,
+            user: None,
+        });
+    }
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, move |client| {
-            let session_name = session_name.clone();
-            Box::pin(async move {
-                let authorized = client.is_authorized().await.map_err(|e| map_invocation(&e))?;
-                let mut profile = None;
-                if authorized {
-                    if let Some(cached) = get_cached_user_profile(&session_name) {
-                        profile = Some(cached);
-                    } else {
-                        match client.get_me().await {
-                            Ok(u) => {
-                                let p = user_profile_from(&u);
-                                set_cached_user_profile(&session_name, p.clone());
-                                profile = Some(p);
-                            }
-                            Err(e) => {
-                                tg_log::warn(BACKEND, "get_me", map_invocation(&e).to_string());
+        // One reconnect if cached client is stale after login in another path
+        let mut attempt = 0;
+        loop {
+            attempt += 1;
+            let result = with_client(sessions_dir, identity, true, {
+                let session_name = session_name.clone();
+                move |client| {
+                    let session_name = session_name.clone();
+                    Box::pin(async move {
+                        let authorized =
+                            client.is_authorized().await.map_err(|e| map_invocation(&e))?;
+                        let mut profile = None;
+                        if authorized {
+                            if let Some(cached) = get_cached_user_profile(&session_name) {
+                                profile = Some(cached);
+                            } else {
+                                match client.get_me().await {
+                                    Ok(u) => {
+                                        let p = user_profile_from(&u);
+                                        set_cached_user_profile(&session_name, p.clone());
+                                        profile = Some(p);
+                                    }
+                                    Err(e) => {
+                                        tg_log::warn(
+                                            BACKEND,
+                                            "get_me",
+                                            map_invocation(&e).to_string(),
+                                        );
+                                    }
+                                }
                             }
                         }
-                    }
+                        tg_log::info(
+                            BACKEND,
+                            "auth_status",
+                            format!(
+                                "{} authorized={} user={}",
+                                tg_log::session_label(&session_name),
+                                authorized,
+                                profile
+                                    .as_ref()
+                                    .map(|p| p.id.to_string())
+                                    .unwrap_or_else(|| "-".into())
+                            ),
+                        );
+                        Ok(AuthStatus {
+                            backend: BACKEND.to_string(),
+                            authorized,
+                            session: session_name,
+                            user: profile,
+                        })
+                    })
                 }
-                tg_log::info(
-                    BACKEND,
-                    "auth_status",
-                    format!(
-                        "{} authorized={} user={}",
-                        tg_log::session_label(&session_name),
-                        authorized,
-                        profile
-                            .as_ref()
-                            .map(|p| p.id.to_string())
-                            .unwrap_or_else(|| "-".into())
-                    ),
-                );
-                Ok(AuthStatus {
-                    backend: BACKEND.to_string(),
-                    authorized,
-                    session: session_name,
-                    user: profile,
-                })
             })
-        })
-        .await
+            .await;
+            match result {
+                Ok(status) if status.authorized || attempt >= 2 => return Ok(status),
+                Ok(status) => {
+                    // Not authorized — drop cache and retry once (post-login race)
+                    disconnect_cached_session(&identity.session);
+                    tg_log::warn(
+                        BACKEND,
+                        "auth_status_retry",
+                        format!(
+                            "{} authorized=false attempt={}",
+                            tg_log::session_label(&identity.session),
+                            attempt
+                        ),
+                    );
+                    let _ = status;
+                }
+                Err(e) if attempt < 2 => {
+                    disconnect_cached_session(&identity.session);
+                    tg_log::warn(BACKEND, "auth_status_retry_err", e.to_string());
+                }
+                Err(e) => return Err(e),
+            }
+        }
     })
+}
+
+/// Drop live MTProto client for a session (account switch without dual-open).
+pub fn disconnect_session_blocking(session_name: &str) {
+    disconnect_cached_session(session_name);
+    clear_cached_user_profile(session_name);
+    // Drop activity tokens so exclusive workers are not blocked by a dead UI.
+    let n = super::session_guard::release_all_for_session(session_name);
+    if n > 0 {
+        tg_log::info(
+            BACKEND,
+            "session_guard_cleared",
+            format!(
+                "{} released_activities={}",
+                tg_log::session_label(session_name),
+                n
+            ),
+        );
+    }
+}
+
+fn clear_cached_user_profile(session_name: &str) {
+    let mut clients = live_clients().lock();
+    if let Some(c) = clients.get_mut(session_name) {
+        c.user_profile = None;
+    }
 }
 
 pub fn list_dialogs_blocking(
@@ -524,43 +798,57 @@ pub fn list_dialogs_blocking(
     let rt = runtime()?;
     let limit = limit.clamp(1, 500);
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
-                    return Err(TgError::new(
-                        TgErrorCode::NotAuthorized,
-                        "not authorized",
-                    ));
-                }
-                let mut out = Vec::new();
-                let mut dialogs = client.iter_dialogs();
-                while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
-                    let peer = dialog.peer();
-                    let id = peer_id_i64(peer.id());
-                    let title = peer
-                        .name()
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| id.to_string());
-                    out.push(DialogEntry {
-                        id,
-                        title,
-                        is_user: matches!(peer, grammers_client::peer::Peer::User(_)),
-                        is_channel: matches!(
-                            peer,
-                            grammers_client::peer::Peer::Channel(_)
-                        ),
-                        is_group: matches!(peer, grammers_client::peer::Peer::Group(_)),
-                    });
-                    if out.len() >= limit {
-                        break;
+        // Auto-reconnect on "sender pool stopped" / "I/O: read 0 bytes"
+        let session_name = identity.session.clone();
+        with_pool_retry(&identity.session, || {
+            let session_name = session_name.clone();
+            with_client(sessions_dir, identity, true, |client| {
+                Box::pin(async move {
+                    ensure_authorized(client, &session_name).await?;
+                    let mut out = Vec::new();
+                    let mut dialogs = client.iter_dialogs();
+                    while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
+                        let peer = dialog.peer();
+                        let id = peer_id_i64(peer.id());
+                        let title = peer
+                            .name()
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| id.to_string());
+                        let (is_user, is_channel, is_group, is_forum) = match &peer {
+                            grammers_client::peer::Peer::User(_) => (true, false, false, false),
+                            grammers_client::peer::Peer::Channel(ch) => {
+                                // Broadcast channel
+                                (false, true, false, ch.raw.forum)
+                            }
+                            grammers_client::peer::Peer::Group(g) => {
+                                use grammers_client::tl::enums::Chat as C;
+                                let forum = match &g.raw {
+                                    C::Channel(c) => c.forum,
+                                    _ => false,
+                                };
+                                // Megagroup → treat as group (is_channel false for UI folders)
+                                (false, false, true, forum)
+                            }
+                        };
+                        out.push(DialogEntry {
+                            id,
+                            title,
+                            is_user,
+                            is_channel,
+                            is_group,
+                            is_forum,
+                        });
+                        if out.len() >= limit {
+                            break;
+                        }
                     }
-                }
-                tg_log::info(
-                    BACKEND,
-                    "list_dialogs",
-                    format!("count={} limit={}", out.len(), limit),
-                );
-                Ok(out)
+                    tg_log::info(
+                        BACKEND,
+                        "list_dialogs",
+                        format!("count={} limit={}", out.len(), limit),
+                    );
+                    Ok(out)
+                })
             })
         })
         .await
@@ -581,32 +869,44 @@ pub fn list_dialog_filters_blocking(
 ) -> Result<Vec<DialogFilterRow>, TgError> {
     let rt = runtime()?;
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            Box::pin(async move {
-                let raw: grammers_client::tl::types::messages::DialogFilters = client
-                    .invoke(&grammers_client::tl::functions::messages::GetDialogFilters {})
-                    .await
-                    .map_err(|e| map_invocation(&e))?
-                    .into();
-                let mut rows = vec![DialogFilterRow {
-                    id: 0,
-                    title: "Semua Chat".into(),
-                    kind: "all".into(),
-                }];
-                for filter in raw.filters {
-                    match filter {
-                        grammers_client::tl::enums::DialogFilter::Filter(f) => {
-                            let grammers_client::tl::enums::TextWithEntities::Entities(title) = f.title;
-                            rows.push(DialogFilterRow { id: f.id, title: title.text, kind: "folder".into() });
+        with_pool_retry(&identity.session, || {
+            with_client(sessions_dir, identity, true, |client| {
+                Box::pin(async move {
+                    let raw: grammers_client::tl::types::messages::DialogFilters = client
+                        .invoke(&grammers_client::tl::functions::messages::GetDialogFilters {})
+                        .await
+                        .map_err(|e| map_invocation(&e))?
+                        .into();
+                    let mut rows = vec![DialogFilterRow {
+                        id: 0,
+                        title: "Semua Chat".into(),
+                        kind: "all".into(),
+                    }];
+                    for filter in raw.filters {
+                        match filter {
+                            grammers_client::tl::enums::DialogFilter::Filter(f) => {
+                                let grammers_client::tl::enums::TextWithEntities::Entities(title) =
+                                    f.title;
+                                rows.push(DialogFilterRow {
+                                    id: f.id,
+                                    title: title.text,
+                                    kind: "folder".into(),
+                                });
+                            }
+                            grammers_client::tl::enums::DialogFilter::Chatlist(f) => {
+                                let grammers_client::tl::enums::TextWithEntities::Entities(title) =
+                                    f.title;
+                                rows.push(DialogFilterRow {
+                                    id: f.id,
+                                    title: title.text,
+                                    kind: "shared".into(),
+                                });
+                            }
+                            grammers_client::tl::enums::DialogFilter::Default => {}
                         }
-                        grammers_client::tl::enums::DialogFilter::Chatlist(f) => {
-                            let grammers_client::tl::enums::TextWithEntities::Entities(title) = f.title;
-                            rows.push(DialogFilterRow { id: f.id, title: title.text, kind: "shared".into() });
-                        }
-                        grammers_client::tl::enums::DialogFilter::Default => {}
                     }
-                }
-                Ok(rows)
+                    Ok(rows)
+                })
             })
         })
         .await
@@ -692,6 +992,9 @@ pub struct MediaFileRow {
     pub has_thumb: bool,
     pub as_document: bool,
     pub backend: String,
+    /// Inline stripped thumb (data:image/…) — paints grid without a second RPC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thumb_data_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -716,6 +1019,13 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
     let caption = msg.text().trim();
     // Size before match: Media::size borrows self; pattern binds move Photo/Document.
     let size = media.size().unwrap_or(0) as u64;
+    // Telegram-style: embed mini-thumb now so UI never waits on thumbs_batch for first paint.
+    let thumb_data_url = super::grammers_media::stripped_thumb_data_url(&media);
+    let has_thumb = thumb_data_url.is_some()
+        || matches!(
+            &media,
+            Media::Photo(_) | Media::Document(_) | Media::Sticker(_)
+        );
     match media {
         Media::Photo(_p) => {
             let name = if !caption.is_empty() {
@@ -731,9 +1041,10 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                 mime_type: Some("image/jpeg".into()),
                 icon_type: "image".into(),
                 created_at: created,
-                has_thumb: true,
+                has_thumb,
                 as_document: false,
                 backend: BACKEND.into(),
+                thumb_data_url,
             })
         }
         Media::Document(doc) => {
@@ -768,9 +1079,10 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                 mime_type: mime,
                 icon_type: icon.into(),
                 created_at: created,
-                has_thumb: true,
+                has_thumb,
                 as_document: true,
                 backend: BACKEND.into(),
+                thumb_data_url,
             })
         }
         Media::Sticker(_) => Some(MediaFileRow {
@@ -781,15 +1093,74 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
             mime_type: Some("image/webp".into()),
             icon_type: "image".into(),
             created_at: created,
-            has_thumb: true,
+            has_thumb,
             as_document: true,
             backend: BACKEND.into(),
+            thumb_data_url,
         }),
         _ => None,
     }
 }
 
-/// List media messages in a chat (newest first). Dual-path alternative to drive list_files.
+/// Forward messages source → dest (no delete). Returns count forwarded.
+pub fn forward_messages_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    source_chat: &str,
+    dest_chat: &str,
+    message_ids: &[i64],
+) -> Result<usize, TgError> {
+    let rt = runtime()?;
+    let src = source_chat.to_string();
+    let dst = dest_chat.to_string();
+    let ids: Vec<i32> = message_ids
+        .iter()
+        .filter(|&&id| id > 0)
+        .map(|&id| id as i32)
+        .take(100)
+        .collect();
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let source = resolve_peer(client, &src).await?;
+                let dest = resolve_peer(client, &dst).await?;
+                let forwarded = client
+                    .forward_messages(dest, &ids, source)
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
+                Ok(forwarded.iter().filter(|m| m.is_some()).count())
+            })
+        })
+        .await
+    })
+}
+
+fn message_topic_id(msg: &grammers_client::message::Message) -> Option<i64> {
+    use grammers_client::tl::enums::MessageReplyHeader as H;
+    match msg.reply_header()? {
+        H::Header(h) => {
+            if let Some(top) = h.reply_to_top_id {
+                return Some(top as i64);
+            }
+            // Topic root posts often only set reply_to_msg_id == topic id
+            if h.forum_topic {
+                if let Some(mid) = h.reply_to_msg_id {
+                    return Some(mid as i64);
+                }
+            }
+            h.reply_to_msg_id.map(|m| m as i64)
+        }
+        _ => None,
+    }
+}
+
+/// List media messages in a chat (newest first). Optional forum `topic_id` filter.
 pub fn list_media_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -797,61 +1168,97 @@ pub fn list_media_blocking(
     limit: usize,
     offset_id: Option<i64>,
 ) -> Result<ListMediaResult, TgError> {
+    list_media_blocking_topic(sessions_dir, identity, chat_id, limit, offset_id, None)
+}
+
+pub fn list_media_blocking_topic(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
     let rt = runtime()?;
-    let limit = limit.clamp(1, 100);
+    let limit = limit.clamp(1, 150);
     let chat = chat_id.to_string();
     let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
         None
     } else {
         chat.parse().ok()
     };
+    let topic_filter = topic_id.filter(|t| *t > 0);
+    // Over-fetch when filtering by topic so a page still fills
+    let scan_limit = if topic_filter.is_some() {
+        (limit * 4).clamp(40, 250)
+    } else {
+        limit + 12
+    };
+    let session_name = identity.session.clone();
 
     rt.block_on(async {
-        with_client(sessions_dir, identity, true, |client| {
-            Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
-                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
-                }
-                let peer = resolve_peer(client, &chat).await?;
-                let mut iter = client.iter_messages(peer).limit(limit + 8);
-                // offset_id: exclusive start (fetch older than this message id)
-                if let Some(oid) = offset_id {
-                    if oid > 0 {
-                        iter = iter.offset_id(oid as i32);
-                    }
-                }
-                let mut files = Vec::new();
-                let mut last_id: Option<i64> = None;
-                while let Some(msg) = iter.next().await.map_err(|e| map_invocation(&e))? {
-                    last_id = Some(msg.id() as i64);
-                    if let Some(row) = media_to_row(&msg, folder_id) {
-                        files.push(row);
-                        if files.len() >= limit {
-                            break;
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            let session_name = session_name.clone();
+            with_client(sessions_dir, identity, true, |client| {
+                Box::pin(async move {
+                    ensure_authorized(client, &session_name).await?;
+                    let peer = resolve_peer(client, &chat).await?;
+                    let mut iter = client.iter_messages(peer).limit(scan_limit);
+                    if let Some(oid) = offset_id {
+                        if oid > 0 {
+                            iter = iter.offset_id(oid as i32);
                         }
                     }
-                }
-                let has_more = files.len() >= limit;
-                let next_offset_id = if has_more {
-                    files.last().map(|f| f.id).or(last_id)
-                } else {
-                    None
-                };
-                tg_log::info(
-                    BACKEND,
-                    "list_media",
-                    format!("chat={} n={} has_more={}", chat, files.len(), has_more),
-                );
-                Ok(ListMediaResult {
-                    status: "success".into(),
-                    folder_id,
-                    total: files.len(),
-                    page_size: limit,
-                    has_more,
-                    next_offset_id,
-                    files,
-                    backend: BACKEND.into(),
-                    cached: false,
+                    let mut files = Vec::new();
+                    let mut last_id: Option<i64> = None;
+                    let mut scanned = 0usize;
+                    while let Some(msg) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                        last_id = Some(msg.id() as i64);
+                        scanned += 1;
+                        if let Some(want) = topic_filter {
+                            let tid = message_topic_id(&msg);
+                            // Also accept messages whose id is the topic root itself
+                            let mid = msg.id() as i64;
+                            if tid != Some(want) && mid != want {
+                                continue;
+                            }
+                        }
+                        if let Some(row) = media_to_row(&msg, folder_id) {
+                            files.push(row);
+                            if files.len() >= limit {
+                                break;
+                            }
+                        }
+                    }
+                    let has_more = files.len() >= limit || scanned >= scan_limit;
+                    let next_offset_id = if has_more {
+                        files.last().map(|f| f.id).or(last_id)
+                    } else {
+                        None
+                    };
+                    tg_log::info(
+                        BACKEND,
+                        "list_media",
+                        format!(
+                            "chat={} n={} has_more={} topic={:?}",
+                            chat,
+                            files.len(),
+                            has_more,
+                            topic_filter
+                        ),
+                    );
+                    Ok(ListMediaResult {
+                        status: "success".into(),
+                        folder_id,
+                        total: files.len(),
+                        page_size: limit,
+                        has_more,
+                        next_offset_id,
+                        files,
+                        backend: BACKEND.into(),
+                        cached: false,
+                    })
                 })
             })
         })
@@ -859,7 +1266,9 @@ pub fn list_media_blocking(
     })
 }
 
-/// Local multi-file album (2–10 items). Photos preferred; documents when as_document.
+/// Local multi-file album (2–10 items per Telegram limit). Photos preferred; documents when as_document.
+/// `topic_id` = forum top message id for reply_to (optional).
+/// `index_base` offsets result indices when chunking larger albums.
 pub fn upload_album_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -867,6 +1276,8 @@ pub fn upload_album_blocking(
     files: &[(String, String)], // path, caption
     as_document: bool,
     silent: bool,
+    topic_id: Option<i64>,
+    index_base: usize,
 ) -> Result<Vec<UploadStepResult>, TgError> {
     if files.len() < 2 {
         return Err(TgError::new(
@@ -877,7 +1288,7 @@ pub fn upload_album_blocking(
     if files.len() > 10 {
         return Err(TgError::new(
             TgErrorCode::Internal,
-            "album max 10 files",
+            "album max 10 files per chunk",
         ));
     }
     for (p, _) in files {
@@ -896,6 +1307,7 @@ pub fn upload_album_blocking(
         .iter()
         .map(|(p, c)| (PathBuf::from(p), c.clone()))
         .collect();
+    let reply_to = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
@@ -916,10 +1328,14 @@ pub fn upload_album_blocking(
                         .and_then(|s| s.to_str())
                         .unwrap_or("")
                         .to_ascii_lowercase();
-                    let mut im = InputMedia::new().caption(cap.clone());
-                    // Only first item caption is typically shown for albums
-                    if i > 0 {
-                        im = InputMedia::new().caption("");
+                    let mut im = InputMedia::new().caption(if i == 0 {
+                        cap.clone()
+                    } else {
+                        String::new()
+                    });
+                    // Forum topic: only first media carries reply_to
+                    if i == 0 {
+                        im = im.reply_to(reply_to);
                     }
                     im = if as_document {
                         im.document(uploaded)
@@ -928,14 +1344,16 @@ pub fn upload_album_blocking(
                     } else {
                         im.document(uploaded)
                     };
-                    if silent {
-                        // InputMedia silent if available — best-effort via document/photo only
-                    }
+                    let _ = silent;
                     medias.push(im);
                     tg_log::info(
                         BACKEND,
                         "album_upload_part",
-                        format!("i={i} file={}", path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")),
+                        format!(
+                            "i={} file={}",
+                            index_base + i,
+                            path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+                        ),
                     );
                 }
                 let sent = client
@@ -957,14 +1375,14 @@ pub fn upload_album_blocking(
                         } else {
                             None
                         },
-                        index: i,
+                        index: index_base + i,
                         backend: Some(BACKEND.into()),
                     });
                 }
                 tg_log::info(
                     BACKEND,
                     "album_ok",
-                    format!("n={} chat={chat}", out.len()),
+                    format!("n={} chat={chat} base={index_base}", out.len()),
                 );
                 Ok(out)
             })
@@ -983,6 +1401,30 @@ pub fn upload_file_blocking(
     silent: bool,
     index: usize,
 ) -> Result<UploadStepResult, TgError> {
+    upload_file_blocking_topic(
+        sessions_dir,
+        identity,
+        chat_id,
+        path,
+        caption,
+        as_document,
+        silent,
+        index,
+        None,
+    )
+}
+
+pub fn upload_file_blocking_topic(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    path: &str,
+    caption: &str,
+    as_document: bool,
+    silent: bool,
+    index: usize,
+    topic_id: Option<i64>,
+) -> Result<UploadStepResult, TgError> {
     path_policy::assert_safe_transfer_path(path)
         .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
     let path_buf = PathBuf::from(path);
@@ -996,6 +1438,7 @@ pub fn upload_file_blocking(
     let rt = runtime()?;
     let chat = chat_id.to_string();
     let cap = caption.to_string();
+    let reply_to = topic_id.filter(|t| *t > 0).map(|t| t as i32);
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
@@ -1008,14 +1451,15 @@ pub fn upload_file_blocking(
                     BACKEND,
                     "upload_start",
                     format!(
-                        "chat={} size={} file={} as_document={}",
+                        "chat={} size={} file={} as_document={} topic={:?}",
                         chat,
                         size,
                         path_buf
                             .file_name()
                             .and_then(|s| s.to_str())
                             .unwrap_or("?"),
-                        as_document
+                        as_document,
+                        reply_to
                     ),
                 );
                 let uploaded = client
@@ -1023,7 +1467,10 @@ pub fn upload_file_blocking(
                     .await
                     .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?;
 
-                let mut msg = InputMessage::new().text(cap).silent(silent);
+                let mut msg = InputMessage::new()
+                    .text(cap)
+                    .silent(silent)
+                    .reply_to(reply_to);
                 // Prefer document for fidelity (matches Studio force-document / ORIGINAL)
                 msg = if as_document {
                     msg.document(uploaded)

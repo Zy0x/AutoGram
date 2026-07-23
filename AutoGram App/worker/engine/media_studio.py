@@ -1946,10 +1946,21 @@ async def _run_fastlane_pipeline(
     transfer_id: str,
     session_key_hash: str,
     journal: TransferJournal,
+    scanner: Any = None,
 ) -> None:
     """Prioritize item zero, then upload concurrently and commit in order."""
     if not items:
         return
+    # Allow studio-serve / orch callers without a live scanner
+    if dup_checker is None:
+        class _NoDup:
+            def get_duplicate_message_id(self, **kwargs):
+                return None
+
+            def record_upload(self, **kwargs):
+                return None
+
+        dup_checker = _NoDup()
     conc = max(1, min(int(opts.concurrency or 4), 8))
     prepare_slots = _adaptive_prepare_slots(opts, len(items))
     prepare_sem = asyncio.Semaphore(prepare_slots)
@@ -2260,6 +2271,7 @@ async def _run_safe_album_pipeline(
                 transfer_id=transfer_id,
                 session_key_hash=session_key_hash,
                 journal=journal,
+                scanner=scanner,
             )
             continue
 
@@ -2912,6 +2924,7 @@ async def run_ordered_upload(
             transfer_id=transfer_id,
             session_key_hash=session_key_hash,
             journal=journal,
+            scanner=scanner,
         )
         # Adaptive producer-consumer: at most two hardware encodes on capable
         # devices, while completed items immediately enter DC upload. Commit to
@@ -3373,7 +3386,12 @@ async def run_media_studio(
         # concurrent drive-serve reads don't cause "database is locked" during upload.
         _patch_session_wal(session_file)
         # P0: retry connect on SQLite session lock (drive-serve handoff race)
-        client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=5, auto_reconnect=True)
+        from core.network_env import apply_client_post_create, telethon_client_kwargs
+
+        net_kw = telethon_client_kwargs()
+        ctor = {k: v for k, v in net_kw.items() if not str(k).startswith("_autogram_")}
+        client = TelegramClient(session_file, int(api_id), str(api_hash), **ctor)
+        apply_client_post_create(client, dict(net_kw))
         last_conn: Optional[Exception] = None
         for attempt in range(6):
             try:
@@ -3400,7 +3418,8 @@ async def run_media_studio(
                     )
                     await asyncio.sleep(0.35 + attempt * 0.3)
                     _patch_session_wal(session_file)
-                    client = TelegramClient(session_file, int(api_id), str(api_hash), connection_retries=5, auto_reconnect=True)
+                    client = TelegramClient(session_file, int(api_id), str(api_hash), **ctor)
+                    apply_client_post_create(client, dict(net_kw))
                     continue
                 raise
         if last_conn is not None:

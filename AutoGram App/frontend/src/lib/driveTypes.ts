@@ -25,6 +25,12 @@ export type DriveFile = {
   as_document?: boolean;
   /** Original filename attribute (when display name is caption) */
   original_name?: string | null;
+  /**
+   * Inline stripped mini-thumb from list_media (data:image/…).
+   * Lets the grid paint like Telegram without waiting for thumbs_batch.
+   */
+  thumb_data_url?: string | null;
+  thumbDataUrl?: string | null;
 };
 
 export type DriveFolder = {

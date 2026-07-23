@@ -568,7 +568,49 @@ pub async fn delete_worker_temp_file(app: AppHandle, path: String) -> Result<(),
 /// Validate worker CLI args.
 /// Spawn uses argv (no shell) so JSON/config values may contain punctuation —
 /// we only block python -c, dangerous flags, and non-allowlisted scripts.
+///
+/// FORCE RUST: Telethon MTProto actions are rejected so the UI cannot
+/// re-open drive-serve / media-studio / studio-serve under the hood.
 pub fn validate_worker_args(args: &[String]) -> Result<(), String> {
+    let joined = args
+        .iter()
+        .map(|s| s.to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    // Block Telethon MTProto runtime paths (Grammers owns these).
+    const BLOCKED_MTPROTO: &[&str] = &[
+        "drive-serve",
+        "studio-serve",
+        "media-studio",
+        "media_studio",
+        "api-server",
+        "--drive-action",
+        "drive-action",
+        "auth_manager",
+    ];
+    for token in BLOCKED_MTPROTO {
+        if joined.contains(token) {
+            return Err(format!(
+                "Python Telethon dinonaktifkan untuk '{token}'. Gunakan Rust + Grammers (tg_*)."
+            ));
+        }
+    }
+    // daemon --action drive (one-shot)
+    if let Some(i) = args.iter().position(|a| a == "--action" || a == "-a") {
+        if let Some(action) = args.get(i + 1) {
+            let a = action.to_ascii_lowercase();
+            if matches!(
+                a.as_str(),
+                "drive" | "drive-serve" | "studio-serve" | "media-studio" | "api-server"
+            ) {
+                return Err(format!(
+                    "Python Telethon action '{a}' dinonaktifkan. Gunakan Rust + Grammers."
+                ));
+            }
+        }
+    }
+
     for a in args {
         let t = a.trim();
         // Block python -c / -c=code injection
@@ -592,6 +634,12 @@ pub fn validate_worker_args(args: &[String]) -> Result<(), String> {
                 .unwrap_or("");
             if name != "daemon.py" && name != "auth_manager.py" {
                 return Err(format!("script not allowlisted: {name}"));
+            }
+            // auth_manager is also Telethon — block by name
+            if name == "auth_manager.py" {
+                return Err(
+                    "auth_manager.py dinonaktifkan. Login/akun memakai Rust + Grammers.".into(),
+                );
             }
         }
     }

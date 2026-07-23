@@ -658,7 +658,7 @@ function DupFileThumb({
     let cancelled = false;
     setThumb(null);
     setLoading(true);
-    requestThumb(creds, folderId, file.id)
+    requestThumb(creds, folderId, file.id, { priority: 'visible' })
       .then((url) => {
         if (!cancelled) {
           setThumb(url);
@@ -675,6 +675,20 @@ function DupFileThumb({
       cancelled = true;
     };
   }, [canThumb, creds, folderId, file.id]);
+
+  useEffect(() => {
+    if (!canThumb) return;
+    const onReady = () => {
+      const hit = getCachedThumb(folderId, file.id);
+      if (hit) {
+        setThumb(hit);
+        setLoading(false);
+        setImgErr(false);
+      }
+    };
+    window.addEventListener('autogram-thumb-ready', onReady);
+    return () => window.removeEventListener('autogram-thumb-ready', onReady);
+  }, [canThumb, folderId, file.id]);
 
   return (
     <span className="td-tools-dup-thumb" aria-hidden>

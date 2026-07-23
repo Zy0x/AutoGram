@@ -257,9 +257,10 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       return;
     }
 
-    const targetFolderId = folderId !== undefined ? folderId : 0;
     if (folderId === undefined) {
       setSelectedFolderId(0);
+    } else {
+      setSelectedFolderId(folderId);
     }
     
     setModalTarget(target);
@@ -274,7 +275,6 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     
     try {
       const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
-      const { runDaemonOnce } = await import('../../lib/workerBridge');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
       if (!apiId || !apiHash) {
         alert(
@@ -286,15 +286,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         return;
       }
 
+      const creds = {
+        session,
+        apiId: String(apiId),
+        apiHash: String(apiHash),
+      };
+
       // Fetch Telegram chat folders if not loaded yet
       if (chatFolders.length <= 1) {
         try {
           const { driveListChatFolders } = await import('../../lib/driveApi');
-          const creds = {
-            session,
-            apiId: String(apiId),
-            apiHash: String(apiHash),
-          };
           const foldersRes = await driveListChatFolders(creds);
           if (foldersRes && foldersRes.folders) {
             setChatFolders(foldersRes.folders);
@@ -304,41 +305,27 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         }
       }
 
-      const daemonArgs = [
-        '--action', 'list-dialogs',
-        '--session', session,
-        '--api-id', String(apiId),
-        '--api-hash', String(apiHash),
-      ];
-      if (targetFolderId) {
-        daemonArgs.push('--folder-id', String(targetFolderId));
-      }
-
-      const result = await runDaemonOnce(daemonArgs);
-
-      const { isWorkerFailure, workerErrorMessage } = await import('../../lib/workerBridge');
-
-      let jsonOutput = '';
-      if (result.stdout.includes('[JSON_OUTPUT]')) {
-        const parts = result.stdout.split('[JSON_OUTPUT]');
-        jsonOutput = parts[parts.length - 1].trim();
-      }
-      
-      if (jsonOutput) {
-        const data = JSON.parse(jsonOutput);
-        if(data.error) {
-          alert(`Error: ${data.error}`);
-          setIsModalOpen(false);
-        } else {
-          setDialogs(data);
-        }
-      } else if (isWorkerFailure(result) || result.stderr || result.stdout) {
-        const msg = workerErrorMessage(result, result.stderr || result.stdout || 'list-dialogs failed');
-        if (!/requires desktop|requires tauri/i.test(msg)) {
-          console.error('Daemon error:', msg);
-        }
-        alert(`Engine error: ${msg}`);
-        setIsModalOpen(false);
+      // Grammers dialogs (no Python list-dialogs)
+      const { tgListDialogs } = await import('../../lib/telegramBackend');
+      const gr = await tgListDialogs({
+        session,
+        apiId: Number(apiId) || 0,
+        apiHash: String(apiHash),
+        limit: 200,
+      });
+      if (gr?.ok && Array.isArray(gr.data)) {
+        const data = gr.data.map((d) => ({
+          id: d.id,
+          title: d.title,
+          name: d.title,
+          is_user: d.isUser,
+          is_channel: d.isChannel,
+          is_group: d.isGroup,
+          is_forum: !!d.isForum,
+        }));
+        setDialogs(data);
+      } else {
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Gagal memuat dialog Grammers');
       }
     } catch (err) {
       console.error("Failed to fetch dialogs", err);
@@ -356,7 +343,6 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     
     try {
       const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
-      const { runDaemonOnce } = await import('../../lib/workerBridge');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
       const session = selectedSession || 'Lavender';
       if (!apiId || !apiHash) {
@@ -367,28 +353,25 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         setIsLoadingDialogs(false);
         return;
       }
-      const result = await runDaemonOnce([
-        '--action', 'list-topics',
-        '--session', session,
-        '--chat-id', String(chatId),
-        '--api-id', String(apiId),
-        '--api-hash', String(apiHash),
-      ]);
-
-      let jsonOutput = '';
-      if (result.stdout.includes('[JSON_OUTPUT]')) {
-        const parts = result.stdout.split('[JSON_OUTPUT]');
-        jsonOutput = parts[parts.length - 1].trim();
-      }
-      
-      if (jsonOutput) {
-        const data = JSON.parse(jsonOutput);
-        if(data.error) {
-          alert(`Error: ${data.error}`);
-          setIsModalOpen(false);
-        } else {
-          setTopics(data);
-        }
+      const { tgListTopics } = await import('../../lib/telegramBackend');
+      const gr = await tgListTopics({
+        session,
+        apiId: Number(apiId) || 0,
+        apiHash: String(apiHash),
+        chatId: Number(chatId),
+      });
+      if (gr?.ok && gr.data) {
+        setIsForumGroup(!!gr.data.isForum);
+        setTopics(
+          (gr.data.topics || []).map((t) => ({
+            id: t.id,
+            title: t.title,
+            closed: t.closed,
+          }))
+        );
+      } else {
+        setTopics([]);
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Gagal memuat topik Grammers');
       }
     } catch (err) {
       console.error(err);

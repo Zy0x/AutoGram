@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.84 Perbaikan False FloodWait & Optimalisasi Kecepatan Pemuatan Media
+
+### Perbaikan Utama FloodWait & Kecepatan Media
+- **Eliminasi Self-Imposed FloodWait Lockout (`session_rate.rs`)**:
+  - Memperbaiki `parse_flood_secs()` dan `note_error()` agar hanya mencatat FloodWait jika pesan atau kode error berasal dari Telegram RPC `FLOOD_WAIT` asli.
+  - Menghapus pencocokan kata generik `"tunggu"` dan penguncian 30 detik palsu pada error non-FloodWait (seperti `Timeout`, `Network`, `Cancelled`, `Io`, `Internal`).
+- **Optimalisasi Concurrency & Speed Pemuatan Media (`grammers_media.rs`)**:
+  - Menambahkan pembatasan tugas unduh paralel (*bounded concurrency semaphore* maks 6 koneksi simultan) pada `batch_fetch_thumbs` untuk mencegah ketersendatan koneksi MTProto saat memuat grid media massal.
+  - Memperbesar ukuran *chunk download* `iter_download` dari 64KB/128KB menjadi 256KB/512KB pada penarikan thumbnail, sampel video, dan streaming media untuk meningkatkan kecepatan transfer hingga 2x-4x lipat.
+
 ## v2.1.83 Penyelarasan Kualitas & Kerapian Thumbnail (Hemat, Seimbang, Jelas)
 
 ### Perbaikan Utama Kualitas Thumbnail

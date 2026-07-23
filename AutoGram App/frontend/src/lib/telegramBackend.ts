@@ -189,6 +189,7 @@ export async function tgListMedia(args: {
   chatId: string;
   limit?: number;
   offsetId?: number | null;
+  topicId?: number | null;
 }): Promise<TgOpResult<TgListMediaResult> | null> {
   if (!detectTauriRuntime()) return null;
   try {
@@ -200,6 +201,7 @@ export async function tgListMedia(args: {
         chatId: args.chatId,
         limit: args.limit,
         offsetId: args.offsetId ?? null,
+        topicId: args.topicId ?? null,
       },
     });
     debugLogLayer('rust', 'tg', 'list_media', {
@@ -220,7 +222,21 @@ export type TgDialogEntry = {
   isUser: boolean;
   isChannel: boolean;
   isGroup: boolean;
+  isForum?: boolean;
 };
+
+/** Drop live Grammers client for a session (fast multi-account switch). */
+export async function tgDisconnectSession(session: string): Promise<boolean> {
+  if (!detectTauriRuntime() || !session) return false;
+  try {
+    const r = await invoke<TgOpResult<boolean>>('tg_disconnect_session', { session });
+    debugLogLayer('rust', 'tg', 'disconnect_session', { session, ok: r?.ok });
+    return !!r?.ok;
+  } catch (e) {
+    debugLogLayer('rust', 'tg', 'disconnect_session_fail', String(e));
+    return false;
+  }
+}
 
 /** Grammers dialog list — dual-path alternative to Telethon list_chats. */
 export async function tgListDialogs(args: {
@@ -479,4 +495,210 @@ export async function tgSeekStream(
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Drive mutations (Grammers-only — replaces Telethon drive-serve)
+// ---------------------------------------------------------------------------
+
+type TgFolder = {
+  id: number;
+  name: string;
+  titleRaw?: string;
+  username?: string | null;
+  isPublic?: boolean;
+  parentId?: number | null;
+  isDriveFolder?: boolean;
+  isOrphan?: boolean;
+};
+
+function identity(args: { session: string; apiId: number; apiHash: string }) {
+  return {
+    session: args.session,
+    apiId: args.apiId,
+    apiHash: args.apiHash,
+  };
+}
+
+async function tgInvoke<T>(
+  cmd: string,
+  request: Record<string, unknown>
+): Promise<TgOpResult<T> | null> {
+  if (!detectTauriRuntime()) return null;
+  try {
+    const r = await invoke<TgOpResult<T>>(cmd, { request });
+    debugLogLayer('rust', 'tg', cmd, { ok: r?.ok });
+    return r;
+  } catch (e) {
+    debugLogLayer('rust', 'tg', `${cmd}_fail`, String(e));
+    return null;
+  }
+}
+
+export async function tgDeleteMessages(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: string;
+  messageIds: number[];
+}) {
+  return tgInvoke<{ status: string; deleted: number; backend: string }>('tg_delete_messages', {
+    ...identity(args),
+    chatId: args.chatId,
+    messageIds: args.messageIds,
+  });
+}
+
+export async function tgCreateFolder(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  name: string;
+  parentId?: number | null;
+}) {
+  return tgInvoke<{ status: string; folder?: TgFolder | null; warning?: string | null; backend: string }>(
+    'tg_create_folder',
+    {
+      ...identity(args),
+      name: args.name,
+      parentId: args.parentId ?? null,
+    }
+  );
+}
+
+export async function tgRenameFolder(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  folderId: number;
+  name: string;
+}) {
+  return tgInvoke<{ status: string; folder?: TgFolder | null; backend: string }>('tg_rename_folder', {
+    ...identity(args),
+    folderId: args.folderId,
+    name: args.name,
+  });
+}
+
+export async function tgSetFolderParent(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  folderId: number;
+  parentId?: number | null;
+}) {
+  return tgInvoke<{ status: string; folder?: TgFolder | null; backend: string }>(
+    'tg_set_folder_parent',
+    {
+      ...identity(args),
+      folderId: args.folderId,
+      parentId: args.parentId ?? null,
+    }
+  );
+}
+
+export async function tgDeleteFolder(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  folderId: number;
+}) {
+  return tgInvoke<{ status: string; backend: string }>('tg_delete_folder', {
+    ...identity(args),
+    folderId: args.folderId,
+  });
+}
+
+export async function tgScanFolders(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+}) {
+  return tgInvoke<{ status: string; folders: TgFolder[]; backend: string }>('tg_scan_folders', {
+    ...identity(args),
+  });
+}
+
+export async function tgCreateTopic(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: number;
+  title: string;
+}) {
+  return tgInvoke<{ status: string; topicId?: number | null; title?: string | null; backend: string }>(
+    'tg_create_topic',
+    {
+      ...identity(args),
+      chatId: args.chatId,
+      title: args.title,
+    }
+  );
+}
+
+export async function tgRenameTopic(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: number;
+  topicId: number;
+  title: string;
+}) {
+  return tgInvoke<{ status: string; topicId?: number | null; title?: string | null; backend: string }>(
+    'tg_rename_topic',
+    {
+      ...identity(args),
+      chatId: args.chatId,
+      topicId: args.topicId,
+      title: args.title,
+    }
+  );
+}
+
+export async function tgDeleteTopic(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: number;
+  topicId: number;
+}) {
+  return tgInvoke<{ status: string; topicId?: number | null; backend: string }>('tg_delete_topic', {
+    ...identity(args),
+    chatId: args.chatId,
+    topicId: args.topicId,
+  });
+}
+
+export async function tgAvatarsBatch(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  peerIds: number[];
+}) {
+  return tgInvoke<{
+    status: string;
+    avatars: Record<string, string | null>;
+    backend: string;
+  }>('tg_avatars_batch', {
+    ...identity(args),
+    peerIds: args.peerIds,
+  });
+}
+
+export async function tgMoveMessages(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  sourceChat: string;
+  destChat: string;
+  messageIds: number[];
+  deleteSource?: boolean;
+}) {
+  return tgInvoke<{ status: string; moved: number; backend: string }>('tg_move_messages', {
+    ...identity(args),
+    sourceChat: args.sourceChat,
+    destChat: args.destChat,
+    messageIds: args.messageIds,
+    deleteSource: args.deleteSource !== false,
+  });
 }

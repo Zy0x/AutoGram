@@ -37,11 +37,104 @@ _SERVER: Optional[ThreadingHTTPServer] = None
 _SERVER_THREAD: Optional[threading.Thread] = None
 _PORT: int = 0
 
+# Hybrid: Rust Range server (AUTOGRAM_STREAM_PORT) — Python remains GetFile companion
+_RUST_PORT = int(os.environ.get("AUTOGRAM_STREAM_PORT") or "0") or 0
+_RUST_REGISTRY = (
+    os.environ.get("AUTOGRAM_STREAM_REGISTRY")
+    or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cache", "stream_registry")
+)
+_SID_BY_MEDIA: Dict[int, str] = {}  # id(media) -> stream_id
+_PUBLISH_LAST: Dict[str, float] = {}
+
+
+def _rust_stream_enabled() -> bool:
+    return _RUST_PORT > 0
+
+
+def _publish_stream_registry(stream_id: str, media: "ProgressiveMedia", *, force: bool = False) -> None:
+    """Write stream state for Rust HTTP server (throttled unless force)."""
+    if not stream_id or media is None:
+        return
+    now = time.time()
+    if not force:
+        last = _PUBLISH_LAST.get(stream_id, 0.0)
+        if now - last < 0.35 and not media.done and not media.cancelled:
+            return
+    _PUBLISH_LAST[stream_id] = now
+    try:
+        with media.cv:
+            ranges = list(media._ranges)
+            done = bool(media.done)
+            cancelled = bool(media.cancelled)
+            err = media.error
+            total = int(media.total_size or 0)
+            mime = media.mime or "application/octet-stream"
+            path = media.path or ""
+            label = media.label or "media"
+        payload = {
+            "streamId": stream_id,
+            "path": os.path.abspath(path) if path else path,
+            "totalSize": total,
+            "mime": mime,
+            "label": label,
+            "done": done,
+            "ranges": [[int(s), int(e)] for s, e in ranges],
+            "cancelled": cancelled,
+            "error": err,
+            "paused": bool(getattr(media, "paused", False)),
+            "updatedAtMs": int(now * 1000),
+        }
+        # Prefer HTTP register (live map) when Rust port is up
+        if _rust_stream_enabled():
+            try:
+                import urllib.request
+
+                req = urllib.request.Request(
+                    f"http://127.0.0.1:{_RUST_PORT}/register",
+                    data=json_bytes(payload),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                urllib.request.urlopen(req, timeout=0.8).read()
+                return
+            except Exception:
+                pass
+        # Disk fallback registry
+        try:
+            os.makedirs(_RUST_REGISTRY, exist_ok=True)
+            import json as _json
+
+            with open(os.path.join(_RUST_REGISTRY, f"{stream_id}.json"), "w", encoding="utf-8") as fh:
+                _json.dump(payload, fh)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
+def json_bytes(obj: Dict[str, Any]) -> bytes:
+    import json as _json
+
+    return _json.dumps(obj, separators=(",", ":")).encode("utf-8")
+
+
+def _stream_public_url(stream_id: str, label: str, py_port: int) -> Tuple[str, int]:
+    """Return (url, port) preferring Rust server when available."""
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]+", "_", (label or "media"))[:80] or "media"
+    if _rust_stream_enabled():
+        return (
+            f"http://127.0.0.1:{_RUST_PORT}/stream/{stream_id}/{safe_name}",
+            _RUST_PORT,
+        )
+    return (f"http://127.0.0.1:{py_port}/stream/{stream_id}/{safe_name}", py_port)
+
+
 def _get_ram_usage() -> int:
     with _LOCK:
         return sum(len(s.ram_buffer) for s in _STREAMS.values() if getattr(s, "ram_buffer", None) is not None)
 
 def _ensure_ram_budget(needed: int) -> None:
+    """Free RAM buffers without cancelling live GetFile pipelines when possible."""
     with _LOCK:
         while _get_ram_usage() + needed > 150 * 1024 * 1024:
             oldest_sid = None
@@ -51,11 +144,24 @@ def _ensure_ram_budget(needed: int) -> None:
                     if s.created < oldest_time:
                         oldest_time = s.created
                         oldest_sid = sid
-            if oldest_sid is not None:
-                s = _STREAMS.pop(oldest_sid)
-                s.cancel()
-            else:
+            if oldest_sid is None:
                 break
+            s = _STREAMS.get(oldest_sid)
+            if s is None:
+                break
+            # Prefer dropping RAM only (keep disk fill alive) for active streams
+            if not s.cancelled and not s.done and s.refcount > 0:
+                s.ram_buffer = None
+                s.in_memory = False
+                continue
+            if not s.cancelled and not s.done:
+                s.ram_buffer = None
+                s.in_memory = False
+                continue
+            s = _STREAMS.pop(oldest_sid, None)
+            if s is not None:
+                s.cancel()
+                _SID_BY_MEDIA.pop(id(s), None)
 
 def log_debug(msg: str) -> None:
     try:
@@ -92,61 +198,72 @@ def _merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 
 
 def get_streaming_config(total_size: int) -> dict[str, Any]:
-    # Size-based layer classification (6-layer layout)
-    if total_size < 10 * 1024 * 1024:
-        return {
-            "layer": "tiny",
-            "initial_head": 8 * 1024 * 1024,
-            "window_size": 16 * 1024 * 1024,
-            "throttle_ahead": 0,  # No throttle
-            "workers": 8,
-            "chunk_size": 512 * 1024,
-        }
-    elif total_size < 50 * 1024 * 1024:
-        return {
-            "layer": "small",
-            "initial_head": 4 * 1024 * 1024,
-            "window_size": 16 * 1024 * 1024,
-            "throttle_ahead": 8 * 1024 * 1024,
-            "workers": 12,
-            "chunk_size": 256 * 1024,
-        }
-    elif total_size < 350 * 1024 * 1024:
-        return {
-            "layer": "medium",
-            "initial_head": 2 * 1024 * 1024,
-            "window_size": 12 * 1024 * 1024,
-            "throttle_ahead": 16 * 1024 * 1024,
-            "workers": 16,
-            "chunk_size": 256 * 1024,
-        }
-    elif total_size < 1024 * 1024 * 1024:
-        return {
-            "layer": "large",
-            "initial_head": int(1.5 * 1024 * 1024),
-            "window_size": 8 * 1024 * 1024,
-            "throttle_ahead": 24 * 1024 * 1024,
-            "workers": 20,
-            "chunk_size": 128 * 1024,
-        }
-    elif total_size < 4096 * 1024 * 1024:
-        return {
-            "layer": "ultra",
-            "initial_head": 512 * 1024,
-            "window_size": 6 * 1024 * 1024,
-            "throttle_ahead": 32 * 1024 * 1024,
-            "workers": 24,
-            "chunk_size": 128 * 1024,
-        }
-    else:
-        return {
-            "layer": "massive",
-            "initial_head": 256 * 1024,
-            "window_size": 4 * 1024 * 1024,
-            "throttle_ahead": 48 * 1024 * 1024,
-            "workers": 32,
-            "chunk_size": 64 * 1024,
-        }
+    """
+    Size-tier streaming policy for first-play + background pipeline.
+
+    first_play: solid head bytes before returning stream_url / first HTTP 206
+    initial_head: background prefetch target after play starts
+    window_size: seek / range runway around playhead
+    throttle_ahead: pause pipeline when this far ahead of playhead
+    workers / chunk_size: Telegram concurrent GetFile tuning
+
+    Buckets (MB): <10, <20, <50, <100, <150, <200, <250, <300, <500,
+                  <1000, <1500, <2000, <2500, <3000, <3500, <4000, 4000+
+    """
+    MB = 1024 * 1024
+    sz = max(0, int(total_size or 0))
+
+    # (max_exclusive or None, layer, first_play, initial_head, window, throttle, workers, chunk)
+    # first_play: lean handoff so UI attaches quickly; workers/chunk push buffer speed.
+    # ~100MB class (common preview size) gets higher concurrency + denser initial_head.
+    tiers: list[tuple] = [
+        (10 * MB, "u10", 320 * 1024, 4 * MB, 10 * MB, 0, 18, 512 * 1024),
+        (20 * MB, "u20", 288 * 1024, 3 * MB, 8 * MB, 4 * MB, 20, 512 * 1024),
+        (50 * MB, "u50", 256 * 1024, 2 * MB, 8 * MB, 6 * MB, 22, 512 * 1024),
+        (100 * MB, "u100", 224 * 1024, 2 * MB, 8 * MB, 8 * MB, 24, 512 * 1024),
+        (150 * MB, "u150", 224 * 1024, 1536 * 1024, 6 * MB, 10 * MB, 26, 512 * 1024),
+        (200 * MB, "u200", 192 * 1024, 1280 * 1024, 6 * MB, 12 * MB, 26, 512 * 1024),
+        (250 * MB, "u250", 192 * 1024, 1280 * 1024, 6 * MB, 12 * MB, 28, 512 * 1024),
+        (300 * MB, "u300", 192 * 1024, 1024 * 1024, 5 * MB, 14 * MB, 28, 512 * 1024),
+        (500 * MB, "u500", 160 * 1024, 896 * 1024, 5 * MB, 16 * MB, 28, 256 * 1024),
+        (1000 * MB, "u1g", 160 * 1024, 768 * 1024, 4 * MB, 20 * MB, 30, 256 * 1024),
+        (1500 * MB, "u1_5g", 128 * 1024, 640 * 1024, 4 * MB, 24 * MB, 30, 256 * 1024),
+        (2000 * MB, "u2g", 128 * 1024, 512 * 1024, 4 * MB, 28 * MB, 32, 256 * 1024),
+        (2500 * MB, "u2_5g", 128 * 1024, 512 * 1024, 3 * MB, 32 * MB, 32, 128 * 1024),
+        (3000 * MB, "u3g", 96 * 1024, 448 * 1024, 3 * MB, 36 * MB, 32, 128 * 1024),
+        (3500 * MB, "u3_5g", 96 * 1024, 384 * 1024, 3 * MB, 40 * MB, 32, 128 * 1024),
+        (4000 * MB, "u4g", 96 * 1024, 320 * 1024, 3 * MB, 44 * MB, 32, 128 * 1024),
+        (None, "u4g_plus", 96 * 1024, 320 * 1024, 2 * MB, 48 * MB, 32, 128 * 1024),
+    ]
+    for max_sz, layer, first_play, initial_head, window, throttle, workers, chunk in tiers:
+        if max_sz is None or sz < max_sz:
+            # Cap targets to file size so tiny files don't over-fetch
+            cap = sz if sz > 0 else initial_head
+            return {
+                "layer": layer,
+                "first_play": min(first_play, cap) if cap else first_play,
+                "initial_head": min(initial_head, cap) if cap else initial_head,
+                "window_size": min(window, max(cap, window)) if cap else window,
+                "throttle_ahead": throttle,
+                "workers": workers,
+                "chunk_size": chunk,
+            }
+    # Unreachable
+    return {
+        "layer": "u4g_plus",
+        "first_play": 96 * 1024,
+        "initial_head": 256 * 1024,
+        "window_size": 2 * MB,
+        "throttle_ahead": 48 * MB,
+        "workers": 32,
+        "chunk_size": 64 * 1024,
+    }
+
+
+def first_play_bytes(total_size: int) -> int:
+    """Solid head required before first play / stream_url handoff."""
+    cfg = get_streaming_config(total_size)
+    return int(cfg.get("first_play") or 256 * 1024)
 
 
 class ProgressiveMedia:
@@ -224,13 +341,17 @@ class ProgressiveMedia:
         return base_window
 
     def get_dynamic_workers(self) -> int:
-        base_workers = self.config.get("workers", 16)
+        base_workers = int(self.config.get("workers", 16) or 16)
+        # Slow links often need MORE concurrent GetFile parts (latency-bound),
+        # not fewer — halving workers was starving first-play/buffer growth.
         if self.avg_speed is not None:
-            if self.avg_speed < 500 * 1024:
-                return max(4, base_workers // 2)
-            elif self.avg_speed > 2000 * 1024:
-                return min(32, int(base_workers * 1.5))
-        return base_workers
+            if self.avg_speed < 200 * 1024:  # < 200 KB/s
+                return min(32, max(base_workers, base_workers + 4))
+            if self.avg_speed < 500 * 1024:  # < 500 KB/s
+                return min(32, max(base_workers, 16))
+            if self.avg_speed > 2000 * 1024:  # > 2 MB/s
+                return min(32, int(base_workers * 1.25))
+        return min(32, max(8, base_workers))
 
     def get_seek_window(self) -> int:
         return self.get_dynamic_window()
@@ -242,6 +363,12 @@ class ProgressiveMedia:
         return self.get_dynamic_workers()
 
     def cancel(self) -> None:
+        with self.cv:
+            self.cancelled = True
+            self.cv.notify_all()
+        sid = _SID_BY_MEDIA.get(id(self))
+        if sid:
+            _publish_stream_registry(sid, self, force=True)
         with self._seek_lock:
             self._seek_generation += 1
             for job in self._seek_inflight.values():
@@ -338,6 +465,9 @@ class ProgressiveMedia:
             self._ranges = _merge_ranges(self._ranges + [(start, end)])
             self.downloaded = self.filled_bytes()
             self.cv.notify_all()
+        sid = _SID_BY_MEDIA.get(id(self))
+        if sid:
+            _publish_stream_registry(sid, self, force=False)
 
     def filled_bytes(self) -> int:
         return sum(e - s for s, e in self._ranges)
@@ -444,6 +574,9 @@ class ProgressiveMedia:
                     json.dump(self._manifest_cache, mf, indent=2)
             except Exception:
                 pass
+        sid = _SID_BY_MEDIA.get(id(self))
+        if sid:
+            _publish_stream_registry(sid, self, force=True)
 
     def mark_error(self, err: str) -> None:
         with self.cv:
@@ -676,12 +809,28 @@ async def write_media_range_to_response(response, media: ProgressiveMedia, start
             if to_read <= 0:
                 break
 
-            # Try RAM cache first
+            # Try RAM part-cache first, then ram_buffer, then disk.
+            # Prefer disk when the file is complete (mark_done from cache) so we
+            # never serve an empty in-memory shell for documents/JSON.
             chunk = media.read_from_cache(pos, to_read)
             if chunk is None:
-                if getattr(media, "in_memory", False) and media.ram_buffer is not None:
+                use_ram = (
+                    getattr(media, "in_memory", False)
+                    and media.ram_buffer is not None
+                    and not media.done
+                )
+                if use_ram:
                     chunk = bytes(media.ram_buffer[pos : pos + to_read])
-                else:
+                    # Fall back to disk if the RAM window is still all zeros but
+                    # the file on disk already has content (register race).
+                    if chunk and not any(chunk) and media.path and os.path.isfile(media.path):
+                        try:
+                            if os.path.getsize(media.path) > pos:
+                                use_ram = False
+                                chunk = None
+                        except OSError:
+                            pass
+                if not use_ram or chunk is None:
                     if f is None:
                         f = await asyncio.to_thread(open, media.path, "rb")
                     await asyncio.to_thread(f.seek, pos)
@@ -764,14 +913,24 @@ async def serve_stream(request):
             except Exception:
                 range_start_probe = 0
         if range_start_probe <= 0:
-            first_need = min(64 * 1024, media.total_size or 64 * 1024)
+            # Tiered first_play: small files get more head; 4GB+ stays lean.
+            first_need = min(
+                int(media.config.get("first_play") or first_play_bytes(media.total_size)),
+                media.total_size or 256 * 1024,
+            )
             if media.contiguous_from_zero() < first_need and not media.done:
                 media.schedule_seek(
                     0,
-                    window=min(media.get_pipeline_window(), media.total_size or media.get_pipeline_window()),
+                    window=min(
+                        max(first_need, 512 * 1024),
+                        int(media.config.get("initial_head") or 1024 * 1024),
+                        media.total_size or 1024 * 1024,
+                    ),
                     priority=1,
                 )
-            await asyncio.to_thread(media.wait_for_bytes, first_need, 120.0)
+            # Short wait: return what we have so UI is not blocked on slow links
+            wait_cap = 8.0 if (media.total_size or 0) > 500 * 1024 * 1024 else 12.0
+            await asyncio.to_thread(media.wait_for_bytes, first_need, wait_cap)
             if media.error and media.contiguous_from_zero() <= 0:
                 return web.Response(status=502, text=media.error or "stream error")
             if media.contiguous_from_zero() <= 0 and not media.done:
@@ -827,7 +986,7 @@ async def serve_stream(request):
 
             if not media.has_byte(start) and not media.done:
                 if start <= prefix + 512 * 1024:
-                    await asyncio.to_thread(media.wait_for_bytes, start + 64 * 1024, 120.0)
+                    await asyncio.to_thread(media.wait_for_bytes, start + 64 * 1024, 25.0)
                 if not media.has_byte(start):
                     headers = {
                         "Retry-After": "1",
@@ -841,22 +1000,84 @@ async def serve_stream(request):
                 return web.Response(status=416, text="range not satisfiable")
 
             filled_end = media.contiguous_end_from(start)
+            grow_response = False
             if media.done:
                 chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
                 if end_req is not None:
                     chunk_end = min(chunk_end, end_req)
             else:
+                # CRITICAL: only claim solid filled bytes in Content-Range.
+                # Claiming a large unfilled window forces the browser into a long
+                # "Buffering…" state while write_media_range blocks on Telegram.
                 window = media.get_seek_window()
-                aligned_start = (start // media.part_size) * media.part_size
-                target_end = aligned_start + window - 1
-                if file_size_known:
-                    target_end = min(target_end, file_size_known - 1)
-                if end_req is not None:
-                    target_end = min(target_end, end_req)
-                chunk_end = target_end
+                if start <= 0:
+                    # First-play slice: tiered first_play (not multi-MB window claim)
+                    fp = int(media.config.get("first_play") or 256 * 1024)
+                    first_slice = min(
+                        max(fp, 128 * 1024),
+                        int(media.config.get("initial_head") or fp),
+                        window,
+                        (file_size_known - start) if file_size_known else fp,
+                    )
+                    need_end = start + min(first_slice, max(96 * 1024, fp // 2))
+                    if filled_end < need_end:
+                        media.schedule_seek(0, window=max(first_slice, 512 * 1024), priority=1)
+                        await asyncio.to_thread(
+                            media.wait_for_range,
+                            start,
+                            max(64 * 1024, need_end - start),
+                            5.0,
+                        )
+                        filled_end = media.contiguous_end_from(start)
+                    # Serve solid head only — browser re-Ranges immediately
+                    solid_end = max(filled_end, start)
+                    chunk_end = solid_end - 1 if solid_end > start else start
+                    if end_req is not None:
+                        chunk_end = min(chunk_end, end_req)
+                    if file_size_known is not None:
+                        chunk_end = min(chunk_end, file_size_known - 1)
+                    grow_response = False
+                    if not media.done and filled_end < start + first_slice:
+                        media.schedule_seek(
+                            0,
+                            window=max(first_slice, int(media.config.get("initial_head") or first_slice)),
+                            priority=1,
+                        )
+                else:
+                    aligned_start = (start // media.part_size) * media.part_size
+                    target_end = aligned_start + window - 1
+                    if file_size_known:
+                        target_end = min(target_end, file_size_known - 1)
+                    if end_req is not None:
+                        target_end = min(target_end, end_req)
+                    # Short wait for a playable runway at seek point
+                    if filled_end < start + 64 * 1024:
+                        media.schedule_seek(start, window=window, priority=3)
+                        await asyncio.to_thread(
+                            media.wait_for_range,
+                            start,
+                            min(
+                                64 * 1024,
+                                (file_size_known - start)
+                                if (file_size_known is not None and file_size_known > start)
+                                else 64 * 1024,
+                            ),
+                            6.0,
+                        )
+                        filled_end = media.contiguous_end_from(start)
+                    if filled_end > start:
+                        # Cap to solid data (plus at most what we already have)
+                        chunk_end = min(target_end, filled_end - 1)
+                    else:
+                        chunk_end = start
+                    if end_req is not None:
+                        chunk_end = min(chunk_end, end_req)
+                    grow_response = False
 
-            if not media.done and chunk_end < start + 32 * 1024:
-                media.schedule_seek(start, window=window, priority=3)
+            if not media.done and chunk_end < start:
+                chunk_end = start
+            if not media.done and filled_end <= start:
+                media.schedule_seek(start, window=media.get_seek_window(), priority=3)
                 await asyncio.to_thread(
                     media.wait_for_range,
                     start,
@@ -865,7 +1086,11 @@ async def serve_stream(request):
                 )
                 filled_end = media.contiguous_end_from(start)
                 if media.done:
-                    chunk_end = file_size_known - 1 if file_size_known else filled_end - 1
+                    chunk_end = file_size_known - 1 if file_size_known else max(filled_end - 1, start)
+                    if end_req is not None:
+                        chunk_end = min(chunk_end, end_req)
+                elif filled_end > start:
+                    chunk_end = filled_end - 1
                     if end_req is not None:
                         chunk_end = min(chunk_end, end_req)
 
@@ -892,30 +1117,72 @@ async def serve_stream(request):
                 }
             )
             await response.prepare(request)
-            await write_media_range_to_response(response, media, start, length, grow=not media.done)
+            await write_media_range_to_response(
+                response, media, start, length, grow=grow_response or media.done
+            )
             return response
 
-        # Full GET
-        await asyncio.to_thread(media.wait_for_bytes, min(256 * 1024, media.total_size or 256 * 1024), 20.0)
+        # Full GET without Range — never claim full file size while incomplete
+        # (that is the classic "Buffering 40%" hang: browser waits for Content-Length).
+        await asyncio.to_thread(
+            media.wait_for_bytes, min(256 * 1024, media.total_size or 256 * 1024), 20.0
+        )
         prefix = media.contiguous_from_zero()
-        length = file_size_known if file_size_known else max(prefix, 1)
+        if media.done and file_size_known:
+            length = file_size_known
+            response = web.StreamResponse(
+                status=200,
+                reason="OK",
+                headers={
+                    "Content-Type": media.mime,
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": str(length),
+                    "Cache-Control": "no-cache",
+                    "X-AutoGram-Available": str(media.contiguous_from_zero()),
+                    "X-AutoGram-Filled": str(media.filled_bytes()),
+                    "X-AutoGram-Seek-Offset": str(
+                        media._active_seek_offset if media._active_seek_offset is not None else -1
+                    ),
+                    "X-AutoGram-Seek-Generation": str(media._seek_generation),
+                },
+            )
+            await response.prepare(request)
+            await write_media_range_to_response(response, media, 0, length, grow=False)
+            return response
 
+        # Incomplete: answer as 206 with solid prefix so the player starts + re-Ranges
+        solid = max(prefix, 1)
+        total_for_range = file_size_known if file_size_known else solid
+        chunk_end = solid - 1
         response = web.StreamResponse(
-            status=200,
-            reason="OK",
+            status=206,
+            reason="Partial Content",
             headers={
                 "Content-Type": media.mime,
                 "Accept-Ranges": "bytes",
-                "Content-Length": str(length),
+                "Content-Range": f"bytes 0-{chunk_end}/{total_for_range}",
+                "Content-Length": str(solid),
                 "Cache-Control": "no-cache",
                 "X-AutoGram-Available": str(media.contiguous_from_zero()),
                 "X-AutoGram-Filled": str(media.filled_bytes()),
-                "X-AutoGram-Seek-Offset": str(media._active_seek_offset if media._active_seek_offset is not None else -1),
+                "X-AutoGram-Seek-Offset": str(
+                    media._active_seek_offset if media._active_seek_offset is not None else -1
+                ),
                 "X-AutoGram-Seek-Generation": str(media._seek_generation),
-            }
+            },
         )
         await response.prepare(request)
-        await write_media_range_to_response(response, media, 0, length, grow=True)
+        await write_media_range_to_response(response, media, 0, solid, grow=False)
+        # Keep head growing for subsequent Range requests
+        if not media.done:
+            media.schedule_seek(
+                0,
+                window=min(
+                    int(media.config.get("initial_head") or 1024 * 1024),
+                    media.total_size or 1024 * 1024,
+                ),
+                priority=1,
+            )
         return response
     except Exception as e:
         log_debug(f"serve_stream exception: {e}")
@@ -925,7 +1192,11 @@ async def serve_stream(request):
 
 
 def _ensure_server() -> int:
+    """Start Python aiohttp only as fallback when Rust Range server is unavailable."""
     global _SERVER, _SERVER_THREAD, _PORT
+    if _rust_stream_enabled():
+        # Rust serves Range; skip heavy aiohttp unless explicitly needed
+        return _RUST_PORT
     with _LOCK:
         if _SERVER is not None and _PORT:
             return _PORT
@@ -1000,47 +1271,131 @@ def register_stream(
     label: str = "",
 ) -> Dict[str, Any]:
     port = _ensure_server()
+    abs_path = os.path.abspath(path) if path else path
+    # Reuse live (non-cancelled) stream for same path — prevents thrash of
+    # new stream_id + cancel old, which froze buffer at ~0.5–1.5MB.
+    with _LOCK:
+        for existing_sid, existing in list(_STREAMS.items()):
+            try:
+                ep = os.path.abspath(existing.path) if existing.path else ""
+            except Exception:
+                ep = existing.path or ""
+            if ep and abs_path and ep == abs_path and not existing.cancelled:
+                _publish_stream_registry(existing_sid, existing, force=True)
+                url, pub_port = _stream_public_url(existing_sid, label or existing.label, port)
+                log_debug(
+                    f"register_stream reuse sid={existing_sid} path={os.path.basename(abs_path)} "
+                    f"prefix={existing.contiguous_from_zero()}"
+                )
+                return {
+                    "stream_id": existing_sid,
+                    "stream_url": url,
+                    "port": pub_port,
+                    "path": existing.path,
+                    "mime_type": existing.mime or mime,
+                    "size": existing.total_size or total_size,
+                    "backend": "rust" if _rust_stream_enabled() else "python",
+                    "reused": True,
+                }
+            # Drop cancelled shells pointing at same path so resume gets a clean media
+            if ep and abs_path and ep == abs_path and existing.cancelled:
+                _STREAMS.pop(existing_sid, None)
+                _SID_BY_MEDIA.pop(id(existing), None)
+
     sid = uuid.uuid4().hex[:16]
     media = ProgressiveMedia(
         path=path, total_size=total_size, mime=mime, label=label
     )
     try:
-        if total_size > 0 and total_size <= 100 * 1024 * 1024:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        disk_size = 0
+        try:
+            if os.path.isfile(path):
+                disk_size = int(os.path.getsize(path) or 0)
+        except OSError:
+            disk_size = 0
+
+        # Complete non-stream file already on disk: always serve from disk.
+        # (Earlier in_memory empty bytearray served zeros → document/JSON
+        #  previews looked empty / "Failed to fetch" after broken responses.)
+        is_complete_disk = (
+            disk_size > 0
+            and total_size > 0
+            and disk_size >= total_size
+            and ".stream." not in os.path.basename(path).lower()
+        )
+        if is_complete_disk:
+            media.in_memory = False
+            media.ram_buffer = None
+            media.mark_range(0, total_size)
+            media.mark_done()
+        elif total_size > 0 and total_size <= 100 * 1024 * 1024:
+            # Progressive / incomplete: optional RAM buffer for speed
             _ensure_ram_budget(total_size)
             media.in_memory = True
             media.ram_buffer = bytearray(total_size)
+            base = os.path.basename(path).lower()
+            if disk_size >= 32 * 1024:
+                try:
+                    if ".stream." in base and total_size > 0 and disk_size >= total_size:
+                        # Full-size sparse shell (head+tail hollow middle) only —
+                        # incomplete stream files may also be sparse mid-seek;
+                        # fill_stream / mark_range own those ranges.
+                        _resume_partial_file_ranges(media, disk_size)
+                        prefix = media.contiguous_from_zero()
+                        if prefix > 0:
+                            with open(path, "rb") as fh:
+                                head = fh.read(min(prefix, total_size, 8 * 1024 * 1024))
+                            if head:
+                                media.ram_buffer[0 : len(head)] = head
+                    elif ".stream." not in base and disk_size < total_size * 0.98:
+                        # Sequential partial compact file (grown from offset 0)
+                        with open(path, "rb") as fh:
+                            head = fh.read(min(disk_size, total_size))
+                        if head:
+                            media.ram_buffer[0 : len(head)] = head
+                            media.mark_range(0, len(head))
+                except OSError:
+                    pass
+            if not os.path.isfile(path):
+                open(path, "wb").close()
         else:
             media.in_memory = False
             media.ram_buffer = None
-            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
             if not os.path.isfile(path):
                 open(path, "wb").close()
-            elif total_size > 0 and os.path.getsize(path) >= total_size:
+            elif total_size > 0 and disk_size > 0:
+                # Always try resume from disk/manifest for large progressive files
+                # (previously only when disk_size >= total — missed compact partials).
                 if ".stream." in os.path.basename(path).lower():
-                    # A seek/tail write extends a sparse file to its final logical
-                    # size. Inspect its solid regions instead of treating holes as
-                    # downloaded media bytes.
-                    _resume_partial_file_ranges(media, os.path.getsize(path))
-                else:
+                    _resume_partial_file_ranges(media, disk_size)
+                elif disk_size >= total_size:
                     media.mark_range(0, total_size)
+                else:
+                    media.mark_range(0, disk_size)
     except OSError:
         pass
     with _LOCK:
         _STREAMS[sid] = media
+        _SID_BY_MEDIA[id(media)] = sid
         now = time.time()
         dead = [k for k, v in _STREAMS.items() if now - v.created > 7200 and v.done]
         for k in dead[:20]:
-            _STREAMS.pop(k, None)
+            m = _STREAMS.pop(k, None)
+            if m is not None:
+                _SID_BY_MEDIA.pop(id(m), None)
 
-    safe_name = re.sub(r"[^a-zA-Z0-9._-]+", "_", (label or "media"))[:80] or "media"
-    url = f"http://127.0.0.1:{port}/stream/{sid}/{safe_name}"
+    # Hybrid: publish to Rust Range server; URL prefers Rust when AUTOGRAM_STREAM_PORT set
+    _publish_stream_registry(sid, media, force=True)
+    url, pub_port = _stream_public_url(sid, label, port)
     return {
         "stream_id": sid,
         "stream_url": url,
-        "port": port,
+        "port": pub_port,
         "path": path,
         "mime_type": mime,
         "size": total_size,
+        "backend": "rust" if _rust_stream_enabled() else "python",
     }
 
 
@@ -1075,6 +1430,37 @@ def stream_status(stream_id: str) -> Dict[str, Any]:
     playable_pct = round(100.0 * prefix / total, 2) if total > 0 else 0.0
     # For UI buffer bar: prefer playable prefix (matches progressive play).
     # Also expose filled so document moov-tail progress is visible as secondary.
+    head_probe = min(max(prefix, 64 * 1024), 1024 * 1024) if prefix > 0 else 0
+    moov_at_head = bool(
+        prefix >= min(64 * 1024, total or 64 * 1024)
+        and head_probe > 0
+        and _path_region_has_moov(media.path, 0, head_probe)
+    )
+    moov_at_tail = bool(
+        total > 512 * 1024 and media.has_byte(max(0, total - 64 * 1024))
+    )
+    # Non-MP4 / tiny / already-done streams do not need moov atoms.
+    mime_l = (media.mime or "").lower()
+    needs_moov = (
+        total > 256 * 1024
+        and not media.done
+        and (
+            "mp4" in mime_l
+            or "m4v" in mime_l
+            or "quicktime" in mime_l
+            or (media.path or "").lower().endswith((".mp4", ".m4v", ".mov"))
+        )
+    )
+    moov_ready = bool(media.done or moov_at_head or moov_at_tail or not needs_moov)
+    # stream_ready: tier first_play head + moov (when required).
+    fp = int(media.config.get("first_play") or first_play_bytes(total))
+    stream_ready = bool(
+        media.done
+        or (
+            prefix >= min(fp, total or fp)
+            and moov_ready
+        )
+    )
     return {
         "status": st,
         "downloaded": prefix,  # playable contiguous — what buffer bar should show
@@ -1087,23 +1473,15 @@ def stream_status(stream_id: str) -> Dict[str, Any]:
         "path": media.path,
         "mime_type": media.mime,
         "cancelled": bool(media.cancelled),
-        "stream_ready": prefix >= min(256 * 1024, total or 256 * 1024),
+        "stream_ready": stream_ready,
         "seek_capable": bool(media._input_loc is not None and not media.done),
         "seek_offset": media._active_seek_offset,
         "seek_generation": media._seek_generation,
         "seek_inflight": len(media._seek_inflight),
         "window_bytes": media.get_seek_window(),
         "quota_bytes": filled,
-        "moov_ready": bool(
-            prefix >= min(64 * 1024, total or 64 * 1024)
-            and (
-                _path_region_has_moov(media.path, 0, min(prefix, 1024 * 1024))
-                or (
-                    total > 512 * 1024
-                    and media.has_byte(max(0, total - 64 * 1024))
-                )
-            )
-        ),
+        "moov_ready": moov_ready,
+        "paused": bool(getattr(media, "paused", False)),
     }
 
 
@@ -1147,8 +1525,9 @@ def stream_seek(
 def stop_stream(
     stream_id: str,
     *,
-    delete_partial: bool = True,
+    delete_partial: bool = False,
 ) -> Dict[str, Any]:
+    """Stop fill for stream_id. Keep partial files by default (resume on reopen)."""
     sid = str(stream_id or "").strip()
     if not sid:
         return {"status": "missing", "stream_id": sid}
@@ -1164,8 +1543,14 @@ def stop_stream(
             if os.path.isfile(path):
                 os.remove(path)
                 deleted = True
+            man = path + ".manifest.json"
+            if os.path.isfile(man):
+                os.remove(man)
         except OSError:
             pass
+    else:
+        # Persist ranges to registry so Rust still serves what we have
+        _publish_stream_registry(sid, media, force=True)
     return {
         "status": "stopped",
         "stream_id": sid,
@@ -1175,7 +1560,9 @@ def stop_stream(
     }
 
 
-def stop_all_streams(*, incomplete_only: bool = True) -> Dict[str, Any]:
+def stop_all_streams(
+    *, incomplete_only: bool = True, delete_partial: bool = False
+) -> Dict[str, Any]:
     with _LOCK:
         ids = list(_STREAMS.keys())
     stopped = []
@@ -1183,7 +1570,7 @@ def stop_all_streams(*, incomplete_only: bool = True) -> Dict[str, Any]:
         media = get_stream(sid)
         if incomplete_only and media and media.done and not media.cancelled:
             continue
-        stopped.append(stop_stream(sid, delete_partial=True))
+        stopped.append(stop_stream(sid, delete_partial=delete_partial))
     return {"status": "success", "stopped": len(stopped), "results": stopped}
 
 
@@ -1955,14 +2342,21 @@ async def fill_stream_from_telegram(
                     is_doc = True
 
         if is_doc:
-            # Let's reduce the initial head size so it starts playing faster!
-            # Minimum 1MB, maximum 4MB is more than enough for initial sniffer and play.
-            doc_head = min(max(int(total * 0.01), 1 * 1024 * 1024), 4 * 1024 * 1024)
-            media.config["initial_head"] = min(doc_head, total if total > 0 else doc_head)
-            media.config["workers"] = max(media.config.get("workers", 16), 20)
+            # Document-original: keep tier first_play small; bump workers for media DC.
+            # Do not inflate initial_head past tier — that delayed first frame on large files.
+            media.config["workers"] = max(int(media.config.get("workers") or 16), 22)
+            media.config["first_play"] = min(
+                int(media.config.get("first_play") or 256 * 1024),
+                max(128 * 1024, min(384 * 1024, total if total > 0 else 256 * 1024)),
+            )
             if not media.mime or media.mime == "application/octet-stream":
                 media.mime = "video/mp4"
-            log_debug(f"[DOC-MODE] Activated with head: {media.config['initial_head'] / 1024 / 1024:.1f} MB, workers: {media.config['workers']}")
+            log_debug(
+                f"[DOC-MODE] layer={media.config.get('layer')} "
+                f"first_play={media.config['first_play']} "
+                f"head={media.config.get('initial_head')} "
+                f"workers={media.config['workers']}"
+            )
 
         existing = 0
         try:
@@ -2032,13 +2426,15 @@ async def fill_stream_from_telegram(
         if warm_only:
             head_len = min(head_len, stop_after_bytes)
 
-        # Expand head and bootstrap moov
-        async def _expand_head() -> None:
-            if media.contiguous_from_zero() < head_len and not media.cancelled:
+        # Expand head FIRST (priority), then moov tail.
+        # Parallel head+moov starved the first playable window on large files
+        # (UI stuck on "Buffering… 40%" at 0:00 while tail ate bandwidth).
+        async def _expand_head(target: int) -> None:
+            if media.contiguous_from_zero() < target and not media.cancelled:
                 await _download_parts_concurrent(
                     media,
                     start=media.contiguous_from_zero(),
-                    length=head_len - media.contiguous_from_zero(),
+                    length=target - media.contiguous_from_zero(),
                     workers=media.get_stream_workers(),
                     head_first=True,
                     seek_generation=media._seek_generation,
@@ -2059,7 +2455,21 @@ async def fill_stream_from_telegram(
                     pass
 
         if not media.cancelled:
-            await asyncio.gather(_expand_head(), _moov_boot())
+            # Phase A: tier first_play head only — unblocks <video> ASAP
+            play_head = min(
+                int(media.config.get("first_play") or 256 * 1024),
+                int(head_len) if head_len else 256 * 1024,
+                total if total > 0 else 256 * 1024,
+            )
+            play_head = max(96 * 1024, play_head)
+            await _expand_head(play_head)
+            # Phase B: remaining head + moov in parallel (play already possible)
+            rest_tasks = []
+            if media.contiguous_from_zero() < head_len:
+                rest_tasks.append(_expand_head(head_len))
+            rest_tasks.append(_moov_boot())
+            if rest_tasks:
+                await asyncio.gather(*rest_tasks)
 
         if warm_only:
             return
@@ -2080,13 +2490,38 @@ async def fill_stream_from_telegram(
             # Active seek generation monitoring
             generation = media._seek_generation
 
-            # Pause check: suspend background pipeline downloading if player is paused
-            if getattr(media, "paused", False):
+            # Hybrid pause: Rust HTTP may set paused in registry file
+            if _rust_stream_enabled():
+                sid = _SID_BY_MEDIA.get(id(media))
+                if sid:
+                    try:
+                        import json as _json
+
+                        reg_path = os.path.join(_RUST_REGISTRY, f"{sid}.json")
+                        if os.path.isfile(reg_path):
+                            with open(reg_path, "r", encoding="utf-8") as rf:
+                                reg = _json.load(rf)
+                            if "paused" in reg:
+                                media.paused = bool(reg.get("paused"))
+                    except Exception:
+                        pass
+
+            # Pause check: suspend *ahead-of-playhead* pipeline only.
+            # Never freeze when the playable head is still below the first
+            # playable window — that caused "buffer high but video won't start"
+            # after a premature pause event from failed autoplay.
+            playhead = media._active_seek_offset or 0
+            prefix_now = media.contiguous_from_zero()
+            min_play_head = min(
+                int(media.config.get("initial_head") or 256 * 1024),
+                total or 256 * 1024,
+                2 * 1024 * 1024,
+            )
+            if getattr(media, "paused", False) and prefix_now >= max(min_play_head, 256 * 1024):
                 await asyncio.sleep(0.5)
                 continue
 
-            playhead = media._active_seek_offset or 0
-            pos = max(media.contiguous_from_zero(), playhead)
+            pos = max(prefix_now, playhead)
             if total > 0 and pos >= total:
                 break
 

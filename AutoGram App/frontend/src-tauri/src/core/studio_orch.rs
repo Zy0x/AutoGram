@@ -16,7 +16,9 @@ use std::time::Duration;
 
 use super::grammers_ops::{self, resolve_sessions_dir};
 use super::job_queue::{self, CreateTransferRequest, ItemState, TransferRecord, TransferState};
-use super::telegram_ops::{active_telegram_backend, TelegramBackendKind, TelegramIdentity};
+use super::media_prep;
+use super::session_guard::{self, SessionPurpose};
+use super::telegram_ops::TelegramIdentity;
 use super::tg_log;
 
 static ORCH_JOB_SEQ: AtomicI64 = AtomicI64::new(993_100);
@@ -75,6 +77,21 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
     let tid = rec.transfer_id.clone();
     job_queue::set_transfer_state(&tid, TransferState::Running)?;
 
+    // Shared transfer lease — blocks exclusive Telethon dual-open, coexists with Studio.
+    let session_name = req.session.trim();
+    let _session_guard = if !session_name.is_empty() {
+        Some(
+            session_guard::SessionGuardToken::acquire(
+                session_name,
+                &format!("transfer-{tid}"),
+                SessionPurpose::Transfer,
+            )
+            .map_err(|e| e.user_message())?,
+        )
+    } else {
+        None
+    };
+
     let sessions = resolve_sessions_dir(None);
     std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
 
@@ -127,8 +144,16 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-    // Grammers native album (2–10 local files)
-    if album && rec.items.len() >= 2 && rec.items.len() <= 10 {
+    let topic_id = rec.topic_id.filter(|t| *t > 0).or_else(|| {
+        rec.options
+            .get("topic_id")
+            .and_then(|v| v.as_i64())
+            .or_else(|| rec.options.get("topicId").and_then(|v| v.as_i64()))
+            .filter(|t| *t > 0)
+    });
+
+    // Grammers album: Telegram max 10 per send_album — chunk larger sets.
+    if album && rec.items.len() >= 2 {
         let files: Vec<(String, String)> = rec
             .items
             .iter()
@@ -137,64 +162,165 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
         for item in &rec.items {
             let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
         }
-        match grammers_ops::upload_album_blocking(
-            &sessions,
-            &identity,
-            &rec.chat_id,
-            &files,
-            as_doc,
-            silent,
-        ) {
-            Ok(results) => {
-                let mut any_ok = false;
-                for r in results {
-                    let st = match r.status.as_str() {
-                        "done" | "success" => {
-                            any_ok = true;
-                            ItemState::Done
+        let mut any_ok = false;
+        let mut first_err: Option<String> = None;
+        let mut base = 0usize;
+        while base < files.len() {
+            let end = (base + 10).min(files.len());
+            let chunk = &files[base..end];
+            // Single leftover item in last chunk: use single upload
+            if chunk.len() == 1 {
+                match grammers_ops::upload_file_blocking_topic(
+                    &sessions,
+                    &identity,
+                    &rec.chat_id,
+                    &chunk[0].0,
+                    &chunk[0].1,
+                    as_doc,
+                    silent,
+                    base,
+                    topic_id,
+                ) {
+                    Ok(r) => {
+                        let st = match r.status.as_str() {
+                            "done" | "success" => {
+                                any_ok = true;
+                                ItemState::Done
+                            }
+                            _ => ItemState::Failed,
+                        };
+                        let _ = job_queue::update_item(
+                            &tid,
+                            r.index,
+                            st,
+                            r.message_id,
+                            r.error.clone(),
+                        );
+                        if r.error.is_some() && first_err.is_none() {
+                            first_err = r.error;
                         }
-                        _ => ItemState::Failed,
-                    };
-                    let _ = job_queue::update_item(
-                        &tid,
-                        r.index,
-                        st,
-                        r.message_id,
-                        r.error.clone(),
-                    );
+                    }
+                    Err(e) => {
+                        first_err = Some(e.user_message());
+                        let _ = job_queue::update_item(
+                            &tid,
+                            base,
+                            ItemState::Failed,
+                            None,
+                            first_err.clone(),
+                        );
+                    }
                 }
-                if any_ok {
-                    return Ok(finalize_transfer(
-                        &tid,
-                        rec.items.len(),
-                        "rust_orch_grammers_album",
-                    ));
+                base = end;
+                continue;
+            }
+            match grammers_ops::upload_album_blocking(
+                &sessions,
+                &identity,
+                &rec.chat_id,
+                chunk,
+                as_doc,
+                silent,
+                topic_id,
+                base,
+            ) {
+                Ok(results) => {
+                    for r in results {
+                        let st = match r.status.as_str() {
+                            "done" | "success" => {
+                                any_ok = true;
+                                ItemState::Done
+                            }
+                            _ => ItemState::Failed,
+                        };
+                        let _ = job_queue::update_item(
+                            &tid,
+                            r.index,
+                            st,
+                            r.message_id,
+                            r.error.clone(),
+                        );
+                        if r.error.is_some() && first_err.is_none() {
+                            first_err = r.error;
+                        }
+                    }
                 }
-                let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
-                return Err("grammers album upload failed".into());
+                Err(e) => {
+                    tg_log::warn("studio_orch", "grammers_album_fail", e.user_message());
+                    first_err = Some(e.user_message());
+                    for i in base..end {
+                        let _ = job_queue::update_item(
+                            &tid,
+                            i,
+                            ItemState::Failed,
+                            None,
+                            first_err.clone(),
+                        );
+                    }
+                }
             }
-            Err(e) => {
-                tg_log::warn("studio_orch", "grammers_album_fail", e.user_message());
-                let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
-                return Err(format!("grammers album: {}", e.user_message()));
-            }
+            base = end;
         }
+        if any_ok {
+            return Ok(finalize_transfer(
+                &tid,
+                rec.items.len(),
+                if rec.items.len() > 10 {
+                    "rust_orch_grammers_album_chunked"
+                } else {
+                    "rust_orch_grammers_album"
+                },
+            ));
+        }
+        let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+        return Err(format!(
+            "grammers album upload failed: {}",
+            first_err.unwrap_or_else(|| "unknown".into())
+        ));
     }
+
+    let quality_mode = rec
+        .options
+        .get("quality_mode")
+        .and_then(|v| v.as_str())
+        .or_else(|| rec.options.get("qualityMode").and_then(|v| v.as_str()))
+        .map(|s| s.to_string());
 
     let mut any_ok = false;
     let mut first_fatal: Option<String> = None;
 
     for item in &rec.items {
+        let _ = job_queue::update_item(&tid, item.index, ItemState::Preparing, None, None);
+        // Remote URL download + optional ffmpeg reencode (no Telethon)
+        let (local_path, temp_cleanup) =
+            match media_prep::prepare_upload_path(&item.path, quality_mode.as_deref()) {
+                Ok(v) => v,
+                Err(e) => {
+                    let msg = format!("prepare: {e}");
+                    let _ = job_queue::update_item(
+                        &tid,
+                        item.index,
+                        ItemState::Failed,
+                        None,
+                        Some(msg.clone()),
+                    );
+                    if first_fatal.is_none() {
+                        first_fatal = Some(msg);
+                    }
+                    continue;
+                }
+            };
         let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
-        match grammers_ops::upload_file_blocking(
+        match grammers_ops::upload_file_blocking_topic(
             &sessions,
             &identity,
             &rec.chat_id,
-            &item.path,
+            &local_path,
             &item.caption,
             as_doc,
             silent,
             item.index,
+            topic_id,
         ) {
             Ok(r) => {
                 let st = match r.status.as_str() {
@@ -232,7 +358,6 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                 if first_fatal.is_none() {
                     first_fatal = Some(msg);
                 }
-                // Auth/session missing → abort batch so Telethon path can take over
                 if matches!(
                     e.code(),
                     super::tg_error::TgErrorCode::NotAuthorized
@@ -240,6 +365,7 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                         | super::tg_error::TgErrorCode::SessionImportFailed
                         | super::tg_error::TgErrorCode::NotConfigured
                 ) {
+                    media_prep::cleanup_temp(temp_cleanup);
                     let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
                     return Err(format!(
                         "grammers unavailable: {}",
@@ -248,6 +374,7 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                 }
             }
         }
+        media_prep::cleanup_temp(temp_cleanup);
     }
 
     if !any_ok {
@@ -265,38 +392,25 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
     ))
 }
 
-/// Run orchestrated transfer: Grammers first, else Python studio-serve (Telethon).
+/// Run orchestrated transfer — **Grammers only** (Telethon studio-serve removed).
 pub fn run_orchestrated_blocking(
     req: &CreateTransferRequest,
-    daemon: &std::path::Path,
-    python: &std::path::Path,
-    env_extra: &[(String, String)],
+    _daemon: &std::path::Path,
+    _python: &std::path::Path,
+    _env_extra: &[(String, String)],
 ) -> Result<OrchStartResult, String> {
-    // Default: try Grammers unless explicitly forced to telethon-only.
-    let force_telethon = matches!(
-        active_telegram_backend(),
-        TelegramBackendKind::TelethonCompanion
-    ) && std::env::var("AUTOGRAM_TELEGRAM_BACKEND")
-        .map(|v| v.eq_ignore_ascii_case("telethon") || v.eq_ignore_ascii_case("python"))
-        .unwrap_or(false);
-
-    if !force_telethon {
-        match run_orchestrated_grammers(req) {
-            Ok(r) => {
-                tg_log::info("studio_orch", "done", format!("mode={}", r.mode));
-                return Ok(r);
-            }
-            Err(e) => {
-                tg_log::warn(
-                    "studio_orch",
-                    "grammers_fallback_telethon",
-                    e.as_str(),
-                );
-            }
+    match run_orchestrated_grammers(req) {
+        Ok(r) => {
+            tg_log::info("studio_orch", "done", format!("mode={}", r.mode));
+            Ok(r)
+        }
+        Err(e) => {
+            tg_log::error("studio_orch", "grammers_failed", e.as_str());
+            Err(format!(
+                "Upload Grammers gagal (Telethon dinonaktifkan): {e}"
+            ))
         }
     }
-
-    run_orchestrated_telethon_blocking(req, daemon, python, env_extra)
 }
 
 /// Python studio-serve Telethon steps (fallback / forced).

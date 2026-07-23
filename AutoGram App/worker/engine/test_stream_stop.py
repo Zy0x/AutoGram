@@ -69,6 +69,8 @@ class StreamStopTests(unittest.TestCase):
         self.assertIsInstance(n, int)
 
     def test_stop_all_incomplete(self):
+        # Isolate from leftover streams registered by other tests in this process
+        stop_all_streams(incomplete_only=False)
         tmp = tempfile.mkdtemp(prefix="ag_stream_")
         paths = []
         sids = []
@@ -83,6 +85,8 @@ class StreamStopTests(unittest.TestCase):
             sids.append(info["stream_id"])
         out = stop_all_streams(incomplete_only=True)
         self.assertEqual(out["stopped"], 3)
+        for sid in sids:
+            self.assertEqual(stream_status(sid)["status"], "missing")
         for p in paths:
             self.assertFalse(os.path.isfile(p))
 

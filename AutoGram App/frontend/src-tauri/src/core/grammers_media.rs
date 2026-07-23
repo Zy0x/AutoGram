@@ -374,10 +374,10 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     if !downloadable.is_empty() {
         if sharp {
             // Jelas: largest static layer available in Telegram.
-            // If static layer max dimension is < 300px, return None to trigger HD photo chunk download or 1080p FFmpeg video frame extraction.
+            // If static layer max dimension is < 400px, return None to trigger HD photo chunk download or 1080p FFmpeg video frame extraction.
             let best = downloadable.last().copied()?;
             let (w, h) = photo_size_dimensions(best);
-            if w > 0 && h > 0 && w.max(h) < 300 {
+            if w > 0 && h > 0 && w.max(h) < 400 {
                 return None;
             }
             return Some(best.clone());
@@ -386,23 +386,27 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
             // Hemat downloadable fallback: smallest non-stripped layer
             return downloadable.first().map(|s| (*s).clone());
         }
-        // Seimbang: clear medium layer (~320px-800px).
-        // If max static layer is tiny (< 200px, e.g. 90x90 default video thumb), return None to trigger photo chunk / FFmpeg frame.
-        let max_dim = downloadable.last().map(|s| {
-            let (w, h) = photo_size_dimensions(s);
-            w.max(h)
-        }).unwrap_or(0);
-        if max_dim > 0 && max_dim < 200 {
-            return None;
+        // Seimbang: prefer layer closest to ~512px max dim (avoids tiny blur/pixelation while keeping good quality).
+        // If no qualifying (>=240px) layer, return None to trigger photo chunk / FFmpeg frame fallback.
+        let target = 512i32;
+        let mut candidates: Vec<(i32, &PhotoSize)> = downloadable
+            .iter()
+            .filter_map(|s| {
+                let (w, h) = photo_size_dimensions(s);
+                let d = w.max(h);
+                if d > 0 && d >= 240 {
+                    Some(((d - target).abs(), *s))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !candidates.is_empty() {
+            candidates.sort_by_key(|(dist, _)| *dist);
+            let (_, best) = candidates[0];
+            return Some(best.clone());
         }
-
-        let len = downloadable.len();
-        if len <= 2 {
-            return downloadable.last().map(|s| (*s).clone());
-        }
-        // len >= 3: pick upper-mid static layer (e.g. index 2 out of 4)
-        let idx = (len * 2 / 3).min(len - 1);
-        return downloadable.get(idx).map(|s| (*s).clone());
+        return None;
     }
 
     // No downloadable static layer: saver accepts stripped as final
@@ -430,14 +434,21 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
 /// Inline stripped JPEG (Telegram mini-thumb) as data-URL — no network GetFile.
 /// Used by list_media so the grid paints like the official app on first paint.
 pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
+    let mut best: Option<(usize, PhotoSize)> = None;
     for s in media_thumbs(media) {
         if let Some(data) = s.to_data() {
             let bytes = unstrip_jpeg(&data).unwrap_or(data);
             if !bytes.is_empty() {
-                if let Some(url) = to_data_url(&bytes) {
-                    return Some(url);
+                let size = bytes.len();
+                if best.as_ref().map_or(true, |(b, _)| size > *b) {
+                    best = Some((size, s.clone()));
                 }
             }
+        }
+    }
+    if let Some((_, s)) = best {
+        if let Some(url) = to_data_url(&s.to_data().unwrap()) {
+            return Some(url);
         }
     }
     None
@@ -451,7 +462,7 @@ async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<
         return Ok(data);
     }
     let mut out = Vec::new();
-    let mut iter = client.iter_download(thumb).chunk_size(64 * 1024);
+    let mut iter = client.iter_download(thumb).chunk_size(256 * 1024);
     while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
         out.extend_from_slice(&chunk);
         if out.len() > 512 * 1024 {
@@ -473,8 +484,8 @@ async fn download_media_thumb(
     // Tier 1: Try selected quality size
     if let Some(pick) = pick_thumb(&sizes, quality) {
         if let Ok(bytes) = download_thumb_bytes(client, &pick).await {
-            // Reject tiny 32-byte stripped payloads for seimbang/jelas
-            let min_ok = if saver { 32 } else { 350 };
+            let sharp = mode.contains("jelas") || mode.contains("sharp");
+            let min_ok = if saver { 32 } else if sharp { 18000 } else { 8000 };
             if bytes.len() >= min_ok {
                 return Ok(bytes);
             }
@@ -502,8 +513,18 @@ async fn download_media_thumb(
         downloadable.reverse();
     }
     for s in downloadable {
+        let (w, h) = photo_size_dimensions(s);
+        let max_dim = w.max(h);
+        let mode = quality.to_lowercase();
+        let sharp = mode.contains("jelas") || mode.contains("sharp");
+        let min_dim = if sharp { 400 } else { 240 };
+        // For seimbang and jelas modes, skip tiny static layer (< 240px / < 400px) so Tier 4 photo chunk or Tier 5 FFmpeg HD frame extraction can run
+        if !saver && max_dim > 0 && max_dim < min_dim {
+            continue;
+        }
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
-            if bytes.len() >= 350 || saver {
+            let min_bytes = if saver { 32 } else if sharp { 18000 } else { 8000 };
+            if bytes.len() >= min_bytes || saver {
                 return Ok(bytes);
             }
         }
@@ -515,7 +536,7 @@ async fn download_media_thumb(
         let sharp = mode.contains("jelas") || mode.contains("sharp");
         let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
         let mut out = Vec::new();
-        let mut iter = client.iter_download(p).chunk_size(64 * 1024);
+        let mut iter = client.iter_download(p).chunk_size(256 * 1024);
         while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
             out.extend_from_slice(&chunk);
             if out.len() >= max_bytes {
@@ -551,7 +572,7 @@ async fn download_media_thumb(
             let sharp = mode.contains("jelas") || mode.contains("sharp");
             let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
             let mut out = Vec::new();
-            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
+            let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 out.extend_from_slice(&chunk);
                 if out.len() >= max_bytes {
@@ -567,7 +588,7 @@ async fn download_media_thumb(
             let max_sample = if sharp { 4096 * 1024 } else if saver { 1536 * 1024 } else { 2560 * 1024 };
             let mut sample_bytes = Vec::new();
             // Download sample bytes (up to 4MB for high-res FFmpeg frame extraction)
-            let mut iter = client.iter_download(d).chunk_size(128 * 1024);
+            let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 sample_bytes.extend_from_slice(&chunk);
                 if sample_bytes.len() >= max_sample {
@@ -884,7 +905,10 @@ pub fn thumbs_batch_blocking_app(
         {
             let mem = thumb_mem_cache().lock();
             if let Some(url) = mem.get(&cache_key) {
-                found_url = Some(url.clone());
+                // Reject tiny 40x22 stripped placeholders for non-saver modes
+                if q_key == "hemat" || url.len() > 600 {
+                    found_url = Some(url.clone());
+                }
             }
         }
         if found_url.is_none() {
@@ -894,7 +918,7 @@ pub fn thumbs_batch_blocking_app(
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    let min_disk = if q_key == "hemat" { 32 } else { 350 };
+                    let min_disk = if q_key == "hemat" { 32 } else { 1500 };
                     if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
                             thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
@@ -1051,24 +1075,29 @@ pub fn thumbs_batch_blocking_app(
                 }
 
                 let mut set = tokio::task::JoinSet::new();
+                let thumb_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(6));
                 for mid in need_download.iter().copied() {
                     let key = mid.to_string();
                     // Disk hit for THIS quality only (never fall back to hemat blur here)
                     let q_cache = format!("{chat_safe}_{mid}_{q_key}");
                     if let Some(url) = thumb_mem_cache().lock().get(&q_cache).cloned() {
-                        thumbs.insert(key, Some(url));
-                        continue;
+                        if q_key == "hemat" || url.len() > 600 {
+                            thumbs.insert(key, Some(url));
+                            continue;
+                        }
                     }
                     let q_file = t_dir.join(format!("{q_cache}.jpg"));
                     if q_file.is_file() {
                         if let Ok(bytes) = std::fs::read(&q_file) {
-                            let min_ok = if hemat_only { 32 } else { 350 };
+                            let min_ok = if q_key == "hemat" { 32 } else if q_key == "jelas" || q_key == "sharp" { 18000 } else { 8000 };
                             if bytes.len() >= min_ok {
                                 if let Some(url) = to_data_url(&bytes) {
                                     thumb_mem_cache().lock().insert(q_cache, url.clone());
                                     thumbs.insert(key, Some(url));
                                     continue;
                                 }
+                            } else if !hemat_only {
+                                let _ = std::fs::remove_file(&q_file);
                             }
                         }
                     }
@@ -1086,13 +1115,15 @@ pub fn thumbs_batch_blocking_app(
                     let q_sub = quality_owned.clone();
                     let c_sub = chat_safe.clone();
                     let t_sub = t_dir.clone();
+                    let sem_sub = thumb_sem.clone();
 
                     set.spawn(async move {
+                        let _permit = sem_sub.acquire_owned().await.ok();
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
-                                // Reject tiny 32-byte stripped payloads for seimbang/jelas
-                                let min_ok = if q_sub == "hemat" { 32 } else { 350 };
+                                // Reject small payloads for non-saver modes
+                                let min_ok = if q_sub == "hemat" { 32 } else if q_sub == "jelas" || q_sub == "sharp" { 18000 } else { 8000 };
                                 if bytes.len() < min_ok {
                                     return (mid_val.to_string(), None);
                                 }

@@ -46,8 +46,11 @@ export function JobsList({
     <div className="jobs-workspace">
       <header className="page-toolbar">
         <div className="page-toolbar-title">
-          <h1 className="title-gradient">Migration Jobs</h1>
-          <p>Manage and monitor your automated Telegram transfers</p>
+          <h1 className="title-gradient">Forwarder</h1>
+          <p>
+            Migrasi chat: Forward cepat atau Clean Copy (re-upload + dedupe 4 level + resume).
+            Bisa jalan paralel dengan Drives pada session yang sama.
+          </p>
         </div>
         <div className="page-toolbar-actions">
           <button type="button" className="btn btn-secondary" onClick={importJobs} title="Import Jobs">
@@ -70,12 +73,13 @@ export function JobsList({
           <div className="empty-state-icon">
             <Terminal size={40} />
           </div>
-          <h2>No Jobs Found</h2>
+          <h2>Belum ada job Forwarder</h2>
           <p>
-            You haven&apos;t created any migration jobs yet. Create your first job to start migrating content between chats.
+            Buat job sumber → tujuan: pilih mode Forward atau Clean Copy, lalu jalankan.
+            Pastikan akun sudah aktif di Accounts.
           </p>
           <button type="button" className="btn btn-primary" onClick={onNewJob}>
-            <Plus size={18} /> Create First Job
+            <Plus size={18} /> Buat Job Pertama
           </button>
         </div>
       ) : (

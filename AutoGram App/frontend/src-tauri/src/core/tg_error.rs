@@ -48,12 +48,15 @@ impl TgError {
             message: crate::core::tg_log::redact(&message.into()),
             flood_wait_secs: None,
             rpc_name: None,
+            // Cancelled covers sender-pool-stopped / dropped requests — safe to
+            // reconnect + retry once the live client is rebuilt.
             retryable: matches!(
                 code,
                 TgErrorCode::FloodWait
                     | TgErrorCode::Network
                     | TgErrorCode::Timeout
                     | TgErrorCode::Io
+                    | TgErrorCode::Cancelled
             ),
         }
     }
@@ -200,13 +203,17 @@ pub fn map_invocation(err: &grammers_client::InvocationError) -> TgError {
             }
             TgError::with_rpc(name, format!("{rpc}"))
         }
-        InvocationError::Io(e) => TgError::new(TgErrorCode::Network, format!("I/O: {e}")),
+        InvocationError::Io(e) => {
+            // "read 0 bytes" / broken pipe = peer closed the TCP socket mid-RPC.
+            // Marked Network+retryable so with_client can rebuild SenderPool.
+            TgError::new(TgErrorCode::Network, format!("I/O: {e}"))
+        }
         InvocationError::Transport(e) => {
             TgError::new(TgErrorCode::Network, format!("Transport: {e}"))
         }
         InvocationError::Dropped => TgError::new(
             TgErrorCode::Cancelled,
-            "Request dropped (sender pool stopped)",
+            "Request dropped (sender pool stopped) — reconnecting",
         ),
         InvocationError::InvalidDc => {
             TgError::new(TgErrorCode::Network, "Invalid or unknown datacenter")

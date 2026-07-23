@@ -131,8 +131,18 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
     Prefer worker/sessions/<name>.session (file) — same as daemon execute-job / Media Studio.
     Fall back to encrypted StringSession in SQLite if no file exists.
     Supports in-memory ghost clients derived from the canonical database session string.
+    Applies AUTOGRAM_* proxy/VPN env from Rust desktop network settings.
     """
     api_id, api_hash = get_credentials(api_id_arg, api_hash_arg)
+
+    # Network hybrid: Rust owns proxy/VPN UI; Python applies to Telethon
+    from core.network_env import apply_client_post_create, telethon_client_kwargs
+
+    net_kw = telethon_client_kwargs()
+    # Allow caller override for connection_retries only when VPN env not set stronger
+    if connection_retries and connection_retries > int(net_kw.get("connection_retries") or 0):
+        net_kw["connection_retries"] = connection_retries
+    ctor = {k: v for k, v in net_kw.items() if not str(k).startswith("_autogram_")}
 
     # Detect if session_name is a ghost session view
     is_ghost = False
@@ -168,12 +178,9 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
             device_model=device_model,
             system_version=system_version,
             app_version=app_version,
-            connection_retries=max(connection_retries or 5, 15),
-            retry_delay=3,
-            auto_reconnect=True,
-            flood_sleep_threshold=86400
+            **ctor,
         )
-        client.request_retries = 10
+        apply_client_post_create(client, dict(net_kw))
     else:
         # Standard Session: File-based if file exists, else StringSession
         file_base = resolve_session_path(session_name)
@@ -186,12 +193,9 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
                 file_base,
                 api_id,
                 api_hash,
-                connection_retries=max(connection_retries or 5, 15),
-                retry_delay=3,
-                auto_reconnect=True,
-                flood_sleep_threshold=86400
+                **ctor,
             )
-            client.request_retries = 10
+            apply_client_post_create(client, dict(net_kw))
         else:
             session_data = get_session(session_name)
             if session_data and session_data.get('session_string'):
@@ -206,12 +210,9 @@ async def create_client(session_name: str, api_id_arg=None, api_hash_arg=None, p
                 string_session,
                 api_id,
                 api_hash,
-                connection_retries=max(connection_retries or 5, 15),
-                retry_delay=3,
-                auto_reconnect=True,
-                flood_sleep_threshold=86400
+                **ctor,
             )
-            client.request_retries = 10
+            apply_client_post_create(client, dict(net_kw))
 
     await client.connect()
     if not await client.is_user_authorized():

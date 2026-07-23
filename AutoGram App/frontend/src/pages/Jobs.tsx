@@ -9,6 +9,17 @@ import {
   parseEventLine,
   type JobChild,
 } from '../lib/jobProcess';
+import {
+  jobsList,
+  jobsCreate,
+  jobsEdit,
+  jobsDelete,
+  jobsRunMigration,
+  jobsFreshStart,
+  jobsExportJson,
+  jobsImportJson,
+} from '../lib/jobsApi';
+import { detectTauriRuntime } from '../lib/platform';
 
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
@@ -31,6 +42,11 @@ export function Jobs() {
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
+      if (detectTauriRuntime()) {
+        const list = await jobsList();
+        setJobs(list);
+        return;
+      }
       const result = await runDaemonOnce(['--action', 'list-jobs']);
       let jsonOutput = '';
       if (result.stdout.includes('[JSON_OUTPUT]')) {
@@ -104,16 +120,6 @@ export function Jobs() {
       const { bootstrapSecureCredentials } = await import('../lib/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
 
-      const action = isRetry ? 'retry-execution' : 'execute-job';
-      const args = [`--action=${action}`, `--job-id=${job.id}`];
-      if (isRetry && job.last_execution_id) {
-        args.push(`--execution-id=${job.last_execution_id}`);
-      }
-      if (apiId) args.push(`--api-id=${apiId}`);
-      if (apiHash) args.push(`--api-hash=${apiHash}`);
-      if (isDryRun) args.push('--dry-run');
-      if (rerunMode) args.push(`--rerun-mode=${rerunMode}`);
-
       setJobLogs((prev) => ({ ...prev, [job.id]: [] }));
 
       const appendLog = (entry: any) => {
@@ -126,6 +132,88 @@ export function Jobs() {
           /* ignore */
         }
       };
+
+      // Desktop: Grammers forward MVP (no Python execute-job)
+      if (detectTauriRuntime()) {
+        setActiveCommands((prev) => ({ ...prev, [job.id]: true }));
+        setActiveJobId(job.id);
+        setMode('runtime');
+        appendLog({
+          type: 'info',
+          text: isDryRun
+            ? '[Grammers] Dry-run: listing only (no forward)'
+            : '[Grammers] Starting forward MVP…',
+          time: new Date().toLocaleTimeString(),
+        });
+        try {
+          if (isDryRun) {
+            appendLog({
+              type: 'info',
+              text: '[Grammers] Dry-run complete (job config validated).',
+              time: new Date().toLocaleTimeString(),
+            });
+            setRunResults((prev) => ({ ...prev, [job.id]: 'success' }));
+            setJobs((prev) =>
+              prev.map((j) => (j.id === job.id ? { ...j, status: 'COMPLETED' } : j))
+            );
+          } else {
+            const r = await jobsRunMigration({
+              jobId: job.id,
+              apiId: Number(apiId) || 0,
+              apiHash: String(apiHash || ''),
+              maxMessages: 100,
+            });
+            appendLog({
+              type: 'info',
+              text: r.message || `Forwarded ${r.forwarded} messages`,
+              time: new Date().toLocaleTimeString(),
+            });
+            setRunResults((prev) => ({
+              ...prev,
+              [job.id]: r.status === 'success' ? 'success' : 'failed',
+            }));
+            setJobs((prev) =>
+              prev.map((j) =>
+                j.id === job.id
+                  ? {
+                      ...j,
+                      status: 'COMPLETED',
+                      processed_messages: r.forwarded,
+                      total_messages: r.forwarded,
+                      last_execution_id: r.executionId,
+                    }
+                  : j
+              )
+            );
+          }
+        } catch (e: any) {
+          appendLog({
+            type: 'error',
+            text: String(e?.message || e),
+            time: new Date().toLocaleTimeString(),
+          });
+          setRunResults((prev) => ({ ...prev, [job.id]: 'failed' }));
+          setJobs((prev) =>
+            prev.map((j) => (j.id === job.id ? { ...j, status: 'FAILED' } : j))
+          );
+        } finally {
+          clearRunning(job.id);
+          window.setTimeout(() => {
+            fetchJobs().catch(() => {});
+          }, 300);
+        }
+        return;
+      }
+
+      const action = isRetry ? 'retry-execution' : 'execute-job';
+      const args = [`--action=${action}`, `--job-id=${job.id}`];
+      if (isRetry && job.last_execution_id) {
+        args.push(`--execution-id=${job.last_execution_id}`);
+      }
+      if (apiId) args.push(`--api-id=${apiId}`);
+      if (apiHash) args.push(`--api-hash=${apiHash}`);
+      if (isDryRun) args.push('--dry-run');
+      if (rerunMode) args.push(`--rerun-mode=${rerunMode}`);
 
       const applyEvent = (ev: any) => {
         try {
@@ -236,6 +324,36 @@ export function Jobs() {
 
   const handleCreateJob = async (config: any) => {
     try {
+      if (detectTauriRuntime()) {
+        if (editingJob) {
+          await jobsEdit(editingJob.id, config);
+          setEditingJob(null);
+          await fetchJobs();
+          if (config.dryRun) {
+            const j = jobs.find((x) => x.id === editingJob.id);
+            if (j) {
+              setActiveJobId(j.id);
+              startJob(j, false, true);
+            }
+            return;
+          }
+          setMode('list');
+          return;
+        }
+        const newJobId = await jobsCreate(config);
+        await fetchJobs();
+        const list = await jobsList();
+        setJobs(list);
+        const newlyCreatedJob = list.find((j: any) => j.id === newJobId);
+        if (newlyCreatedJob) {
+          await new Promise((r) => setTimeout(r, 100));
+          startJob(newlyCreatedJob, false, config.dryRun === true);
+          return;
+        }
+        setMode('list');
+        return;
+      }
+
       const args = [editingJob ? '--action=edit-job' : '--action=create-job'];
       if (editingJob) args.push(`--job-id=${editingJob.id}`);
       args.push(`--source=${config.source || '0'}`);
@@ -278,7 +396,6 @@ export function Jobs() {
           setJobs(fetchedJobs);
           const newlyCreatedJob = fetchedJobs.find((j: any) => j.id === newJobId);
           if (newlyCreatedJob) {
-            // Brief delay so previous shell command is fully released
             await new Promise((r) => setTimeout(r, 150));
             startJob(newlyCreatedJob, false, config.dryRun === true);
             return;
@@ -297,13 +414,16 @@ export function Jobs() {
     if (!confirm('Are you sure you want to delete this job and its execution history?')) return;
     try {
       intentionalStopRef.current.add(jobId);
-      // Cooperative stop only — NEVER Child.kill()
       if (runningRef.current.has(jobId) || activeCommands[jobId]) {
         await requestJobPause(jobId);
         await new Promise((r) => setTimeout(r, 800));
       }
       clearRunning(jobId);
-      await runDaemonOnce(['--action', 'delete-job', '--job-id', String(jobId)]);
+      if (detectTauriRuntime()) {
+        await jobsDelete(jobId);
+      } else {
+        await runDaemonOnce(['--action', 'delete-job', '--job-id', String(jobId)]);
+      }
       if (activeJob && activeJob.id === jobId) {
         setMode('list');
         setActiveJobId(null);
@@ -317,7 +437,11 @@ export function Jobs() {
 
   const freshStartJob = async (jobId: number) => {
     try {
-      await runDaemonOnce(['--action', 'fresh-start', '--job-id', String(jobId)]);
+      if (detectTauriRuntime()) {
+        await jobsFreshStart(jobId);
+      } else {
+        await runDaemonOnce(['--action', 'fresh-start', '--job-id', String(jobId)]);
+      }
       fetchJobs();
       alert('History mapping berhasil dihapus. Job direset ke posisi 0.');
     } catch (err) {
@@ -362,21 +486,50 @@ export function Jobs() {
 
   const exportJobs = async () => {
     try {
+      if (detectTauriRuntime()) {
+        const json = await jobsExportJson();
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'jobs_export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('Jobs exported (jobs_export.json downloaded).');
+        return;
+      }
       await runDaemonOnce(['--action', 'export-jobs']);
       alert('Jobs exported successfully to worker directory!');
     } catch (err) {
       console.error('Failed to export jobs', err);
+      alert(`Export gagal: ${err}`);
     }
   };
 
   const importJobs = async () => {
-    if (!confirm('Import jobs from jobs_export.json?')) return;
+    if (!confirm('Import jobs from JSON?')) return;
     try {
+      if (detectTauriRuntime()) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json,.json';
+        const file = await new Promise<File | null>((resolve) => {
+          input.onchange = () => resolve(input.files?.[0] || null);
+          input.click();
+        });
+        if (!file) return;
+        const text = await file.text();
+        const n = await jobsImportJson(text);
+        await fetchJobs();
+        alert(`Imported ${n} job(s).`);
+        return;
+      }
       await runDaemonOnce(['--action', 'import-jobs']);
       fetchJobs();
       alert('Jobs imported successfully!');
     } catch (err) {
       console.error('Failed to import jobs', err);
+      alert(`Import gagal: ${err}`);
     }
   };
 

@@ -9,9 +9,7 @@ import { Sync } from './pages/Sync';
 import { Statistics } from './pages/Statistics';
 import { Profiles } from './pages/Profiles';
 import { Automation } from './pages/Automation';
-import { canUseLocalTelegramWorker } from './lib/platform';
 import { isMediaStudioAvailable } from './lib/capabilities';
-import { runDaemonOnce } from './lib/jobProcess';
 import { bootstrapSecureCredentials } from './lib/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/debugMode';
 
@@ -44,7 +42,8 @@ function App() {
     }
   }, [activeTab]);
 
-  // Bootstrap secure credentials, debug flag, reconcile zombie jobs (desktop worker)
+  // Bootstrap secure credentials + debug. Jobs/executions live in Rust SQLite —
+  // no Python daemon reconcile on boot (Grammers-only path).
   useEffect(() => {
     void bootstrapSecureCredentials().catch(() => undefined);
     void bootstrapDebugMode()
@@ -52,15 +51,6 @@ function App() {
         if (on) debugLog('app', 'Debug Mode active after boot');
       })
       .catch(() => undefined);
-    if (!canUseLocalTelegramWorker()) return;
-    const reconcileJobs = async () => {
-      try {
-        await runDaemonOnce(['--action', 'reconcile']);
-      } catch (err) {
-        console.error('Failed to reconcile jobs:', err);
-      }
-    };
-    reconcileJobs();
   }, []);
 
   const driveFocus = activeTab === 'speedtest' && isMediaStudioAvailable();
@@ -71,7 +61,7 @@ function App() {
       {!driveFocus && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />}
 
       <div className={`app-content ${driveFocus ? 'app-content-drive' : ''}`} id="app-content">
-        {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
         {activeTab === 'jobs' && <Jobs />}
         {activeTab === 'sync' && <Sync />}
         {activeTab === 'stats' && <Statistics />}
@@ -83,7 +73,7 @@ function App() {
             fallback={
               <main className="main-content main-content-fill td-page">
                 <div className="td-boot-fallback" role="status">
-                  Memuat Media Studio…
+                  Memuat Drives…
                 </div>
               </main>
             }

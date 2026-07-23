@@ -715,6 +715,74 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+// --- Jobs DB (Rust SQLite, no Python daemon for CRUD) ---
+#[tauri::command]
+fn jobs_list() -> Result<Vec<core::jobs_db::JobRow>, String> {
+    core::jobs_db::list_jobs()
+}
+
+#[tauri::command]
+fn jobs_create(request: core::jobs_db::CreateJobRequest) -> Result<i64, String> {
+    core::jobs_db::create_job(&request)
+}
+
+#[tauri::command]
+fn jobs_edit(request: core::jobs_db::EditJobRequest) -> Result<(), String> {
+    core::jobs_db::edit_job(&request)
+}
+
+#[tauri::command]
+fn jobs_delete(job_id: i64) -> Result<(), String> {
+    core::jobs_db::delete_job(job_id)
+}
+
+#[tauri::command]
+fn jobs_start_execution(job_id: i64) -> Result<i64, String> {
+    core::jobs_db::start_execution(job_id)
+}
+
+#[tauri::command]
+fn jobs_run_migration(
+    app: AppHandle,
+    job_id: i64,
+    api_id: i64,
+    api_hash: String,
+    max_messages: Option<usize>,
+) -> Result<core::migration_run::MigrationRunResult, String> {
+    ensure_sessions_dir_env(&app);
+    core::migration_run::run_job_forward_mvp(
+        job_id,
+        api_id,
+        &api_hash,
+        max_messages.unwrap_or(100),
+    )
+}
+
+#[tauri::command]
+fn cache_calculate_size() -> Result<serde_json::Value, String> {
+    core::jobs_db::calculate_cache_size()
+}
+
+#[tauri::command]
+fn cache_clear_disk() -> Result<serde_json::Value, String> {
+    core::jobs_db::clear_disk_cache()
+}
+
+#[tauri::command]
+fn jobs_fresh_start(job_id: i64) -> Result<(), String> {
+    core::jobs_db::fresh_start_job(job_id)
+}
+
+#[tauri::command]
+fn jobs_export_json() -> Result<String, String> {
+    core::jobs_db::export_jobs_json()
+}
+
+#[tauri::command]
+fn jobs_import_json(json: String) -> Result<usize, String> {
+    core::jobs_db::import_jobs_json(&json)
+}
+
 /// Hybrid capability map (Rust / Python / hybrid owners).
 #[tauri::command]
 fn backend_capabilities() -> Vec<core::capability::CapabilityEntry> {
@@ -923,6 +991,31 @@ fn tg_set_backend(app: AppHandle, backend: String) -> core::telegram_ops::OpResu
 }
 
 #[tauri::command]
+fn tg_disconnect_session(session: String) -> core::telegram_ops::OpResult<bool> {
+    core::telegram_ops::tg_disconnect_session(session)
+}
+
+#[tauri::command]
+fn session_guard_acquire(
+    session: String,
+    owner_id: String,
+    purpose: String,
+) -> Result<core::session_guard::SessionActivity, String> {
+    let purpose = core::session_guard::SessionPurpose::from_str_loose(&purpose);
+    core::session_guard::acquire(&session, &owner_id, purpose).map_err(|e| e.user_message())
+}
+
+#[tauri::command]
+fn session_guard_release(session: String, owner_id: String) -> bool {
+    core::session_guard::release(&session, &owner_id)
+}
+
+#[tauri::command]
+fn session_guard_snapshot(session: String) -> core::session_guard::SessionGuardSnapshot {
+    core::session_guard::snapshot(&session)
+}
+
+#[tauri::command]
 fn tg_probe_session(app: AppHandle, session: String) -> core::grammers_ops::SessionProbeResult {
     ensure_sessions_dir_env(&app);
     core::telegram_ops::tg_probe_session(session)
@@ -1083,6 +1176,129 @@ fn tg_seek_stream(
     core::telegram_ops::tg_seek_stream(stream_id, offset, time_s, duration_s)
 }
 
+// Drive mutations — Grammers only (no Telethon)
+
+#[tauri::command]
+async fn tg_delete_messages(
+    app: AppHandle,
+    request: core::telegram_ops::DeleteMessagesRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::DeleteMessagesResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_delete_messages(request))
+        .await
+        .map_err(|e| format!("delete_messages task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_create_folder(
+    app: AppHandle,
+    request: core::telegram_ops::CreateFolderRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::FolderOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_create_folder(request))
+        .await
+        .map_err(|e| format!("create_folder task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_rename_folder(
+    app: AppHandle,
+    request: core::telegram_ops::RenameFolderRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::FolderOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_rename_folder(request))
+        .await
+        .map_err(|e| format!("rename_folder task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_set_folder_parent(
+    app: AppHandle,
+    request: core::telegram_ops::SetFolderParentRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::FolderOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_set_folder_parent(request))
+        .await
+        .map_err(|e| format!("set_folder_parent task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_delete_folder(
+    app: AppHandle,
+    request: core::telegram_ops::DeleteFolderRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::FolderOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_delete_folder(request))
+        .await
+        .map_err(|e| format!("delete_folder task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_scan_folders(
+    app: AppHandle,
+    request: core::telegram_ops::ScanFoldersRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::ScanFoldersResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_scan_folders(request))
+        .await
+        .map_err(|e| format!("scan_folders task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_create_topic(
+    app: AppHandle,
+    request: core::telegram_ops::TopicMutRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::TopicOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_create_topic(request))
+        .await
+        .map_err(|e| format!("create_topic task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_rename_topic(
+    app: AppHandle,
+    request: core::telegram_ops::TopicMutRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::TopicOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_rename_topic(request))
+        .await
+        .map_err(|e| format!("rename_topic task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_delete_topic(
+    app: AppHandle,
+    request: core::telegram_ops::TopicMutRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::TopicOpResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_delete_topic(request))
+        .await
+        .map_err(|e| format!("delete_topic task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_avatars_batch(
+    app: AppHandle,
+    request: core::telegram_ops::AvatarsBatchRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::AvatarsBatchResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_avatars_batch(request))
+        .await
+        .map_err(|e| format!("avatars_batch task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_move_messages(
+    app: AppHandle,
+    request: core::telegram_ops::MoveMessagesRequest,
+) -> Result<core::telegram_ops::OpResult<core::drive_rpc::MoveMessagesResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_move_messages(request))
+        .await
+        .map_err(|e| format!("move_messages task failed: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1119,6 +1335,7 @@ pub fn run() {
             studio_run_orchestrated,
             tg_backend_status,
             tg_set_backend,
+            tg_disconnect_session,
             tg_probe_session,
             tg_list_sessions,
             tg_import_telethon_session,
@@ -1134,11 +1351,36 @@ pub fn run() {
             tg_preview_stream,
             tg_stop_stream,
             tg_seek_stream,
+            tg_delete_messages,
+            tg_create_folder,
+            tg_rename_folder,
+            tg_set_folder_parent,
+            tg_delete_folder,
+            tg_scan_folders,
+            tg_create_topic,
+            tg_rename_topic,
+            tg_delete_topic,
+            tg_avatars_batch,
+            tg_move_messages,
+            jobs_list,
+            jobs_create,
+            jobs_edit,
+            jobs_delete,
+            jobs_start_execution,
+            jobs_run_migration,
+            cache_calculate_size,
+            cache_clear_disk,
+            jobs_fresh_start,
+            jobs_export_json,
+            jobs_import_json,
             start_worker_job,
             kill_worker_job,
             acquire_worker_session_lease,
             get_worker_session_lease,
             release_worker_session_lease,
+            session_guard_acquire,
+            session_guard_release,
+            session_guard_snapshot,
             cleanup_partial_downloads,
             write_worker_stdin,
             run_worker_once,

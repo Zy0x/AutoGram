@@ -194,6 +194,12 @@ function DriveFileCardInner({
         // Transient blur placeholder: paint temporary preview without stopping loading state
         setThumb(detail.url);
         setIsPlaceholderImg(true);
+      } else if (detail?.url && !detail?.isPlaceholder) {
+        // High-resolution thumbnail arrived directly from worker streaming event
+        setThumb(detail.url);
+        setIsPlaceholderImg(false);
+        setThumbLoading(false);
+        setImgError(false);
       }
     };
     const onQuality = (ev: Event) => {

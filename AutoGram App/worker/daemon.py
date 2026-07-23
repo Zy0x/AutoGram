@@ -360,6 +360,8 @@ async def main():
         from engine.debug_log import dlog, is_debug_enabled, set_debug_session
 
         set_debug_session(f"daemon-{args.action}-{args.drive_action or args.studio_action or 'x'}")
+        from engine.debug_log import backend_label
+
         dlog(
             "daemon invoke",
             scope="daemon",
@@ -369,6 +371,10 @@ async def main():
             studio_action=getattr(args, "studio_action", None),
             job_id=args.job_id,
             debug=is_debug_enabled(),
+            tg_backend=backend_label(),
+            stream_port=os.environ.get("AUTOGRAM_STREAM_PORT") or None,
+            stream_backend=os.environ.get("AUTOGRAM_STREAM_BACKEND") or None,
+            has_proxy=bool(os.environ.get("AUTOGRAM_PROXY_HOST") or os.environ.get("AUTOGRAM_PROXY_URL")),
         )
     except Exception:
         pass
@@ -489,6 +495,18 @@ async def main():
                 print(f"[JSON_OUTPUT]{json.dumps({'status': 'error', 'error': str(e)})}")
             except Exception:
                 pass
+        return
+
+    if args.action == "studio-serve":
+        # Long-lived Studio RPC (Rust orchestrator → Python Telethon steps)
+        from engine.studio_serve import run_studio_serve
+
+        session = args.session if args.session not in (None, "", "__DEFAULT_SESSION__") else "Lavender"
+        await run_studio_serve(
+            session_name=session,
+            api_id=int(args.api_id or 0),
+            api_hash=str(args.api_hash or ""),
+        )
         return
 
     if args.action == "media-studio":

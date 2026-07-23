@@ -31,7 +31,11 @@ import {
   getSecureTransferSettings,
   setSecureTransferSettings,
 } from '../lib/secureCredentials';
-import { loadSelectableSessionNames, getActiveSessionTargets } from '../lib/sessionPicker';
+import {
+  loadSelectableSessionNames,
+  getActiveSessionTargets,
+  setActiveSessionTargets,
+} from '../lib/sessionPicker';
 import {
   driveBootstrap,
   driveListChatFolders,
@@ -51,7 +55,6 @@ import {
   driveRenameFolder,
   driveSetFolderParent,
   driveMove,
-  driveUploadSpawn,
   driveDownloadBatchSpawn,
   driveDownloadSpawn,
   cancelDriveJob,
@@ -61,7 +64,6 @@ import {
   isTransferJobActive,
   driveSessionLeaseKey,
   parseEventLine,
-  parseJsonOutput,
   friendlyDriveError,
   isPeerEntityError,
   isSessionLockError,
@@ -143,6 +145,7 @@ import {
   DEFAULT_TRANSFER_SETTINGS,
   DEFAULT_DRIVE_SORT,
   DRIVE_FOLDER_SOFT_LIMIT,
+  canShowDriveThumb,
   driveFileDisplayName,
   driveItemKind,
   labelDriveItem,
@@ -198,11 +201,16 @@ import {
   clearThumbCache,
   forceRetryThumb,
   primeThumbCache,
+  primeThumbsFromFileList,
+  stripInlineThumbsFromFiles,
+  requestVisibleThumbs,
+  getCachedThumb,
   invalidateThumbFailures,
   setThumbContext,
   setThumbBootstrapMode,
   setThumbQuality,
   setThumbsPaused,
+  refreshVisibleThumbsForQuality,
 } from '../lib/thumbBatcher';
 import { clearAvatarCache, invalidateAvatarFailures } from '../lib/avatarBatcher';
 import {
@@ -632,8 +640,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     } catch {
       /* ignore */
     }
-    // Auto "Hemat" on low-end / mid when user never chose
-    return getDrivePerfProfile().defaultThumbQuality;
+    // Default Hemat: grid fills from Telegram stripped thumbs (near-instant).
+    return getDrivePerfProfile().defaultThumbQuality || 'saver';
   });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   /** Anchor for Shift-range — always interpreted on displayed (filter+sort) order */
@@ -943,16 +951,22 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const handleThumbQuality = (q: DriveThumbQuality) => {
     if (q === thumbQuality) return;
     setThumbQualityState(q);
-    setThumbQuality(q); // clears mem cache + soft-fails
-    clearThumbCache();
+    setThumbQuality(q); // switches activeQuality key in batcher
     invalidateThumbFailures();
-    // Force cards to re-request (quality key changes disk path on worker)
+    // Force re-fetch for seimbang/jelas — do not reuse hemat stripped blur.
+    if (creds) {
+      const ids = files
+        .filter((f) => canShowDriveThumb(f))
+        .slice(0, 96)
+        .map((f) => f.id);
+      refreshVisibleThumbsForQuality(creds, peerId, ids);
+    }
     setStatusText(
       q === 'saver'
-        ? 'Thumb: Hemat data — memuat ulang…'
+        ? 'Thumb: Hemat data'
         : q === 'sharp'
-          ? 'Thumb: Jelas lean — tajam dari layer Telegram (hemat data)…'
-          : 'Thumb: Seimbang — memuat ulang…'
+          ? 'Thumb: Jelas'
+          : 'Thumb: Seimbang'
     );
   };
 
@@ -1005,17 +1019,53 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const handleSessionChange = useCallback((nextSession: string) => {
     const next = String(nextSession || '').trim();
     if (!next || next === session) return;
+    const prevSession = session;
 
     // Kill in-flight work for the previous account immediately.
     invalidateDriveGenerations();
+    peerGen.current += 1;
+    try {
+      setThumbContext(null, null, null);
+      clearThumbCache();
+      invalidateThumbFailures();
+    } catch {
+      /* ignore */
+    }
+    // Keep previous Grammers pool warm for fast re-switch (different sessions
+    // are separate live clients — only same-session dual-open is unsafe).
+    // Release studio lease for the account we leave.
+    if (prevSession) {
+      void import('../lib/sessionGuard')
+        .then((m) => m.sessionGuardRelease(prevSession, `studio-${prevSession}`))
+        .catch(() => undefined);
+    }
 
-    // Block peer persist for the transition render (old location × new session).
+    // Keep Active Targets aligned with the session the user just picked.
+    try {
+      setActiveSessionTargets([
+        next,
+        ...getActiveSessionTargets().filter((n) => n !== next),
+      ]);
+    } catch {
+      /* ignore */
+    }
+    try {
+      localStorage.setItem(LS_SESSION, next);
+    } catch {
+      /* ignore */
+    }
+
     peerPersistSessionRef.current = '';
-    lastBootSessionRef.current = null; // force boot effect to treat as switch
+    // Mark boot as already switched with cache painted — boot effect should NOT
+    // wipe again (double-clear caused lag and empty flash).
+    lastBootSessionRef.current = next;
     pendingRestorePeerRef.current = loadDrivePeer(next);
     lastRecentKeyRef.current = '';
 
     setError(null);
+    setLoadingChats(true);
+    setLoadingFolders(true);
+    setLoadingFiles(true);
     setChats([]);
     setChatsHasMore(false);
     setChatsOffset(0);
@@ -1031,6 +1081,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setTopics([]);
     setTopicFilter(null);
     setIsForumChat(false);
+    topicsCacheRef.current.clear();
     setSelectedIds([]);
     selectionAnchorRef.current = null;
     setChatFolders([{ id: 0, title: 'Semua Chat', kind: 'all' }]);
@@ -1046,7 +1097,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     }
     clearDriveSessionEphemeralCaches(next);
 
-    // Always open Saved Messages until this session proves a peer is valid.
     setLocationKind('saved');
     setActivePeerId(null);
     setRecents(loadDriveRecents(next));
@@ -1059,18 +1109,20 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setActiveChatFolderId(0);
     }
 
-    // Paint this session's sidebar/root cache only (never previous account).
+    // Instant paint from THIS session's cache only.
     try {
       const sidebar = loadDriveSidebarSnapshot(localStorage, next);
-      if (sidebar) {
-        setFolders(sidebar.folders);
+      if (sidebar && Array.isArray(sidebar.chats)) {
+        setFolders(Array.isArray(sidebar.folders) ? sidebar.folders : []);
         setChats(sidebar.chats);
-        setChatsHasMore(sidebar.chatsHasMore);
-        setChatsOffset(sidebar.chatsOffset);
-        chatsCursorRef.current = sidebar.cursor;
+        setChatsHasMore(!!sidebar.chatsHasMore);
+        setChatsOffset(sidebar.chatsOffset || 0);
+        chatsCursorRef.current = sidebar.cursor ?? null;
+        setLoadingChats(false);
+        setLoadingFolders(false);
       }
       const location = loadDriveLocationSnapshot(localStorage, next, null, null);
-      if (location) {
+      if (location && Array.isArray(location.files)) {
         const dedupedLocFiles = dedupeByMsgId(location.files);
         filesCacheRef.current.set('null_', dedupedLocFiles);
         setFiles(dedupedLocFiles);
@@ -1078,15 +1130,19 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         setNextOffsetId(location.nextOffsetId);
         if (location.totalCount != null) setTotalFileCount(location.totalCount);
         if (location.totalBytes != null) setTotalBytes(location.totalBytes);
+        setLoadingFiles(false);
       }
     } catch {
-      /* ignore */
+      /* empty until live */
     }
 
     setStatusText('Mengganti session…');
     setDriveReady(false);
     nativeDriveReadyRef.current = false;
     setSession(next);
+    void import('../lib/sessionGuard')
+      .then((m) => m.sessionGuardAcquire(next, `studio-${next}`, 'studio'))
+      .catch(() => undefined);
   }, [session, invalidateDriveGenerations]);
 
   const sortedPreviewList = useMemo(() => {
@@ -1169,10 +1225,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     };
   }, []);
 
+  /**
+   * Load session *names* only. Never re-apply ACTIVE_SESSIONS[0] after the user
+   * already picked a session — that was reverting the UI to the previous account.
+   */
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
-      // Boot API credentials first (resolves instantly in 2ms, unblocking the boot render)
       const credsPromise = bootstrapSecureCredentials().then((c) => {
         setApiCreds({ apiId: c.apiId, apiHash: c.apiHash });
         if (!c.apiId || !c.apiHash) {
@@ -1183,45 +1242,32 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         return c;
       });
 
-      // Load session list in background (can take 1-2 seconds due to python process spawn)
       const list = await loadSelectableSessionNames();
       writeSessionsCache(list);
       setSessions(list);
-
-      // Await credentials to finalise next session setup
       await credsPromise;
 
-      // Resolve next session name without writing state yet
-      let next = '';
-      const activeTargets = getActiveSessionTargets();
-      const activeTarget = activeTargets[0] || '';
-
-      if (activeTarget && list.includes(activeTarget)) {
-        next = activeTarget;
-      } else if (session && list.includes(session)) {
-        next = session;
-      } else {
+      // Only pick a default when Media Studio has no session yet (first boot).
+      // If the user already switched accounts, keep that selection.
+      setSession((current) => {
+        if (current && list.includes(current)) return current;
+        const activeTargets = getActiveSessionTargets();
+        const activeTarget = activeTargets[0] || '';
+        if (activeTarget && list.includes(activeTarget)) return activeTarget;
         try {
           const last = localStorage.getItem(LS_SESSION) || '';
-          if (last && list.includes(last)) next = last;
+          if (last && list.includes(last)) return last;
         } catch {
           /* ignore */
         }
-        if (!next) next = list[0] || '';
-      }
-      // MUST go through handleSessionChange when identity changes — raw
-      // setSession leaves A's peer/location and poisons B's Terbaru.
-      if (next && next !== session) {
-        handleSessionChange(next);
-      } else if (!session && next) {
-        setSession(next);
-      }
+        return list[0] || current || '';
+      });
     } catch (e: any) {
       setError(`Sessions: ${e?.message || e}`);
     } finally {
       setSessionsLoading(false);
     }
-  }, [session, handleSessionChange]);
+  }, []);
 
   // Ensure <select> always includes active session while list is still loading
   const sessionsForSelect = useMemo(() => {
@@ -1263,9 +1309,18 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           /* persistent topic cache is best-effort */
         }
       }
-      // Only skip when we KNOW it is not a forum (never skip unknown — many [TD]
-      // megagroups are forums and used as Drive folders).
-      if (meta && meta.is_forum === false && !cached?.is_forum) {
+      // Only skip pure users / known non-forums. Groups & channels always probe
+      // topics — hard-false is_forum previously left Group topics empty forever.
+      const kind = String(meta?.type || '').toLowerCase();
+      const looksGroupOrChannel =
+        kind === 'group' || kind === 'channel' || kind === 'supergroup' || !!meta?.is_drive_folder;
+      if (
+        meta &&
+        meta.is_forum === false &&
+        !cached?.is_forum &&
+        !looksGroupOrChannel &&
+        kind === 'user'
+      ) {
         setTopics([]);
         setIsForumChat(false);
         setTopicFilter(null);
@@ -1568,7 +1623,24 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const page: DriveFile[] = res.files || [];
           nFiles = page.length;
           filesHasMoreLocal = !!res.has_more;
-          filesCacheRef.current.set(bootKey, page);
+          // Telegram parity: seed grid thumbs from list_media stripped data NOW,
+          // then strip payloads so React state stays light (instant re-render).
+          let filesForUi = page;
+          if (creds && page.length) {
+            primeThumbsFromFileList(creds, peerId, page);
+            // Fill any missing thumbs immediately (one batch) — no wait for scroll.
+            const missing = page
+              .filter(
+                (f) =>
+                  canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null
+              )
+              .map((f) => f.id);
+            if (missing.length) {
+              requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+            }
+            filesForUi = stripInlineThumbsFromFiles(page);
+          }
+          filesCacheRef.current.set(bootKey, filesForUi);
           liveSyncLastAtRef.current.set(bootKey, Date.now());
           liveSyncFailuresRef.current = 0;
           liveSyncBackoffUntilRef.current = 0;
@@ -1592,13 +1664,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             }
           }
           startTransition(() => {
-            setFiles(page);
+            setFiles(filesForUi);
             setFilesHasMore(!!res.has_more);
             setNextOffsetId(res.next_offset_id ?? null);
           });
           try {
             saveDriveLocationSnapshot(localStorage, creds.session, peerId, tid, {
-              files: page,
+              files: filesForUi,
               hasMore: !!res.has_more,
               nextOffsetId: res.next_offset_id ?? null,
               totalCount: knownTotal,
@@ -1691,7 +1763,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               cursor: nextCursor,
             });
             if (activeChatFolderIdRef.current === 0) {
+              // Re-check gen inside transition — startTransition can flush AFTER
+              // a session switch cleared UI, which re-painted the previous account.
               startTransition(() => {
+                if (gen !== peerGen.current) return;
                 setChats(list);
                 setChatsOffset(cr.next_offset ?? list.length);
                 setChatsHasMore(!!cr.has_more);
@@ -1723,6 +1798,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               nFolders = tdFromChats.length;
               const provisionalFolders = withFolderOrphanFlags(tdFromChats);
               startTransition(() => {
+                if (gen !== peerGen.current) return;
                 setFolders((prev) => (prev.length > 0 ? prev : provisionalFolders));
               });
               try {
@@ -1798,6 +1874,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         cursor: bootNextCursor,
       });
       startTransition(() => {
+        if (gen !== peerGen.current) return;
         setFolders(withFolderOrphanFlags(boot.folders || []));
         if (activeChatFolderIdRef.current === 0) {
           setChats(boot.chats || []);
@@ -1898,6 +1975,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const list = (Array.isArray(fr) ? fr : fr?.folders || []) as DriveFolder[];
           const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
           startTransition(() => {
+            if (gen !== peerGen.current) return;
             setFolders(normalized);
           });
           try {
@@ -2019,6 +2097,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     if (!creds || !chatsHasMore || chatsLoadingMore || chatBulkLock.current) return;
     chatBulkLock.current = true;
     setChatsLoadingMore(true);
+    const gen = peerGen.current;
+    const sessionAtStart = creds.session;
     // Pause avatar flood while paging dialogs (reduces force-close risk)
     try {
       const { setAvatarsPaused } = await import('../lib/avatarBatcher');
@@ -2035,7 +2115,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         cursor,
         chatFolderId: requestFolderId,
       });
-      if (activeChatFolderIdRef.current !== requestFolderId) return;
+      // Session switch / gen invalidate: never append previous account's dialogs.
+      if (
+        gen !== peerGen.current ||
+        sessionAtStart !== creds.session ||
+        activeChatFolderIdRef.current !== requestFolderId
+      ) {
+        return;
+      }
       const incoming: DriveChat[] = cr.chats || [];
       setChats((prev) => {
         const seen = new Set(prev.map((c) => c.id));
@@ -2235,7 +2322,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (gen !== peerGen.current) return;
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
-      const page: DriveFile[] = dedupeByMsgId(res.files || []);
+      let page: DriveFile[] = dedupeByMsgId(res.files || []);
+      // Instant grid thumbs from list response (no second thumbs_batch wait).
+      if (page.length) {
+        primeThumbsFromFileList(creds, peerId, page);
+        const missing = page
+          .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null)
+          .map((f) => f.id);
+        if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+        page = stripInlineThumbsFromFiles(page);
+      }
       if (res.status === 'success' && !res.cached && page.length > 0) {
         const folderKey = peerId || 0;
         void saveMediaRecords(page.map(f => ({
@@ -2561,7 +2657,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         localOffset: files.length,
       });
       if (gen !== peerGen.current) return;
-      const page: DriveFile[] = res.files || [];
+      let page: DriveFile[] = res.files || [];
+      if (page.length) {
+        primeThumbsFromFileList(creds, peerId, page);
+        page = stripInlineThumbsFromFiles(page);
+      }
       if (res.status === 'success' && !res.cached && page.length > 0) {
         const folderKey = peerId || 0;
         void saveMediaRecords(page.map(f => ({
@@ -2831,20 +2931,34 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   }, [creds, peerId, topicFilter, syncActiveLocationLive]);
 
   useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+    void loadSessions();
+    // Mount-only: re-running on session change used to re-pick ACTIVE_SESSIONS[0]
+    // and snap the UI back to the previous account.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Session/location bootstrap is deliberately staged. The first live file
-  // page remains immediate; proactive thumbnails and auto-pagination unlock
-  // only after that page has had time to paint without background contention.
+  // Unlock thumb pipeline quickly after files land (no multi-second idle).
   useEffect(() => {
-    setProgressiveReady(false);
-    setThumbBootstrapMode(true);
-    if (!creds || loadingFiles) return;
+    if (!creds) {
+      setProgressiveReady(false);
+      setThumbBootstrapMode(true);
+      return;
+    }
+    if (loadingFiles) {
+      setProgressiveReady(false);
+      setThumbBootstrapMode(true);
+      return;
+    }
+    const delay = progressiveSettleDelayMs(getDrivePerfProfile().tier);
+    if (delay <= 0) {
+      setProgressiveReady(true);
+      setThumbBootstrapMode(false);
+      return;
+    }
     const timer = window.setTimeout(() => {
       setProgressiveReady(true);
       setThumbBootstrapMode(false);
-    }, progressiveSettleDelayMs(getDrivePerfProfile().tier));
+    }, delay);
     return () => window.clearTimeout(timer);
   }, [creds?.session, peerId, topicFilter, loadingFiles]);
 
@@ -3524,194 +3638,119 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
         let uploadError: string | null = null;
         let uploadedIds: number[] = [];
-        let exitCode: number | null = 0;
-        let usedRustOrch = false;
 
-        // Default path: Rust orchestrator (ordered studio-serve steps).
-        // Fallback: legacy media-studio spawn (albums, remote URL, orch failure).
-        if (isStudioOrchEligible(task.paths || [], task.options)) {
-          setStatusText(`Upload (Rust orch)${label}: ${namesLabel}`);
-          setTransfer((t) => {
-            const nextItems = t.items.map((it, idx) => {
-              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'done' || it.status === 'skipped') return it;
-                return { ...it, status: 'active' as const, phase: 'upload' as const };
-              }
-              return it;
-            });
-            return { ...t, items: nextItems, active: true };
+        // Grammers-only path (local + remote URL via Rust media_prep).
+        if (!isStudioOrchEligible(task.paths || [], task.options)) {
+          throw new Error('Upload membutuhkan file lokal atau URL http/https yang valid.');
+        }
+
+        setStatusText(`Upload (Grammers)${label}: ${namesLabel}`);
+        setTransfer((t) => {
+          const nextItems = t.items.map((it, idx) => {
+            if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
+              if (it.status === 'done' || it.status === 'skipped') return it;
+              return { ...it, status: 'active' as const, phase: 'upload' as const };
+            }
+            return it;
           });
+          return { ...t, items: nextItems, active: true };
+        });
 
-          const apiIdNum = Number(creds!.apiId) || 0;
-          const topicFromOpts =
-            task.topicId ??
-            (task.options?.topic_id != null
-              ? Number(task.options.topic_id)
-              : task.options?.topicId != null
-                ? Number(task.options.topicId)
-                : null);
+        const apiIdNum = Number(creds!.apiId) || 0;
+        const topicFromOpts =
+          task.topicId ??
+          (task.options?.topic_id != null
+            ? Number(task.options.topic_id)
+            : task.options?.topicId != null
+              ? Number(task.options.topicId)
+              : null);
 
-          const orchOutcome = await studioRunUploadDefault(
-            creds!,
-            {
-              session: creds!.session,
-              apiId: apiIdNum,
-              apiHash: creds!.apiHash,
-              chatId: studioChatIdFromFolder(task.targetFolderId ?? null),
-              topicId: topicFromOpts != null && topicFromOpts > 0 ? topicFromOpts : null,
-              files: filesPayload.map((f) => ({
-                path: f.path,
-                caption: f.caption,
-              })),
-              options: {
-                ...task.options,
-                transfer_id: task.id,
-              },
-              transferId: task.id,
+        const orchOutcome = await studioRunUploadDefault(
+          creds!,
+          {
+            session: creds!.session,
+            apiId: apiIdNum,
+            apiHash: creds!.apiHash,
+            chatId: studioChatIdFromFolder(task.targetFolderId ?? null),
+            topicId: topicFromOpts != null && topicFromOpts > 0 ? topicFromOpts : null,
+            files: filesPayload.map((f) => ({
+              path: f.path,
+              caption: f.caption,
+            })),
+            options: {
+              ...task.options,
+              transfer_id: task.id,
             },
-            { skipRestartWarm }
-          );
+            transferId: task.id,
+          },
+          { skipRestartWarm }
+        );
 
-          if (orchOutcome) {
-            usedRustOrch = true;
-            const rec = orchOutcome.record;
-            const items = rec?.items || [];
-            let orchSkipped = 0;
-            let orchDone = 0;
-            let orchFailed = 0;
-            for (const qi of items) {
-              const mid = Number(qi.messageId || 0);
-              if (mid > 0) uploadedIds.push(mid);
-              const st = mapOrchItemStatus(qi.state);
-              if (st === 'done') orchDone += 1;
-              else if (st === 'skipped') orchSkipped += 1;
-              else if (st === 'failed') orchFailed += 1;
-              const uiIdx = task.startIndex + Number(qi.index || 0);
-              setTransfer((t) =>
-                applyTransferEvent(t, {
-                  type: 'StudioItemDone',
-                  index: uiIdx,
-                  status: st === 'uploading' ? 'failed' : st,
-                  message_id: mid > 0 ? mid : undefined,
-                  error: qi.error || undefined,
-                  path: qi.path,
-                })
-              );
-              if (st === 'failed' && qi.error) {
-                uploadError = qi.error;
-              }
+        {
+          const rec = orchOutcome.record;
+          const items = rec?.items || [];
+          let orchSkipped = 0;
+          let orchDone = 0;
+          let orchFailed = 0;
+          for (const qi of items) {
+            const mid = Number(qi.messageId || 0);
+            if (mid > 0) uploadedIds.push(mid);
+            const st = mapOrchItemStatus(qi.state);
+            if (st === 'done') orchDone += 1;
+            else if (st === 'skipped') orchSkipped += 1;
+            else if (st === 'failed') orchFailed += 1;
+            const uiIdx = task.startIndex + Number(qi.index || 0);
+            setTransfer((t) =>
+              applyTransferEvent(t, {
+                type: 'StudioItemDone',
+                index: uiIdx,
+                status: st === 'uploading' ? 'failed' : st,
+                message_id: mid > 0 ? mid : undefined,
+                error: qi.error || undefined,
+                path: qi.path,
+              })
+            );
+            if (st === 'failed' && qi.error) {
+              uploadError = qi.error;
             }
-            // All skipped (dup policy) counts as successful terminal without message_ids
-            if (uploadedIds.length === 0 && orchSkipped > 0 && orchFailed === 0) {
-              uploadedIds.push(-1); // sentinel: terminal ok without Telegram message_id
-            }
-            if (!items.length && orchOutcome.result.message) {
-              debugLog('drive', 'orch complete (no item detail)', {
-                tid: orchOutcome.result.transferId,
-              });
-            }
-            void flushTransferDebugLog(transferRef.current);
-            debugLog('drive', 'upload via rust orch', {
+          }
+          if (uploadedIds.length === 0 && orchSkipped > 0 && orchFailed === 0) {
+            uploadedIds.push(-1);
+          }
+          if (!items.length && orchOutcome.result.message) {
+            debugLog('drive', 'orch complete (no item detail)', {
               tid: orchOutcome.result.transferId,
-              mode: orchOutcome.result.mode,
-              done: orchDone || rec?.doneCount,
-              failed: orchFailed || rec?.failedCount,
-              skipped: orchSkipped,
-            });
-          } else {
-            debugLog('drive', 'orch unavailable → media-studio fallback', {
-              taskId: task.id,
             });
           }
-        }
-
-        if (!usedRustOrch) {
-          const filesJson = await writeWorkerJson('drive_files', filesPayload);
-          const optionsJson = await writeWorkerJson('drive_opts', {
-            ...task.options,
-            // Persisted queue task id keeps upload file_id and commit random_id stable
-            // when this exact task is resumed/retried.
-            transfer_id: task.id,
+          void flushTransferDebugLog(transferRef.current);
+          debugLog('drive', 'upload via grammers orch', {
+            tid: orchOutcome.result.transferId,
+            mode: orchOutcome.result.mode,
+            done: orchDone || rec?.doneCount,
+            failed: orchFailed || rec?.failedCount,
+            skipped: orchSkipped,
           });
-
-          try {
-            await new Promise<void>((resolve, reject) => {
-              driveUploadSpawn(creds!, task.targetFolderId ?? null, filesJson, optionsJson, {
-                onStdoutLine: (line) => {
-                  const text = String(line);
-                  onTransferStdout(text);
-                  if (text.includes('[JSON_OUTPUT]')) {
-                    const data = parseJsonOutput(text);
-                    if (data?.status === 'error') {
-                      uploadError = data.error || 'Upload failed';
-                      setError(uploadError);
-                    } else if (data && Array.isArray((data as any).items)) {
-                      const ids = (data as any).items
-                        .map((x: any) => Number(x?.message_id))
-                        .filter((id: number) => Number.isFinite(id) && id > 0);
-                      if (ids.length) uploadedIds.push(...ids);
-                    }
-                  }
-                },
-                onStderrLine: (line) => onTransferStdout(String(line)),
-                onClose: (code) => {
-                  exitCode = code;
-                  void flushTransferDebugLog(transferRef.current);
-                  resolve();
-                },
-              }, { skipRestartWarm })
-                .then((c) => {
-                  childRef.current = c;
-                })
-                .catch(reject);
-            });
-          } finally {
-            void deleteWorkerTempFile(filesJson);
-            void deleteWorkerTempFile(optionsJson);
-            childRef.current = null;
-          }
         }
 
-        // Post task finish checks
-        const isErrorExit =
-          !!uploadError ||
-          (!usedRustOrch && exitCode != null && exitCode !== 0) ||
-          (usedRustOrch && uploadedIds.length === 0 && !!uploadError);
+        // Post task finish checks (Grammers orch only)
+        const isErrorExit = !!uploadError || uploadedIds.length === 0;
         if (uploadedIds.length > 0) {
           debugLog('drive', 'upload chunk ok', {
             count: uploadedIds.length,
-            path: usedRustOrch ? 'rust_orch' : 'media_studio',
+            path: 'grammers_orch',
           });
           setStatusText(`Upload selesai${label}: ${namesLabel}`);
-          if (isErrorExit) {
-            setError(
-              `Upload terkirim, tetapi worker mengakhiri dengan peringatan` +
-                (!usedRustOrch && exitCode != null && exitCode !== 0 ? ` (exit ${exitCode})` : '') +
-                (uploadError ? `: ${uploadError}` : '')
-            );
+          if (uploadError) {
+            setError(`Upload terkirim dengan peringatan: ${uploadError}`);
           }
-          // Terminal states are owned by StudioItemDone; never synthesize success here.
-        } else if (isErrorExit || (usedRustOrch && uploadedIds.length === 0)) {
+        } else if (isErrorExit) {
           setStatusText(`Upload gagal${label}`);
-          if (!uploadError && !usedRustOrch && exitCode) setError(`Upload exit code ${exitCode}`);
-          else if (uploadError) setError(uploadError);
+          if (uploadError) setError(uploadError);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
                 if (it.status === 'done' || it.status === 'skipped') return it;
                 return { ...it, status: 'failed' as const, error: uploadError || 'Gagal' };
-              }
-              return it;
-            });
-            return { ...t, items: nextItems };
-          });
-        } else if (!usedRustOrch) {
-          setStatusText(`Upload selesai${label}: ${namesLabel}`);
-          setTransfer((t) => {
-            const nextItems = t.items.map((it, idx) => {
-              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                if (it.status === 'done' || it.status === 'failed' || it.status === 'cancelled' || it.status === 'skipped' || it.status === 'needs_verification') return it;
-                return { ...it, status: 'failed' as const, error: 'Worker selesai tanpa message_id atau bukti duplikat.' };
               }
               return it;
             });

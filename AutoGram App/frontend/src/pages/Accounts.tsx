@@ -121,11 +121,12 @@ export function Accounts() {
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Active Sessions State
+  // Active Sessions State — multi-account for Media Studio / Jobs pickers.
+  // First entry is the default boot target; others remain switchable.
   const [activeSessions, setActiveSessions] = useState<string[]>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('ACTIVE_SESSIONS') || '[]');
-      return Array.isArray(stored) ? stored.map(String).filter(Boolean).slice(0, 1) : [];
+      return Array.isArray(stored) ? stored.map(String).filter(Boolean).slice(0, 12) : [];
     } catch { return []; }
   });
 
@@ -134,9 +135,14 @@ export function Accounts() {
   }, [activeSessions]);
 
   const toggleSession = (name: string) => {
-    // One interactive owner prevents two accounts from competing for Media
-    // Studio state. Jobs still carry their explicit session independently.
-    setActiveSessions(prev => prev.includes(name) ? [] : [name]);
+    setActiveSessions((prev) => {
+      if (prev.includes(name)) {
+        // Keep at least zero or remaining; allow deselect
+        return prev.filter((n) => n !== name);
+      }
+      // Newest activation becomes default (first) for Media Studio boot
+      return [name, ...prev.filter((n) => n !== name)].slice(0, 12);
+    });
   };
   
   // Wizard State
@@ -197,7 +203,11 @@ export function Accounts() {
       setSessions(list.map((s) => ({ name: s.name, status: s.status })));
       setIsLoading(false);
       const validNames = list.map((s: any) => s.name);
-      setActiveSessions((prev) => prev.filter((p) => validNames.includes(p)).slice(0, 1));
+      // Keep multi-active targets (Media Studio / Jobs switch). Never clamp to 1.
+      setActiveSessions((prev) => {
+        const kept = prev.filter((p) => validNames.includes(p)).slice(0, 12);
+        return kept;
+      });
 
       if (!apiId || !apiHash) {
         setErrorMsg(
@@ -313,7 +323,8 @@ export function Accounts() {
     }
     await stopQrTimers();
     invalidateSessionListCache();
-    setActiveSessions([name]);
+    // New login becomes default (first) but keep other active accounts for Studio/Jobs switch
+    setActiveSessions((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 12));
     setAuthNotice(`Terkoneksi dan terverifikasi${userLabel ? ` sebagai ${userLabel}` : ''}.`);
     setIsWizardOpen(false);
     setIsProcessing(false);
@@ -568,6 +579,15 @@ export function Accounts() {
           </div>
           
           <div className="card-body">
+            {!isLoading && sessions.length > 0 && (
+              <p style={{ color: 'var(--text-muted)', margin: '0 0 12px', fontSize: '0.85rem', lineHeight: 1.45 }}>
+                Aktifkan beberapa akun sekaligus (hingga 12). Media Studio dan Migration Jobs bisa
+                beralih cepat antar akun aktif — akun pertama dalam daftar menjadi default saat boot.
+                {activeSessions.length > 0
+                  ? ` · ${activeSessions.length} aktif`
+                  : ' · belum ada target aktif'}
+              </p>
+            )}
             {isLoading ? (
               <div className="title-with-icon" style={{ color: 'var(--text-muted)' }}>
                 <RefreshCcw size={16} className="spin" /> {t('accounts.loading_sessions')}
@@ -605,8 +625,27 @@ export function Accounts() {
                         role="switch"
                         aria-checked={activeSessions.includes(s.name)}
                         tabIndex={0}
-                        onClick={() => s.status === 'connected' && toggleSession(s.name)}
-                        onKeyDown={(e) => { if (s.status === 'connected' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleSession(s.name); } }}
+                        // Allow multi-active even while status is still "checking"
+                        // so users can prepare Studio/Jobs targets without waiting.
+                        onClick={() =>
+                          (s.status === 'connected' ||
+                            s.status === 'checking' ||
+                            s.status === 'migration_required' ||
+                            !s.status) &&
+                          toggleSession(s.name)
+                        }
+                        onKeyDown={(e) => {
+                          if (
+                            (s.status === 'connected' ||
+                              s.status === 'checking' ||
+                              s.status === 'migration_required' ||
+                              !s.status) &&
+                            (e.key === 'Enter' || e.key === ' ')
+                          ) {
+                            e.preventDefault();
+                            toggleSession(s.name);
+                          }
+                        }}
                         className={`session-toggle ${activeSessions.includes(s.name) ? 'on' : ''}`}
                       >
                         <div className="session-toggle-knob" />

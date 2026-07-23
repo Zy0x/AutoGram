@@ -1,15 +1,17 @@
 {
   "nav": {
-    "dashboard": "Dashboard",
+    "dashboard": "Home",
     "accounts": "Accounts",
     "settings": "Settings",
-    "speedtest": "Media Studio",
+    "speedtest": "Drives",
+    "forwarder": "Forwarder",
+    "drives": "Drives",
     "collapse": "Collapse",
     "expand": "Expand"
   },
   "speedtest": {
-    "title": "Media Studio",
-    "subtitle": "Upload local media with HQ quality, ordered multi-file, and speed tools."
+    "title": "Drives",
+    "subtitle": "Browse Telegram media, instant preview, upload & download — parallel with Forwarder."
   },
   "dashboard": {
     "step1_title": "Step 1: Target Setup",

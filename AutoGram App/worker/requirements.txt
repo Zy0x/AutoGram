@@ -8,3 +8,5 @@ pypdfium2>=4.0.0
 fastapi
 uvicorn
 aiohttp
+python-socks[asyncio]>=2.4.0
+PySocks>=1.7.1

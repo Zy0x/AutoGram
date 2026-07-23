@@ -1,18 +1,21 @@
-//! AutoGram Rust core — local/default backend for hybrid architecture.
-//!
-//! Telegram MTProto stays in the Python worker. Anything that does not need
-//! Telethon should live here to keep the app lighter and reduce process gap.
+//! AutoGram Rust core — Grammers-only MTProto backend (no Python Telethon runtime).
 
 pub mod capability;
 pub mod config_normalize;
 pub mod doc_preview;
+pub mod drive_rpc;
 pub mod grammers_media;
 pub mod grammers_ops;
 pub mod hash_util;
 pub mod job_queue;
+pub mod jobs_db;
+pub mod media_prep;
+pub mod migration_run;
 pub mod network;
 pub mod path_policy;
 pub mod progress_rate;
+pub mod session_guard;
+pub mod session_rate;
 pub mod stream_server;
 pub mod streaming_policy;
 pub mod studio_orch;

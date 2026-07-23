@@ -118,14 +118,12 @@ export function Settings() {
         }
       }
 
-      // 3. Disk Cache Backend
+      // 3. Disk Cache Backend (Rust FS)
       let diskSize = 0;
       try {
-        const res = await runDaemonOnce(['--action', 'calculate-cache-size']);
-        if (res.code === 0 && res.stdout) {
-          const out = JSON.parse(res.stdout.split('\n').filter(l => l.startsWith('[JSON_OUTPUT]')).pop()?.replace('[JSON_OUTPUT]', '') || '{}');
-          diskSize = Number(out?.size_bytes || 0);
-        }
+        const { cacheCalculateSize } = await import('../lib/jobsApi');
+        const out = await cacheCalculateSize();
+        diskSize = Number(out?.bytes || 0);
       } catch (e) {
         console.warn('Failed to calculate disk cache size', e);
       }
@@ -177,12 +175,10 @@ export function Settings() {
         localStorage.removeItem(key);
       }
 
-      // 4. Disk Cache Backend
+      // 4. Disk Cache Backend (Rust)
       try {
-        const res = await runDaemonOnce(['--action', 'clear-disk-cache']);
-        if (res.code !== 0) {
-          console.warn('Disk cache clean reported non-zero code', res);
-        }
+        const { cacheClearDisk } = await import('../lib/jobsApi');
+        await cacheClearDisk();
       } catch (e) {
         console.error('Failed to clear disk cache', e);
       }

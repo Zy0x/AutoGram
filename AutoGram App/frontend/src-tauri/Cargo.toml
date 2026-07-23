@@ -45,6 +45,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"
 log = "0.4"
 thiserror = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [features]
 default = ["grammers"]

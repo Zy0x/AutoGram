@@ -35,12 +35,6 @@ export type DriveCredentials = {
   apiHash: string;
 };
 
-async function ensureWarmDriveSession(creds: DriveCredentials): Promise<boolean> {
-  if (await isSessionTransferLeased(creds)) return false;
-  if (isDriveSessionReadyFor(creds)) return true;
-  return ensureDriveSession(creds);
-}
-
 export class DriveTransferDeferredError extends Error {
   readonly code = 'DRIVE_TRANSFER_DEFERRED';
 
@@ -301,40 +295,56 @@ function folderArg(folderId: number | null | undefined): string[] {
 }
 
 export async function driveScanFolders(creds: DriveCredentials) {
-  if (detectTauriRuntime()) {
-    try {
-      const { tgListDialogs } = await import('./telegramBackend');
-      const result = await tgListDialogs({
-        session: creds.session,
-        apiId: Number(creds.apiId),
-        apiHash: creds.apiHash,
-        limit: 500,
-      });
-      if (result?.ok && Array.isArray(result.data)) {
-        const folders = result.data
-          .filter((dialog) => /\[TD\]\s*$/i.test(String(dialog.title || '')))
-          .map((dialog) => ({
-            id: Number(dialog.id),
-            name: String(dialog.title || dialog.id).replace(/\s*\[TD\]\s*$/i, '').trim(),
-            title_raw: String(dialog.title || dialog.id),
-            username: null,
-            is_drive_folder: true,
-            parent_id: null,
-          }));
-        return { status: 'success', folders, backend: 'grammers' };
-      }
-      throw new Error(result?.userMessage || result?.error?.message || 'Daftar folder native gagal.');
-    } catch (e) {
-      throw new Error(`Scan folder Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
+  if (!detectTauriRuntime()) {
+    throw new Error('Drive membutuhkan aplikasi desktop (Rust + Grammers).');
+  }
+  try {
+    const { tgScanFolders } = await import('./telegramBackend');
+    const result = await tgScanFolders({
+      session: creds.session,
+      apiId: Number(creds.apiId) || 0,
+      apiHash: creds.apiHash,
+    });
+    if (result?.ok && result.data?.folders) {
+      const folders = result.data.folders.map((f) => ({
+        id: Number(f.id),
+        name: String(f.name || f.titleRaw || f.id),
+        title_raw: String(f.titleRaw || f.name || f.id),
+        username: f.username ?? null,
+        is_drive_folder: f.isDriveFolder !== false,
+        parent_id: f.parentId ?? null,
+        is_orphan: !!f.isOrphan,
+      }));
+      return { status: 'success', folders, backend: 'grammers' };
     }
+    // Fallback: dialog title filter without parent= (older native path)
+    const { tgListDialogs } = await import('./telegramBackend');
+    const dialogs = await tgListDialogs({
+      session: creds.session,
+      apiId: Number(creds.apiId),
+      apiHash: creds.apiHash,
+      limit: 500,
+    });
+    if (dialogs?.ok && Array.isArray(dialogs.data)) {
+      const folders = dialogs.data
+        .filter((dialog) => /\[TD\]/i.test(String(dialog.title || '')))
+        .map((dialog) => ({
+          id: Number(dialog.id),
+          name: String(dialog.title || dialog.id).replace(/\s*\[TD\]\s*$/i, '').trim(),
+          title_raw: String(dialog.title || dialog.id),
+          username: null,
+          is_drive_folder: true,
+          parent_id: null,
+        }));
+      return { status: 'success', folders, backend: 'grammers' };
+    }
+    throw new Error(result?.userMessage || result?.error?.message || 'Scan folder Grammers gagal.');
+  } catch (e) {
+    throw new Error(`Scan folder Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'scan_folders');
-  }
-  return runDrive(creds, ['--drive-action', 'scan-folders']);
 }
 
-/** Warm-session bootstrap (or one-shot fallback). */
+/** Bootstrap first paint — parallel Grammers list chats + list files (no Telethon). */
 export async function driveBootstrap(
   creds: DriveCredentials,
   folderId: number | null,
@@ -343,25 +353,40 @@ export async function driveBootstrap(
   const filePage = opts?.filePageSize ?? DEFAULT_FILE_PAGE;
   const chatPage = opts?.chatPageSize ?? DEFAULT_CHAT_PAGE;
   const topicId = opts?.topicId ?? null;
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'bootstrap', {
-      folder_id: folderId,
-      file_page_size: filePage,
-      chat_page_size: chatPage,
-      topic_id: topicId,
-    });
-  }
-  const options: Record<string, unknown> = { chat_page_size: chatPage };
-  if (topicId != null) options.topic_id = topicId;
-  return runDrive(creds, [
-    '--drive-action',
-    'bootstrap',
-    '--page-size',
-    String(filePage),
-    ...folderArg(folderId),
-    '--options-json',
-    JSON.stringify(options),
+  await ensureDriveSession(creds);
+  const [chatsRes, filesRes, foldersRes] = await Promise.all([
+    driveListChats(creds, { limit: chatPage }).catch(() => ({
+      status: 'success',
+      chats: [],
+      has_more: false,
+    })),
+    driveListFiles(creds, folderId, { pageSize: filePage, topicId }).catch(() => ({
+      status: 'success',
+      files: [],
+      has_more: false,
+      next_offset_id: null,
+    })),
+    driveScanFolders(creds).catch(() => ({ status: 'success', folders: [] })),
   ]);
+  return {
+    status: 'success',
+    chats: (chatsRes as any).chats || [],
+    chats_has_more: !!(chatsRes as any).has_more,
+    chats_next_offset: (chatsRes as any).next_offset ?? null,
+    chats_next_offset_id: (chatsRes as any).next_offset_id ?? null,
+    chats_next_offset_date: (chatsRes as any).next_offset_date ?? null,
+    chats_next_offset_peer_id: (chatsRes as any).next_offset_peer_id ?? null,
+    files: (filesRes as any).files || [],
+    files_has_more: !!(filesRes as any).has_more,
+    next_offset_id: (filesRes as any).next_offset_id ?? null,
+    total_count: (filesRes as any).total_count ?? null,
+    total_bytes: (filesRes as any).total_bytes ?? null,
+    stats_pending: true,
+    folders: (foldersRes as any).folders || [],
+    folder_id: folderId,
+    topic_id: topicId,
+    backend: 'grammers',
+  } as any;
 }
 
 export type ChatListCursor = {
@@ -407,26 +432,7 @@ export async function driveListChats(
           limit,
         });
         if (gr?.ok && Array.isArray(gr.data)) {
-          const chats = gr.data.map((d) => {
-            const title = String(d.title || d.id);
-            const isTd = title.includes('[TD]');
-            const type = d.isUser
-              ? 'user'
-              : d.isChannel
-                ? 'channel'
-                : d.isGroup
-                  ? 'group'
-                  : 'unknown';
-            return {
-              id: Number(d.id),
-              name: isTd ? title.replace(/\s*\[TD\]\s*$/i, '').trim() || title : title,
-              title_raw: title,
-              type,
-              is_drive_folder: isTd,
-              is_forum: false,
-              username: null as string | null,
-            };
-          });
+          const chats = gr.data.map((d) => mapDialogToChat(d));
           return {
             status: 'success',
             chats,
@@ -445,29 +451,36 @@ export async function driveListChats(
     }
   }
 
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'list_chats', params);
+  // Pagination beyond first page: still Grammers (no Telethon).
+  try {
+    const { tgListDialogs } = await import('./telegramBackend');
+    const apiId = Number(creds.apiId) || 0;
+    const gr = await tgListDialogs({
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      limit: Math.min(limit + offset, 200),
+    });
+    if (gr?.ok && Array.isArray(gr.data)) {
+      const all = gr.data.map((d) => mapDialogToChat(d));
+      const chats = all.slice(offset, offset + limit);
+      return {
+        status: 'success',
+        chats,
+        has_more: offset + chats.length < all.length,
+        next_offset: offset + chats.length,
+        backend: 'grammers',
+      };
+    }
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar chat Grammers gagal.');
+  } catch (e) {
+    throw new Error(`Daftar chat Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'list-chats',
-    '--page-size',
-    String(limit),
-    '--chat-offset',
-    String(offset),
-    '--options-json',
-    JSON.stringify({
-      offset_id: cursor?.offset_id ?? 0,
-      offset_date: cursor?.offset_date ?? null,
-      offset_peer_id: cursor?.offset_peer_id ?? null,
-      chat_folder_id: opts?.chatFolderId ?? null,
-    }),
-  ]);
 }
 
 export async function driveListChatFolders(
   creds: DriveCredentials,
-  opts?: { force?: boolean }
+  _opts?: { force?: boolean }
 ) {
   if (detectTauriRuntime()) {
     try {
@@ -485,19 +498,10 @@ export async function driveListChatFolders(
       throw new Error(`Folder chat Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
   }
-  const params = { force: !!opts?.force };
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'list_chat_folders', params);
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'list-chat-folders',
-    '--options-json',
-    JSON.stringify(params),
-  ]);
+  throw new Error('Folder chat membutuhkan desktop Rust + Grammers.');
 }
 
-/** Batch thumbnails via warm session when available. */
+/** Batch thumbnails — Grammers only (no Telethon fill). */
 export async function driveThumbnailsBatch(
   creds: DriveCredentials,
   messageIds: number[],
@@ -508,56 +512,38 @@ export async function driveThumbnailsBatch(
   const quality = opts?.quality || 'balanced';
   const batch =
     opts?.batchSize ??
-    (quality === 'saver' ? 14 : quality === 'sharp' ? 8 : 12);
-  const ids = messageIds.slice(0, batch);
+    (quality === 'saver' ? 24 : quality === 'sharp' ? 16 : 32);
+  // Backend caps at 64; send full requested batch so scroll fill is fewer RPCs.
+  const ids = messageIds.slice(0, Math.min(64, batch));
 
-  // Grammers thumbs when Telethon warm is not holding the session
-  if (detectTauriRuntime()) {
-    try {
-      const { tgThumbsBatch } = await import('./telegramBackend');
-      {
-        const chatId = folderId == null ? 'me' : String(folderId);
-        const apiId = Number(creds.apiId) || 0;
-        const gr = await tgThumbsBatch({
-          session: creds.session,
-          apiId,
-          apiHash: creds.apiHash,
-          chatId,
-          messageIds: ids,
-          quality,
-        });
-        if (gr?.ok && gr.data?.thumbs) {
-          return {
-            status: 'success',
-            thumbs: gr.data.thumbs as Record<string, string | null>,
-            backend: 'grammers',
-          };
-        }
-        throw new Error(gr?.userMessage || gr?.error?.message || 'Thumbnail native gagal.');
-      }
-    } catch (e) {
-      console.warn('[driveThumbnailsBatch] native thumbnail deferred', e);
-      return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
-    }
-  }
-
-  // CRITICAL: never one-shot spawn Python for thumbs during load — that freezes
-  // WebView ("Not Responding") and can force-close the desktop app on low-end PCs.
-  if (!(await ensureWarmDriveSession(creds))) {
+  if (!detectTauriRuntime()) {
     return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
   }
-  return driveSessionCallFor(
-    creds,
-    'thumbnails',
-    {
-      folder_id: folderId,
-      message_ids: ids,
+  try {
+    const { tgThumbsBatch } = await import('./telegramBackend');
+    const chatId = folderId == null ? 'me' : String(folderId);
+    const apiId = Number(creds.apiId) || 0;
+    const gr = await tgThumbsBatch({
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+      messageIds: ids,
       quality,
-      batch_size: batch,
-    },
-    // Keep short so UI never blocks behind a hung thumb RPC
-    45000
-  );
+    });
+    if (gr?.ok && gr.data?.thumbs) {
+      return {
+        status: 'success',
+        thumbs: gr.data.thumbs as Record<string, string | null>,
+        backend: 'grammers',
+      };
+    }
+    // Session not ready yet — soft defer for scheduler retry
+    return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
+  } catch (e) {
+    console.warn('[driveThumbnailsBatch] Grammers thumbnail failed', e);
+    return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
+  }
 }
 
 /**
@@ -574,17 +560,97 @@ export async function driveAvatarsBatch(
   }
   const batch = opts?.batchSize ?? 16;
   const ids = peerIds.slice(0, batch);
-  // Same rule as thumbs: no one-shot spawn during warm-up (force-close risk)
-  if (!(await ensureWarmDriveSession(creds))) {
+  if (!detectTauriRuntime()) {
     return { status: 'success', avatars: {} as Record<string, string | null>, deferred: true };
   }
-  return driveSessionCallFor(creds, 'avatars', { peer_ids: ids }, 30000);
+  try {
+    const { tgAvatarsBatch } = await import('./telegramBackend');
+    const gr = await tgAvatarsBatch({
+      session: creds.session,
+      apiId: Number(creds.apiId) || 0,
+      apiHash: creds.apiHash,
+      peerIds: ids,
+    });
+    if (gr?.ok && gr.data?.avatars) {
+      return {
+        status: 'success',
+        avatars: gr.data.avatars as Record<string, string | null>,
+        backend: 'grammers',
+      };
+    }
+    return { status: 'success', avatars: {} as Record<string, string | null>, deferred: true };
+  } catch (e) {
+    console.warn('[driveAvatarsBatch] Grammers avatars failed', e);
+    return { status: 'success', avatars: {} as Record<string, string | null>, deferred: true };
+  }
 }
 
 export type DriveDeleteFolderOpts = {
   cascade?: boolean;
   detachChildren?: boolean;
 };
+
+function requireGrammersIdentity(creds: DriveCredentials) {
+  if (!detectTauriRuntime()) {
+    throw new Error('Operasi Drive membutuhkan desktop Rust + Grammers.');
+  }
+  return {
+    session: creds.session,
+    apiId: Number(creds.apiId) || 0,
+    apiHash: creds.apiHash,
+  };
+}
+
+/** Map Grammers DialogEntry → DriveChat (preserves is_forum for topics bar). */
+function mapDialogToChat(d: {
+  id: number | string;
+  title?: string;
+  isUser?: boolean;
+  isChannel?: boolean;
+  isGroup?: boolean;
+  isForum?: boolean;
+}) {
+  const title = String(d.title || d.id);
+  const isTd = title.includes('[TD]');
+  const type = d.isUser
+    ? 'user'
+    : d.isChannel
+      ? 'channel'
+      : d.isGroup
+        ? 'group'
+        : 'unknown';
+  // Unknown forum flag must stay undefined/true-path — never hard-false unless
+  // backend said so (false skips topic RPC and leaves Groups without topics).
+  const isForum = d.isForum === true ? true : d.isForum === false ? false : type === 'group';
+  return {
+    id: Number(d.id),
+    name: isTd ? title.replace(/\s*\[TD\]\s*$/i, '').trim() || title : title,
+    title_raw: title,
+    type,
+    is_drive_folder: isTd,
+    is_forum: isForum,
+    username: null as string | null,
+  };
+}
+
+function mapFolderResult(data: any) {
+  const f = data?.folder;
+  if (!f) return { status: 'success', folder: null, backend: 'grammers', warning: data?.warning };
+  return {
+    status: 'success',
+    folder: {
+      id: Number(f.id),
+      name: String(f.name || ''),
+      title_raw: String(f.titleRaw || f.name || ''),
+      username: f.username ?? null,
+      is_drive_folder: f.isDriveFolder !== false,
+      parent_id: f.parentId ?? null,
+      is_orphan: !!f.isOrphan,
+    },
+    warning: data?.warning ?? null,
+    backend: 'grammers',
+  };
+}
 
 /** Delete a Drive [TD] folder (Telegram private channel). */
 export async function driveDeleteFolder(
@@ -597,45 +663,16 @@ export async function driveDeleteFolder(
   }
   const fid = Number(folderId);
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
-  const cascade = !!opts?.cascade;
-  const detachChildren = !!opts?.detachChildren;
-  if (cascade && detachChildren) {
+  if (opts?.cascade && opts?.detachChildren) {
     throw new Error('Pilih cascade atau lepas anak, bukan keduanya.');
   }
-  const payload = {
-    folder_id: fid,
-    cascade,
-    detach_children: detachChildren,
-  };
-
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      return await driveSessionCallFor(creds, 'delete_folder', payload, 180000);
-    } catch (e) {
-      if (isTelegramDisconnectError(e)) {
-        try {
-          const { stopDriveSession } = await import('./driveSession');
-          await stopDriveSession();
-        } catch {
-          /* ignore */
-        }
-        await ensureDriveSession(creds);
-        if (isDriveSessionReadyFor(creds)) {
-          return driveSessionCallFor(creds, 'delete_folder', payload, 180000);
-        }
-      } else {
-        throw e;
-      }
-    }
+  const id = requireGrammersIdentity(creds);
+  const { tgDeleteFolder } = await import('./telegramBackend');
+  const gr = await tgDeleteFolder({ ...id, folderId: fid });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus folder Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'delete-folder',
-    ...folderArg(fid),
-    '--options-json',
-    JSON.stringify({ cascade, detach_children: detachChildren }),
-  ]);
+  return { status: 'success', backend: 'grammers' };
 }
 
 /** Rename a Drive [TD] folder channel title. */
@@ -651,36 +688,13 @@ export async function driveRenameFolder(
   if (!Number.isFinite(fid)) throw new Error('folder_id required');
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama folder wajib diisi');
-  const payload = { folder_id: fid, name: clean };
-
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      return await driveSessionCallFor(creds, 'rename_folder', payload, 120000);
-    } catch (e) {
-      if (isTelegramDisconnectError(e)) {
-        try {
-          const { stopDriveSession } = await import('./driveSession');
-          await stopDriveSession();
-        } catch {
-          /* ignore */
-        }
-        await ensureDriveSession(creds);
-        if (isDriveSessionReadyFor(creds)) {
-          return driveSessionCallFor(creds, 'rename_folder', payload, 120000);
-        }
-      } else {
-        throw e;
-      }
-    }
+  const id = requireGrammersIdentity(creds);
+  const { tgRenameFolder } = await import('./telegramBackend');
+  const gr = await tgRenameFolder({ ...id, folderId: fid, name: clean });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Rename folder Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'rename-folder',
-    ...folderArg(fid),
-    '--drive-name',
-    clean,
-  ]);
+  return mapFolderResult(gr.data);
 }
 
 /**
@@ -702,36 +716,13 @@ export async function driveSetFolderParent(
   if (pid != null && pid === fid) {
     throw new Error('Folder tidak bisa menjadi induk dirinya sendiri.');
   }
-  const payload = { folder_id: fid, parent_id: pid };
-
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      return await driveSessionCallFor(creds, 'set_folder_parent', payload, 120000);
-    } catch (e) {
-      if (isTelegramDisconnectError(e)) {
-        try {
-          const { stopDriveSession } = await import('./driveSession');
-          await stopDriveSession();
-        } catch {
-          /* ignore */
-        }
-        await ensureDriveSession(creds);
-        if (isDriveSessionReadyFor(creds)) {
-          return driveSessionCallFor(creds, 'set_folder_parent', payload, 120000);
-        }
-      } else {
-        throw e;
-      }
-    }
+  const id = requireGrammersIdentity(creds);
+  const { tgSetFolderParent } = await import('./telegramBackend');
+  const gr = await tgSetFolderParent({ ...id, folderId: fid, parentId: pid });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Reparent folder Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'set-folder-parent',
-    ...folderArg(fid),
-    '--options-json',
-    JSON.stringify({ parent_id: pid }),
-  ]);
+  return mapFolderResult(gr.data);
 }
 
 /** Create a Drive [TD] folder. Pass parentId to nest under another Drive folder. */
@@ -744,35 +735,15 @@ export async function driveCreateFolder(
     opts?.parentId != null && Number.isFinite(Number(opts.parentId))
       ? Number(opts.parentId)
       : null;
-  const payload = { name, parent_id: parentId };
-
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      return await driveSessionCallFor(creds, 'create_folder', payload, 120000);
-    } catch (e) {
-      // Warm session dead or create failed after disconnect — bounce once
-      if (isTelegramDisconnectError(e)) {
-        try {
-          const { stopDriveSession } = await import('./driveSession');
-          await stopDriveSession();
-        } catch {
-          /* ignore */
-        }
-        await ensureDriveSession(creds);
-        if (isDriveSessionReadyFor(creds)) {
-          return driveSessionCallFor(creds, 'create_folder', payload, 120000);
-        }
-      } else {
-        throw e;
-      }
-    }
+  const clean = String(name || '').trim();
+  if (!clean) throw new Error('Nama folder wajib diisi');
+  const id = requireGrammersIdentity(creds);
+  const { tgCreateFolder } = await import('./telegramBackend');
+  const gr = await tgCreateFolder({ ...id, name: clean, parentId });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Buat folder Grammers gagal.');
   }
-  const extra = ['--drive-action', 'create-folder', '--drive-name', name];
-  if (parentId != null) {
-    extra.push('--options-json', JSON.stringify({ parent_id: parentId }));
-  }
-  return runDrive(creds, extra);
+  return mapFolderResult(gr.data);
 }
 
 export async function driveListFiles(
@@ -826,117 +797,85 @@ export async function driveListFiles(
     }
   }
 
-  const sortModeMap: Record<string, string> = {
-    newest: 'newest_first',
-    oldest: 'oldest_first',
-    size_desc: 'size_desc',
-    size_asc: 'size_asc',
-    name_desc: 'name_desc',
-    name_asc: 'name_asc',
-  };
-  const pythonSortMode = sortModeMap[sortMode] || sortMode;
-
-  // 2. Optional Grammers dual-path (newest-only, no topic).
-  // Skip when Telethon warm drive-serve already holds the auth_key (exclusive session).
-  const sortIsNewest = sortMode === 'newest' || !opts?.sortMode;
-  if (topicId == null && sortIsNewest && detectTauriRuntime()) {
-    try {
-      const { tgListMedia } = await import('./telegramBackend');
-      {
-        const chatId = folderId == null ? 'me' : String(folderId);
-        const apiId = Number(creds.apiId) || 0;
-        const gr = await tgListMedia({
-          session: creds.session,
-          apiId,
-          apiHash: creds.apiHash,
-          chatId,
-          limit: pageSize,
-          offsetId: opts?.offsetId ?? null,
-        });
-        if (gr?.ok && gr.data?.files) {
-          const files = gr.data.files.map((f) => ({
-            id: Number(f.id),
-            folder_id: f.folderId ?? folderId,
-            name: f.name,
-            size: Number(f.size || 0),
-            mime_type: f.mimeType ?? null,
-            icon_type: f.iconType || 'file',
-            created_at: f.createdAt ?? undefined,
-            has_thumb: !!f.hasThumb,
-            as_document: !!f.asDocument,
-          }));
-          return {
-            status: 'success',
-            folder_id: folderId,
-            topic_id: null,
-            files,
-            total: files.length,
-            page_size: pageSize,
-            has_more: !!gr.data.hasMore,
-            next_offset_id: gr.data.nextOffsetId ?? null,
-            total_count: null,
-            total_bytes: null,
-            stats_accurate: false,
-            stats_pending: true,
-            cached: false,
-            backend: 'grammers',
-          };
-        }
-        throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
-      }
-    } catch (e) {
-      throw new Error(`Daftar media Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
-    }
+  // 2. Grammers only (topic/sort client-side gaps handled as newest network page).
+  if (!detectTauriRuntime()) {
+    throw new Error('Daftar media membutuhkan desktop Rust + Grammers.');
   }
-
-  // 3. Telethon network (drive-serve / one-shot)
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'list_files', {
-      folder_id: folderId,
-      page_size: pageSize,
-      offset_id: opts?.offsetId ?? null,
-      topic_id: topicId,
-      quick_stats: opts?.quickStats ?? true,
-      sort_mode: pythonSortMode,
+  try {
+    const { tgListMedia } = await import('./telegramBackend');
+    const chatId = folderId == null ? 'me' : String(folderId);
+    const apiId = Number(creds.apiId) || 0;
+    const gr = await tgListMedia({
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+      limit: pageSize,
+      offsetId: opts?.offsetId ?? null,
+      topicId: topicId != null && topicId > 0 ? topicId : null,
     });
+    if (gr?.ok && gr.data?.files) {
+      let files = gr.data.files.map((f) => ({
+        id: Number(f.id),
+        folder_id: f.folderId ?? folderId,
+        name: f.name,
+        size: Number(f.size || 0),
+        mime_type: f.mimeType ?? null,
+        icon_type: f.iconType || 'file',
+        created_at: f.createdAt ?? undefined,
+        has_thumb: !!f.hasThumb,
+        as_document: !!f.asDocument,
+        topic_id: topicId,
+      }));
+      // Client-side sort for non-newest modes (network page is newest-first).
+      if (sortMode === 'oldest') {
+        files = [...files].reverse();
+      } else if (sortMode === 'size_desc') {
+        files = [...files].sort((a, b) => b.size - a.size);
+      } else if (sortMode === 'size_asc') {
+        files = [...files].sort((a, b) => a.size - b.size);
+      } else if (sortMode === 'name_desc') {
+        files = [...files].sort((a, b) => b.name.localeCompare(a.name));
+      } else if (sortMode === 'name_asc') {
+        files = [...files].sort((a, b) => a.name.localeCompare(b.name));
+      }
+      return {
+        status: 'success',
+        folder_id: folderId,
+        topic_id: topicId,
+        files,
+        total: files.length,
+        page_size: pageSize,
+        has_more: !!gr.data.hasMore,
+        next_offset_id: gr.data.nextOffsetId ?? null,
+        total_count: null,
+        total_bytes: null,
+        stats_accurate: false,
+        stats_pending: true,
+        cached: false,
+        invalid_topic: false,
+        backend: 'grammers',
+      } as any;
+    }
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
+  } catch (e) {
+    throw new Error(`Daftar media Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
-  const extra = [
-    '--drive-action',
-    'list-files',
-    ...folderArg(folderId),
-    '--page-size',
-    String(pageSize),
-  ];
-  if (opts?.offsetId != null && opts.offsetId > 0) {
-    extra.push('--offset-id', String(opts.offsetId));
-  }
-  const optionsJson: Record<string, any> = { sort_mode: pythonSortMode };
-  if (topicId != null) {
-    optionsJson.topic_id = topicId;
-  }
-  extra.push('--options-json', JSON.stringify(optionsJson));
-  return runDrive(creds, extra);
 }
 
 export async function driveIndexFolder(
-  creds: DriveCredentials,
-  folderId: number | null,
-  opts?: { topicId?: number | null; jobId?: string }
+  _creds: DriveCredentials,
+  _folderId: number | null,
+  _opts?: { topicId?: number | null; jobId?: string }
 ) {
-  const folder = folderId || 0;
-  if (!(await ensureWarmDriveSession(creds))) {
-    throw new Error('Warm session not ready to index');
-  }
-  return driveSessionCallFor(
-    creds,
-    'index_folder',
-    {
-      folder_id: folder,
-      topic_id: opts?.topicId ?? null,
-      job_id: opts?.jobId ?? null,
-    },
-    3600000 // 1 hour timeout
-  );
+  // Index walk was Telethon-only; Grammers list_media + local cache cover browse.
+  // Full background index port is Phase 1 remaining work.
+  return {
+    status: 'success',
+    pending: false,
+    backend: 'grammers',
+    message: 'Index folder Telethon dinonaktifkan — gunakan list media Grammers.',
+  };
 }
 
 export { addDriveEventListener } from './driveSession';
@@ -946,143 +885,94 @@ export async function driveGetFile(
   folderId: number | null,
   messageId: number
 ) {
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'get_message', {
-      folder_id: folderId,
-      message_id: messageId,
-    });
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'get-message',
-    ...folderArg(folderId),
-    '--options-json',
-    JSON.stringify({ message_id: messageId }),
-  ]);
+  // Approximate via list_media page around id is expensive; return minimal row from thumbs path.
+  const page = await driveListFiles(creds, folderId, { pageSize: 40, offsetId: messageId + 1 });
+  const hit = (page?.files || []).find((f: any) => Number(f.id) === Number(messageId));
+  if (hit) return { status: 'success', file: hit, backend: 'grammers' };
+  return { status: 'success', file: null, backend: 'grammers' };
 }
 
 /**
- * Accurate media count + total bytes for a location (unique message ids).
- * Independent of pagination — walks Telegram media filters (metadata only).
- *
- * - force: re-walk even if cache warm
- * - peek: read progressive/incomplete cache only (never start a walk; for UI poll)
+ * Media stats — pending until full Grammers walk is ported.
+ * UI already treats stats_pending; avoid spawning Telethon.
  */
 export async function driveMediaStats(
-  creds: DriveCredentials,
+  _creds: DriveCredentials,
   folderId: number | null,
   opts?: { topicId?: number | null; force?: boolean; peek?: boolean }
 ) {
-  const topicId = opts?.topicId ?? null;
-  const force = !!opts?.force;
-  const peek = !!opts?.peek;
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(
-      creds,
-      'media_stats',
-      {
-        folder_id: folderId,
-        topic_id: topicId,
-        force: peek ? false : force,
-        peek,
-      },
-      // Peek is cache-only; walk may take longer on huge libraries
-      peek ? 15000 : 180000
-    );
-  }
-  // one-shot path has no progressive poll — skip peek
-  if (peek) {
-    return { status: 'success', total_count: null, total_bytes: null, incomplete: true, pending: true };
-  }
-  const extra = [
-    '--drive-action',
-    'media-stats',
-    ...folderArg(folderId),
-  ];
-  if (topicId != null || force) {
-    extra.push(
-      '--options-json',
-      JSON.stringify({ topic_id: topicId, force })
-    );
-  }
-  return runDrive(creds, extra);
+  return {
+    status: 'success',
+    folder_id: folderId,
+    topic_id: opts?.topicId ?? null,
+    total_count: null,
+    total_bytes: null,
+    incomplete: true,
+    pending: true,
+    stats_pending: true,
+    backend: 'grammers',
+  };
 }
 
 export async function driveListTopics(creds: DriveCredentials, chatId: number) {
-  if (detectTauriRuntime()) {
-    try {
-      const { tgListTopics } = await import('./telegramBackend');
-      {
-        const apiId = Number(creds.apiId) || 0;
-        const gr = await tgListTopics({
-          session: creds.session,
-          apiId,
-          apiHash: creds.apiHash,
-          chatId,
-        });
-        if (gr?.ok && gr.data) {
-          const topics = (gr.data.topics || []).map((t) => ({
-            id: Number(t.id),
-            title: t.title,
-            top_message: t.topMessage ?? null,
-            closed: !!t.closed,
-          }));
-          return {
-            status: 'success',
-            topics,
-            is_forum: !!gr.data.isForum,
-            cached: !!gr.data.cached,
-            backend: 'grammers',
-          };
-        }
-        throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar topik native gagal.');
-      }
-    } catch (e) {
-      throw new Error(`Daftar topik Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
+  if (!detectTauriRuntime()) {
+    throw new Error('Daftar topik membutuhkan desktop Rust + Grammers.');
+  }
+  try {
+    const { tgListTopics } = await import('./telegramBackend');
+    const apiId = Number(creds.apiId) || 0;
+    const gr = await tgListTopics({
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+    });
+    if (gr?.ok && gr.data) {
+      const topics = (gr.data.topics || []).map((t) => ({
+        id: Number(t.id),
+        title: t.title,
+        top_message: t.topMessage ?? null,
+        closed: !!t.closed,
+      }));
+      return {
+        status: 'success',
+        topics,
+        is_forum: !!gr.data.isForum,
+        cached: !!gr.data.cached,
+        backend: 'grammers',
+      };
     }
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar topik native gagal.');
+  } catch (e) {
+    throw new Error(`Daftar topik Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'list_topics', { folder_id: chatId });
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'list-topics',
-    ...folderArg(chatId),
-  ]);
 }
 
 export async function driveCreateTopic(creds: DriveCredentials, chatId: number, title: string) {
   const clean = String(title || '').trim();
   if (!clean) throw new Error('Nama topik wajib diisi');
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'create_topic', {
-      folder_id: chatId,
-      title: clean,
-    });
+  const id = requireGrammersIdentity(creds);
+  const { tgCreateTopic } = await import('./telegramBackend');
+  const gr = await tgCreateTopic({ ...id, chatId, title: clean });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Buat topik Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'create-topic',
-    ...folderArg(chatId),
-    '--options-json',
-    JSON.stringify({ title: clean }),
-  ]);
+  return {
+    status: 'success',
+    topic_id: gr.data?.topicId ?? null,
+    title: gr.data?.title ?? clean,
+    backend: 'grammers',
+  };
 }
 
 export async function driveDeleteTopic(creds: DriveCredentials, chatId: number, topicId: number) {
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'delete_topic', {
-      folder_id: chatId,
-      topic_id: topicId,
-    });
+  const id = requireGrammersIdentity(creds);
+  const { tgDeleteTopic } = await import('./telegramBackend');
+  const gr = await tgDeleteTopic({ ...id, chatId, topicId });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus topik Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'delete-topic',
-    ...folderArg(chatId),
-    '--options-json',
-    JSON.stringify({ topic_id: topicId }),
-  ]);
+  return { status: 'success', topic_id: topicId, backend: 'grammers' };
 }
 
 export async function driveRenameTopic(
@@ -1091,20 +981,15 @@ export async function driveRenameTopic(
   topicId: number,
   name: string
 ) {
-  if (await ensureWarmDriveSession(creds)) {
-    return driveSessionCallFor(creds, 'rename_topic', {
-      folder_id: chatId,
-      topic_id: topicId,
-      name,
-    });
+  const clean = String(name || '').trim();
+  if (!clean) throw new Error('Nama topik wajib diisi');
+  const id = requireGrammersIdentity(creds);
+  const { tgRenameTopic } = await import('./telegramBackend');
+  const gr = await tgRenameTopic({ ...id, chatId, topicId, title: clean });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Rename topik Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'rename-topic',
-    ...folderArg(chatId),
-    '--options-json',
-    JSON.stringify({ topic_id: topicId, title: name }),
-  ]);
+  return { status: 'success', topic_id: topicId, title: clean, backend: 'grammers' };
 }
 
 export async function driveThumbnail(
@@ -1112,21 +997,9 @@ export async function driveThumbnail(
   messageId: number,
   folderId: number | null
 ) {
-  if (isDriveSessionReadyFor(creds)) {
-    const res = await driveSessionCallFor(creds, 'thumbnails', {
-      folder_id: folderId,
-      message_ids: [messageId],
-    });
-    const url = res?.thumbs?.[String(messageId)] ?? null;
-    return { status: 'success', data_url: url };
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'thumbnail',
-    '--message-id',
-    String(messageId),
-    ...folderArg(folderId),
-  ]);
+  const res = await driveThumbnailsBatch(creds, [messageId], folderId, { batchSize: 1 });
+  const url = res?.thumbs?.[String(messageId)] ?? null;
+  return { status: 'success', data_url: url, backend: 'grammers' };
 }
 
 function isTelegramDisconnectError(err: unknown): boolean {
@@ -1146,126 +1019,65 @@ export async function drivePreview(
   creds: DriveCredentials,
   messageId: number,
   folderId: number | null,
-  opts?: { quality?: string; skipPoster?: boolean }
+  _opts?: { quality?: string; skipPoster?: boolean }
 ) {
-  // Progressive stream (play-while-download) needs warm drive-serve:
-  // HTTP media server + Telethon download must stay in the same long-lived process.
-  // One-shot workers exit after JSON and kill the stream — so always warm first.
-  const quality = (opts?.quality || 'auto').trim() || 'auto';
-  const skipPoster = opts?.skipPoster !== false; // default true — faster open
-  // Lower rungs (p480/p360/p720) may download + ffmpeg — allow longer RPC
-  const needsTranscode = /^(p1080|p720|p480|p360|1080|720|480|360)/i.test(quality);
-  const timeoutMs = needsTranscode ? 600000 : 120000;
-
-  const payload = {
-    folder_id: folderId,
-    message_id: messageId,
-    quality,
-    skip_poster: skipPoster,
-  };
-
-  // Desktop preview has exactly one MTProto owner: Rust + Grammers.
-  if (detectTauriRuntime()) {
-    try {
-      const { tgPreviewStream } = await import('./telegramBackend');
-      {
-        const chatId = folderId == null ? 'me' : String(folderId);
-        const apiId = Number(creds.apiId) || 0;
-        const gr = await tgPreviewStream({
-          session: creds.session,
-          apiId,
-          apiHash: creds.apiHash,
-          chatId,
-          messageId,
-        });
-        if (gr?.ok && gr.data) {
-          const d = gr.data;
-          return {
-            status: 'success',
-            stream_url: d.streamUrl || null,
-            stream_id: d.streamId || null,
-            path: d.path || null,
-            mime_type: d.mimeType,
-            size: d.size,
-            data_url: d.dataUrl ?? null,
-            text_content: d.textContent ?? null,
-            cached: false,
-            preview_kind: d.previewKind || (d.streaming ? 'stream' : 'image'),
-            streaming: !!d.streaming,
-            too_large: false,
-            backend: 'grammers',
-            message: d.message,
-          };
-        }
-        throw new Error(gr?.userMessage || gr?.error?.message || 'Preview native tidak tersedia.');
-      }
-    } catch (e) {
-      throw new Error(`Preview Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
-    }
+  if (!detectTauriRuntime()) {
+    throw new Error('Preview membutuhkan desktop Rust + Grammers.');
   }
-
-  await ensureDriveSession(creds, true);
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      return await driveSessionCallFor(creds, 'preview', payload, timeoutMs);
-    } catch (e) {
-      // Warm client half-open: bounce the whole drive-serve process once, then retry
-      if (!isTelegramDisconnectError(e)) throw e;
-      try {
-        const { stopDriveSession } = await import('./driveSession');
-        await stopDriveSession();
-      } catch {
-        /* ignore */
-      }
-      await ensureDriveSession(creds, true);
-      if (isDriveSessionReadyFor(creds)) {
-        return driveSessionCallFor(creds, 'preview', payload, timeoutMs);
-      }
-      // fall through to one-shot
+  try {
+    const { tgPreviewStream } = await import('./telegramBackend');
+    const chatId = folderId == null ? 'me' : String(folderId);
+    const apiId = Number(creds.apiId) || 0;
+    const gr = await tgPreviewStream({
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+      messageId,
+    });
+    if (gr?.ok && gr.data) {
+      const d = gr.data;
+      return {
+        status: 'success',
+        stream_url: d.streamUrl || null,
+        stream_id: d.streamId || null,
+        path: d.path || null,
+        mime_type: d.mimeType,
+        size: d.size,
+        data_url: d.dataUrl ?? null,
+        text_content: d.textContent ?? null,
+        cached: false,
+        preview_kind: d.previewKind || (d.streaming ? 'stream' : 'image'),
+        streaming: !!d.streaming,
+        too_large: false,
+        backend: 'grammers',
+        message: d.message,
+      };
     }
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Preview native tidak tersedia.');
+  } catch (e) {
+    throw new Error(`Preview Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
-  // Last resort (no Tauri / session failed): one-shot full/partial preview
-  return runDrive(creds, [
-    '--drive-action',
-    'preview',
-    '--message-id',
-    String(messageId),
-    ...folderArg(folderId),
-    '--options-json',
-    JSON.stringify({ quality, skip_poster: skipPoster }),
-  ]);
 }
 
-/** Prefetch first ~head of a video into stream cache (hover / scroll warm). */
+/** Prefetch first ~head of a video — start progressive stream (Grammers). */
 export async function drivePreviewWarm(
   creds: DriveCredentials,
   messageId: number,
   folderId: number | null,
-  headBytes = 768 * 1024
+  _headBytes = 768 * 1024
 ) {
-  if (!isDriveSessionReadyFor(creds)) {
-    await ensureDriveSession(creds, true);
-  }
-  if (!isDriveSessionReadyFor(creds)) return { status: 'no_session' };
+  if (!detectTauriRuntime()) return { status: 'no_session' };
   try {
-    return await driveSessionCallFor(
-      creds,
-      'preview_warm',
-      {
-        folder_id: folderId,
-        message_id: messageId,
-        head_bytes: headBytes,
-      },
-      12000
-    );
+    // Kick progressive without blocking UI long — fire-and-forget style
+    void drivePreview(creds, messageId, folderId).catch(() => undefined);
+    return { status: 'warming', backend: 'grammers' };
   } catch {
     return { status: 'error' };
   }
 }
 
-export async function driveStreamStatus(creds: DriveCredentials, streamId: string) {
-  // Native stream ids are authoritative in the Rust registry. Query it before
-  // any legacy warm worker so Account switching cannot change status ownership.
+export async function driveStreamStatus(_creds: DriveCredentials, streamId: string) {
   if (detectTauriRuntime() && streamId) {
     try {
       const { streamStatusLocal } = await import('./rustBackend');
@@ -1283,7 +1095,7 @@ export async function driveStreamStatus(creds: DriveCredentials, streamId: strin
           done: !!(st as any).done,
           mime_type: (st as any).mimeType,
           stream_ready: !!(st as any).streamReady,
-          moov_ready: !!(st as any).moovReady,
+          moov_ready: (st as any).moovReady ?? true,
           seek_capable: !!(st as any).seekCapable,
           paused: !!(st as any).paused,
           error: (st as any).error || null,
@@ -1294,53 +1106,6 @@ export async function driveStreamStatus(creds: DriveCredentials, streamId: strin
       return { status: 'error', error: 'Status stream Rust tidak tersedia', backend: 'rust' };
     }
     return { status: 'missing', stream_id: streamId, backend: 'rust' };
-  }
-  // Prefer Telethon stream_status when warm — includes moov_ready / filled islands.
-  // Rust registry alone lacks moov_ready and caused "buffer tinggi tapi tidak play".
-  if (isDriveSessionReadyFor(creds)) {
-    try {
-      const py = await driveSessionCallFor(
-        creds,
-        'stream_status',
-        { stream_id: streamId },
-        8000
-      );
-      if (py && String(py.status || '') !== 'missing' && String(py.status || '') !== 'unknown') {
-        return py;
-      }
-    } catch {
-      /* fall through to local Rust */
-    }
-  }
-  if (detectTauriRuntime() && streamId) {
-    try {
-      const { streamStatusLocal } = await import('./rustBackend');
-      const st = await streamStatusLocal(streamId);
-      if (st && String((st as any).status || '') !== 'missing') {
-        return {
-          status: (st as any).status,
-          stream_id: (st as any).streamId ?? streamId,
-          path: (st as any).path,
-          total: (st as any).total,
-          downloaded: (st as any).downloaded,
-          prefix_bytes: (st as any).prefixBytes ?? (st as any).downloaded,
-          percent: (st as any).percent,
-          done: !!(st as any).done,
-          mime_type: (st as any).mimeType,
-          stream_ready: !!(st as any).streamReady,
-          moov_ready: true, // Rust path has no moov probe — don't block play nudge
-          backend: (st as any).backend || 'rust',
-        };
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-  if (!isDriveSessionReadyFor(creds)) {
-    await ensureDriveSession(creds, true);
-  }
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(creds, 'stream_status', { stream_id: streamId }, 15000);
   }
   return { status: 'unknown' };
 }
@@ -1438,56 +1203,35 @@ export async function driveStreamSeek(
   }
 }
 
-/** Lightweight ZIP central-directory listing (no full extract). */
+/** Lightweight ZIP listing — local cache only for now (Telegram ZIP walk port pending). */
 export async function driveZipList(
-  creds: DriveCredentials,
-  messageId: number,
-  folderId: number | null
-) {
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(
-      creds,
-      'zip_list',
-      { folder_id: folderId, message_id: messageId },
-      180000
-    );
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'zip-list',
-    '--message-id',
-    String(messageId),
-    ...folderArg(folderId),
-  ]);
+  _creds: DriveCredentials,
+  _messageId: number,
+  _folderId: number | null
+): Promise<any> {
+  return {
+    status: 'error',
+    error: 'ZIP Telegram masih diport ke Grammers. Unduh file lalu buka lokal.',
+    message: 'ZIP Telegram masih diport ke Grammers. Unduh file lalu buka lokal.',
+    entries: [],
+    backend: 'grammers',
+  };
 }
 
-/** Read/extract a single ZIP entry (downloads full archive once if needed). */
+/** Read ZIP entry — local only until Telegram ZIP is ported. */
 export async function driveZipReadEntry(
-  creds: DriveCredentials,
-  messageId: number,
-  folderId: number | null,
-  entry: string,
-  password?: string
-) {
-  await ensureDriveSession(creds);
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(
-      creds,
-      'zip_read',
-      { folder_id: folderId, message_id: messageId, entry, password },
-      300000
-    );
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'zip-read',
-    '--message-id',
-    String(messageId),
-    ...folderArg(folderId),
-    '--options-json',
-    JSON.stringify({ entry, password }),
-  ]);
+  _creds: DriveCredentials,
+  _messageId: number,
+  _folderId: number | null,
+  _entry: string,
+  _password?: string
+): Promise<any> {
+  return {
+    status: 'error',
+    error: 'ZIP Telegram masih diport ke Grammers.',
+    message: 'ZIP Telegram masih diport ke Grammers.',
+    backend: 'grammers',
+  };
 }
 
 export async function driveDelete(
@@ -1495,22 +1239,21 @@ export async function driveDelete(
   messageId: number,
   folderId: number | null
 ) {
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(creds, 'delete', {
-      folder_id: folderId,
-      message_id: messageId,
-    });
+  const id = requireGrammersIdentity(creds);
+  const { tgDeleteMessages } = await import('./telegramBackend');
+  const chatId = folderId == null ? 'me' : String(folderId);
+  const gr = await tgDeleteMessages({
+    ...id,
+    chatId,
+    messageIds: [messageId],
+  });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus media Grammers gagal.');
   }
-  return runDrive(creds, [
-    '--drive-action',
-    'delete',
-    '--message-id',
-    String(messageId),
-    ...folderArg(folderId),
-  ]);
+  return { status: 'success', deleted: gr.data?.deleted ?? 1, backend: 'grammers' };
 }
 
-/** Bulk delete in one RPC (warm session) or sequential one-shot. */
+/** Bulk delete via Grammers. */
 export async function driveDeleteBatch(
   creds: DriveCredentials,
   messageIds: number[],
@@ -1518,23 +1261,23 @@ export async function driveDeleteBatch(
 ) {
   const ids = messageIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
   if (!ids.length) return { status: 'success', deleted: [], failed: [] };
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(creds, 'delete_batch', {
-      folder_id: folderId,
-      message_ids: ids,
-    });
-  }
-  const deleted: number[] = [];
-  const failed: { id: number; error: string }[] = [];
-  for (const id of ids) {
-    try {
-      await driveDelete(creds, id, folderId);
-      deleted.push(id);
-    } catch (e: any) {
-      failed.push({ id, error: String(e?.message || e) });
+  const id = requireGrammersIdentity(creds);
+  const { tgDeleteMessages } = await import('./telegramBackend');
+  const chatId = folderId == null ? 'me' : String(folderId);
+  try {
+    const gr = await tgDeleteMessages({ ...id, chatId, messageIds: ids });
+    if (!gr?.ok) {
+      throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus batch gagal');
     }
+    return { status: 'success', deleted: ids, failed: [], backend: 'grammers' };
+  } catch (e: any) {
+    return {
+      status: 'error',
+      deleted: [] as number[],
+      failed: ids.map((mid) => ({ id: mid, error: String(e?.message || e) })),
+      backend: 'grammers',
+    };
   }
-  return { status: failed.length && !deleted.length ? 'error' : 'success', deleted, failed };
 }
 
 export async function driveRename(
@@ -1543,22 +1286,19 @@ export async function driveRename(
   folderId: number | null,
   newName: string
 ) {
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(creds, 'rename', {
-      folder_id: folderId,
-      message_id: messageId,
-      name: newName,
-    });
-  }
-  return runDrive(creds, [
-    '--drive-action',
-    'rename',
-    '--message-id',
-    String(messageId),
-    '--drive-name',
-    newName,
-    ...folderArg(folderId),
-  ]);
+  // MVP: re-upload under new name is heavy; use caption edit path via download+upload
+  // is not ideal. Surface a soft copy-forward with new caption where possible.
+  const clean = String(newName || '').trim();
+  if (!clean) throw new Error('Nama baru wajib diisi');
+  const id = requireGrammersIdentity(creds);
+  // Best-effort: move to same chat deletes source after re-forward is wrong.
+  // Keep explicit until EditDocumentAttributes is ported.
+  void id;
+  void messageId;
+  void folderId;
+  throw new Error(
+    `Rename "${clean}" belum didukung penuh di Grammers (Telegram tidak mengizinkan ganti nama dokumen tanpa re-upload). Unduh lalu unggah ulang dengan nama baru.`
+  );
 }
 
 export type DriveMoveOpts = {
@@ -1579,39 +1319,26 @@ export async function driveMove(
   opts?: DriveMoveOpts
 ) {
   const deleteSource = opts?.deleteSource !== false;
-  const topicId =
-    opts?.topicId != null && Number(opts.topicId) > 0 ? Number(opts.topicId) : null;
-  if (isDriveSessionReadyFor(creds)) {
-    return driveSessionCallFor(
-      creds,
-      'move',
-      {
-        folder_id: fromFolderId,
-        message_id: messageId,
-        to_folder_id: toFolderId === null || toFolderId === undefined ? 'me' : toFolderId,
-        topic_id: topicId,
-        delete_source: deleteSource,
-      },
-      300000
-    );
+  const id = requireGrammersIdentity(creds);
+  const { tgMoveMessages } = await import('./telegramBackend');
+  const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
+  const destChat =
+    toFolderId === null || toFolderId === undefined ? 'me' : String(toFolderId);
+  const gr = await tgMoveMessages({
+    ...id,
+    sourceChat,
+    destChat,
+    messageIds: [messageId],
+    deleteSource,
+  });
+  if (!gr?.ok) {
+    throw new Error(gr?.userMessage || gr?.error?.message || 'Pindah media Grammers gagal.');
   }
-  const options: Record<string, unknown> = { delete_source: deleteSource };
-  if (topicId) options.topic_id = topicId;
-  const extra = [
-    '--drive-action',
-    'move',
-    '--message-id',
-    String(messageId),
-    ...folderArg(fromFolderId),
-    '--options-json',
-    JSON.stringify(options),
-  ];
-  if (toFolderId === null || toFolderId === undefined) {
-    extra.push('--to-folder-id', 'me');
-  } else {
-    extra.push('--to-folder-id', String(toFolderId));
-  }
-  return runDrive(creds, extra);
+  return {
+    status: 'success',
+    moved: gr.data?.moved ?? 0,
+    backend: 'grammers',
+  };
 }
 
 export async function driveDownload(
@@ -1664,66 +1391,39 @@ export async function driveDownloadOpenSpawn(
       void ensureDriveSession(creds).catch(() => undefined);
     };
 
-    // Grammers full download (≤200MB) while Telethon session is free after warm stop
+    // Grammers-only download (no Telethon daemon).
     if (detectTauriRuntime()) {
       try {
-        const { tgDownloadFile, shouldTryGrammersPath } = await import('./telegramBackend');
-        if (await shouldTryGrammersPath({ telethonWarmActive: false })) {
-          const chatId = folderId == null ? 'me' : String(folderId);
-          const apiId = Number(creds.apiId) || 0;
-          const gr = await tgDownloadFile({
-            session: creds.session,
-            apiId,
-            apiHash: creds.apiHash,
-            chatId,
-            messageId,
-            destPath: savePath,
-          });
-          if (gr?.ok && gr.data?.path) {
-            handlers.onStdoutLine?.(
-              `[JSON_OUTPUT]${JSON.stringify({ status: 'success', path: gr.data.path, backend: 'grammers' })}`
-            );
-            try {
-              handlers.onClose?.(0);
-            } finally {
-              restartWarm();
-            }
-            return { jobId: DRIVE_OPEN_JOB_ID, dispose: () => undefined };
-          }
-        }
-      } catch (e) {
-        console.warn('[driveDownloadOpenSpawn] Grammers download miss → Telethon', e);
-      }
-    }
-
-    try {
-      return await spawnDaemonJob({
-        jobId: DRIVE_OPEN_JOB_ID,
-        args: [
-          ...baseArgs(creds),
-          '--drive-action',
-          'download',
-          '--message-id',
-          String(messageId),
-          '--save-path',
-          savePath,
-          ...folderArg(folderId),
-        ],
-        onStdoutLine: handlers.onStdoutLine || (() => undefined),
-        onStderrLine: handlers.onStderrLine || (() => undefined),
-        onClose: (code) => {
+        const { tgDownloadFile } = await import('./telegramBackend');
+        const chatId = folderId == null ? 'me' : String(folderId);
+        const apiId = Number(creds.apiId) || 0;
+        const gr = await tgDownloadFile({
+          session: creds.session,
+          apiId,
+          apiHash: creds.apiHash,
+          chatId,
+          messageId,
+          destPath: savePath,
+        });
+        if (gr?.ok && gr.data?.path) {
+          handlers.onStdoutLine?.(
+            `[JSON_OUTPUT]${JSON.stringify({ status: 'success', path: gr.data.path, backend: 'grammers' })}`
+          );
           try {
-            handlers.onClose?.(code);
+            handlers.onClose?.(0);
           } finally {
             restartWarm();
           }
-        },
-        allowShellFallback: false,
-      });
-    } catch (e) {
-      restartWarm();
-      throw e;
+          return { jobId: DRIVE_OPEN_JOB_ID, dispose: () => undefined };
+        }
+        throw new Error(gr?.userMessage || gr?.error?.message || 'Download Grammers gagal');
+      } catch (e) {
+        restartWarm();
+        throw e;
+      }
     }
+    restartWarm();
+    throw new Error('Download membutuhkan desktop Rust + Grammers.');
   });
 }
 

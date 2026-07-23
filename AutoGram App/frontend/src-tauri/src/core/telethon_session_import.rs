@@ -261,12 +261,20 @@ pub fn read_session_data(path: &Path) -> Result<SessionData, TgError> {
             format!("parse grammers json session: {e}"),
         )
     })?;
-    let key = hex::decode(file.auth_key_hex.trim()).map_err(|e| {
+    let hex_key = file.auth_key_hex.trim();
+    if hex_key.is_empty() {
+        // Partial login file — treat as empty MemorySession (not a hard error).
+        return Ok(SessionData::default());
+    }
+    let key = hex::decode(hex_key).map_err(|e| {
         TgError::new(
             TgErrorCode::SessionImportFailed,
             format!("auth_key hex: {e}"),
         )
     })?;
+    if key.len() != 256 {
+        return Ok(SessionData::default());
+    }
     session_data_from_parts(file.home_dc, &key, &file.ipv4, file.port)
 }
 

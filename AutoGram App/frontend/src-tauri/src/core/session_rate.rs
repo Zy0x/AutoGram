@@ -52,10 +52,10 @@ pub fn note_flood_wait(session: &str, secs: u32) {
     });
 }
 
-/// Parse FLOOD_WAIT seconds from error text if present.
+/// Parse FLOOD_WAIT seconds from Telegram RPC error text if present.
 pub fn parse_flood_secs(err: &str) -> Option<u32> {
     let low = err.to_ascii_lowercase();
-    if !low.contains("flood") && !low.contains("rate limit") && !low.contains("tunggu") {
+    if !low.contains("flood_wait") && !low.contains("flood wait") && !low.contains("floodwait") && !low.contains("a wait of") {
         return None;
     }
     for part in low.split(|c: char| !c.is_ascii_digit()) {
@@ -65,7 +65,7 @@ pub fn parse_flood_secs(err: &str) -> Option<u32> {
             }
         }
     }
-    Some(30)
+    None
 }
 
 /// If FloodWait is active, return remaining seconds.
@@ -253,9 +253,12 @@ pub fn note_error(session: &str, err: &TgError) {
             note_flood_wait(session, secs);
             return;
         }
-    }
-    if let Some(secs) = parse_flood_secs(&err.to_string()) {
-        note_flood_wait(session, secs);
+        if let Some(secs) = parse_flood_secs(&err.to_string()) {
+            note_flood_wait(session, secs);
+            return;
+        }
+        // Fallback default for TgErrorCode::FloodWait without explicit seconds
+        note_flood_wait(session, 30);
     }
 }
 
@@ -278,5 +281,31 @@ mod tests {
         let cancel33 = streams_to_cancel(sess, "g33-100-9");
         assert!(cancel33.contains(&"g33-100-1".to_string()));
         assert!(!cancel33.contains(&"g34-100-2".to_string()));
+    }
+
+    #[test]
+    fn non_flood_errors_do_not_trigger_flood_wait() {
+        let sess = "test-session-non-flood";
+
+        // 1. Timeout with 'tunggu' in Indonesian UI error message must NOT trigger FloodWait
+        let err_busy = TgError::new(
+            TgErrorCode::Timeout,
+            "media slot busy — batalkan preview lama dan coba lagi",
+        );
+        note_error(sess, &err_busy);
+        assert_eq!(flood_remaining_secs(sess), None);
+
+        // 2. Generic network timeout with 'tunggu 5 detik' must NOT trigger FloodWait
+        let err_net = TgError::new(
+            TgErrorCode::Network,
+            "Silakan tunggu 5 detik sebelum mencoba lagi",
+        );
+        note_error(sess, &err_net);
+        assert_eq!(flood_remaining_secs(sess), None);
+
+        // 3. Genuine TgErrorCode::FloodWait DOES trigger FloodWait
+        let err_flood = TgError::with_flood(20, "FLOOD_WAIT_20");
+        note_error(sess, &err_flood);
+        assert!(flood_remaining_secs(sess).unwrap_or(0) >= 18);
     }
 }
