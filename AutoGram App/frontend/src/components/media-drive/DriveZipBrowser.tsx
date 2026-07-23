@@ -355,13 +355,19 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             </div>
           )}
           {preview?.kind === 'text' && preview.text != null && (
-            <pre className="drive-zip-text">{preview.text}</pre>
+            <pre className="drive-zip-text">{preview.text || '(File teks kosong)'}</pre>
           )}
           {preview?.kind === 'image' && preview.dataUrl && (
             <img src={preview.dataUrl} alt={preview.entry} className="drive-zip-img" />
           )}
           {preview?.kind === 'video' && preview.dataUrl && (
             <video src={preview.dataUrl} controls autoPlay className="drive-zip-img" />
+          )}
+          {preview?.kind === 'audio' && preview.dataUrl && (
+            <div className="drive-zip-preview-empty">
+              <audio src={preview.dataUrl} controls autoPlay style={{ width: '100%', maxWidth: 400 }} />
+              <p title={preview.entry} style={{ marginTop: 12 }}>{entryLabel(preview.entry, cwd)}</p>
+            </div>
           )}
           {(preview?.kind === 'binary' || preview?.kind === 'meta') && (
             <div className="drive-zip-preview-empty">

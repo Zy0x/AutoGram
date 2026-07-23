@@ -1309,7 +1309,14 @@ export async function driveZipReadEntry(
 
     let kind = 'meta';
     if (res?.dataUrl) {
-      kind = 'image';
+      const mime = (res.mimeType || '').toLowerCase();
+      if (mime.startsWith('video/')) {
+        kind = 'video';
+      } else if (mime.startsWith('audio/')) {
+        kind = 'audio';
+      } else {
+        kind = 'image';
+      }
     } else if (res?.textContent != null) {
       kind = 'text';
     } else if (res?.isBinary) {

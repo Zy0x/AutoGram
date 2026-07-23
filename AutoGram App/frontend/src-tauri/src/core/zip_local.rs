@@ -92,25 +92,70 @@ pub fn list_zip(path: &str) -> Result<ZipListResult, String> {
     })
 }
 
-fn detect_image_mime(name: &str) -> Option<&'static str> {
+fn detect_media_mime(name: &str) -> Option<(&'static str, &'static str)> {
     let lower = name.to_lowercase();
     if lower.ends_with(".png") {
-        Some("image/png")
+        Some(("image", "image/png"))
     } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
-        Some("image/jpeg")
+        Some(("image", "image/jpeg"))
     } else if lower.ends_with(".gif") {
-        Some("image/gif")
+        Some(("image", "image/gif"))
     } else if lower.ends_with(".webp") {
-        Some("image/webp")
+        Some(("image", "image/webp"))
     } else if lower.ends_with(".svg") {
-        Some("image/svg+xml")
+        Some(("image", "image/svg+xml"))
     } else if lower.ends_with(".bmp") {
-        Some("image/bmp")
+        Some(("image", "image/bmp"))
     } else if lower.ends_with(".ico") {
-        Some("image/x-icon")
+        Some(("image", "image/x-icon"))
+    } else if lower.ends_with(".mp4") {
+        Some(("video", "video/mp4"))
+    } else if lower.ends_with(".webm") {
+        Some(("video", "video/webm"))
+    } else if lower.ends_with(".mp3") {
+        Some(("audio", "audio/mpeg"))
+    } else if lower.ends_with(".ogg") {
+        Some(("audio", "audio/ogg"))
+    } else if lower.ends_with(".wav") {
+        Some(("audio", "audio/wav"))
     } else {
         None
     }
+}
+
+fn is_known_text_file(name: &str) -> bool {
+    let n = name.to_lowercase();
+    n.ends_with(".txt")
+        || n.ends_with(".md")
+        || n.ends_with(".json")
+        || n.ends_with(".csv")
+        || n.ends_with(".log")
+        || n.ends_with(".xml")
+        || n.ends_with(".html")
+        || n.ends_with(".htm")
+        || n.ends_with(".css")
+        || n.ends_with(".js")
+        || n.ends_with(".ts")
+        || n.ends_with(".tsx")
+        || n.ends_with(".jsx")
+        || n.ends_with(".py")
+        || n.ends_with(".rs")
+        || n.ends_with(".yml")
+        || n.ends_with(".yaml")
+        || n.ends_with(".ini")
+        || n.ends_with(".toml")
+        || n.ends_with(".sh")
+        || n.ends_with(".bat")
+        || n.ends_with(".sql")
+        || n.ends_with(".env")
+        || n.ends_with(".c")
+        || n.ends_with(".cpp")
+        || n.ends_with(".h")
+        || n.ends_with(".hpp")
+        || n.ends_with(".java")
+        || n.ends_with(".kt")
+        || n.ends_with(".go")
+        || n.ends_with(".php")
 }
 
 pub fn preview_zip_entry(
@@ -197,8 +242,8 @@ pub fn preview_zip_entry(
         return Err(err_str);
     }
 
-    let image_mime = detect_image_mime(entry_name);
-    if let Some(mime) = image_mime {
+    let media_mime = detect_media_mime(entry_name);
+    if let Some((_kind, mime)) = media_mime {
         let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
         let data_url = format!("data:{mime};base64,{encoded}");
         return Ok(ZipEntryPreview {
@@ -213,8 +258,14 @@ pub fn preview_zip_entry(
         });
     }
 
+    let is_text_ext = is_known_text_file(entry_name);
     let nulls = buf.iter().filter(|&&b| b == 0).count();
-    let is_binary = nulls > 8.max(buf.len() / 50);
+    let is_binary = if is_text_ext {
+        false
+    } else {
+        nulls > 8.max(buf.len() / 50)
+    };
+
     let text = if is_binary {
         None
     } else {

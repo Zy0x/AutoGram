@@ -1897,10 +1897,12 @@ fn start_preview_stream_inner(
         let is_image = mime.starts_with("image/") && !mime.contains("gif");
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
+        let is_zip = mime.contains("zip") || name.to_lowercase().ends_with(".zip");
+        let max_doc_size = if is_zip { 500 * 1024 * 1024 } else { 64 * 1024 * 1024 };
 
         // Non-media (apk/zip/binaries): never progressive-stream as if video.
-        // Large files >64MB → instant metadata UI (download only).
-        if !is_image && !is_video && !is_audio && size > 64 * 1024 * 1024 {
+        // Large files > max_doc_size → instant metadata UI (download only).
+        if !is_image && !is_video && !is_audio && size > max_doc_size {
             let _ = persist_memory_session(&live.session, &live.session_path);
             return Ok(PreviewStreamResult {
                 status: "success".into(),
@@ -1918,8 +1920,8 @@ fn start_preview_stream_inner(
             });
         }
 
-        // Documents: download once, parse text/pdf locally — keep shared pool alive.
-        if !is_image && !is_video && !is_audio && size <= 64 * 1024 * 1024 {
+        // Documents: download once, parse text/pdf/zip locally — keep shared pool alive.
+        if !is_image && !is_video && !is_audio && size <= max_doc_size {
             let safe_name: String = name
                 .chars()
                 .map(|c| if c.is_ascii_alphanumeric() || ".-_".contains(c) { c } else { '_' })
