@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.85 Perbaikan Disconnect Loop & Handling FloodWait Telegram
+
+### Perbaikan Utama Handling FloodWait & Rate Limit
+- **Eliminasi Disconnect & Reconnect Storm (`grammers_ops.rs`)**:
+  - Menghapus `TgErrorCode::FloodWait` dari pencocokan `is_pool_or_transport_error()`. Saat Telegram DC mengembalikan `FLOOD_WAIT`, koneksi MTProto tetap dijaga dan tidak diputus paksa (*disconnect*). Ini menghentikan siklus reconnect berulang (hingga 70+ kali) yang memicu lonjakan handshake dan memperparah pembatasan Telegram.
+- **Penyelarasan Concurrency Thumbs Batch (`grammers_media.rs`)**:
+  - Mengurangi batas tugas unduh thumbnail simultan (`thumb_sem`) dari 6 menjadi 2 koneksi paralel over MTProto. Hal ini mencegah lonjakan permintaan `GetFile` yang memicu FloodWait saat memuat daftar media dalam folder secara bersamaan.
+  - Memeriksa status `flood_remaining_secs` di `thumbs_batch` sebelum mencoba unduhan baru agar media tanpa cache tidak memicu RPC saat FloodWait sedang aktif.
+- **Fail-Fast Active Flood Window (`grammers_media.rs` & `telegram_ops.rs`)**:
+  - `start_preview_stream_blocking` langsung mengembalikan error `FLOOD_WAIT` saat masa tunggu aktif (`secs > 0`), menghindarkan pemblokiran thread Tauri atau penumpukan panggilan pratinjau yang gagal.
+  - Mengubah tingkat log pada error `preview_stream` yang diharapkan saat FloodWait menjadi peringatan (*warning*), mencegah penumpukan puluhan pesan error identik di log sistem.
+
 ## v2.1.84 Perbaikan False FloodWait & Optimalisasi Kecepatan Pemuatan Media
 
 ### Perbaikan Utama FloodWait & Kecepatan Media

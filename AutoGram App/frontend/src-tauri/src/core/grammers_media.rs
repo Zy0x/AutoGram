@@ -1075,9 +1075,14 @@ pub fn thumbs_batch_blocking_app(
                 }
 
                 let mut set = tokio::task::JoinSet::new();
-                let thumb_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(6));
+                let thumb_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
+                let is_flooded = session_rate::flood_remaining_secs(&session_name).unwrap_or(0) > 0;
                 for mid in need_download.iter().copied() {
                     let key = mid.to_string();
+                    if is_flooded {
+                        thumbs.insert(key, None);
+                        continue;
+                    }
                     // Disk hit for THIS quality only (never fall back to hemat blur here)
                     let q_cache = format!("{chat_safe}_{mid}_{q_key}");
                     if let Some(url) = thumb_mem_cache().lock().get(&q_cache).cloned() {
@@ -1376,9 +1381,9 @@ pub fn start_preview_stream_blocking(
     let session_name = identity.session.clone();
     let key = preview_key(&session_name, &chat, message_id);
 
-    // Fail-fast during long FloodWait (>35s); short FloodWait (<=35s) will be waited out inside inner async block.
+    // Fail-fast during active FloodWait window to avoid thread blocking or MTProto hammering.
     if let Some(secs) = session_rate::flood_remaining_secs(&session_name) {
-        if secs > 35 {
+        if secs > 0 {
             let e = TgError::with_flood(secs, "FLOOD_WAIT");
             session_rate::note_error(&session_name, &e);
             return Err(e);

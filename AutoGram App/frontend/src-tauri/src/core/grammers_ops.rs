@@ -154,7 +154,7 @@ fn session_connect_lock(session_name: &str) -> Arc<tokio::sync::Mutex<()>> {
 /// True when the live SenderPool is dead / socket closed and a reconnect can help.
 fn is_pool_or_transport_error(err: &TgError) -> bool {
     match err.code() {
-        TgErrorCode::Cancelled | TgErrorCode::Network | TgErrorCode::Io | TgErrorCode::Timeout | TgErrorCode::FloodWait => {
+        TgErrorCode::Cancelled | TgErrorCode::Network | TgErrorCode::Io | TgErrorCode::Timeout => {
             true
         }
         _ => {
@@ -2245,5 +2245,11 @@ mod tests {
         assert_eq!(path, dir.join("Lavender.grammers.json"));
         assert!(!path.exists(), "session must wait for a negotiated auth key");
         std::fs::remove_dir(&dir).expect("remove temp session dir");
+    }
+
+    #[test]
+    fn flood_wait_is_not_transport_error() {
+        let err = TgError::with_flood(31, "FLOOD_WAIT_31");
+        assert!(!is_pool_or_transport_error(&err));
     }
 }
