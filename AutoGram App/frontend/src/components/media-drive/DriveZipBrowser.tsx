@@ -554,10 +554,14 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             <DriveZipCodeViewer text={preview.text} name={preview.entry} />
           )}
           {preview?.kind === 'image' && preview.dataUrl && (
-            <img src={preview.dataUrl} alt={preview.entry} className="drive-zip-img" />
+            <div className="drive-zip-media-container">
+              <img src={preview.dataUrl} alt={preview.entry} className="drive-zip-img" />
+            </div>
           )}
           {preview?.kind === 'video' && preview.dataUrl && (
-            <video src={preview.dataUrl} controls autoPlay className="drive-zip-img" />
+            <div className="drive-zip-media-container">
+              <video src={preview.dataUrl} controls autoPlay className="drive-zip-img" />
+            </div>
           )}
           {preview?.kind === 'audio' && preview.dataUrl && (
             <div className="drive-zip-preview-empty">

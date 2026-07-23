@@ -11586,3 +11586,506 @@ body:has(.td-page),
 .dash-safety-grid p {
   margin: 0.35rem 0 0;
 }
+
+/* ==========================================
+   Drive-Style Modern & Elegant In-ZIP Browser (Override)
+   ========================================== */
+
+.drive-zip-browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--td-text, #f8fafc);
+  background: #0b1120;
+  font-family: inherit;
+  overflow: hidden;
+}
+.drive-zip-browser.is-loading,
+.drive-zip-browser.is-error {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+/* Header */
+.drive-zip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.drive-zip-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.drive-zip-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255, 174, 0, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 1px solid rgba(255, 174, 0, 0.3);
+  color: #ffae00;
+  flex-shrink: 0;
+}
+.drive-zip-title strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-zip-title span {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Toolbar: Search + Category Pills */
+.drive-zip-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.drive-zip-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 41, 59, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 10px !important;
+  padding: 7px 12px !important;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.drive-zip-search-box:focus-within {
+  background: rgba(30, 41, 59, 0.98) !important;
+  border-color: rgba(255, 174, 0, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(255, 174, 0, 0.15) !important;
+}
+.drive-zip-search-box input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  color: #f8fafc !important;
+  font-size: 0.825rem !important;
+  outline: none !important;
+  padding: 0 !important;
+}
+.drive-zip-search-box input::placeholder {
+  color: #64748b !important;
+}
+.drive-zip-search-clear {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drive-zip-search-clear:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Category Filter Tabs */
+.drive-zip-cat-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.drive-zip-cat-tab {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(30, 41, 59, 0.6) !important;
+  color: #94a3b8 !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 5px 12px !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+}
+.drive-zip-cat-tab:hover {
+  background: rgba(51, 65, 85, 0.8) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.drive-zip-cat-tab.active {
+  background: linear-gradient(135deg, rgba(255, 174, 0, 0.25) 0%, rgba(245, 158, 11, 0.18) 100%) !important;
+  border-color: rgba(255, 174, 0, 0.6) !important;
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(255, 174, 0, 0.18) !important;
+}
+.drive-zip-cat-badge {
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.drive-zip-cat-tab.active .drive-zip-cat-badge {
+  background: rgba(255, 174, 0, 0.3);
+  color: #fbbf24;
+}
+
+/* Breadcrumbs */
+.drive-zip-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  background: rgba(15, 23, 42, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+.drive-zip-crumbs button {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: inherit;
+  transition: all 0.15s ease;
+}
+.drive-zip-crumbs button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+.drive-zip-crumbs button.active {
+  color: #ffae00;
+  font-weight: 700;
+  background: rgba(255, 174, 0, 0.1);
+}
+.drive-zip-crumb-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #64748b;
+}
+.drive-zip-inline-err {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.78rem;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  flex-shrink: 0;
+}
+
+/* Split Pane Layout */
+.drive-zip-split {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 38%) 1fr;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+@media (max-width: 768px) {
+  .drive-zip-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(180px, 40%) 1fr;
+  }
+}
+
+/* File List Pane */
+.drive-zip-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  height: 100%;
+}
+.drive-zip-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.815rem;
+  transition: all 0.15s ease;
+}
+.drive-zip-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+.drive-zip-row.is-active {
+  background: linear-gradient(90deg, rgba(255, 174, 0, 0.18) 0%, rgba(255, 174, 0, 0.06) 100%);
+  border-color: rgba(255, 174, 0, 0.35);
+  color: #ffae00;
+  font-weight: 600;
+}
+.drive-zip-row.is-folder {
+  color: #38bdf8;
+}
+.drive-zip-row.is-folder:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+.drive-zip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.drive-zip-size {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+.drive-zip-size.muted {
+  opacity: 0.75;
+}
+.drive-zip-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.825rem;
+}
+
+/* Right Preview Pane: NO SCROLLBAR FOR MEDIA */
+.drive-zip-preview-pane {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden !important;
+  padding: 14px;
+  background: #070a12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+.drive-zip-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  width: 100%;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  padding: 24px;
+}
+.drive-zip-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  max-width: 28rem;
+  line-height: 1.45;
+}
+
+/* Single File Extraction Bar */
+.drive-zip-extract-bar {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+.drive-zip-extract-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.825rem;
+  color: #f8fafc;
+  font-weight: 500;
+  overflow: hidden;
+}
+.drive-zip-extract-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-zip-btn-extract {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.drive-zip-btn-extract:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+  transform: translateY(-1px);
+}
+.drive-zip-btn-extract:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Media (Images / Video) Container Fitting No Scroll */
+.drive-zip-media-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden !important;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.drive-zip-img,
+video.drive-zip-img {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: 8px;
+  display: block;
+  margin: auto;
+}
+
+/* Code Viewer */
+.drive-zip-code-box {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  text-align: left;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.drive-zip-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.drive-zip-code-tag {
+  background: rgba(255, 174, 0, 0.18);
+  color: #fbbf24;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+}
+.drive-zip-code-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Fira Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.drive-zip-line-nums {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  background: #1e293b;
+  color: #475569;
+  user-select: none;
+  text-align: right;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 44px;
+  font-size: 12px;
+}
+.drive-zip-code-pre {
+  margin: 0;
+  padding: 12px 16px;
+  color: #e2e8f0;
+  white-space: pre;
+  overflow-x: auto;
+  flex: 1;
+}
+.drive-zip-toast {
+  margin: 6px 16px;
+  padding: 8px 14px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
