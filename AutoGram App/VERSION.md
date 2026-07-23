@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.96
+AutoGram Version: v2.1.97
 
 Current State:
-v2.1.96 Penambahan fitur Slider Pembatas Ukuran Cache (Cache Limit Control) pada halaman Pengaturan. Pengguna dapat menentukan batas maksimum cache (Bebas, 1 GB, 2 GB, 5 GB, 10 GB, 20 GB, 50 GB, 100 GB) yang dilengkapi dengan visual progress bar persentase penggunaan serta tombol otomatis "Pangkas Ke Batas" untuk membebaskan memori dan ruang disk secara aman.
+v2.1.97 Penguatan penuh seluruh tombol Manajemen Cache & Penyimpanan di Pengaturan. Penerapan standar ukuran biner presisi (1 GB = 1024 MB, 5 GB = 5120 MB), pengikatan fungsi pemangkasan disk cache backend Rust (`trim_disk_cache`), perbaikan tombol "Hitung Ukuran", "Pangkas Ke Batas", "Hapus Semua Cache", dan "Kosongkan Database Transfer" secara presisi 100%.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

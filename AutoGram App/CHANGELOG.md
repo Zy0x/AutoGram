@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.97 Penguatan Fungsi Seluruh Tombol Manajemen Cache & Rust Disk Trimming
+
+### Perbaikan & Penyelarasan Tombol Pengaturan Penyimpanan
+- **Penyelarasan Format Ukuran Biner (Binary MB Steps)**:
+  - Mengubah nilai step slider dari MB desimal (5000 MB -> `4.88 GB`) menjadi MB biner presisi (5120 MB -> **`5 GB`**, 10240 MB -> **`10 GB`**, dst.), sehingga teks label dan perhitungan persentase tampil rapi tanpa pecahan desimal aneh.
+- **Implementasi Rust Disk Cache Trimming (`jobs_db.rs`)**:
+  - Menambahkan fungsi Rust `trim_disk_cache` dan command `cache_trim_disk` yang mengosongkan berkas cache lama di disk berdasarkan waktu modifikasi secara bertahap hingga total ukuran disk mematuhi batas yang dipilih.
+  - Memastikan tombol **"Hitung Ukuran"**, **"Pangkas Ke Batas"**, **"Hapus Semua Cache"**, dan **"Kosongkan Database Transfer"** bekerja 100% akurat.
+
 ## v2.1.96 Fitur Slider Pembatas Ukuran Cache & Fitur Pangkas Otomatis (Cache Limit Slider)
 
 ### Fitur Utama Manajemen Penyimpanan

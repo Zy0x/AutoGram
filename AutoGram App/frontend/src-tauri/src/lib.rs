@@ -769,6 +769,11 @@ fn cache_clear_disk() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+fn cache_trim_disk(target_bytes: u64) -> Result<serde_json::Value, String> {
+    core::jobs_db::trim_disk_cache(target_bytes)
+}
+
+#[tauri::command]
 fn jobs_fresh_start(job_id: i64) -> Result<(), String> {
     core::jobs_db::fresh_start_job(job_id)
 }
@@ -1370,6 +1375,7 @@ pub fn run() {
             jobs_run_migration,
             cache_calculate_size,
             cache_clear_disk,
+            cache_trim_disk,
             jobs_fresh_start,
             jobs_export_json,
             jobs_import_json,

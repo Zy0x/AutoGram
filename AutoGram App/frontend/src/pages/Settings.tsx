@@ -17,7 +17,7 @@ import {
   Sliders,
 } from 'lucide-react';
 
-const CACHE_LIMIT_STEPS = [0, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+const CACHE_LIMIT_STEPS = [0, 1024, 2048, 5120, 10240, 20480, 51200, 102400];
 const CACHE_LIMIT_LABELS = ['Bebas', '1 GB', '2 GB', '5 GB', '10 GB', '20 GB', '50 GB', '100 GB'];
 import { detectTauriRuntime } from '../lib/platform';
 import {
@@ -80,9 +80,19 @@ export function Settings() {
     const saved = localStorage.getItem('autogram_cache_limit_mb');
     if (saved !== null) {
       const val = Number(saved);
-      if (!isNaN(val)) return val;
+      if (!isNaN(val)) {
+        // Migration for legacy non-binary 5000/10000 MB
+        if (val === 5000) return 5120;
+        if (val === 1000) return 1024;
+        if (val === 2000) return 2048;
+        if (val === 10000) return 10240;
+        if (val === 20000) return 20480;
+        if (val === 50000) return 51200;
+        if (val === 100000) return 102400;
+        return val;
+      }
     }
-    return 5000; // default 5 GB limit
+    return 5120; // default 5 GB limit
   });
 
   const handleCacheLimitChange = (newMb: number) => {
@@ -101,8 +111,8 @@ export function Settings() {
       clearAvatarCache();
       clearPreviewCache();
       try {
-        const { cacheClearDisk } = await import('../lib/jobsApi');
-        await cacheClearDisk();
+        const { cacheTrimDisk } = await import('../lib/jobsApi');
+        await cacheTrimDisk(limitBytes);
       } catch { /* best effort */ }
       await calculateCacheSize();
       setClearStatus('success');
@@ -972,7 +982,7 @@ export function Settings() {
                 value={CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) !== -1 ? CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) : 3}
                 onChange={(e) => {
                   const idx = Number(e.target.value);
-                  handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5000);
+                  handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5120);
                 }}
                 style={{
                   width: '100%',

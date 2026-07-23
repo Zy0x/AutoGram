@@ -75,5 +75,7 @@ allow = [
     "cleanup_ghost_session",
     "tg_avatars_batch",
     "cache_calculate_size",
-    "drive_calculate_cache_size"
+    "drive_calculate_cache_size",
+    "cache_clear_disk",
+    "cache_trim_disk"
 ]

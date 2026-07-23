@@ -583,16 +583,74 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
             }
         }
     }
-    // Keep structure; clear thumbs/previews/open subdirs primarily
-    for sub in ["thumbs", "previews", "preview", "open", "zips", "moov"] {
-        let d = cache.join(sub);
-        if d.is_dir() {
-            wipe(&d, &mut removed);
-        }
+    if cache.is_dir() {
+        wipe(&cache, &mut removed);
     }
     Ok(json!({
         "status": "success",
         "removed_files": removed,
+        "backend": "rust",
+    }))
+}
+
+pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
+    let sessions = resolve_sessions_dir(None);
+    let cache = sessions
+        .parent()
+        .map(|p| p.join("cache"))
+        .unwrap_or_else(|| PathBuf::from("cache"));
+
+    struct FileEntry {
+        path: PathBuf,
+        size: u64,
+        modified: std::time::SystemTime,
+    }
+
+    let mut files = Vec::new();
+    let mut current_total: u64 = 0;
+
+    fn collect(dir: &Path, files: &mut Vec<FileEntry>, total: &mut u64) {
+        let Ok(rd) = std::fs::read_dir(dir) else { return; };
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                collect(&p, files, total);
+            } else if let Ok(m) = e.metadata() {
+                let sz = m.len();
+                let mod_time = m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                *total = total.saturating_add(sz);
+                files.push(FileEntry { path: p, size: sz, modified: mod_time });
+            }
+        }
+    }
+
+    if cache.is_dir() {
+        collect(&cache, &mut files, &mut current_total);
+    }
+
+    let mut removed_count = 0u64;
+    let mut freed_bytes = 0u64;
+
+    if current_total > target_bytes {
+        files.sort_by_key(|f| f.modified);
+
+        for f in files {
+            if current_total <= target_bytes {
+                break;
+            }
+            if std::fs::remove_file(&f.path).is_ok() {
+                removed_count += 1;
+                freed_bytes += f.size;
+                current_total = current_total.saturating_sub(f.size);
+            }
+        }
+    }
+
+    Ok(json!({
+        "status": "success",
+        "removed_files": removed_count,
+        "freed_bytes": freed_bytes,
+        "remaining_bytes": current_total,
         "backend": "rust",
     }))
 }
