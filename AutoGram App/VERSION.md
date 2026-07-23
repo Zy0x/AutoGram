@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.94
+AutoGram Version: v2.1.95
 
 Current State:
-v2.1.94 Perbaikan pencarian media pada topik Telegram yang lebih lama (seperti topik "File" berisikan 49 berkas ZIP). Perluasan batas pemindaian riwayat pesan `scan_limit` hingga 10.000 pesan pada backend Rust Grammers (`grammers_ops.rs`) saat filter topik aktif, memastikan seluruh berkas ZIP dan dokumen di dalam topik terdeteksi sempurna tanpa terpotong oleh pesan dari topik lain.
+v2.1.95 Perbaikan otomatis penelusuran topik mendalam (`auto-pagination` hingga 10 percobaan / 10.000 pesan) dan pembersihan cache kosong lapuk (`stale empty cache eviction`) saat pengguna berpindah antar topik. Mengeliminasi kebutuhan melakukan refresh manual untuk memicu penelusuran media topik yang berada di posisi riwayat percakapan yang dalam.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

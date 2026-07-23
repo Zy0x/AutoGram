@@ -1,0 +1,43 @@
+{
+  "samples": [
+    {
+      "at_ms": 1014,
+      "cards": 120,
+      "thumbs": 120,
+      "loading": 120
+    },
+    {
+      "at_ms": 2026,
+      "cards": 120,
+      "thumbs": 120,
+      "loading": 120
+    },
+    {
+      "at_ms": 3025,
+      "cards": 120,
+      "thumbs": 120,
+      "loading": 120
+    },
+    {
+      "at_ms": 5017,
+      "cards": 120,
+      "thumbs": 120,
+      "loading": 120
+    }
+  ],
+  "at_3s": {
+    "at_ms": 3025,
+    "cards": 120,
+    "thumbs": 120,
+    "loading": 120
+  },
+  "thumb_ratio_3s": 1,
+  "pass_cards_fast": true,
+  "pass_thumbs_partial": true,
+  "photoPreview": {
+    "ms": 2925,
+    "hasMedia": true,
+    "pass": true
+  },
+  "ok": true
+}

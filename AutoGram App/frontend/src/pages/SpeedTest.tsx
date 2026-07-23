@@ -2332,11 +2332,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       let page: DriveFile[] = dedupeByMsgId(res.files || []);
-      // Auto-paginate if topic scan returned 0 files but Telegram indicates has_more
+      // Auto-paginate if topic scan returned 0 files but Telegram indicates has_more (supports deep topics up to 10k msgs)
       if (page.length === 0 && res.has_more && tid != null && res.next_offset_id && gen === peerGen.current) {
         let currentOffset = res.next_offset_id;
         let attempts = 0;
-        while (page.length === 0 && currentOffset > 0 && attempts < 3 && gen === peerGen.current) {
+        while (page.length === 0 && currentOffset > 0 && attempts < 10 && gen === peerGen.current) {
           attempts++;
           const nextRes = await driveListFiles(creds, peerId, {
             pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
@@ -3310,6 +3310,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       // never sticks on a single topic while the new list loads.
       const cacheKey = `${peerId}_${t || ''}`;
       activeFilesCacheKeyRef.current = cacheKey;
+      const existingCached = filesCacheRef.current.get(cacheKey);
+      if (existingCached && existingCached.length === 0) {
+        filesCacheRef.current.delete(cacheKey);
+      }
       const cachedCount = filesTotalCountRef.current.get(cacheKey);
       const cachedBytes = filesTotalBytesRef.current.get(cacheKey);
       if (cachedCount != null) {

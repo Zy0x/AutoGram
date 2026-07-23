@@ -1,13 +1,12 @@
 # Changelog
 
-## v2.1.95 Format Path Direktori ID Topik (ID Path)
+## v2.1.95 Otomatisasi Penelusuran Topik Mendalam & Eviksi Cache Kosong Lapuk
 
-### Perbaikan Utama Manajemen Topik Forum & Navigasi
-- **Penyalinan ID Topik Berformat Path Direktori (`DriveTopBar.tsx` & `chatSearch.ts`)**:
-  - Mengubah format penyalinan ID topik pada menu konteks topik agar menghasilkan path direktori berbasis ID (`id path`), seperti `/<chat_id>/<topic_id>` (contoh: `/-1001234567890/42`).
-  - Memperbarui `buildDriveBreadcrumbSegments` untuk mengasosiasikan `topicId` pada segmen breadcrumb topik, sehingga penyalinan ID media/file di dalam topik secara otomatis menyertakan hierarki ID topik lengkap (`/<chat_id>/<topic_id>/<file_id>`).
-  - Menambahkan feedback status bar visual saat ID topik berhasil disalin ke clipboard.
-
+### Perbaikan Utama Navigasi Perpindahan Topik
+- **Otomatisasi Penelusuran Topik Mendalam (`SpeedTest.tsx`)**:
+  - Menikkan batas percobaan `auto-pagination` dari 3 menjadi **10 percobaan** saat hasil pemindaian topik awal mengembalikan 0 media sementara Telegram mengindikasikan `has_more`. Ini memungkinkan perpindahan topik secara otomatis melakukan pencarian hingga 10.000 pesan ke belakang tanpa perlu menekan tombol refresh manual.
+- **Pembersihan Cache Kosong Lapuk (`handleTopicFilter`)**:
+  - Saat pengguna berpindah ke topik baru, cache kosong yang sempat tersimpan dari pemindaian lama (`length === 0`) kini otomatis dihapus (`filesCacheRef.current.delete(cacheKey)`), menjamin aplikasi selalu mengambil data segar berjangkauan 10.000 pesan langsung dari backend.
 
 ## v2.1.94 Perluasan Batas Pemindaian Pesan Topik (`scan_limit` 10.000 Pesan)
 

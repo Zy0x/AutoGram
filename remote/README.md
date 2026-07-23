@@ -1,119 +1,65 @@
 # AutoGram Remote (CDP)
 
-Semua alat remote ada di folder ini: `F:\AutoGram\remote\`.
+Folder: `F:\AutoGram\remote\` — smoke + heal for Media Studio desktop after hybrid/Grammers migration.
 
 > **Never** call `browser.close()` — that kills `frontend.exe` WebView2.
 
-## Masalah “Can't reach this page”
-
-`frontend.exe` **debug** memuat UI dari `http://127.0.0.1:1420` (Vite).  
-Jika Vite mati, WebView menampilkan **Hmmm… can't reach this page**.
-
-### Perilaku cerdas (sudah di-wire)
-
-| Layer | Tindakan |
-|-------|----------|
-| `ensure-remote.ps1` | **Wajib** Vite hidup dulu, baru buka frontend; heal ber-timeout; PHASE log + status WORKING |
-| `core/vite_ensure.mjs` | Probe + spawn Vite hidden jika down (adaptive poll / early exit) |
-| `core/wait_helpers.mjs` | Helper pure poll/phase (unit-testable) |
-| `core/page_heal.mjs` | Deteksi chrome-error / teks "can't reach" → `page.goto` ke Vite |
-| `core/remote_connector.mjs` | Saat connect CDP: ensure Vite + heal otomatis |
-| `heal-remote.mjs` / `npm run heal` | Perbaikan cepat tanpa suite |
-
-### Perbaiki sekarang (pilih satu)
+## Quick start
 
 ```bat
 cd F:\AutoGram\remote
-npm run heal
-```
-
-atau double-click **`1-Start-Remote.vbs`** (Vite hidden + frontend + CDP + heal).
-
-Jangan double-click `target\debug\frontend.exe` sendirian.
-
-## Double-click (tanpa window cmd)
-
-**Wajib pakai `.vbs`** (bukan `.cmd`) agar tidak ada window CMD di belakang frontend:
-
-| File | Fungsi |
-|------|--------|
-| **`1-Start-Remote.vbs`** | Vite hidden + frontend + CDP + heal |
-| **`2-Start-Remote-Dan-Suite.vbs`** | Sama + suite uji |
-
-Implementasi: `core\silent-launch.vbs` memakai **Win32 CREATE_NO_WINDOW**.  
-`.cmd` hanya wrapper tipis — double-click `.cmd` bisa flash console. Gunakan **`.vbs`**.
-
-### Status / log
-
-| File | Isi |
-|------|-----|
-| `reports\last-run-status.txt` | `OK` / `FAIL` ringkas |
-| `reports\logs\ensure-remote.log` | Chronology ensure |
-| `reports\logs\vite-hidden.*.log` | Log Vite |
-| `reports\logs\heal-remote.*.log` | Log heal |
-| `reports\summary_dashboard.json` | Skor suite |
-
-## Prasyarat
-
-1. `frontend.exe` sudah di-build (`AutoGram App/frontend` → `npm run tauri build` atau `tauri dev` sekali)
-2. Playwright di `AutoGram App/frontend/node_modules/playwright`
-3. Node.js di PATH
-4. `npm install` di `AutoGram App/frontend` (supaya `vite.js` ada)
-
-## Manual (agent / terminal)
-
-```bat
-cd F:\AutoGram\remote
+npm install
+npm run build:exe
 npm run ensure
 npm run heal
 npm run suite
 ```
 
-atau:
+Atau double-click **`1-Start-Remote.vbs`** (Vite hidden + frontend + CDP + heal).
 
-```bat
-powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ensure-remote.ps1
-node run.mjs
+## Scripts
+
+| Command | Fungsi |
+|---------|--------|
+| `npm run build:exe` | `cargo build` → `frontend/src-tauri/target/debug/frontend.exe` |
+| `npm run ensure` | Vite :1420 + frontend.exe + CDP :9222 (auto-build jika exe hilang) |
+| `npm run heal` | Perbaiki “can't reach this page” |
+| `npm run suite` | Smoke: Vite + CDP + shell text + bukan chrome-error |
+| `npm run health` | Health check JSON |
+
+## Layout (pasca cleanup)
+
+```
+remote/
+  core/           # connector, vite ensure, heal, logger
+  config/         # remote_config.json
+  reports/logs/   # ensure / vite / cargo logs
+  reports/screenshots/
+  ensure-remote.ps1
+  build-frontend-debug.ps1
+  heal-remote.mjs
+  run.mjs         # smoke suite
+  1-Start-Remote.vbs
 ```
 
-## Port
+One-off probe scripts (`remote/scripts/*`, upload experiments) **dihapus** — gunakan suite minimal di atas.
 
-| Layanan | URL |
-|---------|-----|
-| Vite (hidden) | http://127.0.0.1:1420 |
-| CDP | http://127.0.0.1:9222 |
+## Prasyarat
 
-## Scripts npm
+1. Node.js di PATH  
+2. `npm install` di `AutoGram App/frontend`  
+3. Rust/cargo di PATH (untuk `build:exe`)  
+4. Worker Python venv tetap di `AutoGram App/worker/venv`  
 
-| Script | Fungsi |
-|--------|--------|
-| `npm run vite` | Pastikan Vite up |
-| `npm run heal` | Vite + navigate WebView |
-| `npm run ensure` | Full stack (PowerShell) |
-| `npm run test:wait` | Unit test cold-start wait helpers |
-| `npm run suite` | Suite uji CDP |
-| `npm run audit:modals` | Audit visual dialog (strip vertikal / rename) |
-| `npm run health` | Probe health JSON |
+## Status
 
-### Cold start (setelah restart Windows)
+| File | Isi |
+|------|-----|
+| `reports/last-run-status.txt` | `OK` / `FAIL` / `WORKING …` |
+| `reports/summary_dashboard.json` | Hasil smoke suite |
+| `reports/logs/ensure-remote.log` | Chronology ensure |
+| `reports/logs/cargo-build.log` | Log build exe |
 
-Double-click `1-Start-Remote.vbs` bisa lambat di boot pertama karena **Node memuat `node_modules` + Vite compile pertama**. Pastikan tidak hung:
+## Debug Mode app
 
-1. Buka `reports\last-run-status.txt` — harus berisi `WORKING ...` lalu `OK remote ready ... total=…ms`
-2. Log fase: `reports\logs\ensure-remote.log` baris `PHASE VITE_*` / `FRONTEND_*` / `CDP_*` / `HEAL_*` / `DONE`
-3. Heal dibatasi ~12s agar Playwright cold load tidak menahan popup OK selamanya  
-4. Parent VBS menunggu **5 menit** (bukan 2) agar tidak FAIL sementara ensure masih jalan; timeout **taskkill** orphan PowerShell
-
-## Audit visual dialog (rename strip)
-
-Suite suite `visual_layout` + skrip:
-
-```bat
-cd F:\AutoGram\remote
-npm run audit:modals
-```
-
-Gagal jika panel dialog:
-- terlalu sempit/tinggi (strip vertikal),
-- teks 1-huruf per baris,
-- `writing-mode` vertikal.
+Aktifkan **Settings → Debug Mode** di AutoGram agar frontend/Rust/Python menulis log detail (`worker/temp/autogram_debug.log`).

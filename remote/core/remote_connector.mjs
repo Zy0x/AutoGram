@@ -39,14 +39,6 @@ export async function loadPlaywright(config) {
 }
 
 export async function connect(config) {
-  // Vite first — frontend.exe (debug) loads http://localhost:1420
-  try {
-    await ensureVite(config);
-  } catch (e) {
-    log.warn('vite_ensure_before_cdp_failed', { err: String(e?.message || e) });
-    // Continue: CDP may still work if page was already loaded
-  }
-
   const { chromium } = await loadPlaywright(config);
   let browser;
   let lastErr;

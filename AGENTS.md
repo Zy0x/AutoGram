@@ -5,17 +5,19 @@ Grok project instructions for the AutoGram monorepo. Skills live in `.agents/ski
 ## Root & layout
 
 - **App root:** `AutoGram App/` is the main application. New features, bug fixes, and architecture work go there.
-- **Legacy:** `legacy_scripts/` is historical reference only — do not modify unless the user explicitly asks.
-- **Archive:** `archive/` holds versioned packages and design docs — reference only, not the live app.
+- **Live UI/desktop:** `AutoGram App/frontend/` (React + Tauri). Prefer this over any outer `src/` shell.
+- **Do not reintroduce bloat:** no committing `target/`, `node_modules/`, `worker/venv/`, CDP probe scripts, remote screenshots, or historical `archive/` packs.
 - **Skills pack:** `.agents/skills/` and `.agents/AGENTS.md` are agent tooling; keep in sync with this file when rules change.
 
-## Architecture (Tauri + React + Rust + Python)
+## Architecture (Tauri + React + Rust) — Grammers-only MTProto
 
 | Layer | Stack | Responsibility |
 |-------|--------|----------------|
 | Frontend (UI) | React, TypeScript, TailwindCSS | UI only — never call Telegram API directly |
-| Core (desktop) | Rust via Tauri | Migration engine, rules, SQLite, job queue |
-| Telegram worker | Python (Telethon) | Execute Telegram API work from Rust; return status — no UI control |
+| Core (desktop) | **Rust** via Tauri | Full backend: secrets, path policy, streaming, Drive/Studio MTProto via **Grammers** |
+| Telegram MTProto | **Grammers (Rust)** only | Auth, Drive list/CRUD/thumbs/preview, studio upload — **no Telethon runtime** |
+
+See `AutoGram App/docs/architecture/RUST_GRAMMERS_BACKEND.md`. Legacy hybrid notes: `HYBRID_RUST_PYTHON.md` (historical).
 
 ## Database
 

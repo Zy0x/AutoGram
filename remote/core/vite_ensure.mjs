@@ -34,19 +34,23 @@ export function vitePort(config) {
 }
 
 export async function probeVite(config, timeoutMs = 2500) {
-  const origin = viteOrigin(config);
-  try {
-    const res = await Promise.race([
-      fetch(`${origin}/`, { cache: 'no-store' }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`timeout ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
-    const ok = typeof res.status === 'number' && res.status > 0 && res.status < 500;
-    return { ok, status: res.status, origin };
-  } catch (e) {
-    return { ok: false, error: String(e?.message || e), origin };
+  const primary = viteOrigin(config);
+  const fallback = primary.includes('127.0.0.1') ? primary.replace('127.0.0.1', 'localhost') : 'http://127.0.0.1:1420';
+  for (const origin of [primary, fallback]) {
+    try {
+      const res = await Promise.race([
+        fetch(`${origin}/`, { cache: 'no-store' }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`timeout ${timeoutMs}ms`)), timeoutMs)
+        ),
+      ]);
+      const ok = typeof res.status === 'number' && res.status > 0 && res.status < 500;
+      if (ok) return { ok: true, status: res.status, origin };
+    } catch {
+      /* try next origin */
+    }
   }
+  return { ok: false, error: 'fetch failed on 127.0.0.1 and localhost', origin: primary };
 }
 
 function frontendRoot() {
@@ -101,8 +105,14 @@ export async function ensureVite(config, opts = {}) {
   // Import pure schedule so cold-start polling matches ensure-remote intent
   const { computePollSchedule, shouldContinuePolling } = await import('./wait_helpers.mjs');
   const maxWaitMs = opts.maxWaitMs ?? 45_000;
-  // Faster first probe (cold path: fail-fast when port closed)
-  let probe = await probeVite(config, opts.probeTimeoutMs ?? 1200);
+  
+  let probe = { ok: false };
+  for (let i = 0; i < 3; i++) {
+    probe = await probeVite(config, opts.probeTimeoutMs ?? 1200);
+    if (probe.ok) break;
+    if (i < 2) await new Promise((r) => setTimeout(r, 800));
+  }
+
   if (probe.ok) {
     log.info('vite_already_up', { origin: probe.origin, status: probe.status });
     return { started: false, origin: probe.origin };

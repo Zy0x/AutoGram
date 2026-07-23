@@ -177,10 +177,27 @@ Get-CimInstance Win32_Process | Where-Object {
 Start-Sleep -Milliseconds 600
 
 if (-not $exe) {
+  Write-EnsureLog 'ERROR frontend.exe missing — attempting cargo build via build-frontend-debug.ps1'
+  Set-Status 'WORKING build frontend.exe (first time may take several minutes)'
+  $builder = Join-Path $suiteRoot 'build-frontend-debug.ps1'
+  if (Test-Path -LiteralPath $builder) {
+    try {
+      & powershell -NoProfile -ExecutionPolicy Bypass -File $builder
+      if ($LASTEXITCODE -ne 0) {
+        Write-EnsureLog "build-frontend-debug exit=$LASTEXITCODE"
+      }
+    } catch {
+      Write-EnsureLog "auto-build failed: $_"
+    }
+  }
+  $exe = if (Test-Path $exeDebug) { $exeDebug } elseif (Test-Path $exeRelease) { $exeRelease } else { $null }
+}
+if (-not $exe) {
   Write-EnsureLog 'ERROR frontend.exe missing'
-  Set-Status 'FAIL frontend.exe missing - build with tauri first'
+  Set-Status 'FAIL frontend.exe missing - run: cd remote; npm run build:exe'
   exit 1
 }
+Write-EnsureLog "exe=$exe"
 
 # --- Vite HARD gate (debug frontend.exe = devUrl localhost:1420) ---
 Write-Phase 'VITE_PROBE' 'initial'
@@ -264,7 +281,7 @@ if ($needStart) {
   $psi.FileName = $exe
   $psi.WorkingDirectory = $tauriDir
   $psi.UseShellExecute = $false
-  $psi.CreateNoWindow = $true
+  $psi.CreateNoWindow = $false
   $psi.EnvironmentVariables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9222 --remote-allow-origins=*'
   try {
     $psi.EnvironmentVariables['PATH'] = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH', 'User')

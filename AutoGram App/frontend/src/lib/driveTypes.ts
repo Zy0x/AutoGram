@@ -508,13 +508,13 @@ export function saveTransferSettings(s: DriveTransferSettings): void {
 
 /**
  * Grid thumbnail quality vs data usage.
- * - saver: slow/metered networks
- * - balanced: default (clearer video stills, still light)
- * - sharp: clear tiles from largest TG static layer only (lean, no multi‑MB pulls)
+ * - saver: default (fast blur loading for cards — clear enough for docs, fast initial paint)
+ * - balanced: video stills sharper, data usage moderate
+ * - sharp: clearest from Telegram's largest static layer only (lean)
  */
 export type DriveThumbQuality = 'saver' | 'balanced' | 'sharp';
 
-export const DEFAULT_THUMB_QUALITY: DriveThumbQuality = 'balanced';
+export const DEFAULT_THUMB_QUALITY: DriveThumbQuality = 'saver';
 
 export type DriveThumbQualityOption = {
   id: DriveThumbQuality;

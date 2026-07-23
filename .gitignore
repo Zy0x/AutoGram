@@ -119,17 +119,43 @@ legacy_scripts/
 
 # Remote automation / CDP debug tooling (local only — not product source)
 remote-automation-suite/
+remote/reports/logs/
+remote/reports/screenshots/
+remote/reports/summary_*.json
 AutoGram-Remote-Semua-Otomatis.cmd
 start-remote-debug.cmd
 AutoGram App/start-remote-debug.cmd
 AutoGram App/REMOTE-OTOMATIS.cmd
 AutoGram App/frontend/start-remote-debug.cmd
 AutoGram App/frontend/start-remote-audit.cmd
-AutoGram App/frontend/scripts/remote-*.mjs
-AutoGram App/frontend/scripts/remote-*.json
-AutoGram App/frontend/scripts/cdp-*.mjs
+AutoGram App/frontend/scripts/
 AutoGram App/frontend/preview-toolbar-remote-*.png
+AutoGram App/frontend/cdp-*.png
+AutoGram App/frontend/cdp-*.json
+AutoGram App/frontend/temp_*.png
 **/*remote*report*.json
 **/*-remote-test*.png
+
+# Reference dumps (not live product)
+Source/
+Prompt/
+archive/
+legacy_scripts/
+*.tmp.png
+.tmp-*.png
+search.py
+test_ffmpeg_progress.py
+python_debug.log
+
+# Worker runtime junk
+AutoGram App/worker/logs/
+AutoGram App/worker/cache/
+AutoGram App/worker/temp/
+AutoGram App/worker/**/__pycache__/
+AutoGram App/worker/temp_*.mp4
+AutoGram App/worker/_ff_*.py
+AutoGram App/rustup-init.exe
+AutoGram App/frontend/src-tauri/target/
+AutoGram App/src-tauri/target/
 
 
