@@ -12108,3 +12108,76 @@ video.drive-zip-img {
   background: rgba(239, 68, 68, 0.2) !important;
   color: #ef4444 !important;
 }
+
+/* Batch Selection Bar */
+.drive-zip-batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.drive-zip-batch-btn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+.drive-zip-batch-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+/* File Row with Checkbox Wrapper */
+.drive-zip-row-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  padding-left: 6px;
+}
+.drive-zip-row-wrapper.is-active {
+  background: linear-gradient(90deg, rgba(255, 174, 0, 0.18) 0%, rgba(255, 174, 0, 0.06) 100%);
+  border: 1px solid rgba(255, 174, 0, 0.35);
+}
+.drive-zip-check {
+  accent-color: #ffae00;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.drive-zip-row-wrapper .drive-zip-row {
+  flex: 1;
+  border: none;
+}
+
+/* Code Copy Button */
+.drive-zip-code-copy-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+.drive-zip-code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}

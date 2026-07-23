@@ -1,6 +1,6 @@
 /**
  * Unified, Full-Bleed & Spacious ZIP Workbench (Google Drive style).
- * Interactive search, category filters, line-numbered code viewer, and single-file native extraction.
+ * Interactive search, category filters, multi-select batch extraction, session password cache, and code viewer.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Code,
+  Copy,
   Download,
   ExternalLink,
   File,
@@ -18,9 +19,12 @@ import {
   Home,
   Image as ImageIcon,
   Loader2,
+  Lock,
   Music,
   RefreshCw,
   Search,
+  SquareCheck,
+  SquareMinus,
   X,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
@@ -137,17 +141,39 @@ function iconForFile(name: string) {
 }
 
 function DriveZipCodeViewer({ text, name }: { text: string; name: string }) {
+  const [copied, setCopied] = useState(false);
   const lines = useMemo(() => text.split('\n'), [text]);
   const ext = useMemo(() => {
     const i = name.lastIndexOf('.');
     return i >= 0 ? name.slice(i + 1).toUpperCase() : 'TXT';
   }, [name]);
 
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <div className="drive-zip-code-box">
       <div className="drive-zip-code-head">
-        <span className="drive-zip-code-tag">{ext}</span>
-        <span>{lines.length} baris · {formatDriveBytes(text.length)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="drive-zip-code-tag">{ext}</span>
+          <span>{lines.length} baris · {formatDriveBytes(text.length)}</span>
+        </div>
+        <button
+          type="button"
+          className="drive-zip-code-copy-btn"
+          onClick={() => void handleCopyCode()}
+          title="Salin isi teks ke clipboard"
+        >
+          {copied ? <Check size={13} style={{ color: '#4ade80' }} /> : <Copy size={13} />}
+          <span>{copied ? 'Tersalin!' : 'Salin Kode'}</span>
+        </button>
       </div>
       <div className="drive-zip-code-body">
         <div className="drive-zip-line-nums" aria-hidden="true">
@@ -160,6 +186,9 @@ function DriveZipCodeViewer({ text, name }: { text: string; name: string }) {
     </div>
   );
 }
+
+// Password memory cache across component instances
+const rememberedPasswordsMap = new Map<string, string>();
 
 export function DriveZipBrowser({
   creds,
@@ -190,6 +219,7 @@ export function DriveZipBrowser({
   const [opening, setOpening] = useState<string | null>(null);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<{
     entry: string;
     kind: string;
@@ -200,12 +230,16 @@ export function DriveZipBrowser({
     message?: string;
   } | null>(null);
   const [password, setPassword] = useState('');
+  const [rememberPass, setRememberPass] = useState(true);
+
+  const archiveKey = useMemo(() => `${messageId}:${archiveName || 'zip'}`, [messageId, archiveName]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
     setError(null);
     setPreview(null);
     setToastMsg(null);
+    setSelectedEntries(new Set());
     try {
       const res = await driveZipList(creds, messageId, folderId);
       if (res?.status && res.status !== 'success') {
@@ -249,19 +283,34 @@ export function DriveZipBrowser({
     return { all: entries.filter((e) => !e.is_dir).length, images, docs, media };
   }, [entries]);
 
+  const compRatio = useMemo(() => {
+    if (meta.archive_size && meta.total_uncompressed && meta.total_uncompressed > meta.archive_size) {
+      return Math.round((1 - meta.archive_size / meta.total_uncompressed) * 100);
+    }
+    return null;
+  }, [meta]);
+
   const crumbs = useMemo(() => {
     if (!cwd) return [] as string[];
     return cwd.split('/').filter(Boolean);
   }, [cwd]);
 
-  const openEntry = async (fullPath: string, pass?: string) => {
+  const openEntry = async (fullPath: string, passInput?: string) => {
     setOpening(fullPath);
     setError(null);
     setPreview(null);
     setToastMsg(null);
+
+    // Check remembered password cache if no explicit input given
+    const effectivePass = passInput || rememberedPasswordsMap.get(archiveKey) || password;
+
     try {
-      const res = await driveZipReadEntry(creds, messageId, folderId, fullPath, pass);
+      const res = await driveZipReadEntry(creds, messageId, folderId, fullPath, effectivePass);
       if (res?.status === 'encrypted' || res?.status === 'bad_password') {
+        // Clear invalid remembered password
+        if (res?.status === 'bad_password') {
+          rememberedPasswordsMap.delete(archiveKey);
+        }
         setPreview({
           entry: fullPath,
           kind: 'encrypted',
@@ -283,6 +332,12 @@ export function DriveZipBrowser({
       if (res?.status && res.status !== 'success') {
         throw new Error(res.message || res.error || 'Gagal membuka isi ZIP');
       }
+
+      // Save password to session cache if rememberPass enabled
+      if (effectivePass && rememberPass) {
+        rememberedPasswordsMap.set(archiveKey, effectivePass);
+      }
+
       setPreview({
         entry: fullPath,
         kind: res.kind || 'meta',
@@ -302,6 +357,7 @@ export function DriveZipBrowser({
   const handleExtractSingle = async (entryName: string) => {
     setExtracting(entryName);
     setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
     try {
       const { save } = await import('@tauri-apps/plugin-dialog');
       const basename = entryName.split('/').pop() || entryName;
@@ -314,7 +370,7 @@ export function DriveZipBrowser({
         folderId,
         entryName,
         targetPath,
-        password
+        passToUse
       );
       if (res?.status === 'success') {
         setToastMsg(`Berhasil mengestrak ${basename} (${formatDriveBytes(res.bytesWritten)})`);
@@ -324,6 +380,68 @@ export function DriveZipBrowser({
     } finally {
       setExtracting(null);
     }
+  };
+
+  const handleBatchExtract = async () => {
+    if (selectedEntries.size === 0) return;
+    const selectedList = [...selectedEntries];
+    setExtracting('batch');
+    setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const targetDir = await open({ directory: true, multiple: false });
+      if (!targetDir || typeof targetDir !== 'string') return;
+
+      let extractedCount = 0;
+      let totalBytes = 0;
+
+      for (let i = 0; i < selectedList.length; i++) {
+        const entryName = selectedList[i];
+        const basename = entryName.split('/').pop() || entryName;
+        const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;
+        setToastMsg(`Mengekstrak berkas ${i + 1}/${selectedList.length}: ${basename}…`);
+
+        const res = await driveZipExtractEntry(
+          creds,
+          messageId,
+          folderId,
+          entryName,
+          destPath,
+          passToUse
+        );
+        if (res?.status === 'success') {
+          extractedCount++;
+          totalBytes += res.bytesWritten;
+        }
+      }
+
+      setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke ${targetDir}`);
+      setSelectedEntries(new Set());
+    } catch (e: any) {
+      setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
+    } finally {
+      setExtracting(null);
+    }
+  };
+
+  const toggleSelectEntry = (entryName: string, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    setSelectedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryName)) next.delete(entryName);
+      else next.add(entryName);
+      return next;
+    });
+  };
+
+  const selectAllFiles = () => {
+    const allFileNames = files.map((f) => f.name);
+    setSelectedEntries(new Set(allFileNames));
+  };
+
+  const clearSelection = () => {
+    setSelectedEntries(new Set());
   };
 
   if (loading) {
@@ -362,6 +480,7 @@ export function DriveZipBrowser({
             <span>
               {entries.length} item
               {meta.archive_size != null ? ` · ${formatDriveBytes(meta.archive_size)}` : ''}
+              {compRatio != null ? ` · hemat ${compRatio}%` : ''}
               {meta.source === 'central_dir' ? ' · indeks ringan' : ''}
               {meta.truncated ? ' · dipotong' : ''}
             </span>
@@ -520,6 +639,37 @@ export function DriveZipBrowser({
         </nav>
       )}
 
+      {files.length > 0 && (
+        <div className="drive-zip-batch-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="drive-zip-batch-btn"
+              onClick={selectedEntries.size === files.length ? clearSelection : selectAllFiles}
+            >
+              {selectedEntries.size === files.length ? <SquareMinus size={13} /> : <SquareCheck size={13} />}
+              {selectedEntries.size === files.length ? 'Batal Pilih' : 'Pilih Semua'}
+            </button>
+            {selectedEntries.size > 0 && (
+              <span style={{ fontSize: '0.75rem', color: '#ffae00', fontWeight: 600 }}>
+                {selectedEntries.size} terpilih
+              </span>
+            )}
+          </div>
+          {selectedEntries.size > 0 && (
+            <button
+              type="button"
+              className="drive-zip-btn-extract"
+              disabled={extracting === 'batch'}
+              onClick={() => void handleBatchExtract()}
+            >
+              {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+              Ekstrak ({selectedEntries.size}) Terpilih
+            </button>
+          )}
+        </div>
+      )}
+
       {error && <p className="drive-zip-inline-err">{error}</p>}
       {toastMsg && (
         <div className="drive-zip-toast">
@@ -567,20 +717,29 @@ export function DriveZipBrowser({
             const Icon = iconForFile(f.name);
             const label = searchQuery ? f.name : entryLabel(f.name, cwd);
             const busy = opening === f.name;
+            const isSelected = selectedEntries.has(f.name);
             return (
               <li key={`f:${f.name}`}>
-                <button
-                  type="button"
-                  className={`drive-zip-row is-file${preview?.entry === f.name ? ' is-active' : ''}`}
-                  disabled={!!opening}
-                  onClick={() => void openEntry(f.name)}
-                >
-                  {busy ? <Loader2 size={16} className="spin" /> : <Icon size={16} />}
-                  <span className="drive-zip-name" title={f.name}>
-                    {label}
-                  </span>
-                  <span className="drive-zip-size">{formatDriveBytes(f.size || 0)}</span>
-                </button>
+                <div className={`drive-zip-row-wrapper${preview?.entry === f.name ? ' is-active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    className="drive-zip-check"
+                    checked={isSelected}
+                    onChange={(e) => toggleSelectEntry(f.name, e)}
+                  />
+                  <button
+                    type="button"
+                    className="drive-zip-row is-file"
+                    disabled={!!opening}
+                    onClick={() => void openEntry(f.name)}
+                  >
+                    {busy ? <Loader2 size={16} className="spin" /> : <Icon size={16} />}
+                    <span className="drive-zip-name" title={f.name}>
+                      {label}
+                    </span>
+                    <span className="drive-zip-size">{formatDriveBytes(f.size || 0)}</span>
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -655,31 +814,41 @@ export function DriveZipBrowser({
           )}
           {preview?.kind === 'encrypted' && (
             <div className="drive-zip-preview-empty">
-              <Archive size={36} style={{ color: '#ef4444' }} />
+              <Lock size={36} style={{ color: '#ef4444' }} />
               <p title={preview.entry} style={{ fontWeight: 600 }}>{entryLabel(preview.entry, cwd)}</p>
               <span className="drive-zip-hint" style={{ color: '#fca5a5' }}>{preview.message}</span>
-              <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
-                <input
-                  type="password"
-                  className="td-input"
-                  placeholder="Password ZIP..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && password) {
-                      void openEntry(preview.entry, password);
-                    }
-                  }}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  className="td-btn-primary"
-                  disabled={!password || !!opening}
-                  onClick={() => void openEntry(preview.entry, password)}
-                >
-                  Buka
-                </button>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="password"
+                    className="td-input"
+                    placeholder="Password ZIP..."
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && password) {
+                        void openEntry(preview.entry, password);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className="td-btn-primary"
+                    disabled={!password || !!opening}
+                    onClick={() => void openEntry(preview.entry, password)}
+                  >
+                    Buka
+                  </button>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#94a3b8', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberPass}
+                    onChange={(e) => setRememberPass(e.target.checked)}
+                  />
+                  <span>Ingat password untuk sesi ini</span>
+                </label>
               </div>
             </div>
           )}
