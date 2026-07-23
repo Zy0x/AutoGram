@@ -442,12 +442,6 @@ function DriveFileCardInner({
             ) : (
               <div className="td-thumb-placeholder">
                 <FileTypeIcon file={file} size="lg" />
-                {isVideo && (
-                  <div className="td-video-auto-loading" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.8, fontSize: '0.75rem' }}>
-                    <Loader2 size={14} className="spin" />
-                    <span>Memuat Video…</span>
-                  </div>
-                )}
               </div>
             )}
           </div>

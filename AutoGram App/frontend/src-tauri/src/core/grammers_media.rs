@@ -484,8 +484,7 @@ async fn download_media_thumb(
     // Tier 1: Try selected quality size
     if let Some(pick) = pick_thumb(&sizes, quality) {
         if let Ok(bytes) = download_thumb_bytes(client, &pick).await {
-            let sharp = mode.contains("jelas") || mode.contains("sharp");
-            let min_ok = if saver { 32 } else if sharp { 18000 } else { 8000 };
+            let min_ok = 64;
             if bytes.len() >= min_ok {
                 return Ok(bytes);
             }
@@ -523,8 +522,8 @@ async fn download_media_thumb(
             continue;
         }
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
-            let min_bytes = if saver { 32 } else if sharp { 18000 } else { 8000 };
-            if bytes.len() >= min_bytes || saver {
+            let min_bytes = 64;
+            if bytes.len() >= min_bytes {
                 return Ok(bytes);
             }
         }
@@ -1127,8 +1126,8 @@ pub fn thumbs_batch_blocking_app(
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
-                                // Reject small payloads for non-saver modes
-                                let min_ok = if q_sub == "hemat" { 32 } else if q_sub == "jelas" || q_sub == "sharp" { 18000 } else { 8000 };
+                                // Accept any valid thumbnail payload (>= 64 bytes)
+                                let min_ok = 64;
                                 if bytes.len() < min_ok {
                                     return (mid_val.to_string(), None);
                                 }
