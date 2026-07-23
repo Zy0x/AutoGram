@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
+  Bot,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -19,18 +20,22 @@ import {
   FolderInput,
   Gauge,
   HardDrive,
+  Hash,
   Home,
   Image as ImageIcon,
   Loader2,
   Lock,
+  Megaphone,
   MessageSquare,
   Music,
   RefreshCw,
   Repeat,
   RotateCw,
   Search,
+  Send,
   SquareCheck,
   SquareMinus,
+  Users,
   Volume2,
   VolumeX,
   X,
@@ -243,6 +248,8 @@ export function DriveZipBrowser({
     action: 'single' | 'batch';
     entryName?: string;
   } | null>(null);
+  const [destQuery, setDestQuery] = useState('');
+  const [customPeerId, setCustomPeerId] = useState('');
 
   // Video playback & transform state
   const [rate, setRate] = useState(1);
@@ -1051,7 +1058,7 @@ export function DriveZipBrowser({
             className="td-confirm-panel dest-picker"
             role="dialog"
             aria-modal="true"
-            style={{ maxWidth: '460px' }}
+            style={{ maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
           >
             <header className="td-confirm-head">
@@ -1062,7 +1069,7 @@ export function DriveZipBrowser({
                 <h2>Pilih Destinasi Ekstraksi Drive / Telegram</h2>
                 <p>
                   {destPickerModal.action === 'batch'
-                    ? `Pilih lokasi tujuan untuk ${selectedEntries.size} berkas terpilih.`
+                    ? `Pilih lokasi tujuan ekstraksi untuk ${selectedEntries.size} berkas terpilih.`
                     : `Pilih lokasi tujuan ekstraksi untuk berkas ${destPickerModal.entryName?.split('/').pop() || ''}.`}
                 </p>
               </div>
@@ -1076,28 +1083,57 @@ export function DriveZipBrowser({
               </button>
             </header>
 
-            <div className="drive-zip-dest-options" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                type="button"
-                className="td-dest-item"
-                onClick={() => {
-                  const action = destPickerModal;
-                  setDestPickerModal(null);
-                  if (action.action === 'single' && action.entryName) {
-                    void executeExtractToDrive(action.entryName, null, 'Gudang Utama Drive');
-                  } else if (action.action === 'batch') {
-                    void executeBatchExtractToDrive(null, 'Gudang Utama Drive');
-                  }
-                }}
-              >
-                <span className="td-dest-ico"><Home size={16} /></span>
-                <div style={{ textAlign: 'left' }}>
-                  <strong>Gudang Utama Drive (Root)</strong>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Simpan di tingkat utama AutoGram Media Drive</span>
-                </div>
-              </button>
+            <div className="td-dest-search" style={{ margin: '12px 16px 4px' }}>
+              <Search size={14} aria-hidden />
+              <input
+                type="search"
+                className="td-dest-search-input"
+                value={destQuery}
+                onChange={(e) => setDestQuery(e.target.value)}
+                placeholder="Cari Drive, Chat, Bot, Grup, Topik, Channel…"
+                autoFocus
+              />
+            </div>
 
-              {folderId && (
+            <div
+              className="drive-zip-dest-options"
+              style={{
+                padding: '12px 16px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                overflowY: 'auto',
+                maxHeight: '400px',
+              }}
+            >
+              {/* Category 1: Drive Root */}
+              {(!destQuery || 'gudang utama drive root'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, null, 'Gudang Utama Drive');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive(null, 'Gudang Utama Drive');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Home size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Gudang Utama Drive (Root)</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>Drive</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Tingkat utama AutoGram Media Drive</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Category 2: Active Folder */}
+              {folderId && (!destQuery || `folder aktif #${folderId}`.includes(destQuery.toLowerCase())) && (
                 <button
                   type="button"
                   className="td-dest-item"
@@ -1112,32 +1148,180 @@ export function DriveZipBrowser({
                   }}
                 >
                   <span className="td-dest-ico"><Folder size={16} /></span>
-                  <div style={{ textAlign: 'left' }}>
-                    <strong>Folder Aktif Saat Ini (#{folderId})</strong>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Simpan di folder tempat ZIP ini berada</span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Folder Aktif Saat Ini (#{folderId})</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>Folder</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Folder tempat ZIP ini berada</span>
                   </div>
                 </button>
               )}
 
-              <button
-                type="button"
-                className="td-dest-item"
-                onClick={() => {
-                  const action = destPickerModal;
-                  setDestPickerModal(null);
-                  if (action.action === 'single' && action.entryName) {
-                    void executeExtractToDrive(action.entryName, 'saved', 'Pesan Tersimpan (Saved Messages)');
-                  } else if (action.action === 'batch') {
-                    void executeBatchExtractToDrive('saved', 'Pesan Tersimpan (Saved Messages)');
-                  }
-                }}
-              >
-                <span className="td-dest-ico"><MessageSquare size={16} /></span>
-                <div style={{ textAlign: 'left' }}>
-                  <strong>Pesan Tersimpan (Saved Messages)</strong>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Kirim berkas ke Chat Pribadi Telegram Anda</span>
+              {/* Category 3: Saved Messages */}
+              {(!destQuery || 'pesan tersimpan saved messages'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, 'saved', 'Pesan Tersimpan (Saved Messages)');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive('saved', 'Pesan Tersimpan (Saved Messages)');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><MessageSquare size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Pesan Tersimpan (Saved Messages)</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>Chat</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Chat Pribadi Telegram Anda</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Category 4: Channel Telegram */}
+              {(!destQuery || 'channel telegram siaran'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, 'channel', 'Channel Telegram');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive('channel', 'Channel Telegram');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Megaphone size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Channel Telegram</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>Channel</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Saluran Penyiaran Telegram</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Category 5: Group / Supergroup */}
+              {(!destQuery || 'grup supergrup telegram'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, 'group', 'Grup / Supergrup Telegram');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive('group', 'Grup / Supergrup Telegram');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Users size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Grup / Supergrup Telegram</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80' }}>Grup</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Grup Komunitas Telegram</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Category 6: Forum Topic */}
+              {(!destQuery || 'topik forum grup topic'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, 'topic', 'Topik Forum Grup');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive('topic', 'Topik Forum Grup');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Hash size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Topik Forum dalam Grup</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(234, 179, 8, 0.2)', color: '#facc15' }}>Topik</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Topik Spesifik dalam Supergrup Forum</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Category 7: Bot Telegram */}
+              {(!destQuery || 'bot telegram'.includes(destQuery.toLowerCase())) && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, 'bot', 'Bot Telegram');
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive('bot', 'Bot Telegram');
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Bot size={16} /></span>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong>Bot Telegram</strong>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171' }}>Bot</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Kirim berkas ke Bot Telegram</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Custom Peer / ID Direct Input */}
+              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+                  Destinasi Spesifik (Username / Peer ID / Topik ID):
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="td-dest-search-input"
+                    value={customPeerId}
+                    onChange={(e) => setCustomPeerId(e.target.value)}
+                    placeholder="misal: @mychannel atau -10012345678"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="td-btn-primary"
+                    disabled={!customPeerId.trim()}
+                    onClick={() => {
+                      const action = destPickerModal;
+                      const targetName = customPeerId.trim();
+                      setDestPickerModal(null);
+                      setCustomPeerId('');
+                      if (action.action === 'single' && action.entryName) {
+                        void executeExtractToDrive(action.entryName, targetName, `Destinasi (${targetName})`);
+                      } else if (action.action === 'batch') {
+                        void executeBatchExtractToDrive(targetName, `Destinasi (${targetName})`);
+                      }
+                    }}
+                  >
+                    <Send size={13} /> Kirim
+                  </button>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         </div>
