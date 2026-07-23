@@ -382,6 +382,7 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
             }
             return Some(best.clone());
         }
+
         if saver {
             // Hemat downloadable fallback: smallest non-stripped layer
             return downloadable.first().map(|s| (*s).clone());
@@ -516,7 +517,6 @@ async fn download_media_thumb(
         let max_dim = w.max(h);
         let mode = quality.to_lowercase();
         let sharp = mode.contains("jelas") || mode.contains("sharp");
-        let min_dim = if sharp { 400 } else { 240 };
         // For jelas mode only, skip tiny static layer (< 400px) so Tier 4 photo chunk or Tier 5 FFmpeg HD frame extraction can run
         if sharp && max_dim > 0 && max_dim < 400 {
             continue;
@@ -959,7 +959,7 @@ pub fn thumbs_batch_blocking_app(
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
             let chat = chat.clone();
-            let mut uncached_ids = uncached_ids.clone();
+            let uncached_ids = uncached_ids.clone();
             let t_dir = t_dir.clone();
             let chat_safe = chat_safe.clone();
             let mut thumbs = thumbs.clone();
