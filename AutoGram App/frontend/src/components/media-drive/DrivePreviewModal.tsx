@@ -46,7 +46,7 @@ import {
   driveStreamSeek,
   driveStreamStatus,
 } from '../../lib/driveApi';
-import { getCachedThumb, setThumbsPaused } from '../../lib/thumbBatcher';
+import { cacheCapturedThumb, getCachedThumb, setThumbsPaused } from '../../lib/thumbBatcher';
 import {
   getCachedPreview,
   invalidatePreview,
@@ -488,6 +488,45 @@ export function DrivePreviewModal({
    * (moov tail + pipeline), leaving "buffer tinggi tapi video tak start".
    */
   const hasUserPlayRef = useRef(false);
+  const isVideoCapturedRef = useRef(false);
+
+  // Reset captured flag when file changes
+  useEffect(() => {
+    isVideoCapturedRef.current = false;
+  }, [file?.id]);
+
+  const captureVideoFrame = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !file || isAudioDriveFile(file) || isVideoCapturedRef.current) return;
+    if (v.videoWidth <= 0 || v.videoHeight <= 0 || v.readyState < 2) return;
+    try {
+      const canvas = document.createElement('canvas');
+      const maxDim = 640;
+      let w = v.videoWidth;
+      let h = v.videoHeight;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(v, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      if (dataUrl && dataUrl.startsWith('data:image/')) {
+        isVideoCapturedRef.current = true;
+        cacheCapturedThumb(folderId, file.id, dataUrl, creds?.session);
+      }
+    } catch {
+      // Ignore cross-origin canvas errors if any
+    }
+  }, [file, folderId, creds?.session]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
@@ -3322,10 +3361,12 @@ export function DrivePreviewModal({
                 onLoadedData={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  captureVideoFrame();
                 }}
                 onCanPlay={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  captureVideoFrame();
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
@@ -3371,6 +3412,7 @@ export function DrivePreviewModal({
                   setHasVideoFrame(true);
                   setLoading(false);
                   handlePlay();
+                  captureVideoFrame();
                   if (seekWarn && seekWarn.startsWith('Memuat')) {
                     setSeekWarn(null);
                   }
