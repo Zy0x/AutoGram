@@ -549,7 +549,10 @@ async fn download_media_thumb(
     if let Media::Document(d) = media {
         let mime = d.mime_type().unwrap_or("").to_lowercase();
         let name = d.name().unwrap_or("").to_lowercase();
-        let mut is_video = mime.starts_with("video/")
+        let has_video_attr = d.raw.video;
+
+        let mut is_video = has_video_attr
+            || mime.starts_with("video/")
             || name.ends_with(".mp4")
             || name.ends_with(".mov")
             || name.ends_with(".mkv")
@@ -662,14 +665,14 @@ async fn download_media_thumb(
                     let chunk_bytes = 256 * 1024;
                     if doc_size > sample_bytes.len() + chunk_bytes {
                         let total_chunks = doc_size / chunk_bytes;
-                        let skip = total_chunks.saturating_sub(4) as i32;
+                        let skip = total_chunks.saturating_sub(12) as i32;
                         let mut tail_bytes = Vec::new();
                         let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
                         while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
                             tail_bytes.extend_from_slice(&chunk);
                         }
                         if !tail_bytes.is_empty() {
-                            // 1. Faststart MP4 reconstruction (re-order moov before mdat for FFmpeg)
+                            // 1. Faststart MP4 reconstruction with stco/co64 re-indexing for FFmpeg
                             if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
                                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
                                     return Ok(frame_bytes);
@@ -701,6 +704,80 @@ async fn download_media_thumb(
     Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
 }
 
+fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
+    if shift_amount == 0 || moov_buf.len() < 12 {
+        return;
+    }
+    let shift_u32 = shift_amount as u32;
+    let shift_u64 = shift_amount as u64;
+
+    // Patch stco (32-bit chunk offset atom)
+    let stco_tag = b"stco";
+    if moov_buf.len() >= 12 {
+        for i in 4..=moov_buf.len() - 12 {
+            if &moov_buf[i..i + 4] == stco_tag {
+                let entry_count = u32::from_be_bytes([
+                    moov_buf[i + 8],
+                    moov_buf[i + 9],
+                    moov_buf[i + 10],
+                    moov_buf[i + 11],
+                ]) as usize;
+                let mut off = i + 12;
+                for _ in 0..entry_count {
+                    if off + 4 <= moov_buf.len() {
+                        let old_val = u32::from_be_bytes([
+                            moov_buf[off],
+                            moov_buf[off + 1],
+                            moov_buf[off + 2],
+                            moov_buf[off + 3],
+                        ]);
+                        let new_val = old_val.wrapping_add(shift_u32);
+                        moov_buf[off..off + 4].copy_from_slice(&new_val.to_be_bytes());
+                        off += 4;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Patch co64 (64-bit chunk offset atom)
+    let co64_tag = b"co64";
+    if moov_buf.len() >= 12 {
+        for i in 4..=moov_buf.len() - 12 {
+            if &moov_buf[i..i + 4] == co64_tag {
+                let entry_count = u32::from_be_bytes([
+                    moov_buf[i + 8],
+                    moov_buf[i + 9],
+                    moov_buf[i + 10],
+                    moov_buf[i + 11],
+                ]) as usize;
+                let mut off = i + 12;
+                for _ in 0..entry_count {
+                    if off + 8 <= moov_buf.len() {
+                        let old_val = u64::from_be_bytes([
+                            moov_buf[off],
+                            moov_buf[off + 1],
+                            moov_buf[off + 2],
+                            moov_buf[off + 3],
+                            moov_buf[off + 4],
+                            moov_buf[off + 5],
+                            moov_buf[off + 6],
+                            moov_buf[off + 7],
+                        ]);
+                        let new_val = old_val.wrapping_add(shift_u64);
+                        moov_buf[off..off + 8].copy_from_slice(&new_val.to_be_bytes());
+                        off += 8;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
     if sample_bytes.len() < 36 || tail_bytes.is_empty() {
         return None;
@@ -727,7 +804,8 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
         return None;
     }
 
-    let moov_slice = &tail_bytes[pos..pos + moov_size];
+    let mut moov_slice = tail_bytes[pos..pos + moov_size].to_vec();
+    patch_moov_offsets(&mut moov_slice, moov_size);
 
     let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {
         u32::from_be_bytes([
@@ -744,7 +822,7 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
     let mut out = Vec::with_capacity(ftyp_len + moov_size + sample_bytes.len() - ftyp_len);
 
     out.extend_from_slice(&sample_bytes[0..ftyp_len]);
-    out.extend_from_slice(moov_slice);
+    out.extend_from_slice(&moov_slice);
 
     let mut mdat_rem = sample_bytes[ftyp_len..].to_vec();
     if mdat_rem.len() >= 8 && &mdat_rem[4..8] == b"mdat" {
@@ -780,6 +858,7 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
         "worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
+        "../../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "cache/bin",
         "bin",
     ];
@@ -834,13 +913,30 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
                 for entry in entries.flatten() {
                     let sub = entry.path();
                     if sub.is_dir() {
-                        let ff1 = sub.join("ffmpeg.exe");
-                        if ff1.is_file() {
-                            return Some(ff1);
+                        if let Ok(sub_entries) = std::fs::read_dir(&sub) {
+                            for sub_entry in sub_entries.flatten() {
+                                let p = sub_entry.path();
+                                if p.is_file() {
+                                    let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                                    if name.starts_with("ffmpeg") && name.ends_with(".exe") {
+                                        return Some(p);
+                                    }
+                                }
+                            }
                         }
-                        let ff2 = sub.join("bin").join("ffmpeg.exe");
-                        if ff2.is_file() {
-                            return Some(ff2);
+                        let bin_dir = sub.join("bin");
+                        if bin_dir.is_dir() {
+                            if let Ok(bin_entries) = std::fs::read_dir(&bin_dir) {
+                                for bin_entry in bin_entries.flatten() {
+                                    let p = bin_entry.path();
+                                    if p.is_file() {
+                                        let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                                        if name.starts_with("ffmpeg") && name.ends_with(".exe") {
+                                            return Some(p);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

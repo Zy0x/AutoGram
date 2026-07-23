@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.92 Perbaikan Rekonstruksi Faststart MP4 & Re-indexing Atom Chunk Offset
+
+### Perbaikan Utama Visual Media & Grid
+- **Perbaikan Atom Chunk Offset Re-indexing (`stco` & `co64`)**:
+  - Mengoreksi fungsi `make_faststart_mp4` dan `patch_moov_offsets` di backend Rust (`grammers_media.rs`).
+  - Sebelumnya, saat menyusun ulang berkas MP4 *non-faststart* (seperti video Snaptik/TikTok di mana atom `moov` berada di akhir berkas 40MB+), atom `moov` dipindahkan ke depan tanpa memperbarui tabel offset chunk `stco` (32-bit) dan `co64` (64-bit). Hal ini menyebabkan FFmpeg gagal mengekstrak frame dengan pesan error `Invalid NAL unit size`.
+  - Kini, seluruh offset chunk di dalam atom `moov` disesuaikan sebesar `+moov_size`, sehingga FFmpeg dapat membaca sampel frame video dengan presisi dan menghasilkan thumbnail HD berukuran jernih (~78KB) secara instan tanpa perlu mengunduh seluruh file video.
+- **Deteksi Otomatis Dokumen Video via `d.raw.video`**:
+  - Memastikan berkas video yang diunggah sebagai dokumen tanpa ekstensi `.mp4` standar atau ber-MIME `application/octet-stream` tetap terdeteksi secara presisi sebagai video dan diproses melalui alur ekstraksi frame HD.
+- **Pencarian Dinamis Biner FFmpeg Windows (`find_ffmpeg_binary`)**:
+  - Mengakomodasi nama biner `ffmpeg-*.exe` (seperti `ffmpeg-win-x86_64-v7.1.exe`) serta jalur pencarian hingga ke direktori virtualenv `worker/venv`.
+
 ## v2.1.91 Autodeteksi Lokasi Biner FFmpeg Windows & Ekstraksi Frame Video Otomatis
 
 ### Perbaikan Utama Visual Media & Grid
