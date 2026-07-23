@@ -1024,7 +1024,19 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
     let has_thumb = thumb_data_url.is_some()
         || match &media {
             Media::Photo(_) => true,
-            Media::Document(d) => !d.thumbs().is_empty(),
+            Media::Document(d) => {
+                let mime = d.mime_type().unwrap_or("").to_lowercase();
+                let name = d.name().unwrap_or("").to_lowercase();
+                let is_video = mime.starts_with("video/")
+                    || name.ends_with(".mp4")
+                    || name.ends_with(".mov")
+                    || name.ends_with(".mkv")
+                    || name.ends_with(".webm")
+                    || name.ends_with(".avi")
+                    || name.ends_with(".m4v")
+                    || name.ends_with(".3gp");
+                !d.thumbs().is_empty() || is_video
+            }
             Media::Sticker(s) => !s.document.thumbs().is_empty(),
             _ => false,
         };
