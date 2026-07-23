@@ -863,6 +863,16 @@ fn zip_preview_entry(
 }
 
 #[tauri::command]
+fn zip_extract_entry(
+    archive_path: String,
+    entry_name: String,
+    dest_path: String,
+    password: Option<String>,
+) -> Result<u64, String> {
+    core::zip_local::extract_zip_entry(&archive_path, &entry_name, &dest_path, password.as_deref())
+}
+
+#[tauri::command]
 fn file_sha256(path: String) -> Result<core::hash_util::FileHashResult, String> {
     core::hash_util::sha256_file(&path)
 }
@@ -1327,6 +1337,7 @@ pub fn run() {
             stream_unregister,
             zip_list_local,
             zip_preview_entry,
+            zip_extract_entry,
             file_sha256,
             file_quick_fingerprint,
             compute_progress_rate,

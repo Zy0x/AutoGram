@@ -284,6 +284,43 @@ pub fn preview_zip_entry(
     })
 }
 
+pub fn extract_zip_entry(
+    archive_path: &str,
+    entry_name: &str,
+    dest_path: &str,
+    password: Option<&str>,
+) -> Result<u64, String> {
+    let src_p = path_policy::assert_safe_transfer_path(archive_path)?;
+    let dst_p = path_policy::assert_safe_transfer_path(dest_path)?;
+
+    let file = File::open(&src_p).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+
+    let mut entry_file = if let Some(pass) = password {
+        archive
+            .by_name_decrypt(entry_name, pass.as_bytes())
+            .map_err(|e| match e {
+                zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
+                zip::result::ZipError::InvalidPassword => "bad_password".into(),
+                _ => format!("entry not found or decryption failed: {entry_name}"),
+            })?
+    } else {
+        archive
+            .by_name(entry_name)
+            .map_err(|e| format!("entry not found: {entry_name} ({e})"))?
+    };
+
+    if let Some(parent) = dst_p.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+
+    let mut out_file = File::create(&dst_p).map_err(|e| format!("Gagal membuat file tujuan: {e}"))?;
+    let bytes_written = std::io::copy(&mut entry_file, &mut out_file)
+        .map_err(|e| format!("Gagal menulis data ekstraksi: {e}"))?;
+
+    Ok(bytes_written)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,6 +345,31 @@ mod tests {
         assert_eq!(list.entries[0].name, "hi.txt");
         let prev = preview_zip_entry(path.to_str().unwrap(), "hi.txt", None).unwrap();
         assert_eq!(prev.text_content.unwrap(), "hello zip");
+    }
+
+    #[test]
+    fn extracts_zip_entry() {
+        let dir = std::env::temp_dir().join("ag_zip_extract_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let zip_path = dir.join("archive.zip");
+        let target_path = dir.join("out.txt");
+        {
+            let f = File::create(&zip_path).unwrap();
+            let mut z = ZipWriter::new(f);
+            z.start_file("data.txt", SimpleFileOptions::default()).unwrap();
+            z.write_all(b"extracted content").unwrap();
+            z.finish().unwrap();
+        }
+        let bytes = extract_zip_entry(
+            zip_path.to_str().unwrap(),
+            "data.txt",
+            target_path.to_str().unwrap(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(bytes, 17);
+        let read_back = std::fs::read_to_string(&target_path).unwrap();
+        assert_eq!(read_back, "extracted content");
     }
 }
 

@@ -1350,6 +1350,24 @@ export async function driveZipReadEntry(
   }
 }
 
+/** Extract single ZIP entry directly to destination path on disk via Grammers & Rust. */
+export async function driveZipExtractEntry(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null,
+  entryName: string,
+  destPath: string,
+  password?: string
+): Promise<{ status: string; bytesWritten: number }> {
+  if (!detectTauriRuntime()) {
+    throw new Error('ZIP extraction membutuhkan desktop Rust + Grammers.');
+  }
+  const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+  const { zipExtractEntry } = await import('./rustBackend');
+  const bytesWritten = await zipExtractEntry(localPath, entryName, destPath, password);
+  return { status: 'success', bytesWritten };
+}
+
 export async function driveDelete(
   creds: DriveCredentials,
   messageId: number,

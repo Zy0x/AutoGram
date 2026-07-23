@@ -168,6 +168,21 @@ export async function zipPreviewEntry(
   }
 }
 
+export async function zipExtractEntry(
+  archivePath: string,
+  entryName: string,
+  destPath: string,
+  password?: string
+): Promise<number> {
+  if (!detectTauriRuntime() || !archivePath || !destPath) return 0;
+  return await invoke<number>('zip_extract_entry', {
+    archivePath,
+    entryName,
+    destPath,
+    password: password || null,
+  });
+}
+
 export async function fileSha256(path: string) {
   if (!detectTauriRuntime() || !path) return null;
   try {
