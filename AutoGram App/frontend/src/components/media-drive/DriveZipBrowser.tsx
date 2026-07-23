@@ -600,7 +600,7 @@ export function DriveZipBrowser({
             className={`drive-zip-cat-tab${category === 'media' ? ' active' : ''}`}
             onClick={() => setCategory('media')}
           >
-            <Film size={13} /> Media{' '}
+            <Film size={13} /> Video{' '}
             <span className="drive-zip-cat-badge">{categoryCounts.media}</span>
           </button>
         </div>
