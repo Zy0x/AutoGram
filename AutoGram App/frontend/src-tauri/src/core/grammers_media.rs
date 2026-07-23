@@ -917,14 +917,12 @@ pub fn thumbs_batch_blocking_app(
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    let min_disk = if q_key == "hemat" { 32 } else { 1500 };
+                    let min_disk = 64;
                     if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
                             thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
                             found_url = Some(url);
                         }
-                    } else {
-                        let _ = std::fs::remove_file(&cache_file);
                     }
                 }
             }
@@ -1093,15 +1091,13 @@ pub fn thumbs_batch_blocking_app(
                     let q_file = t_dir.join(format!("{q_cache}.jpg"));
                     if q_file.is_file() {
                         if let Ok(bytes) = std::fs::read(&q_file) {
-                            let min_ok = if q_key == "hemat" { 32 } else if q_key == "jelas" || q_key == "sharp" { 18000 } else { 8000 };
+                            let min_ok = 64;
                             if bytes.len() >= min_ok {
                                 if let Some(url) = to_data_url(&bytes) {
                                     thumb_mem_cache().lock().insert(q_cache, url.clone());
                                     thumbs.insert(key, Some(url));
                                     continue;
                                 }
-                            } else if !hemat_only {
-                                let _ = std::fs::remove_file(&q_file);
                             }
                         }
                     }
