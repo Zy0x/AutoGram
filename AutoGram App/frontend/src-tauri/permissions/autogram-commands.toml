@@ -72,5 +72,8 @@ allow = [
     "cache_file_ready",
     "copy_cache_file",
     "ensure_ghost_session",
-    "cleanup_ghost_session"
+    "cleanup_ghost_session",
+    "tg_avatars_batch",
+    "cache_calculate_size",
+    "drive_calculate_cache_size"
 ]
