@@ -202,9 +202,9 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
     return (
       <div className="drive-zip-browser is-loading">
         <Loader2 size={28} className="spin" />
-        <p>Membaca daftar isi ZIP…</p>
+        <p>Memuat & membaca indeks ZIP via Grammers…</p>
         <span className="drive-zip-hint">
-          Hanya indeks arsip (tanpa extract penuh) — aman untuk file besar.
+          Indeks arsip dibaca secara native oleh Rust Engine — aman untuk file besar.
         </span>
       </div>
     );

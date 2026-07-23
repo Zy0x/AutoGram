@@ -1203,35 +1203,144 @@ export async function driveStreamSeek(
   }
 }
 
-/** Lightweight ZIP listing — local cache only for now (Telegram ZIP walk port pending). */
-export async function driveZipList(
-  _creds: DriveCredentials,
-  _messageId: number,
-  _folderId: number | null
-): Promise<any> {
-  return {
-    status: 'error',
-    error: 'ZIP Telegram masih diport ke Grammers. Unduh file lalu buka lokal.',
-    message: 'ZIP Telegram masih diport ke Grammers. Unduh file lalu buka lokal.',
-    entries: [],
-    backend: 'grammers',
-  };
+const zipPathCache = new Map<string, string>();
+
+async function ensureZipLocalPath(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null
+): Promise<string> {
+  const cacheKey = `${folderId ?? 'root'}:${messageId}`;
+  const existing = zipPathCache.get(cacheKey);
+  if (existing) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const safe = await invoke<boolean>('path_policy_check', { path: existing });
+      if (safe) return existing;
+    } catch {
+      // ignore, fall through to fetch
+    }
+  }
+
+  const { tgPreviewStream } = await import('./telegramBackend');
+  const chatId = folderId == null ? 'me' : String(folderId);
+  const apiId = Number(creds.apiId) || 0;
+
+  const gr = await tgPreviewStream({
+    session: creds.session,
+    apiId,
+    apiHash: creds.apiHash,
+    chatId,
+    messageId,
+  });
+
+  if (gr?.ok && gr.data?.path) {
+    zipPathCache.set(cacheKey, gr.data.path);
+    return gr.data.path;
+  }
+
+  throw new Error(
+    gr?.userMessage || gr?.error?.message || 'Gagal mengunduh file ZIP dari Telegram (Grammers)'
+  );
 }
 
-/** Read ZIP entry — local only until Telegram ZIP is ported. */
-export async function driveZipReadEntry(
-  _creds: DriveCredentials,
-  _messageId: number,
-  _folderId: number | null,
-  _entry: string,
-  _password?: string
+/** Lightweight ZIP listing via Grammers MTProto & Rust native zip_local engine. */
+export async function driveZipList(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null
 ): Promise<any> {
-  return {
-    status: 'error',
-    error: 'ZIP Telegram masih diport ke Grammers.',
-    message: 'ZIP Telegram masih diport ke Grammers.',
-    backend: 'grammers',
-  };
+  if (!detectTauriRuntime()) {
+    throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
+  }
+  try {
+    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+    const { zipListLocal } = await import('./rustBackend');
+    const res = await zipListLocal(localPath);
+    return {
+      status: 'success',
+      entries: (res?.entries || []).map((e: any) => ({
+        name: e.name,
+        size: Number(e.size || 0),
+        compressed_size: Number(e.compressedSize || 0),
+        is_dir: !!e.isDir,
+        method: e.method || 0,
+      })),
+      archive_size: res?.archiveSize,
+      total_uncompressed: res?.totalUncompressed,
+      source: 'central_dir',
+      truncated: !!res?.truncated,
+      backend: 'grammers',
+    };
+  } catch (e: any) {
+    return {
+      status: 'error',
+      error: String(e?.message || e || 'Gagal membaca arsip ZIP'),
+      message: String(e?.message || e || 'Gagal membaca arsip ZIP'),
+      entries: [],
+      backend: 'grammers',
+    };
+  }
+}
+
+/** Read ZIP entry via Grammers MTProto & Rust native zip_local engine. */
+export async function driveZipReadEntry(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null,
+  entry: string,
+  password?: string
+): Promise<any> {
+  if (!detectTauriRuntime()) {
+    throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
+  }
+  try {
+    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+    const { zipPreviewEntry } = await import('./rustBackend');
+    const res = await zipPreviewEntry(localPath, entry, password);
+
+    if (res?.encrypted) {
+      return {
+        status: 'encrypted',
+        message: 'File ZIP dienkripsi. Masukkan password.',
+        backend: 'grammers',
+      };
+    }
+
+    let kind = 'meta';
+    if (res?.dataUrl) {
+      kind = 'image';
+    } else if (res?.textContent != null) {
+      kind = 'text';
+    } else if (res?.isBinary) {
+      kind = 'binary';
+    }
+
+    return {
+      status: 'success',
+      kind,
+      text: res?.textContent,
+      data_url: res?.dataUrl,
+      mime: res?.mimeType,
+      size: res?.size,
+      backend: 'grammers',
+    };
+  } catch (e: any) {
+    const msg = String(e?.message || e || 'Gagal membaca entri ZIP');
+    if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
+      return {
+        status: 'bad_password',
+        message: 'Password salah atau enkripsi tidak didukung.',
+        backend: 'grammers',
+      };
+    }
+    return {
+      status: 'error',
+      error: msg,
+      message: msg,
+      backend: 'grammers',
+    };
+  }
 }
 
 export async function driveDelete(

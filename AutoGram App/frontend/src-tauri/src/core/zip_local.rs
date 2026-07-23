@@ -1,5 +1,6 @@
 //! Local ZIP list / single-entry extract (Rust). Telegram download stays Python.
 
+use base64::Engine;
 use serde::Serialize;
 use std::fs::File;
 use std::io::Read;
@@ -40,7 +41,10 @@ pub struct ZipEntryPreview {
     pub name: String,
     pub size: u64,
     pub text_content: Option<String>,
+    pub data_url: Option<String>,
+    pub mime_type: Option<String>,
     pub is_binary: bool,
+    pub encrypted: bool,
     pub backend: String,
 }
 
@@ -88,22 +92,77 @@ pub fn list_zip(path: &str) -> Result<ZipListResult, String> {
     })
 }
 
-pub fn preview_zip_entry(path: &str, entry_name: &str) -> Result<ZipEntryPreview, String> {
+fn detect_image_mime(name: &str) -> Option<&'static str> {
+    let lower = name.to_lowercase();
+    if lower.ends_with(".png") {
+        Some("image/png")
+    } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        Some("image/jpeg")
+    } else if lower.ends_with(".gif") {
+        Some("image/gif")
+    } else if lower.ends_with(".webp") {
+        Some("image/webp")
+    } else if lower.ends_with(".svg") {
+        Some("image/svg+xml")
+    } else if lower.ends_with(".bmp") {
+        Some("image/bmp")
+    } else if lower.ends_with(".ico") {
+        Some("image/x-icon")
+    } else {
+        None
+    }
+}
+
+pub fn preview_zip_entry(
+    path: &str,
+    entry_name: &str,
+    password: Option<&str>,
+) -> Result<ZipEntryPreview, String> {
     let p = path_policy::assert_safe_transfer_path(path)?;
     let file = File::open(&p).map_err(|e| e.to_string())?;
     let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
-    let mut f = archive
-        .by_name(entry_name)
-        .map_err(|_| format!("entry not found: {entry_name}"))?;
+
+    let mut f = if let Some(pass) = password {
+        archive
+            .by_name_decrypt(entry_name, pass.as_bytes())
+            .map_err(|e| match e {
+                zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
+                zip::result::ZipError::InvalidPassword => "bad_password".into(),
+                _ => format!("entry not found or decryption failed: {entry_name}"),
+            })?
+    } else {
+        match archive.by_name(entry_name) {
+            Ok(entry) => entry,
+            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
+            | Err(zip::result::ZipError::InvalidPassword) => {
+                return Ok(ZipEntryPreview {
+                    name: entry_name.into(),
+                    size: 0,
+                    text_content: None,
+                    data_url: None,
+                    mime_type: None,
+                    is_binary: true,
+                    encrypted: true,
+                    backend: "rust".into(),
+                });
+            }
+            Err(e) => return Err(format!("entry not found: {entry_name} ({e})")),
+        }
+    };
+
     if f.is_dir() {
         return Ok(ZipEntryPreview {
             name: entry_name.into(),
             size: 0,
             text_content: None,
+            data_url: None,
+            mime_type: None,
             is_binary: false,
+            encrypted: false,
             backend: "rust".into(),
         });
     }
+
     let size = f.size();
     if size as usize > MAX_ENTRY {
         return Ok(ZipEntryPreview {
@@ -112,12 +171,48 @@ pub fn preview_zip_entry(path: &str, entry_name: &str) -> Result<ZipEntryPreview
             text_content: Some(format!(
                 "[Entry too large for inline preview — {size} bytes]"
             )),
+            data_url: None,
+            mime_type: None,
             is_binary: true,
+            encrypted: false,
             backend: "rust".into(),
         });
     }
+
     let mut buf = Vec::new();
-    f.read_to_end(&mut buf).map_err(|e| e.to_string())?;
+    if let Err(e) = f.read_to_end(&mut buf) {
+        let err_str = e.to_string();
+        if err_str.contains("password") || err_str.contains("Password") {
+            return Ok(ZipEntryPreview {
+                name: entry_name.into(),
+                size,
+                text_content: None,
+                data_url: None,
+                mime_type: None,
+                is_binary: true,
+                encrypted: true,
+                backend: "rust".into(),
+            });
+        }
+        return Err(err_str);
+    }
+
+    let image_mime = detect_image_mime(entry_name);
+    if let Some(mime) = image_mime {
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
+        let data_url = format!("data:{mime};base64,{encoded}");
+        return Ok(ZipEntryPreview {
+            name: entry_name.into(),
+            size,
+            text_content: None,
+            data_url: Some(data_url),
+            mime_type: Some(mime.to_string()),
+            is_binary: true,
+            encrypted: false,
+            backend: "rust".into(),
+        });
+    }
+
     let nulls = buf.iter().filter(|&&b| b == 0).count();
     let is_binary = nulls > 8.max(buf.len() / 50);
     let text = if is_binary {
@@ -125,11 +220,15 @@ pub fn preview_zip_entry(path: &str, entry_name: &str) -> Result<ZipEntryPreview
     } else {
         Some(String::from_utf8_lossy(&buf).into_owned())
     };
+
     Ok(ZipEntryPreview {
         name: entry_name.into(),
         size,
         text_content: text,
+        data_url: None,
+        mime_type: if is_binary { None } else { Some("text/plain".into()) },
         is_binary,
+        encrypted: false,
         backend: "rust".into(),
     })
 }
@@ -156,7 +255,8 @@ mod tests {
         let list = list_zip(path.to_str().unwrap()).unwrap();
         assert_eq!(list.count, 1);
         assert_eq!(list.entries[0].name, "hi.txt");
-        let prev = preview_zip_entry(path.to_str().unwrap(), "hi.txt").unwrap();
+        let prev = preview_zip_entry(path.to_str().unwrap(), "hi.txt", None).unwrap();
         assert_eq!(prev.text_content.unwrap(), "hello zip");
     }
 }
+

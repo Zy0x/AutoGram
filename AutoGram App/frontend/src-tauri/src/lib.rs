@@ -854,8 +854,12 @@ fn zip_list_local(path: String) -> Result<core::zip_local::ZipListResult, String
 }
 
 #[tauri::command]
-fn zip_preview_entry(path: String, entry_name: String) -> Result<core::zip_local::ZipEntryPreview, String> {
-    core::zip_local::preview_zip_entry(&path, &entry_name)
+fn zip_preview_entry(
+    path: String,
+    entry_name: String,
+    password: Option<String>,
+) -> Result<core::zip_local::ZipEntryPreview, String> {
+    core::zip_local::preview_zip_entry(&path, &entry_name, password.as_deref())
 }
 
 #[tauri::command]
