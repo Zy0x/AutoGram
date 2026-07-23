@@ -1254,7 +1254,7 @@ pub fn list_media_blocking_topic(
     let topic_filter = topic_id.filter(|t| *t > 0);
     // Over-fetch when filtering by topic so a page still fills
     let scan_limit = if topic_filter.is_some() {
-        (limit * 4).clamp(40, 250)
+        (limit * 25).clamp(350, 1000)
     } else {
         limit + 12
     };
