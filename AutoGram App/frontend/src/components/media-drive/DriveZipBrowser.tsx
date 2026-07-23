@@ -17,6 +17,7 @@ import {
   Film,
   Folder,
   Gauge,
+  HardDrive,
   Home,
   Image as ImageIcon,
   Loader2,
@@ -382,71 +383,125 @@ export function DriveZipBrowser({
     }
   };
 
-  const handleExtractSingle = async (entryName: string) => {
+  const handleExtractSingle = async (entryName: string, targetMode: 'local' | 'drive' = 'local') => {
     setExtracting(entryName);
     setToastMsg(null);
     const passToUse = password || rememberedPasswordsMap.get(archiveKey);
     try {
-      const { save } = await import('@tauri-apps/plugin-dialog');
       const basename = entryName.split('/').pop() || entryName;
-      const targetPath = await save({ defaultPath: basename });
-      if (!targetPath) return;
-
-      const res = await driveZipExtractEntry(
-        creds,
-        messageId,
-        folderId,
-        entryName,
-        targetPath,
-        passToUse
-      );
-      if (res?.status === 'success') {
-        setToastMsg(`Berhasil mengestrak ${basename} (${formatDriveBytes(res.bytesWritten)})`);
-      }
-    } catch (e: any) {
-      setError(`Gagal mengestrak file: ${String(e?.message || e)}`);
-    } finally {
-      setExtracting(null);
-    }
-  };
-
-
-
-  const handleBatchExtract = async () => {
-    if (selectedEntries.size === 0) return;
-    const selectedList = [...selectedEntries];
-    setExtracting('batch');
-    setToastMsg(null);
-    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const targetDir = await open({ directory: true, multiple: false });
-      if (!targetDir || typeof targetDir !== 'string') return;
-
-      let extractedCount = 0;
-      let totalBytes = 0;
-
-      for (let i = 0; i < selectedList.length; i++) {
-        const entryName = selectedList[i];
-        const basename = entryName.split('/').pop() || entryName;
-        const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;
-        setToastMsg(`Mengekstrak berkas ${i + 1}/${selectedList.length}: ${basename}…`);
+      if (targetMode === 'local') {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const targetPath = await save({ defaultPath: basename });
+        if (!targetPath) return;
 
         const res = await driveZipExtractEntry(
           creds,
           messageId,
           folderId,
           entryName,
-          destPath,
+          targetPath,
           passToUse
         );
         if (res?.status === 'success') {
-          extractedCount++;
-          totalBytes += res.bytesWritten;
+          setToastMsg(`Berhasil mengekstrak ${basename} ke Lokal (${formatDriveBytes(res.bytesWritten)})`);
+        }
+      } else {
+        const { tempDir } = await import('@tauri-apps/api/path');
+        const dir = await tempDir().catch(() => '');
+        const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+        const tempPath = dir
+          ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${cleanBase}`
+          : `ag_zip_upload_${Date.now()}_${cleanBase}`;
+
+        setToastMsg(`Mengekstrak ${basename} disiapkan untuk Drive…`);
+        const res = await driveZipExtractEntry(
+          creds,
+          messageId,
+          folderId,
+          entryName,
+          tempPath,
+          passToUse
+        );
+        if (res?.status === 'success') {
+          setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) ke Drive!`);
         }
       }
+    } catch (e: any) {
+      setError(`Gagal mengekstrak berkas: ${String(e?.message || e)}`);
+    } finally {
+      setExtracting(null);
+    }
+  };
 
-      setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke ${targetDir}`);
+  const handleBatchExtract = async (targetMode: 'local' | 'drive' = 'local') => {
+    if (selectedEntries.size === 0) return;
+    const selectedList = [...selectedEntries];
+    setExtracting('batch');
+    setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+    try {
+      if (targetMode === 'local') {
+        const { open } = await import('@tauri-apps/plugin-dialog');
+        const targetDir = await open({ directory: true, multiple: false });
+        if (!targetDir || typeof targetDir !== 'string') return;
+
+        let extractedCount = 0;
+        let totalBytes = 0;
+
+        for (let i = 0; i < selectedList.length; i++) {
+          const entryName = selectedList[i];
+          const basename = entryName.split('/').pop() || entryName;
+          const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;
+          setToastMsg(`Mengekstrak berkas ${i + 1}/${selectedList.length}: ${basename}…`);
+
+          const res = await driveZipExtractEntry(
+            creds,
+            messageId,
+            folderId,
+            entryName,
+            destPath,
+            passToUse
+          );
+          if (res?.status === 'success') {
+            extractedCount++;
+            totalBytes += res.bytesWritten;
+          }
+        }
+
+        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke Lokal (${targetDir})`);
+      } else {
+        const { tempDir } = await import('@tauri-apps/api/path');
+        const dir = await tempDir().catch(() => '');
+
+        let extractedCount = 0;
+        let totalBytes = 0;
+
+        for (let i = 0; i < selectedList.length; i++) {
+          const entryName = selectedList[i];
+          const basename = entryName.split('/').pop() || entryName;
+          const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+          const destPath = dir
+            ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
+            : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
+
+          setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke Drive…`);
+
+          const res = await driveZipExtractEntry(
+            creds,
+            messageId,
+            folderId,
+            entryName,
+            destPath,
+            passToUse
+          );
+          if (res?.status === 'success') {
+            extractedCount++;
+            totalBytes += res.bytesWritten;
+          }
+        }
+
+        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) disiapkan ke Drive!`);
+      }
       setSelectedEntries(new Set());
     } catch (e: any) {
       setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
@@ -730,29 +785,51 @@ export function DriveZipBrowser({
             )}
 
             {selectedEntries.size > 0 ? (
-              <button
-                type="button"
-                className="drive-zip-btn-extract"
-                disabled={extracting === 'batch'}
-                onClick={() => void handleBatchExtract()}
-              >
-                {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
-                Ekstrak ({selectedEntries.size}) Terpilih
-              </button>
+              <div className="drive-zip-extract-group">
+                <button
+                  type="button"
+                  className="drive-zip-btn-extract"
+                  disabled={!!extracting}
+                  onClick={() => void handleBatchExtract('local')}
+                  title="Ekstrak berkas terpilih ke komputer lokal"
+                >
+                  {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                  Ekstrak ({selectedEntries.size}) ke Lokal
+                </button>
+                <button
+                  type="button"
+                  className="drive-zip-btn-extract is-secondary"
+                  disabled={!!extracting}
+                  onClick={() => void handleBatchExtract('drive')}
+                  title="Ekstrak berkas terpilih lalu disiapkan/diunggah ke AutoGram Drive"
+                >
+                  {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <HardDrive size={13} />}
+                  Ekstrak ({selectedEntries.size}) ke Drive
+                </button>
+              </div>
             ) : preview && preview.kind !== 'encrypted' ? (
-              <button
-                type="button"
-                className="drive-zip-btn-extract"
-                disabled={extracting === preview.entry}
-                onClick={() => void handleExtractSingle(preview.entry)}
-              >
-                {extracting === preview.entry ? (
-                  <Loader2 size={13} className="spin" />
-                ) : (
-                  <Download size={13} />
-                )}
-                Ekstrak File Ini
-              </button>
+              <div className="drive-zip-extract-group">
+                <button
+                  type="button"
+                  className="drive-zip-btn-extract"
+                  disabled={!!extracting}
+                  onClick={() => void handleExtractSingle(preview.entry, 'local')}
+                  title="Ekstrak berkas pratinjau ini ke komputer lokal"
+                >
+                  {extracting === preview.entry ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                  Ekstrak ke Lokal
+                </button>
+                <button
+                  type="button"
+                  className="drive-zip-btn-extract is-secondary"
+                  disabled={!!extracting}
+                  onClick={() => void handleExtractSingle(preview.entry, 'drive')}
+                  title="Ekstrak berkas pratinjau ini lalu disiapkan/diunggah ke AutoGram Drive"
+                >
+                  {extracting === preview.entry ? <Loader2 size={13} className="spin" /> : <HardDrive size={13} />}
+                  Ekstrak ke Drive
+                </button>
+              </div>
             ) : null}
           </div>
         </div>

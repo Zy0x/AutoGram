@@ -12215,3 +12215,20 @@ video.drive-zip-img {
   color: #ffae00;
   border: 1px solid rgba(255, 174, 0, 0.35);
 }
+
+/* Dual Extract Button Group (Lokal vs Drives) */
+.drive-zip-extract-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.drive-zip-btn-extract.is-secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+.drive-zip-btn-extract.is-secondary:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
