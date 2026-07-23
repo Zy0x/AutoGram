@@ -213,8 +213,8 @@ if (typeof window !== 'undefined') {
 }
 
 function softFailMs(): number {
-  // Empty misses must retry quickly so stripped-first batches can re-fill.
-  return Math.min(getDrivePerfProfile().thumbSoftFailMs, 150);
+  // Missing items should not hammer Telegram API repeatedly. Soft-fail for 15 seconds.
+  return 15_000;
 }
 
 

@@ -1059,8 +1059,8 @@ export function canShowDriveThumb(file: DriveFile): boolean {
   if (file.icon_type === 'link') {
     return file.has_thumb === true;
   }
-  // Never paint raw text/JSON as a full-bleed card image
-  if (isTextDriveFile(file)) return false;
+  // Never paint raw text/JSON, audio, or zip files as full-bleed card images
+  if (isTextDriveFile(file) || isAudioDriveFile(file) || isZipDriveFile(file)) return false;
   if (file.has_thumb === true) return true;
   if (isImageDriveFile(file) || isVideoDriveFile(file)) return true;
   if (isPdfDriveFile(file)) return true;
