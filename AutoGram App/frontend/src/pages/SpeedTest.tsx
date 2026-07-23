@@ -3289,43 +3289,31 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const handleTopicFilter = useCallback(
     (t: DriveTopicFilter) => {
       if (activePeerRef.current !== peerId) return;
-      if (t != null && !topics.some((topic) => topic.id === t)) return;
+      if (t != null && topics.length > 0 && !topics.some((topic) => String(topic.id) === String(t))) return;
       if (t === topicFilterRef.current) return;
 
       const currentGen = ++topicGenRef.current;
-      console.info(`[AutoGram:TopicUI] Filter switch initiated: targetTopicId=${t}, peerId=${peerId}, gen=${currentGen}. Scheduling 300ms debounce...`);
+      console.info(`[AutoGram:TopicUI] Filter switch initiated: targetTopicId=${t}, peerId=${peerId}, gen=${currentGen}`);
       setTopicFilter(t);
       topicFilterRef.current = t;
       setError(null);
       setSelectedIds([]);
       selectionAnchorRef.current = null;
 
-      // Instantly wipe stale files state to prevent media bleeding from previous topic
+      // Instantly wipe stale files state to prevent media bleeding from previous topic/peer
       setFiles([]);
       setLoadingFiles(true);
 
       // Instantly clear thumbnail queue for previous topic scope
       setThumbContext(creds, peerId, t);
-      // Drop previous location totals immediately so all-media count
-      // never sticks on a single topic while the new list loads.
+      // Drop previous location totals and cache immediately so all-media count/grid
+      // never sticks on previous topic while the new topic loads.
       const cacheKey = `${peerId}_${t || ''}`;
       activeFilesCacheKeyRef.current = cacheKey;
-      const existingCached = filesCacheRef.current.get(cacheKey);
-      if (existingCached && existingCached.length === 0) {
-        filesCacheRef.current.delete(cacheKey);
-      }
-      const cachedCount = filesTotalCountRef.current.get(cacheKey);
-      const cachedBytes = filesTotalBytesRef.current.get(cacheKey);
-      if (cachedCount != null) {
-        setTotalFileCount(cachedCount);
-      } else {
-        setTotalFileCount(null);
-      }
-      if (cachedBytes != null) {
-        setTotalBytes(cachedBytes);
-      } else {
-        setTotalBytes(null);
-      }
+      filesCacheRef.current.delete(cacheKey);
+
+      setTotalFileCount(null);
+      setTotalBytes(null);
       setStatsByType(null);
       setStatsAccurate(false);
       setStatsLoading(true);
@@ -3340,15 +3328,15 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         topicDebounceTimerRef.current = null;
       }
 
-      // Reload media for selected topic with 300ms debounce to prevent FloodWait from rapid clicks
+      // Execute topic refresh immediately with 50ms micro-debounce
       topicDebounceTimerRef.current = window.setTimeout(() => {
         if (currentGen === topicGenRef.current && activePeerRef.current === peerId) {
-          console.info(`[AutoGram:TopicUI] Executing debounced topic refresh: topicId=${t}, peerId=${peerId}, gen=${currentGen}`);
+          console.info(`[AutoGram:TopicUI] Executing topic refresh: topicId=${t}, peerId=${peerId}, gen=${currentGen}`);
           void refreshFiles();
         } else {
-          console.info(`[AutoGram:TopicUI] Ignored stale debounced topic refresh: topicId=${t}, currentGen=${topicGenRef.current}, expectedGen=${currentGen}`);
+          console.info(`[AutoGram:TopicUI] Ignored stale topic refresh: topicId=${t}, currentGen=${topicGenRef.current}, expectedGen=${currentGen}`);
         }
-      }, 300);
+      }, 50);
     },
     [refreshFiles, creds, peerId, topics]
   );

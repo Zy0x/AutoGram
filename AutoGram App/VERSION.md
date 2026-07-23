@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.99
+AutoGram Version: v2.1.100
 
 Current State:
-v2.1.99 Penanganan berkas tautan dan pesan WebPage preview (`Media::WebPage` & Link Text) pada Grammers Rust Backend (`grammers_ops.rs`). Mengeliminasi bug kartu media kosong pada topik Telegram yang berisikan rujukan link (seperti topik "Link" ID 246 pada chat -1003214112048) sehingga seluruh 13 pesan dan tautan web di-render sempurna sebagai kartu media `.url`.
+v2.1.100 Perbaikan total penanganan perpindahan topik pada frontend (`SpeedTest.tsx`). Memperbaiki perbandingan tipe topic ID (`String(topic.id) === String(t)`), mengesampingkan cache lama yang membekukan grid media saat berpindah topik, serta mempercepat eksekusi refresh topik secara instan (50ms micro-debounce) sehingga grid media topik selalu segar dan tidak pernah tertutup oleh file dari grup utama atau topik sebelumnya.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

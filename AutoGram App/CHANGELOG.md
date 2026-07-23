@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.100 Eliminasi Pembekuan Grid & Penyelarasan Perpindahan Topik UI
+
+### Perbaikan Utama Navigasi Topik (`SpeedTest.tsx`)
+- **Penyelarasan Tipe Topic ID (`String(topic.id) === String(t)`)**:
+  - Mengatasi masalah silent-abort pada `handleTopicFilter` di mana perbandingan strict type `===` gagal karena perbedaan string vs number antara data `topics` dan parameter `t`.
+- **Eviksi Cache Instan Navigasi Topik**:
+  - Menghapus entri `filesCacheRef` lokasi sebelumnya secara mutlak saat topik baru diklik. Mengeliminasi bug *media bleeding* di mana foto dari chat utama/topik lain tetap tampil di grid saat berpindah ke topik `"Link"`.
+- **Eksekusi Refresh Instan (50ms Micro-debounce)**:
+  - Mempercepat pemuatan media topik dari 300ms menjadi 50ms sehingga transisi antar-topik berlangsung responsif dan instan.
+
 ## v2.1.99 Dukungan Tautan & WebPage Preview (`Media::WebPage` & Link Cards)
 
 ### Perbaikan Utama Konversi Media Telegram
