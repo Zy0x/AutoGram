@@ -2885,6 +2885,9 @@ export function DrivePreviewModal({
                   setMediaHeight(img.naturalHeight);
                   setLoading(false);
                   setError(null);
+                  if (activeSrc) {
+                    cacheCapturedThumb(folderId, file.id, activeSrc, creds?.session);
+                  }
                 }}
                 onError={() => {
                   if (!tryNextSrc()) {
@@ -2947,6 +2950,7 @@ export function DrivePreviewModal({
                 // churn (that was restarting buffer load in a loop).
                 key={`vid-${file.id}-${quality}`}
                 src={activeSrc!}
+                crossOrigin="anonymous"
                 poster={poster || gridThumb || undefined}
                 controls
                 playsInline
@@ -2983,14 +2987,17 @@ export function DrivePreviewModal({
                   }
                   resumeAtRef.current = 0;
                   setLoading(false);
+                  captureVideoFrame();
                 }}
                 onLoadedData={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  captureVideoFrame();
                 }}
                 onCanPlay={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  captureVideoFrame();
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
@@ -3029,6 +3036,7 @@ export function DrivePreviewModal({
                 }}
                 onPlay={() => {
                   handlePlay();
+                  captureVideoFrame();
                 }}
                 onPause={() => {
                   handlePause();
@@ -3037,11 +3045,15 @@ export function DrivePreviewModal({
                   setHasVideoFrame(true);
                   setLoading(false);
                   handlePlay();
+                  captureVideoFrame();
                   if (seekWarn && seekWarn.startsWith('Memuat')) {
                     setSeekWarn(null);
                   }
                   if (!seekWarn && streamUrl && !streamDone) setPlayerHint(null);
                   else if (!streamUrl || streamDone) setPlayerHint(null);
+                }}
+                onTimeUpdate={() => {
+                  captureVideoFrame();
                 }}
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
