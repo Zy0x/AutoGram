@@ -1022,10 +1022,12 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
     // Telegram-style: embed mini-thumb now so UI never waits on thumbs_batch for first paint.
     let thumb_data_url = super::grammers_media::stripped_thumb_data_url(&media);
     let has_thumb = thumb_data_url.is_some()
-        || matches!(
-            &media,
-            Media::Photo(_) | Media::Document(_) | Media::Sticker(_)
-        );
+        || match &media {
+            Media::Photo(_) => true,
+            Media::Document(d) => !d.thumbs().is_empty(),
+            Media::Sticker(s) => !s.document.thumbs().is_empty(),
+            _ => false,
+        };
     match media {
         Media::Photo(_p) => {
             let name = if !caption.is_empty() {
