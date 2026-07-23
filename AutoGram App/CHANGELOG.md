@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.96 Fitur Slider Pembatas Ukuran Cache & Fitur Pangkas Otomatis (Cache Limit Slider)
+
+### Fitur Utama Manajemen Penyimpanan
+- **Slider Pembatas Cache (`Settings.tsx`)**:
+  - Menambahkan slider kontrol batas maksimum penyimpanan cache dengan pilihan fleksibel: `Tanpa Batas (Bebas)`, `1 GB`, `2 GB`, `5 GB`, `10 GB`, `20 GB`, `50 GB`, dan `100 GB`.
+  - Dilengkapi dengan visual progress bar dinamis yang menunjukkan rasio penggunaan cache terhadap batas yang ditentukan (berubah warna menjadi oranye/merah saat melebihi batas).
+- **Tombol & Fungsi Pemangkasan Otomatis ("Pangkas Ke Batas")**:
+  - Menambahkan fungsi `prunePersistentThumbsToSize` pada `thumbPersistentCache.ts` yang memangkas entri cache lama secara teratur hingga ukuran total mematuhi batas yang dikonfigurasi.
+  - Menampilkan peringatan peringatan visual jika ukuran cache terdeteksi melebihi batas yang disetel pengguna.
+
 ## v2.1.95 Otomatisasi Penelusuran Topik Mendalam & Eviksi Cache Kosong Lapuk
 
 ### Perbaikan Utama Navigasi Perpindahan Topik

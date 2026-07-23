@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.95
+AutoGram Version: v2.1.96
 
 Current State:
-v2.1.95 Perbaikan otomatis penelusuran topik mendalam (`auto-pagination` hingga 10 percobaan / 10.000 pesan) dan pembersihan cache kosong lapuk (`stale empty cache eviction`) saat pengguna berpindah antar topik. Mengeliminasi kebutuhan melakukan refresh manual untuk memicu penelusuran media topik yang berada di posisi riwayat percakapan yang dalam.
+v2.1.96 Penambahan fitur Slider Pembatas Ukuran Cache (Cache Limit Control) pada halaman Pengaturan. Pengguna dapat menentukan batas maksimum cache (Bebas, 1 GB, 2 GB, 5 GB, 10 GB, 20 GB, 50 GB, 100 GB) yang dilengkapi dengan visual progress bar persentase penggunaan serta tombol otomatis "Pangkas Ke Batas" untuk membebaskan memori dan ruang disk secara aman.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

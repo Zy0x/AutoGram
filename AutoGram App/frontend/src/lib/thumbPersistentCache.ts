@@ -159,3 +159,32 @@ export async function getPersistentThumbsSize(): Promise<number> {
     }
   });
 }
+
+export async function prunePersistentThumbsToSize(targetBytes: number): Promise<void> {
+  const db = await openDb();
+  if (!db) return;
+  try {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const items = await new Promise<ThumbRow[]>((resolve) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve((req.result as ThumbRow[]) || []);
+      req.onerror = () => resolve([]);
+    });
+
+    let currentSize = items.reduce((acc, item) => acc + item.key.length + item.dataUrl.length + 8, 0);
+    if (currentSize <= targetBytes) return;
+
+    // Sort items by savedAt ascending (oldest first)
+    items.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+
+    for (const item of items) {
+      if (currentSize <= targetBytes) break;
+      const itemSize = item.key.length + item.dataUrl.length + 8;
+      store.delete(item.key);
+      currentSize -= itemSize;
+    }
+  } catch {
+    /* best-effort pruning */
+  }
+}

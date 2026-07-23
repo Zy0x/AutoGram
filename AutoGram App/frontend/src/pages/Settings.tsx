@@ -14,7 +14,11 @@ import {
   Zap,
   Wifi,
   Loader2,
+  Sliders,
 } from 'lucide-react';
+
+const CACHE_LIMIT_STEPS = [0, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+const CACHE_LIMIT_LABELS = ['Bebas', '1 GB', '2 GB', '5 GB', '10 GB', '20 GB', '50 GB', '100 GB'];
 import { detectTauriRuntime } from '../lib/platform';
 import {
   networkApplyAll,
@@ -69,8 +73,46 @@ export function Settings() {
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isTrimming, setIsTrimming] = useState(false);
   const [cacheSize, setCacheSize] = useState<number | null>(null);
   const [clearStatus, setClearStatus] = useState<"idle" | "success" | "error">("idle");
+  const [cacheLimitMB, setCacheLimitMB] = useState<number>(() => {
+    const saved = localStorage.getItem('autogram_cache_limit_mb');
+    if (saved !== null) {
+      const val = Number(saved);
+      if (!isNaN(val)) return val;
+    }
+    return 5000; // default 5 GB limit
+  });
+
+  const handleCacheLimitChange = (newMb: number) => {
+    setCacheLimitMB(newMb);
+    localStorage.setItem('autogram_cache_limit_mb', String(newMb));
+  };
+
+  const handleTrimCache = async () => {
+    if (cacheLimitMB === 0) return;
+    setIsTrimming(true);
+    try {
+      const limitBytes = cacheLimitMB * 1024 * 1024;
+      const { prunePersistentThumbsToSize } = await import('../lib/thumbPersistentCache');
+      await prunePersistentThumbsToSize(limitBytes);
+      clearThumbCache();
+      clearAvatarCache();
+      clearPreviewCache();
+      try {
+        const { cacheClearDisk } = await import('../lib/jobsApi');
+        await cacheClearDisk();
+      } catch { /* best effort */ }
+      await calculateCacheSize();
+      setClearStatus('success');
+      setTimeout(() => setClearStatus('idle'), 4000);
+    } catch (err) {
+      console.error('Failed to trim cache', err);
+    } finally {
+      setIsTrimming(false);
+    }
+  };
 
   const [isClearingDb, setIsClearingDb] = useState(false);
   const [dbClearStatus, setDbClearStatus] = useState<"idle" | "success" | "error">("idle");
@@ -900,23 +942,152 @@ export function Settings() {
               </div>
             </div>
 
+            {/* Slider Pembatas Ukuran Cache */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              padding: '14px 16px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sliders size={16} color="var(--primary)" />
+                  <span className="input-label" style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
+                    Batas Maksimum Ukuran Cache:
+                  </span>
+                </div>
+                <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
+                  {cacheLimitMB === 0 ? 'Tanpa Batas (Unlimited)' : formatBytes(cacheLimitMB * 1024 * 1024)}
+                </strong>
+              </div>
+
+              <input
+                type="range"
+                min={0}
+                max={CACHE_LIMIT_STEPS.length - 1}
+                step={1}
+                value={CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) !== -1 ? CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) : 3}
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5000);
+                }}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--primary)',
+                  cursor: 'pointer',
+                  height: '6px',
+                  borderRadius: '4px',
+                }}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {CACHE_LIMIT_LABELS.map((lbl, idx) => {
+                  const val = CACHE_LIMIT_STEPS[idx];
+                  const isSelected = val === cacheLimitMB;
+                  return (
+                    <span
+                      key={lbl}
+                      style={{
+                        color: isSelected ? 'var(--primary)' : 'inherit',
+                        fontWeight: isSelected ? 700 : 400,
+                        cursor: 'pointer',
+                        transition: 'color 0.2s ease',
+                      }}
+                      onClick={() => handleCacheLimitChange(val)}
+                    >
+                      {lbl}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {/* Cache Usage Progress Bar */}
+              {cacheSize !== null && cacheLimitMB > 0 && (
+                <div style={{ marginTop: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Penggunaan dari Batas:</span>
+                    <span style={{ color: cacheSize > cacheLimitMB * 1024 * 1024 ? '#ef4444' : 'var(--text-bright)', fontWeight: 600 }}>
+                      {formattedSize} / {formatBytes(cacheLimitMB * 1024 * 1024)} ({Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100)}%)
+                    </span>
+                  </div>
+                  <div style={{ height: '6px', width: '100%', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(100, Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100))}%`,
+                      background: cacheSize > cacheLimitMB * 1024 * 1024
+                        ? 'linear-gradient(90deg, #f97316, #ef4444)'
+                        : (cacheSize / (cacheLimitMB * 1024 * 1024)) > 0.75
+                          ? 'linear-gradient(90deg, #eab308, #f97316)'
+                          : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                      borderRadius: '4px',
+                      transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+
+                  {cacheSize > cacheLimitMB * 1024 * 1024 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      marginTop: '10px',
+                      padding: '8px 12px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      color: '#f87171',
+                      fontSize: '0.78rem',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                        <span>Cache terdeteksi melebihi batas <strong>{formatBytes(cacheLimitMB * 1024 * 1024)}</strong>!</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ padding: '3px 10px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444', whiteSpace: 'nowrap' }}
+                        onClick={handleTrimCache}
+                        disabled={isTrimming || isCalculating || isClearing}
+                      >
+                        {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={calculateCacheSize} 
-                disabled={isCalculating || isClearing}
+                disabled={isCalculating || isClearing || isTrimming}
               >
                 Hitung Ukuran
               </button>
+              {cacheSize !== null && cacheLimitMB > 0 && cacheSize > cacheLimitMB * 1024 * 1024 && (
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)' }}
+                  onClick={handleTrimCache} 
+                  disabled={isCalculating || isClearing || isTrimming}
+                >
+                  {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}
+                </button>
+              )}
               <button 
                 type="button" 
                 className="btn btn-primary" 
                 style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)' }}
                 onClick={handleClearCache} 
-                disabled={isCalculating || isClearing}
+                disabled={isCalculating || isClearing || isTrimming}
               >
-                {isClearing ? 'Membersihkan...' : 'Hapus Cache'}
+                {isClearing ? 'Membersihkan...' : 'Hapus Semua Cache'}
               </button>
             </div>
 
