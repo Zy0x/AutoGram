@@ -1,5 +1,5 @@
 /**
- * Advanced ZIP browser (Google Drive style).
+ * Advanced & Elegant ZIP browser (Google Drive style).
  * Interactive search, category filters, code viewer with line numbers, and single-file native extraction.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -19,6 +19,7 @@ import {
   Music,
   RefreshCw,
   Search,
+  X,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry } from '../../lib/driveApi';
@@ -307,8 +308,8 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
   if (loading) {
     return (
       <div className="drive-zip-browser is-loading">
-        <Loader2 size={28} className="spin" />
-        <p>Memuat & membaca indeks ZIP via Grammers…</p>
+        <Loader2 size={32} className="spin" style={{ color: '#ffae00' }} />
+        <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Memuat & membaca indeks ZIP via Grammers…</p>
         <span className="drive-zip-hint">
           Indeks arsip dibaca secara native oleh Rust Engine — aman untuk file besar.
         </span>
@@ -319,8 +320,8 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
   if (error && entries.length === 0) {
     return (
       <div className="drive-zip-browser is-error">
-        <Archive size={36} className="td-type-ico archive" />
-        <p>{error}</p>
+        <Archive size={40} style={{ color: '#ef4444' }} />
+        <p style={{ fontWeight: 600 }}>{error}</p>
         <button type="button" className="td-btn-primary" onClick={() => void loadList()}>
           <RefreshCw size={14} /> Coba lagi
         </button>
@@ -332,7 +333,9 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
     <div className="drive-zip-browser">
       <header className="drive-zip-head">
         <div className="drive-zip-title">
-          <Archive size={18} />
+          <div className="drive-zip-title-icon">
+            <Archive size={20} />
+          </div>
           <div>
             <strong title={archiveName}>{archiveName || 'Arsip ZIP'}</strong>
             <span>
@@ -355,13 +358,23 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
 
       <div className="drive-zip-toolbar">
         <div className="drive-zip-search-box">
-          <Search size={14} />
+          <Search size={15} style={{ color: '#94a3b8' }} />
           <input
             type="text"
             placeholder="Cari berkas dalam ZIP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              className="drive-zip-search-clear"
+              title="Hapus pencarian"
+              onClick={() => setSearchQuery('')}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         <div className="drive-zip-cat-tabs">
           <button
@@ -369,14 +382,14 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             className={`drive-zip-cat-tab${category === 'all' ? ' active' : ''}`}
             onClick={() => setCategory('all')}
           >
-            Semua <span className="drive-zip-cat-badge">{categoryCounts.all}</span>
+            <Archive size={13} /> Semua <span className="drive-zip-cat-badge">{categoryCounts.all}</span>
           </button>
           <button
             type="button"
             className={`drive-zip-cat-tab${category === 'image' ? ' active' : ''}`}
             onClick={() => setCategory('image')}
           >
-            <ImageIcon size={12} /> Gambar{' '}
+            <ImageIcon size={13} /> Gambar{' '}
             <span className="drive-zip-cat-badge">{categoryCounts.images}</span>
           </button>
           <button
@@ -384,7 +397,7 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             className={`drive-zip-cat-tab${category === 'doc' ? ' active' : ''}`}
             onClick={() => setCategory('doc')}
           >
-            <Code size={12} /> Dokumen & Kode{' '}
+            <Code size={13} /> Dokumen & Kode{' '}
             <span className="drive-zip-cat-badge">{categoryCounts.docs}</span>
           </button>
           <button
@@ -392,7 +405,7 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             className={`drive-zip-cat-tab${category === 'media' ? ' active' : ''}`}
             onClick={() => setCategory('media')}
           >
-            <Film size={12} /> Media{' '}
+            <Film size={13} /> Media{' '}
             <span className="drive-zip-cat-badge">{categoryCounts.media}</span>
           </button>
         </div>
@@ -505,7 +518,8 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
         <div className="drive-zip-preview-pane">
           {!preview && (
             <div className="drive-zip-preview-empty">
-              <p>Pilih file di dalam ZIP untuk pratinjau.</p>
+              <Archive size={40} style={{ color: '#475569', marginBottom: 8 }} />
+              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#94a3b8' }}>Pilih file di dalam ZIP untuk pratinjau.</p>
               <span className="drive-zip-hint">
                 Hanya file yang dipilih yang di-extract (bukan seluruh arsip).
                 {meta.needs_full_for_extract
@@ -517,14 +531,13 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
           {preview && preview.kind !== 'encrypted' && (
             <div className="drive-zip-extract-bar">
               <div className="drive-zip-extract-info">
-                <File size={16} />
+                <File size={16} style={{ color: '#ffae00' }} />
                 <span title={preview.entry}>{entryLabel(preview.entry, cwd)}</span>
-                {preview.size != null && <span style={{ opacity: 0.7 }}>({formatDriveBytes(preview.size)})</span>}
+                {preview.size != null && <span style={{ color: '#94a3b8' }}>({formatDriveBytes(preview.size)})</span>}
               </div>
               <button
                 type="button"
-                className="td-btn-primary"
-                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                className="drive-zip-btn-extract"
                 disabled={extracting === preview.entry}
                 onClick={() => void handleExtractSingle(preview.entry)}
               >
@@ -554,17 +567,17 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
           )}
           {(preview?.kind === 'binary' || preview?.kind === 'meta') && (
             <div className="drive-zip-preview-empty">
-              <File size={32} />
-              <p title={preview.entry}>{entryLabel(preview.entry, cwd)}</p>
-              {preview.size != null && <span>{formatDriveBytes(preview.size)}</span>}
+              <File size={36} style={{ color: '#94a3b8' }} />
+              <p title={preview.entry} style={{ fontWeight: 600, color: '#f8fafc' }}>{entryLabel(preview.entry, cwd)}</p>
+              {preview.size != null && <span style={{ color: '#ffae00', fontWeight: 600 }}>{formatDriveBytes(preview.size)}</span>}
               <span className="drive-zip-hint">{preview.message || preview.mime || 'Binary'}</span>
             </div>
           )}
           {preview?.kind === 'encrypted' && (
             <div className="drive-zip-preview-empty">
-              <Archive size={32} />
-              <p title={preview.entry}>{entryLabel(preview.entry, cwd)}</p>
-              <span className="drive-zip-hint" style={{ color: 'var(--red-4)' }}>{preview.message}</span>
+              <Archive size={36} style={{ color: '#ef4444' }} />
+              <p title={preview.entry} style={{ fontWeight: 600 }}>{entryLabel(preview.entry, cwd)}</p>
+              <span className="drive-zip-hint" style={{ color: '#fca5a5' }}>{preview.message}</span>
               <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
                 <input
                   type="password"
