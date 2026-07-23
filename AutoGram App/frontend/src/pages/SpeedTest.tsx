@@ -1281,6 +1281,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const loadTopicsForPeer = useCallback(
     async (chatId: number | null, chatMeta?: DriveChat | null, force = false) => {
       const requestSeq = ++topicsRequestSeqRef.current;
+      console.info(`[AutoGram:TopicUI] Loading topics for peer: chatId=${chatId}, force=${force}, seq=${requestSeq}`);
       const isCurrent = () =>
         requestSeq === topicsRequestSeqRef.current && activePeerRef.current === chatId;
       if (!isCurrent()) return;
@@ -1333,6 +1334,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       // Render a recent memory/persistent snapshot immediately, then revalidate.
       if (cached && now - cached.ts < 5 * 60_000 && !force) {
         if (!isCurrent()) return;
+        console.info(`[AutoGram:TopicUI] Using cached topics snapshot: chatId=${chatId}, count=${cached.topics.length}, is_forum=${cached.is_forum}`);
         setTopics(cached.topics);
         setIsForumChat(cached.is_forum);
         if (!cached.is_forum) {
@@ -1364,6 +1366,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         const list: DriveTopic[] = res.topics || [];
         const forum = !!res.is_forum || list.length > 0 || meta?.is_forum === true;
         const savedAt = Date.now();
+        console.info(`[AutoGram:TopicUI] RPC topics result received: chatId=${chatId}, count=${list.length}, is_forum=${forum}`);
         topicsCacheRef.current.set(chatId, { topics: list, is_forum: forum, ts: savedAt });
         try {
           saveDriveTopicsSnapshot(localStorage, creds.session, chatId, list, forum, savedAt);
@@ -1377,7 +1380,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setTopicFilter(null);
           topicFilterRef.current = null;
         }
-      } catch {
+      } catch (err) {
+        console.warn(`[AutoGram:TopicUI] Failed to load topics for chatId=${chatId}:`, err);
         if (isCurrent() && !cached) {
           setTopics([]);
           setIsForumChat(meta?.is_forum === true);
@@ -3288,6 +3292,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (t === topicFilterRef.current) return;
 
       const currentGen = ++topicGenRef.current;
+      console.info(`[AutoGram:TopicUI] Filter switch initiated: targetTopicId=${t}, peerId=${peerId}, gen=${currentGen}. Scheduling 300ms debounce...`);
       setTopicFilter(t);
       topicFilterRef.current = t;
       setError(null);
@@ -3333,7 +3338,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       // Reload media for selected topic with 300ms debounce to prevent FloodWait from rapid clicks
       topicDebounceTimerRef.current = window.setTimeout(() => {
         if (currentGen === topicGenRef.current && activePeerRef.current === peerId) {
+          console.info(`[AutoGram:TopicUI] Executing debounced topic refresh: topicId=${t}, peerId=${peerId}, gen=${currentGen}`);
           void refreshFiles();
+        } else {
+          console.info(`[AutoGram:TopicUI] Ignored stale debounced topic refresh: topicId=${t}, currentGen=${topicGenRef.current}, expectedGen=${currentGen}`);
         }
       }, 300);
     },

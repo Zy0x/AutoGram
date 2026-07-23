@@ -60,6 +60,7 @@ class MigrationForwarder:
             try:
                 val = int(tid)
                 if val > 0:
+                    print(f"[AutoGram:ForwarderTopic] Resolved destination topic reply_to: config_raw={tid}, resolved_topic_id={val}", file=sys.stderr)
                     return val
             except (ValueError, TypeError):
                 pass

@@ -340,6 +340,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
 
   const fetchTopics = async (chatId: string) => {
     const seq = ++topicsReqSeqRef.current;
+    console.info(`[AutoGram:JobEditor] Fetching topics for chat: chatId=${chatId}, seq=${seq}`);
     setIsLoadingDialogs(true);
     setTopics([]);
     setSelectedDialogId(chatId);
@@ -363,11 +364,16 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         apiHash: String(apiHash),
         chatId: Number(chatId),
       });
-      if (seq !== topicsReqSeqRef.current) return;
+      if (seq !== topicsReqSeqRef.current) {
+        console.info(`[AutoGram:JobEditor] Ignored stale topics RPC response: chatId=${chatId}, currentSeq=${topicsReqSeqRef.current}, expectedSeq=${seq}`);
+        return;
+      }
       if (gr?.ok && gr.data) {
+        const list = gr.data.topics || [];
+        console.info(`[AutoGram:JobEditor] Topics successfully loaded for chat: chatId=${chatId}, totalTopics=${list.length}, isForum=${!!gr.data.isForum}`);
         setIsForumGroup(!!gr.data.isForum);
         setTopics(
-          (gr.data.topics || []).map((t) => ({
+          list.map((t) => ({
             id: t.id,
             title: t.title,
             closed: t.closed,
@@ -379,7 +385,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       }
     } catch (err) {
       if (seq !== topicsReqSeqRef.current) return;
-      console.error(err);
+      console.error('[AutoGram:JobEditor] Error fetching topics:', err);
       alert(`Failed to fetch topics: ${err}`);
       setIsModalOpen(false);
     } finally {
