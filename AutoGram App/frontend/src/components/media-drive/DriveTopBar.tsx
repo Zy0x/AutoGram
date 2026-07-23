@@ -39,6 +39,7 @@ import type {
   DriveViewMode,
 } from '../../lib/driveTypes';
 import { MediaSelect } from './MediaSelect';
+import { copyTextWithFallback } from '../../lib/debugMode';
 import {
   DRIVE_GRID_ZOOM_LEVELS,
   DRIVE_SORT_OPTIONS,
@@ -106,6 +107,7 @@ type Props = {
   onAddTopic?: () => void;
   onDeleteTopic?: (topicId: number, title: string) => void;
   onRenameTopic?: (topicId: number, title: string) => void;
+  onCopyTopicId?: (topicId: number, topicPath: string) => void;
   topicsLoading?: boolean;
   /** Open Drive power tools (dup/rename/copy/filter/space) */
   onOpenTools?: () => void;
@@ -171,6 +173,7 @@ export function DriveTopBar({
   onAddTopic,
   onDeleteTopic,
   onRenameTopic,
+  onCopyTopicId,
   topicsLoading,
   onOpenTools,
   toolsActive,
@@ -798,8 +801,22 @@ export function DriveTopBar({
                 type="button"
                 role="menuitem"
                 onClick={() => {
+                  const { topicId } = topicContextMenu;
                   setTopicContextMenu(null);
-                  void navigator.clipboard.writeText(String(topicContextMenu.topicId));
+                  const parentSegments = (breadcrumbSegs || [])
+                    .filter((s) => s.kind !== 'topic')
+                    .map((s) => (s.id != null ? String(s.id) : null))
+                    .filter((s): s is string => Boolean(s));
+                  const topicPath =
+                    parentSegments.length > 0
+                      ? '/' + [...parentSegments, String(topicId)].join('/')
+                      : `/${topicId}`;
+
+                  void copyTextWithFallback(topicPath).then((ok) => {
+                    if (ok) {
+                      onCopyTopicId?.(topicId, topicPath);
+                    }
+                  });
                 }}
               >
                 <Copy size={14} />

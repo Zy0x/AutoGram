@@ -876,15 +876,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   }, [creds]);
 
   const breadcrumbSegs = useMemo((): DriveCrumbSeg[] => {
-    const topicTitle =
+    const activeTopic =
       isForumChat && topicFilter != null
-        ? topics.find((x) => x.id === topicFilter)?.title || null
+        ? topics.find((x) => x.id === topicFilter) || null
         : null;
     return buildDriveBreadcrumbSegments(folders, {
       locationKind,
       activePeerId,
       chats,
-      topicTitle,
+      topicTitle: activeTopic?.title || null,
+      topicId: activeTopic?.id ?? (topicFilter != null ? Number(topicFilter) : null),
     });
   }, [locationKind, activePeerId, folders, chats, isForumChat, topicFilter, topics]);
 
@@ -7199,6 +7200,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onAddTopic={handleCreateTopic}
             onDeleteTopic={handleDeleteTopic}
             onRenameTopic={handleRenameTopic}
+            onCopyTopicId={(_topicId, topicPath) => {
+              setStatusText(`ID Topik disalin: ${topicPath}`);
+            }}
             topicsLoading={topicsLoading}
             onOpenTools={() => {
               setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'copy');

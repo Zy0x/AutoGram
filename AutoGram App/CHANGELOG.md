@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.95 Format Path Direktori ID Topik (ID Path)
+
+### Perbaikan Utama Manajemen Topik Forum & Navigasi
+- **Penyalinan ID Topik Berformat Path Direktori (`DriveTopBar.tsx` & `chatSearch.ts`)**:
+  - Mengubah format penyalinan ID topik pada menu konteks topik agar menghasilkan path direktori berbasis ID (`id path`), seperti `/<chat_id>/<topic_id>` (contoh: `/-1001234567890/42`).
+  - Memperbarui `buildDriveBreadcrumbSegments` untuk mengasosiasikan `topicId` pada segmen breadcrumb topik, sehingga penyalinan ID media/file di dalam topik secara otomatis menyertakan hierarki ID topik lengkap (`/<chat_id>/<topic_id>/<file_id>`).
+  - Menambahkan feedback status bar visual saat ID topik berhasil disalin ke clipboard.
+
+
 ## v2.1.94 Perluasan Batas Pemindaian Pesan Topik (`scan_limit` 10.000 Pesan)
 
 ### Perbaikan Utama Pencarian Media Topik Forum
