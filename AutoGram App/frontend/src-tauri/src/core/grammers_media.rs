@@ -517,8 +517,8 @@ async fn download_media_thumb(
         let mode = quality.to_lowercase();
         let sharp = mode.contains("jelas") || mode.contains("sharp");
         let min_dim = if sharp { 400 } else { 240 };
-        // For seimbang and jelas modes, skip tiny static layer (< 240px / < 400px) so Tier 4 photo chunk or Tier 5 FFmpeg HD frame extraction can run
-        if !saver && max_dim > 0 && max_dim < min_dim {
+        // For jelas mode only, skip tiny static layer (< 400px) so Tier 4 photo chunk or Tier 5 FFmpeg HD frame extraction can run
+        if sharp && max_dim > 0 && max_dim < 400 {
             continue;
         }
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
@@ -584,9 +584,9 @@ async fn download_media_thumb(
         } else if is_video {
             let mode = quality.to_lowercase();
             let sharp = mode.contains("jelas") || mode.contains("sharp");
-            let max_sample = if sharp { 4096 * 1024 } else if saver { 1536 * 1024 } else { 2560 * 1024 };
+            let max_sample = if sharp { 1536 * 1024 } else if saver { 512 * 1024 } else { 1024 * 1024 };
             let mut sample_bytes = Vec::new();
-            // Download sample bytes (up to 4MB for high-res FFmpeg frame extraction)
+            // Download sample bytes (up to 1MB-1.5MB for fast FFmpeg frame extraction)
             let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 sample_bytes.extend_from_slice(&chunk);

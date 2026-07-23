@@ -213,8 +213,8 @@ if (typeof window !== 'undefined') {
 }
 
 function softFailMs(): number {
-  // Missing items should not hammer Telegram API repeatedly. Soft-fail for 15 seconds.
-  return 15_000;
+  // Soft-fail for 1.5s so missing/loading items can re-try gracefully without long delays.
+  return 1_500;
 }
 
 
