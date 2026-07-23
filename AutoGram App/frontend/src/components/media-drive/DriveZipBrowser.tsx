@@ -770,19 +770,21 @@ export function DriveZipBrowser({
                 <span title={preview.entry}>{entryLabel(preview.entry, cwd)}</span>
                 {preview.size != null && <span style={{ color: '#94a3b8' }}>({formatDriveBytes(preview.size)})</span>}
               </div>
-              <button
-                type="button"
-                className="drive-zip-btn-extract"
-                disabled={extracting === preview.entry}
-                onClick={() => void handleExtractSingle(preview.entry)}
-              >
-                {extracting === preview.entry ? (
-                  <Loader2 size={14} className="spin" />
-                ) : (
-                  <Download size={14} />
-                )}
-                Ekstrak File Ini
-              </button>
+              {selectedEntries.size === 0 && (
+                <button
+                  type="button"
+                  className="drive-zip-btn-extract"
+                  disabled={extracting === preview.entry}
+                  onClick={() => void handleExtractSingle(preview.entry)}
+                >
+                  {extracting === preview.entry ? (
+                    <Loader2 size={14} className="spin" />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                  Ekstrak File Ini
+                </button>
+              )}
             </div>
           )}
           {preview?.kind === 'text' && preview.text != null && (
