@@ -15,6 +15,7 @@ allow = [
     "stream_unregister",
     "zip_list_local",
     "zip_preview_entry",
+    "zip_extract_entry",
     "file_sha256",
     "file_quick_fingerprint",
     "compute_progress_rate",
