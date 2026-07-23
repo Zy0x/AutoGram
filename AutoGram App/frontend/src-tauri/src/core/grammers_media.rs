@@ -529,11 +529,9 @@ async fn download_media_thumb(
         }
     }
 
-    // Tier 4: Fallback for photos (download first chunk)
+    // Tier 4: Fallback for photos (download full photo payload up to 2MB)
     if let Media::Photo(p) = media {
-        let mode = quality.to_lowercase();
-        let sharp = mode.contains("jelas") || mode.contains("sharp");
-        let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
+        let max_bytes = 2048 * 1024;
         let mut out = Vec::new();
         let mut iter = client.iter_download(p).chunk_size(256 * 1024);
         while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
@@ -567,9 +565,13 @@ async fn download_media_thumb(
             || name.ends_with(".bmp");
 
         if is_image {
-            let mode = quality.to_lowercase();
-            let sharp = mode.contains("jelas") || mode.contains("sharp");
-            let max_bytes = if sharp { 512 * 1024 } else if saver { 64 * 1024 } else { 256 * 1024 };
+            let doc_size = d.size().unwrap_or(0) as usize;
+            // Download full image file for documents up to 8MB so JPEG/PNG payload is complete and valid
+            let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
+                doc_size
+            } else {
+                2048 * 1024
+            };
             let mut out = Vec::new();
             let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {

@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.87 Perbaikan Decoding Thumbnail Foto/Gambar Document (>256KB)
+
+### Perbaikan Utama Visual Media & Grid
+- **Pencegahan Berkas Gambar Terpotong (*Truncated JPEG/PNG*)**:
+  - Mengoreksi logika unduh *fallback* media gambar pada berkas foto dokumen tanpa thumbnail statis Telegram.
+  - Sebelumnya, batas unduh dipotong paksa pada `256KB` (mode Seimbang), menyebabkan berkas foto berukuran >256KB (seperti `29-6.jpg` 344.9KB) terpotong sebelum penanda *End-Of-Image* (`0xFF 0xD9`).
+  - Pemotongan tersebut memicu error decoding gambar di browser (`onError`) yang menyebabkan kartu media berubah menjadi kartu kosong hitam.
+  - Kini, backend mengunduh data gambar utuh hingga ukuran berkas sebenarnya (sampai 8MB), menjamin struktur JPEG/PNG 100% valid dan dapat dirender dengan sempurna di grid.
+
 ## v2.1.86 Perbaikan Pemuatan Thumbnail Video MP4 Non-Faststart & Large Media
 
 ### Perbaikan Utama Visual Media & Grid
