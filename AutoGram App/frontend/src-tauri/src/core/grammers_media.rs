@@ -549,35 +549,79 @@ async fn download_media_thumb(
     if let Media::Document(d) = media {
         let mime = d.mime_type().unwrap_or("").to_lowercase();
         let name = d.name().unwrap_or("").to_lowercase();
-        let is_video = mime.starts_with("video/")
+        let mut is_video = mime.starts_with("video/")
             || name.ends_with(".mp4")
             || name.ends_with(".mov")
             || name.ends_with(".mkv")
             || name.ends_with(".webm")
             || name.ends_with(".avi")
             || name.ends_with(".m4v")
-            || name.ends_with(".3gp");
-        let is_image = mime.starts_with("image/")
+            || name.ends_with(".3gp")
+            || name.ends_with(".ts")
+            || name.ends_with(".flv")
+            || name.ends_with(".wmv")
+            || name.ends_with(".m2ts")
+            || name.ends_with(".vob")
+            || name.ends_with(".ogv")
+            || name.ends_with(".3g2")
+            || name.ends_with(".f4v");
+
+        let mut is_image = mime.starts_with("image/")
             || name.ends_with(".jpg")
             || name.ends_with(".jpeg")
             || name.ends_with(".png")
             || name.ends_with(".webp")
-            || name.ends_with(".bmp");
+            || name.ends_with(".bmp")
+            || name.ends_with(".gif")
+            || name.ends_with(".heic")
+            || name.ends_with(".heif")
+            || name.ends_with(".avif")
+            || name.ends_with(".tif")
+            || name.ends_with(".tiff")
+            || name.ends_with(".ico")
+            || name.ends_with(".jfif");
+
+        let mut first_chunk: Option<Vec<u8>> = None;
+        if !is_image && !is_video && (mime.is_empty() || mime.contains("octet-stream") || mime.contains("download") || !name.contains('.')) {
+            let mut iter = client.iter_download(d).chunk_size(64 * 1024);
+            if let Ok(Some(chunk)) = iter.next().await {
+                if chunk.len() >= 4 {
+                    // Image magic bytes: JPEG (0xFF 0xD8 0xFF), PNG (\x89PNG), WebP (RIFF...WEBP), GIF (GIF8), BMP (BM)
+                    if (chunk[0] == 0xff && chunk[1] == 0xd8 && chunk[2] == 0xff)
+                        || (chunk.starts_with(b"\x89PNG"))
+                        || (chunk.starts_with(b"RIFF") && chunk.len() >= 12 && &chunk[8..12] == b"WEBP")
+                        || (chunk.starts_with(b"GIF8"))
+                        || (chunk.starts_with(b"BM"))
+                    {
+                        is_image = true;
+                    }
+                    // Video magic bytes: MP4/MOV (ftyp/moov/mdat at offset 4), MKV/WebM (0x1A 0x45 0xDF 0xA3), AVI (RIFF...AVI )
+                    else if (chunk.len() >= 8 && (&chunk[4..8] == b"ftyp" || &chunk[4..8] == b"moov" || &chunk[4..8] == b"mdat"))
+                        || (chunk.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]))
+                        || (chunk.starts_with(b"RIFF") && chunk.len() >= 12 && &chunk[8..12] == b"AVI ")
+                    {
+                        is_video = true;
+                    }
+                    first_chunk = Some(chunk);
+                }
+            }
+        }
 
         if is_image {
             let doc_size = d.size().unwrap_or(0) as usize;
-            // Download full image file for documents up to 8MB so JPEG/PNG payload is complete and valid
             let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
                 doc_size
             } else {
                 2048 * 1024
             };
-            let mut out = Vec::new();
-            let mut iter = client.iter_download(d).chunk_size(256 * 1024);
-            while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
-                out.extend_from_slice(&chunk);
-                if out.len() >= max_bytes {
-                    break;
+            let mut out = first_chunk.unwrap_or_default();
+            if out.len() < max_bytes {
+                let mut iter = client.iter_download(d).chunk_size(256 * 1024).skip_chunks((out.len() / (256 * 1024)) as i32);
+                while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                    out.extend_from_slice(&chunk);
+                    if out.len() >= max_bytes {
+                        break;
+                    }
                 }
             }
             if !out.is_empty() {
@@ -587,7 +631,7 @@ async fn download_media_thumb(
             let mode = quality.to_lowercase();
             let sharp = mode.contains("jelas") || mode.contains("sharp");
             let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
-            let mut sample_bytes = Vec::new();
+            let mut sample_bytes = first_chunk.unwrap_or_default();
             let ext_hint = if name.ends_with(".webm") {
                 "webm"
             } else if name.ends_with(".mkv") {
@@ -606,12 +650,13 @@ async fn download_media_thumb(
                 "mp4"
             };
 
-            // Download sample bytes (up to 2MB for fast FFmpeg keyframe extraction)
-            let mut iter = client.iter_download(d).chunk_size(256 * 1024);
-            while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
-                sample_bytes.extend_from_slice(&chunk);
-                if sample_bytes.len() >= max_sample {
-                    break;
+            if sample_bytes.len() < max_sample {
+                let mut iter = client.iter_download(d).chunk_size(256 * 1024).skip_chunks((sample_bytes.len() / (256 * 1024)) as i32);
+                while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
+                    sample_bytes.extend_from_slice(&chunk);
+                    if sample_bytes.len() >= max_sample {
+                        break;
+                    }
                 }
             }
             if !sample_bytes.is_empty() {

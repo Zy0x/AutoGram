@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.89 Autodeteksi Magic-Bytes Media & Eliminasi Error 'No Valid Thumb'
+
+### Perbaikan Utama Visual Media & Grid
+- **Autodeteksi Header Berkas (*Magic-Bytes Detection*)**:
+  - Mengoreksi penanganan media dokumen di backend (`grammers_media.rs`).
+  - Sebelumnya, berkas foto atau video yang diunggah ke Telegram dengan MIME jenis `application/octet-stream` atau tanpa ekstensi file resmi (seperti `photo_42607`) diabaikan oleh filter ekstensi, memicu log error `no valid thumb found`.
+  - Kini, jika ekstensi atau MIME type tidak eksplisit, backend secara otomatis membaca 64KB chunk pertama untuk memeriksa penanda biner (*magic bytes*): JPEG (`0xFF 0xD8 0xFF`), PNG (`\x89PNG`), WebP (`RIFF...WEBP`), GIF (`GIF8`), MP4/MOV (`ftyp`/`moov`), MKV/WebM (`0x1A 0x45 0xDF 0xA3`), dan AVI.
+  - Jika cocok dengan penanda gambar/video, media langsung diklasifikasikan dengan benar dan thumbnail HD-nya berhasil dibuat tanpa error.
+
 ## v2.1.88 Perbaikan Auto-Retry & State Lockout Thumbnail Kartu Grid
 
 ### Perbaikan Utama Visual Media & Grid
