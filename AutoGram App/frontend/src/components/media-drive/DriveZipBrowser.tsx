@@ -354,33 +354,7 @@ export function DriveZipBrowser({
     }
   };
 
-  const handleExtractSingle = async (entryName: string) => {
-    setExtracting(entryName);
-    setToastMsg(null);
-    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
-    try {
-      const { save } = await import('@tauri-apps/plugin-dialog');
-      const basename = entryName.split('/').pop() || entryName;
-      const targetPath = await save({ defaultPath: basename });
-      if (!targetPath) return;
 
-      const res = await driveZipExtractEntry(
-        creds,
-        messageId,
-        folderId,
-        entryName,
-        targetPath,
-        passToUse
-      );
-      if (res?.status === 'success') {
-        setToastMsg(`Berhasil mengestrak ${basename} (${formatDriveBytes(res.bytesWritten)})`);
-      }
-    } catch (e: any) {
-      setError(`Gagal mengestrak file: ${String(e?.message || e)}`);
-    } finally {
-      setExtracting(null);
-    }
-  };
 
   const handleBatchExtract = async () => {
     if (selectedEntries.size === 0) return;
@@ -763,30 +737,7 @@ export function DriveZipBrowser({
               </span>
             </div>
           )}
-          {preview && preview.kind !== 'encrypted' && (
-            <div className="drive-zip-extract-bar">
-              <div className="drive-zip-extract-info">
-                <File size={16} style={{ color: '#ffae00' }} />
-                <span title={preview.entry}>{entryLabel(preview.entry, cwd)}</span>
-                {preview.size != null && <span style={{ color: '#94a3b8' }}>({formatDriveBytes(preview.size)})</span>}
-              </div>
-              {selectedEntries.size === 0 && (
-                <button
-                  type="button"
-                  className="drive-zip-btn-extract"
-                  disabled={extracting === preview.entry}
-                  onClick={() => void handleExtractSingle(preview.entry)}
-                >
-                  {extracting === preview.entry ? (
-                    <Loader2 size={14} className="spin" />
-                  ) : (
-                    <Download size={14} />
-                  )}
-                  Ekstrak File Ini
-                </button>
-              )}
-            </div>
-          )}
+
           {preview?.kind === 'text' && preview.text != null && (
             <DriveZipCodeViewer text={preview.text} name={preview.entry} />
           )}
