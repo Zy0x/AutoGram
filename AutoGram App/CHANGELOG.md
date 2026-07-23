@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.88 Perbaikan Auto-Retry & State Lockout Thumbnail Kartu Grid
+
+### Perbaikan Utama Visual Media & Grid
+- **Auto-Retry Pemuatan Thumbnail Kartu Grid**:
+  - Mengoreksi penanganan *soft-fail* (`getCachedThumb`) dan siklus hidup pemintaan thumbnail pada kartu media (`DriveFileCard.tsx`).
+  - Sebelumnya, jika permintaan awal thumbnail mengembalikan status sementara `null` (misalnya karena antrean RPC padat saat awal memuat folder), kartu media mengunci status pada tampilan kosong dan tidak pernah meminta ulang (*retry*) setelah masa pending berakhir.
+  - Saat pengguna membuka dan menutup modal pratinjau (*preview*), modal secara paksa mengisi memori cache dan memicu event refresh, yang menyebabkan gambar thumbnail baru muncul secara tiba-tiba.
+  - Kini, kartu grid akan mendeteksi status *soft-fail* sementara dan secara otomatis menjadwalkan permintaan ulang (*auto-retry*) dalam 1.5 detik jika kartu masih tampak di layar, sehingga thumbnail langsung terisi otomatis tanpa perlu membuka pratinjau.
+
 ## v2.1.87 Perbaikan Decoding Thumbnail Foto/Gambar Document (>256KB)
 
 ### Perbaikan Utama Visual Media & Grid

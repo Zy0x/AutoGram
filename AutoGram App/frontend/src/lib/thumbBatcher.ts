@@ -345,10 +345,6 @@ export function requestVisibleThumbs(
 export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {
   const k = cacheKey(folderId, messageId, activeQuality);
   if (memCache.has(k)) return memCache.get(k)!;
-  const failAt = softFailAt.get(k);
-  if (failAt != null && Date.now() - failAt < softFailMs()) return null;
-  const errAt = errorFailAt.get(k);
-  if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) return null;
   return undefined;
 }
 

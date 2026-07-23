@@ -249,7 +249,7 @@ function DriveFileCardInner({
     if (!creds || !canThumb || !visible) return;
     const controller = new AbortController();
     const hit = getCachedThumb(folderId, file.id);
-    if (hit !== undefined && hit !== null) {
+    if (hit) {
       setThumb(hit);
       setThumbLoading(false);
       return;
@@ -272,8 +272,30 @@ function DriveFileCardInner({
         if (url) {
           setThumb(url);
           setImgError(false);
+          setThumbLoading(false);
+        } else {
+          setThumbLoading(false);
+          // Auto-retry once after soft-fail cooldown (1.5s) if card remains visible and has no thumb
+          retryTimer = window.setTimeout(() => {
+            if (!cancelled && visible && creds) {
+              const freshHit = getCachedThumb(folderId, file.id);
+              if (freshHit) {
+                setThumb(freshHit);
+                setImgError(false);
+              } else {
+                void requestThumb(creds, folderId, file.id, {
+                  priority: 'visible',
+                  bypassCache: true,
+                }).then((retryUrl) => {
+                  if (!cancelled && retryUrl) {
+                    setThumb(retryUrl);
+                    setImgError(false);
+                  }
+                });
+              }
+            }
+          }, 1500);
         }
-        setThumbLoading(false);
       })
       .catch(() => {
         if (cancelled) return;

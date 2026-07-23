@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.87
+AutoGram Version: v2.1.88
 
 Current State:
-Perbaikan pemuatan thumbnail gambar yang gagal decode pada berkas foto >256KB (misal 29-6.jpg 344KB) akibat pembatasan chunk terpotong. Kini berkas gambar diunduh utuh hingga 8MB untuk menjamin validitas header JPEG/PNG.
+Perbaikan auto-retry pemuatan thumbnail pada kartu grid yang sempat mengalami soft-fail/pending RPC. Mengeliminasi masalah kartu media terkunci kosong sebelum modal pratinjau dibuka/ditutup.
 
 Previous:
+v2.1.87 Perbaikan pemuatan thumbnail gambar yang gagal decode pada berkas foto >256KB (misal 29-6.jpg 344KB) akibat pembatasan chunk terpotong. Kini berkas gambar diunduh utuh hingga 8MB untuk menjamin validitas header JPEG/PNG.
 v2.1.86 Perbaikan pemuatan thumbnail video MP4 non-faststart (Snaptik/TikTok & berkas video besar >5MB) melalui rekonstruksi struktur faststart MP4 (moov-before-mdat) untuk ekstraksi frame FFmpeg serta fallback mini-thumbnail (Tier 6).
 v2.1.85 Eliminasi disconnect/reconnect storm saat FloodWait Telegram (menghapus FloodWait dari transport error), penyesuaian concurrency thumbnail (2 parallel downloads), dan fail-fast active flood window pada preview stream.
 v2.1.84 Eliminasi self-imposed false FloodWait lockouts & optimalisasi kecepatan media.
