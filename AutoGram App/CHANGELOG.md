@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.3 Pelimpahan Ekstraksi ZIP ke Engine Transfer Manager Pusat
+
+### Penyelarasan Arsitektur Transfer Engine (`DriveZipBrowser.tsx` & `SpeedTest.tsx`)
+- **Pelimpahan Tugas Unggah ke Engine Pusat (`runUploadPaths`)**:
+  - `DriveZipBrowser` mengestrak biner ZIP ke direktori temporary lokal, kemudian melempar (*enqueue*) tugas pengunggahan tersebut secara penuh ke Engine Transfer Manager Pusat.
+- **Penerapan 100% Kebijakan Transfer Manager**:
+  - **Pencegahan Duplikat (`duplicate_policy: 'SKIP'`)**: Engine pusat secara otomatis memeriksa keberadaan berkas di destinasi dan men-skip pengunggahan byte jika berkas sudah ada.
+  - **Smart Rate Controller & Concurrency Limit**: Mengelola *FloodWaitError* Telegram dan jumlah thread bersamaan secara terpusat.
+  - **Kontrol Interaktif & Pembersihan Diska**: Menerapkan fungsi Pause/Resume/Cancel di Transfer Manager dan secara otomatis membersihkan berkas temporary dari diska setelah tugas selesai.
+
 ## v2.2.2 Penggabungan Destinasi Terpadu & Badge Visual Gabungan
 
 ### Penyempurnaan Destinasi Ekstraksi ZIP (`DriveZipBrowser.tsx`)

@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.2
+AutoGram Version: v2.2.3
 
 Current State:
-v2.2.2 Penggabungan entitas terpadu destinasi ekstraksi ZIP (Drive/Folder + Channel/Grup/Bot/Chat), eliminasi entri static 'Gudang Utama', serta penyelarasan badge visual gabungan dan istilah resmi AutoGram.
+v2.2.3 Pelimpahan arsitektur pengunggahan ekstraksi ZIP ke Engine Transfer Manager pusat (runUploadPaths). Otomatis menerapkan seluruh kebijakan transfer (duplicate_policy: SKIP, concurrency, Smart Rate Controller, pause/stop) dan melakukan pembersihan diska temporary lokal.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
