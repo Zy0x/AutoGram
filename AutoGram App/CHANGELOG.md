@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.99 Dukungan Tautan & WebPage Preview (`Media::WebPage` & Link Cards)
+
+### Perbaikan Utama Konversi Media Telegram
+- **Penanganan WebPage Preview & Link Text (`grammers_ops.rs`)**:
+  - Mengatasi celah di mana pesan Telegram berjenis `Media::WebPage` dan pesan teks berisikan tautan diabaikan (`_ => None`) oleh fungsi `media_to_row`.
+  - Topik Telegram berisikan link (seperti topik "Link" ID 246) kini dikonversi secara presisi menjadi kartu media berformat `.url` (`icon_type: "link"`, `mime_type: "text/html"`).
+  - Mengesahkan 100% dari 13 pesan dan tautan web pada topik `246` dapat ditampilkan secara utuh pada antarmuka AutoGram UI.
+
 ## v2.1.98 Alignment Presisi 1:1 Knob Slider & Teks Label Ukuran Cache
 
 ### Perbaikan Visual & Layout UI Pengaturan

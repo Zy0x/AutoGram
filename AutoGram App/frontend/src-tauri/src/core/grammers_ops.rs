@@ -1013,156 +1013,212 @@ pub struct ListMediaResult {
 
 fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
     use grammers_client::media::Media;
-    let media = msg.media()?;
     let id = msg.id() as i64;
     let created = Some(msg.date().to_rfc3339());
     let caption = msg.text().trim();
-    // Size before match: Media::size borrows self; pattern binds move Photo/Document.
-    let size = media.size().unwrap_or(0) as u64;
-    // Telegram-style: embed mini-thumb now so UI never waits on thumbs_batch for first paint.
-    let thumb_data_url = super::grammers_media::stripped_thumb_data_url(&media);
-    let has_thumb = thumb_data_url.is_some()
-        || match &media {
-            Media::Photo(_) => true,
-            Media::Document(d) => {
-                let mime = d.mime_type().unwrap_or("").to_lowercase();
-                let name = d.name().unwrap_or("").to_lowercase();
-                let is_video = mime.starts_with("video/")
-                    || name.ends_with(".mp4")
-                    || name.ends_with(".mov")
-                    || name.ends_with(".mkv")
-                    || name.ends_with(".webm")
-                    || name.ends_with(".avi")
-                    || name.ends_with(".m4v")
-                    || name.ends_with(".3gp");
-                !d.thumbs().is_empty() || is_video
-            }
-            Media::Sticker(s) => !s.document.thumbs().is_empty(),
-            _ => false,
-        };
-    match media {
-        Media::Photo(_p) => {
-            let name = if !caption.is_empty() {
-                format!("{caption}.jpg")
-            } else {
-                format!("photo_{id}.jpg")
+    let maybe_media = msg.media();
+
+    if let Some(media) = maybe_media {
+        let size = media.size().unwrap_or(0) as u64;
+        let thumb_data_url = super::grammers_media::stripped_thumb_data_url(&media);
+        let has_thumb = thumb_data_url.is_some()
+            || match &media {
+                Media::Photo(_) => true,
+                Media::Document(d) => {
+                    let mime = d.mime_type().unwrap_or("").to_lowercase();
+                    let name = d.name().unwrap_or("").to_lowercase();
+                    let is_video = mime.starts_with("video/")
+                        || name.ends_with(".mp4")
+                        || name.ends_with(".mov")
+                        || name.ends_with(".mkv")
+                        || name.ends_with(".webm")
+                        || name.ends_with(".avi")
+                        || name.ends_with(".m4v")
+                        || name.ends_with(".3gp");
+                    !d.thumbs().is_empty() || is_video
+                }
+                Media::Sticker(s) => !s.document.thumbs().is_empty(),
+                _ => false,
             };
-            Some(MediaFileRow {
+        match media {
+            Media::Photo(_p) => {
+                let name = if !caption.is_empty() {
+                    format!("{caption}.jpg")
+                } else {
+                    format!("photo_{id}.jpg")
+                };
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name,
+                    size,
+                    mime_type: Some("image/jpeg".into()),
+                    icon_type: "image".into(),
+                    created_at: created,
+                    has_thumb,
+                    as_document: false,
+                    backend: BACKEND.into(),
+                    thumb_data_url,
+                })
+            }
+            Media::Document(doc) => {
+                let n = doc
+                    .name()
+                    .map(|s| s.to_string())
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| {
+                        if !caption.is_empty() {
+                            Some(caption.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| format!("file_{id}"));
+                let mime = doc.mime_type().map(|s| s.to_string());
+                let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
+                let name_l = n.to_ascii_lowercase();
+
+                let is_video_file = mime_l.starts_with("video/")
+                    || name_l.ends_with(".mp4")
+                    || name_l.ends_with(".mov")
+                    || name_l.ends_with(".mkv")
+                    || name_l.ends_with(".webm")
+                    || name_l.ends_with(".avi")
+                    || name_l.ends_with(".m4v")
+                    || name_l.ends_with(".3gp")
+                    || name_l.ends_with(".flv")
+                    || name_l.ends_with(".wmv")
+                    || name_l.ends_with(".ts")
+                    || name_l.ends_with(".m2ts")
+                    || name_l.ends_with(".vob")
+                    || name_l.ends_with(".ogv");
+
+                let is_image_file = mime_l.starts_with("image/")
+                    || name_l.ends_with(".jpg")
+                    || name_l.ends_with(".jpeg")
+                    || name_l.ends_with(".png")
+                    || name_l.ends_with(".webp")
+                    || name_l.ends_with(".gif")
+                    || name_l.ends_with(".bmp")
+                    || name_l.ends_with(".tiff");
+
+                let is_audio_file = mime_l.starts_with("audio/")
+                    || name_l.ends_with(".mp3")
+                    || name_l.ends_with(".wav")
+                    || name_l.ends_with(".flac")
+                    || name_l.ends_with(".m4a")
+                    || name_l.ends_with(".aac")
+                    || name_l.ends_with(".ogg")
+                    || name_l.ends_with(".opus");
+
+                let icon = if is_video_file {
+                    "video"
+                } else if is_audio_file {
+                    "audio"
+                } else if is_image_file {
+                    "image"
+                } else {
+                    "document"
+                };
+
+                let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
+                    if is_video_file {
+                        Some("video/mp4".to_string())
+                    } else if is_image_file {
+                        Some("image/jpeg".to_string())
+                    } else if is_audio_file {
+                        Some("audio/mpeg".to_string())
+                    } else {
+                        mime
+                    }
+                } else {
+                    mime
+                };
+
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name: n,
+                    size,
+                    mime_type: final_mime,
+                    icon_type: icon.into(),
+                    created_at: created,
+                    has_thumb: has_thumb || is_video_file,
+                    as_document: true,
+                    backend: BACKEND.into(),
+                    thumb_data_url,
+                })
+            }
+            Media::Sticker(_) => Some(MediaFileRow {
                 id,
                 folder_id,
-                name,
+                name: format!("sticker_{id}.webp"),
                 size,
-                mime_type: Some("image/jpeg".into()),
+                mime_type: Some("image/webp".into()),
                 icon_type: "image".into(),
                 created_at: created,
                 has_thumb,
-                as_document: false,
-                backend: BACKEND.into(),
-                thumb_data_url,
-            })
-        }
-        Media::Document(doc) => {
-            let n = doc
-                .name()
-                .map(|s| s.to_string())
-                .filter(|s| !s.is_empty())
-                .or_else(|| {
-                    if !caption.is_empty() {
-                        Some(caption.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or_else(|| format!("file_{id}"));
-            let mime = doc.mime_type().map(|s| s.to_string());
-            let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
-            let name_l = n.to_ascii_lowercase();
-
-            let is_video_file = mime_l.starts_with("video/")
-                || name_l.ends_with(".mp4")
-                || name_l.ends_with(".mov")
-                || name_l.ends_with(".mkv")
-                || name_l.ends_with(".webm")
-                || name_l.ends_with(".avi")
-                || name_l.ends_with(".m4v")
-                || name_l.ends_with(".3gp")
-                || name_l.ends_with(".flv")
-                || name_l.ends_with(".wmv")
-                || name_l.ends_with(".ts")
-                || name_l.ends_with(".m2ts")
-                || name_l.ends_with(".vob")
-                || name_l.ends_with(".ogv");
-
-            let is_image_file = mime_l.starts_with("image/")
-                || name_l.ends_with(".jpg")
-                || name_l.ends_with(".jpeg")
-                || name_l.ends_with(".png")
-                || name_l.ends_with(".webp")
-                || name_l.ends_with(".gif")
-                || name_l.ends_with(".bmp")
-                || name_l.ends_with(".tiff");
-
-            let is_audio_file = mime_l.starts_with("audio/")
-                || name_l.ends_with(".mp3")
-                || name_l.ends_with(".wav")
-                || name_l.ends_with(".flac")
-                || name_l.ends_with(".m4a")
-                || name_l.ends_with(".aac")
-                || name_l.ends_with(".ogg")
-                || name_l.ends_with(".opus");
-
-            let icon = if is_video_file {
-                "video"
-            } else if is_audio_file {
-                "audio"
-            } else if is_image_file {
-                "image"
-            } else {
-                "document"
-            };
-
-            let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
-                if is_video_file {
-                    Some("video/mp4".to_string())
-                } else if is_image_file {
-                    Some("image/jpeg".to_string())
-                } else if is_audio_file {
-                    Some("audio/mpeg".to_string())
-                } else {
-                    mime
-                }
-            } else {
-                mime
-            };
-
-            Some(MediaFileRow {
-                id,
-                folder_id,
-                name: n,
-                size,
-                mime_type: final_mime,
-                icon_type: icon.into(),
-                created_at: created,
-                has_thumb: has_thumb || is_video_file,
                 as_document: true,
                 backend: BACKEND.into(),
                 thumb_data_url,
-            })
+            }),
+            Media::WebPage(_) => {
+                let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+                let clean_title = caption.lines().next().unwrap_or(caption).trim();
+                let display_name = if !clean_title.is_empty() {
+                    if clean_title.chars().count() > 50 {
+                        format!("{}...", clean_title.chars().take(47).collect::<String>())
+                    } else {
+                        clean_title.to_string()
+                    }
+                } else {
+                    format!("link_{id}")
+                };
+                let file_name = if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") };
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name: file_name,
+                    size: caption.len() as u64,
+                    mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
+                    icon_type: if is_link { "link".into() } else { "document".into() },
+                    created_at: created,
+                    has_thumb: false,
+                    as_document: false,
+                    backend: BACKEND.into(),
+                    thumb_data_url: None,
+                })
+            }
+            _ => None,
         }
-        Media::Sticker(_) => Some(MediaFileRow {
+    } else if !caption.is_empty() {
+        let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+        let clean_title = caption.lines().next().unwrap_or(caption).trim();
+        let display_name = if clean_title.chars().count() > 50 {
+            format!("{}...", clean_title.chars().take(47).collect::<String>())
+        } else {
+            clean_title.to_string()
+        };
+        let file_name = if is_link {
+            if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") }
+        } else {
+            if display_name.ends_with(".txt") { display_name } else { format!("{display_name}.txt") }
+        };
+        Some(MediaFileRow {
             id,
             folder_id,
-            name: format!("sticker_{id}.webp"),
-            size,
-            mime_type: Some("image/webp".into()),
-            icon_type: "image".into(),
+            name: file_name,
+            size: caption.len() as u64,
+            mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
+            icon_type: if is_link { "link".into() } else { "document".into() },
             created_at: created,
-            has_thumb,
-            as_document: true,
+            has_thumb: false,
+            as_document: false,
             backend: BACKEND.into(),
-            thumb_data_url,
-        }),
-        _ => None,
+            thumb_data_url: None,
+        })
+    } else {
+        None
     }
 }
 

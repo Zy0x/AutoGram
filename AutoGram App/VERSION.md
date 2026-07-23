@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.98
+AutoGram Version: v2.1.99
 
 Current State:
-v2.1.98 Perbaikan presisi alignment tata letak Slider Pembatas Ukuran Cache pada halaman Pengaturan. Mengubah layout flexbox statis menjadi persentase positioning presisi 100% (`left: ${pct}%`, `translateX(-50%)`) sehingga posisi tombol knob slider (thumb) selaras 1:1 tepat di atas teks label ukuran (Bebas, 1 GB, 2 GB, 5 GB, 10 GB, 20 GB, 50 GB, 100 GB).
+v2.1.99 Penanganan berkas tautan dan pesan WebPage preview (`Media::WebPage` & Link Text) pada Grammers Rust Backend (`grammers_ops.rs`). Mengeliminasi bug kartu media kosong pada topik Telegram yang berisikan rujukan link (seperti topik "Link" ID 246 pada chat -1003214112048) sehingga seluruh 13 pesan dan tautan web di-render sempurna sebagai kartu media `.url`.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
