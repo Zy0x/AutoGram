@@ -1,14 +1,16 @@
 /**
- * Advanced & Elegant ZIP browser (Google Drive style).
- * Interactive search, category filters, code viewer with line numbers, and single-file native extraction.
+ * Unified, Full-Bleed & Spacious ZIP Workbench (Google Drive style).
+ * Interactive search, category filters, line-numbered code viewer, and single-file native extraction.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   Check,
+  ChevronLeft,
   ChevronRight,
   Code,
   Download,
+  ExternalLink,
   File,
   FileText,
   Film,
@@ -38,6 +40,13 @@ type Props = {
   messageId: number;
   folderId: number | null;
   archiveName?: string;
+  onClose?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  onDownloadZip?: () => void;
+  onOpenSystem?: () => void;
 };
 
 type Category = 'all' | 'image' | 'doc' | 'media';
@@ -152,7 +161,19 @@ function DriveZipCodeViewer({ text, name }: { text: string; name: string }) {
   );
 }
 
-export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Props) {
+export function DriveZipBrowser({
+  creds,
+  messageId,
+  folderId,
+  archiveName,
+  onClose,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+  onDownloadZip,
+  onOpenSystem,
+}: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [entries, setEntries] = useState<ZipEntry[]>([]);
@@ -346,14 +367,69 @@ export function DriveZipBrowser({ creds, messageId, folderId, archiveName }: Pro
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          className="td-icon-btn"
-          title="Muat ulang daftar"
-          onClick={() => void loadList()}
-        >
-          <RefreshCw size={16} />
-        </button>
+
+        <div className="drive-zip-head-actions">
+          {(onPrev || onNext) && (
+            <div className="drive-zip-head-group">
+              <button
+                type="button"
+                className="td-icon-btn"
+                disabled={!hasPrev}
+                onClick={onPrev}
+                title="File sebelumnya (Panah Kiri)"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                className="td-icon-btn"
+                disabled={!hasNext}
+                onClick={onNext}
+                title="File selanjutnya (Panah Kanan)"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            className="td-icon-btn"
+            title="Muat ulang daftar"
+            onClick={() => void loadList()}
+          >
+            <RefreshCw size={16} />
+          </button>
+          {onOpenSystem && (
+            <button
+              type="button"
+              className="td-icon-btn"
+              title="Buka di aplikasi sistem Windows"
+              onClick={onOpenSystem}
+            >
+              <ExternalLink size={16} />
+            </button>
+          )}
+          {onDownloadZip && (
+            <button
+              type="button"
+              className="td-icon-btn"
+              title="Download seluruh arsip ZIP"
+              onClick={onDownloadZip}
+            >
+              <Download size={16} />
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              className="td-icon-btn drive-zip-close-btn"
+              title="Tutup (Esc)"
+              onClick={onClose}
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="drive-zip-toolbar">

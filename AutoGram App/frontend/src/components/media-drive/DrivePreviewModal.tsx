@@ -2213,7 +2213,9 @@ export function DrivePreviewModal({
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="drive-preview-header">
+        {!isZip && (
+          <>
+            <header className="drive-preview-header">
           {/* Row A: title + close — title never shares width with icon cluster */}
           <div className="drive-preview-title">
             <strong title={displayName}>{displayName}</strong>
@@ -2648,6 +2650,8 @@ export function DrivePreviewModal({
             </div>
           </div>
         </div>
+          </>
+        )}
 
         {/* Fixed menus portaled to body — escape overlay stacking; never clipped */}
         {typeof document !== 'undefined' &&
@@ -3561,14 +3565,21 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {/* Lightweight ZIP browser (list-only + single-entry extract) */}
+          {/* Unified, Full-Bleed ZIP Workbench */}
           {isZip && creds && (
-            <div className="drive-preview-doc drive-preview-zip">
+            <div className="drive-preview-doc drive-preview-zip" style={{ height: '100%', minHeight: 0, padding: 0 }}>
               <DriveZipBrowser
                 creds={creds}
                 messageId={file.id}
                 folderId={folderId}
                 archiveName={displayName}
+                onClose={onClose}
+                onPrev={hasPrev ? () => onPrev?.() : undefined}
+                onNext={hasNext ? () => onNext?.() : undefined}
+                hasPrev={hasPrev}
+                hasNext={hasNext}
+                onDownloadZip={handleDownload}
+                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
               />
             </div>
           )}

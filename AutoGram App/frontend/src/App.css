@@ -12089,3 +12089,22 @@ video.drive-zip-img {
   gap: 8px;
   flex-shrink: 0;
 }
+
+.drive-zip-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drive-zip-head-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px;
+}
+.drive-zip-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+}
