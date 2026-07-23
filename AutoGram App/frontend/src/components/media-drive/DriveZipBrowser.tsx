@@ -1001,14 +1001,32 @@ export function DriveZipBrowser({
               <p title={preview.entry} style={{ marginTop: 12 }}>{entryLabel(preview.entry, cwd)}</p>
             </div>
           )}
-          {(preview?.kind === 'binary' || preview?.kind === 'meta') && (
+          {preview && /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(preview.entry) ? (
+            <div className="drive-zip-preview-empty">
+              <Archive size={40} style={{ color: '#ffae00' }} />
+              <p title={preview.entry} style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>
+                {entryLabel(preview.entry, cwd)}
+              </p>
+              <span className="drive-chip" style={{ background: 'rgba(255, 174, 0, 0.18)', color: '#ffae00', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
+                Arsip Terkompresi Bertingkat (ZIP dalam ZIP)
+              </span>
+              {preview.size != null && (
+                <span style={{ color: '#94a3b8', fontSize: '0.82rem', marginTop: 4 }}>
+                  Ukuran: {formatDriveBytes(preview.size)}
+                </span>
+              )}
+              <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: 360, textAlign: 'center', marginTop: 8 }}>
+                Arsip terkompresi ini berada di dalam file ZIP utama. Anda dapat mengekstraksinya langsung ke Lokal / Drive atau menjelajahinya.
+              </p>
+            </div>
+          ) : (preview?.kind === 'binary' || preview?.kind === 'meta') ? (
             <div className="drive-zip-preview-empty">
               <File size={36} style={{ color: '#94a3b8' }} />
               <p title={preview.entry} style={{ fontWeight: 600, color: '#f8fafc' }}>{entryLabel(preview.entry, cwd)}</p>
               {preview.size != null && <span style={{ color: '#ffae00', fontWeight: 600 }}>{formatDriveBytes(preview.size)}</span>}
               <span className="drive-zip-hint">{preview.message || preview.mime || 'Binary'}</span>
             </div>
-          )}
+          ) : null}
           {preview?.kind === 'encrypted' && (
             <div className="drive-zip-preview-empty">
               <Lock size={36} style={{ color: '#ef4444' }} />
