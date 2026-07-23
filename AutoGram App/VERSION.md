@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.0
+AutoGram Version: v2.2.1
 
 Current State:
-v2.2.0 Alur kerja komprehensif ekstraksi arsip ZIP ke Drives & Telegram. Pemetaan penuh seluruh destinasi akun (Gudang Utama Drive, Hierarki Folder Drive, Pesan Tersimpan, Channel, Grup, Bot, dan Topik Forum) dengan ekstraksi temp lokal, pengunggahan native Grammers, pembersihan diska temp, serta penyegaran real-time grid Media Drive.
+v2.2.1 Integrasi penuh Transfer Manager IDM-style panel saat ekstraksi & pengunggahan ZIP. Membuka dan menampilkan progres item demi item (Queued -> Mengekstrak -> Mengunggah -> Selesai) secara real-time dengan pemantauan ukuran berkas, status, dan estimasi waktu.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

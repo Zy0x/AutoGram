@@ -70,6 +70,7 @@ import {
   type DriveFile,
   type DriveFolder,
   type DriveChat,
+  type TransferSession,
 } from '../../lib/driveTypes';
 import { DriveZipBrowser } from './DriveZipBrowser';
 import {
@@ -96,6 +97,8 @@ type Props = {
   folders?: DriveFolder[];
   chats?: DriveChat[];
   onRefreshDrive?: () => void;
+  onOpenTransferManager?: () => void;
+  onUpdateTransferSession?: (session: TransferSession | ((prev: TransferSession) => TransferSession)) => void;
 };
 
 type PlayQuality = {
@@ -339,6 +342,8 @@ export function DrivePreviewModal({
   folders,
   chats,
   onRefreshDrive,
+  onOpenTransferManager,
+  onUpdateTransferSession,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -3591,6 +3596,8 @@ export function DrivePreviewModal({
                 folders={folders}
                 chats={chats}
                 onRefreshDrive={onRefreshDrive}
+                onOpenTransferManager={onOpenTransferManager}
+                onUpdateTransferSession={onUpdateTransferSession}
               />
             </div>
           )}

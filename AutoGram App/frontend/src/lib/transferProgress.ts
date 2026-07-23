@@ -78,7 +78,7 @@ function ensureItem(
   return next;
 }
 
-function recomputeOverall(session: TransferSession): TransferSession {
+export function recomputeOverall(session: TransferSession): TransferSession {
   const items = session.items;
   const n = items.length;
   let transferred = session.transferred;

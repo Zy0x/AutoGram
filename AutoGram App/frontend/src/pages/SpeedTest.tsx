@@ -7600,6 +7600,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             void refreshFiles();
             void refreshLocations();
           }}
+          onOpenTransferManager={openTransferManager}
+          onUpdateTransferSession={setTransfer}
           onClose={() => setPreviewFile(null)}
           hasPrev={previewIndex > 0}
           hasNext={previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1}

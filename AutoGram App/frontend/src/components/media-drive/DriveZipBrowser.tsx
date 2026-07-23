@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry } from '../../lib/driveApi';
-import { formatDriveBytes, type DriveFolder, type DriveChat } from '../../lib/driveTypes';
+import { formatDriveBytes, type DriveFolder, type DriveChat, type TransferSession } from '../../lib/driveTypes';
 import {
   tgUploadFile,
   tgScanFolders,
@@ -50,6 +50,11 @@ import {
   tgListTopics,
   type TgTopicRow,
 } from '../../lib/telegramBackend';
+import {
+  seedTransferSession,
+  markTransferFinished,
+  recomputeOverall,
+} from '../../lib/transferProgress';
 
 export type TargetDestination = {
   kind: 'drive' | 'saved' | 'chat';
@@ -82,6 +87,8 @@ type Props = {
   folders?: DriveFolder[];
   chats?: DriveChat[];
   onRefreshDrive?: () => void;
+  onOpenTransferManager?: () => void;
+  onUpdateTransferSession?: (session: TransferSession | ((prev: TransferSession) => TransferSession)) => void;
 };
 
 type Category = 'all' | 'image' | 'doc' | 'media';
@@ -236,6 +243,8 @@ export function DriveZipBrowser({
   folders: driveFolders,
   chats: driveChats,
   onRefreshDrive,
+  onOpenTransferManager,
+  onUpdateTransferSession,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -541,6 +550,16 @@ export function DriveZipBrowser({
     setToastMsg(null);
     const passToUse = password || rememberedPasswordsMap.get(archiveKey);
 
+    // Open & seed Transfer Manager panel
+    onOpenTransferManager?.();
+    let currentSession = seedTransferSession({
+      direction: 'upload',
+      names: entryNames.map((e) => e.split('/').pop() || e),
+      label: `Ekstrak ZIP ke ${target.label}`,
+      destination: target.label,
+    });
+    onUpdateTransferSession?.(currentSession);
+
     try {
       const { tempDir } = await import('@tauri-apps/api/path');
       const dir = await tempDir().catch(() => '');
@@ -558,6 +577,15 @@ export function DriveZipBrowser({
 
         setToastMsg(`Mengekstrak ${i + 1}/${entryNames.length}: ${basename}…`);
 
+        // Mark item preparing in Transfer Manager
+        currentSession = recomputeOverall({
+          ...currentSession,
+          items: currentSession.items.map((item, idx) =>
+            idx === i ? { ...item, status: 'preparing' as const, percent: 15 } : item
+          ),
+        });
+        onUpdateTransferSession?.(currentSession);
+
         const res = await driveZipExtractEntry(
           creds,
           messageId,
@@ -568,7 +596,19 @@ export function DriveZipBrowser({
         );
 
         if (res?.status === 'success') {
+          const fileSize = res.bytesWritten || 0;
           setToastMsg(`Mengunggah ${i + 1}/${entryNames.length}: ${basename} ke ${target.label}…`);
+
+          // Mark item active in Transfer Manager
+          currentSession = recomputeOverall({
+            ...currentSession,
+            items: currentSession.items.map((item, idx) =>
+              idx === i
+                ? { ...item, status: 'active' as const, percent: 50, total: fileSize, transferred: Math.floor(fileSize * 0.5) }
+                : item
+            ),
+          });
+          onUpdateTransferSession?.(currentSession);
 
           let caption = '';
           if (target.kind === 'drive' && target.folderId != null) {
@@ -588,10 +628,24 @@ export function DriveZipBrowser({
 
           if (upRes?.ok) {
             successCount++;
-            totalBytes += res.bytesWritten;
+            totalBytes += fileSize;
+            currentSession = recomputeOverall({
+              ...currentSession,
+              items: currentSession.items.map((item, idx) =>
+                idx === i ? { ...item, status: 'done' as const, percent: 100, total: fileSize, transferred: fileSize } : item
+              ),
+            });
+            onUpdateTransferSession?.(currentSession);
           } else {
             const errText = upRes?.userMessage || upRes?.error?.message || 'Gagal mengunggah ke Telegram';
             console.warn(`[DriveZipBrowser] Upload entry ${basename} fail:`, errText);
+            currentSession = recomputeOverall({
+              ...currentSession,
+              items: currentSession.items.map((item, idx) =>
+                idx === i ? { ...item, status: 'failed' as const, error: errText } : item
+              ),
+            });
+            onUpdateTransferSession?.(currentSession);
           }
 
           try {
@@ -600,8 +654,19 @@ export function DriveZipBrowser({
           } catch {
             /* ignore clean up errors */
           }
+        } else {
+          currentSession = recomputeOverall({
+            ...currentSession,
+            items: currentSession.items.map((item, idx) =>
+              idx === i ? { ...item, status: 'failed' as const, error: 'Ekstraksi ZIP gagal' } : item
+            ),
+          });
+          onUpdateTransferSession?.(currentSession);
         }
       }
+
+      currentSession = markTransferFinished(currentSession, successCount > 0 ? 'done' : 'failed');
+      onUpdateTransferSession?.(currentSession);
 
       setToastMsg(
         `Berhasil mengekstrak & mengunggah ${successCount}/${entryNames.length} berkas (${formatDriveBytes(
@@ -612,6 +677,8 @@ export function DriveZipBrowser({
       onRefreshDrive?.();
     } catch (e: any) {
       setError(`Gagal mengekstrak & mengunggah: ${String(e?.message || e)}`);
+      currentSession = markTransferFinished(currentSession, 'failed');
+      onUpdateTransferSession?.(currentSession);
     } finally {
       setExtracting(null);
     }

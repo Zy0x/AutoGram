@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.1 Integrasi Visual Transfer Manager saat Ekstraksi Arsip ZIP
+
+### Pemantauan Transfer Real-Time (`DriveZipBrowser.tsx`)
+- **Pembukaan Otomatis Transfer Manager Panel**:
+  - Saat pengguna mengonfirmasi ekstraksi dan pengunggahan berkas dari arsip ZIP, panel melayang Transfer Manager IDM-style langsung terbuka secara otomatis di layar.
+- **Visualisasi Progres Item demi Item**:
+  - Setiap berkas dalam arsip ZIP yang diekstrak & diunggah dicatat sebagai entri item aktif dalam antrean Transfer Manager dengan transisi status real-time (`Queued` -> `Mengekstrak` -> `Mengunggah` -> `Selesai`).
+- **Pemantauan Ukuran Berkas & Kecepatan**:
+  - Memperhitungkan total byte berkas yang diekstrak dan kecepatan transfer sehingga pengguna dapat memantau estimasi waktu (ETA) dan status keberhasilan secara transparan.
+
 ## v2.2.0 Alur Kerja Komprehensif Ekstraksi Arsip ZIP ke Drives & Telegram
 
 ### Fitur & Pemetaan Destinasi Ekstraksi Media Drive (`DriveZipBrowser.tsx`)
