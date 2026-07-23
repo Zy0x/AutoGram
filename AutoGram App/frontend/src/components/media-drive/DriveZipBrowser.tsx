@@ -2,7 +2,7 @@
  * Unified, Full-Bleed & Spacious ZIP Workbench (Google Drive style).
  * Interactive search, category filters, multi-select batch extraction, session password cache, and code viewer.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
   Check,
@@ -16,15 +16,20 @@ import {
   FileText,
   Film,
   Folder,
+  Gauge,
   Home,
   Image as ImageIcon,
   Loader2,
   Lock,
   Music,
   RefreshCw,
+  Repeat,
+  RotateCw,
   Search,
   SquareCheck,
   SquareMinus,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
@@ -231,6 +236,29 @@ export function DriveZipBrowser({
   } | null>(null);
   const [password, setPassword] = useState('');
   const [rememberPass, setRememberPass] = useState(true);
+
+  // Video playback & transform state
+  const [rate, setRate] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [loop, setLoop] = useState(true);
+  const [rotate, setRotate] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const toggleRate = () => {
+    const RATES = [1, 1.25, 1.5, 2, 0.5];
+    const idx = RATES.indexOf(rate);
+    const nextRate = RATES[(idx + 1) % RATES.length];
+    setRate(nextRate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = nextRate;
+    }
+  };
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+    }
+  }, [rate, preview]);
 
   const archiveKey = useMemo(() => `${messageId}:${archiveName || 'zip'}`, [messageId, archiveName]);
 
@@ -613,34 +641,78 @@ export function DriveZipBrowser({
         </nav>
       )}
 
-      {files.length > 0 && (
+      {(files.length > 0 || preview?.kind === 'video') && (
         <div className="drive-zip-batch-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              className="drive-zip-batch-btn"
-              onClick={selectedEntries.size === files.length ? clearSelection : selectAllFiles}
-            >
-              {selectedEntries.size === files.length ? <SquareMinus size={13} /> : <SquareCheck size={13} />}
-              {selectedEntries.size === files.length ? 'Batal Pilih' : 'Pilih Semua'}
-            </button>
-            {selectedEntries.size > 0 && (
-              <span style={{ fontSize: '0.75rem', color: '#ffae00', fontWeight: 600 }}>
-                {selectedEntries.size} terpilih
-              </span>
+            {files.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="drive-zip-batch-btn"
+                  onClick={selectedEntries.size === files.length ? clearSelection : selectAllFiles}
+                >
+                  {selectedEntries.size === files.length ? <SquareMinus size={13} /> : <SquareCheck size={13} />}
+                  {selectedEntries.size === files.length ? 'Batal Pilih' : 'Pilih Semua'}
+                </button>
+                {selectedEntries.size > 0 && (
+                  <span style={{ fontSize: '0.75rem', color: '#ffae00', fontWeight: 600 }}>
+                    {selectedEntries.size} terpilih
+                  </span>
+                )}
+              </>
             )}
           </div>
-          {selectedEntries.size > 0 && (
-            <button
-              type="button"
-              className="drive-zip-btn-extract"
-              disabled={extracting === 'batch'}
-              onClick={() => void handleBatchExtract()}
-            >
-              {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
-              Ekstrak ({selectedEntries.size}) Terpilih
-            </button>
-          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {preview?.kind === 'video' && (
+              <div className="drive-zip-media-tools">
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${rate !== 1 ? ' active' : ''}`}
+                  title={`Kecepatan Putar: ${rate}x (klik untuk ubah)`}
+                  onClick={toggleRate}
+                >
+                  <Gauge size={13} /> {rate}x
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${muted ? ' active' : ''}`}
+                  title={muted ? 'Nyalakan Suara' : 'Bisukan Suara'}
+                  onClick={() => setMuted((v) => !v)}
+                >
+                  {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${loop ? ' active' : ''}`}
+                  title={loop ? 'Loop Aktif (klik untuk matikan)' : 'Matikan Loop'}
+                  onClick={() => setLoop((v) => !v)}
+                >
+                  <Repeat size={13} />
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${rotate ? ' active' : ''}`}
+                  title="Putar Video 90° Kanan"
+                  onClick={() => setRotate((r) => (r + 90) % 360)}
+                >
+                  <RotateCw size={13} />
+                </button>
+              </div>
+            )}
+
+            {selectedEntries.size > 0 && (
+              <button
+                type="button"
+                className="drive-zip-btn-extract"
+                disabled={extracting === 'batch'}
+                onClick={() => void handleBatchExtract()}
+              >
+                {extracting === 'batch' ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                Ekstrak ({selectedEntries.size}) Terpilih
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -748,7 +820,18 @@ export function DriveZipBrowser({
           )}
           {preview?.kind === 'video' && preview.dataUrl && (
             <div className="drive-zip-media-container">
-              <video src={preview.dataUrl} controls autoPlay className="drive-zip-img" />
+              <video
+                ref={videoRef}
+                src={preview.dataUrl}
+                controls
+                autoPlay
+                loop={loop}
+                muted={muted}
+                className="drive-zip-img"
+                style={{
+                  transform: rotate ? `rotate(${rotate}deg)` : undefined,
+                }}
+              />
             </div>
           )}
           {preview?.kind === 'audio' && preview.dataUrl && (

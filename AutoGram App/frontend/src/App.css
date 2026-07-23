@@ -12181,3 +12181,37 @@ video.drive-zip-img {
   background: rgba(255, 255, 255, 0.12);
   color: #f8fafc;
 }
+
+/* Inline Video Media Tools */
+.drive-zip-media-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+.drive-zip-tool-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.drive-zip-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+.drive-zip-tool-btn.active {
+  background: rgba(255, 174, 0, 0.2);
+  color: #ffae00;
+  border: 1px solid rgba(255, 174, 0, 0.35);
+}
