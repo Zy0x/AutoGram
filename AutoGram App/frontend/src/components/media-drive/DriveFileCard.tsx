@@ -164,6 +164,15 @@ function DriveFileCardInner({
     }
   }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
 
+  // Safety Timeout: Prevent permanent stuck spinner when thumb request returns null or is evicted
+  useEffect(() => {
+    if (!thumbLoading) return;
+    const timer = setTimeout(() => {
+      setThumbLoading(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [thumbLoading]);
+
   // Streaming / late fills: thumb may arrive after the initial request resolved null,
   // or a sharper frame may replace a stripped placeholder.
   useEffect(() => {
@@ -534,7 +543,7 @@ function DriveFileCardInner({
 }
 
 export const DriveFileCard = memo(DriveFileCardInner, (prev, next) => {
-  // Skip re-render when only parent identity objects churn during scroll.
+  // Skip re-render when only parent inline function handlers churn during scroll.
   return (
     prev.file.id === next.file.id &&
     prev.file.size === next.file.size &&
@@ -546,17 +555,6 @@ export const DriveFileCard = memo(DriveFileCardInner, (prev, next) => {
     prev.visible === next.visible &&
     prev.folderId === next.folderId &&
     prev.thumbQuality === next.thumbQuality &&
-    prev.creds?.session === next.creds?.session &&
-    prev.onClick === next.onClick &&
-    prev.onDoubleClick === next.onDoubleClick &&
-    prev.onContextMenu === next.onContextMenu &&
-    prev.onToggleSelection === next.onToggleSelection &&
-    prev.onPreview === next.onPreview &&
-    prev.onDownload === next.onDownload &&
-    prev.onDelete === next.onDelete &&
-    prev.onDragStartFile === next.onDragStartFile &&
-    prev.onDragEndFile === next.onDragEndFile &&
-    prev.onMediaDragPrime === next.onMediaDragPrime &&
-    prev.onWarmPreview === next.onWarmPreview
+    prev.creds?.session === next.creds?.session
   );
 });

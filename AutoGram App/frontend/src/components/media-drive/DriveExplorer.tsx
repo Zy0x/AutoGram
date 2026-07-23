@@ -18,7 +18,7 @@ import {
   type DriveAdvFilter,
 } from '../../lib/drivePower';
 import { getDrivePerfProfile } from '../../lib/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, requestVisibleThumbs } from '../../lib/thumbBatcher';
+import { isThumbsPaused, prefetchThumbs, requestVisibleThumbs, setThumbsPaused } from '../../lib/thumbBatcher';
 import { warmPreviewHead } from '../../lib/previewCache';
 import {
   applyLiveMarquee,
@@ -425,8 +425,19 @@ export function DriveExplorer({
     gridItems,
     listItems,
     perf.prefetchNextPage,
-    perf.tier,
   ]);
+
+  // Pause thumbnail batching while fetching next page to prevent network RPC collision & FloodWait
+  useEffect(() => {
+    if (loadingMore) {
+      setThumbsPaused(true);
+    } else {
+      const timer = setTimeout(() => {
+        setThumbsPaused(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingMore]);
 
   const effectiveSelected = liveSelected ?? selectedIds;
   const selectedSet = useMemo(() => new Set(effectiveSelected), [effectiveSelected]);
