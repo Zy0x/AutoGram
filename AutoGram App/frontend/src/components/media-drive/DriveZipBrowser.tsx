@@ -299,6 +299,147 @@ export function DriveZipBrowser({
     [driveChats, fetchedChats]
   );
 
+  const unifiedDestinations = useMemo(() => {
+    type DestItem = {
+      key: string;
+      id: string;
+      numericId: number | null;
+      name: string;
+      folderId?: number | null;
+      parentId?: number | null;
+      isSavedMessages: boolean;
+      isDriveFolder: boolean;
+      isChannel: boolean;
+      isGroup: boolean;
+      isForum: boolean;
+      isBot: boolean;
+      isUser: boolean;
+      badges: Array<{ label: string; bg: string; color: string }>;
+      IconComp: any;
+    };
+
+    const map = new Map<string, DestItem>();
+
+    // 1. Pesan Tersimpan (Saved Messages)
+    map.set('me', {
+      key: 'me',
+      id: 'me',
+      numericId: null,
+      name: 'Pesan Tersimpan (Saved Messages)',
+      isSavedMessages: true,
+      isDriveFolder: false,
+      isChannel: false,
+      isGroup: false,
+      isForum: false,
+      isBot: false,
+      isUser: false,
+      badges: [{ label: 'Pesan Tersimpan', bg: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }],
+      IconComp: MessageSquare,
+    });
+
+    // 2. Drive Folders (effectiveFolders)
+    for (const f of effectiveFolders) {
+      const key = String(f.id);
+      const isDrive = !f.parent_id || f.is_orphan;
+      const folderBadgeLabel = isDrive ? 'Drive' : 'Folder';
+      const folderBadgeBg = isDrive ? 'rgba(59, 130, 246, 0.2)' : 'rgba(168, 85, 247, 0.2)';
+      const folderBadgeColor = isDrive ? '#60a5fa' : '#c084fc';
+
+      map.set(key, {
+        key,
+        id: key,
+        numericId: f.id,
+        name: f.name || `Folder #${f.id}`,
+        folderId: f.id,
+        parentId: f.parent_id,
+        isSavedMessages: false,
+        isDriveFolder: true,
+        isChannel: false,
+        isGroup: false,
+        isForum: false,
+        isBot: false,
+        isUser: false,
+        badges: [{ label: folderBadgeLabel, bg: folderBadgeBg, color: folderBadgeColor }],
+        IconComp: Folder,
+      });
+    }
+
+    // 3. Telegram Dialogs (effectiveChats)
+    for (const c of effectiveChats as any[]) {
+      if (!c || c.id == null) continue;
+      const key = String(c.id);
+      if (key === 'me' || key === '777000' || c.username === 'telegram') continue;
+
+      const cName = c.name || c.title || `Chat #${c.id}`;
+      const isChan = c.type === 'channel' || !!c.isChannel;
+      const isGrp = c.type === 'group' || !!c.isGroup;
+      const isBt = c.type === 'bot' || !!c.isBot;
+      const isFrm = !!(c.is_forum || c.isForum);
+      const isUsr = c.type === 'user' || !!c.isUser;
+
+      let chatBadgeLabel = 'Chat';
+      let chatBadgeBg = 'rgba(59, 130, 246, 0.2)';
+      let chatBadgeColor = '#60a5fa';
+      let ItemIcon = MessageSquare;
+
+      if (isChan) {
+        chatBadgeLabel = 'Channel';
+        chatBadgeBg = 'rgba(168, 85, 247, 0.2)';
+        chatBadgeColor = '#c084fc';
+        ItemIcon = Megaphone;
+      } else if (isGrp) {
+        chatBadgeLabel = isFrm ? 'Grup (Forum)' : 'Grup';
+        chatBadgeBg = 'rgba(34, 197, 94, 0.2)';
+        chatBadgeColor = '#4ade80';
+        ItemIcon = isFrm ? Hash : Users;
+      } else if (isBt) {
+        chatBadgeLabel = 'Bot';
+        chatBadgeBg = 'rgba(239, 68, 68, 0.2)';
+        chatBadgeColor = '#f87171';
+        ItemIcon = Bot;
+      } else if (isUsr) {
+        chatBadgeLabel = 'Chat';
+        chatBadgeBg = 'rgba(59, 130, 246, 0.2)';
+        chatBadgeColor = '#60a5fa';
+        ItemIcon = Users;
+      }
+
+      const existing = map.get(key);
+      if (existing) {
+        // MERGE: Update flags and add combined badge!
+        existing.isChannel = isChan;
+        existing.isGroup = isGrp;
+        existing.isForum = isFrm;
+        existing.isBot = isBt;
+        existing.isUser = isUsr;
+        if (!existing.badges.some((b) => b.label === chatBadgeLabel)) {
+          existing.badges.push({ label: chatBadgeLabel, bg: chatBadgeBg, color: chatBadgeColor });
+        }
+        if (isFrm) {
+          existing.IconComp = Hash;
+        }
+      } else {
+        map.set(key, {
+          key,
+          id: key,
+          numericId: typeof c.id === 'number' ? c.id : Number(c.id) || null,
+          name: cName,
+          isSavedMessages: false,
+          isDriveFolder: false,
+          isChannel: isChan,
+          isGroup: isGrp,
+          isForum: isFrm,
+          isBot: isBt,
+          isUser: isUsr,
+          badges: [{ label: chatBadgeLabel, bg: chatBadgeBg, color: chatBadgeColor }],
+          IconComp: ItemIcon,
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [effectiveFolders, effectiveChats]);
+
   useEffect(() => {
     if (!destPickerModal) return;
     let cancelled = false;
@@ -1308,169 +1449,72 @@ export function DriveZipBrowser({
                 </div>
               )}
 
-              {/* 1. Gudang Utama Drive (Root) */}
-              {(!destQuery || 'gudang utama drive root'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
-                    setDestPickerModal(null);
-                    void executeExtractAndUpload(entryList, {
-                      kind: 'drive',
-                      chatId: 'me',
-                      folderId: null,
-                      label: 'Gudang Utama Drive',
-                    });
-                  }}
-                >
-                  <span className="td-dest-ico"><Home size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Gudang Utama Drive (Root)</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>Drive</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Tingkat utama AutoGram Media Drive</span>
-                  </div>
-                </button>
-              )}
-
-              {/* 2. Folders Tree / Media Drive Folders */}
-              {effectiveFolders.map((f) => {
-                const fName = f.name || `Folder #${f.id}`;
-                const matches = !destQuery || fName.toLowerCase().includes(destQuery.toLowerCase());
-                if (!matches) return null;
-                return (
-                  <button
-                    key={`folder-${f.id}`}
-                    type="button"
-                    className="td-dest-item"
-                    style={{ paddingLeft: f.parent_id ? '24px' : '12px' }}
-                    onClick={() => {
-                      const action = destPickerModal;
-                      const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
-                      setDestPickerModal(null);
-                      void executeExtractAndUpload(entryList, {
-                        kind: 'drive',
-                        chatId: 'me',
-                        folderId: f.id,
-                        label: `Folder ${fName}`,
-                      });
-                    }}
-                  >
-                    <span className="td-dest-ico"><Folder size={16} style={{ color: '#a855f7' }} /></span>
-                    <div style={{ textAlign: 'left', flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <strong>{fName}</strong>
-                        <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>Folder</span>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
-                        Folder Drive #{f.id} {f.parent_id ? `(Induk: #${f.parent_id})` : ''}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* 3. Pesan Tersimpan (Saved Messages) */}
-              {(!destQuery || 'pesan tersimpan saved messages'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
-                    setDestPickerModal(null);
-                    void executeExtractAndUpload(entryList, {
-                      kind: 'saved',
-                      chatId: 'me',
-                      label: 'Pesan Tersimpan (Saved Messages)',
-                    });
-                  }}
-                >
-                  <span className="td-dest-ico"><MessageSquare size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Pesan Tersimpan (Saved Messages)</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>Chat</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Chat Pribadi Telegram Anda</span>
-                  </div>
-                </button>
-              )}
-
-              {/* 4. Telegram Chats / Dialogs (Channels, Groups, Bots, Users) */}
-              {effectiveChats.map((c: any) => {
-                const cTitle = c.name || c.title || `Chat #${c.id}`;
-                const isChannel = c.type === 'channel' || !!c.isChannel;
-                const isGroup = c.type === 'group' || !!c.isGroup;
-                const isBot = c.type === 'bot' || !!c.isBot;
-                const isForum = !!(c.is_forum || c.isForum);
-                const matches = !destQuery || cTitle.toLowerCase().includes(destQuery.toLowerCase());
+              {/* Unified Destination List (Merged Items with Combined Badges & No Duplicates) */}
+              {unifiedDestinations.map((item) => {
+                const matches = !destQuery || item.name.toLowerCase().includes(destQuery.toLowerCase());
                 if (!matches) return null;
 
-                let chipLabel = 'Chat';
-                let chipBg = 'rgba(59, 130, 246, 0.2)';
-                let chipColor = '#60a5fa';
-                let Icon = MessageSquare;
-
-                if (isChannel) {
-                  chipLabel = 'Channel';
-                  chipBg = 'rgba(168, 85, 247, 0.2)';
-                  chipColor = '#c084fc';
-                  Icon = Megaphone;
-                } else if (isGroup) {
-                  chipLabel = isForum ? 'Forum' : 'Grup';
-                  chipBg = 'rgba(34, 197, 94, 0.2)';
-                  chipColor = '#4ade80';
-                  Icon = isForum ? Hash : Users;
-                } else if (isBot) {
-                  chipLabel = 'Bot';
-                  chipBg = 'rgba(239, 68, 68, 0.2)';
-                  chipColor = '#f87171';
-                  Icon = Bot;
-                }
-
-                const topics = forumTopicsMap[c.id] || [];
-                const isExpanded = expandedForumChatId === c.id;
+                const topics = item.numericId != null ? forumTopicsMap[item.numericId] || [] : [];
+                const isExpanded = item.numericId != null && expandedForumChatId === item.numericId;
+                const IconComp = item.IconComp;
 
                 return (
-                  <div key={`chat-${c.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div key={`dest-${item.key}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <button
                       type="button"
                       className="td-dest-item"
+                      style={{ paddingLeft: item.parentId ? '24px' : '12px' }}
                       onClick={() => {
-                        if (isForum) {
-                          void loadTopicsForChat(c.id);
+                        if (item.isForum && item.numericId != null) {
+                          void loadTopicsForChat(item.numericId);
                           return;
                         }
                         const action = destPickerModal;
                         const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
                         setDestPickerModal(null);
+
+                        const primaryBadgeLabel = item.badges.map((b) => b.label).join(' · ');
                         void executeExtractAndUpload(entryList, {
-                          kind: 'chat',
-                          chatId: String(c.id),
-                          label: `${cTitle} (${chipLabel})`,
+                          kind: item.isSavedMessages ? 'saved' : item.isDriveFolder ? 'drive' : 'chat',
+                          chatId: item.isSavedMessages ? 'me' : String(item.numericId || item.id),
+                          folderId: item.folderId ?? null,
+                          label: `${item.name} (${primaryBadgeLabel})`,
                         });
                       }}
                     >
-                      <span className="td-dest-ico"><Icon size={16} /></span>
+                      <span className="td-dest-ico">
+                        <IconComp size={16} style={item.isDriveFolder ? { color: '#a855f7' } : undefined} />
+                      </span>
                       <div style={{ textAlign: 'left', flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <strong>{cTitle}</strong>
-                          <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: chipBg, color: chipColor }}>{chipLabel}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <strong>{item.name}</strong>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {item.badges.map((b, idx) => (
+                              <span
+                                key={`b-${idx}`}
+                                className="drive-chip"
+                                style={{ fontSize: '0.68rem', padding: '1px 6px', background: b.bg, color: b.color }}
+                              >
+                                {b.label}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
-                          ID: {c.id} {isForum ? '· Klik untuk pilih topik forum' : ''}
+                          {item.isSavedMessages
+                            ? 'Pesan Tersimpan Telegram Anda'
+                            : item.isDriveFolder
+                            ? `Folder Drive #${item.numericId} ${item.parentId ? `(Induk: #${item.parentId})` : ''}`
+                            : `Telegram Peer ID: ${item.id}`}
+                          {item.isForum ? ' · Klik untuk memilih Topik Forum' : ''}
                         </span>
                       </div>
                     </button>
 
                     {/* Forum Topics Sub-List */}
-                    {isForum && isExpanded && (
+                    {item.isForum && isExpanded && item.numericId != null && (
                       <div style={{ paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {loadingTopicsForChat === c.id && (
+                        {loadingTopicsForChat === item.numericId && (
                           <div style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '4px 8px' }}>
                             <Loader2 size={12} className="spin" style={{ display: 'inline', marginRight: 6 }} /> Memuat topik forum…
                           </div>
@@ -1485,8 +1529,9 @@ export function DriveZipBrowser({
                             setDestPickerModal(null);
                             void executeExtractAndUpload(entryList, {
                               kind: 'chat',
-                              chatId: String(c.id),
-                              label: `${cTitle} (Grup Utama Forum)`,
+                              chatId: String(item.numericId),
+                              folderId: item.folderId ?? null,
+                              label: `${item.name} (Grup Utama Forum)`,
                             });
                           }}
                         >
@@ -1495,7 +1540,7 @@ export function DriveZipBrowser({
                         </button>
                         {topics.map((t) => (
                           <button
-                            key={`topic-${c.id}-${t.id}`}
+                            key={`topic-${item.numericId}-${t.id}`}
                             type="button"
                             className="td-dest-item"
                             style={{ background: 'rgba(234, 179, 8, 0.08)' }}
@@ -1505,9 +1550,10 @@ export function DriveZipBrowser({
                               setDestPickerModal(null);
                               void executeExtractAndUpload(entryList, {
                                 kind: 'chat',
-                                chatId: String(c.id),
+                                chatId: String(item.numericId),
+                                folderId: item.folderId ?? null,
                                 topicId: t.id,
-                                label: `${cTitle} → Topik ${t.title}`,
+                                label: `${item.name} → Topik ${t.title}`,
                               });
                             }}
                           >

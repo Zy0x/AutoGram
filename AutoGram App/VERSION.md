@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.1
+AutoGram Version: v2.2.2
 
 Current State:
-v2.2.1 Integrasi penuh Transfer Manager IDM-style panel saat ekstraksi & pengunggahan ZIP. Membuka dan menampilkan progres item demi item (Queued -> Mengekstrak -> Mengunggah -> Selesai) secara real-time dengan pemantauan ukuran berkas, status, dan estimasi waktu.
+v2.2.2 Penggabungan entitas terpadu destinasi ekstraksi ZIP (Drive/Folder + Channel/Grup/Bot/Chat), eliminasi entri static 'Gudang Utama', serta penyelarasan badge visual gabungan dan istilah resmi AutoGram.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

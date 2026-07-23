@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.2.2 Penggabungan Destinasi Terpadu & Badge Visual Gabungan
+
+### Penyempurnaan Destinasi Ekstraksi ZIP (`DriveZipBrowser.tsx`)
+- **Penghapusan Entri Static 'Gudang Utama'**:
+  - Menghapus tombol independen *"Gudang Utama Drive (Root)"* untuk menyajikan daftar lokasi yang murni dan bersih.
+- **Penggabungan Entitas Lokasi Terpadu (`unifiedDestinations`)**:
+  - Menggabungkan data Folder/Drive Media Drive dan Telegram Dialogs (Channel, Grup, Bot, Chat) berdasarkan Telegram Peer ID.
+  - Setiap lokasi HANYA tampil **1 kali** dengan **Badge Gabungan** (seperti `[Drive]` `[Channel]` atau `[Folder]` `[Grup (Forum)]`).
+- **Penyelarasan Nomenklatur "Grup (Forum)"**:
+  - Mengubah penamaan label "Forum" menjadi **"Grup (Forum)"** dan label topik menjadi **"Topik Forum"** untuk kejelasan konteks produk Telegram.
+
 ## v2.2.1 Integrasi Visual Transfer Manager saat Ekstraksi Arsip ZIP
 
 ### Pemantauan Transfer Real-Time (`DriveZipBrowser.tsx`)
