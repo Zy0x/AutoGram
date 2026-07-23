@@ -2284,7 +2284,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         setLoadingFiles(false);
       }
     } else {
-      setFiles((prev) => (prev.length > 0 ? prev : []));
+      setFiles([]);
       setTotalFileCount(null);
       setTotalBytes(null);
     }
@@ -3262,6 +3262,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setTopicFilter(t);
       topicFilterRef.current = t;
       setError(null);
+      setSelectedIds([]);
+      selectionAnchorRef.current = null;
+      // Instantly clear thumbnail queue for previous topic scope
+      setThumbContext(creds, peerId, t);
       // Drop previous location totals immediately so all-media count
       // never sticks on a single topic while the new list loads.
       const cacheKey = `${peerId}_${t || ''}`;
