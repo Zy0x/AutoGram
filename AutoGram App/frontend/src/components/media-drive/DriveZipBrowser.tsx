@@ -16,12 +16,14 @@ import {
   FileText,
   Film,
   Folder,
+  FolderInput,
   Gauge,
   HardDrive,
   Home,
   Image as ImageIcon,
   Loader2,
   Lock,
+  MessageSquare,
   Music,
   RefreshCw,
   Repeat,
@@ -237,6 +239,10 @@ export function DriveZipBrowser({
   } | null>(null);
   const [password, setPassword] = useState('');
   const [rememberPass, setRememberPass] = useState(true);
+  const [destPickerModal, setDestPickerModal] = useState<{
+    action: 'single' | 'batch';
+    entryName?: string;
+  } | null>(null);
 
   // Video playback & transform state
   const [rate, setRate] = useState(1);
@@ -384,48 +390,61 @@ export function DriveZipBrowser({
   };
 
   const handleExtractSingle = async (entryName: string, targetMode: 'local' | 'drive' = 'local') => {
+    if (targetMode === 'drive') {
+      setDestPickerModal({ action: 'single', entryName });
+      return;
+    }
     setExtracting(entryName);
     setToastMsg(null);
     const passToUse = password || rememberedPasswordsMap.get(archiveKey);
     try {
       const basename = entryName.split('/').pop() || entryName;
-      if (targetMode === 'local') {
-        const { save } = await import('@tauri-apps/plugin-dialog');
-        const targetPath = await save({ defaultPath: basename });
-        if (!targetPath) return;
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const targetPath = await save({ defaultPath: basename });
+      if (!targetPath) return;
 
-        const res = await driveZipExtractEntry(
-          creds,
-          messageId,
-          folderId,
-          entryName,
-          targetPath,
-          passToUse
-        );
-        if (res?.status === 'success') {
-          setToastMsg(`Berhasil mengekstrak ${basename} ke Lokal (${formatDriveBytes(res.bytesWritten)})`);
-        }
-      } else {
-        const { tempDir } = await import('@tauri-apps/api/path');
-        const dir = await tempDir().catch(() => '');
-        const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-        const tempPath = dir
-          ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${cleanBase}`
-          : `ag_zip_upload_${Date.now()}_${cleanBase}`;
+      const res = await driveZipExtractEntry(
+        creds,
+        messageId,
+        folderId,
+        entryName,
+        targetPath,
+        passToUse
+      );
+      if (res?.status === 'success') {
+        setToastMsg(`Berhasil mengekstrak ${basename} ke Lokal (${formatDriveBytes(res.bytesWritten)})`);
+      }
+    } catch (e: any) {
+      setError(`Gagal mengekstrak berkas: ${String(e?.message || e)}`);
+    } finally {
+      setExtracting(null);
+    }
+  };
 
-        const folderLabel = folderId ? `Folder Drive #${folderId}` : 'Gudang Utama Drive';
-        setToastMsg(`Mengekstrak ${basename} ke ${folderLabel}…`);
-        const res = await driveZipExtractEntry(
-          creds,
-          messageId,
-          folderId,
-          entryName,
-          tempPath,
-          passToUse
-        );
-        if (res?.status === 'success') {
-          setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) ke ${folderLabel}!`);
-        }
+  const executeExtractToDrive = async (entryName: string, _targetFolder: number | string | null, targetLabel: string) => {
+    setExtracting(entryName);
+    setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+    try {
+      const basename = entryName.split('/').pop() || entryName;
+      const { tempDir } = await import('@tauri-apps/api/path');
+      const dir = await tempDir().catch(() => '');
+      const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const tempPath = dir
+        ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${cleanBase}`
+        : `ag_zip_upload_${Date.now()}_${cleanBase}`;
+
+      setToastMsg(`Mengekstrak ${basename} ke ${targetLabel}…`);
+      const res = await driveZipExtractEntry(
+        creds,
+        messageId,
+        folderId,
+        entryName,
+        tempPath,
+        passToUse
+      );
+      if (res?.status === 'success') {
+        setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) disiapkan ke ${targetLabel}!`);
       }
     } catch (e: any) {
       setError(`Gagal mengekstrak berkas: ${String(e?.message || e)}`);
@@ -436,74 +455,89 @@ export function DriveZipBrowser({
 
   const handleBatchExtract = async (targetMode: 'local' | 'drive' = 'local') => {
     if (selectedEntries.size === 0) return;
+    if (targetMode === 'drive') {
+      setDestPickerModal({ action: 'batch' });
+      return;
+    }
     const selectedList = [...selectedEntries];
     setExtracting('batch');
     setToastMsg(null);
     const passToUse = password || rememberedPasswordsMap.get(archiveKey);
     try {
-      if (targetMode === 'local') {
-        const { open } = await import('@tauri-apps/plugin-dialog');
-        const targetDir = await open({ directory: true, multiple: false });
-        if (!targetDir || typeof targetDir !== 'string') return;
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const targetDir = await open({ directory: true, multiple: false });
+      if (!targetDir || typeof targetDir !== 'string') return;
 
-        let extractedCount = 0;
-        let totalBytes = 0;
+      let extractedCount = 0;
+      let totalBytes = 0;
 
-        for (let i = 0; i < selectedList.length; i++) {
-          const entryName = selectedList[i];
-          const basename = entryName.split('/').pop() || entryName;
-          const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;
-          setToastMsg(`Mengekstrak berkas ${i + 1}/${selectedList.length}: ${basename}…`);
+      for (let i = 0; i < selectedList.length; i++) {
+        const entryName = selectedList[i];
+        const basename = entryName.split('/').pop() || entryName;
+        const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;
+        setToastMsg(`Mengekstrak berkas ${i + 1}/${selectedList.length}: ${basename}…`);
 
-          const res = await driveZipExtractEntry(
-            creds,
-            messageId,
-            folderId,
-            entryName,
-            destPath,
-            passToUse
-          );
-          if (res?.status === 'success') {
-            extractedCount++;
-            totalBytes += res.bytesWritten;
-          }
+        const res = await driveZipExtractEntry(
+          creds,
+          messageId,
+          folderId,
+          entryName,
+          destPath,
+          passToUse
+        );
+        if (res?.status === 'success') {
+          extractedCount++;
+          totalBytes += res.bytesWritten;
         }
-
-        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke Lokal (${targetDir})`);
-      } else {
-        const { tempDir } = await import('@tauri-apps/api/path');
-        const dir = await tempDir().catch(() => '');
-        const folderLabel = folderId ? `Folder Drive #${folderId}` : 'Gudang Utama Drive';
-
-        let extractedCount = 0;
-        let totalBytes = 0;
-
-        for (let i = 0; i < selectedList.length; i++) {
-          const entryName = selectedList[i];
-          const basename = entryName.split('/').pop() || entryName;
-          const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-          const destPath = dir
-            ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
-            : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
-
-          setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke ${folderLabel}…`);
-
-          const res = await driveZipExtractEntry(
-            creds,
-            messageId,
-            folderId,
-            entryName,
-            destPath,
-            passToUse
-          );
-          if (res?.status === 'success') {
-            extractedCount++;
-            totalBytes += res.bytesWritten;
-          }
-        }
-
-        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke ${folderLabel}!`);
       }
+
+      setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke Lokal (${targetDir})`);
+      setSelectedEntries(new Set());
+    } catch (e: any) {
+      setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
+    } finally {
+      setExtracting(null);
+    }
+  };
+
+  const executeBatchExtractToDrive = async (_targetFolder: number | string | null, targetLabel: string) => {
+    if (selectedEntries.size === 0) return;
+    const selectedList = [...selectedEntries];
+    setExtracting('batch');
+    setToastMsg(null);
+    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+    try {
+      const { tempDir } = await import('@tauri-apps/api/path');
+      const dir = await tempDir().catch(() => '');
+
+      let extractedCount = 0;
+      let totalBytes = 0;
+
+      for (let i = 0; i < selectedList.length; i++) {
+        const entryName = selectedList[i];
+        const basename = entryName.split('/').pop() || entryName;
+        const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+        const destPath = dir
+          ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
+          : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
+
+        setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke ${targetLabel}…`);
+
+        const res = await driveZipExtractEntry(
+          creds,
+          messageId,
+          folderId,
+          entryName,
+          destPath,
+          passToUse
+        );
+        if (res?.status === 'success') {
+          extractedCount++;
+          totalBytes += res.bytesWritten;
+        }
+      }
+
+      setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) disiapkan ke ${targetLabel}!`);
       setSelectedEntries(new Set());
     } catch (e: any) {
       setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
@@ -1010,6 +1044,104 @@ export function DriveZipBrowser({
           )}
         </div>
       </div>
+
+      {destPickerModal && (
+        <div className="td-confirm-overlay" role="presentation" onClick={() => setDestPickerModal(null)}>
+          <div
+            className="td-confirm-panel dest-picker"
+            role="dialog"
+            aria-modal="true"
+            style={{ maxWidth: '460px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="td-confirm-head">
+              <span className="td-confirm-icon move" aria-hidden>
+                <FolderInput size={20} />
+              </span>
+              <div className="td-confirm-head-text">
+                <h2>Pilih Destinasi Ekstraksi Drive / Telegram</h2>
+                <p>
+                  {destPickerModal.action === 'batch'
+                    ? `Pilih lokasi tujuan untuk ${selectedEntries.size} berkas terpilih.`
+                    : `Pilih lokasi tujuan ekstraksi untuk berkas ${destPickerModal.entryName?.split('/').pop() || ''}.`}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="td-confirm-close"
+                onClick={() => setDestPickerModal(null)}
+                aria-label="Tutup"
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="drive-zip-dest-options" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                className="td-dest-item"
+                onClick={() => {
+                  const action = destPickerModal;
+                  setDestPickerModal(null);
+                  if (action.action === 'single' && action.entryName) {
+                    void executeExtractToDrive(action.entryName, null, 'Gudang Utama Drive');
+                  } else if (action.action === 'batch') {
+                    void executeBatchExtractToDrive(null, 'Gudang Utama Drive');
+                  }
+                }}
+              >
+                <span className="td-dest-ico"><Home size={16} /></span>
+                <div style={{ textAlign: 'left' }}>
+                  <strong>Gudang Utama Drive (Root)</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Simpan di tingkat utama AutoGram Media Drive</span>
+                </div>
+              </button>
+
+              {folderId && (
+                <button
+                  type="button"
+                  className="td-dest-item"
+                  onClick={() => {
+                    const action = destPickerModal;
+                    setDestPickerModal(null);
+                    if (action.action === 'single' && action.entryName) {
+                      void executeExtractToDrive(action.entryName, folderId, `Folder Drive #${folderId}`);
+                    } else if (action.action === 'batch') {
+                      void executeBatchExtractToDrive(folderId, `Folder Drive #${folderId}`);
+                    }
+                  }}
+                >
+                  <span className="td-dest-ico"><Folder size={16} /></span>
+                  <div style={{ textAlign: 'left' }}>
+                    <strong>Folder Aktif Saat Ini (#{folderId})</strong>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Simpan di folder tempat ZIP ini berada</span>
+                  </div>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="td-dest-item"
+                onClick={() => {
+                  const action = destPickerModal;
+                  setDestPickerModal(null);
+                  if (action.action === 'single' && action.entryName) {
+                    void executeExtractToDrive(action.entryName, 'saved', 'Pesan Tersimpan (Saved Messages)');
+                  } else if (action.action === 'batch') {
+                    void executeBatchExtractToDrive('saved', 'Pesan Tersimpan (Saved Messages)');
+                  }
+                }}
+              >
+                <span className="td-dest-ico"><MessageSquare size={16} /></span>
+                <div style={{ textAlign: 'left' }}>
+                  <strong>Pesan Tersimpan (Saved Messages)</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Kirim berkas ke Chat Pribadi Telegram Anda</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
