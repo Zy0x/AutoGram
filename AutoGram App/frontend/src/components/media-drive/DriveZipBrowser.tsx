@@ -413,7 +413,8 @@ export function DriveZipBrowser({
           ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${cleanBase}`
           : `ag_zip_upload_${Date.now()}_${cleanBase}`;
 
-        setToastMsg(`Mengekstrak ${basename} disiapkan untuk Drive…`);
+        const folderLabel = folderId ? `Folder Drive #${folderId}` : 'Gudang Utama Drive';
+        setToastMsg(`Mengekstrak ${basename} ke ${folderLabel}…`);
         const res = await driveZipExtractEntry(
           creds,
           messageId,
@@ -423,7 +424,7 @@ export function DriveZipBrowser({
           passToUse
         );
         if (res?.status === 'success') {
-          setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) ke Drive!`);
+          setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) ke ${folderLabel}!`);
         }
       }
     } catch (e: any) {
@@ -472,6 +473,7 @@ export function DriveZipBrowser({
       } else {
         const { tempDir } = await import('@tauri-apps/api/path');
         const dir = await tempDir().catch(() => '');
+        const folderLabel = folderId ? `Folder Drive #${folderId}` : 'Gudang Utama Drive';
 
         let extractedCount = 0;
         let totalBytes = 0;
@@ -484,7 +486,7 @@ export function DriveZipBrowser({
             ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
             : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
 
-          setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke Drive…`);
+          setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke ${folderLabel}…`);
 
           const res = await driveZipExtractEntry(
             creds,
@@ -500,7 +502,7 @@ export function DriveZipBrowser({
           }
         }
 
-        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) disiapkan ke Drive!`);
+        setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke ${folderLabel}!`);
       }
       setSelectedEntries(new Set());
     } catch (e: any) {
