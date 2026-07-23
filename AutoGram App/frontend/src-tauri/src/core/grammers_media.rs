@@ -584,9 +584,9 @@ async fn download_media_thumb(
         } else if is_video {
             let mode = quality.to_lowercase();
             let sharp = mode.contains("jelas") || mode.contains("sharp");
-            let max_sample = if sharp { 1536 * 1024 } else if saver { 512 * 1024 } else { 1024 * 1024 };
+            let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
             let mut sample_bytes = Vec::new();
-            // Download sample bytes (up to 1MB-1.5MB for fast FFmpeg frame extraction)
+            // Download sample bytes (up to 2MB for fast FFmpeg keyframe extraction)
             let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
                 sample_bytes.extend_from_slice(&chunk);
@@ -691,11 +691,11 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str) -> Option<Vec<u
         .arg("-y")
         .arg("-err_detect")
         .arg("ignore_err")
+        .arg("-discard")
+        .arg("nokey")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
-        .arg("-ss")
-        .arg("00:00:00.100")
         .arg("-frames:v")
         .arg("1")
         .arg("-update")
