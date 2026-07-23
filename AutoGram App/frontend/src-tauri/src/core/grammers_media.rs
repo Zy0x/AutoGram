@@ -780,6 +780,8 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
         "worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "AutoGram App/worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
         "../worker/venv/Lib/site-packages/imageio_ffmpeg/binaries",
+        "cache/bin",
+        "bin",
     ];
 
     for base in &search_dirs {
@@ -800,6 +802,52 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
             }
         }
     }
+
+    // Check common Windows installation & application locations
+    if cfg!(windows) {
+        let mut win_dirs = Vec::new();
+        if let Ok(pf) = std::env::var("ProgramFiles") {
+            win_dirs.push(std::path::PathBuf::from(pf));
+        }
+        if let Ok(pfx86) = std::env::var("ProgramFiles(x86)") {
+            win_dirs.push(std::path::PathBuf::from(pfx86));
+        }
+        if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
+            win_dirs.push(std::path::PathBuf::from(local_app));
+        }
+        win_dirs.push(std::path::PathBuf::from("C:\\ffmpeg"));
+        win_dirs.push(std::path::PathBuf::from("C:\\Tools"));
+
+        for base in win_dirs {
+            if !base.is_dir() {
+                continue;
+            }
+            let direct_exe = base.join("bin").join("ffmpeg.exe");
+            if direct_exe.is_file() {
+                return Some(direct_exe);
+            }
+            let direct_root = base.join("ffmpeg.exe");
+            if direct_root.is_file() {
+                return Some(direct_root);
+            }
+            if let Ok(entries) = std::fs::read_dir(&base) {
+                for entry in entries.flatten() {
+                    let sub = entry.path();
+                    if sub.is_dir() {
+                        let ff1 = sub.join("ffmpeg.exe");
+                        if ff1.is_file() {
+                            return Some(ff1);
+                        }
+                        let ff2 = sub.join("bin").join("ffmpeg.exe");
+                        if ff2.is_file() {
+                            return Some(ff2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     None
 }
 

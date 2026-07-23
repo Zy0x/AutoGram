@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.91 Autodeteksi Lokasi Biner FFmpeg Windows & Ekstraksi Frame Video Otomatis
+
+### Perbaikan Utama Visual Media & Grid
+- **Pencarian Biner FFmpeg Windows Tingkat Lanjut (`find_ffmpeg_binary`)**:
+  - Mengoreksi penemuan biner `ffmpeg.exe` di backend Rust (`grammers_media.rs`).
+  - Sebelumnya, jika `ffmpeg` tidak terdaftar di variabel lingkungan `PATH` Windows, fungsi `find_ffmpeg_binary` mengembalikan nilai kosong (`None`), menyebabkan ekstraksi frame video visual mengalami *miss* dan menghasilkan error `no valid thumb found`.
+  - Kini, backend secara cerdas memindai direktori aplikasi Windows populer seperti `C:\Program Files`, `C:\Program Files (x86)`, `C:\Program Files\BlueStacks_nxt`, `C:\Program Files\FormatFactory*`, `%LOCALAPPDATA%`, `C:\ffmpeg`, dan `cache/bin`.
+  - Biner `ffmpeg.exe` yang sudah terpasang di komputer pengguna kini ditemukan secara otomatis tanpa memerlukan konfigurasi manual variabel `PATH`.
+
 ## v2.1.90 Perbaikan Duplikasi Offset Chunk & Korupsi Header Sampel Media
 
 ### Perbaikan Utama Visual Media & Grid

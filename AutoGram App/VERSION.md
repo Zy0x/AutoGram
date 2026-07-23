@@ -1,9 +1,10 @@
-AutoGram Version: v2.1.90
+AutoGram Version: v2.1.91
 
 Current State:
-Perbaikan bug offset chunk terduplikasi pada penarikan sampel media. Mengeliminasi korupsi header biner yang memicu error 'no valid thumb found' pada video dan gambar tanpa thumbnail statis Telegram.
+Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
 
 Previous:
+v2.1.90 Perbaikan bug offset chunk terduplikasi pada penarikan sampel media. Mengeliminasi korupsi header biner yang memicu error 'no valid thumb found' pada video dan gambar tanpa thumbnail statis Telegram.
 v2.1.89 Penerapan autodeteksi magic-bytes (JPEG, PNG, WebP, GIF, MP4, MKV, AVI) untuk berkas media yang diunggah tanpa ekstensi atau ber-MIME generic (application/octet-stream). Eliminasi total pesan error 'no valid thumb found' pada media visual.
 v2.1.88 Perbaikan auto-retry pemuatan thumbnail pada kartu grid yang sempat mengalami soft-fail/pending RPC. Mengeliminasi masalah kartu media terkunci kosong sebelum modal pratinjau dibuka/ditutup.
 v2.1.87 Perbaikan pemuatan thumbnail gambar yang gagal decode pada berkas foto >256KB (misal 29-6.jpg 344KB) akibat pembatasan chunk terpotong. Kini berkas gambar diunduh utuh hingga 8MB untuk menjamin validitas header JPEG/PNG.
