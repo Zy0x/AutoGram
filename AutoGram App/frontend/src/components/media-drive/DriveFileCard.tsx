@@ -263,41 +263,22 @@ function DriveFileCardInner({
       (thumbQuality === 'saver' && inlineNow && String(inlineNow).startsWith('data:image/'))
     );
     setThumbLoading(!alreadyPainted);
-    const MAX_RETRIES = 4;
-    const load = (attempt: number) => {
-      requestThumb(creds, folderId, file.id, {
-        priority: 'visible',
-        signal: controller.signal,
-        bypassCache: attempt > 0,
+    requestThumb(creds, folderId, file.id, {
+      priority: 'visible',
+      signal: controller.signal,
+    })
+      .then((url) => {
+        if (cancelled) return;
+        if (url) {
+          setThumb(url);
+          setImgError(false);
+        }
+        setThumbLoading(false);
       })
-        .then((url) => {
-          if (cancelled) return;
-          if (url) {
-            setThumb(url);
-            setThumbLoading(false);
-            setImgError(false);
-            return;
-          }
-          if (attempt < MAX_RETRIES) {
-            if (!alreadyPainted) setThumbLoading(true);
-            const nextDelay = Math.min(200 + attempt * 250, 1200);
-            retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
-          } else {
-            setThumbLoading(false);
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          if (attempt < MAX_RETRIES) {
-            setThumbLoading(true);
-            const nextDelay = Math.min(1000 + attempt * 800, 4000);
-            retryTimer = window.setTimeout(() => load(attempt + 1), nextDelay);
-          } else {
-            setThumbLoading(false);
-          }
-        });
-    };
-    load(0);
+      .catch(() => {
+        if (cancelled) return;
+        setThumbLoading(false);
+      });
     return () => {
       cancelled = true;
       controller.abort();
