@@ -11,6 +11,8 @@
   - Mengabaikan request RPC jaringan lama dan membatalkan timer pencarian stats ketika pengguna mengklik pill topik secara cepat beruntun.
 - **Pembatalan Loop Background Media Stats**:
   - Menambahkan pemeriksaan generasi `statsGen !== topicGenRef.current` di dalam `refreshMediaStats` untuk menghentikan pemindaian halaman latar belakang ketika topik aktif berganti.
+- **Pencocokan Balasan Sub-Thread Topik (`smart_scanner.py`)**:
+  - Mengoreksi evaluasi `_passes_topic_filter` di Smart Scanner. Sebelumnya hanya mengecek `reply_to_msg_id`, sehingga pesan yang merupakan balasan ke komentar di dalam utas topik (`reply_to_top_id`) terlewati secara keliru. Kini `effective_topic_id = top_id or reply_id` digunakan untuk menjamin 100% media di sub-thread topik berhasil terdeteksi.
 
 ## v2.1.92 Perbaikan Rekonstruksi Faststart MP4 & Re-indexing Atom Chunk Offset
 

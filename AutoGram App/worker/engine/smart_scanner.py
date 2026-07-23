@@ -393,11 +393,13 @@ class SmartScanner:
 
         msg_topic = getattr(msg, "reply_to", None)
         if msg_topic is not None:
+            top_id = getattr(msg_topic, "reply_to_top_id", None)
             reply_id = getattr(msg_topic, "reply_to_msg_id", None)
+            effective_topic_id = top_id or reply_id
             if self.topic_scope == "selected_only":
-                return reply_id == self.topic_id
+                return effective_topic_id == self.topic_id
             # selected_plus_general: also include msgs without topic (general)
-            return reply_id == self.topic_id or reply_id in (None, 1)
+            return effective_topic_id == self.topic_id or effective_topic_id in (None, 1)
         # No reply_to → general chat message
         if self.topic_scope == "selected_plus_general":
             return True

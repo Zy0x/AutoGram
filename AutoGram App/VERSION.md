@@ -1,7 +1,7 @@
 AutoGram Version: v2.1.93
 
 Current State:
-v2.1.93 Perbaikan bug race condition & stale media bleeding pada perpindahan antar topik Telegram Forum Topics. Mengeliminasi kebocoran kartu media dari topik lama ke topik baru melalui reset state instan (`setFiles([])`), penambahan `topicGenRef` dan debounce guard (300ms) untuk pencegahan FloodWait Telegram, pembatalan pencarian background stats saat topik berganti, serta penguatan validasi `dest_topic_id` pada engine migrasi.
+v2.1.93 Perbaikan bug race condition & stale media bleeding pada perpindahan antar topik Telegram Forum Topics. Mengeliminasi kebocoran kartu media dari topik lama ke topik baru melalui reset state instan (`setFiles([])`), penambahan `topicGenRef` dan debounce guard (300ms) untuk pencegahan FloodWait Telegram, pembatalan pencarian background stats saat topik berganti, penguatan validasi `dest_topic_id` pada engine migrasi, pencegahan race condition pada modal JobEditor (`topicsReqSeqRef`), serta perbaikan pencocokan balasan sub-thread topik (`reply_to_top_id`) pada Smart Scanner.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
