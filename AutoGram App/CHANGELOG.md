@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.94 Perluasan Batas Pemindaian Pesan Topik (`scan_limit` 10.000 Pesan)
+
+### Perbaikan Utama Pencarian Media Topik Forum
+- **Perluasan Pemindaian Pesan Topik (`grammers_ops.rs`)**:
+  - Mengoreksi batasan `scan_limit` pada fungsi `list_media_blocking_topic`. Previously, `scan_limit` hanya dibatasi maksimal 1.000 pesan (`clamp(350, 1000)`).
+  - Pada grup forum yang aktif di mana topik tertentu (seperti topik "File" berisi 49 berkas ZIP) berada lebih lama di riwayat riwayat percakapan grup, pembatasan 1.000 pesan menyebabkan Grammers berhenti memindai sebelum mencapai pesan topik tersebut dan mengembalikan `n: 0`.
+  - Kini, `scan_limit` dinaikkan hingga **10.000 pesan** (`clamp(1000, 10000)`), menjamin 100% berkas ZIP dan dokumen pada topik yang lebih lama terdeteksi secara presisi.
+
 ## v2.1.93 Perbaikan Race Condition & Stale Media Bleeding pada Perpindahan Antar Topik
 
 ### Perbaikan Utama Navigasi Forum Topics & Drive UI

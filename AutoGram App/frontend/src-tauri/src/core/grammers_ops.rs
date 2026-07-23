@@ -1252,9 +1252,9 @@ pub fn list_media_blocking_topic(
         chat.parse().ok()
     };
     let topic_filter = topic_id.filter(|t| *t > 0);
-    // Over-fetch when filtering by topic so a page still fills
+    // Over-fetch when filtering by topic so a page still fills even for older topics
     let scan_limit = if topic_filter.is_some() {
-        (limit * 25).clamp(350, 1000)
+        (limit * 100).clamp(1000, 10000)
     } else {
         limit + 12
     };
