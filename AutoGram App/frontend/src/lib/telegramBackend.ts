@@ -216,6 +216,54 @@ export async function tgListMedia(args: {
   }
 }
 
+export type TgUploadStepResult = {
+  status: string;
+  path: string;
+  bytesWritten?: number;
+  messageId?: number | null;
+  backend: string;
+};
+
+export async function tgUploadFile(args: {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: string;
+  path: string;
+  caption?: string;
+  asDocument?: boolean;
+  silent?: boolean;
+  index?: number;
+  topicId?: number | null;
+}): Promise<TgOpResult<TgUploadStepResult> | null> {
+  if (!detectTauriRuntime()) return null;
+  try {
+    const r = await invoke<TgOpResult<TgUploadStepResult>>('tg_upload_file', {
+      request: {
+        session: args.session,
+        apiId: args.apiId,
+        apiHash: args.apiHash,
+        chatId: args.chatId,
+        path: args.path,
+        caption: args.caption ?? null,
+        asDocument: args.asDocument ?? true,
+        silent: args.silent ?? false,
+        index: args.index ?? 0,
+        topicId: args.topicId ?? null,
+      },
+    });
+    debugLogLayer('rust', 'tg', 'upload_file', {
+      ok: r?.ok,
+      path: args.path,
+      backend: r?.backend,
+    });
+    return r;
+  } catch (e) {
+    debugLogLayer('rust', 'tg', 'upload_file_fail', String(e));
+    return null;
+  }
+}
+
 export type TgDialogEntry = {
   id: number;
   title: string;

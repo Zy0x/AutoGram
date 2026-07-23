@@ -7594,6 +7594,12 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           file={previewFile}
           folderId={peerId}
           creds={creds}
+          folders={folders}
+          chats={chats}
+          onRefreshDrive={() => {
+            void refreshFiles();
+            void refreshLocations();
+          }}
           onClose={() => setPreviewFile(null)}
           hasPrev={previewIndex > 0}
           hasNext={previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1}

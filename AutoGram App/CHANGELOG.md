@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.2.0 Alur Kerja Komprehensif Ekstraksi Arsip ZIP ke Drives & Telegram
+
+### Fitur & Pemetaan Destinasi Ekstraksi Media Drive (`DriveZipBrowser.tsx`)
+- **Pemetaan Penuh Seluruh Destinasi Akun**:
+  - Modal destinasi ekstraksi kini memetakan 100% lokasi dari akun pengguna: Gudang Utama Drive (Root), seluruh hierarki Folder Drive [TD], Pesan Tersimpan, Channel Telegram, Grup & Supergrup Telegram, Bot Telegram, dan Topik Forum.
+- **Dukungan Topik Forum Telegram (`tgListTopics`)**:
+  - Untuk supergrup bertipe Forum, modal menyediakan penjelajahan dan pemilihan topik forum secara langsung dengan visualisasi badge dan nama topik.
+- **Alur Pengunggahan Native Grammers & Pembersihan Diska**:
+  - Menyelesaikan alur post-ekstraksi secara utuh: berkas diekstrak dari arsip ZIP ke lokasi temporary diska -> diunggah secara native via Grammers (`tgUploadFile`) ke destinasi pilihan -> berkas temporary otomatis dibersihkan dari diska.
+- **Umpan Balik Status & Refresh Instan**:
+  - Menampilkan progress bertahap (Mengekstrak -> Mengunggah ke Destinasi -> Selesai) serta memicu penyegaran Media Drive agar berkas yang diekstrak langsung tampil di grid.
+
 ## v2.1.100 Eliminasi Pembekuan Grid & Penyelarasan Perpindahan Topik UI
 
 ### Perbaikan Utama Navigasi Topik (`SpeedTest.tsx`)

@@ -197,6 +197,7 @@ pub struct UploadFileRequest {
     pub as_document: Option<bool>,
     pub silent: Option<bool>,
     pub index: Option<usize>,
+    pub topic_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -368,7 +369,7 @@ pub fn tg_upload_file(req: UploadFileRequest) -> OpResult<UploadStepResult> {
     let silent = req.silent.unwrap_or(false);
     let index = req.index.unwrap_or(0);
     let caption = req.caption.unwrap_or_default();
-    match super::grammers_ops::upload_file_blocking(
+    match super::grammers_ops::upload_file_blocking_topic(
         &dir,
         &identity,
         &req.chat_id,
@@ -377,6 +378,7 @@ pub fn tg_upload_file(req: UploadFileRequest) -> OpResult<UploadStepResult> {
         as_doc,
         silent,
         index,
+        req.topic_id,
     ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => {

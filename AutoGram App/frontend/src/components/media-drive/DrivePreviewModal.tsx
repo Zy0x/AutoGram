@@ -68,6 +68,8 @@ import {
   isOfficeDriveFile,
   isZipDriveFile,
   type DriveFile,
+  type DriveFolder,
+  type DriveChat,
 } from '../../lib/driveTypes';
 import { DriveZipBrowser } from './DriveZipBrowser';
 import {
@@ -91,6 +93,9 @@ type Props = {
   hasPrev?: boolean;
   /** Neighbor message ids for prefetch (prev, next, next+1…) */
   neighborIds?: number[];
+  folders?: DriveFolder[];
+  chats?: DriveChat[];
+  onRefreshDrive?: () => void;
 };
 
 type PlayQuality = {
@@ -331,6 +336,9 @@ export function DrivePreviewModal({
   hasNext,
   hasPrev,
   neighborIds = [],
+  folders,
+  chats,
+  onRefreshDrive,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -3580,6 +3588,9 @@ export function DrivePreviewModal({
                 hasNext={hasNext}
                 onDownloadZip={handleDownload}
                 onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+                folders={folders}
+                chats={chats}
+                onRefreshDrive={onRefreshDrive}
               />
             </div>
           )}

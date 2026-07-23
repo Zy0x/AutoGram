@@ -42,7 +42,22 @@ import {
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry } from '../../lib/driveApi';
-import { formatDriveBytes } from '../../lib/driveTypes';
+import { formatDriveBytes, type DriveFolder, type DriveChat } from '../../lib/driveTypes';
+import {
+  tgUploadFile,
+  tgScanFolders,
+  tgListDialogs,
+  tgListTopics,
+  type TgTopicRow,
+} from '../../lib/telegramBackend';
+
+export type TargetDestination = {
+  kind: 'drive' | 'saved' | 'chat';
+  chatId: string;
+  folderId?: number | null;
+  topicId?: number | null;
+  label: string;
+};
 
 export type ZipEntry = {
   name: string;
@@ -64,6 +79,9 @@ type Props = {
   hasNext?: boolean;
   onDownloadZip?: () => void;
   onOpenSystem?: () => void;
+  folders?: DriveFolder[];
+  chats?: DriveChat[];
+  onRefreshDrive?: () => void;
 };
 
 type Category = 'all' | 'image' | 'doc' | 'media';
@@ -215,6 +233,9 @@ export function DriveZipBrowser({
   hasNext,
   onDownloadZip,
   onOpenSystem,
+  folders: driveFolders,
+  chats: driveChats,
+  onRefreshDrive,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -250,6 +271,89 @@ export function DriveZipBrowser({
   } | null>(null);
   const [destQuery, setDestQuery] = useState('');
   const [customPeerId, setCustomPeerId] = useState('');
+
+  // Fallback destination state (auto-fetched if props are empty)
+  const [fetchedFolders, setFetchedFolders] = useState<DriveFolder[]>([]);
+  const [fetchedChats, setFetchedChats] = useState<DriveChat[]>([]);
+  const [loadingDestinations, setLoadingDestinations] = useState(false);
+  const [forumTopicsMap, setForumTopicsMap] = useState<Record<number, TgTopicRow[]>>({});
+  const [loadingTopicsForChat, setLoadingTopicsForChat] = useState<number | null>(null);
+  const [expandedForumChatId, setExpandedForumChatId] = useState<number | null>(null);
+
+  const effectiveFolders = useMemo(
+    () => (driveFolders && driveFolders.length > 0 ? driveFolders : fetchedFolders),
+    [driveFolders, fetchedFolders]
+  );
+
+  const effectiveChats = useMemo(
+    () => (driveChats && driveChats.length > 0 ? driveChats : fetchedChats),
+    [driveChats, fetchedChats]
+  );
+
+  useEffect(() => {
+    if (!destPickerModal) return;
+    let cancelled = false;
+    const loadDests = async () => {
+      if (effectiveFolders.length === 0 || effectiveChats.length === 0) {
+        setLoadingDestinations(true);
+        try {
+          if (effectiveFolders.length === 0) {
+            const fRes = await tgScanFolders({
+              session: creds.session,
+              apiId: Number(creds.apiId) || 0,
+              apiHash: creds.apiHash,
+            });
+            if (!cancelled && fRes?.ok && fRes.data?.folders) {
+              setFetchedFolders(fRes.data.folders as any);
+            }
+          }
+          if (effectiveChats.length === 0) {
+            const cRes = await tgListDialogs({
+              session: creds.session,
+              apiId: Number(creds.apiId) || 0,
+              apiHash: creds.apiHash,
+              limit: 100,
+            });
+            if (!cancelled && cRes?.ok && Array.isArray(cRes.data)) {
+              setFetchedChats(cRes.data as any);
+            }
+          }
+        } catch {
+          /* ignore fetch error */
+        } finally {
+          if (!cancelled) setLoadingDestinations(false);
+        }
+      }
+    };
+    void loadDests();
+    return () => {
+      cancelled = true;
+    };
+  }, [destPickerModal, effectiveFolders.length, effectiveChats.length, creds]);
+
+  const loadTopicsForChat = async (chatId: number) => {
+    if (forumTopicsMap[chatId] || loadingTopicsForChat === chatId) {
+      setExpandedForumChatId((prev) => (prev === chatId ? null : chatId));
+      return;
+    }
+    setLoadingTopicsForChat(chatId);
+    try {
+      const res = await tgListTopics({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        chatId,
+      });
+      if (res?.ok && res.data?.topics) {
+        setForumTopicsMap((prev) => ({ ...prev, [chatId]: res.data!.topics }));
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingTopicsForChat(null);
+      setExpandedForumChatId(chatId);
+    }
+  };
 
   // Video playback & transform state
   const [rate, setRate] = useState(1);
@@ -309,7 +413,7 @@ export function DriveZipBrowser({
     void loadList();
   }, [loadList]);
 
-  const { folders, files } = useMemo(
+  const { folders: zipSubfolders, files } = useMemo(
     () => basenamesAt(entries, cwd, searchQuery, category),
     [entries, cwd, searchQuery, category]
   );
@@ -428,33 +532,86 @@ export function DriveZipBrowser({
     }
   };
 
-  const executeExtractToDrive = async (entryName: string, _targetFolder: number | string | null, targetLabel: string) => {
-    setExtracting(entryName);
+  const executeExtractAndUpload = async (
+    entryNames: string[],
+    target: TargetDestination
+  ) => {
+    if (entryNames.length === 0) return;
+    setExtracting(entryNames.length === 1 ? entryNames[0] : 'batch');
     setToastMsg(null);
     const passToUse = password || rememberedPasswordsMap.get(archiveKey);
+
     try {
-      const basename = entryName.split('/').pop() || entryName;
       const { tempDir } = await import('@tauri-apps/api/path');
       const dir = await tempDir().catch(() => '');
-      const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-      const tempPath = dir
-        ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${cleanBase}`
-        : `ag_zip_upload_${Date.now()}_${cleanBase}`;
 
-      setToastMsg(`Mengekstrak ${basename} ke ${targetLabel}…`);
-      const res = await driveZipExtractEntry(
-        creds,
-        messageId,
-        folderId,
-        entryName,
-        tempPath,
-        passToUse
-      );
-      if (res?.status === 'success') {
-        setToastMsg(`Berhasil mengekstrak ${basename} (${formatDriveBytes(res.bytesWritten)}) disiapkan ke ${targetLabel}!`);
+      let successCount = 0;
+      let totalBytes = 0;
+
+      for (let i = 0; i < entryNames.length; i++) {
+        const entryName = entryNames[i];
+        const basename = entryName.split('/').pop() || entryName;
+        const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+        const tempPath = dir
+          ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
+          : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
+
+        setToastMsg(`Mengekstrak ${i + 1}/${entryNames.length}: ${basename}…`);
+
+        const res = await driveZipExtractEntry(
+          creds,
+          messageId,
+          folderId,
+          entryName,
+          tempPath,
+          passToUse
+        );
+
+        if (res?.status === 'success') {
+          setToastMsg(`Mengunggah ${i + 1}/${entryNames.length}: ${basename} ke ${target.label}…`);
+
+          let caption = '';
+          if (target.kind === 'drive' && target.folderId != null) {
+            caption = `#folder:${target.folderId}`;
+          }
+
+          const upRes = await tgUploadFile({
+            session: creds.session,
+            apiId: Number(creds.apiId) || 0,
+            apiHash: creds.apiHash,
+            chatId: target.chatId,
+            path: tempPath,
+            caption: caption || undefined,
+            asDocument: true,
+            topicId: target.topicId ?? null,
+          });
+
+          if (upRes?.ok) {
+            successCount++;
+            totalBytes += res.bytesWritten;
+          } else {
+            const errText = upRes?.userMessage || upRes?.error?.message || 'Gagal mengunggah ke Telegram';
+            console.warn(`[DriveZipBrowser] Upload entry ${basename} fail:`, errText);
+          }
+
+          try {
+            const { remove } = await import('@tauri-apps/plugin-fs');
+            await remove(tempPath).catch(() => undefined);
+          } catch {
+            /* ignore clean up errors */
+          }
+        }
       }
+
+      setToastMsg(
+        `Berhasil mengekstrak & mengunggah ${successCount}/${entryNames.length} berkas (${formatDriveBytes(
+          totalBytes
+        )}) ke ${target.label}!`
+      );
+      setSelectedEntries(new Set());
+      onRefreshDrive?.();
     } catch (e: any) {
-      setError(`Gagal mengekstrak berkas: ${String(e?.message || e)}`);
+      setError(`Gagal mengekstrak & mengunggah: ${String(e?.message || e)}`);
     } finally {
       setExtracting(null);
     }
@@ -499,52 +656,6 @@ export function DriveZipBrowser({
       }
 
       setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) ke Lokal (${targetDir})`);
-      setSelectedEntries(new Set());
-    } catch (e: any) {
-      setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
-    } finally {
-      setExtracting(null);
-    }
-  };
-
-  const executeBatchExtractToDrive = async (_targetFolder: number | string | null, targetLabel: string) => {
-    if (selectedEntries.size === 0) return;
-    const selectedList = [...selectedEntries];
-    setExtracting('batch');
-    setToastMsg(null);
-    const passToUse = password || rememberedPasswordsMap.get(archiveKey);
-    try {
-      const { tempDir } = await import('@tauri-apps/api/path');
-      const dir = await tempDir().catch(() => '');
-
-      let extractedCount = 0;
-      let totalBytes = 0;
-
-      for (let i = 0; i < selectedList.length; i++) {
-        const entryName = selectedList[i];
-        const basename = entryName.split('/').pop() || entryName;
-        const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-        const destPath = dir
-          ? `${dir.replace(/[/\\]+$/, '')}/ag_zip_upload_${Date.now()}_${i}_${cleanBase}`
-          : `ag_zip_upload_${Date.now()}_${i}_${cleanBase}`;
-
-        setToastMsg(`Mengekstrak ${i + 1}/${selectedList.length}: ${basename} ke ${targetLabel}…`);
-
-        const res = await driveZipExtractEntry(
-          creds,
-          messageId,
-          folderId,
-          entryName,
-          destPath,
-          passToUse
-        );
-        if (res?.status === 'success') {
-          extractedCount++;
-          totalBytes += res.bytesWritten;
-        }
-      }
-
-      setToastMsg(`Berhasil mengekstrak ${extractedCount} berkas (${formatDriveBytes(totalBytes)}) disiapkan ke ${targetLabel}!`);
       setSelectedEntries(new Set());
     } catch (e: any) {
       setError(`Gagal mengekstrak massal: ${String(e?.message || e)}`);
@@ -903,7 +1014,7 @@ export function DriveZipBrowser({
               </button>
             </li>
           ) : null}
-          {folders.map((f) => (
+          {zipSubfolders.map((f) => (
             <li key={`d:${f.path}`}>
               <button
                 type="button"
@@ -951,7 +1062,7 @@ export function DriveZipBrowser({
               </li>
             );
           })}
-          {folders.length === 0 && files.length === 0 && (
+          {zipSubfolders.length === 0 && files.length === 0 && (
             <li className="drive-zip-empty">
               {searchQuery ? 'Tidak ada berkas yang cocok dengan pencarian' : 'Folder kosong dalam arsip'}
             </li>
@@ -1076,7 +1187,7 @@ export function DriveZipBrowser({
             className="td-confirm-panel dest-picker"
             role="dialog"
             aria-modal="true"
-            style={{ maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+            style={{ maxWidth: '540px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
           >
             <header className="td-confirm-head">
@@ -1108,7 +1219,7 @@ export function DriveZipBrowser({
                 className="td-dest-search-input"
                 value={destQuery}
                 onChange={(e) => setDestQuery(e.target.value)}
-                placeholder="Cari Drive, Chat, Bot, Grup, Topik, Channel…"
+                placeholder="Cari Drive, Folder, Chat, Bot, Grup, Topik, Channel…"
                 autoFocus
               />
             </div>
@@ -1121,74 +1232,94 @@ export function DriveZipBrowser({
                 flexDirection: 'column',
                 gap: '8px',
                 overflowY: 'auto',
-                maxHeight: '400px',
+                maxHeight: '420px',
               }}
             >
-              {/* Category 1: Drive Root */}
+              {loadingDestinations && (
+                <div style={{ padding: '12px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Loader2 size={16} className="spin" /> Memuat daftar folder & dialog akun…
+                </div>
+              )}
+
+              {/* 1. Gudang Utama Drive (Root) */}
               {(!destQuery || 'gudang utama drive root'.includes(destQuery.toLowerCase())) && (
                 <button
                   type="button"
                   className="td-dest-item"
                   onClick={() => {
                     const action = destPickerModal;
+                    const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
                     setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, null, 'Gudang Utama Drive');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive(null, 'Gudang Utama Drive');
-                    }
+                    void executeExtractAndUpload(entryList, {
+                      kind: 'drive',
+                      chatId: 'me',
+                      folderId: null,
+                      label: 'Gudang Utama Drive',
+                    });
                   }}
                 >
                   <span className="td-dest-ico"><Home size={16} /></span>
                   <div style={{ textAlign: 'left', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <strong>Gudang Utama Drive (Root)</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>Drive</span>
+                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>Drive</span>
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Tingkat utama AutoGram Media Drive</span>
                   </div>
                 </button>
               )}
 
-              {/* Category 2: Active Folder */}
-              {folderId && (!destQuery || `folder aktif #${folderId}`.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, folderId, `Folder Drive #${folderId}`);
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive(folderId, `Folder Drive #${folderId}`);
-                    }
-                  }}
-                >
-                  <span className="td-dest-ico"><Folder size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Folder Aktif Saat Ini (#{folderId})</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>Folder</span>
+              {/* 2. Folders Tree / Media Drive Folders */}
+              {effectiveFolders.map((f) => {
+                const fName = f.name || `Folder #${f.id}`;
+                const matches = !destQuery || fName.toLowerCase().includes(destQuery.toLowerCase());
+                if (!matches) return null;
+                return (
+                  <button
+                    key={`folder-${f.id}`}
+                    type="button"
+                    className="td-dest-item"
+                    style={{ paddingLeft: f.parent_id ? '24px' : '12px' }}
+                    onClick={() => {
+                      const action = destPickerModal;
+                      const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
+                      setDestPickerModal(null);
+                      void executeExtractAndUpload(entryList, {
+                        kind: 'drive',
+                        chatId: 'me',
+                        folderId: f.id,
+                        label: `Folder ${fName}`,
+                      });
+                    }}
+                  >
+                    <span className="td-dest-ico"><Folder size={16} style={{ color: '#a855f7' }} /></span>
+                    <div style={{ textAlign: 'left', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <strong>{fName}</strong>
+                        <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>Folder</span>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                        Folder Drive #{f.id} {f.parent_id ? `(Induk: #${f.parent_id})` : ''}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Folder tempat ZIP ini berada</span>
-                  </div>
-                </button>
-              )}
+                  </button>
+                );
+              })}
 
-              {/* Category 3: Saved Messages */}
+              {/* 3. Pesan Tersimpan (Saved Messages) */}
               {(!destQuery || 'pesan tersimpan saved messages'.includes(destQuery.toLowerCase())) && (
                 <button
                   type="button"
                   className="td-dest-item"
                   onClick={() => {
                     const action = destPickerModal;
+                    const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
                     setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, 'saved', 'Pesan Tersimpan (Saved Messages)');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive('saved', 'Pesan Tersimpan (Saved Messages)');
-                    }
+                    void executeExtractAndUpload(entryList, {
+                      kind: 'saved',
+                      chatId: 'me',
+                      label: 'Pesan Tersimpan (Saved Messages)',
+                    });
                   }}
                 >
                   <span className="td-dest-ico"><MessageSquare size={16} /></span>
@@ -1202,111 +1333,131 @@ export function DriveZipBrowser({
                 </button>
               )}
 
-              {/* Category 4: Channel Telegram */}
-              {(!destQuery || 'channel telegram siaran'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, 'channel', 'Channel Telegram');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive('channel', 'Channel Telegram');
-                    }
-                  }}
-                >
-                  <span className="td-dest-ico"><Megaphone size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Channel Telegram</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>Channel</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Saluran Penyiaran Telegram</span>
-                  </div>
-                </button>
-              )}
+              {/* 4. Telegram Chats / Dialogs (Channels, Groups, Bots, Users) */}
+              {effectiveChats.map((c: any) => {
+                const cTitle = c.name || c.title || `Chat #${c.id}`;
+                const isChannel = c.type === 'channel' || !!c.isChannel;
+                const isGroup = c.type === 'group' || !!c.isGroup;
+                const isBot = c.type === 'bot' || !!c.isBot;
+                const isForum = !!(c.is_forum || c.isForum);
+                const matches = !destQuery || cTitle.toLowerCase().includes(destQuery.toLowerCase());
+                if (!matches) return null;
 
-              {/* Category 5: Group / Supergroup */}
-              {(!destQuery || 'grup supergrup telegram'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, 'group', 'Grup / Supergrup Telegram');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive('group', 'Grup / Supergrup Telegram');
-                    }
-                  }}
-                >
-                  <span className="td-dest-ico"><Users size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Grup / Supergrup Telegram</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80' }}>Grup</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Grup Komunitas Telegram</span>
-                  </div>
-                </button>
-              )}
+                let chipLabel = 'Chat';
+                let chipBg = 'rgba(59, 130, 246, 0.2)';
+                let chipColor = '#60a5fa';
+                let Icon = MessageSquare;
 
-              {/* Category 6: Forum Topic */}
-              {(!destQuery || 'topik forum grup topic'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, 'topic', 'Topik Forum Grup');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive('topic', 'Topik Forum Grup');
-                    }
-                  }}
-                >
-                  <span className="td-dest-ico"><Hash size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Topik Forum dalam Grup</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(234, 179, 8, 0.2)', color: '#facc15' }}>Topik</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Topik Spesifik dalam Supergrup Forum</span>
-                  </div>
-                </button>
-              )}
+                if (isChannel) {
+                  chipLabel = 'Channel';
+                  chipBg = 'rgba(168, 85, 247, 0.2)';
+                  chipColor = '#c084fc';
+                  Icon = Megaphone;
+                } else if (isGroup) {
+                  chipLabel = isForum ? 'Forum' : 'Grup';
+                  chipBg = 'rgba(34, 197, 94, 0.2)';
+                  chipColor = '#4ade80';
+                  Icon = isForum ? Hash : Users;
+                } else if (isBot) {
+                  chipLabel = 'Bot';
+                  chipBg = 'rgba(239, 68, 68, 0.2)';
+                  chipColor = '#f87171';
+                  Icon = Bot;
+                }
 
-              {/* Category 7: Bot Telegram */}
-              {(!destQuery || 'bot telegram'.includes(destQuery.toLowerCase())) && (
-                <button
-                  type="button"
-                  className="td-dest-item"
-                  onClick={() => {
-                    const action = destPickerModal;
-                    setDestPickerModal(null);
-                    if (action.action === 'single' && action.entryName) {
-                      void executeExtractToDrive(action.entryName, 'bot', 'Bot Telegram');
-                    } else if (action.action === 'batch') {
-                      void executeBatchExtractToDrive('bot', 'Bot Telegram');
-                    }
-                  }}
-                >
-                  <span className="td-dest-ico"><Bot size={16} /></span>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <strong>Bot Telegram</strong>
-                      <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171' }}>Bot</span>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Kirim berkas ke Bot Telegram</span>
-                  </div>
-                </button>
-              )}
+                const topics = forumTopicsMap[c.id] || [];
+                const isExpanded = expandedForumChatId === c.id;
 
-              {/* Custom Peer / ID Direct Input */}
+                return (
+                  <div key={`chat-${c.id}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <button
+                      type="button"
+                      className="td-dest-item"
+                      onClick={() => {
+                        if (isForum) {
+                          void loadTopicsForChat(c.id);
+                          return;
+                        }
+                        const action = destPickerModal;
+                        const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
+                        setDestPickerModal(null);
+                        void executeExtractAndUpload(entryList, {
+                          kind: 'chat',
+                          chatId: String(c.id),
+                          label: `${cTitle} (${chipLabel})`,
+                        });
+                      }}
+                    >
+                      <span className="td-dest-ico"><Icon size={16} /></span>
+                      <div style={{ textAlign: 'left', flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <strong>{cTitle}</strong>
+                          <span className="drive-chip" style={{ fontSize: '0.68rem', padding: '1px 6px', background: chipBg, color: chipColor }}>{chipLabel}</span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>
+                          ID: {c.id} {isForum ? '· Klik untuk pilih topik forum' : ''}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Forum Topics Sub-List */}
+                    {isForum && isExpanded && (
+                      <div style={{ paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {loadingTopicsForChat === c.id && (
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '4px 8px' }}>
+                            <Loader2 size={12} className="spin" style={{ display: 'inline', marginRight: 6 }} /> Memuat topik forum…
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="td-dest-item"
+                          style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed rgba(255, 255, 255, 0.1)' }}
+                          onClick={() => {
+                            const action = destPickerModal;
+                            const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
+                            setDestPickerModal(null);
+                            void executeExtractAndUpload(entryList, {
+                              kind: 'chat',
+                              chatId: String(c.id),
+                              label: `${cTitle} (Grup Utama Forum)`,
+                            });
+                          }}
+                        >
+                          <span className="td-dest-ico"><Hash size={14} /></span>
+                          <span style={{ fontSize: '0.8rem' }}>Grup Utama Forum (Tanpa Topik)</span>
+                        </button>
+                        {topics.map((t) => (
+                          <button
+                            key={`topic-${c.id}-${t.id}`}
+                            type="button"
+                            className="td-dest-item"
+                            style={{ background: 'rgba(234, 179, 8, 0.08)' }}
+                            onClick={() => {
+                              const action = destPickerModal;
+                              const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
+                              setDestPickerModal(null);
+                              void executeExtractAndUpload(entryList, {
+                                kind: 'chat',
+                                chatId: String(c.id),
+                                topicId: t.id,
+                                label: `${cTitle} → Topik ${t.title}`,
+                              });
+                            }}
+                          >
+                            <span className="td-dest-ico"><Hash size={14} style={{ color: '#facc15' }} /></span>
+                            <div style={{ textAlign: 'left', flex: 1 }}>
+                              <strong style={{ fontSize: '0.82rem', color: '#fef08a' }}>{t.title}</strong>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block' }}>Topik ID #{t.id}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* 5. Custom Peer / ID Direct Input */}
               <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
                   Destinasi Spesifik (Username / Peer ID / Topik ID):
@@ -1327,13 +1478,25 @@ export function DriveZipBrowser({
                     onClick={() => {
                       const action = destPickerModal;
                       const targetName = customPeerId.trim();
+                      const entryList = action.action === 'single' && action.entryName ? [action.entryName] : [...selectedEntries];
                       setDestPickerModal(null);
                       setCustomPeerId('');
-                      if (action.action === 'single' && action.entryName) {
-                        void executeExtractToDrive(action.entryName, targetName, `Destinasi (${targetName})`);
-                      } else if (action.action === 'batch') {
-                        void executeBatchExtractToDrive(targetName, `Destinasi (${targetName})`);
+
+                      let chatId = targetName;
+                      let topicId: number | undefined;
+
+                      if (targetName.includes(':')) {
+                        const parts = targetName.split(':');
+                        chatId = parts[0];
+                        topicId = Number(parts[1]) || undefined;
                       }
+
+                      void executeExtractAndUpload(entryList, {
+                        kind: 'chat',
+                        chatId,
+                        topicId,
+                        label: `Destinasi (${targetName})`,
+                      });
                     }}
                   >
                     <Send size={13} /> Kirim

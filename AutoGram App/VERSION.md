@@ -1,7 +1,7 @@
-AutoGram Version: v2.1.100
+AutoGram Version: v2.2.0
 
 Current State:
-v2.1.100 Perbaikan total penanganan perpindahan topik pada frontend (`SpeedTest.tsx`). Memperbaiki perbandingan tipe topic ID (`String(topic.id) === String(t)`), mengesampingkan cache lama yang membekukan grid media saat berpindah topik, serta mempercepat eksekusi refresh topik secara instan (50ms micro-debounce) sehingga grid media topik selalu segar dan tidak pernah tertutup oleh file dari grup utama atau topik sebelumnya.
+v2.2.0 Alur kerja komprehensif ekstraksi arsip ZIP ke Drives & Telegram. Pemetaan penuh seluruh destinasi akun (Gudang Utama Drive, Hierarki Folder Drive, Pesan Tersimpan, Channel, Grup, Bot, dan Topik Forum) dengan ekstraksi temp lokal, pengunggahan native Grammers, pembersihan diska temp, serta penyegaran real-time grid Media Drive.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
