@@ -336,7 +336,10 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     }
   };
 
+  const topicsReqSeqRef = useRef(0);
+
   const fetchTopics = async (chatId: string) => {
+    const seq = ++topicsReqSeqRef.current;
     setIsLoadingDialogs(true);
     setTopics([]);
     setSelectedDialogId(chatId);
@@ -360,6 +363,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         apiHash: String(apiHash),
         chatId: Number(chatId),
       });
+      if (seq !== topicsReqSeqRef.current) return;
       if (gr?.ok && gr.data) {
         setIsForumGroup(!!gr.data.isForum);
         setTopics(
@@ -374,11 +378,14 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         throw new Error(gr?.userMessage || gr?.error?.message || 'Gagal memuat topik Grammers');
       }
     } catch (err) {
+      if (seq !== topicsReqSeqRef.current) return;
       console.error(err);
       alert(`Failed to fetch topics: ${err}`);
       setIsModalOpen(false);
     } finally {
-      setIsLoadingDialogs(false);
+      if (seq === topicsReqSeqRef.current) {
+        setIsLoadingDialogs(false);
+      }
     }
   };
 

@@ -54,6 +54,17 @@ class MigrationForwarder:
         self.failed_count_val = 0
         self.start_time = None
 
+    def _get_reply_to_topic(self):
+        tid = self.config.get('dest_topic_id')
+        if tid is not None:
+            try:
+                val = int(tid)
+                if val > 0:
+                    return val
+            except (ValueError, TypeError):
+                pass
+        return None
+
     def _passes_media_filter(self, media) -> bool:
         f = self.config.get('media_filter', 'all')
         if f in ("all", "Semua"):
@@ -329,7 +340,7 @@ class MigrationForwarder:
                             self.dest,
                             file=[m.media for _, m, _ in item_ids if m.media],
                             caption=caption_text,
-                            reply_to=self.config.get('dest_topic_id'),
+                            reply_to=self._get_reply_to_topic(),
                         )
                     else:
                         downloaded_paths = []
@@ -348,21 +359,21 @@ class MigrationForwarder:
                                             entity=self.dest,
                                             path=downloaded_paths[0],
                                             caption=caption_text,
-                                            reply_to=self.config.get('dest_topic_id'),
+                                            reply_to=self._get_reply_to_topic(),
                                         )
                                     else:
                                         sent_msg = await self.client.send_file(
                                             self.dest,
                                             file=downloaded_paths,
                                             caption=caption_text,
-                                            reply_to=self.config.get('dest_topic_id'),
+                                            reply_to=self._get_reply_to_topic(),
                                         )
                                 except Exception:
                                     sent_msg = await self.client.send_file(
                                         self.dest,
                                         file=downloaded_paths,
                                         caption=caption_text,
-                                        reply_to=self.config.get('dest_topic_id'),
+                                        reply_to=self._get_reply_to_topic(),
                                     )
                             elif any((m.text or m.message) for _, m, _ in item_ids):
                                 text_body = caption_text or next(
@@ -372,7 +383,7 @@ class MigrationForwarder:
                                 sent_msg = await self.client.send_message(
                                     self.dest,
                                     text_body,
-                                    reply_to=self.config.get('dest_topic_id'),
+                                    reply_to=self._get_reply_to_topic(),
                                 )
                             else:
                                 raise Exception("Gagal mengunduh isi album.")
@@ -439,7 +450,7 @@ class MigrationForwarder:
                                 self.dest,
                                 file=[m.media for _, m, _ in item_ids if m.media],
                                 caption=caption_text,
-                                reply_to=self.config.get('dest_topic_id'),
+                                reply_to=self._get_reply_to_topic(),
                             )
                         else:
                             raise e
