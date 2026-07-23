@@ -19,7 +19,6 @@ import {
 } from '../../lib/drivePower';
 import { getDrivePerfProfile } from '../../lib/devicePerformance';
 import { isThumbsPaused, prefetchThumbs, requestVisibleThumbs, setThumbsPaused } from '../../lib/thumbBatcher';
-import { warmPreviewHead } from '../../lib/previewCache';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -387,11 +386,11 @@ export function DriveExplorer({
   ]);
 
   const warmFile = useCallback(
-    (file: DriveFile) => {
-      if (!creds || !isVideoDriveFile(file)) return;
-      warmPreviewHead(creds, folderId, file.id);
+    (_file: DriveFile) => {
+      // Disable automatic video stream pre-fetching on card hover to prevent Telegram FLOOD_WAIT_27.
+      // Video streaming will ONLY fire when the user explicitly clicks a video to open/play it.
     },
-    [creds, folderId]
+    []
   );
 
   useEffect(() => {
