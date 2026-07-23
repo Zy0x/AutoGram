@@ -586,6 +586,24 @@ async fn download_media_thumb(
             let sharp = mode.contains("jelas") || mode.contains("sharp");
             let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
             let mut sample_bytes = Vec::new();
+            let ext_hint = if name.ends_with(".webm") {
+                "webm"
+            } else if name.ends_with(".mkv") {
+                "mkv"
+            } else if name.ends_with(".mov") {
+                "mov"
+            } else if name.ends_with(".avi") {
+                "avi"
+            } else if name.ends_with(".ts") {
+                "ts"
+            } else if name.ends_with(".flv") {
+                "flv"
+            } else if name.ends_with(".wmv") {
+                "wmv"
+            } else {
+                "mp4"
+            };
+
             // Download sample bytes (up to 2MB for fast FFmpeg keyframe extraction)
             let mut iter = client.iter_download(d).chunk_size(256 * 1024);
             while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
@@ -595,7 +613,7 @@ async fn download_media_thumb(
                 }
             }
             if !sample_bytes.is_empty() {
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality) {
+                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                     return Ok(frame_bytes);
                 }
                 // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos)
@@ -612,7 +630,7 @@ async fn download_media_thumb(
                     if !tail_bytes.is_empty() {
                         let mut combined = sample_bytes.clone();
                         combined.extend_from_slice(&tail_bytes);
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality) {
+                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality, ext_hint) {
                             return Ok(frame_bytes);
                         }
                     }
@@ -682,7 +700,7 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str) -> Option<Vec<u8>> {
+fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str) -> Option<Vec<u8>> {
     let ff_exe = find_ffmpeg_binary()?;
     let mode = quality.to_lowercase();
     let sharp = mode.contains("jelas") || mode.contains("sharp");
@@ -698,12 +716,14 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str) -> Option<Vec<u
 
     let temp_dir = std::env::temp_dir();
     let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-    let sample_path = temp_dir.join(format!("autogram_vid_sample_{rand_id}.mp4"));
+    let ext = if ext_hint.is_empty() { "mp4" } else { ext_hint };
+    let sample_path = temp_dir.join(format!("autogram_vid_sample_{rand_id}.{ext}"));
     let frame_path = temp_dir.join(format!("autogram_vid_frame_{rand_id}.jpg"));
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    let status = std::process::Command::new(&ff_exe)
+    // Pass 1: Try fast keyframe extraction (-discard nokey)
+    let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
@@ -726,11 +746,39 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str) -> Option<Vec<u
         .arg(&frame_path)
         .output();
 
-    let result = if status.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
+    let mut result = if status1.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
         std::fs::read(&frame_path).ok()
     } else {
         None
     };
+
+    // Pass 2: If keyframe extraction failed, try standard decoding (no -discard nokey)
+    if result.is_none() {
+        let status2 = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .arg("-err_detect")
+            .arg("ignore_err")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-an")
+            .arg("-frames:v")
+            .arg("1")
+            .arg("-update")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        if status2.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
+            result = std::fs::read(&frame_path).ok();
+        }
+    }
 
     let _ = std::fs::remove_file(&sample_path);
     let _ = std::fs::remove_file(&frame_path);
