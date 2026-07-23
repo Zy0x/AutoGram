@@ -240,11 +240,8 @@ function queueMax(): number {
 }
 
 function maxConcurrent(): number {
-  // Bootstrap still parallelizes visible cards — single-flight made first paint lag.
-  if (bootstrapMode) {
-    return getDrivePerfProfile().tier === 'high' ? 6 : getDrivePerfProfile().tier === 'mid' ? 4 : 2;
-  }
-  return Math.max(1, getDrivePerfProfile().thumbConcurrent || 1);
+  // Cap at max 2 flights to avoid Telegram API FloodWait burst limits
+  return Math.min(2, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
 }
 
 function cacheKey(
@@ -620,7 +617,17 @@ async function flushQueue() {
         resolveTask(task, null);
       }
     }
-  } catch {
+  } catch (err) {
+    const errStr = String(err || '').toLowerCase();
+    if (errStr.includes('flood') || errStr.includes('wait') || errStr.includes('420')) {
+      const match = errStr.match(/wait of (\d+)/i);
+      const waitSecs = match ? parseInt(match[1], 10) : 15;
+      console.warn(`[thumbBatcher] FloodWait detected (${waitSecs}s). Auto-pausing scheduler.`);
+      setThumbsPaused(true);
+      setTimeout(() => {
+        setThumbsPaused(false);
+      }, Math.min(waitSecs, 60) * 1000);
+    }
     for (const task of tasks) {
       const k = task.key;
       errorFailAt.set(k, Date.now());
