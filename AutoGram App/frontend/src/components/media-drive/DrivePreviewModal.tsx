@@ -41,7 +41,7 @@ import type { DriveCredentials } from '../../lib/driveApi';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
-  driveDownload,
+  driveDownloadSpawn,
   driveStopStream,
   driveStreamSeek,
   driveStreamStatus,
@@ -101,6 +101,12 @@ type Props = {
     paths: string[],
     opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
   ) => Promise<void>;
+  onEnqueueDownloadSingle?: (opts: {
+    messageId: number;
+    folderId: number | null;
+    savePath: string;
+    name: string;
+  }) => Promise<void>;
 };
 
 type PlayQuality = {
@@ -346,6 +352,7 @@ export function DrivePreviewModal({
   onRefreshDrive,
   onOpenTransferManager,
   onEnqueueUploadPaths,
+  onEnqueueDownloadSingle,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1761,7 +1768,22 @@ export function DrivePreviewModal({
       const { save } = await import('@tauri-apps/plugin-dialog');
       const savePath = await save({ defaultPath: defaultName, title: 'Simpan file' });
       if (!savePath) return;
-      await driveDownload(creds, file.id, folderId, savePath);
+
+      if (onEnqueueDownloadSingle) {
+        await onEnqueueDownloadSingle({
+          messageId: file.id,
+          folderId,
+          savePath,
+          name: file.name,
+        });
+      } else {
+        onOpenTransferManager?.();
+        await driveDownloadSpawn(creds, file.id, folderId, savePath, {
+          onStdoutLine: () => {},
+          onStderrLine: () => {},
+          onClose: () => {},
+        });
+      }
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {

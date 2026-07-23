@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.3
+AutoGram Version: v2.2.4
 
 Current State:
-v2.2.3 Pelimpahan arsitektur pengunggahan ekstraksi ZIP ke Engine Transfer Manager pusat (runUploadPaths). Otomatis menerapkan seluruh kebijakan transfer (duplicate_policy: SKIP, concurrency, Smart Rate Controller, pause/stop) dan melakukan pembersihan diska temporary lokal.
+v2.2.4 Perbaikan fungsi pengunduhan seluruh arsip berkas ZIP ke lokal dengan mengganti driveDownload usang ke onEnqueueDownloadSingle / driveDownloadSpawn dan terintegrasi penuh ke Transfer Manager.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

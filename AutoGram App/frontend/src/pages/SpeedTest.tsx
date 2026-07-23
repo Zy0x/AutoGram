@@ -4991,6 +4991,71 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     });
   };
 
+  const handleEnqueueSingleDownload = useCallback(
+    async (opts: { messageId: number; folderId: number | null; savePath: string; name: string }) => {
+      if (!creds) return;
+      openTransferManager();
+      const currentItemsCount = transferRef.current.items.length;
+      const isActive = transferRef.current.active;
+      const startIndex = isActive ? currentItemsCount : 0;
+
+      const newTask: QueueTask = {
+        id: `download_one_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        kind: 'download_one',
+        targetFolderId: opts.folderId,
+        targetLabel: opts.name,
+        messageId: opts.messageId,
+        savePath: opts.savePath,
+        names: [opts.name],
+        options: {},
+        startIndex,
+      };
+
+      if (!isActive) {
+        if (transferHideTimer.current) clearTimeout(transferHideTimer.current);
+        void clearDriveTransferPause();
+        downloadArtifactsRef.current = new Set([opts.savePath]);
+        setTransfer(
+          seedTransferSession({
+            direction: 'download',
+            names: [opts.name],
+            label: opts.name,
+            destination: opts.savePath,
+          })
+        );
+      } else {
+        setTransfer((prev) => {
+          const newItems: TransferItem[] = [
+            {
+              id: `${newTask.id}-0`,
+              index: startIndex,
+              name: opts.name,
+              direction: 'download',
+              status: 'queued' as const,
+              percent: 0,
+              transferred: 0,
+              total: 0,
+              speed_mb_s: 0,
+              destination: opts.savePath,
+            },
+          ];
+          return {
+            ...prev,
+            items: [...prev.items, ...newItems],
+          };
+        });
+      }
+
+      transferQueueRef.current.push(newTask);
+      savePersistedQueue(transferQueueRef.current);
+      setTransferMinimized(false);
+      localStorage.setItem(LS_TM_MIN, '0');
+      setError(null);
+      void processNextQueueTask();
+    },
+    [creds, openTransferManager]
+  );
+
   const openOneInSystem = async (file: DriveFile) => {
     if (!creds) return setError('Pilih session dan API credentials dulu.');
     try {
@@ -7602,6 +7667,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           }}
           onOpenTransferManager={openTransferManager}
           onEnqueueUploadPaths={runUploadPaths}
+          onEnqueueDownloadSingle={handleEnqueueSingleDownload}
           onClose={() => setPreviewFile(null)}
           hasPrev={previewIndex > 0}
           hasNext={previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1}

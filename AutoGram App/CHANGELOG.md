@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.2.4 Perbaikan Unduh Arsip ZIP ke Lokal & Integrasi Transfer Manager
+
+### Perbaikan Bug & Integrasi Engine (`DrivePreviewModal.tsx` & `SpeedTest.tsx`)
+- **Perbaikan Referensi Fungsi Usang**:
+  - Mengeliminasi error runtime `TypeError: driveDownload is not a function` pada tombol **"Download seluruh arsip ZIP"** dengan mengganti referensi ke `driveDownloadSpawn` & `onEnqueueDownloadSingle`.
+- **Pelimpahan Pengunduhan Berkas Arsip ke Transfer Manager**:
+  - Pengunduhan arsip ZIP kini mendaftarkan tugas `download_one` ke Engine Transfer Manager Pusat.
+  - Membuka panel Transfer Manager secara otomatis untuk memantau progres byte terunduh, kecepatan transfer (MB/s), serta estimasi waktu (ETA) pengunduhan arsip ZIP.
+
 ## v2.2.3 Pelimpahan Ekstraksi ZIP ke Engine Transfer Manager Pusat
 
 ### Penyelarasan Arsitektur Transfer Engine (`DriveZipBrowser.tsx` & `SpeedTest.tsx`)
