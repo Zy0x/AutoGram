@@ -1,10 +1,9 @@
-## v2.3.29 Eliminasi Layar Hitam Blank ZIP Modal, Flexbox Height Lock & React Error Boundary
+## v2.3.29 Zero Re-Download ZIP Entry Preview Caching
 
-### Perbaikan Stabilitas & Layout ZIP Workbench (`DriveZipBrowser.tsx`, `DrivePreviewModal.tsx`, `App.css`)
-- **Proteksi Defensive Null-Safety pada ZIP Browser**: Menambahkan penanganan aman `(name || '').toLowerCase()` dan `(error || '').toLowerCase()` di `DriveZipBrowser.tsx` untuk menghentikan unhandled exception saat nama berkas bernilai `null` atau `undefined`.
-- **Dukungan Ganda Serialisasi `is_dir` & `isDir`**: Menambahkan fungsi pembantu `isZipEntryDir` untuk memetakan kedua nama atribut dari Serde Rust, memastikan pemisahan folder dan file berjalan 100% akurat.
-- **Pencegahan Collapse Flexbox modal ZIP**: Menambahkan aturan `flex: 1 1 100% !important`, `height: 100% !important`, dan `min-height: 0` pada `.drive-preview-body.is-zip-body` dan `.drive-preview-zip` di `App.css` agar modal ZIP selalu mengisi ruang 94vh penuh tanpa mengempis menjadi 0px.
-- **Implementasi `ZipErrorBoundary`**: Membungkus komponen ZIP Workbench dengan React Error Boundary sehingga bila terjadi kesalahan render visual, aplikasi menampilkan kartu error dan tombol coba lagi alih-alih mengalami pembekuan/layar polos (*blank screen*).
+### Optimasi Performa Pratinjau ZIP (`driveApi.ts`, `DriveZipBrowser.tsx`)
+- **In-Memory Session Entry Cache (`zipEntryCacheMap`)**: Mengimplementasikan peta memori `zipEntryCacheMap` di `driveApi.ts` untuk menyimpan pratinjau entri media yang telah dibaca dalam sesi arsip ZIP (`${session}_${folderId}_${messageId}`).
+- **Eliminasi Pengunduhan Ulang Telegram MTProto**: Saat media/berkas di dalam ZIP yang pernah dibuka diakses kembali (reopened), `driveZipReadEntry` mengembalikan data dari cache memori secara instan (0 ms) tanpa melakukan penarikan byte-range baru ke Telegram.
+- **Pembersihan Cache Otomatis saat Refresh (`clearZipEntryCache`)**: Tombol *Refresh Indeks* di toolbar ZIP Workbench secara otomatis memicu pembersihan cache entri sehingga pengguna tetap dapat menarik data segar saat sengaja melakukan penyegaran manual.
 
 ## v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench)
 

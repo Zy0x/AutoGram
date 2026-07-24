@@ -49,7 +49,7 @@ import {
   X,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
-import { driveZipList, driveZipReadEntry, driveZipExtractEntry } from '../../lib/driveApi';
+import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache } from '../../lib/driveApi';
 import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
 import { formatDriveBytes, type DriveFolder, type DriveChat } from '../../lib/driveTypes';
 import {
@@ -301,6 +301,8 @@ export function DriveZipBrowser({
     [driveChats, fetchedChats]
   );
 
+
+
   const unifiedDestinations = useMemo(() => {
     type DestItem = {
       key: string;
@@ -539,6 +541,10 @@ export function DriveZipBrowser({
     setPreview(null);
     setToastMsg(null);
     setSelectedEntries(new Set());
+
+    if (forceRefresh) {
+      clearZipEntryCache(creds, messageId, folderId);
+    }
 
     // 0-ms Fast Path: Serve from Session Cache if available
     const cached = !forceRefresh ? zipIndexCacheMap.get(archiveKey) : null;

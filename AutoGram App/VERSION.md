@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.28
+AutoGram Version: v2.3.29
 
 Current State:
-v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench) — membenahi `DrivePreviewModal.tsx` dan `App.css` dengan menerapkan `width: 100%`, `height: 100%`, dan `align-items: stretch` pada `.drive-preview-body.is-zip-body` & `.drive-preview-zip`. Mengeliminasi total masalah kontainer ZIP yang mengempis (*collapsed flex item*) menjadi 0px yang menyebabkan layar tampak hitam polos.
+v2.3.29 In-Memory Session Entry Preview Caching (Zero Re-Download saat Media ZIP Dibuka Kembali) — mengimplementasikan `zipEntryCacheMap` dan `clearZipEntryCache` di `driveApi.ts` serta `DriveZipBrowser.tsx`. Media/berkas di dalam ZIP yang pernah dibuka di-cache di memori sesi sehingga pembukaan ulang langsung tampil instan (0 ms) tanpa pengunduhan data ulang dari Telegram.
 
 Previous:
+v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench) — membenahi `DrivePreviewModal.tsx` dan `App.css` dengan menerapkan `width: 100%`, `height: 100%`, dan `align-items: stretch` pada `.drive-preview-body.is-zip-body` & `.drive-preview-zip`. Mengeliminasi total masalah kontainer ZIP yang mengempis (*collapsed flex item*) menjadi 0px yang menyebabkan layar tampak hitam polos.
 v2.3.27 Eliminasi Layar Hitam Blank saat Membuka ZIP Modal — membenahi pengondisian `DrivePreviewModal.tsx` pada baris 3627 agar kontainer pratinjau ZIP selalu dirender dengan indikator loading/fallback UI yang tepat meskipun kredensial `creds` belum selesai dimuat, mengeliminasi total masalah layar hitam polos.
 v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser — menambahkan kontrol toolbar interaktif (ZoomIn, ZoomOut, Reset 100%, Rotate 90° Kiri & Kanan) pada `DriveZipBrowser.tsx` untuk pratinjau media gambar di dalam ZIP Browser, menyamakan kemampuan kontrol interaktif seperti pratinjau video dan modal media utama.
 v2.3.25 Redesain Modern Glassmorphic Encrypted ZIP Card UI — memperbarui komponen pengisian password ZIP pada `DriveZipBrowser.tsx` dan `App.css`. Menyajikan kartu glassmorphic elegan dengan efek aura glowing rose red, badge status file terenkripsi, tombol toggle visibilitas password (Eye/EyeOff), input khusus dengan icon `KeyRound`, serta tombol Buka Berkas bertema gradien modern.

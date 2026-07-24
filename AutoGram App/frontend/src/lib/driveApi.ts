@@ -1231,6 +1231,18 @@ export async function driveStreamSeek(
 
 
 
+/** In-memory session cache for extracted ZIP entry previews to prevent duplicate MTProto fetches on re-open */
+const zipEntryCacheMap = new Map<string, Map<string, any>>();
+
+export function clearZipEntryCache(
+  creds: DriveCredentials,
+  messageId: number,
+  folderId: number | null
+): void {
+  const archiveKey = `${creds?.session || ''}_${folderId ?? 'root'}_${messageId}`;
+  zipEntryCacheMap.delete(archiveKey);
+}
+
 /** Lightweight Sparse ZIP listing via Grammers MTProto Range Fetch (<0.5s) & Rust native engine. */
 export async function driveZipList(
   creds: DriveCredentials,
@@ -1241,6 +1253,11 @@ export async function driveZipList(
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
+
+  if (forceRefresh) {
+    clearZipEntryCache(creds, messageId, folderId);
+  }
+
   const chatId = folderId == null ? 'me' : String(folderId);
   const apiId = Number(creds.apiId) || 0;
   const sparseOpts = {
@@ -1295,11 +1312,24 @@ export async function driveZipReadEntry(
   messageId: number,
   folderId: number | null,
   entry: string,
-  password?: string
+  password?: string,
+  forceRefresh?: boolean
 ): Promise<any> {
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
+
+  const archiveKey = `${creds?.session || ''}_${folderId ?? 'root'}_${messageId}`;
+  const passKey = password || '';
+  const entryCacheKey = `${entry}||${passKey}`;
+
+  if (!forceRefresh) {
+    const cachedObj = zipEntryCacheMap.get(archiveKey)?.get(entryCacheKey);
+    if (cachedObj && cachedObj.status === 'success') {
+      return { ...cachedObj, cached: true };
+    }
+  }
+
   const chatId = folderId == null ? 'me' : String(folderId);
   const apiId = Number(creds.apiId) || 0;
   const sparseOpts = {
@@ -1336,7 +1366,7 @@ export async function driveZipReadEntry(
       kind = 'binary';
     }
 
-    return {
+    const outObj = {
       status: 'success',
       kind,
       text: res?.textContent,
@@ -1345,6 +1375,15 @@ export async function driveZipReadEntry(
       size: res?.size,
       backend: 'grammers_sparse',
     };
+
+    let archiveMap = zipEntryCacheMap.get(archiveKey);
+    if (!archiveMap) {
+      archiveMap = new Map();
+      zipEntryCacheMap.set(archiveKey, archiveMap);
+    }
+    archiveMap.set(entryCacheKey, outObj);
+
+    return outObj;
   } catch (sparseErr: any) {
     const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca entri ZIP');
     console.warn('[driveZipReadEntry] Sparse preview error:', sparseErr);
