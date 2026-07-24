@@ -1,3 +1,11 @@
+## v2.3.36 Perbaikan Kritis Ekstraksi Frame Video MP4 (Faststart <= 2.5MB), Dynamic Recursive FFmpeg Search, & Fallback Layer Telegram
+
+### Perbaikan Kritis Thumbnail Video Grid Card (`grammers_media.rs`)
+- **Pencarian Rekursif Biner FFmpeg (`search_ffmpeg_recursive`)**: Menambahkan pencarian folder hingga 4 tingkat kedalaman (`max_depth = 4`) pada direktori sistem Windows (`LOCALAPPDATA`, `Program Files`, `Program Files (x86)`, `C:\ffmpeg`). Memungkinkan autodeteksi lokasi `ffmpeg.exe` secara instan dari aplikasi terinstal (seperti CapCut, FormatFactory, BlueStacks, dsb) tanpa bergantung pada konfigurasi PATH sistem.
+- **Rekonstruksi Faststart MP4 untuk Berkas <= 2.5MB**: Mengoreksi logika Tier 5 ekstraksi frame video pada `download_media_thumb`. Sebelumnya, video MP4 berukuran kecil (seperti 1.64 MB, 1.77 MB, 2.24 MB) yang memiliki atom `moov` di akhir file dilewati oleh pengondisian faststart. Kini, jika sampel awal telah memuat seluruh isi berkas, buffer dikirim sebagai *head & tail* ke `make_faststart_mp4(&sample_bytes, &sample_bytes)` untuk memindahkan atom `moov` ke depan `mdat` sebelum diproses FFmpeg.
+- **Dukungan Fallback Layer Thumbnail Telegram (Tier 6)**: Menambahkan penarikan layer thumbnail statis Telegram (`PhotoSize::Size` / `PhotoSize::Progressive` / `PhotoSize::Cached`) sebagai Tier 6 fallback jika ekstraksi frame FFmpeg tidak menghasilkan gambar, sehingga tidak ada berkas video yang tampil sebagai ikon filmstrip kosong.
+- **Fallback Pemilihan Layer `pick_thumb` pada Mode Seimbang**: Memperbarui `pick_thumb` agar mengembalikan layer statis terbesar yang tersedia jika kandidat resolusi >= 240px tidak ditemukan, mengeliminasi penguncian status *empty thumbnail* pada kartu grid.
+
 ## v2.3.35 Eliminasi Clipping Paint Card & Optimalisasi Spacing Atas Grid Media Drive
 
 ### Perbaikan Visual Hover Card & Jarak Elemen Atas (`App.css`, `DriveExplorer.tsx`)

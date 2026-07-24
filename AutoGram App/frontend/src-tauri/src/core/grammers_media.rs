@@ -407,7 +407,7 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
             let (_, best) = candidates[0];
             return Some(best.clone());
         }
-        return None;
+        return downloadable.last().map(|s| (*s).clone());
     }
 
     // No downloadable static layer: saver accepts stripped as final
@@ -660,10 +660,18 @@ async fn download_media_thumb(
                         return Ok(frame_bytes);
                     }
 
-                    // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos)
+                    // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos or small <=2.5MB videos)
                     let doc_size = d.size().unwrap_or(0) as usize;
                     let chunk_bytes = 256 * 1024;
-                    if doc_size > sample_bytes.len() + chunk_bytes {
+                    if doc_size <= sample_bytes.len() + chunk_bytes {
+                        // Entire video (or almost entire video) is already in sample_bytes.
+                        // Pass sample_bytes as both head and tail so make_faststart_mp4 can extract moov from the end of sample_bytes.
+                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &sample_bytes) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                return Ok(frame_bytes);
+                            }
+                        }
+                    } else {
                         let total_chunks = doc_size / chunk_bytes;
                         let skip = total_chunks.saturating_sub(12) as i32;
                         let mut tail_bytes = Vec::new();
@@ -691,7 +699,18 @@ async fn download_media_thumb(
         }
     }
 
-    // Tier 6: Last-resort fallback: return stripped/cached inline JPEG if available (instead of leaving empty card)
+    // Tier 6: Try downloading ANY available static thumbnail layer from Telegram (no dimension/quality restriction)
+    for s in &sizes {
+        if matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_) | PhotoSize::Cached(_)) {
+            if let Ok(bytes) = download_thumb_bytes(client, s).await {
+                if bytes.len() >= 64 {
+                    return Ok(bytes);
+                }
+            }
+        }
+    }
+
+    // Tier 7: Last-resort fallback: return stripped/cached inline JPEG if available (instead of leaving empty card)
     for s in &sizes {
         if let Some(data) = s.to_data() {
             let bytes = unstrip_jpeg(&data).unwrap_or(data);
@@ -882,7 +901,7 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
         }
     }
 
-    // Check common Windows installation & application locations
+    // Check common Windows installation & application locations (up to depth 4 for nested software like CapCut, FormatFactory, BlueStacks)
     if cfg!(windows) {
         let mut win_dirs = Vec::new();
         if let Ok(pf) = std::env::var("ProgramFiles") {
@@ -898,52 +917,38 @@ pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
         win_dirs.push(std::path::PathBuf::from("C:\\Tools"));
 
         for base in win_dirs {
-            if !base.is_dir() {
-                continue;
-            }
-            let direct_exe = base.join("bin").join("ffmpeg.exe");
-            if direct_exe.is_file() {
-                return Some(direct_exe);
-            }
-            let direct_root = base.join("ffmpeg.exe");
-            if direct_root.is_file() {
-                return Some(direct_root);
-            }
-            if let Ok(entries) = std::fs::read_dir(&base) {
-                for entry in entries.flatten() {
-                    let sub = entry.path();
-                    if sub.is_dir() {
-                        if let Ok(sub_entries) = std::fs::read_dir(&sub) {
-                            for sub_entry in sub_entries.flatten() {
-                                let p = sub_entry.path();
-                                if p.is_file() {
-                                    let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
-                                    if name.starts_with("ffmpeg") && name.ends_with(".exe") {
-                                        return Some(p);
-                                    }
-                                }
-                            }
-                        }
-                        let bin_dir = sub.join("bin");
-                        if bin_dir.is_dir() {
-                            if let Ok(bin_entries) = std::fs::read_dir(&bin_dir) {
-                                for bin_entry in bin_entries.flatten() {
-                                    let p = bin_entry.path();
-                                    if p.is_file() {
-                                        let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
-                                        if name.starts_with("ffmpeg") && name.ends_with(".exe") {
-                                            return Some(p);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            if let Some(p) = search_ffmpeg_recursive(&base, 4) {
+                return Some(p);
             }
         }
     }
 
+    None
+}
+
+fn search_ffmpeg_recursive(dir: &std::path::Path, max_depth: usize) -> Option<std::path::PathBuf> {
+    if max_depth == 0 || !dir.is_dir() {
+        return None;
+    }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        let mut subdirs = Vec::new();
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_file() {
+                let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                if name.starts_with("ffmpeg") && (name.ends_with(".exe") || !cfg!(windows)) {
+                    return Some(p);
+                }
+            } else if p.is_dir() {
+                subdirs.push(p);
+            }
+        }
+        for sub in subdirs {
+            if let Some(found) = search_ffmpeg_recursive(&sub, max_depth - 1) {
+                return Some(found);
+            }
+        }
+    }
     None
 }
 
