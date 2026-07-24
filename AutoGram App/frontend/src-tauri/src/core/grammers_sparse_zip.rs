@@ -171,51 +171,6 @@ impl<'a> Seek for TelegramSparseReader<'a> {
     }
 }
 
-/// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
-pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
-    let rt = runtime()?;
-    let identity = TelegramIdentity {
-        session: opts.session.clone(),
-        api_id: opts.api_id,
-        api_hash: opts.api_hash.clone(),
-    };
-    let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
-    let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
-    let peer = resolve_peer(&live.client, &opts.chat_id).await?;
-
-    let msg = live
-        .client
-        .get_messages_by_id(peer, &[opts.message_id])
-        .await
-        .map_err(|e| map_invocation(&e))?
-        .pop()
-        .flatten()
-        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Pesan tidak ditemukan"))?;
-
-    let media = msg
-        .media()
-        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
-
-    let location = media_to_input_location(&media).ok_or_else(|| {
-        TgError::new(
-            TgErrorCode::Internal,
-            "Media bukan dokumen ZIP Telegram yang valid",
-        )
-    })?;
-
-    let doc_size = match &media {
-        Media::Document(d) => d.size().unwrap_or(0) as u64,
-        _ => 0,
-    };
-
-    if doc_size == 0 {
-        return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
-    }
-
-    let client = live.client.clone();
-    let session = live.session.clone();
-    let session_path = live.session_path.clone();
-
 fn parse_central_directory_fast(
     reader: &mut TelegramSparseReader,
     doc_size: u64,
