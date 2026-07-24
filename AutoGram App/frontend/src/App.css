@@ -11739,6 +11739,20 @@ body:has(.td-page),
   color: #f8fafc !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
+.drive-preview-zip {
+  flex: 1 1 100%;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+}
+.drive-preview-body.is-zip-body {
+  padding: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+}
 .drive-zip-cat-tab.active {
   background: linear-gradient(135deg, rgba(255, 174, 0, 0.25) 0%, rgba(245, 158, 11, 0.18) 100%) !important;
   border-color: rgba(255, 174, 0, 0.6) !important;

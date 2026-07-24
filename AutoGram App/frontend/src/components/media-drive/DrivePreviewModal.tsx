@@ -2819,9 +2819,10 @@ export function DrivePreviewModal({
           )}
 
         <div
-          className="drive-preview-body"
+          className={`drive-preview-body${isZip ? ' is-zip-body' : ''}`}
           ref={stageRef}
           onWheel={onWheelStage}
+          style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
             <div className="drive-empty">
@@ -3625,7 +3626,7 @@ export function DrivePreviewModal({
 
           {/* Unified, Full-Bleed ZIP Workbench */}
           {isZip && (
-            <div className="drive-preview-doc drive-preview-zip" style={{ height: '100%', minHeight: 0, padding: 0 }}>
+            <div className="drive-preview-doc drive-preview-zip" style={{ width: '100%', height: '100%', minHeight: 0, minWidth: 0, padding: 0 }}>
               {creds ? (
                 <DriveZipBrowser
                   creds={creds}

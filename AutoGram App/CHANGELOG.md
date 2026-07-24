@@ -1,3 +1,9 @@
+## v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench)
+
+### Perbaikan Tata Letak Flexbox (`DrivePreviewModal.tsx`, `App.css`)
+- **Pencegahan Collapse Flex Item pada Kontainer ZIP**: Menambahkan kelas CSS `.drive-preview-body.is-zip-body` dan properti `width: 100%`, `height: 100%`, `align-items: stretch !important` pada `.drive-preview-zip`.
+- **Eliminasi Total Layar Hitam Polos**: Mengeliminasi akar masalah di mana kontainer `.drive-preview-zip` mengempis menjadi 0px di dalam flex container modal, memastikan ZIP Workbench selalu tampil penuh 100% full-bleed tanpa mengalami kehitaman/pengecilan layout.
+
 ## v2.3.27 Eliminasi Layar Hitam Blank saat Membuka ZIP Modal
 
 ### Perbaikan Pengondisian Modal (`DrivePreviewModal.tsx`)
