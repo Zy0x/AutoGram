@@ -75,28 +75,9 @@ pub struct SparseZipOpts {
     pub force_refresh: Option<bool>,
 }
 
-fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation> {
-    match media {
-        Media::Document(d) => match &d.raw.document {
-            Some(tl::enums::Document::Document(doc)) => {
-                Some(tl::enums::InputFileLocation::InputDocumentFileLocation(
-                    tl::types::InputDocumentFileLocation {
-                        id: doc.id,
-                        access_hash: doc.access_hash,
-                        file_reference: doc.file_reference.clone(),
-                        thumb_size: String::new(),
-                    },
-                ))
-            }
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
 pub struct TelegramSparseReader<'a> {
     client: &'a grammers_client::Client,
-    location: tl::enums::InputFileLocation,
+    media: Media,
     doc_size: u64,
     pos: u64,
     cache: HashMap<u64, Vec<u8>>,
@@ -106,13 +87,13 @@ pub struct TelegramSparseReader<'a> {
 impl<'a> TelegramSparseReader<'a> {
     pub fn new(
         client: &'a grammers_client::Client,
-        location: tl::enums::InputFileLocation,
+        media: Media,
         doc_size: u64,
         rt: &'static tokio::runtime::Runtime,
     ) -> Self {
         Self {
             client,
-            location,
+            media,
             doc_size,
             pos: 0,
             cache: HashMap::new(),
@@ -145,20 +126,42 @@ impl<'a> TelegramSparseReader<'a> {
 
         let limit = BLOCK_SIZE as i32;
         let client = self.client;
-        let location = self.location.clone();
+        let media = self.media.clone();
 
         let fetch_fut = async move {
-            let req = tl::functions::upload::GetFile {
-                precise: false,
-                cdn_supported: false,
-                location,
-                offset: block_offset as i64,
-                limit,
-            };
-            match client.invoke(&req).await {
-                Ok(tl::enums::upload::File::File(f)) => Ok(f.bytes),
-                Ok(_) => Ok(Vec::new()),
-                Err(e) => Err(IoError::new(IoErrorKind::Other, format!("GetFile MTProto failed: {e}"))),
+            let skip = block_idx.min(i32::MAX as u64) as i32;
+            let mut iter = client
+                .iter_download(&media)
+                .chunk_size(limit)
+                .skip_chunks(skip);
+            let mut retries = 0;
+            loop {
+                match iter.next().await {
+                    Ok(Some(bytes)) => break Ok(bytes),
+                    Ok(None) => break Ok(Vec::new()),
+                    Err(e) => {
+                        let mapped = map_invocation(&e);
+                        if mapped.code() == TgErrorCode::FloodWait {
+                            if let Some(secs) = mapped.flood_wait_secs() {
+                                tokio::time::sleep(std::time::Duration::from_secs(u64::from(secs))).await;
+                            }
+                        } else {
+                            tokio::time::sleep(std::time::Duration::from_millis(300 * (1 << retries))).await;
+                        }
+                        retries += 1;
+                        if retries > 3 {
+                            break Err(IoError::new(
+                                IoErrorKind::Other,
+                                format!("GetFile MTProto failed: {e}"),
+                            ));
+                        }
+                        let skip = block_idx.min(i32::MAX as u64) as i32;
+                        iter = client
+                            .iter_download(&media)
+                            .chunk_size(limit)
+                            .skip_chunks(skip);
+                    }
+                }
             }
         };
 
@@ -401,13 +404,6 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         .media()
         .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
 
-    let location = media_to_input_location(&media).ok_or_else(|| {
-        TgError::new(
-            TgErrorCode::Internal,
-            "Media bukan dokumen ZIP Telegram yang valid",
-        )
-    })?;
-
     let doc_size = match &media {
         Media::Document(d) => d.size().unwrap_or(0) as u64,
         _ => 0,
@@ -420,9 +416,10 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     let client = live.client.clone();
     let session = live.session.clone();
     let session_path = live.session_path.clone();
+    let media_cloned = media.clone();
 
     let res = tokio::task::spawn_blocking(move || {
-        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let mut sparse_reader = TelegramSparseReader::new(&client, media_cloned, doc_size, rt);
         let _ = sparse_reader.prefetch_tail();
 
         // FAST PATH: Zero-seek Central Directory parser directly from tail memory buffer
@@ -618,13 +615,6 @@ pub async fn preview_zip_entry_sparse(
         .media()
         .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
 
-    let location = media_to_input_location(&media).ok_or_else(|| {
-        TgError::new(
-            TgErrorCode::Internal,
-            "Media bukan dokumen ZIP Telegram yang valid",
-        )
-    })?;
-
     let doc_size = match &media {
         Media::Document(d) => d.size().unwrap_or(0) as u64,
         _ => 0,
@@ -637,9 +627,10 @@ pub async fn preview_zip_entry_sparse(
     let client = live.client.clone();
     let session = live.session.clone();
     let session_path = live.session_path.clone();
+    let media_cloned = media.clone();
 
     tokio::task::spawn_blocking(move || {
-        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let mut sparse_reader = TelegramSparseReader::new(&client, media_cloned, doc_size, rt);
 
         // FAST DIRECT PATH: Read single entry directly from local_header_offset without tail prefetch & without archive re-scan
         if let Some(ref entry) = target_entry {
@@ -779,13 +770,6 @@ pub async fn extract_zip_entry_sparse(
         .media()
         .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
 
-    let location = media_to_input_location(&media).ok_or_else(|| {
-        TgError::new(
-            TgErrorCode::Internal,
-            "Media bukan dokumen ZIP Telegram yang valid",
-        )
-    })?;
-
     let doc_size = match &media {
         Media::Document(d) => d.size().unwrap_or(0) as u64,
         _ => 0,
@@ -798,9 +782,10 @@ pub async fn extract_zip_entry_sparse(
     let client = live.client.clone();
     let session = live.session.clone();
     let session_path = live.session_path.clone();
+    let media_cloned = media.clone();
 
     tokio::task::spawn_blocking(move || {
-        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let mut sparse_reader = TelegramSparseReader::new(&client, media_cloned, doc_size, rt);
 
         // FAST DIRECT PATH: Extract single entry directly from local_header_offset without tail prefetch
         if let Some(ref entry) = target_entry {

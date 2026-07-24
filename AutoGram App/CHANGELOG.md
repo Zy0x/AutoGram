@@ -1,3 +1,10 @@
+## v2.3.34 Perbaikan Kritis Multi-DC FILE_MIGRATE (RPC Error 303) pada Navigasi Pratinjau ZIP & Media
+
+### Penanganan Otomatis Datacenter Migration (`grammers_sparse_zip.rs`)
+- **Migrasi dari Raw MTProto RPC `upload.getFile` ke Grammers `iter_download`**: Memperbarui implementasi `TelegramSparseReader` di `grammers_sparse_zip.rs` agar menggunakan `client.iter_download(&media)` yang dikombinasikan dengan `.chunk_size(512 * 1024)` dan `.skip_chunks(block_idx)`.
+- **Eliminasi Error `FILE_MIGRATE` (RPC Error 303)**: Permintaan MTProto mentah `client.invoke(&upload::GetFile)` bawaan sebelumnya gagal secara instan dengan error `FILE_MIGRATE (value: 2)` apabila berkas media berada pada Datacenter Telegram selain DC utama sesi client. Grammers `iter_download` kini secara otomatis mengelola koneksi multi-DC, ekspor otorisasi sesi, serta pengalihan DC tanpa menimbulkan kesalahan.
+- **Resilient Retry Loop & FloodWait Handling**: Menambahkan mekanisme perulangan percobaan ulang (*retry loop*) serta otomatis *sleep delay* saat terjadi `FloodWait` atau kendala koneksi transient saat pengguna mengeklik prev/next di pratinjau media secara cepat.
+
 ## v2.3.33 Fix Presisi Topic Mapping pada Ekstraksi ZIP Preview Modal
 
 ### Perbaikan Logika Pemetaan Destinasi & Topik Target (`DriveZipBrowser.tsx`, `SpeedTest.tsx`)

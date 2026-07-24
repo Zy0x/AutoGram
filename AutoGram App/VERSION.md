@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.33
+AutoGram Version: v2.3.34
 
 Current State:
+v2.3.34 Perbaikan Kritis Multi-DC FILE_MIGRATE (RPC Error 303) pada Navigasi Cepat Pratinjau ZIP & Media — memperbarui `TelegramSparseReader` di `grammers_sparse_zip.rs` agar menggunakan `client.iter_download(&media)` yang dilengkapi *retry loop* dan penanganan otomatis *datacenter migration* (DC 1–5). Mengeliminasi total kesalahan `i/o error: GetFile MTProto failed: request error: rpc error 303: FILE_MIGRATE caused by upload.getFile (value: 2)` saat melakukan prev/next cepat atau membuka arsip ZIP di Telegram Data Center non-default.
+
+Previous:
 v2.3.33 Fix Presisi Topic Mapping pada Ekstraksi ZIP Preview Modal (Pesan Tersimpan, Drive Folder, Chat, & Forum Topic Target) — membenahi `DriveZipBrowser.tsx` dan `SpeedTest.tsx`. Mengatasi akar masalah kesalahan upload ke topik saat ini dengan melewatkan `topicId` & `skipTopic` secara presisi dari modal pemilihan destinasi ekstraksi ke `runUploadPaths`, serta mencegah fallback otomatis `topicFilterRef.current` ketika destinasi target memiliki topik khusus (atau tanpa topik).
 
 Previous:
