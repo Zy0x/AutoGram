@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.3
+AutoGram Version: v2.3.4
 
 Current State:
-v2.3.3 Perbaikan bug kritis ReferenceError `requireGrammersIdentity` & penambahan pembantu `resolveGrammersIdentity` pada penghapusan/pemindahan media di `driveApi.ts`. Otomatis melengkapi `apiId` & `apiHash` dari secure credentials store jika kredensial UI tidak lengkap.
+v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (Zero-Refetch Optimistic Update, Pembersihan Global Cache Memori, Sinkronisasi IndexedDB Real-time, dan Presisi Target Channel ID per File).
 
 Previous:
+v2.3.3 Perbaikan bug kritis ReferenceError `requireGrammersIdentity` & penambahan pembantu `resolveGrammersIdentity` pada penghapusan/pemindahan media di `driveApi.ts`. Otomatis melengkapi `apiId` & `apiHash` dari secure credentials store jika kredensial UI tidak lengkap.
 v2.3.2 Optimalisasi kecepatan penghapusan media & Instant Fast-Fail pada error perizinan (`CHAT_ADMIN_REQUIRED` / `MESSAGE_DELETE_FORBIDDEN`) serta penerapan in-memory `PEER_RESOLVE_CACHE` di Rust Grammers Engine. Mengeliminasi 50x network retry loop & pencarian `iter_dialogs` berulang.
 v2.3.1 Perbaikan error banner & reset loading state (`setLoadingFiles` & `setTopicsLoading`) saat penghapusan media/topik terhalang perizinan (seperti `CHAT_ADMIN_REQUIRED` atau `MESSAGE_DELETE_FORBIDDEN`). Preservasi error banner dan penanganan `finally` tanpa syarat mengeliminasi ikon refresh yang berputar tanpa henti.
 v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine). Seluruh modul (Auth, Media Drive, Stream Video, Upload, Download, Migration Engine, Jobs, Profiles, Automations, dan Statistics) kini berjalan 100% murni di Rust.

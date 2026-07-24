@@ -143,6 +143,20 @@ export async function deleteMediaRecord(folderId: number, id: number): Promise<v
   await requestToPromise(tx.objectStore('media').delete([folderId, id]));
 }
 
+export async function deleteMediaRecordsBatch(folderId: number, ids: number[]): Promise<void> {
+  if (!ids || !ids.length) return;
+  const db = await initDb();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('media', 'readwrite');
+    const store = tx.objectStore('media');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete media records batch'));
+    for (const id of ids) {
+      store.delete([folderId, id]);
+    }
+  });
+}
+
 export async function clearFolderMedia(folderId: number): Promise<void> {
   const db = await initDb();
   return new Promise<void>((resolve, reject) => {

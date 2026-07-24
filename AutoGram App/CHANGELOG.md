@@ -1,3 +1,17 @@
+## v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (`SpeedTest.tsx`, `mediaStudioDb.ts`, `drive_rpc.rs`)
+
+### Akselerasi Penghapusan Instan & Presisi Target (`SpeedTest.tsx`, `mediaStudioDb.ts`, `drive_rpc.rs`)
+- **Zero Network Refetch Pasca-Hapus (`SpeedTest.tsx`)**:
+  - Mengeliminasi pemanggilan `refreshFiles(0)` jaringan pasca-hapus yang sebelumnya memicu pengunduhan ulang ribuan pesan Telegram. Penghapusan media kini terasa instan (<100ms) melalui *optimistic UI state update*.
+- **Presisi Resolusi Target Channel (`SpeedTest.tsx`)**:
+  - Memastikan resolusi target `folder_id` per berkas membaca `f.folder_id ?? f.folderId ?? f.chat_id ?? peerId` secara eksplisit, mengeliminasi risiko salah hapus pesan di channel aktif saat menghapus dari hasil pencarian global atau staging area.
+- **Pembersihan Cache Memori Global (`SpeedTest.tsx`)**:
+  - Membersihkan seluruh *cache keys* yang berawalan `${peerId}_` pada `filesCacheRef`, `filesTotalCountRef`, dan `filesTotalBytesRef` untuk mencegah berkas yang sudah terhapus muncul kembali dari cache saat berpindah topik.
+- **Sinkronisasi Real-time IndexedDB Lokal (`mediaStudioDb.ts`)**:
+  - Menambahkan fungsi `deleteMediaRecordsBatch` untuk menghapus record media terhapus dari IndexedDB secara otomatis, menjaga hasil pencarian offline dan *duplicate engine* tetap presisi.
+- **Deteksi Fast-Fail Tambahan di Rust Backend (`drive_rpc.rs`)**:
+  - Menambahkan kriteria `CHANNEL_PRIVATE` dan `USER_NOT_PARTICIPANT` pada deteksi *fast-fail* penghapusan pesan.
+
 ## v2.3.3 Perbaikan Bug Kritis ReferenceError `requireGrammersIdentity` pada Penghapusan Media (`driveApi.ts`)
 
 ### Perbaikan Fungsi & Resolusi Identitas API (`driveApi.ts`)

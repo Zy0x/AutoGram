@@ -78,6 +78,7 @@ import {
   getCheckpoint,
   saveMediaRecords,
   deleteMediaRecord,
+  deleteMediaRecordsBatch,
   enqueueAction,
   getPendingActions,
   updateActionStatus,
@@ -4916,8 +4917,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       try {
         setStatusText(n === 1 ? 'Menghapus…' : `Menghapus ${n} file…`);
         const items = ids.map((id) => {
-          const f = files.find((x) => x.id === id);
-          return { id, folderId: (f as any)?.folder_id ?? (f as any)?.folderId ?? peerId };
+          const f = files.find((x) => x.id === id) || liveFilesRef.current.find((x) => x.id === id);
+          const targetFolder = (f as any)?.folder_id ?? (f as any)?.folderId ?? (f as any)?.chat_id ?? peerId;
+          return { id, folderId: targetFolder };
         });
         const res = await driveDeleteBatch(creds, items, peerId);
         const failed = Array.isArray((res as any)?.failed) ? (res as any).failed : [];
@@ -4928,15 +4930,28 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const deletedSet = new Set(deletedIds);
           setFiles((prev) => prev.filter((f) => !deletedSet.has(f.id)));
           liveFilesRef.current = liveFilesRef.current.filter((f) => !deletedSet.has(f.id));
-          const tid = topicFilterRef.current;
-          const cacheKey = `${peerId}_${tid || ''}`;
-          filesCacheRef.current.delete(cacheKey);
+
+          // 1. Purge all cache keys associated with this peer/chat
+          const prefix = `${peerId}_`;
+          for (const key of Array.from(filesCacheRef.current.keys())) {
+            if (key.startsWith(prefix) || key === String(peerId)) {
+              filesCacheRef.current.delete(key);
+              filesTotalCountRef.current.delete(key);
+              filesTotalBytesRef.current.delete(key);
+            }
+          }
+
+          // 2. Synchronize local IndexedDB store in background
+          if (peerId) {
+            void deleteMediaRecordsBatch(peerId, deletedIds).catch((e) =>
+              console.warn('deleteMediaRecordsBatch sync warning:', e)
+            );
+          }
         }
 
         setSelectedIds([]);
         selectionAnchorRef.current = null;
         const hasFailed = failed.length > 0;
-        await refreshFiles(0, { preserveError: hasFailed });
 
         if (hasFailed) {
           setError(
@@ -4963,9 +4978,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           const idsSet = new Set(ids);
           setFiles(prev => prev.filter(f => !idsSet.has(f.id)));
           liveFilesRef.current = liveFilesRef.current.filter((f) => !idsSet.has(f.id));
-          const tid = topicFilterRef.current;
-          const cacheKey = `${peerId}_${tid || ''}`;
-          filesCacheRef.current.delete(cacheKey);
+          const prefix = `${peerId}_`;
+          for (const key of Array.from(filesCacheRef.current.keys())) {
+            if (key.startsWith(prefix) || key === String(peerId)) {
+              filesCacheRef.current.delete(key);
+              filesTotalCountRef.current.delete(key);
+              filesTotalBytesRef.current.delete(key);
+            }
+          }
           setSelectedIds([]);
           selectionAnchorRef.current = null;
           setStatusText(n === 1 ? 'Hapus diantre (offline)' : `${n} hapus diantre (offline)`);
@@ -4977,7 +4997,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         setLoadingFiles(false);
       }
     },
-    [creds, peerId, refreshFiles]
+    [creds, peerId, files]
   );
 
   const handleDeleteIds = useCallback(

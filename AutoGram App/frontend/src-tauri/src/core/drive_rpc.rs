@@ -182,7 +182,9 @@ pub fn delete_messages_blocking(
                             let is_perm_err = tg_err.code() == TgErrorCode::NotAuthorized
                                 || user_msg.contains("CHAT_ADMIN_REQUIRED")
                                 || user_msg.contains("MESSAGE_DELETE_FORBIDDEN")
-                                || user_msg.contains("CHAT_WRITE_FORBIDDEN");
+                                || user_msg.contains("CHAT_WRITE_FORBIDDEN")
+                                || user_msg.contains("CHANNEL_PRIVATE")
+                                || user_msg.contains("USER_NOT_PARTICIPANT");
 
                             if is_perm_err {
                                 tg_log::warn(
