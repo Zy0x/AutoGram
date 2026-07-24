@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -337,6 +337,68 @@ function pointerIdMatches(a: number, b: number): boolean {
 
 let globalStreamTeardownGen = 0;
 let activeMountGen = 0;
+
+type ZipErrorBoundaryProps = {
+  onClose?: () => void;
+  children: ReactNode;
+};
+
+type ZipErrorBoundaryState = {
+  hasError: boolean;
+  error: string | null;
+};
+
+class ZipErrorBoundary extends Component<ZipErrorBoundaryProps, ZipErrorBoundaryState> {
+  constructor(props: ZipErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: unknown): ZipErrorBoundaryState {
+    return {
+      hasError: true,
+      error: String((error as any)?.message || error || 'Gagal merender ZIP Browser'),
+    };
+  }
+
+  componentDidCatch(error: unknown, errorInfo: unknown) {
+    console.error('[ZipErrorBoundary] Component render error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="drive-zip-browser is-error" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+          <p style={{ fontWeight: 600, fontSize: '1rem', color: '#f87171', marginBottom: 12 }}>
+            Terjadi kesalahan visual saat memuat ZIP Workbench
+          </p>
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: 16, maxWidth: 420 }}>
+            {this.state.error}
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              className="td-btn-primary"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Coba Ulang
+            </button>
+            {this.props.onClose && (
+              <button
+                type="button"
+                className="td-btn-secondary"
+                onClick={this.props.onClose}
+              >
+                Tutup Modal
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function DrivePreviewModal({
   file,
@@ -3628,24 +3690,26 @@ export function DrivePreviewModal({
           {isZip && (
             <div className="drive-preview-doc drive-preview-zip" style={{ width: '100%', height: '100%', minHeight: 0, minWidth: 0, padding: 0 }}>
               {creds ? (
-                <DriveZipBrowser
-                  creds={creds}
-                  messageId={file.id}
-                  folderId={folderId}
-                  archiveName={displayName}
-                  onClose={onClose}
-                  onPrev={hasPrev ? () => onPrev?.() : undefined}
-                  onNext={hasNext ? () => onNext?.() : undefined}
-                  hasPrev={hasPrev}
-                  hasNext={hasNext}
-                  onDownloadZip={handleDownload}
-                  onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
-                  folders={folders}
-                  chats={chats}
-                  onRefreshDrive={onRefreshDrive}
-                  onOpenTransferManager={onOpenTransferManager}
-                  onEnqueueUploadPaths={onEnqueueUploadPaths}
-                />
+                <ZipErrorBoundary onClose={onClose}>
+                  <DriveZipBrowser
+                    creds={creds}
+                    messageId={file.id}
+                    folderId={folderId}
+                    archiveName={displayName}
+                    onClose={onClose}
+                    onPrev={hasPrev ? () => onPrev?.() : undefined}
+                    onNext={hasNext ? () => onNext?.() : undefined}
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    onDownloadZip={handleDownload}
+                    onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+                    folders={folders}
+                    chats={chats}
+                    onRefreshDrive={onRefreshDrive}
+                    onOpenTransferManager={onOpenTransferManager}
+                    onEnqueueUploadPaths={onEnqueueUploadPaths}
+                  />
+                </ZipErrorBoundary>
               ) : (
                 <div className="drive-zip-browser is-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
                   <Loader2 size={36} className="spin" style={{ color: '#ffae00', marginBottom: 12 }} />

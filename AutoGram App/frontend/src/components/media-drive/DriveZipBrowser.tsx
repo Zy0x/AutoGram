@@ -40,6 +40,8 @@ import {
   EyeOff,
   KeyRound,
   ShieldAlert,
+  SquareCheck,
+  SquareMinus,
   Unlock,
   Users,
   Volume2,
@@ -69,9 +71,16 @@ export type ZipEntry = {
   name: string;
   size: number;
   compressed_size?: number;
-  is_dir: boolean;
+  compressedSize?: number;
+  is_dir?: boolean;
+  isDir?: boolean;
   method?: number;
 };
+
+export function isZipEntryDir(e: ZipEntry | null | undefined): boolean {
+  if (!e) return false;
+  return !!(e.is_dir || e.isDir);
+}
 
 type Props = {
   creds: DriveCredentials;
@@ -98,19 +107,19 @@ type Props = {
 type Category = 'all' | 'image' | 'doc' | 'media';
 
 function parentPath(path: string): string {
-  const p = path.replace(/\\/g, '/').replace(/\/+$/, '');
+  const p = (path || '').replace(/\\/g, '/').replace(/\/+$/, '');
   const i = p.lastIndexOf('/');
   return i <= 0 ? '' : p.slice(0, i);
 }
 
 function joinPath(dir: string, name: string): string {
-  if (!dir) return name;
-  return `${dir.replace(/\/+$/, '')}/${name}`;
+  if (!dir) return name || '';
+  return `${dir.replace(/\/+$/, '')}/${name || ''}`;
 }
 
-function matchesCategory(name: string, cat: Category): boolean {
+function matchesCategory(name: string | null | undefined, cat: Category): boolean {
   if (cat === 'all') return true;
-  const n = name.toLowerCase();
+  const n = String(name || '').toLowerCase();
   if (cat === 'image') return /\.(png|jpe?g|gif|webp|bmp|svg|ico)$/i.test(n);
   if (cat === 'doc') return /\.(txt|md|json|csv|log|xml|ya?ml|html?|css|js|ts|tsx|jsx|py|rs|sql|ini|toml|sh|bat|c|cpp|h|hpp|java|kt|go|php|pdf)$/i.test(n);
   if (cat === 'media') return /\.(mp4|webm|mp3|ogg|wav|mkv|avi|flac|aac)$/i.test(n);
@@ -121,19 +130,21 @@ function basenamesAt(entries: ZipEntry[], cwd: string, query: string, category: 
   folders: { name: string; path: string }[];
   files: ZipEntry[];
 } {
-  const cleanQ = query.trim().toLowerCase();
+  const cleanQ = (query || '').trim().toLowerCase();
+  const safeEntries = Array.isArray(entries) ? entries : [];
 
   // Flatten search when query is active
   if (cleanQ) {
     const files: ZipEntry[] = [];
-    for (const e of entries) {
-      if (e.is_dir) continue;
+    for (const e of safeEntries) {
+      if (!e) continue;
+      if (isZipEntryDir(e)) continue;
       const full = (e.name || '').replace(/\\/g, '/');
       if (matchesCategory(full, category) && full.toLowerCase().includes(cleanQ)) {
         files.push({ ...e, name: full });
       }
     }
-    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    files.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
     return { folders: [], files };
   }
 
@@ -141,7 +152,8 @@ function basenamesAt(entries: ZipEntry[], cwd: string, query: string, category: 
   const folderSet = new Map<string, string>();
   const files: ZipEntry[] = [];
 
-  for (const e of entries) {
+  for (const e of safeEntries) {
+    if (!e) continue;
     const full = (e.name || '').replace(/\\/g, '/');
     if (prefix && !full.startsWith(prefix)) continue;
     const rest = prefix ? full.slice(prefix.length) : full;
@@ -150,7 +162,7 @@ function basenamesAt(entries: ZipEntry[], cwd: string, query: string, category: 
     if (slash >= 0) {
       const seg = rest.slice(0, slash);
       if (seg) folderSet.set(seg, joinPath(cwd, seg));
-    } else if (e.is_dir) {
+    } else if (isZipEntryDir(e)) {
       const seg = rest.replace(/\/+$/, '');
       if (seg) folderSet.set(seg, joinPath(cwd, seg));
     } else if (matchesCategory(full, category)) {
@@ -162,19 +174,20 @@ function basenamesAt(entries: ZipEntry[], cwd: string, query: string, category: 
     .map(([name, path]) => ({ name, path }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   files.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
   );
   return { folders, files };
 }
 
 function entryLabel(full: string, cwd: string): string {
+  const safeFull = full || '';
   const prefix = cwd ? `${cwd.replace(/\/+$/, '')}/` : '';
-  const rest = prefix && full.startsWith(prefix) ? full.slice(prefix.length) : full;
-  return rest.replace(/\/+$/, '') || full;
+  const rest = prefix && safeFull.startsWith(prefix) ? safeFull.slice(prefix.length) : safeFull;
+  return rest.replace(/\/+$/, '') || safeFull;
 }
 
-function iconForFile(name: string) {
-  const n = name.toLowerCase();
+function iconForFile(name: string | null | undefined) {
+  const n = String(name || '').toLowerCase();
   if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n)) return ImageIcon;
   if (/\.(mp4|webm|mkv|avi)$/i.test(n)) return Film;
   if (/\.(mp3|ogg|wav|flac)$/i.test(n)) return Music;
@@ -608,13 +621,14 @@ export function DriveZipBrowser({
 
   const categoryCounts = useMemo(() => {
     let images = 0, docs = 0, media = 0;
-    for (const e of entries) {
-      if (e.is_dir) continue;
+    const safeEntries = Array.isArray(entries) ? entries : [];
+    for (const e of safeEntries) {
+      if (!e || isZipEntryDir(e)) continue;
       if (matchesCategory(e.name, 'image')) images++;
       if (matchesCategory(e.name, 'doc')) docs++;
       if (matchesCategory(e.name, 'media')) media++;
     }
-    return { all: entries.filter((e) => !e.is_dir).length, images, docs, media };
+    return { all: safeEntries.filter((e) => e && !isZipEntryDir(e)).length, images, docs, media };
   }, [entries]);
 
   const compRatio = useMemo(() => {
@@ -885,7 +899,8 @@ export function DriveZipBrowser({
   }
 
   if (error && entries.length === 0) {
-    const isEncryptedErr = error.toLowerCase().includes('password') || error.toLowerCase().includes('dienkripsi');
+    const errStr = String(error || '');
+    const isEncryptedErr = errStr.toLowerCase().includes('password') || errStr.toLowerCase().includes('dienkripsi');
     return (
       <div className="drive-zip-browser is-error" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
         <Archive size={44} style={{ color: isEncryptedErr ? '#f59e0b' : '#ef4444', marginBottom: '1rem' }} />
@@ -1127,6 +1142,16 @@ export function DriveZipBrowser({
                   </span>
                 )}
               </>
+            )}
+            {extracting && (
+              <button
+                type="button"
+                className="td-btn-secondary"
+                style={{ fontSize: '0.72rem', padding: '2px 8px', borderColor: '#ef4444', color: '#f87171' }}
+                onClick={handleCancelExtraction}
+              >
+                <X size={12} /> Batalkan Ekstraksi
+              </button>
             )}
           </div>
 

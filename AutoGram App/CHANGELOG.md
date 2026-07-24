@@ -1,3 +1,11 @@
+## v2.3.29 Eliminasi Layar Hitam Blank ZIP Modal, Flexbox Height Lock & React Error Boundary
+
+### Perbaikan Stabilitas & Layout ZIP Workbench (`DriveZipBrowser.tsx`, `DrivePreviewModal.tsx`, `App.css`)
+- **Proteksi Defensive Null-Safety pada ZIP Browser**: Menambahkan penanganan aman `(name || '').toLowerCase()` dan `(error || '').toLowerCase()` di `DriveZipBrowser.tsx` untuk menghentikan unhandled exception saat nama berkas bernilai `null` atau `undefined`.
+- **Dukungan Ganda Serialisasi `is_dir` & `isDir`**: Menambahkan fungsi pembantu `isZipEntryDir` untuk memetakan kedua nama atribut dari Serde Rust, memastikan pemisahan folder dan file berjalan 100% akurat.
+- **Pencegahan Collapse Flexbox modal ZIP**: Menambahkan aturan `flex: 1 1 100% !important`, `height: 100% !important`, dan `min-height: 0` pada `.drive-preview-body.is-zip-body` dan `.drive-preview-zip` di `App.css` agar modal ZIP selalu mengisi ruang 94vh penuh tanpa mengempis menjadi 0px.
+- **Implementasi `ZipErrorBoundary`**: Membungkus komponen ZIP Workbench dengan React Error Boundary sehingga bila terjadi kesalahan render visual, aplikasi menampilkan kartu error dan tombol coba lagi alih-alih mengalami pembekuan/layar polos (*blank screen*).
+
 ## v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench)
 
 ### Perbaikan Tata Letak Flexbox (`DrivePreviewModal.tsx`, `App.css`)
