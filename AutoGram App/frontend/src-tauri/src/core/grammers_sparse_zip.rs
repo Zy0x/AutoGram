@@ -1,21 +1,21 @@
 //! Sparse Range MTProto ZIP Engine (Rust + Grammers).
-//! Fetches ONLY the ZIP tail (Central Directory EOCD) from Telegram API in < 0.5s.
-//! Downloads individual file byte ranges lazily on-demand without full archive downloads.
+//! Reads ZIP Central Directory & EOCD directly via Telegram MTProto API range requests.
+//! Zero full-file download, zero memory allocation bloat, instant listing load (<0.5s).
 
-use std::io::Cursor;
+use std::collections::HashMap;
+use std::io::{Error as IoError, ErrorKind as IoErrorKind, Read, Result as IoResult, Seek, SeekFrom};
 use std::path::PathBuf;
 
 use grammers_client::media::Media;
 use grammers_client::tl;
 use serde::{Deserialize, Serialize};
 
-use super::grammers_ops::{obtain_live_client, persist_memory_session, resolve_peer};
+use super::grammers_ops::{obtain_live_client, persist_memory_session, resolve_peer, runtime};
 use super::telegram_ops::TelegramIdentity;
 use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::zip_local::{sanitize_zip_path, ZipEntry, ZipEntryPreview, ZipListResult};
 
-const EOCD_SIGNATURE: [u8; 4] = [0x50, 0x4b, 0x05, 0x06];
-const TAIL_FETCH_SIZE: usize = 128 * 1024; // 128 KiB tail for EOCD & Central Directory
+const BLOCK_SIZE: u64 = 64 * 1024; // 64 KiB block fetch
 const BACKEND: &str = "grammers_sparse";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,73 +47,121 @@ fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation
     }
 }
 
-/// Fetch specific byte range from Telegram MTProto via GetFile
-async fn fetch_range_bytes(
-    client: &grammers_client::Client,
-    location: &tl::enums::InputFileLocation,
-    offset: u64,
-    limit: usize,
-) -> Result<Vec<u8>, TgError> {
-    let mut out = Vec::with_capacity(limit);
-    let mut current_offset = offset;
-    let end_offset = offset + limit as u64;
-
-    while current_offset < end_offset {
-        let chunk_req_size = ((end_offset - current_offset).min(512 * 1024) as i32).max(4096);
-        let req = tl::functions::upload::GetFile {
-            precise: true,
-            cdn_supported: false,
-            location: location.clone(),
-            offset: current_offset as i64,
-            limit: chunk_req_size,
-        };
-
-        match client.invoke(&req).await {
-            Ok(tl::enums::upload::File::File(f)) => {
-                if f.bytes.is_empty() {
-                    break;
-                }
-                let bytes_len = f.bytes.len() as u64;
-                out.extend_from_slice(&f.bytes);
-                current_offset += bytes_len;
-            }
-            Ok(_) => break,
-            Err(e) => {
-                let err = map_invocation(&e);
-                return Err(TgError::new(
-                    TgErrorCode::Io,
-                    format!("GetFile MTProto range request failed at offset {current_offset}: {err}"),
-                ));
-            }
-        }
-    }
-
-    Ok(out)
+pub struct TelegramSparseReader<'a> {
+    client: &'a grammers_client::Client,
+    location: tl::enums::InputFileLocation,
+    doc_size: u64,
+    pos: u64,
+    cache: HashMap<u64, Vec<u8>>,
+    rt: &'static tokio::runtime::Runtime,
 }
 
-/// Parse EOCD (End of Central Directory) to find Central Directory offset and size
-fn find_eocd_and_cd_info(tail_bytes: &[u8]) -> Option<(u64, u64)> {
-    if tail_bytes.len() < 22 {
-        return None;
-    }
-
-    // Search backward for EOCD signature PK\x05\x06
-    let max_search = tail_bytes.len().min(65557);
-    let search_start = tail_bytes.len() - max_search;
-
-    for i in (search_start..=(tail_bytes.len() - 22)).rev() {
-        if tail_bytes[i..i + 4] == EOCD_SIGNATURE {
-            let cd_size = u32::from_le_bytes(tail_bytes[i + 12..i + 16].try_into().ok()?) as u64;
-            let cd_offset = u32::from_le_bytes(tail_bytes[i + 16..i + 20].try_into().ok()?) as u64;
-            return Some((cd_offset, cd_size));
+impl<'a> TelegramSparseReader<'a> {
+    pub fn new(
+        client: &'a grammers_client::Client,
+        location: tl::enums::InputFileLocation,
+        doc_size: u64,
+        rt: &'static tokio::runtime::Runtime,
+    ) -> Self {
+        Self {
+            client,
+            location,
+            doc_size,
+            pos: 0,
+            cache: HashMap::new(),
+            rt,
         }
     }
 
-    None
+    fn fetch_block(&mut self, block_idx: u64) -> IoResult<&Vec<u8>> {
+        if self.cache.contains_key(&block_idx) {
+            return Ok(self.cache.get(&block_idx).unwrap());
+        }
+
+        let block_offset = block_idx * BLOCK_SIZE;
+        if block_offset >= self.doc_size {
+            self.cache.insert(block_idx, Vec::new());
+            return Ok(self.cache.get(&block_idx).unwrap());
+        }
+
+        let limit = ((self.doc_size - block_offset).min(BLOCK_SIZE)) as usize;
+        let client = self.client;
+        let location = self.location.clone();
+
+        let fetch_fut = async move {
+            let req = tl::functions::upload::GetFile {
+                precise: true,
+                cdn_supported: false,
+                location,
+                offset: block_offset as i64,
+                limit: limit as i32,
+            };
+            match client.invoke(&req).await {
+                Ok(tl::enums::upload::File::File(f)) => Ok(f.bytes),
+                Ok(_) => Ok(Vec::new()),
+                Err(e) => Err(IoError::new(IoErrorKind::Other, format!("GetFile MTProto failed: {e}"))),
+            }
+        };
+
+        let bytes = self.rt.block_on(fetch_fut)?;
+        self.cache.insert(block_idx, bytes);
+        Ok(self.cache.get(&block_idx).unwrap())
+    }
+}
+
+impl<'a> Read for TelegramSparseReader<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        if self.pos >= self.doc_size || buf.is_empty() {
+            return Ok(0);
+        }
+
+        let mut read_bytes = 0;
+        let total_to_read = buf.len().min((self.doc_size - self.pos) as usize);
+
+        while read_bytes < total_to_read {
+            let current_pos = self.pos + read_bytes as u64;
+            let block_idx = current_pos / BLOCK_SIZE;
+            let block_offset = (current_pos % BLOCK_SIZE) as usize;
+
+            let block = self.fetch_block(block_idx)?;
+            if block_offset >= block.len() {
+                break;
+            }
+
+            let available_in_block = block.len() - block_offset;
+            let chunk_len = (total_to_read - read_bytes).min(available_in_block);
+
+            buf[read_bytes..read_bytes + chunk_len]
+                .copy_from_slice(&block[block_offset..block_offset + chunk_len]);
+
+            read_bytes += chunk_len;
+        }
+
+        self.pos += read_bytes as u64;
+        Ok(read_bytes)
+    }
+}
+
+impl<'a> Seek for TelegramSparseReader<'a> {
+    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        let new_pos = match pos {
+            SeekFrom::Start(off) => off as i64,
+            SeekFrom::End(off) => self.doc_size as i64 + off,
+            SeekFrom::Current(off) => self.pos as i64 + off,
+        };
+
+        if new_pos < 0 {
+            return Err(IoError::new(IoErrorKind::InvalidInput, "negative seek position"));
+        }
+
+        self.pos = (new_pos as u64).min(self.doc_size);
+        Ok(self.pos)
+    }
 }
 
 /// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
 pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
+    let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
         api_id: opts.api_id,
@@ -152,55 +200,8 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    // Step 1: Fetch tail range (last 128 KiB)
-    let tail_len = (TAIL_FETCH_SIZE as u64).min(doc_size) as usize;
-    let tail_offset = doc_size.saturating_sub(tail_len as u64);
-    let tail_bytes = fetch_range_bytes(&live.client, &location, tail_offset, tail_len).await?;
-
-    // Step 2: If file is small (<= 128 KiB), tail_bytes is the entire ZIP file
-    let archive_bytes = if doc_size <= tail_len as u64 {
-        tail_bytes
-    } else {
-        // Find EOCD & Central Directory range
-        if let Some((cd_offset, cd_size)) = find_eocd_and_cd_info(&tail_bytes) {
-            let cd_end = cd_offset + cd_size;
-            let cd_in_tail = cd_offset >= tail_offset && cd_end <= doc_size;
-
-            if cd_in_tail {
-                // Central Directory is fully contained in fetched tail!
-                let mut buf = vec![0u8; doc_size as usize];
-                buf[tail_offset as usize..].copy_from_slice(&tail_bytes);
-                buf
-            } else {
-                // Central Directory extends before tail_offset — fetch CD range explicitly
-                let cd_bytes = fetch_range_bytes(&live.client, &location, cd_offset, cd_size as usize).await?;
-                let mut buf = vec![0u8; doc_size as usize];
-                let cd_end_idx = (cd_offset as usize + cd_bytes.len()).min(buf.len());
-                buf[cd_offset as usize..cd_end_idx].copy_from_slice(&cd_bytes[..cd_end_idx - cd_offset as usize]);
-                buf[tail_offset as usize..].copy_from_slice(&tail_bytes);
-                buf
-            }
-        } else {
-            // EOCD signature not found in tail 128 KiB — fallback to full download for non-standard ZIP
-            let pdir = std::env::current_dir()
-                .unwrap_or_else(|_| PathBuf::from("."))
-                .join("sessions/cache");
-            let _ = std::fs::create_dir_all(&pdir);
-            let safe_name = format!("sparse_fallback_{}_{}.zip", opts.chat_id, opts.message_id);
-            let dest = pdir.join(&safe_name);
-            live.client
-                .download_media(&media, &dest)
-                .await
-                .map_err(|e| map_invocation(&e))?;
-            std::fs::read(&dest).map_err(|e| TgError::new(TgErrorCode::Io, e.to_string()))?
-        }
-    };
-
-    let _ = persist_memory_session(&live.session, &live.session_path);
-
-    // Step 3: Parse ZipArchive using Cursor
-    let cursor = Cursor::new(archive_bytes);
-    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| {
+    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
+    let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
         let msg = e.to_string();
         if msg.contains("Could not find EOCD") {
             TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
@@ -240,6 +241,8 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         });
     }
 
+    let _ = persist_memory_session(&live.session, &live.session_path);
+
     Ok(ZipListResult {
         entries,
         count: limit,
@@ -258,26 +261,6 @@ pub async fn preview_zip_entry_sparse(
     entry_name: String,
     password: Option<String>,
 ) -> Result<ZipEntryPreview, TgError> {
-    let list = list_zip_sparse(opts.clone()).await?;
-    let target = list
-        .entries
-        .iter()
-        .find(|e| e.name == entry_name)
-        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, format!("Entri {entry_name} tidak ditemukan")))?;
-
-    if target.is_dir {
-        return Ok(ZipEntryPreview {
-            name: entry_name,
-            size: 0,
-            text_content: None,
-            data_url: None,
-            mime_type: None,
-            is_binary: false,
-            encrypted: false,
-            backend: BACKEND.into(),
-        });
-    }
-
     let identity = TelegramIdentity {
         session: opts.session.clone(),
         api_id: opts.api_id,

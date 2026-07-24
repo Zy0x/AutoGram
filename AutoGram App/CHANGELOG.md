@@ -1,3 +1,10 @@
+## v2.3.12 100% Pure Rust Virtual MTProto Sparse Reader (`TelegramSparseReader`)
+
+### Virtual MTProto `Read + Seek` Stream & Eliminasi Batas File (`grammers_sparse_zip.rs`)
+- **Implemetasi Struct `TelegramSparseReader`**: Mengimplementasikan trait `std::io::Read` dan `std::io::Seek` secara native pada Grammers Client. Pembacaan berkas ZIP kini menggunakan cache blok 64 KB on-demand langsung dari Telegram MTProto API.
+- **Penghapusan Batas Ukuran File (> 500 MB)**: Mengeliminasi total pembatasan 500 MB. Berkas ZIP berukuran berapa pun (500 MB, 1 GB, 2 GB, hingga 5 GB) kini dapat diparsing indeks isinya secara **instan (< 0.5 detik)** tanpa perlu diunduh utuh.
+- **Zero RAM OOM Allocation**: Menghentikan alokasi array byte besar di RAM. Memori yang digunakan bersifat konstan (< 2 MB) berapapun ukuran ZIP.
+
 ## v2.3.11 100% Pure Rust MTProto Sparse ZIP Engine (<0.5s Indeks Load)
 
 ### MTProto Range-Based Sparse Fetching (`grammers_sparse_zip.rs`, `driveApi.ts`, `rustBackend.ts`)

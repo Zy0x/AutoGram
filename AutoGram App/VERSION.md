@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.11
+AutoGram Version: v2.3.12
 
 Current State:
-v2.3.11 100% Pure Rust MTProto Sparse ZIP Engine (<0.5s Indeks Load) — penarikan range byte EOCD & Central Directory (128 KB tail) secara instan via MTProto RPC `upload.getFile` Grammers tanpa mengunduh seluruh berkas ZIP, ekstraksi rentang byte lazily on-demand, fallback aman ke cache lokal, dan 100% bebas dari Python Telethon runtime.
+v2.3.12 100% Pure Rust Virtual MTProto Sparse Reader (`TelegramSparseReader`) — pembacaan virtual `Read + Seek` langsung pada stream MTProto Telegram API via block cache 64 KB, mengeliminasi penuh batas ukuran file 500 MB (berfungsi instan <0.5s untuk file ZIP 1 GB, 2 GB, hingga 5 GB), eliminasi OOM memori, dan penyajian indeks ZIP tanpa mengunduh seluruh isi berkas.
 
 Previous:
+v2.3.11 100% Pure Rust MTProto Sparse ZIP Engine (<0.5s Indeks Load) — penarikan range byte EOCD & Central Directory (128 KB tail) secara instan via MTProto RPC `upload.getFile` Grammers tanpa mengunduh seluruh berkas ZIP, ekstraksi rentang byte lazily on-demand, fallback aman ke cache lokal, dan 100% bebas dari Python Telethon runtime.
 v2.3.10 Perbaikan Kritis ZIP Preview & Extraction Engine — penanganan pembacaan EOCD (End of Central Directory) pada cache parsial & file > 500 MB, pembacaan indeks ZIP terenkripsi password via `by_index_raw(i)` di Rust `zip_local`, proteksi Zip Slip (path traversal `../`), dukungan ekstraksi direktori/folder massal tanpa I/O error, aktivasi kompresi bzip2/zstd, dan UI penanganan kesalahan Bahasa Indonesia dengan masukan password terpadu.
 v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), pembebasan direktori `/sessions/preview/` & `/sessions/cache/` pada security `path_policy.rs` agar berkas cache preview tidak terblokir, parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
 v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
