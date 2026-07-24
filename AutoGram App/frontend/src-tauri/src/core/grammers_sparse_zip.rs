@@ -96,13 +96,14 @@ impl<'a> TelegramSparseReader<'a> {
             return Ok(self.cache.get(&block_idx).unwrap());
         }
 
-        let limit = ((self.doc_size - block_offset).min(BLOCK_SIZE)) as usize;
+        let raw_limit = ((self.doc_size - block_offset).min(BLOCK_SIZE)) as usize;
+        let limit = ((raw_limit + 4095) / 4096) * 4096;
         let client = self.client;
         let location = self.location.clone();
 
         let fetch_fut = async move {
             let req = tl::functions::upload::GetFile {
-                precise: true,
+                precise: false,
                 cdn_supported: false,
                 location,
                 offset: block_offset as i64,

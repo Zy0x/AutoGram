@@ -203,21 +203,67 @@ fn is_known_text_file(name: &str) -> bool {
         || n.ends_with(".php")
 }
 
+fn find_entry_index<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str) -> Option<usize> {
+    let clean = sanitize_zip_path(name);
+    let target = name.replace('\\', "/");
+    for i in 0..archive.len() {
+        if let Ok(f) = archive.by_index_raw(i) {
+            let fn_raw = f.name();
+            let fn_clean = sanitize_zip_path(fn_raw);
+            let fn_target = fn_raw.replace('\\', "/");
+            if fn_raw == name || fn_target == target || fn_clean == clean {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
+
 pub fn preview_zip_entry_from_archive<R: Read + Seek>(
     mut archive: ZipArchive<R>,
     entry_name: &str,
     password: Option<&str>,
 ) -> Result<ZipEntryPreview, String> {
-    let mut f = if let Some(pass) = password {
-        archive
-            .by_name_decrypt(entry_name, pass.as_bytes())
-            .map_err(|e| match e {
-                zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
-                zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("Entri tidak ditemukan atau password salah: {entry_name}"),
-            })?
+    let entry_idx = if let Some(pass) = password {
+        match archive.by_name_decrypt(entry_name, pass.as_bytes()) {
+            Ok(entry) => Some((entry.index(), pass.to_string())),
+            Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
+            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, pass.to_string())),
+        }
     } else {
         match archive.by_name(entry_name) {
+            Ok(entry) => Some((entry.index(), String::new())),
+            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
+            | Err(zip::result::ZipError::InvalidPassword) => {
+                return Ok(ZipEntryPreview {
+                    name: entry_name.into(),
+                    size: 0,
+                    text_content: None,
+                    data_url: None,
+                    mime_type: None,
+                    is_binary: true,
+                    encrypted: true,
+                    backend: "rust".into(),
+                });
+            }
+            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, String::new())),
+        }
+    };
+
+    let (idx, pass_str) = match entry_idx {
+        Some(t) => t,
+        None => return Err(format!("Entri tidak ditemukan: {entry_name}")),
+    };
+
+    let mut f = if !pass_str.is_empty() {
+        archive
+            .by_index_decrypt(idx, pass_str.as_bytes())
+            .map_err(|e| match e {
+                zip::result::ZipError::InvalidPassword => "bad_password".into(),
+                _ => format!("Gagal membaca entri {entry_name}: {e}"),
+            })?
+    } else {
+        match archive.by_index(idx) {
             Ok(entry) => entry,
             Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
             | Err(zip::result::ZipError::InvalidPassword) => {
@@ -232,7 +278,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
                     backend: "rust".into(),
                 });
             }
-            Err(e) => return Err(format!("Entri tidak ditemukan: {entry_name} ({e})")),
+            Err(e) => return Err(format!("Gagal membaca entri {entry_name}: {e}")),
         }
     };
 
@@ -354,20 +400,39 @@ pub fn extract_zip_entry_from_archive<R: Read + Seek>(
         Err(_) => std::path::PathBuf::from(dest_path),
     };
 
-    let mut entry_file = if let Some(pass) = password {
-        archive
-            .by_name_decrypt(entry_name, pass.as_bytes())
-            .map_err(|e| match e {
-                zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
-                zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("Entri tidak ditemukan atau password salah: {entry_name}"),
-            })?
+    let entry_idx = if let Some(pass) = password {
+        match archive.by_name_decrypt(entry_name, pass.as_bytes()) {
+            Ok(entry) => Some((entry.index(), pass.to_string())),
+            Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
+            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, pass.to_string())),
+        }
     } else {
         match archive.by_name(entry_name) {
+            Ok(entry) => Some((entry.index(), String::new())),
+            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
+            | Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
+            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, String::new())),
+        }
+    };
+
+    let (idx, pass_str) = match entry_idx {
+        Some(t) => t,
+        None => return Err(format!("Entri tidak ditemukan: {entry_name}")),
+    };
+
+    let mut entry_file = if !pass_str.is_empty() {
+        archive
+            .by_index_decrypt(idx, pass_str.as_bytes())
+            .map_err(|e| match e {
+                zip::result::ZipError::InvalidPassword => "bad_password".into(),
+                _ => format!("Gagal membaca entri {entry_name}: {e}"),
+            })?
+    } else {
+        match archive.by_index(idx) {
             Ok(entry) => entry,
             Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
             | Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
-            Err(e) => return Err(format!("Entri tidak ditemukan: {entry_name} ({e})")),
+            Err(e) => return Err(format!("Gagal membaca entri {entry_name}: {e}")),
         }
     };
 
