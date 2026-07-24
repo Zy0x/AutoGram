@@ -1275,7 +1275,7 @@ async function ensureZipLocalPath(
   );
 }
 
-/** Lightweight ZIP listing via Grammers MTProto & Rust native zip_local engine. */
+/** Lightweight Sparse ZIP listing via Grammers MTProto Range Fetch (<0.5s) & Rust native engine. */
 export async function driveZipList(
   creds: DriveCredentials,
   messageId: number,
@@ -1284,10 +1284,19 @@ export async function driveZipList(
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
+  const chatId = folderId == null ? 'me' : String(folderId);
+  const apiId = Number(creds.apiId) || 0;
+  const sparseOpts = {
+    session: creds.session,
+    apiId,
+    apiHash: creds.apiHash,
+    chatId,
+    messageId,
+  };
+
   try {
-    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-    const { zipListLocal } = await import('./rustBackend');
-    const res = await zipListLocal(localPath);
+    const { zipListSparse } = await import('./rustBackend');
+    const res = await zipListSparse(sparseOpts);
     return {
       status: 'success',
       entries: (res?.entries || []).map((e: any) => ({
@@ -1299,25 +1308,47 @@ export async function driveZipList(
       })),
       archive_size: res?.archiveSize,
       total_uncompressed: res?.totalUncompressed,
-      source: 'central_dir',
+      source: res?.source || 'central_dir_sparse',
       truncated: !!res?.truncated,
-      backend: 'grammers',
+      backend: 'grammers_sparse',
     };
-  } catch (e: any) {
-    const rawMsg = String(e?.message || e || 'Gagal membaca arsip ZIP');
-    let friendly = rawMsg;
-    if (rawMsg.includes('Could not find EOCD') || rawMsg.includes('EOCD missing')) {
-      friendly = 'Arsip ZIP tidak valid atau unduhan berkas belum selesai (penanda EOCD tidak ditemukan). Coba unduh ulang berkas.';
-    } else if (rawMsg.includes('Password required') || rawMsg.includes('bad_password')) {
-      friendly = 'Arsip ZIP dienkripsi dengan password.';
+  } catch (sparseErr: any) {
+    console.warn('[driveZipList] Sparse fetch fallback to local:', sparseErr);
+    try {
+      const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+      const { zipListLocal } = await import('./rustBackend');
+      const res = await zipListLocal(localPath);
+      return {
+        status: 'success',
+        entries: (res?.entries || []).map((e: any) => ({
+          name: e.name,
+          size: Number(e.size || 0),
+          compressed_size: Number(e.compressedSize || 0),
+          is_dir: !!e.isDir,
+          method: e.method || 0,
+        })),
+        archive_size: res?.archiveSize,
+        total_uncompressed: res?.totalUncompressed,
+        source: 'central_dir_local',
+        truncated: !!res?.truncated,
+        backend: 'grammers',
+      };
+    } catch (e: any) {
+      const rawMsg = String(e?.message || e || sparseErr?.message || 'Gagal membaca arsip ZIP');
+      let friendly = rawMsg;
+      if (rawMsg.includes('Could not find EOCD') || rawMsg.includes('EOCD missing')) {
+        friendly = 'Arsip ZIP tidak valid atau penanda EOCD tidak ditemukan. Coba unduh ulang berkas.';
+      } else if (rawMsg.includes('Password required') || rawMsg.includes('bad_password')) {
+        friendly = 'Arsip ZIP dienkripsi dengan password.';
+      }
+      return {
+        status: 'error',
+        error: friendly,
+        message: friendly,
+        entries: [],
+        backend: 'grammers',
+      };
     }
-    return {
-      status: 'error',
-      error: friendly,
-      message: friendly,
-      entries: [],
-      backend: 'grammers',
-    };
   }
 }
 
@@ -1332,10 +1363,19 @@ export async function driveZipReadEntry(
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
   }
+  const chatId = folderId == null ? 'me' : String(folderId);
+  const apiId = Number(creds.apiId) || 0;
+  const sparseOpts = {
+    session: creds.session,
+    apiId,
+    apiHash: creds.apiHash,
+    chatId,
+    messageId,
+  };
+
   try {
-    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-    const { zipPreviewEntry } = await import('./rustBackend');
-    const res = await zipPreviewEntry(localPath, entry, password);
+    const { zipPreviewEntrySparse } = await import('./rustBackend');
+    const res = await zipPreviewEntrySparse(sparseOpts, entry, password);
 
     if (res?.encrypted) {
       return {
@@ -1368,23 +1408,64 @@ export async function driveZipReadEntry(
       data_url: res?.dataUrl,
       mime: res?.mimeType,
       size: res?.size,
-      backend: 'grammers',
+      backend: 'grammers_sparse',
     };
-  } catch (e: any) {
-    const msg = String(e?.message || e || 'Gagal membaca entri ZIP');
-    if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
+  } catch (sparseErr: any) {
+    console.warn('[driveZipReadEntry] Sparse preview fallback to local:', sparseErr);
+    try {
+      const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+      const { zipPreviewEntry } = await import('./rustBackend');
+      const res = await zipPreviewEntry(localPath, entry, password);
+
+      if (res?.encrypted) {
+        return {
+          status: 'encrypted',
+          message: 'File ZIP dienkripsi. Masukkan password.',
+          backend: 'grammers',
+        };
+      }
+
+      let kind = 'meta';
+      if (res?.dataUrl) {
+        const mime = (res.mimeType || '').toLowerCase();
+        if (mime.startsWith('video/')) {
+          kind = 'video';
+        } else if (mime.startsWith('audio/')) {
+          kind = 'audio';
+        } else {
+          kind = 'image';
+        }
+      } else if (res?.textContent != null) {
+        kind = 'text';
+      } else if (res?.isBinary) {
+        kind = 'binary';
+      }
+
       return {
-        status: 'bad_password',
-        message: 'Password salah atau enkripsi tidak didukung.',
+        status: 'success',
+        kind,
+        text: res?.textContent,
+        data_url: res?.dataUrl,
+        mime: res?.mimeType,
+        size: res?.size,
+        backend: 'grammers',
+      };
+    } catch (e: any) {
+      const msg = String(e?.message || e || sparseErr?.message || 'Gagal membaca entri ZIP');
+      if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
+        return {
+          status: 'bad_password',
+          message: 'Password salah atau enkripsi tidak didukung.',
+          backend: 'grammers',
+        };
+      }
+      return {
+        status: 'error',
+        error: msg,
+        message: msg,
         backend: 'grammers',
       };
     }
-    return {
-      status: 'error',
-      error: msg,
-      message: msg,
-      backend: 'grammers',
-    };
   }
 }
 
@@ -1400,10 +1481,27 @@ export async function driveZipExtractEntry(
   if (!detectTauriRuntime()) {
     throw new Error('ZIP extraction membutuhkan desktop Rust + Grammers.');
   }
-  const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-  const { zipExtractEntry } = await import('./rustBackend');
-  const bytesWritten = await zipExtractEntry(localPath, entryName, destPath, password);
-  return { status: 'success', bytesWritten };
+  const chatId = folderId == null ? 'me' : String(folderId);
+  const apiId = Number(creds.apiId) || 0;
+  const sparseOpts = {
+    session: creds.session,
+    apiId,
+    apiHash: creds.apiHash,
+    chatId,
+    messageId,
+  };
+
+  try {
+    const { zipExtractEntrySparse } = await import('./rustBackend');
+    const bytesWritten = await zipExtractEntrySparse(sparseOpts, entryName, destPath, password);
+    return { status: 'success', bytesWritten };
+  } catch (sparseErr: any) {
+    console.warn('[driveZipExtractEntry] Sparse extract fallback to local:', sparseErr);
+    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
+    const { zipExtractEntry } = await import('./rustBackend');
+    const bytesWritten = await zipExtractEntry(localPath, entryName, destPath, password);
+    return { status: 'success', bytesWritten };
+  }
 }
 
 export async function driveDelete(

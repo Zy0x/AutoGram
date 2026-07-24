@@ -921,6 +921,38 @@ fn zip_extract_entry(
 }
 
 #[tauri::command]
+async fn tg_zip_list_sparse(
+    opts: core::grammers_sparse_zip::SparseZipOpts,
+) -> Result<core::zip_local::ZipListResult, String> {
+    core::grammers_sparse_zip::list_zip_sparse(opts)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn tg_zip_preview_entry_sparse(
+    opts: core::grammers_sparse_zip::SparseZipOpts,
+    entry_name: String,
+    password: Option<String>,
+) -> Result<core::zip_local::ZipEntryPreview, String> {
+    core::grammers_sparse_zip::preview_zip_entry_sparse(opts, entry_name, password)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn tg_zip_extract_entry_sparse(
+    opts: core::grammers_sparse_zip::SparseZipOpts,
+    entry_name: String,
+    dest_path: String,
+    password: Option<String>,
+) -> Result<u64, String> {
+    core::grammers_sparse_zip::extract_zip_entry_sparse(opts, entry_name, dest_path, password)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn file_sha256(path: String) -> Result<core::hash_util::FileHashResult, String> {
     core::hash_util::sha256_file(&path)
 }
@@ -1386,6 +1418,9 @@ pub fn run() {
             zip_list_local,
             zip_preview_entry,
             zip_extract_entry,
+            tg_zip_list_sparse,
+            tg_zip_preview_entry_sparse,
+            tg_zip_extract_entry_sparse,
             file_sha256,
             file_quick_fingerprint,
             compute_progress_rate,

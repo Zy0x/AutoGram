@@ -27,3 +27,4 @@ pub mod automations_db;
 pub mod profiles_db;
 pub mod stats_db;
 pub mod zip_local;
+pub mod grammers_sparse_zip;

@@ -194,6 +194,66 @@ export async function zipExtractEntry(
   }
 }
 
+export type SparseZipOpts = {
+  session: string;
+  apiId: number;
+  apiHash: string;
+  chatId: string;
+  messageId: number;
+};
+
+export async function zipListSparse(opts: SparseZipOpts): Promise<ZipListResult> {
+  if (!detectTauriRuntime()) {
+    throw new Error('Sparse ZIP engine membutuhkan aplikasi desktop (Rust).');
+  }
+  try {
+    return await invoke<ZipListResult>('tg_zip_list_sparse', { opts });
+  } catch (err: any) {
+    console.error('[zipListSparse] invoke failed:', err);
+    throw new Error(String(err?.message || err || 'Gagal membaca indeks sparse ZIP via Grammers'));
+  }
+}
+
+export async function zipPreviewEntrySparse(
+  opts: SparseZipOpts,
+  entryName: string,
+  password?: string
+): Promise<ZipEntryPreview> {
+  if (!detectTauriRuntime()) {
+    throw new Error('Sparse ZIP engine membutuhkan aplikasi desktop (Rust).');
+  }
+  try {
+    return await invoke<ZipEntryPreview>('tg_zip_preview_entry_sparse', {
+      opts,
+      entryName,
+      password: password || null,
+    });
+  } catch (err: any) {
+    console.error('[zipPreviewEntrySparse] invoke failed:', err);
+    throw new Error(String(err?.message || err || 'Gagal membaca berkas sparse ZIP via Grammers'));
+  }
+}
+
+export async function zipExtractEntrySparse(
+  opts: SparseZipOpts,
+  entryName: string,
+  destPath: string,
+  password?: string
+): Promise<number> {
+  if (!detectTauriRuntime() || !destPath) return 0;
+  try {
+    return await invoke<number>('tg_zip_extract_entry_sparse', {
+      opts,
+      entryName,
+      destPath,
+      password: password || null,
+    });
+  } catch (err: any) {
+    console.error('[zipExtractEntrySparse] invoke failed:', err);
+    throw new Error(String(err?.message || err || 'Gagal mengekstrak berkas sparse ZIP via Grammers'));
+  }
+}
+
 export async function fileSha256(path: string) {
   if (!detectTauriRuntime() || !path) return null;
   try {
