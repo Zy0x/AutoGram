@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.34
+AutoGram Version: v2.3.35
 
 Current State:
+v2.3.35 Eliminasi Clipping Paint Card & Optimalisasi Spacing Atas Grid Media Drive — membenahi `App.css` dan `DriveExplorer.tsx`. Mengubah `contain: layout paint style` pada `.td-file-card` menjadi `contain: layout style` sehingga efek `translateY(-2px)` dan *box-shadow glow* saat *hover* tidak terpotong rata di bagian atas oleh isolasi render *paint*. Menambahkan `margin-bottom: 10px` pada `.td-scale-hint` serta meningkatkan `GRID_PAD_TOP` menjadi 20px untuk memberikan ruang jarak (*breathing room*) yang lapang di atas jajaran kartu baris pertama.
+
+Previous:
 v2.3.34 Perbaikan Kritis Multi-DC FILE_MIGRATE (RPC Error 303) pada Navigasi Cepat Pratinjau ZIP & Media — memperbarui `TelegramSparseReader` di `grammers_sparse_zip.rs` agar menggunakan `client.iter_download(&media)` yang dilengkapi *retry loop* dan penanganan otomatis *datacenter migration* (DC 1–5). Mengeliminasi total kesalahan `i/o error: GetFile MTProto failed: request error: rpc error 303: FILE_MIGRATE caused by upload.getFile (value: 2)` saat melakukan prev/next cepat atau membuka arsip ZIP di Telegram Data Center non-default.
 
 Previous:

@@ -1,3 +1,10 @@
+## v2.3.35 Eliminasi Clipping Paint Card & Optimalisasi Spacing Atas Grid Media Drive
+
+### Perbaikan Visual Hover Card & Jarak Elemen Atas (`App.css`, `DriveExplorer.tsx`)
+- **Pembersihan `contain: paint` pada `.td-file-card`**: Mengganti properti `contain: layout paint style` menjadi `contain: layout style` di `App.css`. Isolasi *paint* sebelumnya memaksa browser memotong (*clipping*) bagian atas kartu saat mengalami efek pergeseran naik (*hover transform translateY(-2px)*) serta bayangan *glow box-shadow*.
+- **Pemberian Bottom Margin pada Banner Hint (`.td-scale-hint`)**: Menambahkan `margin-bottom: 10px` pada `.td-scale-hint` ("Folder besar - grid dimuat bertahap...") agar elemen spanduk petunjuk tidak menempel langsung pada baris kartu paling atas.
+- **Peningkatan Padding Atas Grid Virtual (`GRID_PAD_TOP`)**: Memperbarui variabel `GRID_PAD_TOP` pada `DriveExplorer.tsx` dari 16px menjadi 20px, memberikan ruang jarak bernapas (*breathing room*) yang ideal dan estetis di bawah baris atas saat kartu di-hover.
+
 ## v2.3.34 Perbaikan Kritis Multi-DC FILE_MIGRATE (RPC Error 303) pada Navigasi Pratinjau ZIP & Media
 
 ### Penanganan Otomatis Datacenter Migration (`grammers_sparse_zip.rs`)

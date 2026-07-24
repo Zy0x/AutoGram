@@ -2775,8 +2775,8 @@ body.td-dnd-external {
   box-sizing: border-box;
   user-select: none;
   -webkit-user-select: none;
-  /* Contain paint of card chrome; thumb swaps shouldn't thrash layout */
-  contain: layout paint style;
+  /* Contain layout & style of card chrome; do not clip paint so hover translateY & box-shadow extend smoothly */
+  contain: layout style;
 }
 .td-file-card * {
   user-select: none;
@@ -5532,7 +5532,7 @@ video.drive-preview-media {
 }
 
 .td-scale-hint {
-  margin: 6px 12px 0;
+  margin: 6px 12px 10px;
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 0.72rem;
