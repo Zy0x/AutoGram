@@ -1,3 +1,9 @@
+## v2.3.27 Eliminasi Layar Hitam Blank saat Membuka ZIP Modal
+
+### Perbaikan Pengondisian Modal (`DrivePreviewModal.tsx`)
+- **Pembersihan Evaluasi `isZip && creds`**: Memperbarui pengondisian `isZip` pada `DrivePreviewModal.tsx` agar kontainer modal ZIP tetap dirender secara aman meskipun `creds` dalam keadaan dimuat atau kosong.
+- **Penyajian Indicator Loading Fallback**: Menyediakan tampilan pemuatan yang ramah (`Menyiapkan sesi Telegram & membaca indeks ZIP…`) jika kredensial `creds` memerlukan waktu untuk disinkronkan, mengeliminasi penuh kegagalan render yang menyebabkan layar hitam polos (*blank black screen*).
+
 ## v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser
 
 ### Fitur Interaktif Pratinjau Gambar (`DriveZipBrowser.tsx`)

@@ -3624,26 +3624,38 @@ export function DrivePreviewModal({
           )}
 
           {/* Unified, Full-Bleed ZIP Workbench */}
-          {isZip && creds && (
+          {isZip && (
             <div className="drive-preview-doc drive-preview-zip" style={{ height: '100%', minHeight: 0, padding: 0 }}>
-              <DriveZipBrowser
-                creds={creds}
-                messageId={file.id}
-                folderId={folderId}
-                archiveName={displayName}
-                onClose={onClose}
-                onPrev={hasPrev ? () => onPrev?.() : undefined}
-                onNext={hasNext ? () => onNext?.() : undefined}
-                hasPrev={hasPrev}
-                hasNext={hasNext}
-                onDownloadZip={handleDownload}
-                onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
-                folders={folders}
-                chats={chats}
-                onRefreshDrive={onRefreshDrive}
-                onOpenTransferManager={onOpenTransferManager}
-                onEnqueueUploadPaths={onEnqueueUploadPaths}
-              />
+              {creds ? (
+                <DriveZipBrowser
+                  creds={creds}
+                  messageId={file.id}
+                  folderId={folderId}
+                  archiveName={displayName}
+                  onClose={onClose}
+                  onPrev={hasPrev ? () => onPrev?.() : undefined}
+                  onNext={hasNext ? () => onNext?.() : undefined}
+                  hasPrev={hasPrev}
+                  hasNext={hasNext}
+                  onDownloadZip={handleDownload}
+                  onOpenSystem={isDesktop() ? handleOpenSystem : undefined}
+                  folders={folders}
+                  chats={chats}
+                  onRefreshDrive={onRefreshDrive}
+                  onOpenTransferManager={onOpenTransferManager}
+                  onEnqueueUploadPaths={onEnqueueUploadPaths}
+                />
+              ) : (
+                <div className="drive-zip-browser is-loading" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                  <Loader2 size={36} className="spin" style={{ color: '#ffae00', marginBottom: 12 }} />
+                  <p style={{ fontWeight: 600, fontSize: '0.95rem', color: '#f8fafc' }}>
+                    Menyiapkan sesi Telegram & membaca indeks ZIP…
+                  </p>
+                  <span className="drive-zip-hint" style={{ marginTop: 8, color: '#94a3b8' }}>
+                    Kredensial sesi Telegram sedang dimuat.
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.26
+AutoGram Version: v2.3.27
 
 Current State:
-v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser — menambahkan kontrol toolbar interaktif (ZoomIn, ZoomOut, Reset 100%, Rotate 90° Kiri & Kanan) pada `DriveZipBrowser.tsx` untuk pratinjau media gambar di dalam ZIP Browser, menyamakan kemampuan kontrol interaktif seperti pratinjau video dan modal media utama.
+v2.3.27 Eliminasi Layar Hitam Blank saat Membuka ZIP Modal — membenahi pengondisian `DrivePreviewModal.tsx` pada baris 3627 agar kontainer pratinjau ZIP selalu dirender dengan indikator loading/fallback UI yang tepat meskipun kredensial `creds` belum selesai dimuat, mengeliminasi total masalah layar hitam polos.
 
 Previous:
+v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser — menambahkan kontrol toolbar interaktif (ZoomIn, ZoomOut, Reset 100%, Rotate 90° Kiri & Kanan) pada `DriveZipBrowser.tsx` untuk pratinjau media gambar di dalam ZIP Browser, menyamakan kemampuan kontrol interaktif seperti pratinjau video dan modal media utama.
 v2.3.25 Redesain Modern Glassmorphic Encrypted ZIP Card UI — memperbarui komponen pengisian password ZIP pada `DriveZipBrowser.tsx` dan `App.css`. Menyajikan kartu glassmorphic elegan dengan efek aura glowing rose red, badge status file terenkripsi, tombol toggle visibilitas password (Eye/EyeOff), input khusus dengan icon `KeyRound`, serta tombol Buka Berkas bertema gradien modern.
 v2.3.24 Peningkatan Threshold Media Image 15 MB & Dedicated Card Component untuk Large Media — membenahi `zip_local.rs`, `driveApi.ts`, dan `DriveZipBrowser.tsx`. Menaikkan batas ambang pratinjau gambar dari 4 MB ke 15 MB sehingga foto/gambar berukuran 9.49 MB (seperti `qīng luó 102.png`) dapat dibuka langsung secara visual. Menghapus teks hint dari `VSCodeCodeViewer` dan menggantinya dengan komponen media card khusus untuk berkas media di atas 15 MB.
 v2.3.23 Force Refresh Cache Invalidation, Base64 RAM Protection, & Batch Extract Cancellation — mengimplementasikan `forceRefresh` pada Rust `SparseZipOpts`, `rustBackend.ts`, `driveApi.ts`, dan UI `DriveZipBrowser.tsx` untuk menghapus `CATALOG_CACHE` saat tombol Refresh diklik. Menambahkan threshold `MAX_INLINE_MEDIA_BASE64` (4 MB) di `zip_local.rs` untuk proteksi OOM heap Chromium V8. Menambahkan `extractAbortedRef` dan tombol Batal Ekstraksi pada `DriveZipBrowser.tsx` untuk menghentikan ekstraksi massal secara instan saat dibatalkan pengguna.
