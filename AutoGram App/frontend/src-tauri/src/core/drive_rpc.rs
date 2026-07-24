@@ -177,44 +177,65 @@ pub fn delete_messages_blocking(
                             );
                         }
                         Err(err) => {
-                            tg_log::warn(
-                                BACKEND,
-                                "delete_messages_chunk_fail",
-                                format!(
-                                    "chat={chat} chunk_len={} err={err} - fallback to per-id",
-                                    chunk.len()
-                                ),
-                            );
-                            for &mid in chunk {
-                                let mut attempts = 0;
-                                loop {
-                                    attempts += 1;
-                                    match client.delete_messages(peer, &[mid]).await {
-                                        Ok(_) => {
-                                            deleted_ids.push(mid as i64);
-                                            break;
-                                        }
-                                        Err(single_err) => {
-                                            let tg_err = map_invocation(&single_err);
-                                            if let Some(secs) = tg_err.flood_wait_secs() {
-                                                if attempts <= 2 {
-                                                    tg_log::warn(
-                                                        BACKEND,
-                                                        "delete_messages_flood_wait",
-                                                        format!("mid={mid} waiting {secs}s"),
-                                                    );
-                                                    tokio::time::sleep(std::time::Duration::from_secs(
-                                                        (secs + 1) as u64,
-                                                    ))
-                                                    .await;
-                                                    continue;
-                                                }
+                            let tg_err = map_invocation(&err);
+                            let user_msg = tg_err.user_message();
+                            let is_perm_err = tg_err.code() == TgErrorCode::NotAuthorized
+                                || user_msg.contains("CHAT_ADMIN_REQUIRED")
+                                || user_msg.contains("MESSAGE_DELETE_FORBIDDEN")
+                                || user_msg.contains("CHAT_WRITE_FORBIDDEN");
+
+                            if is_perm_err {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "delete_messages_chunk_perm_fail",
+                                    format!("chat={chat} perm_error={user_msg} - fast fail chunk"),
+                                );
+                                for &mid in chunk {
+                                    failed.push(FailedItem {
+                                        id: mid as i64,
+                                        error: user_msg.clone(),
+                                    });
+                                }
+                            } else {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "delete_messages_chunk_fail",
+                                    format!(
+                                        "chat={chat} chunk_len={} err={err} - fallback to per-id",
+                                        chunk.len()
+                                    ),
+                                );
+                                for &mid in chunk {
+                                    let mut attempts = 0;
+                                    loop {
+                                        attempts += 1;
+                                        match client.delete_messages(peer, &[mid]).await {
+                                            Ok(_) => {
+                                                deleted_ids.push(mid as i64);
+                                                break;
                                             }
-                                            failed.push(FailedItem {
-                                                id: mid as i64,
-                                                error: tg_err.user_message(),
-                                            });
-                                            break;
+                                            Err(single_err) => {
+                                                let tg_err = map_invocation(&single_err);
+                                                if let Some(secs) = tg_err.flood_wait_secs() {
+                                                    if attempts <= 2 {
+                                                        tg_log::warn(
+                                                            BACKEND,
+                                                            "delete_messages_flood_wait",
+                                                            format!("mid={mid} waiting {secs}s"),
+                                                        );
+                                                        tokio::time::sleep(std::time::Duration::from_secs(
+                                                            (secs + 1) as u64,
+                                                        ))
+                                                        .await;
+                                                        continue;
+                                                    }
+                                                }
+                                                failed.push(FailedItem {
+                                                    id: mid as i64,
+                                                    error: tg_err.user_message(),
+                                                });
+                                                break;
+                                            }
                                         }
                                     }
                                 }

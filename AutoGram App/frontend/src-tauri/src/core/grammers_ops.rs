@@ -913,6 +913,12 @@ pub fn list_dialog_filters_blocking(
     })
 }
 
+static PEER_RESOLVE_CACHE: std::sync::OnceLock<std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>>> = std::sync::OnceLock::new();
+
+fn peer_cache() -> &'static std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>> {
+    PEER_RESOLVE_CACHE.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
+}
+
 pub(crate) async fn resolve_peer(
     client: &Client,
     chat_id: &str,
@@ -921,9 +927,21 @@ pub(crate) async fn resolve_peer(
     if s.is_empty() {
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
+    // Fast path: check in-memory cache
+    if let Ok(guard) = peer_cache().read() {
+        if let Some(peer_ref) = guard.get(s) {
+            return Ok(*peer_ref);
+        }
+    }
     if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
         let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
-        return user_to_ref(&me).await;
+        let res = user_to_ref(&me).await;
+        if let Ok(ref pref) = res {
+            if let Ok(mut guard) = peer_cache().write() {
+                guard.insert(s.to_string(), *pref);
+            }
+        }
+        return res;
     }
     // Username (only if starts with @ or contains alphabetic characters)
     if s.starts_with('@') || (s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') && s.chars().any(|c| c.is_ascii_alphabetic())) {
@@ -933,7 +951,13 @@ pub(crate) async fn resolve_peer(
             .await
             .map_err(|e| map_invocation(&e))?
         {
-            return peer_to_ref(&peer).await;
+            let res = peer_to_ref(&peer).await;
+            if let Ok(ref pref) = res {
+                if let Ok(mut guard) = peer_cache().write() {
+                    guard.insert(s.to_string(), *pref);
+                }
+            }
+            return res;
         }
         return Err(TgError::new(
             TgErrorCode::PeerNotFound,
@@ -960,7 +984,13 @@ pub(crate) async fn resolve_peer(
         let bid = peer.id().bare_id();
 
         if pid == want || pid == -want || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs())) {
-            return peer_to_ref(&peer).await;
+            let res = peer_to_ref(&peer).await;
+            if let Ok(ref pref) = res {
+                if let Ok(mut guard) = peer_cache().write() {
+                    guard.insert(s.to_string(), *pref);
+                }
+            }
+            return res;
         }
     }
     Err(TgError::new(

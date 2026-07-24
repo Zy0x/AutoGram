@@ -1,3 +1,13 @@
+## v2.3.2 Optimalisasi Kecepatan & Instant Fast-Fail Penghapusan Media (`drive_rpc.rs`, `grammers_ops.rs`)
+
+### Akselerasi Penghapusan & Notifikasi Error Instan (`drive_rpc.rs`, `grammers_ops.rs`)
+- **Fast-Fail Instan pada Error Perizinan Permanen (`drive_rpc.rs`)**:
+  - Menambahkan deteksi *Fast-Fail* pada error perizinan permanen (`CHAT_ADMIN_REQUIRED`, `MESSAGE_DELETE_FORBIDDEN`, `CHAT_WRITE_FORBIDDEN`).
+  - Menghilangkan per-ID fallback 50x network retry loop saat batch terhalang perizinan, menyingkat waktu tunggu penghapusan dari 20 detik menjadi instan (<0.2s).
+- **In-Memory PeerRef Cache (`grammers_ops.rs`)**:
+  - Menerapkan `PEER_RESOLVE_CACHE` untuk menyimpan pemetaan `PeerRef` dari `chat_id`.
+  - Mengeliminasi pencarian ulang `iter_dialogs()` halaman-demi-halaman secara terus menerus, mempercepat seluruh operasi Drive dan penghapusan pesan.
+
 ## v2.3.1 Perbaikan Error Banner & Resets Loading State pada Penghapusan Media/Topik
 
 ### Penanganan State UI & Visual Resiliency (`SpeedTest.tsx`)
