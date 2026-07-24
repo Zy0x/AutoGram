@@ -1349,7 +1349,7 @@ pub fn list_media_blocking_topic(
     let scan_limit = if topic_filter.is_some() {
         (limit * 100).clamp(1000, 10000)
     } else {
-        limit + 12
+        (limit * 5).clamp(150, 500)
     };
     let session_name = identity.session.clone();
 

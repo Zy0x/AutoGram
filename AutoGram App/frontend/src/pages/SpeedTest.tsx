@@ -77,6 +77,8 @@ import {
   saveCheckpoint,
   getCheckpoint,
   saveMediaRecords,
+  getMediaRecords,
+  type MediaRecord,
   deleteMediaRecord,
   deleteMediaRecordsBatch,
   enqueueAction,
@@ -2288,6 +2290,24 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setTotalBytes(null);
       setFilesHasMore(false);
       setNextOffsetId(null);
+      // Fast Stale-While-Revalidate: load IndexedDB records immediately for 0ms paint
+      const folderKey = peerId || 0;
+      void getMediaRecords(folderKey, String(sortMode), 0, 100)
+        .then((dbRecords: MediaRecord[]) => {
+          if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && dbRecords && dbRecords.length > 0) {
+            let filtered = dbRecords;
+            if (tid != null) {
+              filtered = dbRecords.filter((r: MediaRecord) => r.topic_id === tid);
+            }
+            if (filtered.length > 0) {
+              const deduped = dedupeByMsgId(filtered);
+              setFiles(deduped);
+              filesCacheRef.current.set(cacheKey, deduped);
+              setLoadingFiles(false);
+            }
+          }
+        })
+        .catch(() => undefined);
     }
 
     try {
