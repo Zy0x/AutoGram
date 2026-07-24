@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.6
+AutoGram Version: v2.3.7
 
 Current State:
-v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).
+v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command `autogram-commands.toml` — mendaftarkan `tg_delete_messages`, `tg_create_folder`, `tg_delete_folder`, `tg_move_messages`, `tg_create_topic`, `tg_delete_topic`, dan `jobs_*` yang mengeliminasi error "tg_delete_messages not allowed. Command not found".
 
 Previous:
+v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).
 v2.3.5 Multi-Key Channel & Peer Resolution Cache di Grammers Engine (-100 prefix, bare ID, dan negative ID) untuk penghapusan pesan instan pada channel/supergroup.
 v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (Zero-Refetch Optimistic Update, Pembersihan Global Cache Memori, Sinkronisasi IndexedDB Real-time, dan Presisi Target Channel ID per File).
 v2.3.3 Perbaikan bug kritis ReferenceError `requireGrammersIdentity` & penambahan pembantu `resolveGrammersIdentity` pada penghapusan/pemindahan media di `driveApi.ts`. Otomatis melengkapi `apiId` & `apiHash` dari secure credentials store jika kredensial UI tidak lengkap.

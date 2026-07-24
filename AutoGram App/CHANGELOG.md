@@ -1,3 +1,10 @@
+## v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command (`autogram-commands.toml`)
+
+### Resolusi Error Security Sandbox Tauri v2 (`autogram-commands.toml`)
+- **Pendaftaran Izin Perintah Custom Rust (`autogram-commands.toml`)**:
+  - Memperbaiki bug kritis di mana perintah custom Rust `tg_delete_messages`, `tg_create_folder`, `tg_rename_folder`, `tg_set_folder_parent`, `tg_delete_folder`, `tg_scan_folders`, `tg_create_topic`, `tg_rename_topic`, `tg_delete_topic`, `tg_move_messages`, dan `jobs_*` belum terdaftar pada daftar `permission.commands.allow`.
+  - Mengeliminasi total error Tauri v2 security restriction: `"tg_delete_messages not allowed. Command not found"`, sehingga fungsi penghapusan dan pengolahan media/folder/topik kini dapat di-invoke secara lancar dari UI frontend.
+
 ## v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API (`telegramBackend.ts`, `driveApi.ts`)
 
 ### Preservasi Notifikasi Error Server Telegram (`telegramBackend.ts`, `driveApi.ts`)
