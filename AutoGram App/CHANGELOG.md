@@ -1,3 +1,9 @@
+## v2.3.31 Redesain Visual Aksen Tombol Toolbar ZIP Workbench
+
+### Penyempurnaan Estetika Visual (`App.css`, `DriveZipBrowser.tsx`)
+- **Pembersihan Aksen Warna Kusam / Kecokelatan**: Memperbarui aturan CSS `.drive-zip-tool-btn.active` di `App.css` dengan mengganti warna mustard/kusam lama dengan aksen modern *Sky-Blue Glowing Accent* (`color: #38bdf8`, `background: rgba(56, 189, 248, 0.18)`, `border: 1px solid rgba(56, 189, 248, 0.45)`).
+- **Isolasi Active Class Tombol Rotasi**: Mengisolasi tombol *Rotate Left* dan *Rotate Right* pada `DriveZipBrowser.tsx` agar tidak menyorot secara bersamaan saat rotasi non-nol, menjaga tampilan toolbar tetap bersih, elegan, dan informatif.
+
 ## v2.3.30 Mouse Wheel Zoom, Double Click Zoom & Smooth Panning Drag pada ZIP Media Preview
 
 ### Peningkatan Interaktivitas Pratinjau Gambar (`DriveZipBrowser.tsx`)

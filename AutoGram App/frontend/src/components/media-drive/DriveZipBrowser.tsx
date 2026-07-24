@@ -1283,7 +1283,7 @@ export function DriveZipBrowser({
                 </button>
                 <button
                   type="button"
-                  className={`drive-zip-tool-btn${rotate !== 0 ? ' active' : ''}`}
+                  className="drive-zip-tool-btn"
                   title="Putar 90° Kiri"
                   onClick={() => setRotate((r) => (r + 270) % 360)}
                 >
@@ -1291,7 +1291,7 @@ export function DriveZipBrowser({
                 </button>
                 <button
                   type="button"
-                  className={`drive-zip-tool-btn${rotate !== 0 ? ' active' : ''}`}
+                  className="drive-zip-tool-btn"
                   title="Putar 90° Kanan"
                   onClick={() => setRotate((r) => (r + 90) % 360)}
                 >

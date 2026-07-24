@@ -12214,27 +12214,33 @@ video.drive-zip-img {
   padding: 2px 4px;
 }
 .drive-zip-tool-btn {
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  transition: all 0.15s ease;
+  gap: 5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.drive-zip-tool-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+.drive-zip-tool-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
   color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.drive-zip-tool-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 .drive-zip-tool-btn.active {
-  background: rgba(255, 174, 0, 0.2);
-  color: #ffae00;
-  border: 1px solid rgba(255, 174, 0, 0.35);
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
 }
 
 /* Dual Extract Button Group (Lokal vs Drives) */
