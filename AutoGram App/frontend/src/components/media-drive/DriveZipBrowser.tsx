@@ -230,6 +230,19 @@ export function DriveZipBrowser({
   const [opening, setOpening] = useState<string | null>(null);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const extractAbortedRef = useRef(false);
+
+  const handleCancelExtraction = () => {
+    extractAbortedRef.current = true;
+    setExtracting(null);
+    setToastMsg('Proses ekstraksi dibatalkan oleh pengguna.');
+  };
+
+  useEffect(() => {
+    return () => {
+      extractAbortedRef.current = true;
+    };
+  }, []);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<{
     entry: string;
@@ -713,7 +726,13 @@ export function DriveZipBrowser({
 
       const tempPaths: string[] = [];
 
+      extractAbortedRef.current = false;
       for (let i = 0; i < entryNames.length; i++) {
+        if (extractAbortedRef.current) {
+          console.log('[DriveZipBrowser] Batch extraction aborted by user');
+          setToastMsg('Ekstraksi dibatalkan oleh pengguna.');
+          break;
+        }
         const entryName = entryNames[i];
         const basename = entryName.split('/').pop() || entryName;
         const cleanBase = basename.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -789,7 +808,12 @@ export function DriveZipBrowser({
       let extractedCount = 0;
       let totalBytes = 0;
 
+      extractAbortedRef.current = false;
       for (let i = 0; i < selectedList.length; i++) {
+        if (extractAbortedRef.current) {
+          setToastMsg('Ekstraksi massal dibatalkan oleh pengguna.');
+          break;
+        }
         const entryName = selectedList[i];
         const basename = entryName.split('/').pop() || entryName;
         const destPath = `${targetDir.replace(/[/\\]+$/, '')}/${basename}`;

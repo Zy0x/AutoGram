@@ -308,6 +308,8 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
     Ok(build_zip_entry_preview(entry_name, size, buf))
 }
 
+const MAX_INLINE_MEDIA_BASE64: usize = 4 * 1024 * 1024;
+
 pub fn build_zip_entry_preview(
     entry_name: &str,
     size: u64,
@@ -315,6 +317,21 @@ pub fn build_zip_entry_preview(
 ) -> ZipEntryPreview {
     let media_mime = detect_media_mime(entry_name);
     if let Some((_kind, mime)) = media_mime {
+        if buf.len() > MAX_INLINE_MEDIA_BASE64 {
+            return ZipEntryPreview {
+                name: entry_name.into(),
+                size,
+                text_content: Some(format!(
+                    "[Media {} byte — gunakan Ekstrak / Download untuk pratinjau media > 4 MB]",
+                    size
+                )),
+                data_url: None,
+                mime_type: Some(mime.to_string()),
+                is_binary: true,
+                encrypted: false,
+                backend: "rust".into(),
+            };
+        }
         let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
         let data_url = format!("data:{mime};base64,{encoded}");
         return ZipEntryPreview {

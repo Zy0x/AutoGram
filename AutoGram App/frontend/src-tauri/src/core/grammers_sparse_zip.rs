@@ -55,6 +55,14 @@ pub fn set_cached_catalog(key: String, result: ZipListResult) {
     }
 }
 
+pub fn invalidate_cached_catalog(key: &str) {
+    if let Ok(mut guard) = CATALOG_CACHE.lock() {
+        if let Some(map) = guard.as_mut() {
+            map.remove(key);
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SparseZipOpts {
@@ -63,6 +71,8 @@ pub struct SparseZipOpts {
     pub api_hash: String,
     pub chat_id: String,
     pub message_id: i32,
+    #[serde(default)]
+    pub force_refresh: Option<bool>,
 }
 
 fn media_to_input_location(media: &Media) -> Option<tl::enums::InputFileLocation> {
@@ -362,7 +372,9 @@ fn parse_central_directory_fast(
 /// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
 pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
     let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
-    if let Some(cached) = get_cached_catalog(&cache_key) {
+    if opts.force_refresh.unwrap_or(false) {
+        invalidate_cached_catalog(&cache_key);
+    } else if let Some(cached) = get_cached_catalog(&cache_key) {
         return Ok(cached);
     }
 

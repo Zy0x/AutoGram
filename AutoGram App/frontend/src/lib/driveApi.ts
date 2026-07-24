@@ -1235,7 +1235,8 @@ export async function driveStreamSeek(
 export async function driveZipList(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | null
+  folderId: number | null,
+  forceRefresh?: boolean
 ): Promise<any> {
   if (!detectTauriRuntime()) {
     throw new Error('ZIP browser membutuhkan desktop Rust + Grammers.');
@@ -1248,6 +1249,7 @@ export async function driveZipList(
     apiHash: creds.apiHash,
     chatId,
     messageId,
+    forceRefresh: !!forceRefresh,
   };
 
   try {

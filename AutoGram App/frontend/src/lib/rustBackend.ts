@@ -200,6 +200,7 @@ export type SparseZipOpts = {
   apiHash: string;
   chatId: string;
   messageId: number;
+  forceRefresh?: boolean;
 };
 
 export async function zipListSparse(opts: SparseZipOpts): Promise<ZipListResult> {

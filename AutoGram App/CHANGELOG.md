@@ -1,3 +1,10 @@
+## v2.3.23 Force Refresh Cache Invalidation, Base64 RAM Protection, & Batch Extract Cancellation
+
+### Perbaikan Celah & Edge Cases ZIP Viewer (`grammers_sparse_zip.rs`, `zip_local.rs`, `DriveZipBrowser.tsx`)
+- **Penghapusan Cache Eksplisit Saat Refresh (`forceRefresh`)**: Menambahkan field `forceRefresh` pada struct `SparseZipOpts` di Rust backend, `rustBackend.ts`, `driveApi.ts`, dan `DriveZipBrowser.tsx`. Tombol *Refresh Indeks* di UI kini secara eksplisit memanggil `invalidate_cached_catalog` di Rust backend untuk menghapus `CATALOG_CACHE` 10-menit lama dan menyajikan data katalog terbaru dari Telegram.
+- **Proteksi Inflasi Memori RAM Base64 (4 MB Threshold)**: Mengimplementasikan `MAX_INLINE_MEDIA_BASE64` (4 MB) di `zip_local.rs` untuk membatasi pengodean string Base64 Data URL inline. Berkas media berukuran > 4 MB kini menampilkan petunjuk ramah untuk menggunakan fitur Ekstrak/Download alih-alih mengalokasikan string raksasa yang menyebabkan pembekuan memori heap Chromium V8.
+- **Fitur Pembatalan Ekstraksi Massal (*Batch Extract Cancellation*)**: Menambahkan `extractAbortedRef` pada `DriveZipBrowser.tsx`. Perulangan ekstraksi massal dan ekstraksi tunggal kini mengecek status pembatalan di setiap iterasi dan langsung menghentikan I/O seketika jika pengguna mengeklik tombol Batal atau menutup modal.
+
 ## v2.3.22 Direct Offset Range Fetching & In-Memory ZIP Catalog Caching
 
 ### Optimasi Mesin Sparse ZIP MTProto (`grammers_sparse_zip.rs`, `zip_local.rs`)
