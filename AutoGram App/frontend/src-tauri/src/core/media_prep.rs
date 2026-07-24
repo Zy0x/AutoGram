@@ -121,6 +121,45 @@ fn ext_from_url_or_ctype(url: &str, ctype: &str) -> String {
     "bin".into()
 }
 
+/// Quality preset parameters for video transcoding
+struct QualityPreset {
+    vf_scale: &'static str,
+    crf: &'static str,
+    max_rate: &'static str,
+    buf_size: &'static str,
+    audio_bitrate: &'static str,
+}
+
+fn resolve_quality_preset(mode: &str) -> QualityPreset {
+    let m = mode.to_ascii_uppercase();
+    if m.contains("HEMAT") || m.contains("COMPRESS") || m.contains("LOW") {
+        QualityPreset {
+            vf_scale: "scale='min(854,iw)':'-2'",
+            crf: "28",
+            max_rate: "600k",
+            buf_size: "1200k",
+            audio_bitrate: "96k",
+        }
+    } else if m.contains("JELAS") || m.contains("HIGH") || m.contains("HD") {
+        QualityPreset {
+            vf_scale: "scale='min(1920,iw)':'-2'",
+            crf: "20",
+            max_rate: "3500k",
+            buf_size: "7000k",
+            audio_bitrate: "192k",
+        }
+    } else {
+        // Default: SEIMBANG / BALANCED / 720p
+        QualityPreset {
+            vf_scale: "scale='min(1280,iw)':'-2'",
+            crf: "23",
+            max_rate: "1500k",
+            buf_size: "3000k",
+            audio_bitrate: "128k",
+        }
+    }
+}
+
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
 /// Returns original path if reencode skipped/failed (best-effort).
 pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> String {
@@ -153,25 +192,37 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
         tg_log::warn(BACKEND, "reencode_skip", "ffmpeg not found");
         return path.to_string();
     };
+
+    let preset = resolve_quality_preset(&mode);
     let out = unique_name("reenc", "mp4");
-    // Lean 720p CRF 23 — keeps Studio usable without Telethon media_meta matrix
+
     let status = Command::new(&ff)
         .args([
             "-y",
             "-i",
             path,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0?",
             "-vf",
-            "scale='min(1280,iw)':'-2'",
+            preset.vf_scale,
             "-c:v",
             "libx264",
             "-preset",
             "veryfast",
             "-crf",
-            "23",
+            preset.crf,
+            "-maxrate",
+            preset.max_rate,
+            "-bufsize",
+            preset.buf_size,
+            "-pix_fmt",
+            "yuv420p",
             "-c:a",
             "aac",
             "-b:a",
-            "128k",
+            preset.audio_bitrate,
             "-movflags",
             "+faststart",
             out.to_str().unwrap_or("out.mp4"),
@@ -184,13 +235,13 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
                 tg_log::info(
                     BACKEND,
                     "reencode_ok",
-                    format!("out={} bytes={sz}", out.display()),
+                    format!("preset={mode} out={} bytes={sz}", out.display()),
                 );
                 return out.display().to_string();
             }
         }
         Ok(s) => {
-            tg_log::warn(BACKEND, "reencode_fail", format!("status={s}"));
+            tg_log::warn(BACKEND, "reencode_fail", format!("preset={mode} status={s}"));
         }
         Err(e) => {
             tg_log::warn(BACKEND, "reencode_spawn", e.to_string());
