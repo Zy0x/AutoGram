@@ -1253,12 +1253,12 @@ html, body {
   background-size: 200% 100%;
 }
 
-/* Centered Floating Glassmorphic Progress Panel */
+/* AutoGram Sleek Compact Loading Screen (Exact User Template Adaptation) */
 .ag-loading-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 480px;
+  min-height: 380px;
   flex: 1 1 0%;
   overflow: hidden;
   display: flex;
@@ -1282,180 +1282,146 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(11, 12, 16, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(15, 20, 25, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 1.5rem;
 }
 
-.ag-glass-card {
-  background: rgba(20, 23, 32, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  padding: 2rem;
-  max-width: 440px;
+.ag-compact-card {
+  background: #1a1f2e;
+  border: 1px solid #2a3142;
+  border-radius: 20px;
+  padding: 36px 28px;
+  max-width: 320px;
   width: 100%;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  gap: 16px;
 }
 
-.ag-glass-card-top-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.8), transparent);
-}
-
-.ag-mascot-header {
-  position: relative;
-  margin-bottom: 1.25rem;
-}
-
-.ag-mascot-ring {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #f59e0b 100%);
-  padding: 2px;
-  box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ag-mascot-inner {
-  width: 100%;
-  height: 100%;
-  background: #11131a;
+.ag-logo-box {
+  width: 54px;
+  height: 54px;
   border-radius: 16px;
+  background: linear-gradient(135deg, #f5a623 0%, #e07b39 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #22d3ee;
+  box-shadow: 0 4px 24px rgba(245, 166, 35, 0.25), 0 0 60px rgba(245, 166, 35, 0.08);
+  animation: agPulseGlow 3s ease-in-out infinite;
+  color: #ffffff;
 }
 
-.ag-track-container {
+@keyframes agPulseGlow {
+  0%, 100% { box-shadow: 0 4px 24px rgba(245, 166, 35, 0.25), 0 0 60px rgba(245, 166, 35, 0.08); }
+  50% { box-shadow: 0 4px 32px rgba(245, 166, 35, 0.35), 0 0 80px rgba(245, 166, 35, 0.12); }
+}
+
+.ag-brand-block {
+  text-align: center;
+}
+
+.ag-brand-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #e8ecf1;
+  letter-spacing: 0.3px;
+}
+
+.ag-brand-sub {
+  font-size: 12px;
+  color: #5a6375;
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+.ag-progress-box {
   width: 100%;
-  position: relative;
-  margin-bottom: 1rem;
-  margin-top: 1.5rem;
+  max-width: 270px;
 }
 
-.ag-runner-badge {
-  position: absolute;
-  top: -28px;
-  transform: translateX(-50%);
-  transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.ag-runner-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #22d3ee, #f59e0b);
-  padding: 2px;
-  box-shadow: 0 2px 10px rgba(6, 182, 212, 0.8);
+.ag-progress-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  transform: rotate(-12deg);
-  animation: agBounce 2s infinite ease-in-out;
+  margin-bottom: 8px;
 }
 
-.ag-runner-icon-inner {
+.ag-progress-label {
+  font-size: 12px;
+  color: #5a6375;
+  font-weight: 400;
+}
+
+.ag-progress-percent {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5a623;
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+}
+
+.ag-slim-track {
   width: 100%;
-  height: 100%;
-  background: #141720;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #f59e0b;
-}
-
-@keyframes agBounce {
-  0%, 100% { transform: rotate(-12deg) translateY(0); }
-  50% { transform: rotate(-12deg) translateY(-4px); }
-}
-
-.ag-progress-track {
-  height: 16px;
-  width: 100%;
-  background: #0d0e14;
-  border-radius: 9999px;
-  padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
-  position: relative;
+  height: 4px;
+  background: #232837;
+  border-radius: 100px;
   overflow: hidden;
-}
-
-.ag-progress-fill {
-  height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 50%, #f59e0b 100%);
-  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 18px rgba(6, 182, 212, 0.8);
   position: relative;
 }
 
-.ag-progress-tip {
+.ag-slim-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f5a623 0%, #e07b39 100%);
+  border-radius: 100px;
+  position: relative;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ag-slim-fill::after {
+  content: '';
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 10px;
-  background: #ffffff;
-  border-radius: 9999px;
-  box-shadow: 0 0 12px #ffffff;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35));
+  border-radius: 100px;
+  animation: agShimmer 2s ease-in-out infinite;
 }
 
-.ag-percent-counter {
-  font-size: 2rem;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', monospace, sans-serif;
-  color: #67e8f9;
-  letter-spacing: 0.05em;
+@keyframes agShimmer {
+  0% { transform: translateX(-40px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(40px); opacity: 0; }
+}
+
+.ag-context-text {
   text-align: center;
-  text-shadow: 0 2px 14px rgba(6, 182, 212, 0.5);
-  margin-bottom: 0.5rem;
+  font-size: 12px;
+  color: #5a6375;
+  line-height: 1.6;
+  max-width: 250px;
 }
 
-.ag-status-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.825rem;
-  color: #cbd5e1;
+.ag-context-text strong {
+  color: #8b95a7;
   font-weight: 500;
-  text-align: center;
-  max-width: 320px;
 }
 
-.ag-pulsing-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  background: #06b6d4;
-  box-shadow: 0 0 10px #06b6d4;
-  animation: agPulse 1.5s infinite ease-in-out;
-  flex-shrink: 0;
+.ag-estimate-text {
+  font-size: 11px;
+  color: #5a6375;
+  opacity: 0.75;
+  margin-top: -8px;
 }
 
-@keyframes agPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
 
 
 

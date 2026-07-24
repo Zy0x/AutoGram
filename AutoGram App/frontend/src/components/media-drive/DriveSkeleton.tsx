@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Rocket } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 /**
  * Hook for smooth realistic progress interpolation (0% -> 100%)
@@ -19,11 +19,11 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
     }
 
     // Realistic multi-stage smooth progress curve (0% -> 100%)
-    setProgress(14);
-    const t1 = setTimeout(() => setProgress(38), 180);
-    const t2 = setTimeout(() => setProgress(68), 480);
-    const t3 = setTimeout(() => setProgress(85), 900);
-    const t4 = setTimeout(() => setProgress(94), 1600);
+    setProgress(15);
+    const t1 = setTimeout(() => setProgress(42), 180);
+    const t2 = setTimeout(() => setProgress(72), 480);
+    const t3 = setTimeout(() => setProgress(88), 900);
+    const t4 = setTimeout(() => setProgress(96), 1600);
 
     return () => {
       clearTimeout(t1);
@@ -49,54 +49,51 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
 }) => {
   const smoothProgress = useSmoothProgress(isLoading, percent);
   const displayPercent = Math.round(smoothProgress);
+  const remainingSecs = Math.max(1, Math.ceil((100 - displayPercent) / 7));
 
   return (
-    <div className="ag-glass-card">
-      <div className="ag-glass-card-top-glow" />
+    <div className="ag-compact-card select-none">
+      {/* Brand Logo Box */}
+      <div className="ag-logo-box">
+        <Zap size={26} strokeWidth={2.5} />
+      </div>
 
-      {/* Glowing Mascot Header */}
-      <div className="ag-mascot-header">
-        <div className="ag-mascot-ring">
-          <div className="ag-mascot-inner">
-            <Rocket size={32} style={{ transform: 'rotate(45deg)' }} />
-          </div>
+      {/* Brand Header */}
+      <div className="ag-brand-block">
+        <div className="ag-brand-name">AutoGram</div>
+        <div className="ag-brand-sub">Syncing your media library</div>
+      </div>
+
+      {/* Progress Box */}
+      <div className="ag-progress-box">
+        <div className="ag-progress-header">
+          <span className="ag-progress-label">Loading</span>
+          <span className="ag-progress-percent">{displayPercent}%</span>
+        </div>
+        <div className="ag-slim-track">
+          <div className="ag-slim-fill" style={{ width: `${smoothProgress}%` }} />
         </div>
       </div>
 
-      {/* Track & Mascot Runner */}
-      <div className="ag-track-container">
-        {/* Runner Badge */}
-        <div
-          className="ag-runner-badge"
-          style={{
-            left: `clamp(0px, calc(${smoothProgress}% - 14px), calc(100% - 28px))`,
-          }}
-        >
-          <div className="ag-runner-icon">
-            <div className="ag-runner-icon-inner">
-              <Rocket size={14} style={{ transform: 'rotate(45deg)' }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Track */}
-        <div className="ag-progress-track">
-          <div className="ag-progress-fill" style={{ width: `${smoothProgress}%` }}>
-            <div className="ag-progress-tip" />
-          </div>
-        </div>
-      </div>
-
-      {/* Large 28px Monospaced Percent Counter */}
-      <div className="ag-percent-counter">{displayPercent}%</div>
-
-      {/* Status Pill */}
-      {label && (
-        <div className="ag-status-pill">
-          <span className="ag-pulsing-dot" />
+      {/* Context Text */}
+      <div className="ag-context-text">
+        {label ? (
           <span>{label}</span>
-        </div>
-      )}
+        ) : (
+          <span>
+            Scanning <strong>media files</strong> from Telegram MTProto
+          </span>
+        )}
+      </div>
+
+      {/* Estimate Text */}
+      <div className="ag-estimate-text">
+        {displayPercent >= 100
+          ? 'Complete!'
+          : displayPercent > 85
+          ? 'Almost done...'
+          : `~${remainingSecs} detik tersisa`}
+      </div>
     </div>
   );
 };
