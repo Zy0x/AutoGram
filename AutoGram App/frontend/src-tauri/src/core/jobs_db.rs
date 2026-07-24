@@ -654,3 +654,13 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
         "backend": "rust",
     }))
 }
+
+pub fn cancel_execution(job_id: i64) -> Result<(), String> {
+    let conn = open_db()?;
+    conn.execute(
+        "UPDATE executions SET status='CANCELLED' WHERE job_id=?1 AND status='RUNNING'",
+        params![job_id],
+    )
+    .map_err(|e| format!("cancel execution: {e}"))?;
+    Ok(())
+}

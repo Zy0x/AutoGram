@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine)
+
+### Implementasi Arsitektur Zero-Python (`migration_run.rs`, `jobs_db.rs`, `profiles_db.rs`, `automations_db.rs`, `stats_db.rs`, `workerBridge.ts`)
+- **Migrasi Murni 100% ke Rust Grammers MTProto**:
+  - Mengalihkan seluruh eksekusi Engine Migrasi (Clean Copy & Forward Mode) ke `migration_run.rs` murni Rust.
+  - Menerapkan **Session Guard Lock (`SessionGuardToken`)** untuk mencegah bentrok `AUTH_KEY_DUPLICATED` antar thread.
+  - Mempertahankan **Paritas Deduplikasi 4-Level** (Message ID, Telegram Unique ID `mime:size:name`, SHA256 Hash, Filename+Size) dan pembersihan otomatis diska cache temporary.
+- **Porting Native SQLite & Translation Layer (`workerBridge.ts`)**:
+  - Mengganti eksekusi skrip Python `daemon.py` untuk CRUD *Jobs, Profiles, Automations, dan Statistics* dengan perintah native Rust SQLite (`jobs_db`, `profiles_db`, `automations_db`, `stats_db`).
+  - Mengalihkan helper `runDaemonOnce` secara cerdas ke perintah Rust Tauri Native tanpa mengubah struktur kode pada UI React (`Jobs.tsx`, `Profiles.tsx`, `Automation.tsx`, `Statistics.tsx`, `Settings.tsx`).
+- **Eliminasi Total Runtime Python**:
+  - Aplikasi AutoGram kini 100% berjalan independen sebagai aplikasi desktop Rust Tauri tanpa ketergantungan pada Python/Telethon.
+
 ## v2.2.5 Arsitektur Dual-Mode Pengunduhan ZIP & Migrasi Grammers Rust MTProto
 
 ### Optimalisasi Kecepatan & Eliminasi Python Telethon Blocking (`DrivePreviewModal.tsx`, `SpeedTest.tsx`, `grammers_ops.rs`)

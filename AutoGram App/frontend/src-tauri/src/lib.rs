@@ -788,6 +788,54 @@ fn jobs_import_json(json: String) -> Result<usize, String> {
     core::jobs_db::import_jobs_json(&json)
 }
 
+#[tauri::command]
+fn jobs_cancel_migration(job_id: i64) -> Result<(), String> {
+    core::jobs_db::cancel_execution(job_id)
+}
+
+// --- Profiles DB ---
+#[tauri::command]
+fn profiles_list() -> Result<Vec<core::profiles_db::ProfileRow>, String> {
+    core::profiles_db::list_profiles()
+}
+
+#[tauri::command]
+fn profiles_save(request: core::profiles_db::SaveProfileRequest) -> Result<i64, String> {
+    core::profiles_db::save_profile(request)
+}
+
+#[tauri::command]
+fn profiles_delete(id: i64) -> Result<(), String> {
+    core::profiles_db::delete_profile(id)
+}
+
+// --- Automations DB ---
+#[tauri::command]
+fn automations_list() -> Result<Vec<core::automations_db::AutomationRow>, String> {
+    core::automations_db::list_automations()
+}
+
+#[tauri::command]
+fn automations_save(request: core::automations_db::SaveAutomationRequest) -> Result<i64, String> {
+    core::automations_db::save_automation(request)
+}
+
+#[tauri::command]
+fn automations_delete(id: i64) -> Result<(), String> {
+    core::automations_db::delete_automation(id)
+}
+
+// --- Stats DB ---
+#[tauri::command]
+fn stats_get() -> Result<core::stats_db::StatsSummary, String> {
+    core::stats_db::get_statistics()
+}
+
+#[tauri::command]
+fn stats_export_csv() -> Result<String, String> {
+    core::stats_db::export_stats_csv()
+}
+
 /// Hybrid capability map (Rust / Python / hybrid owners).
 #[tauri::command]
 fn backend_capabilities() -> Vec<core::capability::CapabilityEntry> {
@@ -1394,6 +1442,15 @@ pub fn run() {
             jobs_fresh_start,
             jobs_export_json,
             jobs_import_json,
+            jobs_cancel_migration,
+            profiles_list,
+            profiles_save,
+            profiles_delete,
+            automations_list,
+            automations_save,
+            automations_delete,
+            stats_get,
+            stats_export_csv,
             start_worker_job,
             kill_worker_job,
             acquire_worker_session_lease,

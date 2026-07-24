@@ -23,4 +23,7 @@ pub mod telegram_ops;
 pub mod telethon_session_import;
 pub mod tg_error;
 pub mod tg_log;
+pub mod automations_db;
+pub mod profiles_db;
+pub mod stats_db;
 pub mod zip_local;

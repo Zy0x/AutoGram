@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.5
+AutoGram Version: v2.3.0
 
 Current State:
-v2.2.5 Arsitektur Dual-Mode pengunduhan ZIP (Fast Instant Copy dari cache diska lokal untuk ZIP <= 500MB + Grammers Rust MTProto tgDownloadFile 4GB untuk ZIP > 500MB), mengeliminasi total error Python Telethon blocking.
+v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine). Seluruh modul (Auth, Media Drive, Stream Video, Upload, Download, Migration Engine, Jobs, Profiles, Automations, dan Statistics) kini berjalan 100% murni di Rust.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
