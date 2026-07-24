@@ -207,8 +207,7 @@ fn find_entry_index<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str) -> 
     let clean = sanitize_zip_path(name);
     let target = name.replace('\\', "/");
     for i in 0..archive.len() {
-        if let Ok(f) = archive.by_index_raw(i) {
-            let fn_raw = f.name();
+        if let Some(fn_raw) = archive.name_for_index(i) {
             let fn_clean = sanitize_zip_path(fn_raw);
             let fn_target = fn_raw.replace('\\', "/");
             if fn_raw == name || fn_target == target || fn_clean == clean {
