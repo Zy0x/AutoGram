@@ -1,3 +1,11 @@
+## v2.3.13 Optimasi Pengindeksan & Pratinjau ZIP Sparse (Zero Full-Download & Kuota Hemat)
+
+### Block Size 512 KiB & Tail Pre-fetching (`grammers_sparse_zip.rs`, `zip_local.rs`, `driveApi.ts`)
+- **Peningkatan Blok MTProto (512 KiB)**: Meningkatkan `BLOCK_SIZE` dari 64 KiB menjadi 512 KiB pada `TelegramSparseReader` untuk memangkas network round-trip hingga 8x lipat saat membaca EOCD dan Central Directory.
+- **Tail Pre-fetching Instan (<0.5 Detik)**: Menambahkan `prefetch_tail()` untuk menarik 1 MB blok terakhir berkas ZIP dalam 1-2 permintaan MTProto awal, menyajikan indeks ZIP secara instan.
+- **Eliminasi Pengunduhan Otomatis Berkas Penuh**: Menghapus *fallback* otomatis ke `ensureZipLocalPath` pada `driveZipList`, `driveZipReadEntry`, dan `driveZipExtractEntry`. Kegagalan pembacaan sparse kini mengembalikan pesan kesalahan yang informatif tanpa mengunduh berkas ZIP secara diam-diam.
+- **Pratinjau & Ekstraksi 100% Lazy MTProto**: Mengubah `preview_zip_entry_sparse` dan `extract_zip_entry_sparse` di Rust backend agar menggunakan `TelegramSparseReader` + generic reader `preview_zip_entry_from_archive` & `extract_zip_entry_from_archive`. Pratinjau teks/gambar/kode serta ekstraksi entri tunggal kini 100% membaca rentang byte yang dibutuhkan secara langsung over MTProto tanpa mengunduh seluruh berkas ZIP ke cache lokal.
+
 ## v2.3.12 100% Pure Rust Virtual MTProto Sparse Reader (`TelegramSparseReader`)
 
 ### Virtual MTProto `Read + Seek` Stream & Eliminasi Batas File (`grammers_sparse_zip.rs`)

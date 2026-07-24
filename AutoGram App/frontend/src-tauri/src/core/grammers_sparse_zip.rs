@@ -15,7 +15,7 @@ use super::telegram_ops::TelegramIdentity;
 use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::zip_local::{sanitize_zip_path, ZipEntry, ZipEntryPreview, ZipListResult};
 
-const BLOCK_SIZE: u64 = 64 * 1024; // 64 KiB block fetch
+const BLOCK_SIZE: u64 = 512 * 1024; // 512 KiB block fetch
 const BACKEND: &str = "grammers_sparse";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +71,18 @@ impl<'a> TelegramSparseReader<'a> {
             cache: HashMap::new(),
             rt,
         }
+    }
+
+    pub fn prefetch_tail(&mut self) -> IoResult<()> {
+        if self.doc_size == 0 {
+            return Ok(());
+        }
+        let last_idx = (self.doc_size - 1) / BLOCK_SIZE;
+        let _ = self.fetch_block(last_idx)?;
+        if last_idx > 0 {
+            let _ = self.fetch_block(last_idx - 1)?;
+        }
+        Ok(())
     }
 
     fn fetch_block(&mut self, block_idx: u64) -> IoResult<&Vec<u8>> {
@@ -201,6 +213,8 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     }
 
     let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
+    let _ = sparse_reader.prefetch_tail();
+
     let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
         let msg = e.to_string();
         if msg.contains("Could not find EOCD") {
@@ -255,12 +269,13 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     })
 }
 
-/// Read single entry by fetching exact byte range lazily from Telegram MTProto
+/// Read single entry by fetching exact byte range lazily from Telegram MTProto (zero full download)
 pub async fn preview_zip_entry_sparse(
     opts: SparseZipOpts,
     entry_name: String,
     password: Option<String>,
 ) -> Result<ZipEntryPreview, TgError> {
+    let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
         api_id: opts.api_id,
@@ -283,35 +298,54 @@ pub async fn preview_zip_entry_sparse(
         .media()
         .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
 
-    let pdir = std::env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join("sessions/cache");
-    let _ = std::fs::create_dir_all(&pdir);
-    let safe_name = format!("{}_{}.zip", opts.chat_id, opts.message_id);
-    let dest = pdir.join(&safe_name);
+    let location = media_to_input_location(&media).ok_or_else(|| {
+        TgError::new(
+            TgErrorCode::Internal,
+            "Media bukan dokumen ZIP Telegram yang valid",
+        )
+    })?;
 
-    if !dest.is_file() {
-        live.client
-            .download_media(&media, &dest)
-            .await
-            .map_err(|e| map_invocation(&e))?;
+    let doc_size = match &media {
+        Media::Document(d) => d.size().unwrap_or(0) as u64,
+        _ => 0,
+    };
+
+    if doc_size == 0 {
+        return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    super::zip_local::preview_zip_entry(
-        dest.to_str().unwrap_or(""),
+    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
+    let _ = sparse_reader.prefetch_tail();
+
+    let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+        } else {
+            TgError::new(TgErrorCode::Io, msg)
+        }
+    })?;
+
+    let mut prev = super::zip_local::preview_zip_entry_from_archive(
+        archive,
         &entry_name,
         password.as_deref(),
     )
-    .map_err(|e| TgError::new(TgErrorCode::Io, e))
+    .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+
+    prev.backend = BACKEND.into();
+    let _ = persist_memory_session(&live.session, &live.session_path);
+    Ok(prev)
 }
 
-/// Extract single entry by fetching byte range lazily from Telegram MTProto directly to disk
+/// Extract single entry by fetching byte range lazily from Telegram MTProto directly to disk (zero full download)
 pub async fn extract_zip_entry_sparse(
     opts: SparseZipOpts,
     entry_name: String,
     dest_path: String,
     password: Option<String>,
 ) -> Result<u64, TgError> {
+    let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
         api_id: opts.api_id,
@@ -334,25 +368,42 @@ pub async fn extract_zip_entry_sparse(
         .media()
         .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
 
-    let pdir = std::env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join("sessions/cache");
-    let _ = std::fs::create_dir_all(&pdir);
-    let safe_name = format!("{}_{}.zip", opts.chat_id, opts.message_id);
-    let archive_path = pdir.join(&safe_name);
+    let location = media_to_input_location(&media).ok_or_else(|| {
+        TgError::new(
+            TgErrorCode::Internal,
+            "Media bukan dokumen ZIP Telegram yang valid",
+        )
+    })?;
 
-    if !archive_path.is_file() {
-        live.client
-            .download_media(&media, &archive_path)
-            .await
-            .map_err(|e| map_invocation(&e))?;
+    let doc_size = match &media {
+        Media::Document(d) => d.size().unwrap_or(0) as u64,
+        _ => 0,
+    };
+
+    if doc_size == 0 {
+        return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    super::zip_local::extract_zip_entry(
-        archive_path.to_str().unwrap_or(""),
+    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
+    let _ = sparse_reader.prefetch_tail();
+
+    let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+        } else {
+            TgError::new(TgErrorCode::Io, msg)
+        }
+    })?;
+
+    let bytes_written = super::zip_local::extract_zip_entry_from_archive(
+        archive,
         &entry_name,
         &dest_path,
         password.as_deref(),
     )
-    .map_err(|e| TgError::new(TgErrorCode::Io, e))
+    .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+
+    let _ = persist_memory_session(&live.session, &live.session_path);
+    Ok(bytes_written)
 }

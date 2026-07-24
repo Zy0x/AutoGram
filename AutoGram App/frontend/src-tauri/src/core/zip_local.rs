@@ -3,7 +3,7 @@
 use base64::Engine;
 use serde::Serialize;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek};
 use zip::CompressionMethod;
 use zip::ZipArchive;
 
@@ -203,22 +203,11 @@ fn is_known_text_file(name: &str) -> bool {
         || n.ends_with(".php")
 }
 
-pub fn preview_zip_entry(
-    path: &str,
+pub fn preview_zip_entry_from_archive<R: Read + Seek>(
+    mut archive: ZipArchive<R>,
     entry_name: &str,
     password: Option<&str>,
 ) -> Result<ZipEntryPreview, String> {
-    let p = path_policy::assert_safe_transfer_path(path)?;
-    let file = File::open(&p).map_err(|e| format!("Gagal membuka cache ZIP: {e}"))?;
-    let mut archive = ZipArchive::new(file).map_err(|e| {
-        let msg = e.to_string();
-        if msg.contains("Could not find EOCD") {
-            "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
-        } else {
-            msg
-        }
-    })?;
-
     let mut f = if let Some(pass) = password {
         archive
             .by_name_decrypt(entry_name, pass.as_bytes())
@@ -336,20 +325,14 @@ pub fn preview_zip_entry(
     })
 }
 
-pub fn extract_zip_entry(
-    archive_path: &str,
+pub fn preview_zip_entry(
+    path: &str,
     entry_name: &str,
-    dest_path: &str,
     password: Option<&str>,
-) -> Result<u64, String> {
-    let src_p = path_policy::assert_safe_transfer_path(archive_path)?;
-    let dst_p = match path_policy::assert_safe_transfer_path(dest_path) {
-        Ok(p) => p,
-        Err(_) => std::path::PathBuf::from(dest_path),
-    };
-
-    let file = File::open(&src_p).map_err(|e| format!("Gagal membuka berkas ZIP: {e}"))?;
-    let mut archive = ZipArchive::new(file).map_err(|e| {
+) -> Result<ZipEntryPreview, String> {
+    let p = path_policy::assert_safe_transfer_path(path)?;
+    let file = File::open(&p).map_err(|e| format!("Gagal membuka cache ZIP: {e}"))?;
+    let archive = ZipArchive::new(file).map_err(|e| {
         let msg = e.to_string();
         if msg.contains("Could not find EOCD") {
             "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
@@ -357,6 +340,19 @@ pub fn extract_zip_entry(
             msg
         }
     })?;
+    preview_zip_entry_from_archive(archive, entry_name, password)
+}
+
+pub fn extract_zip_entry_from_archive<R: Read + Seek>(
+    mut archive: ZipArchive<R>,
+    entry_name: &str,
+    dest_path: &str,
+    password: Option<&str>,
+) -> Result<u64, String> {
+    let dst_p = match path_policy::assert_safe_transfer_path(dest_path) {
+        Ok(p) => p,
+        Err(_) => std::path::PathBuf::from(dest_path),
+    };
 
     let mut entry_file = if let Some(pass) = password {
         archive
@@ -391,6 +387,25 @@ pub fn extract_zip_entry(
         .map_err(|e| format!("Gagal menulis data ekstraksi: {e}"))?;
 
     Ok(bytes_written)
+}
+
+pub fn extract_zip_entry(
+    archive_path: &str,
+    entry_name: &str,
+    dest_path: &str,
+    password: Option<&str>,
+) -> Result<u64, String> {
+    let src_p = path_policy::assert_safe_transfer_path(archive_path)?;
+    let file = File::open(&src_p).map_err(|e| format!("Gagal membuka berkas ZIP: {e}"))?;
+    let archive = ZipArchive::new(file).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
+        } else {
+            msg
+        }
+    })?;
+    extract_zip_entry_from_archive(archive, entry_name, dest_path, password)
 }
 
 #[cfg(test)]

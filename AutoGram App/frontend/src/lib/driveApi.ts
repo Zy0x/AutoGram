@@ -1229,51 +1229,7 @@ export async function driveStreamSeek(
   }
 }
 
-const zipPathCache = new Map<string, string>();
 
-async function ensureZipLocalPath(
-  creds: DriveCredentials,
-  messageId: number,
-  folderId: number | null
-): Promise<string> {
-  const cacheKey = `${folderId ?? 'root'}:${messageId}`;
-  const existing = zipPathCache.get(cacheKey);
-  if (existing) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const safe = await invoke<boolean>('path_policy_check', { path: existing });
-      if (safe) return existing;
-      zipPathCache.delete(cacheKey);
-    } catch {
-      zipPathCache.delete(cacheKey);
-    }
-  }
-
-  const { tgPreviewStream } = await import('./telegramBackend');
-  const id = await resolveGrammersIdentity(creds);
-  const chatId = folderId == null ? 'me' : String(folderId);
-
-  const gr = await tgPreviewStream({
-    session: id.session,
-    apiId: id.apiId,
-    apiHash: id.apiHash,
-    chatId,
-    messageId,
-  });
-
-  if (gr?.ok && gr.data?.path) {
-    zipPathCache.set(cacheKey, gr.data.path);
-    return gr.data.path;
-  }
-
-  if (gr?.ok && gr.data?.message && gr.data.message.includes('File besar')) {
-    throw new Error('Berkas ZIP terlalu besar (> 500 MB) untuk dipratinjau langsung. Silakan gunakan opsi Unduh.');
-  }
-
-  throw new Error(
-    gr?.userMessage || gr?.error?.message || gr?.data?.message || 'Gagal mengunduh berkas ZIP dari Telegram (Grammers)'
-  );
-}
 
 /** Lightweight Sparse ZIP listing via Grammers MTProto Range Fetch (<0.5s) & Rust native engine. */
 export async function driveZipList(
@@ -1313,46 +1269,25 @@ export async function driveZipList(
       backend: 'grammers_sparse',
     };
   } catch (sparseErr: any) {
-    console.warn('[driveZipList] Sparse fetch fallback to local:', sparseErr);
-    try {
-      const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-      const { zipListLocal } = await import('./rustBackend');
-      const res = await zipListLocal(localPath);
-      return {
-        status: 'success',
-        entries: (res?.entries || []).map((e: any) => ({
-          name: e.name,
-          size: Number(e.size || 0),
-          compressed_size: Number(e.compressedSize || 0),
-          is_dir: !!e.isDir,
-          method: e.method || 0,
-        })),
-        archive_size: res?.archiveSize,
-        total_uncompressed: res?.totalUncompressed,
-        source: 'central_dir_local',
-        truncated: !!res?.truncated,
-        backend: 'grammers',
-      };
-    } catch (e: any) {
-      const rawMsg = String(e?.message || e || sparseErr?.message || 'Gagal membaca arsip ZIP');
-      let friendly = rawMsg;
-      if (rawMsg.includes('Could not find EOCD') || rawMsg.includes('EOCD missing')) {
-        friendly = 'Arsip ZIP tidak valid atau penanda EOCD tidak ditemukan. Coba unduh ulang berkas.';
-      } else if (rawMsg.includes('Password required') || rawMsg.includes('bad_password')) {
-        friendly = 'Arsip ZIP dienkripsi dengan password.';
-      }
-      return {
-        status: 'error',
-        error: friendly,
-        message: friendly,
-        entries: [],
-        backend: 'grammers',
-      };
+    const rawMsg = String(sparseErr?.message || sparseErr || 'Gagal membaca arsip ZIP secara remote');
+    console.warn('[driveZipList] Sparse fetch error:', sparseErr);
+    let friendly = rawMsg;
+    if (rawMsg.includes('Could not find EOCD') || rawMsg.includes('EOCD missing')) {
+      friendly = 'Arsip ZIP tidak valid atau penanda EOCD tidak ditemukan.';
+    } else if (rawMsg.includes('Password required') || rawMsg.includes('bad_password')) {
+      friendly = 'Arsip ZIP dienkripsi dengan password.';
     }
+    return {
+      status: 'error',
+      error: friendly,
+      message: friendly,
+      entries: [],
+      backend: 'grammers_sparse',
+    };
   }
 }
 
-/** Read ZIP entry via Grammers MTProto & Rust native zip_local engine. */
+/** Read ZIP entry via Grammers MTProto Range Fetch & Rust native engine (Zero full-file download). */
 export async function driveZipReadEntry(
   creds: DriveCredentials,
   messageId: number,
@@ -1381,7 +1316,7 @@ export async function driveZipReadEntry(
       return {
         status: 'encrypted',
         message: 'File ZIP dienkripsi. Masukkan password.',
-        backend: 'grammers',
+        backend: 'grammers_sparse',
       };
     }
 
@@ -1411,65 +1346,25 @@ export async function driveZipReadEntry(
       backend: 'grammers_sparse',
     };
   } catch (sparseErr: any) {
-    console.warn('[driveZipReadEntry] Sparse preview fallback to local:', sparseErr);
-    try {
-      const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-      const { zipPreviewEntry } = await import('./rustBackend');
-      const res = await zipPreviewEntry(localPath, entry, password);
-
-      if (res?.encrypted) {
-        return {
-          status: 'encrypted',
-          message: 'File ZIP dienkripsi. Masukkan password.',
-          backend: 'grammers',
-        };
-      }
-
-      let kind = 'meta';
-      if (res?.dataUrl) {
-        const mime = (res.mimeType || '').toLowerCase();
-        if (mime.startsWith('video/')) {
-          kind = 'video';
-        } else if (mime.startsWith('audio/')) {
-          kind = 'audio';
-        } else {
-          kind = 'image';
-        }
-      } else if (res?.textContent != null) {
-        kind = 'text';
-      } else if (res?.isBinary) {
-        kind = 'binary';
-      }
-
+    const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca entri ZIP');
+    console.warn('[driveZipReadEntry] Sparse preview error:', sparseErr);
+    if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
       return {
-        status: 'success',
-        kind,
-        text: res?.textContent,
-        data_url: res?.dataUrl,
-        mime: res?.mimeType,
-        size: res?.size,
-        backend: 'grammers',
-      };
-    } catch (e: any) {
-      const msg = String(e?.message || e || sparseErr?.message || 'Gagal membaca entri ZIP');
-      if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
-        return {
-          status: 'bad_password',
-          message: 'Password salah atau enkripsi tidak didukung.',
-          backend: 'grammers',
-        };
-      }
-      return {
-        status: 'error',
-        error: msg,
-        message: msg,
-        backend: 'grammers',
+        status: 'bad_password',
+        message: 'Password salah atau enkripsi tidak didukung.',
+        backend: 'grammers_sparse',
       };
     }
+    return {
+      status: 'error',
+      error: msg,
+      message: msg,
+      backend: 'grammers_sparse',
+    };
   }
 }
 
-/** Extract single ZIP entry directly to destination path on disk via Grammers & Rust. */
+/** Extract single ZIP entry directly to destination path on disk via Grammers Sparse Fetch. */
 export async function driveZipExtractEntry(
   creds: DriveCredentials,
   messageId: number,
@@ -1491,17 +1386,9 @@ export async function driveZipExtractEntry(
     messageId,
   };
 
-  try {
-    const { zipExtractEntrySparse } = await import('./rustBackend');
-    const bytesWritten = await zipExtractEntrySparse(sparseOpts, entryName, destPath, password);
-    return { status: 'success', bytesWritten };
-  } catch (sparseErr: any) {
-    console.warn('[driveZipExtractEntry] Sparse extract fallback to local:', sparseErr);
-    const localPath = await ensureZipLocalPath(creds, messageId, folderId);
-    const { zipExtractEntry } = await import('./rustBackend');
-    const bytesWritten = await zipExtractEntry(localPath, entryName, destPath, password);
-    return { status: 'success', bytesWritten };
-  }
+  const { zipExtractEntrySparse } = await import('./rustBackend');
+  const bytesWritten = await zipExtractEntrySparse(sparseOpts, entryName, destPath, password);
+  return { status: 'success', bytesWritten };
 }
 
 export async function driveDelete(
