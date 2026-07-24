@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
+import { DriveGridSkeleton, DriveListSkeleton, MicroProgressBar } from './DriveSkeleton';
 import type { DriveCredentials } from '../../lib/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
@@ -658,11 +659,16 @@ export function DriveExplorer({
 
   if (loading && files.length === 0) {
     return (
-      <div className="td-explorer">
-        <div className="td-empty">
-          <Loader2 size={32} className="spin" />
-          <p>Memuat file…</p>
-        </div>
+      <div className="td-explorer p-4">
+        <MicroProgressBar
+          isIndeterminate
+          label="Membaca katalog media Telegram MTProto..."
+        />
+        {viewMode === 'grid' ? (
+          <DriveGridSkeleton count={18} />
+        ) : (
+          <DriveListSkeleton count={12} />
+        )}
       </div>
     );
   }

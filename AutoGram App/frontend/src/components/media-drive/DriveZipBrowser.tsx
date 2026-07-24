@@ -48,6 +48,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
+import { ZipCatalogSkeleton, MicroProgressBar } from './DriveSkeleton';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache, driveStopStream } from '../../lib/driveApi';
 import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
@@ -996,12 +997,12 @@ export function DriveZipBrowser({
 
   if (loading) {
     return (
-      <div className="drive-zip-browser is-loading">
-        <Loader2 size={32} className="spin" style={{ color: '#ffae00' }} />
-        <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Memuat & membaca indeks ZIP via Grammers…</p>
-        <span className="drive-zip-hint">
-          Indeks arsip dibaca secara native oleh Rust Engine — aman untuk file besar.
-        </span>
+      <div className="drive-zip-browser is-loading p-4">
+        <MicroProgressBar
+          isIndeterminate
+          label="Membaca katalog & indeks ZIP via MTProto Range Request..."
+        />
+        <ZipCatalogSkeleton count={10} />
       </div>
     );
   }

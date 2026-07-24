@@ -33,6 +33,7 @@ import {
   Printer,
   Repeat,
 } from 'lucide-react';
+import { MediaPreviewSkeleton, MicroProgressBar } from './DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../lib/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../lib/driveSession';
@@ -2887,22 +2888,20 @@ export function DrivePreviewModal({
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
-            <div className="drive-empty">
-              <Loader2 className="spin" size={28} />
-              <p>
-                {switchingQuality
-                  ? `Mengganti ke ${activeQuality?.label || quality}…`
-                  : isPdf || isText
-                    ? 'Mengunduh dokumen…'
-                    : /^(p720|p480|p360)/i.test(quality)
-                      ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
-                      : 'Menyiapkan stream…'}
-              </p>
-              <p className="drive-muted" style={{ fontSize: 12 }}>
-                {isPdf || isText
-                  ? 'Pratinjau on-demand — file diunduh hanya saat dibuka'
-                  : 'Next/prev memakai cache & prefetch agar lebih cepat'}
-              </p>
+            <div className="w-full max-w-4xl p-6">
+              <MicroProgressBar
+                isIndeterminate
+                label={
+                  switchingQuality
+                    ? `Mengganti ke ${activeQuality?.label || quality}…`
+                    : isPdf || isText
+                      ? 'Mengunduh dokumen via Grammers MTProto…'
+                      : /^(p720|p480|p360)/i.test(quality)
+                        ? `Menyiapkan ${quality.replace(/^p/i, '')}p…`
+                        : 'Menyiapkan stream media…'
+                }
+              />
+              <MediaPreviewSkeleton />
             </div>
           )}
 
