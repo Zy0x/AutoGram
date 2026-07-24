@@ -590,15 +590,41 @@ export type DriveDeleteFolderOpts = {
   detachChildren?: boolean;
 };
 
-function requireGrammersIdentity(creds: DriveCredentials) {
+export function requireGrammersIdentity(creds: DriveCredentials) {
   if (!detectTauriRuntime()) {
     throw new Error('Operasi Drive membutuhkan desktop Rust + Grammers.');
   }
+  const session = String(creds?.session || '').trim();
+  const apiId = Number(creds?.apiId) || 0;
+  const apiHash = String(creds?.apiHash || '').trim();
+  if (!session) {
+    throw new Error('Sesi Telegram belum dipilih.');
+  }
   return {
-    session: creds.session,
-    apiId: Number(creds.apiId) || 0,
-    apiHash: creds.apiHash,
+    session,
+    apiId,
+    apiHash,
   };
+}
+
+export async function resolveGrammersIdentity(creds: DriveCredentials) {
+  const base = requireGrammersIdentity(creds);
+  if (base.apiId > 0 && base.apiHash) {
+    return base;
+  }
+  try {
+    const { getApiCredentials } = await import('./secureCredentials');
+    const secure = await getApiCredentials();
+    const apiId = base.apiId > 0 ? base.apiId : (Number(secure?.apiId) || 0);
+    const apiHash = base.apiHash || secure?.apiHash || '';
+    return {
+      session: base.session,
+      apiId,
+      apiHash,
+    };
+  } catch {
+    return base;
+  }
 }
 
 /** Map Grammers DialogEntry → DriveChat (preserves is_forum for topics bar). */
@@ -1373,7 +1399,7 @@ export async function driveDelete(
   messageId: number,
   folderId: number | null
 ) {
-  const id = requireGrammersIdentity(creds);
+  const id = await resolveGrammersIdentity(creds);
   const { tgDeleteMessages } = await import('./telegramBackend');
   const chatId = folderId == null ? 'me' : String(folderId);
   const gr = await tgDeleteMessages({
@@ -1413,7 +1439,7 @@ export async function driveDeleteBatch(
     grouped.set(chatId, existing);
   }
 
-  const id = requireGrammersIdentity(creds);
+  const id = await resolveGrammersIdentity(creds);
   const { tgDeleteMessages } = await import('./telegramBackend');
 
   const allDeleted: number[] = [];
@@ -1463,7 +1489,7 @@ export async function driveRename(
   // is not ideal. Surface a soft copy-forward with new caption where possible.
   const clean = String(newName || '').trim();
   if (!clean) throw new Error('Nama baru wajib diisi');
-  const id = requireGrammersIdentity(creds);
+  const id = await resolveGrammersIdentity(creds);
   // Best-effort: move to same chat deletes source after re-forward is wrong.
   // Keep explicit until EditDocumentAttributes is ported.
   void id;
@@ -1492,7 +1518,7 @@ export async function driveMove(
   opts?: DriveMoveOpts
 ) {
   const deleteSource = opts?.deleteSource !== false;
-  const id = requireGrammersIdentity(creds);
+  const id = await resolveGrammersIdentity(creds);
   const { tgMoveMessages } = await import('./telegramBackend');
   const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
   const destChat =

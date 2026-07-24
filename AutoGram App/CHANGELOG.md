@@ -1,3 +1,10 @@
+## v2.3.3 Perbaikan Bug Kritis ReferenceError `requireGrammersIdentity` pada Penghapusan Media (`driveApi.ts`)
+
+### Perbaikan Fungsi & Resolusi Identitas API (`driveApi.ts`)
+- **Deklarasi `requireGrammersIdentity` & `resolveGrammersIdentity`**:
+  - Memperbaiki bug kritis di mana `requireGrammersIdentity` belum terdefinisi di `driveApi.ts`, yang menyebabkan eksekusi `driveDelete`, `driveDeleteBatch`, `driveRename`, dan `driveMove` gagal seketika akibat runtime error `ReferenceError: requireGrammersIdentity is not defined`.
+  - Menambahkan pembantu `resolveGrammersIdentity` untuk secara otomatis mengambil `apiId` & `apiHash` dari Tauri secure store (`getApiCredentials()`) jika kredensial yang diteruskan dari state UI belum terisi lengkap, menjamin eksekusi RPC penghapusan pesan selalu berhasil.
+
 ## v2.3.2 Optimalisasi Kecepatan & Instant Fast-Fail Penghapusan Media (`drive_rpc.rs`, `grammers_ops.rs`)
 
 ### Akselerasi Penghapusan & Notifikasi Error Instan (`drive_rpc.rs`, `grammers_ops.rs`)
