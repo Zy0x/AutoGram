@@ -438,22 +438,34 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   /** Telethon dialog cursor — O(1) next page (not skip-N) */
   const chatsCursorRef = useRef<ChatListCursor | null>(initialSidebarCache?.cursor ?? null);
 
-  // Cache files and total counts for faster navigation
-  const filesCacheRef = useRef<Map<string, DriveFile[]>>(
-    new Map(initialLocationCache ? [[`${initial.id}_`, initialLocationCache.files]] : [])
+  /** Session-aware & Peer-aware & Topic-aware cache key generator */
+  const getDriveCacheKey = useCallback(
+    (sessName?: string | null, pIdVal?: string | number | null, tIdVal?: number | null | string): string => {
+      const s = String(sessName || session || '').trim();
+      const p = pIdVal == null ? 'saved' : String(pIdVal);
+      const t = tIdVal == null ? '' : String(tIdVal);
+      return `${s}::${p}::${t}`;
+    },
+    [session]
   );
-  const activeFilesCacheKeyRef = useRef<string>(`${initial.id}_`);
+
+  // Cache files and total counts for faster navigation
+  const initCacheKey = getDriveCacheKey(session, initial.id, null);
+  const filesCacheRef = useRef<Map<string, DriveFile[]>>(
+    new Map(initialLocationCache ? [[initCacheKey, initialLocationCache.files]] : [])
+  );
+  const activeFilesCacheKeyRef = useRef<string>(initCacheKey);
   const filesTotalCountRef = useRef<Map<string, number>>(
     new Map(
       initialLocationCache?.totalCount != null
-        ? [[`${initial.id}_`, initialLocationCache.totalCount]]
+        ? [[initCacheKey, initialLocationCache.totalCount]]
         : []
     )
   );
   const filesTotalBytesRef = useRef<Map<string, number>>(
     new Map(
       initialLocationCache?.totalBytes != null
-        ? [[`${initial.id}_`, initialLocationCache.totalBytes]]
+        ? [[initCacheKey, initialLocationCache.totalBytes]]
         : []
     )
   );
@@ -1103,7 +1115,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       const location = loadDriveLocationSnapshot(localStorage, next, null, null);
       if (location && Array.isArray(location.files)) {
         const dedupedLocFiles = dedupeByMsgId(location.files);
-        filesCacheRef.current.set('null_', dedupedLocFiles);
+        const locKey = getDriveCacheKey(next, null, null);
+        filesCacheRef.current.set(locKey, dedupedLocFiles);
+        activeFilesCacheKeyRef.current = locKey;
         setFiles(dedupedLocFiles);
         setFilesHasMore(location.hasMore);
         setNextOffsetId(location.nextOffsetId);
@@ -2236,7 +2250,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setSelectedIds([]);
     selectionAnchorRef.current = null;
     let tid = topicFilterRef.current;
-    let cacheKey = `${peerId}_${tid || ''}`;
+    let cacheKey = getDriveCacheKey(creds.session, peerId, tid);
+    activeFilesCacheKeyRef.current = cacheKey;
 
     // Instant cache restore
     const cachedFiles = filesCacheRef.current.get(cacheKey);
@@ -2263,16 +2278,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
       if (persisted) {
         filesCacheRef.current.set(cacheKey, persisted.files);
-        if (files.length <= instantFiles.length) {
-          setFilesHasMore(persisted.hasMore);
-          setNextOffsetId(persisted.nextOffsetId);
-        }
+        setFilesHasMore(persisted.hasMore);
+        setNextOffsetId(persisted.nextOffsetId);
         setLoadingFiles(false);
       }
     } else {
       setFiles([]);
       setTotalFileCount(null);
       setTotalBytes(null);
+      setFilesHasMore(false);
+      setNextOffsetId(null);
     }
 
     try {
@@ -2286,12 +2301,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         localOffset: 0,
         bypassCache: true,
       });
-      if (gen !== peerGen.current) return;
+      if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       if (res?.invalid_topic && tid != null) {
         // Recover stale/deleted/cross-peer topic selection without showing a
         // fatal location error. Reopen the active peer as "Semua media".
         tid = null;
-        cacheKey = `${peerId}_`;
+        cacheKey = getDriveCacheKey(creds.session, peerId, null);
+        activeFilesCacheKeyRef.current = cacheKey;
         setTopicFilter(null);
         topicFilterRef.current = null;
         topicsRequestSeqRef.current += 1;
@@ -2305,7 +2321,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           localOffset: 0,
           bypassCache: true,
         });
-        if (gen !== peerGen.current) return;
+        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
         if (peerId != null) void loadTopicsForPeer(peerId);
       }
       let page: DriveFile[] = dedupeByMsgId(res.files || []);
@@ -2313,7 +2329,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (page.length === 0 && res.has_more && tid != null && res.next_offset_id && gen === peerGen.current) {
         let currentOffset = res.next_offset_id;
         let attempts = 0;
-        while (page.length === 0 && currentOffset > 0 && attempts < 10 && gen === peerGen.current) {
+        while (page.length === 0 && currentOffset > 0 && attempts < 10 && gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey) {
           attempts++;
           const nextRes = await driveListFiles(creds, peerId, {
             pageSize: stagedInitialPageSize(perf.tier, perf.filePage),
@@ -2324,13 +2340,14 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             localOffset: 0,
             bypassCache: true,
           });
-          if (gen !== peerGen.current) return;
+          if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
           page = dedupeByMsgId(nextRes.files || []);
           res.has_more = nextRes.has_more;
           res.next_offset_id = nextRes.next_offset_id;
           currentOffset = nextRes.next_offset_id || 0;
         }
       }
+      if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       // Instant grid thumbs from list response (no second thumbs_batch wait).
       if (page.length) {
         primeThumbsFromFileList(creds, peerId, page);
@@ -2383,6 +2400,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       }
 
       setFiles((prev) => {
+        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) {
+          return prev;
+        }
         if (activeFilesCacheKeyRef.current === cacheKey && prev.length > page.length && page.length > 0) {
           const merged = reconcileDriveLiveHead(prev, page, !!res.has_more, { isExplicitRefresh: true });
           filesCacheRef.current.set(cacheKey, merged);
@@ -2652,6 +2672,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setStatusText('Memuat lebih banyak…');
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
+    const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
     const offsetAtStart = nextOffsetId;
     try {
       const res = await driveListFiles(creds, peerId, {
@@ -2665,7 +2686,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         sortMode: sortMode,
         localOffset: files.length,
       });
-      if (gen !== peerGen.current) return;
+      if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       let page: DriveFile[] = res.files || [];
       if (page.length) {
         primeThumbsFromFileList(creds, peerId, page);
@@ -2687,6 +2708,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         return;
       }
       setFiles((prev) => {
+        if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
         const seen = new Set(prev.map((f) => f.id));
         const merged = [...prev, ...page.filter((f) => !seen.has(f.id))];
         if (merged.length >= 10000) {
@@ -2694,7 +2716,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         } else if (merged.length >= 1000) {
           setScaleHint('1.000+ item dimuat bertahap — hanya baris terlihat yang di-render.');
         }
-        const known = filesTotalCountRef.current.get(`${peerId}_${tid || ''}`);
+        const known = filesTotalCountRef.current.get(cacheKey);
         setStatusText(
           known != null
             ? `${merged.length} / ${known}${statsAccurate ? '' : '+'} files`
@@ -2702,7 +2724,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         );
 
         // Update cache with merged data
-        const cacheKey = `${peerId}_${tid || ''}`;
         filesCacheRef.current.set(cacheKey, merged);
         // Only raise lower-bound from page payloads — never shrink during scroll
         // (background media_stats owns the accurate total)
@@ -2809,7 +2830,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       const now = Date.now();
       if (now < liveSyncBackoffUntilRef.current) return;
       const tid = topicFilterRef.current;
-      const cacheKey = `${peerId}_${tid || ''}`;
+      const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
       const minAge = reason === 'focus' ? plan.focusMinAgeMs : plan.intervalMs;
       const lastAt = liveSyncLastAtRef.current.get(cacheKey) || 0;
       if (now - lastAt < minAge) return;
@@ -2827,7 +2848,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           quickStats: false,
           bypassCache: true,
         });
-        if (gen !== peerGen.current || tid !== topicFilterRef.current) return;
+        if (gen !== peerGen.current || tid !== topicFilterRef.current || activeFilesCacheKeyRef.current !== cacheKey) return;
         if (reqId !== syncReqIdRef.current) return;  // request baru sudah dikirim, buang respons lama
         if (res?.invalid_topic && tid != null) {
           void refreshFiles();
@@ -3287,7 +3308,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setThumbContext(creds, peerId, t);
       // Drop previous location totals and cache immediately so all-media count/grid
       // never sticks on previous topic while the new topic loads.
-      const cacheKey = `${peerId}_${t || ''}`;
+      const cacheKey = getDriveCacheKey(creds?.session || session, peerId, t);
       activeFilesCacheKeyRef.current = cacheKey;
       filesCacheRef.current.delete(cacheKey);
 
@@ -3333,7 +3354,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     uploadRefreshLockRef.current = true;
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
-    const cacheKey = `${peerId}_${tid || ''}`;
+    const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
     const cursorBefore = nextOffsetId;
     const hasMoreBefore = filesHasMore;
     try {
@@ -3344,7 +3365,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         topicId: tid,
         quickStats: false,
       });
-      if (gen !== peerGen.current || tid !== topicFilterRef.current) return;
+      if (gen !== peerGen.current || tid !== topicFilterRef.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       const liveHead: DriveFile[] = dedupeByMsgId(res.files || []);
       const keptExtendedPages = !!res.has_more && liveFilesRef.current.length > liveHead.length;
       const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
