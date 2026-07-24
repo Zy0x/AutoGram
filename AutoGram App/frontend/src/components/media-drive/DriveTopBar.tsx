@@ -221,9 +221,9 @@ export function DriveTopBar({
 
   const hasSelection = selectedCount > 0;
 
-  /** Selection tools sit beside the search bar (search shrinks) — no extra topbar row. */
+  /** Selection tools replace search bar in-place on row 2 — zero layout shift. */
   const selectionToolbar = (
-    <div className="td-selection-strip is-beside-search" role="toolbar" aria-label="Aksi seleksi">
+    <div className="td-selection-strip is-in-place" role="toolbar" aria-label="Aksi seleksi">
       <div className="td-selection-strip-left">
         <span className="td-selection-count" title={`${selectedCount} file terpilih`}>
           <MousePointerClick size={14} strokeWidth={2} aria-hidden />
@@ -662,25 +662,27 @@ export function DriveTopBar({
       )}
 
       {/*
-        Row 2: search + selection tools on one row.
-        With selection: tools take space on the right, search shrinks (no new row → no list jump).
+        Row 2: search input OR selection tools (in-place replacement → zero topbar height change → zero layout shift).
       */}
       <div
         className={`td-topbar-row td-topbar-row-2${hasSelection ? ' has-selection-tools' : ''}`}
       >
-        <input
-          type="text"
-          inputMode="search"
-          autoComplete="off"
-          spellCheck={false}
-          className="td-search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Cari file di lokasi ini… (Ctrl+F)"
-          aria-label="Cari file di lokasi saat ini. Pintasan Ctrl+F"
-          title="Filter media di folder/chat yang dibuka. Ctrl+F fokusus. Lokasi: Ctrl+K di sidebar."
-        />
-        {hasSelection && selectionToolbar}
+        {hasSelection ? (
+          selectionToolbar
+        ) : (
+          <input
+            type="text"
+            inputMode="search"
+            autoComplete="off"
+            spellCheck={false}
+            className="td-search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Cari file di lokasi ini… (Ctrl+F)"
+            aria-label="Cari file di lokasi saat ini. Pintasan Ctrl+F"
+            title="Filter media di folder/chat yang dibuka. Ctrl+F fokus. Lokasi: Ctrl+K di sidebar."
+          />
+        )}
       </div>
 
       {/* Row 3: filters/sort/thumb — labeled groups so controls stay self-explanatory */}
