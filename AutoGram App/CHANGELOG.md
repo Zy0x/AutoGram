@@ -1,3 +1,11 @@
+## v2.3.25 Redesain Modern Glassmorphic Encrypted ZIP Card UI
+
+### Redesain UI Pengisian Password ZIP (`DriveZipBrowser.tsx`, `App.css`)
+- **Kartu Glassmorphic Elegan (`.zip-encrypted-card`)**: Mengganti tampilan form password sederhana dengan kartu melayang bertema *dark glassmorphic* yang dilengkapi sudut membulat 20px, efek *backdrop blur*, border tipis rose-red, serta bayangan memancar (*glowing aura*).
+- **Icon Badge Glowing & Status Pill**: Menambahkan badge ikon gembok dengan lingkaran berpendar lembut serta badge status `ShieldAlert` bertuliskan *"File Terenkripsi (Password Required)"*.
+- **Input Password Interaktif dengan Toggle Eye**: Menambahkan ikon `KeyRound` pada input password dan tombol mata (*Eye / EyeOff*) untuk beralih mode visibilitas teks password.
+- **Tombol Action Gradien & Checkbox modern**: Menyajikan tombol *Buka Berkas* dengan aksen gradien merah-rose yang responsif terhadap hover micro-animation, serta label checkbox *Ingat password* yang rapi.
+
 ## v2.3.24 Peningkatan Threshold Media Image 15 MB & Dedicated Card Component untuk Large Media
 
 ### Perbaikan Visual Pratinjau Gambar (`zip_local.rs`, `driveApi.ts`, `DriveZipBrowser.tsx`)

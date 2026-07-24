@@ -12446,3 +12446,205 @@ video.drive-zip-img {
   font-size: 0.78rem;
 }
 
+/* ─── Encrypted ZIP Password Prompt Card (Modern Glassmorphic UI) ─── */
+.zip-encrypted-card-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+}
+
+.zip-encrypted-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+  padding: 32px 28px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(26, 23, 40, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.6), 0 0 30px rgba(244, 63, 94, 0.12);
+  backdrop-filter: blur(16px);
+  animation: zipEncryptedPop 0.25s ease-out;
+}
+
+@keyframes zipEncryptedPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.zip-encrypted-icon-badge {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.2) 0%, rgba(244, 63, 94, 0.05) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.25);
+}
+
+.zip-encrypted-lock-icon {
+  color: #f43f5e;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.5));
+}
+
+.zip-encrypted-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zip-encrypted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.zip-encrypted-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0 0 20px 0;
+  line-height: 1.45;
+}
+
+.zip-encrypted-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.zip-encrypted-input-group {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.zip-encrypted-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.zip-encrypted-input {
+  width: 100%;
+  padding: 12px 42px 12px 40px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.zip-encrypted-input:focus {
+  border-color: #f43f5e;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
+}
+
+.zip-encrypted-input::placeholder {
+  color: #64748b;
+}
+
+.zip-encrypted-eye-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+
+.zip-encrypted-eye-btn:hover {
+  color: #f8fafc;
+}
+
+.zip-encrypted-submit-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(244, 63, 94, 0.35);
+  transition: all 0.2s ease;
+}
+
+.zip-encrypted-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5);
+  filter: brightness(1.08);
+}
+
+.zip-encrypted-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.zip-encrypted-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.zip-encrypted-remember {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 4px;
+}
+
+.zip-encrypted-checkbox {
+  accent-color: #f43f5e;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+

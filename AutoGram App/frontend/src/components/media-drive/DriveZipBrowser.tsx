@@ -32,8 +32,11 @@ import {
   RotateCw,
   Search,
   Send,
-  SquareCheck,
-  SquareMinus,
+  Eye,
+  EyeOff,
+  KeyRound,
+  ShieldAlert,
+  Unlock,
   Users,
   Volume2,
   VolumeX,
@@ -254,6 +257,7 @@ export function DriveZipBrowser({
     message?: string;
   } | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberPass, setRememberPass] = useState(true);
   const [destPickerModal, setDestPickerModal] = useState<{
     action: 'single' | 'batch';
@@ -1416,42 +1420,77 @@ export function DriveZipBrowser({
             </div>
           ) : null}
           {preview?.kind === 'encrypted' && (
-            <div className="drive-zip-preview-empty">
-              <Lock size={36} style={{ color: '#ef4444' }} />
-              <p title={preview.entry} style={{ fontWeight: 600 }}>{entryLabel(preview.entry, cwd)}</p>
-              <span className="drive-zip-hint" style={{ color: '#fca5a5' }}>{preview.message}</span>
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="password"
-                    className="td-input"
-                    placeholder="Password ZIP..."
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && password) {
-                        void openEntry(preview.entry, password);
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    className="td-btn-primary"
-                    disabled={!password || !!opening}
-                    onClick={() => void openEntry(preview.entry, password)}
-                  >
-                    Buka
-                  </button>
+            <div className="zip-encrypted-card-wrapper">
+              <div className="zip-encrypted-card">
+                <div className="zip-encrypted-icon-badge">
+                  <Lock size={30} className="zip-encrypted-lock-icon" />
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#94a3b8', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={rememberPass}
-                    onChange={(e) => setRememberPass(e.target.checked)}
-                  />
-                  <span>Ingat password untuk sesi ini</span>
-                </label>
+
+                <h4 className="zip-encrypted-title" title={preview.entry}>
+                  {entryLabel(preview.entry, cwd)}
+                </h4>
+
+                <div className="zip-encrypted-badge">
+                  <ShieldAlert size={13} />
+                  <span>File Terenkripsi (Password Required)</span>
+                </div>
+
+                <p className="zip-encrypted-desc">
+                  {preview.message || 'Entri ini dilindungi password. Masukkan password ZIP untuk membuka pratinjau.'}
+                </p>
+
+                <form
+                  className="zip-encrypted-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (password && !opening) {
+                      void openEntry(preview.entry, password);
+                    }
+                  }}
+                >
+                  <div className="zip-encrypted-input-group">
+                    <KeyRound size={16} className="zip-encrypted-input-icon" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="zip-encrypted-input"
+                      placeholder="Masukkan Password ZIP..."
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      className="zip-encrypted-eye-btn"
+                      title={showPassword ? 'Sembunyikan Password' : 'Tampilkan Password'}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="zip-encrypted-submit-btn"
+                    disabled={!password || !!opening}
+                  >
+                    {opening === preview.entry ? (
+                      <Loader2 size={16} className="spin" />
+                    ) : (
+                      <Unlock size={16} />
+                    )}
+                    <span>Buka Berkas</span>
+                  </button>
+
+                  <label className="zip-encrypted-remember">
+                    <input
+                      type="checkbox"
+                      className="zip-encrypted-checkbox"
+                      checked={rememberPass}
+                      onChange={(e) => setRememberPass(e.target.checked)}
+                    />
+                    <span>Ingat password untuk sesi ini</span>
+                  </label>
+                </form>
               </div>
             </div>
           )}
