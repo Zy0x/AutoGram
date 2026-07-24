@@ -97,9 +97,9 @@ THUMB_PROFILES: Dict[str, Dict[str, int]] = {
         "max": 56 * 1024,
         # Static TG photo thumbs only (never full video bytes)
         "video_raw_cap": 200 * 1024,
-        "batch": 16,
+        "batch": 20,
         "prefer": 0,  # 0=smallest ok, 1=near target, 2=largest
-        "concurrency": 2,
+        "concurrency": 3,  # naik dari 2 → lebih cepat tanpa risiko FloodWait berlebih
     },
     # Default — clearer video stills, still quota-friendly
     "balanced": {
@@ -110,9 +110,9 @@ THUMB_PROFILES: Dict[str, Dict[str, int]] = {
         "target": 48 * 1024,
         "max": 120 * 1024,
         "video_raw_cap": 320 * 1024,
-        "batch": 16,
+        "batch": 20,
         "prefer": 1,
-        "concurrency": 4,
+        "concurrency": 6,  # naik dari 4 → lebih banyak thumb paralel di grid besar
     },
     # Jelas LEAN — clear on grid without full-file / multi‑MB downloads.
     # Strategy: largest *Telegram static* layer only (usually << 150 KB),
@@ -125,9 +125,9 @@ THUMB_PROFILES: Dict[str, Dict[str, int]] = {
         "target": 70 * 1024,
         "max": 130 * 1024,
         "video_raw_cap": 220 * 1024,  # static PhotoSize only
-        "batch": 14,
+        "batch": 16,
         "prefer": 2,
-        "concurrency": 3,
+        "concurrency": 5,  # naik dari 3 → percepat load di mode Jelas
     },
 }
 # Back-compat constants (balanced defaults)

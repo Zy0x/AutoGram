@@ -557,6 +557,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   const liveSyncLastAtRef = useRef<Map<string, number>>(new Map());
   const liveSyncFailuresRef = useRef(0);
   const liveSyncBackoffUntilRef = useRef(0);
+  // Guard terhadap race condition: respons stale tidak boleh overwrite data yang lebih baru
+  const syncReqIdRef = useRef(0);
 
   useEffect(() => {
     liveFilesRef.current = files;
@@ -2813,6 +2815,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       if (now - lastAt < minAge) return;
 
       liveSyncLockRef.current = true;
+      const reqId = ++syncReqIdRef.current;  // snapshot sebelum await
       const gen = peerGen.current;
       const loadedBefore = liveFilesRef.current.length;
       const cursorBefore = nextOffsetId;
@@ -2825,6 +2828,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           bypassCache: true,
         });
         if (gen !== peerGen.current || tid !== topicFilterRef.current) return;
+        if (reqId !== syncReqIdRef.current) return;  // request baru sudah dikirim, buang respons lama
         if (res?.invalid_topic && tid != null) {
           void refreshFiles();
           return;

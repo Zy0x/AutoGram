@@ -9,14 +9,16 @@ export type DriveLiveSyncPlan = {
 };
 
 export function getDriveLiveSyncPlan(tier: PerfTier): DriveLiveSyncPlan {
-  // Slightly calmer intervals reduce Telegram + IPC overhead under load.
+  // Interval lebih cepat untuk deteksi media baru yang lebih responsif.
+  // focusMinAgeMs diturunkan agar tab-switch langsung trigger sync.
   if (tier === 'low') {
-    return { intervalMs: 75_000, focusMinAgeMs: 25_000, pageSize: 8, maxBackoffMs: 5 * 60_000 };
+    return { intervalMs: 60_000, focusMinAgeMs: 20_000, pageSize: 8, maxBackoffMs: 5 * 60_000 };
   }
   if (tier === 'mid') {
-    return { intervalMs: 40_000, focusMinAgeMs: 12_000, pageSize: 12, maxBackoffMs: 3 * 60_000 };
+    return { intervalMs: 25_000, focusMinAgeMs: 8_000, pageSize: 12, maxBackoffMs: 3 * 60_000 };
   }
-  return { intervalMs: 22_000, focusMinAgeMs: 8_000, pageSize: 16, maxBackoffMs: 2 * 60_000 };
+  // high tier: agresif tapi masih aman dari FloodWait
+  return { intervalMs: 12_000, focusMinAgeMs: 4_000, pageSize: 16, maxBackoffMs: 2 * 60_000 };
 }
 
 export function dedupeByMsgId(files: DriveFile[]): DriveFile[] {

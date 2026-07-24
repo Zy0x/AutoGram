@@ -1,8 +1,9 @@
 import type { DriveFile } from './driveTypes';
 
 const CACHE_PREFIX = 'autogram_drive_locations_v1_';
-const MAX_LOCATIONS = 24;
-const MAX_FILES_PER_LOCATION = 64;
+// Dinaikkan ke 20 lokasi × 200 file ≈ ~2MB localStorage (wajar)
+const MAX_LOCATIONS = 20;
+const MAX_FILES_PER_LOCATION = 200;
 export const DRIVE_LOCATION_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;

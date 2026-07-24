@@ -239,6 +239,8 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             return {"status": "error", "message": "message_id required"}
         from engine.drive_fs import message_to_drive_file, _attach_topic_id
         try:
+            # Fix: resolve peer terlebih dahulu (sebelumnya `peer` tidak terdefinisi di scope ini)
+            peer = await _resolve_peer(client, folder_id)
             msg = await client.get_messages(peer, ids=int(mid))
             if not msg:
                 return {"status": "error", "message": "Pesan tidak ditemukan"}
@@ -554,7 +556,8 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                     print(f"[drive_serve] Warning: SQLite purge failed for deleted_ids: {e}", flush=True)
 
             # Parallel fetch (bounded) — sequential was the grid scroll bottleneck
-            conc = max(1, min(int(prof.get("concurrency") or 3), 6))
+            # Cap dinaikkan ke 12 sesuai profil concurrency yang lebih tinggi
+            conc = max(1, min(int(prof.get("concurrency") or 4), 12))
             sem = _aio.Semaphore(conc)
 
             async def _one(mid: int):
