@@ -1310,6 +1310,28 @@ export function DriveZipBrowser({
               <img src={preview.dataUrl} alt={preview.entry} className="drive-zip-img" />
             </div>
           )}
+          {preview?.kind === 'image' && !preview.dataUrl && (
+            <div className="drive-zip-preview-empty">
+              <ImageIcon size={40} style={{ color: '#38bdf8' }} />
+              <p title={preview.entry} style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>
+                {entryLabel(preview.entry, cwd)}
+              </p>
+              <span className="drive-chip" style={{ background: 'rgba(56, 189, 248, 0.18)', color: '#38bdf8', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
+                Gambar Berkas Besar ({formatDriveBytes(preview.size || 0)})
+              </span>
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', maxWidth: 360, textAlign: 'center', marginTop: 8 }}>
+                Ukuran berkas gambar melebihi 15 MB. Gunakan tombol Ekstrak ke Lokal untuk melihat berkas ini.
+              </p>
+              <button
+                type="button"
+                className="td-btn primary-btn"
+                style={{ marginTop: 12 }}
+                onClick={() => void handleExtractSingle(preview.entry)}
+              >
+                <Download size={14} style={{ marginRight: 6 }} /> Ekstrak Berkas
+              </button>
+            </div>
+          )}
           {preview?.kind === 'video' && preview.dataUrl && (
             <div className="drive-zip-media-container">
               <video
@@ -1323,6 +1345,28 @@ export function DriveZipBrowser({
                   transform: rotate ? `rotate(${rotate}deg)` : undefined,
                 }}
               />
+            </div>
+          )}
+          {preview?.kind === 'video' && !preview.dataUrl && (
+            <div className="drive-zip-preview-empty">
+              <Film size={40} style={{ color: '#a855f7' }} />
+              <p title={preview.entry} style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>
+                {entryLabel(preview.entry, cwd)}
+              </p>
+              <span className="drive-chip" style={{ background: 'rgba(168, 85, 247, 0.18)', color: '#c084fc', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
+                Video Berkas ({formatDriveBytes(preview.size || 0)})
+              </span>
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', maxWidth: 360, textAlign: 'center', marginTop: 8 }}>
+                Gunakan tombol Ekstrak ke Lokal untuk mengunduh dan memutar berkas video ini.
+              </p>
+              <button
+                type="button"
+                className="td-btn primary-btn"
+                style={{ marginTop: 12 }}
+                onClick={() => void handleExtractSingle(preview.entry)}
+              >
+                <Download size={14} style={{ marginRight: 6 }} /> Ekstrak Berkas
+              </button>
             </div>
           )}
           {preview?.kind === 'audio' && preview.dataUrl && (

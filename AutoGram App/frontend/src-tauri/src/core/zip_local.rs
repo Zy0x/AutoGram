@@ -308,7 +308,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
     Ok(build_zip_entry_preview(entry_name, size, buf))
 }
 
-const MAX_INLINE_MEDIA_BASE64: usize = 4 * 1024 * 1024;
+const MAX_INLINE_MEDIA_BASE64: usize = 15 * 1024 * 1024;
 
 pub fn build_zip_entry_preview(
     entry_name: &str,
@@ -321,10 +321,7 @@ pub fn build_zip_entry_preview(
             return ZipEntryPreview {
                 name: entry_name.into(),
                 size,
-                text_content: Some(format!(
-                    "[Media {} byte — gunakan Ekstrak / Download untuk pratinjau media > 4 MB]",
-                    size
-                )),
+                text_content: None,
                 data_url: None,
                 mime_type: Some(mime.to_string()),
                 is_binary: true,

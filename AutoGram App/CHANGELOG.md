@@ -1,3 +1,10 @@
+## v2.3.24 Peningkatan Threshold Media Image 15 MB & Dedicated Card Component untuk Large Media
+
+### Perbaikan Visual Pratinjau Gambar (`zip_local.rs`, `driveApi.ts`, `DriveZipBrowser.tsx`)
+- **Penyesuaian Threshold Gambar dari 4 MB ke 15 MB**: Mengubah `MAX_INLINE_MEDIA_BASE64` dari 4 MB menjadi 15 MB di `zip_local.rs`. Berkas gambar resolusi tinggi (seperti `qīng luó 102.png` berukuran 9.49 MB) kini dapat **langsung ditampilkan secara visual di panel pratinjau**.
+- **Pembersihan `VSCodeCodeViewer` pada Media Non-Teks**: Memperbarui `driveApi.ts` agar klasifikasi `kind` media gambar/video/audio tetap konsisten meskipun `dataUrl` kosong, serta menghapus alokasi string teks hint yang tidak sengaja memicu komponen editor kode `VSCodeCodeViewer` saat membuka berkas gambar.
+- **Komponen Card Khusus untuk Media > 15 MB**: Menyediakan tampilan kartu visual khusus (dengan ikon gambar/video, ukuran file, dan tombol Ekstrak Berkas) jika media berukuran lebih dari 15 MB.
+
 ## v2.3.23 Force Refresh Cache Invalidation, Base64 RAM Protection, & Batch Extract Cancellation
 
 ### Perbaikan Celah & Edge Cases ZIP Viewer (`grammers_sparse_zip.rs`, `zip_local.rs`, `DriveZipBrowser.tsx`)
