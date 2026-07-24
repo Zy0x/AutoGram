@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.29
+AutoGram Version: v2.3.30
 
 Current State:
-v2.3.29 In-Memory Session Entry Preview Caching (Zero Re-Download saat Media ZIP Dibuka Kembali) — mengimplementasikan `zipEntryCacheMap` dan `clearZipEntryCache` di `driveApi.ts` serta `DriveZipBrowser.tsx`. Media/berkas di dalam ZIP yang pernah dibuka di-cache di memori sesi sehingga pembukaan ulang langsung tampil instan (0 ms) tanpa pengunduhan data ulang dari Telegram.
+v2.3.30 Hover Mouse Wheel Zoom, Double Click Zoom & Smooth Pan Dragting pada Pratinjau Gambar ZIP Workbench — membenahi `DriveZipBrowser.tsx` dengan menambahkan *non-passive native mouse wheel zoom listener* (scroll mouse wheel saat hover langsung memperbesar/memperkecil gambar), *double click zoom toggle* (double click untuk toggle 100% dan 250%), *smooth pointer pan/dragging* ketika gambar di-zoom (>100%), serta perbaikan batas toolbar zoom hingga 500% dan penyesuaian fungsi reset transform total (skala, rotasi, dan posisi pan).
 
 Previous:
+v2.3.29 In-Memory Session Entry Preview Caching (Zero Re-Download saat Media ZIP Dibuka Kembali) — mengimplementasikan `zipEntryCacheMap` dan `clearZipEntryCache` di `driveApi.ts` serta `DriveZipBrowser.tsx`. Media/berkas di dalam ZIP yang pernah dibuka di-cache di memori sesi sehingga pembukaan ulang langsung tampil instan (0 ms) tanpa pengunduhan data ulang dari Telegram.
 v2.3.28 Perbaikan Flexbox Layout Collapse pada ZIP Preview Container (100% Full-Bleed Workbench) — membenahi `DrivePreviewModal.tsx` dan `App.css` dengan menerapkan `width: 100%`, `height: 100%`, dan `align-items: stretch` pada `.drive-preview-body.is-zip-body` & `.drive-preview-zip`. Mengeliminasi total masalah kontainer ZIP yang mengempis (*collapsed flex item*) menjadi 0px yang menyebabkan layar tampak hitam polos.
 v2.3.27 Eliminasi Layar Hitam Blank saat Membuka ZIP Modal — membenahi pengondisian `DrivePreviewModal.tsx` pada baris 3627 agar kontainer pratinjau ZIP selalu dirender dengan indikator loading/fallback UI yang tepat meskipun kredensial `creds` belum selesai dimuat, mengeliminasi total masalah layar hitam polos.
 v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser — menambahkan kontrol toolbar interaktif (ZoomIn, ZoomOut, Reset 100%, Rotate 90° Kiri & Kanan) pada `DriveZipBrowser.tsx` untuk pratinjau media gambar di dalam ZIP Browser, menyamakan kemampuan kontrol interaktif seperti pratinjau video dan modal media utama.

@@ -509,13 +509,96 @@ export function DriveZipBrowser({
     }
   };
 
-  // Video playback & transform state
+  // Media view transform & drag state
   const [rate, setRate] = useState(1);
   const [muted, setMuted] = useState(false);
   const [loop, setLoop] = useState(true);
   const [rotate, setRotate] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Reset transform when opening new preview
+  useEffect(() => {
+    setZoom(1);
+    setRotate(0);
+    setPan({ x: 0, y: 0 });
+    setIsDragging(false);
+  }, [preview?.entry]);
+
+  // Non-passive wheel listener for smooth hovering mouse wheel zoom
+  useEffect(() => {
+    const el = imageContainerRef.current;
+    if (!el) return;
+    const onWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      setZoom((prev) => {
+        const next = Math.max(0.5, Math.min(5, Math.round((prev + delta) * 100) / 100));
+        if (next <= 1) {
+          setPan({ x: 0, y: 0 });
+        }
+        return next;
+      });
+    };
+    el.addEventListener('wheel', onWheelNative, { passive: false });
+    return () => el.removeEventListener('wheel', onWheelNative);
+  }, [preview?.entry, preview?.kind]);
+
+  const handleResetTransform = () => {
+    setZoom(1);
+    setRotate(0);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleDoubleClickZoom = () => {
+    if (zoom > 1) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    } else {
+      setZoom(2.5);
+    }
+  };
+
+  const handleImagePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const handleImagePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setPan({
+      x: dragStartRef.current.panX + dx,
+      y: dragStartRef.current.panY + dy,
+    });
+  };
+
+  const handleImagePointerUp = (e: React.PointerEvent) => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+  };
 
   const toggleRate = () => {
     const RATES = [1, 1.25, 1.5, 2, 0.5];
@@ -656,6 +739,8 @@ export function DriveZipBrowser({
     setToastMsg(null);
     setZoom(1);
     setRotate(0);
+    setPan({ x: 0, y: 0 });
+    setIsDragging(false);
 
     // Check remembered password cache if no explicit input given
     const effectivePass = passInput || rememberedPasswordsMap.get(archiveKey) || password;
@@ -1169,18 +1254,21 @@ export function DriveZipBrowser({
                   className={`drive-zip-tool-btn${zoom < 1 ? ' active' : ''}`}
                   title="Perkecil Gambar (-25%)"
                   disabled={zoom <= 0.5}
-                  onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 100) / 100))}
+                  onClick={() =>
+                    setZoom((z) => {
+                      const next = Math.max(0.5, Math.round((z - 0.25) * 100) / 100);
+                      if (next <= 1) setPan({ x: 0, y: 0 });
+                      return next;
+                    })
+                  }
                 >
                   <ZoomOut size={13} />
                 </button>
                 <button
                   type="button"
-                  className={`drive-zip-tool-btn${zoom !== 1 || rotate !== 0 ? ' active' : ''}`}
-                  title="Reset Skala 100% & Rotasi"
-                  onClick={() => {
-                    setZoom(1);
-                    setRotate(0);
-                  }}
+                  className={`drive-zip-tool-btn${zoom !== 1 || rotate !== 0 || pan.x !== 0 || pan.y !== 0 ? ' active' : ''}`}
+                  title="Reset Skala 100%, Posisi & Rotasi"
+                  onClick={handleResetTransform}
                 >
                   <Shrink size={13} /> {Math.round(zoom * 100)}%
                 </button>
@@ -1188,8 +1276,8 @@ export function DriveZipBrowser({
                   type="button"
                   className={`drive-zip-tool-btn${zoom > 1 ? ' active' : ''}`}
                   title="Perbesar Gambar (+25%)"
-                  disabled={zoom >= 3}
-                  onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.25) * 100) / 100))}
+                  disabled={zoom >= 5}
+                  onClick={() => setZoom((z) => Math.min(5, Math.round((z + 0.25) * 100) / 100))}
                 >
                   <ZoomIn size={13} />
                 </button>
@@ -1397,17 +1485,40 @@ export function DriveZipBrowser({
             <VSCodeCodeViewer text={preview.text} name={preview.entry} />
           )}
           {preview?.kind === 'image' && preview.dataUrl && (
-            <div className="drive-zip-media-container" style={{ overflow: 'auto' }}>
+            <div
+              ref={imageContainerRef}
+              className="drive-zip-media-container"
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                userSelect: 'none',
+                touchAction: 'none',
+                cursor: isDragging ? 'grabbing' : zoom > 1 ? 'grab' : 'zoom-in',
+              }}
+              onPointerDown={handleImagePointerDown}
+              onPointerMove={handleImagePointerMove}
+              onPointerUp={handleImagePointerUp}
+              onPointerCancel={handleImagePointerUp}
+              onDoubleClick={handleDoubleClickZoom}
+            >
               <img
                 src={preview.dataUrl}
                 alt={preview.entry}
                 className="drive-zip-img"
+                draggable={false}
                 style={{
-                  transform: `scale(${zoom}) rotate(${rotate}deg)`,
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotate}deg)`,
                   transformOrigin: 'center center',
-                  transition: 'transform 0.15s ease-out',
-                  maxWidth: zoom > 1 ? 'none' : '100%',
-                  maxHeight: zoom > 1 ? 'none' : '100%',
+                  transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  pointerEvents: 'none',
                 }}
               />
             </div>

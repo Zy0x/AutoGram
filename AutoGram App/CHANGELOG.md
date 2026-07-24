@@ -1,3 +1,11 @@
+## v2.3.30 Mouse Wheel Zoom, Double Click Zoom & Smooth Panning Drag pada ZIP Media Preview
+
+### Peningkatan Interaktivitas Pratinjau Gambar (`DriveZipBrowser.tsx`)
+- **Hover Mouse Wheel Zoom**: Mengimplementasikan *non-passive wheel event listener* pada kontainer pratinjau gambar. Pengguna kini dapat langsung memperbesar/memperkecil gambar dengan menggulirkan *scroll wheel* mouse saat menyorot (*hover*) di atas gambar tanpa menggulirkan halaman web.
+- **Double Click Zoom Toggle**: Menambahkan interaksi klik ganda (*double click*) pada area pratinjau gambar untuk berpindah secara cepat antara skala normal (100%) dan zoom diperbesar (250%).
+- **Smooth Pointer Pan & Dragging**: Ketika skala gambar lebih besar dari 100% (`zoom > 1`), pengguna dapat menggeser (*pan/drag*) gambar dengan menekan klik kiri mouse dan menggesernya secara halus (*grab/grabbing cursor*).
+- **Penyesuaian Tombol Toolbar Tools**: Memperbarui batas maksimal zoom toolbar hingga 500%, serta memperbarui tombol *Reset* agar mengembalikan skala 100%, posisi pan (0, 0), dan sudut rotasi ke awal secara bersamaan.
+
 ## v2.3.29 Zero Re-Download ZIP Entry Preview Caching
 
 ### Optimasi Performa Pratinjau ZIP (`driveApi.ts`, `DriveZipBrowser.tsx`)
