@@ -1,4 +1,12 @@
-# Changelog
+## v2.3.1 Perbaikan Error Banner & Resets Loading State pada Penghapusan Media/Topik
+
+### Penanganan State UI & Visual Resiliency (`SpeedTest.tsx`)
+- **Preservasi Banner Error Pasca-Penghapusan (`refreshFiles`)**:
+  - Menambahkan opsional parameter `{ preserveError: true }` pada pemanggilan `refreshFiles()` saat penghapusan sebagian/seluruh media di topik mengalami kegagalan.
+  - Memastikan banner notifikasi error (seperti pembatasan izin `CHAT_ADMIN_REQUIRED` atau `MESSAGE_DELETE_FORBIDDEN`) tidak langsung terhapus otomatis sebelum pengguna membacanya.
+- **Eliminasi Infinite Refresh Spinner (`finally` State Reset)**:
+  - Memperbaiki penanganan `finally` pada `loadTopicsForPeer`, `refreshFiles`, `handleDeleteTopic`, dan `executeDeleteIds`.
+  - Memastikan `setLoadingFiles(false)` dan `setTopicsLoading(false)` selalu dijalankan tanpa terhalang *guard clause* sequence request, menghentikan ikon refresh yang berputar tanpa akhir jika penghapusan terhenti.
 
 ## v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine)
 

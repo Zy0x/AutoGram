@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.0
+AutoGram Version: v2.3.1
 
 Current State:
-v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine). Seluruh modul (Auth, Media Drive, Stream Video, Upload, Download, Migration Engine, Jobs, Profiles, Automations, dan Statistics) kini berjalan 100% murni di Rust.
+v2.3.1 Perbaikan error banner & reset loading state (`setLoadingFiles` & `setTopicsLoading`) saat penghapusan media/topik terhalang perizinan (seperti `CHAT_ADMIN_REQUIRED` atau `MESSAGE_DELETE_FORBIDDEN`). Preservasi error banner dan penanganan `finally` tanpa syarat mengeliminasi ikon refresh yang berputar tanpa henti.
 
 Previous:
+v2.3.0 Migrasi Full 100% Grammers Rust Native MTProto (Zero-Python Engine). Seluruh modul (Auth, Media Drive, Stream Video, Upload, Download, Migration Engine, Jobs, Profiles, Automations, dan Statistics) kini berjalan 100% murni di Rust.
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.
 v2.1.90 Perbaikan bug offset chunk terduplikasi pada penarikan sampel media. Mengeliminasi korupsi header biner yang memicu error 'no valid thumb found' pada video dan gambar tanpa thumbnail statis Telegram.
 v2.1.89 Penerapan autodeteksi magic-bytes (JPEG, PNG, WebP, GIF, MP4, MKV, AVI) untuk berkas media yang diunggah tanpa ekstensi atau ber-MIME generic (application/octet-stream). Eliminasi total pesan error 'no valid thumb found' pada media visual.

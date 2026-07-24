@@ -1358,7 +1358,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setIsForumChat(meta?.is_forum === true);
         }
       } finally {
-        if (isCurrent()) setTopicsLoading(false);
+        setTopicsLoading(false);
       }
     },
     [creds, chats]
@@ -2212,7 +2212,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setActivePeerId(id);
   }, [creds, chats, folders, loadingChats]);
 
-  const refreshFiles = useCallback(async (retryCount = 0) => {
+  const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean }) => {
     if (!creds) return;
     if (isTransferJobActive()) {
       setStatusText('Transfer aktif — refresh ditunda');
@@ -2225,7 +2225,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     setLoadingFiles(true);
     setStatsAccurate(false);
     setStatsByType(null);
-    setError(null);
+    if (!opts?.preserveError) {
+      setError(null);
+    }
     setSelectedIds([]);
     selectionAnchorRef.current = null;
     let tid = topicFilterRef.current;
@@ -2462,8 +2464,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       setError(friendlyDriveError(e));
       setStatusText('List failed');
     } finally {
+      setLoadingFiles(false);
       if (gen === peerGen.current) {
-        setLoadingFiles(false);
         // Resume thumbs after list settles
         window.setTimeout(() => {
           if (gen === peerGen.current) {
@@ -4121,6 +4123,9 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           } catch (e: any) {
             setError(e?.message || 'Gagal menghapus topik');
             setStatusText('Siap');
+          } finally {
+            setLoadingFiles(false);
+            setTopicsLoading(false);
           }
         })();
       },
@@ -4930,9 +4935,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
         setSelectedIds([]);
         selectionAnchorRef.current = null;
-        await refreshFiles();
+        const hasFailed = failed.length > 0;
+        await refreshFiles(0, { preserveError: hasFailed });
 
-        if (failed.length) {
+        if (hasFailed) {
           setError(
             `Hapus sebagian gagal (${failed.length}): ${
               failed[0]?.error || failed[0]?.id || 'error'
@@ -4965,7 +4971,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setStatusText(n === 1 ? 'Hapus diantre (offline)' : `${n} hapus diantre (offline)`);
         } else {
           setError(String(e?.message || e));
+          setStatusText('Hapus gagal');
         }
+      } finally {
+        setLoadingFiles(false);
       }
     },
     [creds, peerId, refreshFiles]
