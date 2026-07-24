@@ -1,6 +1,6 @@
 //! Rust SQLite access for Statistics — replaces Python worker daemon stats/export-csv.
 
-use rusqlite::{params, Connection};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
