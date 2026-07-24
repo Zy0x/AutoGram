@@ -1,3 +1,12 @@
+## v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API (`telegramBackend.ts`, `driveApi.ts`)
+
+### Preservasi Notifikasi Error Server Telegram (`telegramBackend.ts`, `driveApi.ts`)
+- **Preservasi Exception `tgInvoke` (`telegramBackend.ts`)**:
+  - Memperbaiki bug di mana `tgInvoke` mengembalikan `null` saat IPC exception terjadi, yang menyembunyikan alasan kesalahan asli dari Telegram API.
+  - `tgInvoke` kini mengembalikan objek `TgOpResult` error yang membawa pesan kesalahan langsung dari Telegram server (seperti `CHAT_ADMIN_REQUIRED` atau `MESSAGE_DELETE_FORBIDDEN`).
+- **Eliminasi Pesan Generik "Hapus batch gagal" (`driveApi.ts`)**:
+  - Memperbarui `driveDeleteBatch` untuk menampilkan detail kesalahan nyata dari Telegram API atau panduan perizinan yang jelas alih-alih fallback generik yang tidak informatif.
+
 ## v2.3.5 Multi-Key Channel Resolution Cache (`grammers_ops.rs`)
 
 ### Pencarian Peer & Channel Instan (`grammers_ops.rs`)

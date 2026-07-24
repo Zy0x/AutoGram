@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.5
+AutoGram Version: v2.3.6
 
 Current State:
-v2.3.5 Multi-Key Channel & Peer Resolution Cache di Grammers Engine (-100 prefix, bare ID, dan negative ID) untuk penghapusan pesan instan pada channel/supergroup.
+v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).
 
 Previous:
+v2.3.5 Multi-Key Channel & Peer Resolution Cache di Grammers Engine (-100 prefix, bare ID, dan negative ID) untuk penghapusan pesan instan pada channel/supergroup.
 v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (Zero-Refetch Optimistic Update, Pembersihan Global Cache Memori, Sinkronisasi IndexedDB Real-time, dan Presisi Target Channel ID per File).
 v2.3.3 Perbaikan bug kritis ReferenceError `requireGrammersIdentity` & penambahan pembantu `resolveGrammersIdentity` pada penghapusan/pemindahan media di `driveApi.ts`. Otomatis melengkapi `apiId` & `apiHash` dari secure credentials store jika kredensial UI tidak lengkap.
 v2.3.2 Optimalisasi kecepatan penghapusan media & Instant Fast-Fail pada error perizinan (`CHAT_ADMIN_REQUIRED` / `MESSAGE_DELETE_FORBIDDEN`) serta penerapan in-memory `PEER_RESOLVE_CACHE` di Rust Grammers Engine. Mengeliminasi 50x network retry loop & pencarian `iter_dialogs` berulang.

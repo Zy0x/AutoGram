@@ -578,8 +578,18 @@ async function tgInvoke<T>(
     debugLogLayer('rust', 'tg', cmd, { ok: r?.ok });
     return r;
   } catch (e) {
-    debugLogLayer('rust', 'tg', `${cmd}_fail`, String(e));
-    return null;
+    const errStr = String((e as any)?.message || e || 'IPC call failed');
+    debugLogLayer('rust', 'tg', `${cmd}_fail`, errStr);
+    return {
+      ok: false,
+      backend: 'grammers',
+      error: {
+        code: 'IPC_ERROR',
+        message: errStr,
+        retryable: false,
+      },
+      userMessage: errStr,
+    };
   }
 }
 

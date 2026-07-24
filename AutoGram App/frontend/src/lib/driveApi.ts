@@ -1458,7 +1458,11 @@ export async function driveDeleteBatch(
           allFailed.push(...gr.data.failed);
         }
       } else {
-        const errStr = gr?.userMessage || gr?.error?.message || 'Hapus batch gagal';
+        const errStr =
+          gr?.userMessage ||
+          gr?.error?.message ||
+          (gr as any)?.message ||
+          'Penghapusan gagal — Periksa izin admin / status keanggotaan akun pada channel Telegram';
         for (const mid of ids) {
           allFailed.push({ id: mid, error: errStr });
         }
