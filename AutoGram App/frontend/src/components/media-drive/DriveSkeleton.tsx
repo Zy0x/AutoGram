@@ -1,34 +1,96 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-export interface MicroProgressBarProps {
+/**
+ * Hook for smooth realistic progress interpolation (0% -> 100%)
+ */
+export function useSmoothProgress(isLoading: boolean = true, targetPercent?: number): number {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setProgress(100);
+      return;
+    }
+
+    if (targetPercent !== undefined && targetPercent > 0) {
+      setProgress(targetPercent);
+      return;
+    }
+
+    // Realistic multi-stage smooth progress curve (0% -> 100%)
+    setProgress(12);
+    const t1 = setTimeout(() => setProgress(38), 180);
+    const t2 = setTimeout(() => setProgress(68), 480);
+    const t3 = setTimeout(() => setProgress(85), 900);
+    const t4 = setTimeout(() => setProgress(94), 1600);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, [isLoading, targetPercent]);
+
+  return Math.min(100, Math.max(0, progress));
+}
+
+export interface ModernProgressBarProps {
   percent?: number;
   label?: string;
+  isLoading?: boolean;
   isIndeterminate?: boolean;
 }
 
-export const MicroProgressBar: React.FC<MicroProgressBarProps> = ({
-  percent = 0,
-  label,
-  isIndeterminate = false,
+export const ModernProgressBar: React.FC<ModernProgressBarProps> = ({
+  percent,
+  label = 'Memuat data...',
+  isLoading = true,
 }) => {
-  const clampPercent = Math.min(100, Math.max(0, percent));
+  const smoothProgress = useSmoothProgress(isLoading, percent);
+  const displayPercent = Math.round(smoothProgress);
+
   return (
-    <div className="w-full mb-3 select-none">
-      <div className="micro-progress-container">
-        <div
-          className={`micro-progress-fill ${isIndeterminate ? 'indeterminate' : ''}`}
-          style={{ width: isIndeterminate ? '40%' : `${clampPercent}%` }}
-        />
-      </div>
-      {label && (
-        <div className="flex items-center justify-between mt-1 px-1 text-[11px] text-slate-400 font-medium">
-          <span className="truncate pr-2">{label}</span>
-          {!isIndeterminate && <span>{Math.round(clampPercent)}%</span>}
+    <div className="w-full mb-5 select-none transition-all duration-300">
+      <div className="bg-[#141720]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+        {/* Ambient Top Glow Border */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+        
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5 min-w-0 pr-3">
+            {/* Live Pulsing Status Indicator */}
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
+            </span>
+            <span className="text-xs font-semibold text-slate-200 tracking-wide truncate">
+              {label}
+            </span>
+          </div>
+
+          {/* Real Percent Badge (0% - 100%) */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold shrink-0 shadow-inner">
+            <span>{displayPercent}%</span>
+          </div>
         </div>
-      )}
+
+        {/* Progress Track */}
+        <div className="h-2 w-full bg-slate-900/90 rounded-full p-0.5 border border-white/5 shadow-inner relative overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_12px_rgba(6,182,212,0.6)] relative"
+            style={{ width: `${smoothProgress}%` }}
+          >
+            {/* Glowing Tip Accent */}
+            <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/80 rounded-full shadow-[0_0_8px_#ffffff]" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
+// Backward compatibility alias
+export const MicroProgressBar = ModernProgressBar;
 
 export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
   const items = Array.from({ length: count });

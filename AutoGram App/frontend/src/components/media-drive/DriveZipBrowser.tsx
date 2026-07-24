@@ -48,7 +48,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { ZipCatalogSkeleton, MicroProgressBar } from './DriveSkeleton';
+import { ZipCatalogSkeleton, ModernProgressBar } from './DriveSkeleton';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache, driveStopStream } from '../../lib/driveApi';
 import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
@@ -997,9 +997,9 @@ export function DriveZipBrowser({
 
   if (loading) {
     return (
-      <div className="drive-zip-browser is-loading p-4">
-        <MicroProgressBar
-          isIndeterminate
+      <div className="drive-zip-browser is-loading p-5">
+        <ModernProgressBar
+          isLoading={loading}
           label="Membaca katalog & indeks ZIP via MTProto Range Request..."
         />
         <ZipCatalogSkeleton count={10} />

@@ -33,7 +33,7 @@ import {
   Printer,
   Repeat,
 } from 'lucide-react';
-import { MediaPreviewSkeleton, MicroProgressBar } from './DriveSkeleton';
+import { MediaPreviewSkeleton, ModernProgressBar } from './DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../lib/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../lib/driveSession';
@@ -2889,8 +2889,8 @@ export function DrivePreviewModal({
         >
           {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
             <div className="w-full max-w-4xl p-6">
-              <MicroProgressBar
-                isIndeterminate
+              <ModernProgressBar
+                isLoading={loading}
                 label={
                   switchingQuality
                     ? `Mengganti ke ${activeQuality?.label || quality}…`
