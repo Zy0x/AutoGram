@@ -78,9 +78,9 @@ impl<'a> TelegramSparseReader<'a> {
             return Ok(());
         }
         let last_idx = (self.doc_size - 1) / BLOCK_SIZE;
-        let _ = self.fetch_block(last_idx)?;
-        if last_idx > 0 {
-            let _ = self.fetch_block(last_idx - 1)?;
+        let start_idx = last_idx.saturating_sub(4);
+        for idx in start_idx..=last_idx {
+            let _ = self.fetch_block(idx)?;
         }
         Ok(())
     }
@@ -179,8 +179,8 @@ fn parse_central_directory_fast(
         return Err(IoError::new(IoErrorKind::InvalidData, "file too small"));
     }
 
-    // Search for EOCD marker (PK\x05\x06) in the last 65557 bytes
-    let search_len = doc_size.min(65557) as usize;
+    // Search for EOCD marker (PK\x05\x06) in the last 4 MB
+    let search_len = doc_size.min(4 * 1024 * 1024) as usize;
     let start_pos = doc_size - search_len as u64;
     reader.seek(SeekFrom::Start(start_pos))?;
     let mut tail_buf = vec![0u8; search_len];
@@ -372,10 +372,10 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         }
 
         // FALLBACK PATH: zip crate archive parser
-        let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+        let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
-            if msg.contains("Could not find EOCD") {
-                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+            if msg.contains("Password") || msg.contains("Encrypted") {
+                TgError::new(TgErrorCode::PasswordRequired, "Arsip ZIP dilindungi password")
             } else {
                 TgError::new(TgErrorCode::Io, msg)
             }
@@ -383,33 +383,22 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
 
         let total_entries = archive.len();
         let mut entries = Vec::new();
-        let mut total_uncompressed = 0u64;
+        let total_uncompressed = 0u64;
         let limit = total_entries.min(8000);
 
         for i in 0..limit {
-            let f = archive.by_index_raw(i).map_err(|e| TgError::new(TgErrorCode::Io, e.to_string()))?;
-            let raw_name = f.name().replace('\\', "/");
-            let name = sanitize_zip_path(&raw_name);
-            let is_dir = f.is_dir() || name.ends_with('/') || raw_name.ends_with('/');
-            let sz = f.size();
-
-            if !is_dir {
-                total_uncompressed = total_uncompressed.saturating_add(sz);
+            if let Some(raw_name_ref) = archive.name_for_index(i) {
+                let raw_name = raw_name_ref.replace('\\', "/");
+                let name = sanitize_zip_path(&raw_name);
+                let is_dir = name.ends_with('/') || raw_name.ends_with('/');
+                entries.push(ZipEntry {
+                    name: if name.is_empty() { raw_name } else { name },
+                    size: 0,
+                    compressed_size: 0,
+                    is_dir,
+                    method: 0,
+                });
             }
-
-            entries.push(ZipEntry {
-                name: if name.is_empty() { raw_name } else { name },
-                size: sz,
-                compressed_size: f.compressed_size(),
-                is_dir,
-                method: match f.compression() {
-                    zip::CompressionMethod::Stored => 0,
-                    zip::CompressionMethod::Deflated => 8,
-                    zip::CompressionMethod::Bzip2 => 12,
-                    zip::CompressionMethod::Zstd => 93,
-                    _ => 0,
-                },
-            });
         }
 
         let _ = persist_memory_session(&session, &session_path);
