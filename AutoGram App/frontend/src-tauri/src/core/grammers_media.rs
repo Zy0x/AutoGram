@@ -2256,7 +2256,7 @@ fn start_preview_stream_inner(
                                     cdn_supported: false,
                                     location: loc,
                                     offset: tail_offset as i64,
-                                    limit: (size - tail_offset).min(1024 * 1024) as i32,
+                                    limit: 512 * 1024,
                                 };
                                 if let Ok(tl::enums::upload::File::File(f)) =
                                     live.client.invoke(&tail_req).await
