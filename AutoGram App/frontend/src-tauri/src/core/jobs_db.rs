@@ -12,7 +12,7 @@ use super::tg_log;
 
 const BACKEND: &str = "jobs_db";
 
-fn resolve_migrator_db() -> PathBuf {
+pub fn resolve_migrator_db() -> PathBuf {
     if let Ok(p) = std::env::var("AUTOGRAM_DB_PATH") {
         let pb = PathBuf::from(p);
         if !pb.as_os_str().is_empty() {
