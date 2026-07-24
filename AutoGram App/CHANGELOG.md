@@ -1,3 +1,10 @@
+## v2.3.19 Eliminasi Total Background Pre-fetching Berkas Tetangga pada Modal Pratinjau ZIP & Dokumen
+
+### Proteksi Bandwidth Latar Belakang (`DrivePreviewModal.tsx`)
+- **Eliminasi Pengunduhan Latar Belakang Berkas Tetangga (40–60 MB)**: Mengidentifikasi dan membenahi akar masalah utama pada `DrivePreviewModal.tsx` di mana modul `prefetchPreviews` sebelumnya memicu pengunduhan latar belakang untuk berkas-berkas tetangga (*neighbor files*) di folder Telegram saat modal pratinjau ZIP dibuka.
+- **Penyaringan Ketat `prefetchPreviews`**: Memperbarui pengondisian `prefetchPreviews` agar **HANYA aktif untuk pratinjau gambar biasa (`isImageDriveFile`)** dan **100% DINONAKTIFKAN untuk berkas ZIP (`isZipDriveFile`), PDF, Video, dan Dokumen**.
+- **Pemangkasan Kuota Latar Belakang Total**: Saat pengguna menjelajahi berkas ZIP di ZIP Browser, aplikasi kini **100% fokus pada berkas ZIP tersebut** tanpa secara diam-diam mengunduh berkas ZIP/dokumen tetangga seukuran 40–60 MB di latar belakang.
+
 ## v2.3.18 Eliminasi Total Iterasi Network Seeking saat Pratinjau Media Tunggal (Memangkas Kuota Pratinjau dari 60 MB ke Tepat 9.22 MB)
 
 ### Optimasi Pencarian Entri ZIP In-Memory (`zip_local.rs`)

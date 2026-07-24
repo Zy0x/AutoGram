@@ -789,9 +789,11 @@ export function DrivePreviewModal({
         !!(hit.stream_url || hit.path || hit.data_url || hit.text_content);
       if (hasUsable && hit) {
         applyResult(hit, qNorm, true);
-        // Prefetch neighbors ASAP (next/prev feels instant) - skip if current file is a video to prioritize bandwidth
+        // Prefetch neighbors for regular images only (next/prev photo feels instant)
+        // NEVER prefetch for ZIP archives, videos, or documents to prevent background 40-60 MB bandwidth consumption
+        const isOnlyImage = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
         const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
-        if (ids.length && !isVideoDriveFile(file)) prefetchPreviews(creds, folderId, ids, qNorm);
+        if (ids.length && isOnlyImage) prefetchPreviews(creds, folderId, ids, qNorm);
 
         // Complete local only — hollow `.stream.` paths need a live stream re-RPC
         const solidLocal =
@@ -844,9 +846,10 @@ export function DrivePreviewModal({
         if (seq !== loadSeq.current) return;
         applyResult(res, qNorm, false);
 
-        // Never prefetch neighbors for video — steals GetFile from the open player.
-        const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
-        if (ids.length && !isVideoDriveFile(file)) prefetchPreviews(creds, folderId, ids, qNorm);
+        // Prefetch neighbors for regular images only — never for ZIP, video, or doc
+        const isOnlyImagePost = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
+        const idsPost = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
+        if (idsPost.length && isOnlyImagePost) prefetchPreviews(creds, folderId, idsPost, qNorm);
       } catch (e: any) {
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
