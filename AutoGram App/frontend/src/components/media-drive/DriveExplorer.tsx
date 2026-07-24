@@ -659,13 +659,13 @@ export function DriveExplorer({
 
   if (loading && files.length === 0) {
     return (
-      <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden select-none">
+      <div className="ag-loading-wrapper">
         {/* Background Depth Layer */}
-        <div className="opacity-25 pointer-events-none p-4">
+        <div className="ag-loading-depth-layer">
           {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
         </div>
         {/* Absolute Centered Glassmorphic Loading Overlay */}
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#0b0c10]/75 backdrop-blur-md p-6">
+        <div className="ag-loading-overlay">
           <CenteredGlassmorphicProgress
             isLoading={loading}
             label="Membaca katalog media Telegram MTProto..."

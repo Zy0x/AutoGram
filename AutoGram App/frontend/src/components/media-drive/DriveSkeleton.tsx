@@ -19,7 +19,7 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
     }
 
     // Realistic multi-stage smooth progress curve (0% -> 100%)
-    setProgress(12);
+    setProgress(14);
     const t1 = setTimeout(() => setProgress(38), 180);
     const t2 = setTimeout(() => setProgress(68), 480);
     const t3 = setTimeout(() => setProgress(85), 900);
@@ -51,62 +51,50 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
   const displayPercent = Math.round(smoothProgress);
 
   return (
-    <div className="bg-[#141720]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-7 sm:p-9 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.7)] flex flex-col items-center select-none relative overflow-hidden transition-all duration-300">
-      {/* Ambient Top Glow Border */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+    <div className="ag-glass-card">
+      <div className="ag-glass-card-top-glow" />
 
-      {/* Glowing Mascot Rocket Header */}
-      <div className="mb-5 relative group">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-500 to-amber-400 p-0.5 shadow-[0_0_30px_rgba(6,182,212,0.6)] flex items-center justify-center">
-          <div className="w-full h-full bg-[#11131a] rounded-[14px] flex items-center justify-center text-cyan-300">
-            <Rocket size={30} className="transform rotate-45 text-cyan-400 animate-pulse" />
+      {/* Glowing Mascot Header */}
+      <div className="ag-mascot-header">
+        <div className="ag-mascot-ring">
+          <div className="ag-mascot-inner">
+            <Rocket size={32} style={{ transform: 'rotate(45deg)' }} />
           </div>
         </div>
-        {/* Ambient Ring Glow */}
-        <div className="absolute -inset-1 bg-cyan-500/20 blur-xl rounded-full -z-10" />
       </div>
 
-      {/* Thick Pill Track & Mascot Runner */}
-      <div className="w-full relative mb-4">
-        {/* Mascot Runner Icon on the progress fill head */}
+      {/* Track & Mascot Runner */}
+      <div className="ag-track-container">
+        {/* Runner Badge */}
         <div
-          className="absolute -top-6 transition-all duration-300 ease-out z-20 flex flex-col items-center pointer-events-none"
+          className="ag-runner-badge"
           style={{
-            left: `clamp(0px, calc(${smoothProgress}% - 16px), calc(100% - 32px))`,
+            left: `clamp(0px, calc(${smoothProgress}% - 14px), calc(100% - 28px))`,
           }}
         >
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-cyan-400 to-amber-400 p-0.5 shadow-[0_2px_10px_rgba(6,182,212,0.8)] flex items-center justify-center transform -rotate-12 animate-bounce">
-            <div className="w-full h-full bg-[#141720] rounded-[9px] flex items-center justify-center text-cyan-300">
-              <Rocket size={13} className="transform rotate-45 text-amber-300" />
+          <div className="ag-runner-icon">
+            <div className="ag-runner-icon-inner">
+              <Rocket size={14} style={{ transform: 'rotate(45deg)' }} />
             </div>
           </div>
         </div>
 
-        {/* 16px Thick Rounded Pill Track */}
-        <div className="h-4 w-full bg-[#0d0e14] rounded-full p-1 border border-white/10 shadow-[inner_0_2px_8px_rgba(0,0,0,0.8)] relative overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_18px_rgba(6,182,212,0.8)] relative"
-            style={{ width: `${smoothProgress}%` }}
-          >
-            {/* Glowing White Tip Highlight */}
-            <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-full shadow-[0_0_12px_#ffffff]" />
+        {/* Track */}
+        <div className="ag-progress-track">
+          <div className="ag-progress-fill" style={{ width: `${smoothProgress}%` }}>
+            <div className="ag-progress-tip" />
           </div>
         </div>
       </div>
 
       {/* Large 28px Monospaced Percent Counter */}
-      <div className="text-3xl font-bold font-mono text-cyan-300 tracking-wider text-center drop-shadow-[0_2px_14px_rgba(6,182,212,0.5)] mb-2">
-        {displayPercent}%
-      </div>
+      <div className="ag-percent-counter">{displayPercent}%</div>
 
-      {/* Status Label with Pulsing Cyan Dot */}
+      {/* Status Pill */}
       {label && (
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-300 font-medium text-center max-w-xs leading-relaxed px-2">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
-          </span>
-          <span className="truncate">{label}</span>
+        <div className="ag-status-pill">
+          <span className="ag-pulsing-dot" />
+          <span>{label}</span>
         </div>
       )}
     </div>
@@ -121,17 +109,18 @@ export const MicroProgressBar = CenteredGlassmorphicProgress;
 export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
   const items = Array.from({ length: count });
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', width: '100%' }}>
       {items.map((_, i) => (
         <div
           key={i}
-          className="bg-[#181b22]/80 border border-white/5 rounded-xl p-2.5 flex flex-col justify-between h-[210px]"
+          className="bg-[#181b22]/80 border border-white/5 rounded-xl p-2.5 flex flex-col justify-between"
+          style={{ height: '210px', borderRadius: '14px', background: 'rgba(24, 27, 34, 0.8)', border: '1px solid rgba(255, 255, 255, 0.06)', padding: '10px' }}
         >
-          <div className="w-full h-[120px] skeleton-shimmer rounded-lg mb-2" />
-          <div className="w-3/4 h-3.5 skeleton-shimmer rounded mb-1.5" />
-          <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-            <div className="w-12 h-3 skeleton-shimmer rounded" />
-            <div className="w-16 h-3 skeleton-shimmer rounded" />
+          <div className="skeleton-shimmer" style={{ width: '100%', height: '120px', borderRadius: '10px', marginBottom: '8px' }} />
+          <div className="skeleton-shimmer" style={{ width: '75%', height: '14px', borderRadius: '4px', marginBottom: '6px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+            <div className="skeleton-shimmer" style={{ width: '48px', height: '12px', borderRadius: '4px' }} />
+            <div className="skeleton-shimmer" style={{ width: '64px', height: '12px', borderRadius: '4px' }} />
           </div>
         </div>
       ))}
@@ -142,20 +131,13 @@ export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) 
 export const DriveListSkeleton: React.FC<{ count?: number }> = ({ count = 10 }) => {
   const items = Array.from({ length: count });
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
       {items.map((_, i) => (
         <div
           key={i}
-          className="bg-[#181b22]/70 border border-white/5 rounded-lg p-3 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
-            <div className="w-8 h-8 skeleton-shimmer rounded-lg shrink-0" />
-            <div className="w-1/2 h-4 skeleton-shimmer rounded shrink-0" />
-          </div>
-          <div className="w-20 h-3 skeleton-shimmer rounded hidden sm:block pr-4" />
-          <div className="w-24 h-3 skeleton-shimmer rounded hidden md:block pr-4" />
-          <div className="w-16 h-6 skeleton-shimmer rounded" />
-        </div>
+          className="skeleton-shimmer"
+          style={{ height: '48px', borderRadius: '10px', background: 'rgba(24, 27, 34, 0.6)', border: '1px solid rgba(255, 255, 255, 0.06)' }}
+        />
       ))}
     </div>
   );
@@ -164,22 +146,9 @@ export const DriveListSkeleton: React.FC<{ count?: number }> = ({ count = 10 }) 
 export const ZipCatalogSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) => {
   const items = Array.from({ length: count });
   return (
-    <div className="flex flex-col gap-2 p-3 bg-[#13151b] border border-white/5 rounded-xl">
-      <div className="flex items-center justify-between pb-2 border-b border-white/5 mb-1">
-        <div className="w-36 h-4 skeleton-shimmer rounded" />
-        <div className="w-16 h-3 skeleton-shimmer rounded" />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: '#13151b', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
       {items.map((_, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 px-2">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-4 h-4 skeleton-shimmer rounded shrink-0" />
-            <div
-              className="h-3.5 skeleton-shimmer rounded"
-              style={{ width: `${Math.floor(30 + (i * 7) % 50)}%` }}
-            />
-          </div>
-          <div className="w-14 h-3 skeleton-shimmer rounded shrink-0" />
-        </div>
+        <div key={i} className="skeleton-shimmer" style={{ height: '24px', borderRadius: '6px' }} />
       ))}
     </div>
   );
@@ -187,15 +156,8 @@ export const ZipCatalogSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) 
 
 export const MediaPreviewSkeleton: React.FC = () => {
   return (
-    <div className="flex flex-col items-center justify-center w-full h-[380px] bg-[#13151b] border border-white/5 rounded-2xl p-4">
-      <div className="w-full flex items-center justify-between pb-4 mb-4 border-b border-white/5">
-        <div className="w-48 h-4 skeleton-shimmer rounded" />
-        <div className="flex gap-2">
-          <div className="w-8 h-8 skeleton-shimmer rounded-lg" />
-          <div className="w-8 h-8 skeleton-shimmer rounded-lg" />
-        </div>
-      </div>
-      <div className="w-full flex-1 skeleton-shimmer rounded-xl max-h-[280px]" />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '380px', background: '#13151b', borderRadius: '16px', padding: '16px' }}>
+      <div className="skeleton-shimmer" style={{ width: '100%', height: '100%', borderRadius: '12px' }} />
     </div>
   );
 };
