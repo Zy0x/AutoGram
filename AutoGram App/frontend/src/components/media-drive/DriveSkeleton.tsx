@@ -36,13 +36,13 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
   return Math.min(100, Math.max(0, progress));
 }
 
-export interface DeadCenterProgressProps {
+export interface CenteredGlassmorphicProgressProps {
   percent?: number;
   label?: string;
   isLoading?: boolean;
 }
 
-export const DeadCenterProgress: React.FC<DeadCenterProgressProps> = ({
+export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgressProps> = ({
   percent,
   label = 'Membaca katalog media Telegram MTProto...',
   isLoading = true,
@@ -51,59 +51,72 @@ export const DeadCenterProgress: React.FC<DeadCenterProgressProps> = ({
   const displayPercent = Math.round(smoothProgress);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[380px] w-full p-6 select-none my-auto">
-      <div className="flex flex-col items-center max-w-lg w-full relative">
-        {/* Track Container with Mascot Runner */}
-        <div className="relative w-full h-16 flex items-end mb-2">
-          {/* Animated Mascot / Rocket Runner riding on top of the progress bar */}
-          <div
-            className="absolute bottom-3 transition-all duration-300 ease-out z-20 flex flex-col items-center pointer-events-none"
-            style={{
-              left: `clamp(0px, calc(${smoothProgress}% - 22px), calc(100% - 44px))`,
-            }}
-          >
-            <div className="relative transform -rotate-12 animate-bounce">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-[0_4px_16px_rgba(6,182,212,0.6)] flex items-center justify-center">
-                <div className="w-full h-full bg-[#141720] rounded-[14px] flex items-center justify-center text-cyan-300">
-                  <Rocket size={20} className="transform rotate-45 text-cyan-400" />
-                </div>
-              </div>
-              {/* Flame / Thriller Aura */}
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-2 bg-amber-400/80 blur-[3px] rounded-full" />
-            </div>
-          </div>
+    <div className="bg-[#141720]/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-7 sm:p-9 max-w-md w-full shadow-[0_25px_60px_rgba(0,0,0,0.7)] flex flex-col items-center select-none relative overflow-hidden transition-all duration-300">
+      {/* Ambient Top Glow Border */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
 
-          {/* Thick Rounded Pill Track (matching reference image) */}
-          <div className="h-5 w-full bg-[#181b24] rounded-full p-1 border border-white/10 shadow-[inner_0_2px_8px_rgba(0,0,0,0.6)] relative overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_16px_rgba(6,182,212,0.8)] relative"
-              style={{ width: `${smoothProgress}%` }}
-            >
-              {/* Head Highlight */}
-              <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white/90 rounded-full shadow-[0_0_10px_#ffffff]" />
-            </div>
+      {/* Glowing Mascot Rocket Header */}
+      <div className="mb-5 relative group">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-500 to-amber-400 p-0.5 shadow-[0_0_30px_rgba(6,182,212,0.6)] flex items-center justify-center">
+          <div className="w-full h-full bg-[#11131a] rounded-[14px] flex items-center justify-center text-cyan-300">
+            <Rocket size={30} className="transform rotate-45 text-cyan-400 animate-pulse" />
           </div>
         </div>
-
-        {/* Centered Large Percentage Text (matching reference image) */}
-        <div className="text-2xl font-bold font-mono text-cyan-300 tracking-wider text-center drop-shadow-[0_2px_10px_rgba(6,182,212,0.4)] mt-1">
-          {displayPercent}%
-        </div>
-
-        {/* Status Label Text below percent */}
-        {label && (
-          <div className="text-xs text-slate-400 mt-2 text-center font-medium max-w-sm tracking-wide leading-relaxed">
-            {label}
-          </div>
-        )}
+        {/* Ambient Ring Glow */}
+        <div className="absolute -inset-1 bg-cyan-500/20 blur-xl rounded-full -z-10" />
       </div>
+
+      {/* Thick Pill Track & Mascot Runner */}
+      <div className="w-full relative mb-4">
+        {/* Mascot Runner Icon on the progress fill head */}
+        <div
+          className="absolute -top-6 transition-all duration-300 ease-out z-20 flex flex-col items-center pointer-events-none"
+          style={{
+            left: `clamp(0px, calc(${smoothProgress}% - 16px), calc(100% - 32px))`,
+          }}
+        >
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-cyan-400 to-amber-400 p-0.5 shadow-[0_2px_10px_rgba(6,182,212,0.8)] flex items-center justify-center transform -rotate-12 animate-bounce">
+            <div className="w-full h-full bg-[#141720] rounded-[9px] flex items-center justify-center text-cyan-300">
+              <Rocket size={13} className="transform rotate-45 text-amber-300" />
+            </div>
+          </div>
+        </div>
+
+        {/* 16px Thick Rounded Pill Track */}
+        <div className="h-4 w-full bg-[#0d0e14] rounded-full p-1 border border-white/10 shadow-[inner_0_2px_8px_rgba(0,0,0,0.8)] relative overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_18px_rgba(6,182,212,0.8)] relative"
+            style={{ width: `${smoothProgress}%` }}
+          >
+            {/* Glowing White Tip Highlight */}
+            <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white rounded-full shadow-[0_0_12px_#ffffff]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Large 28px Monospaced Percent Counter */}
+      <div className="text-3xl font-bold font-mono text-cyan-300 tracking-wider text-center drop-shadow-[0_2px_14px_rgba(6,182,212,0.5)] mb-2">
+        {displayPercent}%
+      </div>
+
+      {/* Status Label with Pulsing Cyan Dot */}
+      {label && (
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-300 font-medium text-center max-w-xs leading-relaxed px-2">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+          </span>
+          <span className="truncate">{label}</span>
+        </div>
+      )}
     </div>
   );
 };
 
 // Aliases for full backward compatibility
-export const ModernProgressBar = DeadCenterProgress;
-export const MicroProgressBar = DeadCenterProgress;
+export const DeadCenterProgress = CenteredGlassmorphicProgress;
+export const ModernProgressBar = CenteredGlassmorphicProgress;
+export const MicroProgressBar = CenteredGlassmorphicProgress;
 
 export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
   const items = Array.from({ length: count });

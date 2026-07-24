@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
-import { DeadCenterProgress } from './DriveSkeleton';
+import { CenteredGlassmorphicProgress, DriveGridSkeleton, DriveListSkeleton } from './DriveSkeleton';
 import type { DriveCredentials } from '../../lib/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
@@ -659,11 +659,18 @@ export function DriveExplorer({
 
   if (loading && files.length === 0) {
     return (
-      <div className="td-explorer flex flex-col items-center justify-center min-h-[65vh] w-full p-6">
-        <DeadCenterProgress
-          isLoading={loading}
-          label="Membaca katalog media Telegram MTProto..."
-        />
+      <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden select-none">
+        {/* Background Depth Layer */}
+        <div className="opacity-25 pointer-events-none p-4">
+          {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
+        </div>
+        {/* Absolute Centered Glassmorphic Loading Overlay */}
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#0b0c10]/75 backdrop-blur-md p-6">
+          <CenteredGlassmorphicProgress
+            isLoading={loading}
+            label="Membaca katalog media Telegram MTProto..."
+          />
+        </div>
       </div>
     );
   }
