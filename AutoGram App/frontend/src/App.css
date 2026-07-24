@@ -2175,6 +2175,49 @@ body.td-dnd-internal .td-drawer-backdrop {
 }
 
 /* Compact drag chip (no heavy multi-card shadow stack) */
+.td-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: clamp(160px, 32vw, 360px);
+  overflow: hidden;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+.td-crumb-muted { color: var(--td-sub); flex-shrink: 0; }
+.td-crumb-sep { color: var(--td-sub); opacity: 0.55; flex-shrink: 0; }
+.td-crumb-ellipsis {
+  padding: 0 2px;
+  font-weight: 600;
+  color: var(--td-sub);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+.td-crumb-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.td-crumb-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--td-accent, #f5a623);
+  font: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0 2px;
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+}
 .td-drag-ghost {
   position: fixed;
   z-index: 99999;
@@ -7697,7 +7740,9 @@ body:has(.td-page),
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: min(42vw, 420px);
+  max-width: clamp(120px, 20vw, 240px);
+  display: inline-block;
+  vertical-align: middle;
 }
 .td-count-pill {
   flex-shrink: 0;

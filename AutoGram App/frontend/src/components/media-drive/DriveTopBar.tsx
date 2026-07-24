@@ -18,8 +18,6 @@ import {
   SendHorizontal,
   MousePointerClick,
   Wrench,
-  ChevronLeft,
-  ChevronRight,
   Pin,
   PinOff,
   Copy,
@@ -177,10 +175,10 @@ export function DriveTopBar({
   topicsLoading,
   onOpenTools,
   toolsActive,
-  canNavBack,
-  canNavForward,
-  onNavBack,
-  onNavForward,
+  canNavBack: _canNavBack,
+  canNavForward: _canNavForward,
+  onNavBack: _onNavBack,
+  onNavForward: _onNavForward,
   isPinned,
   onTogglePin,
   spaceLabel,
@@ -319,30 +317,6 @@ export function DriveTopBar({
               <Menu size={18} />
             </button>
           )}
-          {(onNavBack || onNavForward) && (
-            <div className="td-nav-hist" role="group" aria-label="Riwayat lokasi">
-              <button
-                type="button"
-                className="td-icon-btn"
-                onClick={onNavBack}
-                disabled={!canNavBack}
-                title="Kembali (Alt+←)"
-                aria-label="Lokasi sebelumnya"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                type="button"
-                className="td-icon-btn"
-                onClick={onNavForward}
-                disabled={!canNavForward}
-                title="Maju (Alt+→)"
-                aria-label="Lokasi berikutnya"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          )}
           {onTogglePin && (
             <button
               type="button"
@@ -356,38 +330,67 @@ export function DriveTopBar({
           )}
           <nav className="td-breadcrumbs" aria-label="Breadcrumb">
             {breadcrumbSegs && breadcrumbSegs.length > 0 ? (
-              breadcrumbSegs.map((seg, i) => {
-                const isLast = i === breadcrumbSegs.length - 1;
-                const clickable =
-                  !isLast &&
-                  !!onBreadcrumbNavigate &&
-                  (seg.kind === 'start' ||
-                    seg.kind === 'saved' ||
-                    (seg.kind === 'drive' && seg.id != null) ||
-                    (seg.kind === 'chat' && seg.id != null));
+              (() => {
+                let displaySegs = breadcrumbSegs;
+                let hasEllipsis = false;
+                if (breadcrumbSegs.length > 3) {
+                  hasEllipsis = true;
+                  displaySegs = [
+                    breadcrumbSegs[0],
+                    breadcrumbSegs[breadcrumbSegs.length - 2],
+                    breadcrumbSegs[breadcrumbSegs.length - 1],
+                  ];
+                }
+                const fullPathString = breadcrumbSegs.map((s) => s.label).join(' / ');
                 return (
-                  <span key={`${seg.kind}-${seg.id ?? seg.label}-${i}`} className="td-crumb-wrap">
-                    {i > 0 && <span className="td-crumb-sep">/</span>}
-                    {clickable ? (
-                      <button
-                        type="button"
-                        className="td-crumb-link"
-                        title={seg.label}
-                        onClick={() => onBreadcrumbNavigate?.(seg)}
-                      >
-                        {seg.label}
-                      </button>
-                    ) : (
-                      <span
-                        className={i === 0 ? 'td-crumb-muted' : 'td-crumb-current'}
-                        title={seg.label}
-                      >
-                        {seg.label}
-                      </span>
-                    )}
-                  </span>
+                  <>
+                    {displaySegs.map((seg, i) => {
+                      const isLast = i === displaySegs.length - 1;
+                      const isEllipsisAfterFirst = hasEllipsis && i === 0;
+                      const clickable =
+                        !isLast &&
+                        !!onBreadcrumbNavigate &&
+                        (seg.kind === 'start' ||
+                          seg.kind === 'saved' ||
+                          (seg.kind === 'drive' && seg.id != null) ||
+                          (seg.kind === 'chat' && seg.id != null));
+                      return (
+                        <span key={`${seg.kind}-${seg.id ?? seg.label}-${i}`} className="td-crumb-wrap">
+                          {i > 0 && <span className="td-crumb-sep">/</span>}
+                          {clickable ? (
+                            <button
+                              type="button"
+                              className="td-crumb-link"
+                              title={seg.label}
+                              onClick={() => onBreadcrumbNavigate?.(seg)}
+                            >
+                              {seg.label}
+                            </button>
+                          ) : (
+                            <span
+                              className={i === 0 ? 'td-crumb-muted' : 'td-crumb-current'}
+                              title={seg.label}
+                            >
+                              {seg.label}
+                            </span>
+                          )}
+                          {isEllipsisAfterFirst && (
+                            <>
+                              <span className="td-crumb-sep">/</span>
+                              <span
+                                className="td-crumb-muted td-crumb-ellipsis"
+                                title={`Path lengkap: ${fullPathString}`}
+                              >
+                                …
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </>
                 );
-              })
+              })()
             ) : (
               <>
                 <span className="td-crumb-muted">Start</span>
