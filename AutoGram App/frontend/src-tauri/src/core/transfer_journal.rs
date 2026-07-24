@@ -5,14 +5,12 @@
 //! Redacts sensitive path & credential values automatically.
 
 use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fs::{create_dir_all, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use super::jobs_db::resolve_migrator_db;
-use super::tg_log;
 
 const BACKEND: &str = "transfer_journal";
 const MAX_RUN_BYTES: u64 = 16 * 1024 * 1024;

@@ -38,3 +38,7 @@ pub mod smart_throttle;
 pub mod transfer_journal;
 pub mod moov_sidecar;
 pub mod mp4_keyframe;
+pub mod media_bench;
+pub mod preview_transcoder;
+pub mod media_meta;
+pub mod events;
