@@ -24,10 +24,8 @@ import {
 } from '../lib/driveMoveUi';
 import {
   bootstrapSecureCredentials,
-  deleteWorkerTempFile,
   getApiHashSync,
   getApiIdSync,
-  writeWorkerTempJson,
   getSecureTransferSettings,
   setSecureTransferSettings,
 } from '../lib/secureCredentials';
@@ -55,15 +53,11 @@ import {
   driveRenameFolder,
   driveSetFolderParent,
   driveMove,
-  driveDownloadBatchSpawn,
-  driveDownloadSpawn,
   cancelDriveJob,
   cleanupPartialDownloads,
   setDriveTransferPaused,
   clearDriveTransferPause,
   isTransferJobActive,
-  driveSessionLeaseKey,
-  parseEventLine,
   friendlyDriveError,
   isPeerEntityError,
   isSessionLockError,
@@ -162,14 +156,13 @@ import {
 } from '../lib/driveTypes';
 import {
   applyTransferEvent,
-  applyTransferStdoutLine,
   clearFinishedItems,
   markTransferFinished,
   seedTransferSession,
   setSessionPaused,
   transferBadge,
 } from '../lib/transferProgress';
-import { debugLog, isDebugMode } from '../lib/debugMode';
+import { debugLog } from '../lib/debugMode';
 import {
   applyClickSelection,
   invertSelectionOnDisplayed,
@@ -199,8 +192,6 @@ import {
 } from '../components/media-drive/DriveToolsPanel';
 import {
   clearThumbCache,
-  forceRetryThumb,
-  primeThumbCache,
   primeThumbsFromFileList,
   stripInlineThumbsFromFiles,
   requestVisibleThumbs,
@@ -276,6 +267,7 @@ import {
   type DriveDestPickerState,
 } from '../components/media-drive/DriveDestinationPicker';
 import type { JobChild } from '../lib/jobProcess';
+import { tgDownloadFile } from '../lib/telegramBackend';
 import {
   clearDriveSessionEphemeralCaches,
   isDrivePinned,
@@ -317,14 +309,6 @@ function writeSessionsCache(list: string[]) {
   }
 }
 
-function getIconTypeFromFilename(name: string): string {
-  const ext = String(name || '').split('.').pop()?.toLowerCase() || '';
-  if (['mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v'].includes(ext)) return 'video';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
-  if (['mp3', 'ogg', 'wav', 'm4a', 'flac'].includes(ext)) return 'audio';
-  return 'file';
-}
-
 async function flushTransferDebugLog(session: TransferSession) {
   if (!session || !session.debugLogs || !session.debugLogs.length) return;
   try {
@@ -337,11 +321,6 @@ async function flushTransferDebugLog(session: TransferSession) {
   } catch (e) {
     console.warn('Gagal menulis transfer_debug.txt', e);
   }
-}
-
-async function writeWorkerJson(name: string, data: any): Promise<string> {
-  // P0: no python -c — write via Rust path jail under worker/temp
-  return writeWorkerTempJson(name, data);
 }
 
 interface QueueTask {
@@ -717,13 +696,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       /* ignore */
     }
   }, []);
-  useEffect(() => {
-    return () => {
-      if (throttledRefreshTimerRef.current) {
-        window.clearTimeout(throttledRefreshTimerRef.current);
-      }
-    };
-  }, []);
   const [transferMinimized, setTransferMinimized] = useState(
     () => localStorage.getItem(LS_TM_MIN) === '1'
   );
@@ -732,8 +704,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   /** Local paths of in-progress downloads (for Stop cleanup). */
   const downloadArtifactsRef = useRef<Set<string>>(new Set());
   const refreshFilesRef = useRef<((retryCount?: number) => Promise<void>) | null>(null);
-  const throttledRefreshTimerRef = useRef<any>(null);
-  const lastRefreshTimeRef = useRef<number>(0);
   const uploadRefreshLockRef = useRef(false);
   /** Local confirm (delete/download) + external store for DnD move */
   const [confirmDlg, setConfirmDlg] = useState<DriveConfirmState | null>(null);
@@ -3341,16 +3311,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     [refreshFiles, creds, peerId, topics]
   );
 
-  const applyProgressEvent = useCallback((ev: any) => {
-    // Debug: log StudioItemDone events to help diagnose skip indicator
-    if (ev?.type === 'StudioItemDone') {
-      const p = ev?.payload ?? ev;
-      if (typeof window !== 'undefined') {
-        console.debug('[AutoGram:transfer] StudioItemDone', { status: p?.status, note: p?.note, index: p?.index, raw: JSON.stringify(ev).slice(0, 300) });
-      }
-    }
-    setTransfer((prev) => applyTransferEvent(prev, ev || {}));
-  }, []);
+
 
   /**
    * Lightweight head-refresh triggered after each successful upload item.
@@ -3463,166 +3424,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       sidebarRefreshLockRef.current = false;
     }
   }, [creds]);
-
-  const throttledUploadRefresh = useCallback(() => {
-    if (isTransferJobActive()) return;
-    if (throttledRefreshTimerRef.current) {
-      window.clearTimeout(throttledRefreshTimerRef.current);
-    }
-    const now = Date.now();
-    const cooldown = 4000; // 4 seconds limit between upload refreshes
-    const elapsed = now - lastRefreshTimeRef.current;
-
-    if (elapsed >= cooldown) {
-      lastRefreshTimeRef.current = now;
-      void uploadSoftRefresh();
-    } else {
-      const remain = cooldown - elapsed;
-      throttledRefreshTimerRef.current = window.setTimeout(() => {
-        lastRefreshTimeRef.current = Date.now();
-        void uploadSoftRefresh();
-      }, Math.max(1000, remain)); // minimum 1 second debounce
-    }
-  }, [uploadSoftRefresh]);
-
-
-  /** Capture worker transfer debug lines (+ events already via applyProgressEvent). */
-  const onTransferStdout = useCallback((line: string) => {
-    const text = String(line);
-    if (text.includes('[EVENT]')) {
-      const ev = parseEventLine(text);
-      if (ev) {
-        // Offset indexes if we are running a queued task with a start index > 0
-        const task = transferQueueRef.current[0];
-        let startIndex = 0;
-        if (task) {
-          const liveOffset = transferRef.current.items.findIndex((it) => it.id.startsWith(task.id));
-          if (liveOffset >= 0) {
-            startIndex = liveOffset;
-          }
-        }
-        if (startIndex > 0) {
-          if (ev.index != null) ev.index = Number(ev.index) + startIndex;
-          if (ev.item_index != null) ev.item_index = Number(ev.item_index) + startIndex;
-          if (ev.payload) {
-            const p = ev.payload as Record<string, any>;
-            if (p.index != null) p.index = Number(p.index) + startIndex;
-            if (p.item_index != null) p.item_index = Number(p.item_index) + startIndex;
-            if (p.items != null) p.items = Number(p.items) + startIndex;
-          }
-        }
-        applyProgressEvent(ev);
-        // Track download dests for Stop cleanup
-        const t = String(ev.type || '');
-        const p = (ev.payload || ev) as Record<string, unknown>;
-        if (t === 'StudioItemCommitted' && creds) {
-          const eventSession = String(p.session_key_hash || '');
-          const eventTopic = p.topic_id == null ? null : Number(p.topic_id);
-          const currentTopic = topicFilterRef.current == null ? null : Number(topicFilterRef.current);
-          const authoritative = p.file && typeof p.file === 'object'
-            ? ({ ...(p.file as DriveFile), recently_uploaded_at: Date.now() } as DriveFile)
-            : null;
-          const sameSession = eventSession === driveSessionLeaseKey(creds);
-          const targetPeer = task?.targetFolderId ?? null;
-          const sameLocation = sameSession && targetPeer === peerId && eventTopic === currentTopic;
-          if (authoritative && sameSession) {
-            const cacheKey = `${targetPeer}_${eventTopic || ''}`;
-            const cached = filesCacheRef.current.get(cacheKey) || [];
-            const alreadyCached = cached.some((x) => x.id === authoritative.id);
-            const nextCached = [authoritative, ...cached.filter((x) => x.id !== authoritative.id)];
-            filesCacheRef.current.set(cacheKey, nextCached);
-            if (sameLocation) {
-              liveFilesRef.current = [
-                authoritative,
-                ...liveFilesRef.current.filter((x) => x.id !== authoritative.id),
-              ];
-              setFiles(liveFilesRef.current);
-              if (!alreadyCached) {
-                setTotalFileCount((n) => Math.max(liveFilesRef.current.length, (n ?? 0) + 1));
-                setTotalBytes((n) => (n ?? 0) + Math.max(0, Number(authoritative.size || 0)));
-              }
-            }
-            const thumbData = String(p.thumb_data_url || '');
-            if (thumbData) primeThumbCache(creds, targetPeer, authoritative.id, thumbData);
-          }
-        }
-        if (t === 'DriveItemStarted' || t === 'StudioItemStarted') {
-          const path = String(p.path || p.dest || '');
-          if (path && (path.includes('\\') || path.includes('/'))) {
-            downloadArtifactsRef.current.add(path);
-          }
-        }
-        if (t === 'DriveItemDone' || t === 'StudioItemDone' || t === 'DriveDownloadDone') {
-          const path = String(p.path || '');
-          const status = String(p.status || 'done').toLowerCase();
-          if (path && (status === 'done' || status === 'ok' || status === 'success' || t === 'DriveDownloadDone')) {
-            downloadArtifactsRef.current.delete(path);
-          }
-          // After a successful upload,
-          const mid = Number((p as Record<string, unknown>).message_id ?? 0);
-          const idx = p.index != null ? Number(p.index) : -1;
-          const activeTask = transferQueueRef.current[0];
-          const isCurrentLocation = activeTask && (
-            activeTask.targetFolderId === peerId ||
-            (activeTask.targetFolderId == null && peerId == null)
-          );
-
-          if (mid > 0 && idx >= 0 && isCurrentLocation) {
-            const item = transferRef.current.items.find((x) => x.index === idx);
-            const name = item?.name || activeTask.names[idx - activeTask.startIndex] || `msg_${mid}`;
-            const size = item?.total || 0;
-            const type = getIconTypeFromFilename(name);
-            const duration_s = p.duration_s != null ? Number(p.duration_s) : null;
-
-            const newFile: DriveFile = {
-              id: mid,
-              folder_id: peerId,
-              name,
-              size,
-              created_at: new Date().toISOString(),
-              icon_type: type,
-              duration: duration_s,
-              has_thumb: ['video', 'image'].includes(type),
-            };
-
-            setFiles((prev) => {
-              if (prev.some((x) => x.id === mid)) return prev;
-              return [newFile, ...prev];
-            });
-          }
-
-          // After a successful upload, immediately bust the soft-fail thumb cache
-          // for that message so DriveFileCard retries will fetch from network.
-          if (
-            t === 'StudioItemDone' &&
-            (status === 'done' || status === 'ok' || status === 'success' || status === 'skipped')
-          ) {
-            // Trigger throttled realtime upload refresh (skipped items already exist in Telegram)
-            throttledUploadRefresh();
-
-            if (mid > 0 && creds && status !== 'skipped') {
-              // Small delay: give Telegram a moment to process the new message
-              // before we ask for its thumbnail (reduces empty-thumb from race).
-              window.setTimeout(() => {
-                forceRetryThumb(creds, activePeerRef.current, mid);
-              }, 2500);
-            }
-          }
-        }
-      }
-    }
-    if (text.includes('[TRANSFER]') || text.includes('[DEBUG]')) {
-      setTransfer((prev) => applyTransferStdoutLine(prev, text));
-      if (isDebugMode()) {
-        try {
-          const m = text.includes('[DEBUG]') ? '[DEBUG]' : '[TRANSFER]';
-          console.info('[AutoGram transfer]', text.slice(text.indexOf(m)));
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  }, [applyProgressEvent, throttledUploadRefresh, creds]);
 
   const toggleTransferMinimize = useCallback(() => {
     setTransferMinimized((m) => {
@@ -3810,79 +3611,86 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           setStatusText(`Upload selesai${label}: ${namesLabel}`);
         }
       } else if (task.kind === 'download') {
-        const idsJson = await writeWorkerJson('drive_ids', task.selectedIds!);
-        const optsJson = await writeWorkerJson('drive_dl_opts', task.options);
-        let exitCode: number | null = 0;
+        let successCount = 0;
+        const totalCount = task.selectedIds!.length;
 
-        try {
-          await new Promise<void>((resolve, reject) => {
-            driveDownloadBatchSpawn(creds!, task.targetFolderId ?? null, idsJson, task.saveDir!, optsJson, {
-              onStdoutLine: (line) => onTransferStdout(String(line)),
-              onStderrLine: (line) => onTransferStdout(String(line)),
-              onClose: (code) => {
-                exitCode = code;
-                void flushTransferDebugLog(transferRef.current);
-                resolve();
-              },
-            }, { skipRestartWarm })
-              .then((c) => {
-                childRef.current = c;
-              })
-              .catch(reject);
-          });
-        } finally {
-          void deleteWorkerTempFile(idsJson);
-          void deleteWorkerTempFile(optsJson);
-          childRef.current = null;
+        for (let i = 0; i < totalCount; i++) {
+          const msgId = task.selectedIds![i];
+          const name = task.names[i] || `msg_${msgId}`;
+          const destFile = `${task.saveDir!.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
+          const itemIdx = task.startIndex + i;
+
+          setTransfer((t) => ({
+            ...t,
+            items: t.items.map((it, idx) =>
+              idx === itemIdx ? { ...it, status: 'active' as const, percent: 30 } : it
+            ),
+          }));
+
+          try {
+            const res = await tgDownloadFile({
+              session: creds!.session,
+              apiId: Number(creds!.apiId) || 0,
+              apiHash: creds!.apiHash,
+              chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+              messageId: msgId,
+              destPath: destFile,
+            });
+
+            if (res?.ok) {
+              successCount++;
+              setTransfer((t) => ({
+                ...t,
+                items: t.items.map((it, idx) =>
+                  idx === itemIdx ? { ...it, status: 'done' as const, percent: 100 } : it
+                ),
+              }));
+            } else {
+              const errTxt = res?.userMessage || res?.error?.message || 'Gagal mengunduh';
+              setTransfer((t) => ({
+                ...t,
+                items: t.items.map((it, idx) =>
+                  idx === itemIdx ? { ...it, status: 'failed' as const, error: errTxt } : it
+                ),
+              }));
+            }
+          } catch (err: any) {
+            const errTxt = String(err?.message || err);
+            setTransfer((t) => ({
+              ...t,
+              items: t.items.map((it, idx) =>
+                idx === itemIdx ? { ...it, status: 'failed' as const, error: errTxt } : it
+              ),
+            }));
+          }
         }
 
-        if (exitCode === 0) {
-          setStatusText(`Download selesai: ${namesLabel}`);
-          setTransfer((t) => {
-            const nextItems = t.items.map((it, idx) => {
-              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                return { ...it, status: 'done' as const, percent: 100 };
-              }
-              return it;
-            });
-            return { ...t, items: nextItems };
-          });
+        if (successCount > 0) {
+          setStatusText(`Download selesai: ${successCount}/${totalCount} berkas`);
         } else {
           setStatusText('Download gagal');
-          setError(`Download exit code ${exitCode}`);
-          setTransfer((t) => {
-            const nextItems = t.items.map((it, idx) => {
-              if (idx >= task.startIndex && idx < task.startIndex + task.names.length) {
-                return { ...it, status: 'failed' as const, error: `Exit code ${exitCode}` };
-              }
-              return it;
-            });
-            return { ...t, items: nextItems };
-          });
+          setError('Gagal mengunduh berkas');
         }
       } else if (task.kind === 'download_one') {
-        let exitCode: number | null = 0;
+        let errMessage: string | null = null;
         try {
-          await new Promise<void>((resolve, reject) => {
-            driveDownloadSpawn(creds!, task.messageId!, task.targetFolderId ?? null, task.savePath!, {
-              onStdoutLine: (line) => onTransferStdout(String(line)),
-              onStderrLine: (line) => onTransferStdout(String(line)),
-              onClose: (code) => {
-                exitCode = code;
-                void flushTransferDebugLog(transferRef.current);
-                resolve();
-              },
-            }, { skipRestartWarm })
-              .then((c) => {
-                childRef.current = c;
-              })
-              .catch(reject);
+          const res = await tgDownloadFile({
+            session: creds!.session,
+            apiId: Number(creds!.apiId) || 0,
+            apiHash: creds!.apiHash,
+            chatId: String(task.targetFolderId ?? peerId ?? 'me'),
+            messageId: task.messageId!,
+            destPath: task.savePath!,
           });
-        } finally {
-          childRef.current = null;
+
+          if (!res?.ok) {
+            errMessage = res?.userMessage || res?.error?.message || 'Download gagal';
+          }
+        } catch (err: any) {
+          errMessage = String(err?.message || err);
         }
 
-        if (exitCode === 0) {
+        if (!errMessage) {
           setStatusText(`Tersimpan: ${task.names[0]}`);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
@@ -3895,11 +3703,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           });
         } else {
           setStatusText('Download gagal');
-          setError(`Download exit code ${exitCode}`);
+          setError(errMessage);
           setTransfer((t) => {
             const nextItems = t.items.map((it, idx) => {
               if (idx === task.startIndex) {
-                return { ...it, status: 'failed' as const, error: `Exit code ${exitCode}` };
+                return { ...it, status: 'failed' as const, error: errMessage || 'Gagal' };
               }
               return it;
             });
@@ -7338,8 +7146,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               if (!r || !creds) return;
               setSelectedIds(r.ids);
               void (async () => {
-                // Re-run download to same folder
-                if (isTransferJobActive() || transfer.active) {
+                if (transfer.active) {
                   setError('Transfer masih berjalan.');
                   return;
                 }
@@ -7354,40 +7161,54 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
                     })
                   );
                   setTransferMinimized(false);
-                  const idsJson = await writeWorkerJson('drive_ids', r.ids);
-                  const optsJson = await writeWorkerJson('drive_dl_opts', {
-                    concurrency: transferSettings.downloadConcurrency,
-                  });
-                  let exitCode: number | null = 0;
-                  try {
-                    await new Promise<void>((resolve, reject) => {
-                      driveDownloadBatchSpawn(creds, peerId, idsJson, r.saveDir, optsJson, {
-                        onStdoutLine: (line) => onTransferStdout(String(line)),
-                        onStderrLine: (line) => onTransferStdout(String(line)),
-                        onClose: (code) => {
-                          exitCode = code;
-                          resolve();
-                        },
-                      })
-                        .then((c) => {
-                          childRef.current = c;
-                        })
-                        .catch(reject);
+
+                  let successCount = 0;
+                  for (let i = 0; i < r.ids.length; i++) {
+                    const msgId = r.ids[i];
+                    const name = r.names[i] || `msg_${msgId}`;
+                    const destFile = `${r.saveDir.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
+                    const itemIdx = i;
+
+                    setTransfer((t) => ({
+                      ...t,
+                      items: t.items.map((it, idx) =>
+                        idx === itemIdx ? { ...it, status: 'active' as const, percent: 30 } : it
+                      ),
+                    }));
+
+                    const res = await tgDownloadFile({
+                      session: creds.session,
+                      apiId: Number(creds.apiId) || 0,
+                      apiHash: creds.apiHash,
+                      chatId: String(peerId ?? 'me'),
+                      messageId: msgId,
+                      destPath: destFile,
                     });
-                  } finally {
-                    void deleteWorkerTempFile(idsJson);
-                    void deleteWorkerTempFile(optsJson);
-                    childRef.current = null;
+
+                    if (res?.ok) {
+                      successCount++;
+                      setTransfer((t) => ({
+                        ...t,
+                        items: t.items.map((it, idx) =>
+                          idx === itemIdx ? { ...it, status: 'done' as const, percent: 100 } : it
+                        ),
+                      }));
+                    } else {
+                      const errTxt = res?.userMessage || res?.error?.message || 'Gagal retry';
+                      setTransfer((t) => ({
+                        ...t,
+                        items: t.items.map((it, idx) =>
+                          idx === itemIdx ? { ...it, status: 'failed' as const, error: errTxt } : it
+                        ),
+                      }));
+                    }
                   }
-                  if (exitCode != null && exitCode !== 0) {
-                    setTransfer((t) => markTransferFinished(t, 'failed'));
-                  } else {
-                    setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));
+
+                  if (successCount > 0) {
                     setStatusText(`Retry selesai → ${r.saveDir}`);
                   }
                 } catch (e: any) {
                   setError(String(e?.message || e));
-                  setTransfer((t) => markTransferFinished(t, 'failed'));
                 } finally {
                   void clearDriveTransferPause();
                   setTransfer((t) => (t.active ? markTransferFinished(t, 'done') : t));

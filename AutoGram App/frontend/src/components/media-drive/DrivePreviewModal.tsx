@@ -41,11 +41,11 @@ import type { DriveCredentials } from '../../lib/driveApi';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
-  driveDownloadSpawn,
   driveStopStream,
   driveStreamSeek,
   driveStreamStatus,
 } from '../../lib/driveApi';
+import { tgDownloadFile } from '../../lib/telegramBackend';
 import { cacheCapturedThumb, getCachedThumb, setThumbsPaused } from '../../lib/thumbBatcher';
 import {
   getCachedPreview,
@@ -1769,6 +1769,17 @@ export function DrivePreviewModal({
       const savePath = await save({ defaultPath: defaultName, title: 'Simpan file' });
       if (!savePath) return;
 
+      // Fast Copy from local cache if file is already pre-downloaded in preview cache (path != null)
+      if (path) {
+        try {
+          const { copyFile } = await import('@tauri-apps/plugin-fs');
+          await copyFile(path, savePath);
+          return;
+        } catch (copyErr) {
+          console.warn('[DrivePreviewModal] Fast local copy failed, falling back to Grammers download:', copyErr);
+        }
+      }
+
       if (onEnqueueDownloadSingle) {
         await onEnqueueDownloadSingle({
           messageId: file.id,
@@ -1778,11 +1789,17 @@ export function DrivePreviewModal({
         });
       } else {
         onOpenTransferManager?.();
-        await driveDownloadSpawn(creds, file.id, folderId, savePath, {
-          onStdoutLine: () => {},
-          onStderrLine: () => {},
-          onClose: () => {},
+        const res = await tgDownloadFile({
+          session: creds.session,
+          apiId: Number(creds.apiId) || 0,
+          apiHash: creds.apiHash,
+          chatId: String(folderId ?? 'me'),
+          messageId: file.id,
+          destPath: savePath,
         });
+        if (!res?.ok) {
+          throw new Error(res?.userMessage || res?.error?.message || 'Gagal mengunduh berkas');
+        }
       }
     } catch (e: any) {
       setError(String(e?.message || e));

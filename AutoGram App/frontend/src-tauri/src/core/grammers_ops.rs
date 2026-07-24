@@ -1713,7 +1713,7 @@ pub fn download_file_blocking(
                     )
                 })?;
                 let size = media.size().unwrap_or(0) as u64;
-                const MAX_FULL: u64 = 200 * 1024 * 1024;
+                const MAX_FULL: u64 = 4 * 1024 * 1024 * 1024;
                 if size > MAX_FULL {
                     return Err(TgError::new(
                         TgErrorCode::TelethonFallbackRequired,

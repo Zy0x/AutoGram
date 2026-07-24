@@ -1,7 +1,7 @@
-AutoGram Version: v2.2.4
+AutoGram Version: v2.2.5
 
 Current State:
-v2.2.4 Perbaikan fungsi pengunduhan seluruh arsip berkas ZIP ke lokal dengan mengganti driveDownload usang ke onEnqueueDownloadSingle / driveDownloadSpawn dan terintegrasi penuh ke Transfer Manager.
+v2.2.5 Arsitektur Dual-Mode pengunduhan ZIP (Fast Instant Copy dari cache diska lokal untuk ZIP <= 500MB + Grammers Rust MTProto tgDownloadFile 4GB untuk ZIP > 500MB), mengeliminasi total error Python Telethon blocking.
 
 Previous:
 v2.1.91 Autodeteksi biner ffmpeg.exe di lokasi aplikasi Windows (Program Files, FormatFactory, BlueStacks, LOCALAPPDATA, C:\ffmpeg) secara otomatis. Video tanpa thumbnail statis Telegram kini langsung diekstrak frame HD-nya secara independen tanpa tergantung konfigurasi PATH.

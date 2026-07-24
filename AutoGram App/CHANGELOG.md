@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.2.5 Arsitektur Dual-Mode Pengunduhan ZIP & Migrasi Grammers Rust MTProto
+
+### Optimalisasi Kecepatan & Eliminasi Python Telethon Blocking (`DrivePreviewModal.tsx`, `SpeedTest.tsx`, `grammers_ops.rs`)
+- **Fast Instant-Copy untuk ZIP ≤ 500MB (`path != null`)**:
+  - Mengakomodasi temuan akurat pengguna bahwa berkas ZIP ≤ 500MB yang telah dibuka di pratinjau sudah 100% berada di diska cache lokal.
+  - Pengunduhan arsip ZIP lokal kini mengeksekusi **Fast Copy (< 0.1 detik)** langsung dari diska cache ke lokasi tujuan tanpa memakan kuota internet.
+- **Grammers Rust Native MTProto Streaming untuk Berkas > 500MB s/d 4GB (`tgDownloadFile`)**:
+  - Menaikkan batas ukuran `MAX_FULL` di Rust `grammers_ops.rs` dari 200MB menjadi **4GB** (batas maksimum Telegram).
+  - Mengalihkan eksekusi pengunduhan berkas tunggal maupun batch ke `tgDownloadFile` (Grammers Rust native MTProto).
+  - Menghapus 100% panggilan usang Telethon `--drive-action download`, mengeliminasi error `Python Telethon dinonaktifkan untuk '--drive-action'`.
+
 ## v2.2.4 Perbaikan Unduh Arsip ZIP ke Lokal & Integrasi Transfer Manager
 
 ### Perbaikan Bug & Integrasi Engine (`DrivePreviewModal.tsx` & `SpeedTest.tsx`)
