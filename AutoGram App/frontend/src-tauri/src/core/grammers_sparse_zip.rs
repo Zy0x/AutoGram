@@ -216,10 +216,207 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     let session = live.session.clone();
     let session_path = live.session_path.clone();
 
+fn parse_central_directory_fast(
+    reader: &mut TelegramSparseReader,
+    doc_size: u64,
+) -> IoResult<ZipListResult> {
+    if doc_size < 22 {
+        return Err(IoError::new(IoErrorKind::InvalidData, "file too small"));
+    }
+
+    // Search for EOCD marker (PK\x05\x06) in the last 65557 bytes
+    let search_len = doc_size.min(65557) as usize;
+    let start_pos = doc_size - search_len as u64;
+    reader.seek(SeekFrom::Start(start_pos))?;
+    let mut tail_buf = vec![0u8; search_len];
+    reader.read_exact(&mut tail_buf)?;
+
+    let mut eocd_pos = None;
+    for i in (0..search_len.saturating_sub(21)).rev() {
+        if tail_buf[i] == 0x50 && tail_buf[i + 1] == 0x4b && tail_buf[i + 2] == 0x05 && tail_buf[i + 3] == 0x06 {
+            eocd_pos = Some(i);
+            break;
+        }
+    }
+
+    let eocd_idx = eocd_pos.ok_or_else(|| IoError::new(IoErrorKind::InvalidData, "Could not find EOCD"))?;
+    let eocd_slice = &tail_buf[eocd_idx..];
+
+    let mut total_entries = u16::from_le_bytes([eocd_slice[10], eocd_slice[11]]) as usize;
+    let mut cd_size = u32::from_le_bytes([eocd_slice[12], eocd_slice[13], eocd_slice[14], eocd_slice[15]]) as u64;
+    let mut cd_offset = u32::from_le_bytes([eocd_slice[16], eocd_slice[17], eocd_slice[18], eocd_slice[19]]) as u64;
+
+    // Check for ZIP64 EOCD Locator (PK\x06\x07)
+    if (total_entries == 0xFFFF || cd_offset == 0xFFFFFFFF || cd_size == 0xFFFFFFFF) && eocd_idx >= 20 {
+        let loc_idx = eocd_idx - 20;
+        if tail_buf[loc_idx] == 0x50 && tail_buf[loc_idx + 1] == 0x4b && tail_buf[loc_idx + 2] == 0x06 && tail_buf[loc_idx + 3] == 0x07 {
+            let zip64_eocd_off = u64::from_le_bytes([
+                tail_buf[loc_idx + 8], tail_buf[loc_idx + 9], tail_buf[loc_idx + 10], tail_buf[loc_idx + 11],
+                tail_buf[loc_idx + 12], tail_buf[loc_idx + 13], tail_buf[loc_idx + 14], tail_buf[loc_idx + 15],
+            ]);
+            reader.seek(SeekFrom::Start(zip64_eocd_off))?;
+            let mut zip64_buf = [0u8; 56];
+            reader.read_exact(&mut zip64_buf)?;
+            if &zip64_buf[0..4] == &[0x50, 0x4b, 0x06, 0x06] {
+                total_entries = u64::from_le_bytes([
+                    zip64_buf[32], zip64_buf[33], zip64_buf[34], zip64_buf[35],
+                    zip64_buf[36], zip64_buf[37], zip64_buf[38], zip64_buf[39],
+                ]) as usize;
+                cd_size = u64::from_le_bytes([
+                    zip64_buf[40], zip64_buf[41], zip64_buf[42], zip64_buf[43],
+                    zip64_buf[44], zip64_buf[45], zip64_buf[46], zip64_buf[47],
+                ]);
+                cd_offset = u64::from_le_bytes([
+                    zip64_buf[48], zip64_buf[49], zip64_buf[50], zip64_buf[51],
+                    zip64_buf[52], zip64_buf[53], zip64_buf[54], zip64_buf[55],
+                ]);
+            }
+        }
+    }
+
+    if cd_offset + cd_size > doc_size {
+        return Err(IoError::new(IoErrorKind::InvalidData, "invalid central directory offset"));
+    }
+
+    // Read Central Directory in memory (located at tail end)
+    reader.seek(SeekFrom::Start(cd_offset))?;
+    let mut cd_buf = vec![0u8; cd_size as usize];
+    reader.read_exact(&mut cd_buf)?;
+
+    let mut cursor = 0;
+    let limit = total_entries.min(8000);
+    let mut entries = Vec::with_capacity(limit);
+    let mut total_uncompressed = 0u64;
+
+    while cursor + 46 <= cd_buf.len() && entries.len() < limit {
+        if &cd_buf[cursor..cursor + 4] != &[0x50, 0x4b, 0x01, 0x02] {
+            break;
+        }
+
+        let method = u16::from_le_bytes([cd_buf[cursor + 10], cd_buf[cursor + 11]]);
+        let mut comp_sz = u32::from_le_bytes([cd_buf[cursor + 20], cd_buf[cursor + 21], cd_buf[cursor + 22], cd_buf[cursor + 23]]) as u64;
+        let mut uncomp_sz = u32::from_le_bytes([cd_buf[cursor + 24], cd_buf[cursor + 25], cd_buf[cursor + 26], cd_buf[cursor + 27]]) as u64;
+        let name_len = u16::from_le_bytes([cd_buf[cursor + 28], cd_buf[cursor + 29]]) as usize;
+        let extra_len = u16::from_le_bytes([cd_buf[cursor + 30], cd_buf[cursor + 31]]) as usize;
+        let comment_len = u16::from_le_bytes([cd_buf[cursor + 32], cd_buf[cursor + 33]]) as usize;
+        let ext_attr = u32::from_le_bytes([cd_buf[cursor + 38], cd_buf[cursor + 39], cd_buf[cursor + 40], cd_buf[cursor + 41]]);
+
+        let header_end = cursor + 46;
+        if header_end + name_len + extra_len + comment_len > cd_buf.len() {
+            break;
+        }
+
+        let raw_name_bytes = &cd_buf[header_end..header_end + name_len];
+        let raw_name = String::from_utf8_lossy(raw_name_bytes).replace('\\', "/");
+        let name = sanitize_zip_path(&raw_name);
+
+        // ZIP64 Extra Field parsing (0x0001)
+        if extra_len >= 4 {
+            let extra_bytes = &cd_buf[header_end + name_len..header_end + name_len + extra_len];
+            let mut ex_idx = 0;
+            while ex_idx + 4 <= extra_bytes.len() {
+                let tag = u16::from_le_bytes([extra_bytes[ex_idx], extra_bytes[ex_idx + 1]]);
+                let sz = u16::from_le_bytes([extra_bytes[ex_idx + 2], extra_bytes[ex_idx + 3]]) as usize;
+                if tag == 0x0001 && ex_idx + 4 + sz <= extra_bytes.len() {
+                    let mut data_pos = ex_idx + 4;
+                    if uncomp_sz == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
+                        uncomp_sz = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                        data_pos += 8;
+                    }
+                    if comp_sz == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
+                        comp_sz = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                    }
+                    break;
+                }
+                ex_idx += 4 + sz;
+            }
+        }
+
+        let is_dir = (ext_attr & 0x10) != 0 || name.ends_with('/') || raw_name.ends_with('/') || ((ext_attr >> 16) & 0o040000 != 0);
+
+        if !is_dir {
+            total_uncompressed = total_uncompressed.saturating_add(uncomp_sz);
+        }
+
+        entries.push(ZipEntry {
+            name: if name.is_empty() { raw_name } else { name },
+            size: uncomp_sz,
+            compressed_size: comp_sz,
+            is_dir,
+            method,
+        });
+
+        cursor = header_end + name_len + extra_len + comment_len;
+    }
+
+    Ok(ZipListResult {
+        entries,
+        count: limit,
+        truncated: total_entries > 8000,
+        total_entries,
+        total_uncompressed,
+        archive_size: doc_size,
+        source: "mtproto_sparse_fast".into(),
+        backend: BACKEND.into(),
+    })
+}
+
+/// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
+pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
+    let rt = runtime()?;
+    let identity = TelegramIdentity {
+        session: opts.session.clone(),
+        api_id: opts.api_id,
+        api_hash: opts.api_hash.clone(),
+    };
+    let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
+    let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
+    let peer = resolve_peer(&live.client, &opts.chat_id).await?;
+
+    let msg = live
+        .client
+        .get_messages_by_id(peer, &[opts.message_id])
+        .await
+        .map_err(|e| map_invocation(&e))?
+        .pop()
+        .flatten()
+        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Pesan tidak ditemukan"))?;
+
+    let media = msg
+        .media()
+        .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "Media tidak ada pada pesan"))?;
+
+    let location = media_to_input_location(&media).ok_or_else(|| {
+        TgError::new(
+            TgErrorCode::Internal,
+            "Media bukan dokumen ZIP Telegram yang valid",
+        )
+    })?;
+
+    let doc_size = match &media {
+        Media::Document(d) => d.size().unwrap_or(0) as u64,
+        _ => 0,
+    };
+
+    if doc_size == 0 {
+        return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
+    }
+
+    let client = live.client.clone();
+    let session = live.session.clone();
+    let session_path = live.session_path.clone();
+
     tokio::task::spawn_blocking(move || {
         let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
         let _ = sparse_reader.prefetch_tail();
 
+        // FAST PATH: Zero-seek Central Directory parser directly from tail memory buffer
+        if let Ok(res) = parse_central_directory_fast(&mut sparse_reader, doc_size) {
+            let _ = persist_memory_session(&session, &session_path);
+            return Ok(res);
+        }
+
+        // FALLBACK PATH: zip crate archive parser
         let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Could not find EOCD") {
