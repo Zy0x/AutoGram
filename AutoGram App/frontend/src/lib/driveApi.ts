@@ -1243,8 +1243,9 @@ async function ensureZipLocalPath(
       const { invoke } = await import('@tauri-apps/api/core');
       const safe = await invoke<boolean>('path_policy_check', { path: existing });
       if (safe) return existing;
+      zipPathCache.delete(cacheKey);
     } catch {
-      // ignore, fall through to fetch
+      zipPathCache.delete(cacheKey);
     }
   }
 
@@ -1265,8 +1266,12 @@ async function ensureZipLocalPath(
     return gr.data.path;
   }
 
+  if (gr?.ok && gr.data?.message && gr.data.message.includes('File besar')) {
+    throw new Error('Berkas ZIP terlalu besar (> 500 MB) untuk dipratinjau langsung. Silakan gunakan opsi Unduh.');
+  }
+
   throw new Error(
-    gr?.userMessage || gr?.error?.message || 'Gagal mengunduh file ZIP dari Telegram (Grammers)'
+    gr?.userMessage || gr?.error?.message || gr?.data?.message || 'Gagal mengunduh berkas ZIP dari Telegram (Grammers)'
   );
 }
 
@@ -1299,10 +1304,17 @@ export async function driveZipList(
       backend: 'grammers',
     };
   } catch (e: any) {
+    const rawMsg = String(e?.message || e || 'Gagal membaca arsip ZIP');
+    let friendly = rawMsg;
+    if (rawMsg.includes('Could not find EOCD') || rawMsg.includes('EOCD missing')) {
+      friendly = 'Arsip ZIP tidak valid atau unduhan berkas belum selesai (penanda EOCD tidak ditemukan). Coba unduh ulang berkas.';
+    } else if (rawMsg.includes('Password required') || rawMsg.includes('bad_password')) {
+      friendly = 'Arsip ZIP dienkripsi dengan password.';
+    }
     return {
       status: 'error',
-      error: String(e?.message || e || 'Gagal membaca arsip ZIP'),
-      message: String(e?.message || e || 'Gagal membaca arsip ZIP'),
+      error: friendly,
+      message: friendly,
       entries: [],
       backend: 'grammers',
     };

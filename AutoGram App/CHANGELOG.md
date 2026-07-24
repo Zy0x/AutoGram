@@ -1,3 +1,13 @@
+## v2.3.10 Perbaikan Kritis ZIP Preview & Extraction Engine
+
+### Pembenahan Parser Rust, Penanganan Enkripsi, & Interaksi UI (`zip_local.rs`, `driveApi.ts`, `DriveZipBrowser.tsx`)
+- **Pembacaan Indeks ZIP Terenkripsi (`by_index_raw`)**: Memperbarui `list_zip` di Rust backend agar menggunakan `by_index_raw(i)` saat membaca metadata indeks arsip. Pembacaan daftar berkas kini tidak lagi melempar error `Password required to decrypt file`, sehingga daftar isi berkas ZIP terenkripsi tetap dapat dimuat dengan sempurna di UI.
+- **Penanganan Kesalahan EOCD & Cache Parsial**: Menambahkan sanitasi & validasi cache pada `driveApi.ts` & `zip_local.rs`. Berkas cache parsial/0-byte tidak lagi menyebabkan error mentah "Could not find EOCD", melainkan memberikan pesan ramah Bahasa Indonesia serta tombol untuk mengunduh ulang berkas.
+- **Proteksi Zip Slip (Path Traversal `../`)**: Menambahkan fungsi sanitasi `sanitize_zip_path` pada Rust backend untuk mengeliminasi potensi serangan penulisan berkas di luar folder tujuan saat proses ekstraksi.
+- **Penanganan Ekstraksi Folder Massal**: Memperbaiki fungsi `extract_zip_entry` dan `DriveZipBrowser.tsx` agar entri berjenis folder (`is_dir: true`) dibuat secara otomatis tanpa menyebabkan I/O Error `Access denied`.
+- **Dukungan Kompresi Bzip2 & Zstd**: Mengaktifkan fitur kompresi `bzip2` dan `zstd` pada `Cargo.toml` untuk memperluas kompatibilitas format arsip ZIP.
+- **Peningkatan UI & Masukan Password Terpadu**: Memperbarui UI error modal di `DriveZipBrowser.tsx` dengan pesan dalam Bahasa Indonesia, form masukan password langsung jika direktori dienkripsi, serta tombol opsi *Unduh Berkas Penuh*.
+
 ## v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction
 
 ### Solusi Native Desktop Tanpa Telethon (`driveApi.ts`, `telegramBackend.ts`, `rustBackend.ts`)

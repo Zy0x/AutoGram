@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.9
+AutoGram Version: v2.3.10
 
 Current State:
-v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), pembebasan direktori `/sessions/preview/` & `/sessions/cache/` pada security `path_policy.rs` agar berkas cache preview tidak terblokir, parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
+v2.3.10 Perbaikan Kritis ZIP Preview & Extraction Engine — penanganan pembacaan EOCD (End of Central Directory) pada cache parsial & file > 500 MB, pembacaan indeks ZIP terenkripsi password via `by_index_raw(i)` di Rust `zip_local`, proteksi Zip Slip (path traversal `../`), dukungan ekstraksi direktori/folder massal tanpa I/O error, aktivasi kompresi bzip2/zstd, dan UI penanganan kesalahan Bahasa Indonesia dengan masukan password terpadu.
 
 Previous:
+v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), pembebasan direktori `/sessions/preview/` & `/sessions/cache/` pada security `path_policy.rs` agar berkas cache preview tidak terblokir, parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
 v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
 v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command `autogram-commands.toml` — mendaftarkan `tg_delete_messages`, `tg_create_folder`, `tg_delete_folder`, `tg_move_messages`, `tg_create_topic`, `tg_delete_topic`, dan `jobs_*` yang mengeliminasi error "tg_delete_messages not allowed. Command not found".
 v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).

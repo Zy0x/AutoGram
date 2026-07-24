@@ -810,8 +810,8 @@ export function DriveZipBrowser({
   };
 
   const selectAllFiles = () => {
-    const allFileNames = files.map((f) => f.name);
-    setSelectedEntries(new Set(allFileNames));
+    const fileNamesOnly = entries.filter((e) => !e.is_dir).map((f) => f.name);
+    setSelectedEntries(new Set(fileNamesOnly));
   };
 
   const clearSelection = () => {
@@ -831,13 +831,54 @@ export function DriveZipBrowser({
   }
 
   if (error && entries.length === 0) {
+    const isEncryptedErr = error.toLowerCase().includes('password') || error.toLowerCase().includes('dienkripsi');
     return (
-      <div className="drive-zip-browser is-error">
-        <Archive size={40} style={{ color: '#ef4444' }} />
-        <p style={{ fontWeight: 600 }}>{error}</p>
-        <button type="button" className="td-btn-primary" onClick={() => void loadList()}>
-          <RefreshCw size={14} /> Coba lagi
-        </button>
+      <div className="drive-zip-browser is-error" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+        <Archive size={44} style={{ color: isEncryptedErr ? '#f59e0b' : '#ef4444', marginBottom: '1rem' }} />
+        <p style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.75rem', maxWidth: '480px', margin: '0 auto 1rem' }}>
+          {error}
+        </p>
+
+        {isEncryptedErr && (
+          <div style={{ display: 'flex', gap: '8px', maxWidth: '360px', margin: '1rem auto 1.5rem' }}>
+            <input
+              type="password"
+              placeholder="Masukkan Password ZIP..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="td-input"
+              style={{ flex: 1 }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && password) {
+                  rememberedPasswordsMap.set(archiveKey, password);
+                  void loadList();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="td-btn-primary"
+              disabled={!password}
+              onClick={() => {
+                rememberedPasswordsMap.set(archiveKey, password);
+                void loadList();
+              }}
+            >
+              Buka
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+          <button type="button" className="td-btn-primary" onClick={() => void loadList()}>
+            <RefreshCw size={14} /> Coba Muat Ulang
+          </button>
+          {onDownloadZip && (
+            <button type="button" className="td-btn-secondary" onClick={onDownloadZip}>
+              <Download size={14} /> Unduh Berkas Penuh
+            </button>
+          )}
+        </div>
       </div>
     );
   }

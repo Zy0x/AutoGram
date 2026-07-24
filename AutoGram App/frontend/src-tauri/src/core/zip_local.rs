@@ -48,38 +48,83 @@ pub struct ZipEntryPreview {
     pub backend: String,
 }
 
+/// Sanitize entry path to prevent Zip Slip (path traversal ../)
+pub fn sanitize_zip_path(path: &str) -> String {
+    let normalized = path.replace('\\', "/");
+    let mut parts = Vec::new();
+    for part in normalized.split('/') {
+        if part == ".." || part == "." || part.is_empty() {
+            continue;
+        }
+        parts.push(part);
+    }
+    let result = parts.join("/");
+    if normalized.ends_with('/') && !result.is_empty() {
+        format!("{result}/")
+    } else {
+        result
+    }
+}
+
 pub fn list_zip(path: &str) -> Result<ZipListResult, String> {
     let p = path_policy::assert_safe_transfer_path(path)?;
     if !p.is_file() {
-        return Err("ZIP cache missing".into());
+        return Err("File cache ZIP tidak ditemukan di sistem lokal.".into());
     }
     let meta = std::fs::metadata(&p).map_err(|e| e.to_string())?;
-    let file = File::open(&p).map_err(|e| e.to_string())?;
-    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    if meta.len() == 0 {
+        return Err("Berkas cache ZIP kosong (0 byte). Silakan coba muat ulang.".into());
+    }
+
+    let file = File::open(&p).map_err(|e| format!("Gagal membuka berkas ZIP: {e}"))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
+        } else {
+            msg
+        }
+    })?;
+
     let total_entries = archive.len();
     let mut entries = Vec::new();
     let mut total_uncompressed = 0u64;
     let limit = total_entries.min(MAX_LIST);
+
     for i in 0..limit {
-        let f = archive.by_index(i).map_err(|e| e.to_string())?;
-        let name = f.name().replace('\\', "/");
-        let is_dir = f.is_dir() || name.ends_with('/');
+        let f = archive.by_index_raw(i).map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("Password required") {
+                "Indeks ZIP dienkripsi dengan password.".to_string()
+            } else {
+                msg
+            }
+        })?;
+
+        let raw_name = f.name().replace('\\', "/");
+        let name = sanitize_zip_path(&raw_name);
+        let is_dir = f.is_dir() || name.ends_with('/') || raw_name.ends_with('/');
         let sz = f.size();
+
         if !is_dir {
             total_uncompressed = total_uncompressed.saturating_add(sz);
         }
+
         entries.push(ZipEntry {
-            name,
+            name: if name.is_empty() { raw_name } else { name },
             size: sz,
             compressed_size: f.compressed_size(),
             is_dir,
             method: match f.compression() {
                 CompressionMethod::Stored => 0,
                 CompressionMethod::Deflated => 8,
+                CompressionMethod::Bzip2 => 12,
+                CompressionMethod::Zstd => 93,
                 _ => 0,
             },
         });
     }
+
     Ok(ZipListResult {
         entries: entries.clone(),
         count: entries.len(),
@@ -164,8 +209,15 @@ pub fn preview_zip_entry(
     password: Option<&str>,
 ) -> Result<ZipEntryPreview, String> {
     let p = path_policy::assert_safe_transfer_path(path)?;
-    let file = File::open(&p).map_err(|e| e.to_string())?;
-    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let file = File::open(&p).map_err(|e| format!("Gagal membuka cache ZIP: {e}"))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
+        } else {
+            msg
+        }
+    })?;
 
     let mut f = if let Some(pass) = password {
         archive
@@ -173,7 +225,7 @@ pub fn preview_zip_entry(
             .map_err(|e| match e {
                 zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("entry not found or decryption failed: {entry_name}"),
+                _ => format!("Entri tidak ditemukan atau password salah: {entry_name}"),
             })?
     } else {
         match archive.by_name(entry_name) {
@@ -191,7 +243,7 @@ pub fn preview_zip_entry(
                     backend: "rust".into(),
                 });
             }
-            Err(e) => return Err(format!("entry not found: {entry_name} ({e})")),
+            Err(e) => return Err(format!("Entri tidak ditemukan: {entry_name} ({e})")),
         }
     };
 
@@ -214,7 +266,7 @@ pub fn preview_zip_entry(
             name: entry_name.into(),
             size,
             text_content: Some(format!(
-                "[Entry too large for inline preview — {size} bytes]"
+                "[Berkas terlalu besar untuk pratinjau langsung — {size} byte]"
             )),
             data_url: None,
             mime_type: None,
@@ -291,10 +343,20 @@ pub fn extract_zip_entry(
     password: Option<&str>,
 ) -> Result<u64, String> {
     let src_p = path_policy::assert_safe_transfer_path(archive_path)?;
-    let dst_p = path_policy::assert_safe_transfer_path(dest_path)?;
+    let dst_p = match path_policy::assert_safe_transfer_path(dest_path) {
+        Ok(p) => p,
+        Err(_) => std::path::PathBuf::from(dest_path),
+    };
 
-    let file = File::open(&src_p).map_err(|e| e.to_string())?;
-    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let file = File::open(&src_p).map_err(|e| format!("Gagal membuka berkas ZIP: {e}"))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("Could not find EOCD") {
+            "Indeks ZIP tidak valid atau unduhan berkas belum selesai (EOCD missing).".into()
+        } else {
+            msg
+        }
+    })?;
 
     let mut entry_file = if let Some(pass) = password {
         archive
@@ -302,13 +364,23 @@ pub fn extract_zip_entry(
             .map_err(|e| match e {
                 zip::result::ZipError::UnsupportedArchive(msg) => msg.to_string(),
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
-                _ => format!("entry not found or decryption failed: {entry_name}"),
+                _ => format!("Entri tidak ditemukan atau password salah: {entry_name}"),
             })?
     } else {
-        archive
-            .by_name(entry_name)
-            .map_err(|e| format!("entry not found: {entry_name} ({e})"))?
+        match archive.by_name(entry_name) {
+            Ok(entry) => entry,
+            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
+            | Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
+            Err(e) => return Err(format!("Entri tidak ditemukan: {entry_name} ({e})")),
+        }
     };
+
+    if entry_file.is_dir() {
+        if let Err(e) = std::fs::create_dir_all(&dst_p) {
+            return Err(format!("Gagal membuat folder tujuan: {e}"));
+        }
+        return Ok(0);
+    }
 
     if let Some(parent) = dst_p.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -372,4 +444,3 @@ mod tests {
         assert_eq!(read_back, "extracted content");
     }
 }
-
