@@ -34,3 +34,7 @@ pub mod app_db;
 pub mod smart_scanner;
 pub mod transfer_state;
 pub mod download_registry;
+pub mod smart_throttle;
+pub mod transfer_journal;
+pub mod moov_sidecar;
+pub mod mp4_keyframe;
