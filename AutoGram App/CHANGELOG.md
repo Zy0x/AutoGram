@@ -1,3 +1,12 @@
+## v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction
+
+### Solusi Native Desktop Tanpa Telethon (`driveApi.ts`, `telegramBackend.ts`, `rustBackend.ts`)
+- **Penanganan Pratinjau ZIP Berbasis Rust + Grammers**:
+  - Mengimplementasikan dan mengekspor `driveZipList`, `driveZipReadEntry`, dan `driveZipExtractEntry` pada `driveApi.ts` berbasis 100% **Rust + Grammers**.
+  - **Pengunduhan MTProto Media**: Menggunakan engine Grammers Rust (`tgPreviewStream` / `tg_preview_stream`) untuk mengunduh dan membuat cache media ZIP Telegram ke disk lokal secara native.
+  - **Parsing & Ekstraksi Arsip**: Menggunakan parser `zip_local` berbasis Rust zip crate (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`) untuk membaca daftar direktori central, pratinjau teks/gambar/data URL, serta ekstraksi berkas tunggal langsung ke disk.
+  - **Eliminasi Exception Runtime**: Mengeliminasi error `driveZipList is not a function` pada `DriveZipBrowser.tsx` serta menghapus ketergantungan pada runtime Telethon Python untuk inspeksi arsip ZIP.
+
 ## v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus Telegram Server
 
 ### Eliminasi Kartu Media Terhapus & Sinkronisasi Database Lokal (`driveLiveSync.ts`, `driveLocationCache.ts`, `drive_serve.py`, `queries.py`)

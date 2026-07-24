@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.8
+AutoGram Version: v2.3.9
 
 Current State:
-v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
+v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
 
 Previous:
+v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
 v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command `autogram-commands.toml` — mendaftarkan `tg_delete_messages`, `tg_create_folder`, `tg_delete_folder`, `tg_move_messages`, `tg_create_topic`, `tg_delete_topic`, dan `jobs_*` yang mengeliminasi error "tg_delete_messages not allowed. Command not found".
 v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).
 v2.3.5 Multi-Key Channel & Peer Resolution Cache di Grammers Engine (-100 prefix, bare ID, dan negative ID) untuk penghapusan pesan instan pada channel/supergroup.

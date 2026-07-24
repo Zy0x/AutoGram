@@ -1249,13 +1249,13 @@ async function ensureZipLocalPath(
   }
 
   const { tgPreviewStream } = await import('./telegramBackend');
+  const id = await resolveGrammersIdentity(creds);
   const chatId = folderId == null ? 'me' : String(folderId);
-  const apiId = Number(creds.apiId) || 0;
 
   const gr = await tgPreviewStream({
-    session: creds.session,
-    apiId,
-    apiHash: creds.apiHash,
+    session: id.session,
+    apiId: id.apiId,
+    apiHash: id.apiHash,
     chatId,
     messageId,
   });
@@ -2014,3 +2014,4 @@ export async function driveDownloadSpawn(
 }
 
 export { parseEventLine };
+
