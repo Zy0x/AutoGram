@@ -18,18 +18,42 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
       return;
     }
 
-    // Realistic multi-stage smooth progress curve (0% -> 100%)
-    setProgress(15);
-    const t1 = setTimeout(() => setProgress(42), 180);
-    const t2 = setTimeout(() => setProgress(72), 480);
-    const t3 = setTimeout(() => setProgress(88), 900);
-    const t4 = setTimeout(() => setProgress(96), 1600);
+    const startTime = Date.now();
+    let animFrame: number;
+
+    const update = () => {
+      const elapsed = Date.now() - startTime;
+
+      // Realistic continuous non-linear curve (never freezes at 96%):
+      // - 0ms - 800ms: Initial fast scan (0% -> 45%)
+      // - 800ms - 2.5s: Cataloging files (45% -> 75%)
+      // - 2.5s - 5.0s: Deep MTProto query (75% -> 86%)
+      // - > 5.0s: Active micro-crawl (86% -> 94%), smoothly moving every frame
+      let target = 0;
+      if (elapsed < 800) {
+        target = (elapsed / 800) * 45;
+      } else if (elapsed < 2500) {
+        target = 45 + ((elapsed - 800) / 1700) * 30; // 45% -> 75%
+      } else if (elapsed < 5000) {
+        target = 75 + ((elapsed - 2500) / 2500) * 11; // 75% -> 86%
+      } else {
+        const extraTime = elapsed - 5000;
+        target = Math.min(94, 86 + (extraTime / 1000) * 1.2); // 86% -> 94% micro crawl
+      }
+
+      setProgress((prev) => {
+        const diff = target - prev;
+        if (Math.abs(diff) < 0.01) return target;
+        return prev + diff * 0.12;
+      });
+
+      animFrame = requestAnimationFrame(update);
+    };
+
+    animFrame = requestAnimationFrame(update);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
+      cancelAnimationFrame(animFrame);
     };
   }, [isLoading, targetPercent]);
 
