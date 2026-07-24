@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.13
+AutoGram Version: v2.3.14
 
 Current State:
-v2.3.13 Optimasi Pengindeksan & Pratinjau ZIP Sparse (Zero Full-Download & Kuota Hemat) — peningkatan blok MTProto menjadi 512 KiB & tail pre-fetching 1 MB instan (<0.5s), eliminasi total pengunduhan berkas ZIP penuh otomatis pada listing, pratinjau, dan ekstraksi entri tunggal, menjaga kuota data pengguna 100% hemat.
+v2.3.14 Elevasi Z-Index Transfer Manager (Floating Progress Pill Over Modals) — meningkatkan z-index `.tm-panel` & `.tm-fab` ke 13000 sehingga floating progress pill (kecepatan MB/s & ring %) tetap melayang di atas modal pratinjau (ZIP, foto, video), memungkinkan monitoring transfer real-time tanpa mengganggu navigasi.
 
 Previous:
+v2.3.13 Optimasi Pengindeksan & Pratinjau ZIP Sparse (Zero Full-Download & Kuota Hemat) — peningkatan blok MTProto menjadi 512 KiB & tail pre-fetching 1 MB instan (<0.5s), eliminasi total pengunduhan berkas ZIP penuh otomatis pada listing, pratinjau, dan ekstraksi entri tunggal, menjaga kuota data pengguna 100% hemat.
 v2.3.12 100% Pure Rust Virtual MTProto Sparse Reader (`TelegramSparseReader`) — pembacaan virtual `Read + Seek` langsung pada stream MTProto Telegram API via block cache 64 KB, mengeliminasi penuh batas ukuran file 500 MB (berfungsi instan <0.5s untuk file ZIP 1 GB, 2 GB, hingga 5 GB), eliminasi OOM memori, dan penyajian indeks ZIP tanpa mengunduh seluruh isi berkas.
 v2.3.11 100% Pure Rust MTProto Sparse ZIP Engine (<0.5s Indeks Load) — penarikan range byte EOCD & Central Directory (128 KB tail) secara instan via MTProto RPC `upload.getFile` Grammers tanpa mengunduh seluruh berkas ZIP, ekstraksi rentang byte lazily on-demand, fallback aman ke cache lokal, dan 100% bebas dari Python Telethon runtime.
 v2.3.10 Perbaikan Kritis ZIP Preview & Extraction Engine — penanganan pembacaan EOCD (End of Central Directory) pada cache parsial & file > 500 MB, pembacaan indeks ZIP terenkripsi password via `by_index_raw(i)` di Rust `zip_local`, proteksi Zip Slip (path traversal `../`), dukungan ekstraksi direktori/folder massal tanpa I/O error, aktivasi kompresi bzip2/zstd, dan UI penanganan kesalahan Bahasa Indonesia dengan masukan password terpadu.

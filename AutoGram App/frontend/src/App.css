@@ -9318,7 +9318,7 @@ body:has(.td-page),
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 85;
+  z-index: 13000;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -9483,7 +9483,7 @@ body:has(.td-page),
   position: fixed;
   right: 16px;
   bottom: 16px;
-  z-index: 85;
+  z-index: 13000;
   width: min(400px, calc(100vw - 24px));
   max-height: min(52vh, 480px);
   display: flex;

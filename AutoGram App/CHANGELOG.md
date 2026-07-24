@@ -1,3 +1,10 @@
+## v2.3.14 Elevasi Z-Index Transfer Manager (Floating Progress Pill Over Modals)
+
+### Pengalaman Pengguna (UX) & Monitoring Real-Time (`App.css`, `DriveTransferManager.tsx`)
+- **Elevasi Z-Index (`z-index: 13000`)**: Meningkatkan `z-index` panel `.tm-panel` dan floating pill `.tm-fab` dari 85 menjadi 13000.
+- **Monitoring Progres Real-Time saat Pratinjau**: Pengguna kini dapat memantau persen unduhan, kecepatan MB/s, serta status transfer dalam bentuk *floating progress ring pill* di pojok kanan bawah secara *real-time* tanpa terhalang oleh modal pratinjau (ZIP preview, foto, video, atau dokumen).
+- **Interaksi Fleksibel di Atas Modal**: Pengguna dapat mengeklik pill untuk memperbesar panel detail Transfer Manager atau meminimalkannya kembali di atas modal pratinjau kapan saja.
+
 ## v2.3.13 Optimasi Pengindeksan & Pratinjau ZIP Sparse (Zero Full-Download & Kuota Hemat)
 
 ### Block Size 512 KiB & Tail Pre-fetching (`grammers_sparse_zip.rs`, `zip_local.rs`, `driveApi.ts`)
