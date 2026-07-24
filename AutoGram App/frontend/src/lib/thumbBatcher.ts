@@ -557,6 +557,15 @@ function scheduleFlush(immediate = false) {
   }, delay);
 }
 
+export function notifyMediaDeleted(deletedIds: number[], peerId: number | null): void {
+  if (!deletedIds || !deletedIds.length) return;
+  window.dispatchEvent(
+    new CustomEvent('autogram-media-deleted', {
+      detail: { deletedIds: deletedIds.map((id) => Number(id)), peerId },
+    })
+  );
+}
+
 async function flushQueue() {
   if (queue.size === 0) return;
   if (thumbsPaused) {
@@ -607,7 +616,12 @@ async function flushQueue() {
     });
     const thumbs = (res.thumbs || {}) as Record<string, string | null>;
     const deferred = !!(res as { deferred?: boolean }).deferred;
+    const deletedIds = (res as { deleted_ids?: number[] }).deleted_ids;
+    if (deletedIds && deletedIds.length) {
+      notifyMediaDeleted(deletedIds, folderId);
+    }
     metrics.batches += 1;
+
     metrics.batchLatencyMs = Math.round(performance.now() - started);
     for (const task of tasks) {
       const mid = task.messageId;

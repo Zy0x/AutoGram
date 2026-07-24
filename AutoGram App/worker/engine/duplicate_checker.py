@@ -196,6 +196,12 @@ class DuplicateChecker:
         finally:
             conn.close()
 
+    def purge_deleted_messages(self, message_ids: List[int]) -> int:
+        """Purge a batch of deleted target_message_ids from duplicate_history."""
+        from database.queries import purge_deleted_duplicates_batch
+        return purge_deleted_duplicates_batch(self.target_entity_id, message_ids)
+
+
     @staticmethod
     def msgid_key(source_entity_id, source_message_id) -> str:
         return f"msgid:{source_entity_id}:{source_message_id}"

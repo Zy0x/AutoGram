@@ -95,6 +95,7 @@ import {
 import {
   loadDriveLocationSnapshot,
   saveDriveLocationSnapshot,
+  removeFilesFromDriveLocationSnapshot,
 } from '../lib/driveLocationCache';
 import {
   loadDriveSidebarSnapshot,
@@ -109,6 +110,7 @@ import {
   getDriveLiveSyncPlan,
   reconcileDriveLiveHead,
   dedupeByMsgId,
+  purgeDeletedMsgIds,
 } from '../lib/driveLiveSync';
 import {
   driveScrollLocationKey,
@@ -2380,7 +2382,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
       setFiles((prev) => {
         if (activeFilesCacheKeyRef.current === cacheKey && prev.length > page.length && page.length > 0) {
-          const merged = reconcileDriveLiveHead(prev, page, !!res.has_more);
+          const merged = reconcileDriveLiveHead(prev, page, !!res.has_more, { isExplicitRefresh: true });
           filesCacheRef.current.set(cacheKey, merged);
           return merged;
         }
@@ -6390,6 +6392,36 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     window.addEventListener('autogram-drive-drop-move', onDropMove as EventListener);
     return () => window.removeEventListener('autogram-drive-drop-move', onDropMove as EventListener);
   }, []);
+
+  useEffect(() => {
+    const onMediaDeleted = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { deletedIds?: number[]; peerId?: number | null } | undefined;
+      if (!detail?.deletedIds || !detail.deletedIds.length) return;
+      const ids = detail.deletedIds.map((id) => Number(id));
+
+      // Purge from active files state
+      setFiles((prev) => purgeDeletedMsgIds(prev, ids));
+      liveFilesRef.current = purgeDeletedMsgIds(liveFilesRef.current, ids);
+
+      // Purge from filesCacheRef
+      for (const [key, cacheList] of Array.from(filesCacheRef.current.entries())) {
+        filesCacheRef.current.set(key, purgeDeletedMsgIds(cacheList, ids));
+      }
+
+      // Purge from localStorage location snapshot
+      if (creds?.session) {
+        try {
+          removeFilesFromDriveLocationSnapshot(localStorage, creds.session, peerId, topicFilterRef.current, ids);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
+    window.addEventListener('autogram-media-deleted', onMediaDeleted);
+    return () => window.removeEventListener('autogram-media-deleted', onMediaDeleted);
+  }, [creds, peerId]);
+
 
   useEffect(() => {
     let down: {

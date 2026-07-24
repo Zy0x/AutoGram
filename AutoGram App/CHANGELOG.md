@@ -1,3 +1,16 @@
+## v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus Telegram Server
+
+### Eliminasi Kartu Media Terhapus & Sinkronisasi Database Lokal (`driveLiveSync.ts`, `driveLocationCache.ts`, `drive_serve.py`, `queries.py`)
+- **Self-Healing Cache Workflow (UI & LocalStorage)**:
+  - Memperbarui `reconcileDriveLiveHead` (`driveLiveSync.ts`) agar saat pembaruan lokasi langsung (*explicit refresh* / `bypassCache`), data segar dari Telegram server memprioritaskan penyegaran tampilan dan tidak lagi menggabungkan kembali berkas terhapus dari snapshot lama.
+  - Menambahkan utilitas `purgeDeletedMsgIds` dan `removeFilesFromDriveLocationSnapshot` untuk menghapus ID berkas yang terhapus secara real-time dan persisten dari memori UI & `localStorage`.
+- **Atomic Database Purge pada SQLite (`queries.py` & `duplicate_checker.py`)**:
+  - Menambahkan fungsi atomic `purge_deleted_duplicates_batch` di SQLite (`queries.py`). Setiap kali worker mendeteksi pesan terhapus di Telegram (`MessageEmpty` / `None`), ID pesan tersebut langsung dibersihkan dari tabel `duplicate_history` & `message_mapping`.
+  - Mencegah *Duplicate Checker* menandai berkas terhapus sebagai "Duplikat dilewati", sehingga berkas yang sempat dihapus di Telegram dapat diunggah ulang secara lancar.
+- **Signal Signal RPC `deleted_ids` dari Telethon Engine (`drive_serve.py` & `thumbBatcher.ts`)**:
+  - `drive_serve.py` kini mengumpulkan `deleted_ids` saat penarikan pesan/thumbnail dan mengirimkannya dalam payload JSON response.
+  - `thumbBatcher.ts` menangkap signal `deleted_ids` dan memancarkan event `autogram-media-deleted` yang secara instan melenyapkan kartu media terhapus dari layar tanpa perlu memuat ulang seluruh aplikasi.
+
 ## v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command (`autogram-commands.toml`)
 
 ### Resolusi Error Security Sandbox Tauri v2 (`autogram-commands.toml`)

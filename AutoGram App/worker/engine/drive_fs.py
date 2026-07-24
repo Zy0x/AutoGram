@@ -3317,8 +3317,11 @@ def _get_link_title(msg, url: str) -> str:
 
 
 def message_to_drive_file(msg, folder_id: Optional[int]) -> Optional[Dict[str, Any]]:
-    if not msg:
+    if not msg or getattr(msg, "empty", False) or getattr(msg, "_empty", False):
         return None
+    if type(msg).__name__ in ("MessageEmpty", "MessageService"):
+        return None
+
 
     is_link = False
     link_url = ""

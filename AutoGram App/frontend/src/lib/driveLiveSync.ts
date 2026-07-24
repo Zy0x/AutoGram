@@ -31,6 +31,12 @@ export function dedupeByMsgId(files: DriveFile[]): DriveFile[] {
   return result;
 }
 
+export function purgeDeletedMsgIds(files: DriveFile[], deletedIds: number[]): DriveFile[] {
+  if (!deletedIds || !deletedIds.length || !files || !files.length) return files || [];
+  const deletedSet = new Set(deletedIds.map((id) => Number(id)));
+  return files.filter((f) => f && !deletedSet.has(Number(f.id)));
+}
+
 /**
  * Replace the authoritative newest window while retaining pages the user has
  * already loaded below it. Missing ids inside that newest id range are treated
@@ -39,8 +45,16 @@ export function dedupeByMsgId(files: DriveFile[]): DriveFile[] {
 export function reconcileDriveLiveHead(
   previous: DriveFile[],
   liveHead: DriveFile[],
-  serverHasMore: boolean
+  serverHasMore: boolean,
+  opts?: { isExplicitRefresh?: boolean; knownDeletedIds?: number[] }
 ): DriveFile[] {
+  if (opts?.knownDeletedIds && opts.knownDeletedIds.length) {
+    previous = purgeDeletedMsgIds(previous, opts.knownDeletedIds);
+  }
+  // On explicit location refresh (bypassing cache), trust the live head page from Telegram
+  if (opts?.isExplicitRefresh && liveHead.length > 0) {
+    return dedupeByMsgId(liveHead);
+  }
   if (!serverHasMore) return dedupeByMsgId(liveHead);
   if (!liveHead.length) return dedupeByMsgId(previous);
   const liveIds = new Set(liveHead.map((file) => file.id));
@@ -58,3 +72,4 @@ export function driveSyncBackoffMs(
   const multiplier = Math.max(1, 2 ** Math.min(4, consecutiveFailures));
   return Math.min(plan.maxBackoffMs, plan.intervalMs * multiplier);
 }
+

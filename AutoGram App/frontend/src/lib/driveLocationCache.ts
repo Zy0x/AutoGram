@@ -108,3 +108,36 @@ export function saveDriveLocationSnapshot(
     // Cache failure must never block Media Studio.
   }
 }
+
+export function removeFilesFromDriveLocationSnapshot(
+  storage: StorageLike,
+  session: string,
+  peerId: number | null,
+  topicId: number | null,
+  deletedIds: number[]
+): void {
+  if (!deletedIds || !deletedIds.length) return;
+  const key = driveLocationKey(peerId, topicId);
+  const envelope = readEnvelope(storage, session);
+  const existing = envelope.entries[key];
+  if (!existing || !Array.isArray(existing.files)) return;
+
+  const deletedSet = new Set(deletedIds.map((id) => Number(id)));
+  const updatedFiles = existing.files.filter((f) => !deletedSet.has(Number(f.id)));
+  
+  if (updatedFiles.length === existing.files.length) return;
+
+  envelope.entries[key] = {
+    ...existing,
+    files: updatedFiles,
+    totalCount: existing.totalCount != null ? Math.max(0, existing.totalCount - (existing.files.length - updatedFiles.length)) : null,
+    savedAt: Date.now(),
+  };
+
+  try {
+    storage.setItem(storageKey(session), JSON.stringify(envelope));
+  } catch {
+    /* ignore */
+  }
+}
+

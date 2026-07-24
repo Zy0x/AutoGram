@@ -441,6 +441,57 @@ def log_duplicates_batch(rows):
     finally:
         conn.close()
 
+
+def purge_deleted_duplicates_batch(target_entity_id: str, message_ids: list) -> int:
+    """
+    Menghapus entri duplicate_history & message_mapping lokal saat ID pesan Telegram
+    terdeteksi terhapus / MessageEmpty di server Telegram.
+    """
+    if not message_ids:
+        return 0
+    clean_ids = [int(m) for m in message_ids if m is not None and int(m) > 0]
+    if not clean_ids:
+        return 0
+    conn = get_connection()
+    cursor = conn.cursor()
+    total_purged = 0
+    try:
+        entity_str = str(target_entity_id) if target_entity_id is not None else ""
+        for start in range(0, len(clean_ids), 400):
+            chunk = clean_ids[start:start + 400]
+            placeholders = ",".join("?" for _ in chunk)
+            if entity_str:
+                cursor.execute(
+                    f"DELETE FROM duplicate_history "
+                    f"WHERE target_entity_id = ? AND target_message_id IN ({placeholders})",
+                    (entity_str, *chunk),
+                )
+            else:
+                cursor.execute(
+                    f"DELETE FROM duplicate_history "
+                    f"WHERE target_message_id IN ({placeholders})",
+                    (*chunk,),
+                )
+            total_purged += cursor.rowcount or 0
+
+            # Juga bersihkan entri pada message_mapping jika tabel ada
+            try:
+                cursor.execute(
+                    f"DELETE FROM message_mapping "
+                    f"WHERE target_msg_id IN ({placeholders}) OR source_msg_id IN ({placeholders})",
+                    (*chunk, *chunk),
+                )
+            except Exception:
+                pass
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"[DB] Failed to purge deleted duplicates batch: {e}", flush=True)
+    finally:
+        conn.close()
+    return total_purged
+
+
 # --- Other Queries ---
 
 def get_statistics():

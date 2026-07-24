@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.7
+AutoGram Version: v2.3.8
 
 Current State:
-v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command `autogram-commands.toml` — mendaftarkan `tg_delete_messages`, `tg_create_folder`, `tg_delete_folder`, `tg_move_messages`, `tg_create_topic`, `tg_delete_topic`, dan `jobs_*` yang mengeliminasi error "tg_delete_messages not allowed. Command not found".
+v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
 
 Previous:
+v2.3.7 Perbaikan Kritis Pendaftaran Izin Tauri IPC Command `autogram-commands.toml` — mendaftarkan `tg_delete_messages`, `tg_create_folder`, `tg_delete_folder`, `tg_move_messages`, `tg_create_topic`, `tg_delete_topic`, dan `jobs_*` yang mengeliminasi error "tg_delete_messages not allowed. Command not found".
 v2.3.6 Preservasi Pesan Kesalahan IPC Telegram API pada `telegramBackend.ts` & `driveApi.ts` — mengeliminasi pesan generik "Hapus batch gagal" dan menampilkan detail kesalahan server (seperti CHAT_ADMIN_REQUIRED / MESSAGE_DELETE_FORBIDDEN).
 v2.3.5 Multi-Key Channel & Peer Resolution Cache di Grammers Engine (-100 prefix, bare ID, dan negative ID) untuk penghapusan pesan instan pada channel/supergroup.
 v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (Zero-Refetch Optimistic Update, Pembersihan Global Cache Memori, Sinkronisasi IndexedDB Real-time, dan Presisi Target Channel ID per File).

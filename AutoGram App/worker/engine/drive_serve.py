@@ -529,18 +529,30 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             # Previously every image/video repeated get_messages before its
             # static thumbnail download, dominating cold-grid latency.
             preloaded: Dict[int, Any] = {}
+            deleted_ids: list = []
             try:
                 messages = await client.get_messages(peer, ids=need)
                 if not isinstance(messages, (list, tuple)):
                     messages = [messages]
-                preloaded = {
-                    int(getattr(message, "id", 0)): message
-                    for message in messages
-                    if message is not None and int(getattr(message, "id", 0) or 0) > 0
-                }
+                
+                # Check for deleted/empty messages directly returned by Telegram
+                for mid_req, msg_resp in zip(need, messages):
+                    if msg_resp is None or getattr(msg_resp, "empty", False) or getattr(msg_resp, "_empty", False) or type(msg_resp).__name__ in ("MessageEmpty", "MessageService"):
+                        deleted_ids.append(int(mid_req))
+                    elif int(getattr(msg_resp, "id", 0) or 0) > 0:
+                        preloaded[int(msg_resp.id)] = msg_resp
             except Exception:
                 # Fall back per item; thumbnail failure must not block the grid.
                 preloaded = {}
+
+            # Purge deleted IDs from local SQLite database immediately
+            if deleted_ids:
+                try:
+                    from database.queries import purge_deleted_duplicates_batch
+                    purge_deleted_duplicates_batch(folder_id, deleted_ids)
+                except Exception as e:
+                    print(f"[drive_serve] Warning: SQLite purge failed for deleted_ids: {e}", flush=True)
+
             # Parallel fetch (bounded) — sequential was the grid scroll bottleneck
             conc = max(1, min(int(prof.get("concurrency") or 3), 6))
             sem = _aio.Semaphore(conc)
@@ -556,7 +568,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
                                 mid,
                                 quality=qname,
                                 preloaded_message=preloaded.get(mid),
-                                message_preloaded=mid in preloaded,
+                                message_preloaded=mid in preloaded or mid in deleted_ids,
                                 bypass_cache=bypass_cache,
                             ),
                             timeout=45.0
@@ -581,6 +593,7 @@ async def _handle(client, req: Dict[str, Any]) -> Any:
             "fetched": len(need),
             "quality": qname,
             "nosample_ids": nosample_ids,
+            "deleted_ids": deleted_ids if 'deleted_ids' in locals() else [],
         }
 
     if cmd in ("avatars", "avatars_batch", "profile_photos", "profile-photos"):
