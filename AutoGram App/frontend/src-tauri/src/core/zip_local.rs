@@ -224,40 +224,14 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
     entry_name: &str,
     password: Option<&str>,
 ) -> Result<ZipEntryPreview, String> {
-    let entry_idx = if let Some(pass) = password {
-        match archive.by_name_decrypt(entry_name, pass.as_bytes()) {
-            Ok(entry) => Some((entry.index(), pass.to_string())),
-            Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
-            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, pass.to_string())),
-        }
-    } else {
-        match archive.by_name(entry_name) {
-            Ok(entry) => Some((entry.index(), String::new())),
-            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
-            | Err(zip::result::ZipError::InvalidPassword) => {
-                return Ok(ZipEntryPreview {
-                    name: entry_name.into(),
-                    size: 0,
-                    text_content: None,
-                    data_url: None,
-                    mime_type: None,
-                    is_binary: true,
-                    encrypted: true,
-                    backend: "rust".into(),
-                });
-            }
-            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, String::new())),
-        }
-    };
-
-    let (idx, pass_str) = match entry_idx {
-        Some(t) => t,
+    let idx = match find_entry_index(&mut archive, entry_name) {
+        Some(i) => i,
         None => return Err(format!("Entri tidak ditemukan: {entry_name}")),
     };
 
-    let mut f = if !pass_str.is_empty() {
+    let mut f = if let Some(pass) = password {
         archive
-            .by_index_decrypt(idx, pass_str.as_bytes())
+            .by_index_decrypt(idx, pass.as_bytes())
             .map_err(|e| match e {
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
                 _ => format!("Gagal membaca entri {entry_name}: {e}"),
@@ -400,29 +374,14 @@ pub fn extract_zip_entry_from_archive<R: Read + Seek>(
         Err(_) => std::path::PathBuf::from(dest_path),
     };
 
-    let entry_idx = if let Some(pass) = password {
-        match archive.by_name_decrypt(entry_name, pass.as_bytes()) {
-            Ok(entry) => Some((entry.index(), pass.to_string())),
-            Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
-            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, pass.to_string())),
-        }
-    } else {
-        match archive.by_name(entry_name) {
-            Ok(entry) => Some((entry.index(), String::new())),
-            Err(zip::result::ZipError::UnsupportedArchive("Password required to decrypt file"))
-            | Err(zip::result::ZipError::InvalidPassword) => return Err("bad_password".into()),
-            _ => find_entry_index(&mut archive, entry_name).map(|idx| (idx, String::new())),
-        }
-    };
-
-    let (idx, pass_str) = match entry_idx {
-        Some(t) => t,
+    let idx = match find_entry_index(&mut archive, entry_name) {
+        Some(i) => i,
         None => return Err(format!("Entri tidak ditemukan: {entry_name}")),
     };
 
-    let mut entry_file = if !pass_str.is_empty() {
+    let mut entry_file = if let Some(pass) = password {
         archive
-            .by_index_decrypt(idx, pass_str.as_bytes())
+            .by_index_decrypt(idx, pass.as_bytes())
             .map_err(|e| match e {
                 zip::result::ZipError::InvalidPassword => "bad_password".into(),
                 _ => format!("Gagal membaca entri {entry_name}: {e}"),
