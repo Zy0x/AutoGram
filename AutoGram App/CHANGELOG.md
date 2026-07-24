@@ -1,3 +1,11 @@
+## v2.3.26 Toolbar Tools Lengkap untuk Pratinjau Gambar di ZIP Browser
+
+### Fitur Interaktif Pratinjau Gambar (`DriveZipBrowser.tsx`)
+- **Penambahan Toolbar Tools Gambar**: Menambahkan grup tombol toolbar interaktif pada header pratinjau saat berkas gambar dibuka di ZIP Browser.
+- **Fitur Zooming (0.5x hingga 3x)**: Tombol `ZoomIn` (+25%) dan `ZoomOut` (-25%) untuk memperbesar dan memperkecil tampilan foto secara halus dengan transisi CSS `0.15s`.
+- **Fitur Reset 100% & Indicator**: Tombol `Shrink` dengan persentase real-time (misal `100%`, `125%`, `150%`) untuk mengembalikan foto ke ukuran standar dan mereset rotasi.
+- **Fitur Rotasi 90° Kiri & Kanan**: Tombol `RotateCcw` (-90°) dan `RotateCw` (+90°) untuk memutar posisi foto 90 derajat secara interaktif.
+
 ## v2.3.25 Redesain Modern Glassmorphic Encrypted ZIP Card UI
 
 ### Redesain UI Pengisian Password ZIP (`DriveZipBrowser.tsx`, `App.css`)

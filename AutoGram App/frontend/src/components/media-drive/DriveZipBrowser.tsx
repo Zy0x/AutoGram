@@ -29,9 +29,13 @@ import {
   Music,
   RefreshCw,
   Repeat,
+  RotateCcw,
   RotateCw,
   Search,
   Send,
+  Shrink,
+  ZoomIn,
+  ZoomOut,
   Eye,
   EyeOff,
   KeyRound,
@@ -495,6 +499,7 @@ export function DriveZipBrowser({
   const [muted, setMuted] = useState(false);
   const [loop, setLoop] = useState(true);
   const [rotate, setRotate] = useState(0);
+  const [zoom, setZoom] = useState(1);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const toggleRate = () => {
@@ -629,6 +634,8 @@ export function DriveZipBrowser({
     setError(null);
     setPreview(null);
     setToastMsg(null);
+    setZoom(1);
+    setRotate(0);
 
     // Check remembered password cache if no explicit input given
     const effectivePass = passInput || rememberedPasswordsMap.get(archiveKey) || password;
@@ -1124,6 +1131,55 @@ export function DriveZipBrowser({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {preview?.kind === 'image' && preview.dataUrl && (
+              <div className="drive-zip-media-tools">
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${zoom < 1 ? ' active' : ''}`}
+                  title="Perkecil Gambar (-25%)"
+                  disabled={zoom <= 0.5}
+                  onClick={() => setZoom((z) => Math.max(0.5, Math.round((z - 0.25) * 100) / 100))}
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${zoom !== 1 || rotate !== 0 ? ' active' : ''}`}
+                  title="Reset Skala 100% & Rotasi"
+                  onClick={() => {
+                    setZoom(1);
+                    setRotate(0);
+                  }}
+                >
+                  <Shrink size={13} /> {Math.round(zoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${zoom > 1 ? ' active' : ''}`}
+                  title="Perbesar Gambar (+25%)"
+                  disabled={zoom >= 3}
+                  onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.25) * 100) / 100))}
+                >
+                  <ZoomIn size={13} />
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${rotate !== 0 ? ' active' : ''}`}
+                  title="Putar 90° Kiri"
+                  onClick={() => setRotate((r) => (r + 270) % 360)}
+                >
+                  <RotateCcw size={13} />
+                </button>
+                <button
+                  type="button"
+                  className={`drive-zip-tool-btn${rotate !== 0 ? ' active' : ''}`}
+                  title="Putar 90° Kanan"
+                  onClick={() => setRotate((r) => (r + 90) % 360)}
+                >
+                  <RotateCw size={13} />
+                </button>
+              </div>
+            )}
             {preview?.kind === 'video' && (
               <div className="drive-zip-media-tools">
                 <button
@@ -1310,8 +1366,19 @@ export function DriveZipBrowser({
             <VSCodeCodeViewer text={preview.text} name={preview.entry} />
           )}
           {preview?.kind === 'image' && preview.dataUrl && (
-            <div className="drive-zip-media-container">
-              <img src={preview.dataUrl} alt={preview.entry} className="drive-zip-img" />
+            <div className="drive-zip-media-container" style={{ overflow: 'auto' }}>
+              <img
+                src={preview.dataUrl}
+                alt={preview.entry}
+                className="drive-zip-img"
+                style={{
+                  transform: `scale(${zoom}) rotate(${rotate}deg)`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.15s ease-out',
+                  maxWidth: zoom > 1 ? 'none' : '100%',
+                  maxHeight: zoom > 1 ? 'none' : '100%',
+                }}
+              />
             </div>
           )}
           {preview?.kind === 'image' && !preview.dataUrl && (
