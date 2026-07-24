@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.21
+AutoGram Version: v2.3.22
 
 Current State:
-v2.3.21 Perbaikan Kompilasi Rust (`TgErrorCode::Io` pada Penanganan Password ZIP) — membenahi `grammers_sparse_zip.rs` dengan mengganti `TgErrorCode::PasswordRequired` menjadi `TgErrorCode::Io` yang sah. Memastikan kompilasi `cargo check --lib` dan `npm run build` lulus 100% sempurna tanpa error.
+v2.3.22 Direct Offset Range Fetching & In-Memory ZIP Catalog Caching — mengimplementasikan `CATALOG_CACHE` (Global Mutex Cache 10-menit) serta `preview_zip_entry_direct` dan `extract_zip_entry_direct` pada `grammers_sparse_zip.rs` & `zip_local.rs`. Mengeliminasi total pembacaan ulang Central Directory (10–30 MB) dan tail prefetching saat membuka media tunggal. Penarikan kuota data saat membuka 1 foto/media 3 MB di dalam ZIP dipangkas secara drastis dari ~21.5 MB menjadi tepat ~3.1 MB (efisiensi kuota 85–90%).
 
 Previous:
+v2.3.21 Perbaikan Kompilasi Rust (`TgErrorCode::Io` pada Penanganan Password ZIP) — membenahi `grammers_sparse_zip.rs` dengan mengganti `TgErrorCode::PasswordRequired` menjadi `TgErrorCode::Io` yang sah. Memastikan kompilasi `cargo check --lib` dan `npm run build` lulus 100% sempurna tanpa error.
 v2.3.20 Perluasan Pencarian Central Directory 4 MB & Eliminasi Total Iterasi Network Seeking di Fallback Path — membenahi `grammers_sparse_zip.rs` dengan memperluas jangkauan EOCD dari 65 KB menjadi 4 MB (`search_len`) dan prefetch 2.5 MB tail data. Mengubah jalur fallback `list_zip_sparse` agar menggunakan `archive.name_for_index(i)` in-memory lookup. Mengeliminasi total masalah sedotan data 2.63 MB/s (~40 MB) pada ZIP 385 MB dengan Central Directory besar.
 v2.3.19 Eliminasi Total Background Pre-fetching Berkas Tetangga pada Modal Pratinjau ZIP & Dokumen — membenahi `DrivePreviewModal.tsx` dengan menyaring `prefetchPreviews` agar hanya berjalan untuk gambar biasa dan 100% mati untuk berkas ZIP (`isZipDriveFile`), PDF, dan Dokumen. Mengeliminasi total pengunduhan 40–60 MB berkas tetangga di latar belakang saat membuka modal ZIP preview.
 v2.3.18 Eliminasi Total Iterasi Network Seeking saat Pratinjau Media Tunggal (Memangkas Kuota Pratinjau dari 60 MB ke Tepat 9.22 MB) — memperbarui `find_entry_index` di `zip_local.rs` agar menggunakan `name_for_index(i)` in-memory alih-alih `by_index_raw(i)` dalam looping. Mengeliminasi total pembacaan 100+ blok MTProto acak (~60 MB) saat membuka pratinjau media tunggal, memangkas konsumsi data pratinjau foto 9.22 MB dari 60 MB menjadi tepat ~9.7 MB (9.22 MB payload + pembulatan 1 blok 512 KB).

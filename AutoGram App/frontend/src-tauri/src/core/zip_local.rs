@@ -20,6 +20,8 @@ pub struct ZipEntry {
     pub compressed_size: u64,
     pub is_dir: bool,
     pub method: u16,
+    #[serde(default)]
+    pub local_header_offset: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -122,6 +124,7 @@ pub fn list_zip(path: &str) -> Result<ZipListResult, String> {
                 CompressionMethod::Zstd => 93,
                 _ => 0,
             },
+            local_header_offset: f.header_start(),
         });
     }
 
@@ -302,11 +305,19 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
         return Err(err_str);
     }
 
+    Ok(build_zip_entry_preview(entry_name, size, buf))
+}
+
+pub fn build_zip_entry_preview(
+    entry_name: &str,
+    size: u64,
+    buf: Vec<u8>,
+) -> ZipEntryPreview {
     let media_mime = detect_media_mime(entry_name);
     if let Some((_kind, mime)) = media_mime {
         let encoded = base64::engine::general_purpose::STANDARD.encode(&buf);
         let data_url = format!("data:{mime};base64,{encoded}");
-        return Ok(ZipEntryPreview {
+        return ZipEntryPreview {
             name: entry_name.into(),
             size,
             text_content: None,
@@ -315,7 +326,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
             is_binary: true,
             encrypted: false,
             backend: "rust".into(),
-        });
+        };
     }
 
     let is_text_ext = is_known_text_file(entry_name);
@@ -332,7 +343,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
         Some(String::from_utf8_lossy(&buf).into_owned())
     };
 
-    Ok(ZipEntryPreview {
+    ZipEntryPreview {
         name: entry_name.into(),
         size,
         text_content: text,
@@ -341,7 +352,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
         is_binary,
         encrypted: false,
         backend: "rust".into(),
-    })
+    }
 }
 
 pub fn preview_zip_entry(

@@ -1271,6 +1271,7 @@ dependencies = [
  "aes-gcm",
  "base64 0.22.1",
  "chrono",
+ "flate2",
  "grammers-client",
  "grammers-mtsender",
  "grammers-session",

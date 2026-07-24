@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind, Read, Result as IoResult, Seek, SeekFrom};
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use grammers_client::media::Media;
 use grammers_client::tl;
@@ -17,6 +18,42 @@ use super::zip_local::{sanitize_zip_path, ZipEntry, ZipEntryPreview, ZipListResu
 
 const BLOCK_SIZE: u64 = 512 * 1024; // 512 KiB block fetch
 const BACKEND: &str = "grammers_sparse";
+
+#[derive(Debug, Clone)]
+pub struct CachedCatalog {
+    pub result: ZipListResult,
+    pub created_at: std::time::Instant,
+}
+
+static CATALOG_CACHE: Mutex<Option<HashMap<String, CachedCatalog>>> = Mutex::new(None);
+
+pub fn get_cached_catalog(key: &str) -> Option<ZipListResult> {
+    let guard = CATALOG_CACHE.lock().ok()?;
+    if let Some(map) = guard.as_ref() {
+        if let Some(entry) = map.get(key) {
+            if entry.created_at.elapsed() < std::time::Duration::from_secs(600) {
+                return Some(entry.result.clone());
+            }
+        }
+    }
+    None
+}
+
+pub fn set_cached_catalog(key: String, result: ZipListResult) {
+    if let Ok(mut guard) = CATALOG_CACHE.lock() {
+        let map = guard.get_or_insert_with(HashMap::new);
+        if map.len() > 50 {
+            map.clear();
+        }
+        map.insert(
+            key,
+            CachedCatalog {
+                result,
+                created_at: std::time::Instant::now(),
+            },
+        );
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -255,6 +292,7 @@ fn parse_central_directory_fast(
         let extra_len = u16::from_le_bytes([cd_buf[cursor + 30], cd_buf[cursor + 31]]) as usize;
         let comment_len = u16::from_le_bytes([cd_buf[cursor + 32], cd_buf[cursor + 33]]) as usize;
         let ext_attr = u32::from_le_bytes([cd_buf[cursor + 38], cd_buf[cursor + 39], cd_buf[cursor + 40], cd_buf[cursor + 41]]);
+        let mut local_off = u32::from_le_bytes([cd_buf[cursor + 42], cd_buf[cursor + 43], cd_buf[cursor + 44], cd_buf[cursor + 45]]) as u64;
 
         let header_end = cursor + 46;
         if header_end + name_len + extra_len + comment_len > cd_buf.len() {
@@ -280,6 +318,10 @@ fn parse_central_directory_fast(
                     }
                     if comp_sz == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
                         comp_sz = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                        data_pos += 8;
+                    }
+                    if local_off == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
+                        local_off = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
                     }
                     break;
                 }
@@ -299,6 +341,7 @@ fn parse_central_directory_fast(
             compressed_size: comp_sz,
             is_dir,
             method,
+            local_header_offset: local_off,
         });
 
         cursor = header_end + name_len + extra_len + comment_len;
@@ -318,6 +361,11 @@ fn parse_central_directory_fast(
 
 /// Instant Sparse ZIP Listing via Grammers MTProto Range Fetching
 pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgError> {
+    let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
+    if let Some(cached) = get_cached_catalog(&cache_key) {
+        return Ok(cached);
+    }
+
     let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
@@ -361,7 +409,7 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     let session = live.session.clone();
     let session_path = live.session_path.clone();
 
-    tokio::task::spawn_blocking(move || {
+    let res = tokio::task::spawn_blocking(move || {
         let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
         let _ = sparse_reader.prefetch_tail();
 
@@ -397,6 +445,7 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
                     compressed_size: 0,
                     is_dir,
                     method: 0,
+                    local_header_offset: 0,
                 });
             }
         }
@@ -415,7 +464,107 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         })
     })
     .await
-    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
+    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?;
+
+    if let Ok(ref valid_res) = res {
+        set_cached_catalog(cache_key, valid_res.clone());
+    }
+
+    res
+}
+
+fn preview_zip_entry_direct(
+    reader: &mut TelegramSparseReader,
+    entry: &ZipEntry,
+    password: Option<&str>,
+) -> IoResult<ZipEntryPreview> {
+    if entry.is_dir {
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: 0,
+            text_content: None,
+            data_url: None,
+            mime_type: None,
+            is_binary: false,
+            encrypted: false,
+            backend: "grammers_sparse_direct".into(),
+        });
+    }
+
+    if entry.size as usize > 12 * 1024 * 1024 {
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: entry.size,
+            text_content: Some(format!(
+                "[Berkas terlalu besar untuk pratinjau langsung — {} byte]",
+                entry.size
+            )),
+            data_url: None,
+            mime_type: None,
+            is_binary: true,
+            encrypted: false,
+            backend: "grammers_sparse_direct".into(),
+        });
+    }
+
+    reader.seek(SeekFrom::Start(entry.local_header_offset))?;
+    let mut header_buf = [0u8; 30];
+    reader.read_exact(&mut header_buf)?;
+
+    if &header_buf[0..4] != &[0x50, 0x4b, 0x03, 0x04] {
+        return Err(IoError::new(IoErrorKind::InvalidData, "Invalid Local Header signature"));
+    }
+
+    let flags = u16::from_le_bytes([header_buf[6], header_buf[7]]);
+    let is_encrypted = (flags & 1) != 0;
+    if is_encrypted && password.is_none() {
+        return Ok(ZipEntryPreview {
+            name: entry.name.clone(),
+            size: entry.size,
+            text_content: None,
+            data_url: None,
+            mime_type: None,
+            is_binary: true,
+            encrypted: true,
+            backend: "grammers_sparse_direct".into(),
+        });
+    }
+
+    let method = u16::from_le_bytes([header_buf[8], header_buf[9]]);
+    let name_len = u16::from_le_bytes([header_buf[26], header_buf[27]]) as u64;
+    let extra_len = u16::from_le_bytes([header_buf[28], header_buf[29]]) as u64;
+
+    let payload_offset = entry.local_header_offset + 30 + name_len + extra_len;
+    reader.seek(SeekFrom::Start(payload_offset))?;
+
+    let comp_size = entry.compressed_size as usize;
+    let mut comp_buf = vec![0u8; comp_size];
+    reader.read_exact(&mut comp_buf)?;
+
+    let decomp_buf = if is_encrypted {
+        return Err(IoError::new(IoErrorKind::Other, "Encrypted entry fallback"));
+    } else {
+        match method {
+            0 => comp_buf,
+            8 => {
+                use flate2::read::DeflateDecoder;
+                let mut decoder = DeflateDecoder::new(&comp_buf[..]);
+                let mut out = Vec::new();
+                decoder.read_to_end(&mut out)?;
+                out
+            }
+            _ => {
+                return Err(IoError::new(
+                    IoErrorKind::Other,
+                    format!("Method {method} fallback to ZipArchive"),
+                ));
+            }
+        }
+    };
+
+    let mut prev = super::zip_local::build_zip_entry_preview(&entry.name, entry.size, decomp_buf);
+    prev.backend = "grammers_sparse_direct".into();
+    Ok(prev)
 }
 
 /// Read single entry by fetching exact byte range lazily from Telegram MTProto (zero full download)
@@ -424,6 +573,16 @@ pub async fn preview_zip_entry_sparse(
     entry_name: String,
     password: Option<String>,
 ) -> Result<ZipEntryPreview, TgError> {
+    let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
+    let catalog = match get_cached_catalog(&cache_key) {
+        Some(cat) => cat,
+        None => list_zip_sparse(opts.clone()).await?,
+    };
+
+    let target_entry = catalog.entries.iter().find(|e| {
+        e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
+    }).cloned();
+
     let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
@@ -469,8 +628,17 @@ pub async fn preview_zip_entry_sparse(
 
     tokio::task::spawn_blocking(move || {
         let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
-        let _ = sparse_reader.prefetch_tail();
 
+        // FAST DIRECT PATH: Read single entry directly from local_header_offset without tail prefetch & without archive re-scan
+        if let Some(ref entry) = target_entry {
+            if let Ok(prev) = preview_zip_entry_direct(&mut sparse_reader, entry, password.as_deref()) {
+                let _ = persist_memory_session(&session, &session_path);
+                return Ok(prev);
+            }
+        }
+
+        // FALLBACK PATH: Standard zip archive parser with tail prefetch
+        let _ = sparse_reader.prefetch_tail();
         let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Could not find EOCD") {
@@ -495,6 +663,70 @@ pub async fn preview_zip_entry_sparse(
     .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
 }
 
+fn extract_zip_entry_direct(
+    reader: &mut TelegramSparseReader,
+    entry: &ZipEntry,
+    dest_path: &str,
+    _password: Option<&str>,
+) -> IoResult<u64> {
+    if entry.is_dir {
+        let target_p = super::path_policy::assert_safe_transfer_path(dest_path)
+            .map_err(|e| IoError::new(IoErrorKind::InvalidInput, e))?;
+        std::fs::create_dir_all(&target_p)?;
+        return Ok(0);
+    }
+
+    reader.seek(SeekFrom::Start(entry.local_header_offset))?;
+    let mut header_buf = [0u8; 30];
+    reader.read_exact(&mut header_buf)?;
+
+    if &header_buf[0..4] != &[0x50, 0x4b, 0x03, 0x04] {
+        return Err(IoError::new(IoErrorKind::InvalidData, "Invalid Local Header signature"));
+    }
+
+    let flags = u16::from_le_bytes([header_buf[6], header_buf[7]]);
+    let is_encrypted = (flags & 1) != 0;
+    if is_encrypted {
+        return Err(IoError::new(IoErrorKind::Other, "Encrypted entry fallback"));
+    }
+
+    let method = u16::from_le_bytes([header_buf[8], header_buf[9]]);
+    let name_len = u16::from_le_bytes([header_buf[26], header_buf[27]]) as u64;
+    let extra_len = u16::from_le_bytes([header_buf[28], header_buf[29]]) as u64;
+
+    let payload_offset = entry.local_header_offset + 30 + name_len + extra_len;
+    reader.seek(SeekFrom::Start(payload_offset))?;
+
+    let comp_size = entry.compressed_size as usize;
+    let mut comp_buf = vec![0u8; comp_size];
+    reader.read_exact(&mut comp_buf)?;
+
+    let decomp_buf = match method {
+        0 => comp_buf,
+        8 => {
+            use flate2::read::DeflateDecoder;
+            let mut decoder = DeflateDecoder::new(&comp_buf[..]);
+            let mut out = Vec::new();
+            decoder.read_to_end(&mut out)?;
+            out
+        }
+        _ => {
+            return Err(IoError::new(
+                IoErrorKind::Other,
+                format!("Method {method} fallback to ZipArchive"),
+            ));
+        }
+    };
+
+    let target_p = super::path_policy::assert_safe_transfer_path(dest_path)
+        .map_err(|e| IoError::new(IoErrorKind::InvalidInput, e))?;
+    if let Some(parent) = target_p.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&target_p, &decomp_buf)?;
+    Ok(decomp_buf.len() as u64)
+}
+
 /// Extract single entry by fetching byte range lazily from Telegram MTProto directly to disk (zero full download)
 pub async fn extract_zip_entry_sparse(
     opts: SparseZipOpts,
@@ -502,6 +734,16 @@ pub async fn extract_zip_entry_sparse(
     dest_path: String,
     password: Option<String>,
 ) -> Result<u64, TgError> {
+    let cache_key = format!("{}:{}:{}", opts.chat_id, opts.message_id, opts.session);
+    let catalog = match get_cached_catalog(&cache_key) {
+        Some(cat) => cat,
+        None => list_zip_sparse(opts.clone()).await?,
+    };
+
+    let target_entry = catalog.entries.iter().find(|e| {
+        e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
+    }).cloned();
+
     let rt = runtime()?;
     let identity = TelegramIdentity {
         session: opts.session.clone(),
@@ -547,8 +789,17 @@ pub async fn extract_zip_entry_sparse(
 
     tokio::task::spawn_blocking(move || {
         let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
-        let _ = sparse_reader.prefetch_tail();
 
+        // FAST DIRECT PATH: Extract single entry directly from local_header_offset without tail prefetch
+        if let Some(ref entry) = target_entry {
+            if let Ok(bytes_written) = extract_zip_entry_direct(&mut sparse_reader, entry, &dest_path, password.as_deref()) {
+                let _ = persist_memory_session(&session, &session_path);
+                return Ok(bytes_written);
+            }
+        }
+
+        // FALLBACK PATH: Standard zip archive parser
+        let _ = sparse_reader.prefetch_tail();
         let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Could not find EOCD") {
