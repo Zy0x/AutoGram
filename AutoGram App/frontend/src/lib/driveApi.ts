@@ -1306,6 +1306,9 @@ export async function driveZipList(
   }
 }
 
+/** Serialized queue lock to prevent concurrent MTProto request flooding on Telegram session */
+let currentZipReadPromise: Promise<any> = Promise.resolve();
+
 /** Read ZIP entry via Grammers MTProto Range Fetch & Rust native engine (Zero full-file download). */
 export async function driveZipReadEntry(
   creds: DriveCredentials,
@@ -1330,77 +1333,83 @@ export async function driveZipReadEntry(
     }
   }
 
-  const chatId = folderId == null ? 'me' : String(folderId);
-  const apiId = Number(creds.apiId) || 0;
-  const sparseOpts = {
-    session: creds.session,
-    apiId,
-    apiHash: creds.apiHash,
-    chatId,
-    messageId,
+  const runRead = async () => {
+    const chatId = folderId == null ? 'me' : String(folderId);
+    const apiId = Number(creds.apiId) || 0;
+    const sparseOpts = {
+      session: creds.session,
+      apiId,
+      apiHash: creds.apiHash,
+      chatId,
+      messageId,
+    };
+
+    try {
+      const { zipPreviewEntrySparse } = await import('./rustBackend');
+      const res = await zipPreviewEntrySparse(sparseOpts, entry, password);
+
+      if (res?.encrypted) {
+        return {
+          status: 'encrypted',
+          message: 'File ZIP dienkripsi. Masukkan password.',
+          backend: 'grammers_sparse',
+        };
+      }
+
+      let kind = 'meta';
+      const mime = (res?.mimeType || '').toLowerCase();
+      if (mime.startsWith('video/')) {
+        kind = 'video';
+      } else if (mime.startsWith('audio/')) {
+        kind = 'audio';
+      } else if (mime.startsWith('image/')) {
+        kind = 'image';
+      } else if (res?.textContent != null) {
+        kind = 'text';
+      } else if (res?.isBinary) {
+        kind = 'binary';
+      }
+
+      const outObj = {
+        status: 'success',
+        kind,
+        text: res?.textContent,
+        data_url: res?.dataUrl,
+        mime: res?.mimeType,
+        size: res?.size,
+        backend: 'grammers_sparse',
+      };
+
+      let archiveMap = zipEntryCacheMap.get(archiveKey);
+      if (!archiveMap) {
+        archiveMap = new Map();
+        zipEntryCacheMap.set(archiveKey, archiveMap);
+      }
+      archiveMap.set(entryCacheKey, outObj);
+
+      return outObj;
+    } catch (sparseErr: any) {
+      const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca entri ZIP');
+      console.warn('[driveZipReadEntry] Sparse preview error:', sparseErr);
+      if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
+        return {
+          status: 'bad_password',
+          message: 'Password salah atau enkripsi tidak didukung.',
+          backend: 'grammers_sparse',
+        };
+      }
+      return {
+        status: 'error',
+        error: msg,
+        message: msg,
+        backend: 'grammers_sparse',
+      };
+    }
   };
 
-  try {
-    const { zipPreviewEntrySparse } = await import('./rustBackend');
-    const res = await zipPreviewEntrySparse(sparseOpts, entry, password);
-
-    if (res?.encrypted) {
-      return {
-        status: 'encrypted',
-        message: 'File ZIP dienkripsi. Masukkan password.',
-        backend: 'grammers_sparse',
-      };
-    }
-
-    let kind = 'meta';
-    const mime = (res?.mimeType || '').toLowerCase();
-    if (mime.startsWith('video/')) {
-      kind = 'video';
-    } else if (mime.startsWith('audio/')) {
-      kind = 'audio';
-    } else if (mime.startsWith('image/')) {
-      kind = 'image';
-    } else if (res?.textContent != null) {
-      kind = 'text';
-    } else if (res?.isBinary) {
-      kind = 'binary';
-    }
-
-    const outObj = {
-      status: 'success',
-      kind,
-      text: res?.textContent,
-      data_url: res?.dataUrl,
-      mime: res?.mimeType,
-      size: res?.size,
-      backend: 'grammers_sparse',
-    };
-
-    let archiveMap = zipEntryCacheMap.get(archiveKey);
-    if (!archiveMap) {
-      archiveMap = new Map();
-      zipEntryCacheMap.set(archiveKey, archiveMap);
-    }
-    archiveMap.set(entryCacheKey, outObj);
-
-    return outObj;
-  } catch (sparseErr: any) {
-    const msg = String(sparseErr?.message || sparseErr || 'Gagal membaca entri ZIP');
-    console.warn('[driveZipReadEntry] Sparse preview error:', sparseErr);
-    if (msg.includes('bad_password') || msg.includes('Password') || msg.includes('decryption failed')) {
-      return {
-        status: 'bad_password',
-        message: 'Password salah atau enkripsi tidak didukung.',
-        backend: 'grammers_sparse',
-      };
-    }
-    return {
-      status: 'error',
-      error: msg,
-      message: msg,
-      backend: 'grammers_sparse',
-    };
-  }
+  const nextReadPromise = currentZipReadPromise.then(runRead, runRead);
+  currentZipReadPromise = nextReadPromise;
+  return nextReadPromise;
 }
 
 /** Extract single ZIP entry directly to destination path on disk via Grammers Sparse Fetch. */

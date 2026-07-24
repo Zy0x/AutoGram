@@ -49,7 +49,7 @@ import {
   X,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
-import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache } from '../../lib/driveApi';
+import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache, driveStopStream } from '../../lib/driveApi';
 import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
 import { formatDriveBytes, type DriveFolder, type DriveChat } from '../../lib/driveTypes';
 import {
@@ -251,6 +251,7 @@ export function DriveZipBrowser({
   const [extracting, setExtracting] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const extractAbortedRef = useRef(false);
+  const openRequestIdRef = useRef(0);
 
   const handleCancelExtraction = () => {
     extractAbortedRef.current = true;
@@ -261,8 +262,10 @@ export function DriveZipBrowser({
   useEffect(() => {
     return () => {
       extractAbortedRef.current = true;
+      openRequestIdRef.current++;
+      void driveStopStream(creds, null, { stopAll: true, incompleteOnly: true }).catch(() => undefined);
     };
-  }, []);
+  }, [creds]);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<{
     entry: string;
@@ -733,6 +736,11 @@ export function DriveZipBrowser({
   }, [cwd]);
 
   const openEntry = async (fullPath: string, passInput?: string) => {
+    const reqId = ++openRequestIdRef.current;
+
+    // Hentikan stream video/audio latar belakang sebelumnya untuk menghemat bandwidth & menghindari FloodWait
+    void driveStopStream(creds, null, { stopAll: true, incompleteOnly: true }).catch(() => undefined);
+
     setOpening(fullPath);
     setError(null);
     setPreview(null);
@@ -747,6 +755,10 @@ export function DriveZipBrowser({
 
     try {
       const res = await driveZipReadEntry(creds, messageId, folderId, fullPath, effectivePass);
+
+      // Discard stale request jika pengguna mengeklik berkas lain atau menutup modal saat menunggu
+      if (openRequestIdRef.current !== reqId) return;
+
       if (res?.status === 'encrypted' || res?.status === 'bad_password') {
         // Clear invalid remembered password
         if (res?.status === 'bad_password') {
@@ -789,9 +801,13 @@ export function DriveZipBrowser({
         message: res.message,
       });
     } catch (e: any) {
-      setError(String(e?.message || e || 'Gagal membuka entri'));
+      if (openRequestIdRef.current === reqId) {
+        setError(String(e?.message || e || 'Gagal membuka entri'));
+      }
     } finally {
-      setOpening(null);
+      if (openRequestIdRef.current === reqId) {
+        setOpening(null);
+      }
     }
   };
 

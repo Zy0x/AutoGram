@@ -1,3 +1,10 @@
+## v2.3.32 Serialized Request Lock, Stale Cancellation & Stream Auto-Stop (Proteksi Total FloodWait)
+
+### Proteksi & Penghentian Stream Pembacaan ZIP (`driveApi.ts`, `DriveZipBrowser.tsx`)
+- **Queue Lock Serialisasi MTProto (`currentZipReadPromise`)**: Mengimplementasikan pengunci antrean janji (*promise queue lock*) pada `driveZipReadEntry` di `driveApi.ts`. Setiap permintaan pembacaan media ZIP over Telegram MTProto dieksekusi secara berurutan (*serial*), mengeliminasi total penumpukan request jaringan paralel yang dapat memicu `FloodWaitError` pada sesi Telegram.
+- **Auto-Stop Background Stream (`driveStopStream`)**: Setiap kali pengguna beralih ke media lain atau menutup modal pratinjau ZIP (`unmount`), aplikasi secara otomatis mengeksekusi `driveStopStream({ stopAll: true })` untuk serta-merta menghentikan arus stream video/audio dan unduhan latar belakang yang sedang berjalan.
+- **Pembatalan Request Basi (*Stale Request Discard*)**: Menambahkan penghitung token `openRequestIdRef` pada `DriveZipBrowser.tsx`. Jika pengguna mengeklik beberapa berkas media dengan cepat, hasil pembacaan dari berkas sebelumnya yang belum selesai akan dibuang secara otomatis tanpa mengganggu tampilan atau memicu re-render.
+
 ## v2.3.31 Redesain Visual Aksen Tombol Toolbar ZIP Workbench
 
 ### Penyempurnaan Estetika Visual (`App.css`, `DriveZipBrowser.tsx`)
