@@ -1,3 +1,11 @@
+## v2.3.15 Instant 0-ms ZIP Index Caching, Telegram Auto-Sync, & Universal VSCode Code Viewer
+
+### Peningkatan Kinerja & Fitur Universal (`VSCodeCodeViewer.tsx`, `DriveZipBrowser.tsx`, `DrivePreviewModal.tsx`, `App.css`)
+- **Instant 0-ms ZIP Session Index Caching & Auto-Sync**: Mengimplementasikan `zipIndexCacheMap` pada `DriveZipBrowser.tsx` yang menyajikan daftar berkas ZIP secara instan (0 detik) dari cache memori sesi, dilengkapi verifikasi sinkronisasi latar belakang otomatis jika file di Telegram diperbarui serta tombol *Refresh Indeks* di toolbar.
+- **Pencarian Rekursif Seluruh Subfolder**: Memungkinkan pencarian nama berkas di seluruh subfolder ZIP sekaligus saat kata kunci diisi, dilengkapi tampilan badge jalur lengkap (*full relative path*).
+- **Universal VSCode Dark+ Code Viewer (`VSCodeCodeViewer.tsx`)**: Membuat komponen pratinjau kode reusable bertema VSCode Dark+ lengkap dengan *syntax highlighting* berwarna untuk 20+ bahasa, nomor baris, *active line highlight*, tombol *Salin Kode*, *Word Wrap Toggle*, dan auto-format JSON. Komponen ini diintegrasikan baik di ZIP Browser maupun di Modal Preview Media utama.
+- **Dukungan Penjelajahan Arsip Bertingkat (ZIP-in-ZIP)**: Menambahkan tombol ekstraksi 1-klik untuk berkas ZIP/RAR yang berada di dalam ZIP utama.
+
 ## v2.3.14 Elevasi Z-Index Transfer Manager (Floating Progress Pill Over Modals)
 
 ### Pengalaman Pengguna (UX) & Monitoring Real-Time (`App.css`, `DriveTransferManager.tsx`)

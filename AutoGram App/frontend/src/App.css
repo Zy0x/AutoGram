@@ -12232,3 +12232,217 @@ video.drive-zip-img {
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
 }
+
+/* ─── Universal VSCode Dark+ Code Viewer Styling ─── */
+.vscode-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: 'Consolas', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.vscode-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #252526;
+  border-bottom: 1px solid #333333;
+  user-select: none;
+}
+
+.vscode-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vscode-icon-blue {
+  color: #007acc;
+}
+
+.vscode-lang-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 122, 204, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 122, 204, 0.35);
+}
+
+.vscode-head-meta {
+  font-size: 0.75rem;
+  color: #858585;
+  white-space: nowrap;
+}
+
+.vscode-badge-formatted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.vscode-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vscode-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 550;
+  background: #333333;
+  color: #cccccc;
+  border: 1px solid #3c3c3c;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vscode-action-btn:hover {
+  background: #3e3e42;
+  color: #ffffff;
+  border-color: #454545;
+}
+
+.vscode-action-btn.is-active {
+  background: rgba(0, 122, 204, 0.25);
+  color: #38bdf8;
+  border-color: rgba(0, 122, 204, 0.5);
+}
+
+.vscode-action-btn.is-primary {
+  background: #0e639c;
+  color: #ffffff;
+  border-color: #1177bb;
+}
+
+.vscode-action-btn.is-primary:hover {
+  background: #1177bb;
+}
+
+.vscode-editor-body {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.vscode-editor-body.is-wrap .vscode-code-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.vscode-editor-body.is-scroll .vscode-code-pre {
+  white-space: pre;
+  word-break: normal;
+}
+
+.vscode-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px 12px 12px;
+  background: #1e1e1e;
+  border-right: 1px solid #2d2d2d;
+  color: #858585;
+  text-align: right;
+  user-select: none;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  min-width: 36px;
+}
+
+.vscode-num {
+  opacity: 0.6;
+}
+
+.vscode-code-pre {
+  margin: 0;
+  padding: 12px 16px;
+  flex: 1;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: transparent;
+  color: #d4d4d4;
+}
+
+.vscode-code-line {
+  min-height: 1.5em;
+  transition: background 0.1s ease;
+}
+
+.vscode-code-line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Syntax Highlighting Tokens (VSCode Dark+ Palette) ─── */
+.vscode-tok-keyword {
+  color: #569cd6;
+  font-weight: 600;
+}
+
+.vscode-tok-string {
+  color: #ce9178;
+}
+
+.vscode-tok-comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.vscode-tok-function {
+  color: #dcdcaa;
+}
+
+.vscode-tok-type {
+  color: #4ec9b0;
+  font-weight: 550;
+}
+
+.vscode-tok-number {
+  color: #b5cea8;
+}
+
+.vscode-tok-tag {
+  color: #569cd6;
+}
+
+.vscode-tok-attr {
+  color: #9cdcfe;
+}
+
+.vscode-code-truncated {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  color: #fbbf24;
+  font-size: 0.78rem;
+}
+

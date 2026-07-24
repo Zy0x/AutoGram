@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Code,
-  Copy,
   Download,
   ExternalLink,
   File,
@@ -42,6 +41,7 @@ import {
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry } from '../../lib/driveApi';
+import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
 import { formatDriveBytes, type DriveFolder, type DriveChat } from '../../lib/driveTypes';
 import {
   tgScanFolders,
@@ -175,52 +175,23 @@ function iconForFile(name: string) {
   return File;
 }
 
-function DriveZipCodeViewer({ text, name }: { text: string; name: string }) {
-  const [copied, setCopied] = useState(false);
-  const lines = useMemo(() => text.split('\n'), [text]);
-  const ext = useMemo(() => {
-    const i = name.lastIndexOf('.');
-    return i >= 0 ? name.slice(i + 1).toUpperCase() : 'TXT';
-  }, [name]);
 
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* ignore */
-    }
-  };
 
-  return (
-    <div className="drive-zip-code-box">
-      <div className="drive-zip-code-head">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="drive-zip-code-tag">{ext}</span>
-          <span>{lines.length} baris · {formatDriveBytes(text.length)}</span>
-        </div>
-        <button
-          type="button"
-          className="drive-zip-code-copy-btn"
-          onClick={() => void handleCopyCode()}
-          title="Salin isi teks ke clipboard"
-        >
-          {copied ? <Check size={13} style={{ color: '#4ade80' }} /> : <Copy size={13} />}
-          <span>{copied ? 'Tersalin!' : 'Salin Kode'}</span>
-        </button>
-      </div>
-      <div className="drive-zip-code-body">
-        <div className="drive-zip-line-nums" aria-hidden="true">
-          {lines.map((_, i) => (
-            <span key={i + 1}>{i + 1}</span>
-          ))}
-        </div>
-        <pre className="drive-zip-code-pre">{text || '(Berkas teks kosong)'}</pre>
-      </div>
-    </div>
-  );
-}
+// Instant 0-ms ZIP Session Index Cache with Telegram Auto-Sync Verification
+const zipIndexCacheMap = new Map<
+  string,
+  {
+    entries: ZipEntry[];
+    meta: {
+      archive_size?: number;
+      total_uncompressed?: number;
+      source?: string;
+      truncated?: boolean;
+      needs_full_for_extract?: boolean;
+    };
+    timestamp: number;
+  }
+>();
 
 // Password memory cache across component instances
 const rememberedPasswordsMap = new Map<string, string>();
@@ -527,25 +498,73 @@ export function DriveZipBrowser({
 
   const archiveKey = useMemo(() => `${messageId}:${archiveName || 'zip'}`, [messageId, archiveName]);
 
-  const loadList = useCallback(async () => {
+  const loadList = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     setPreview(null);
     setToastMsg(null);
     setSelectedEntries(new Set());
+
+    // 0-ms Fast Path: Serve from Session Cache if available
+    const cached = !forceRefresh ? zipIndexCacheMap.get(archiveKey) : null;
+    if (cached) {
+      setEntries(cached.entries);
+      setMeta(cached.meta);
+      setLoading(false);
+      setCwd('');
+
+      // Silent background sync verification with Telegram
+      setTimeout(async () => {
+        try {
+          const res = await driveZipList(creds, messageId, folderId);
+          if (res?.status === 'success' && Array.isArray(res.entries)) {
+            if (
+              res.archive_size !== cached.meta.archive_size ||
+              res.entries.length !== cached.entries.length
+            ) {
+              const list = res.entries as ZipEntry[];
+              const newMeta = {
+                archive_size: res?.archive_size,
+                total_uncompressed: res?.total_uncompressed,
+                source: res?.source,
+                truncated: res?.truncated,
+                needs_full_for_extract: res?.needs_full_for_extract,
+              };
+              setEntries(list);
+              setMeta(newMeta);
+              zipIndexCacheMap.set(archiveKey, {
+                entries: list,
+                meta: newMeta,
+                timestamp: Date.now(),
+              });
+            }
+          }
+        } catch {
+          /* ignore background sync error */
+        }
+      }, 300);
+      return;
+    }
+
     try {
       const res = await driveZipList(creds, messageId, folderId);
       if (res?.status && res.status !== 'success') {
         throw new Error(res.message || res.error || 'Gagal membuka ZIP');
       }
       const list = (res?.entries || []) as ZipEntry[];
-      setEntries(list);
-      setMeta({
+      const newMeta = {
         archive_size: res?.archive_size,
         total_uncompressed: res?.total_uncompressed,
         source: res?.source,
         truncated: res?.truncated,
         needs_full_for_extract: res?.needs_full_for_extract,
+      };
+      setEntries(list);
+      setMeta(newMeta);
+      zipIndexCacheMap.set(archiveKey, {
+        entries: list,
+        meta: newMeta,
+        timestamp: Date.now(),
       });
       setCwd('');
     } catch (e: any) {
@@ -554,7 +573,7 @@ export function DriveZipBrowser({
     } finally {
       setLoading(false);
     }
-  }, [creds, messageId, folderId]);
+  }, [archiveKey, creds, messageId, folderId]);
 
   useEffect(() => {
     void loadList();
@@ -928,10 +947,10 @@ export function DriveZipBrowser({
           <button
             type="button"
             className="td-icon-btn"
-            title="Muat ulang daftar"
-            onClick={() => void loadList()}
+            title="Refresh / Muat Ulang Indeks ZIP dari Telegram"
+            onClick={() => void loadList(true)}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={16} className={loading ? 'spin' : ''} />
           </button>
           {onOpenSystem && (
             <button
@@ -1260,7 +1279,7 @@ export function DriveZipBrowser({
           )}
 
           {preview?.kind === 'text' && preview.text != null && (
-            <DriveZipCodeViewer text={preview.text} name={preview.entry} />
+            <VSCodeCodeViewer text={preview.text} name={preview.entry} />
           )}
           {preview?.kind === 'image' && preview.dataUrl && (
             <div className="drive-zip-media-container">
@@ -1303,8 +1322,22 @@ export function DriveZipBrowser({
                 </span>
               )}
               <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: 360, textAlign: 'center', marginTop: 8 }}>
-                Arsip terkompresi ini berada di dalam file ZIP utama. Anda dapat mengekstraksinya langsung ke Lokal / Drive atau menjelajahinya.
+                Arsip terkompresi ini berada di dalam file ZIP utama. Anda dapat mengekstraksinya langsung ke Lokal / Drive.
               </p>
+              <button
+                type="button"
+                className="td-btn-primary"
+                style={{ marginTop: 12, gap: 6 }}
+                disabled={!!extracting}
+                onClick={() => void handleExtractSingle(preview.entry, 'local')}
+              >
+                {extracting === preview.entry ? (
+                  <Loader2 size={14} className="spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                <span>Ekstrak Arsip Ini ke Lokal</span>
+              </button>
             </div>
           ) : (preview?.kind === 'binary' || preview?.kind === 'meta') ? (
             <div className="drive-zip-preview-empty">

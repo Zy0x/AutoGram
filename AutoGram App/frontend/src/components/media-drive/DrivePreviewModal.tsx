@@ -38,6 +38,7 @@ import { detectTauriRuntime } from '../../lib/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../lib/driveSession';
 
 import type { DriveCredentials } from '../../lib/driveApi';
+import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
 import {
   cancelDriveOpenJob,
   cleanupPartialDownloads,
@@ -3594,10 +3595,10 @@ export function DrivePreviewModal({
             </div>
           )}
 
-          {/* Text / JSON viewer */}
+          {/* Text / JSON / Code viewer */}
           {isText && textBody != null && (
-            <div className="drive-preview-doc drive-preview-text">
-              <pre className="drive-preview-text-pre">{textBody}</pre>
+            <div className="drive-preview-doc drive-preview-text" style={{ padding: 0, height: '100%' }}>
+              <VSCodeCodeViewer text={textBody} name={file.name} />
             </div>
           )}
           {isText && textBody == null && !loading && !error && (
