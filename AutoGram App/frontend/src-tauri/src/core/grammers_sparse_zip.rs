@@ -213,61 +213,69 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
-    let _ = sparse_reader.prefetch_tail();
+    let client = live.client.clone();
+    let session = live.session.clone();
+    let session_path = live.session_path.clone();
 
-    let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
-        let msg = e.to_string();
-        if msg.contains("Could not find EOCD") {
-            TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
-        } else {
-            TgError::new(TgErrorCode::Io, msg)
+    tokio::task::spawn_blocking(move || {
+        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let _ = sparse_reader.prefetch_tail();
+
+        let mut archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("Could not find EOCD") {
+                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+            } else {
+                TgError::new(TgErrorCode::Io, msg)
+            }
+        })?;
+
+        let total_entries = archive.len();
+        let mut entries = Vec::new();
+        let mut total_uncompressed = 0u64;
+        let limit = total_entries.min(8000);
+
+        for i in 0..limit {
+            let f = archive.by_index_raw(i).map_err(|e| TgError::new(TgErrorCode::Io, e.to_string()))?;
+            let raw_name = f.name().replace('\\', "/");
+            let name = sanitize_zip_path(&raw_name);
+            let is_dir = f.is_dir() || name.ends_with('/') || raw_name.ends_with('/');
+            let sz = f.size();
+
+            if !is_dir {
+                total_uncompressed = total_uncompressed.saturating_add(sz);
+            }
+
+            entries.push(ZipEntry {
+                name: if name.is_empty() { raw_name } else { name },
+                size: sz,
+                compressed_size: f.compressed_size(),
+                is_dir,
+                method: match f.compression() {
+                    zip::CompressionMethod::Stored => 0,
+                    zip::CompressionMethod::Deflated => 8,
+                    zip::CompressionMethod::Bzip2 => 12,
+                    zip::CompressionMethod::Zstd => 93,
+                    _ => 0,
+                },
+            });
         }
-    })?;
 
-    let total_entries = archive.len();
-    let mut entries = Vec::new();
-    let mut total_uncompressed = 0u64;
-    let limit = total_entries.min(8000);
+        let _ = persist_memory_session(&session, &session_path);
 
-    for i in 0..limit {
-        let f = archive.by_index_raw(i).map_err(|e| TgError::new(TgErrorCode::Io, e.to_string()))?;
-        let raw_name = f.name().replace('\\', "/");
-        let name = sanitize_zip_path(&raw_name);
-        let is_dir = f.is_dir() || name.ends_with('/') || raw_name.ends_with('/');
-        let sz = f.size();
-
-        if !is_dir {
-            total_uncompressed = total_uncompressed.saturating_add(sz);
-        }
-
-        entries.push(ZipEntry {
-            name: if name.is_empty() { raw_name } else { name },
-            size: sz,
-            compressed_size: f.compressed_size(),
-            is_dir,
-            method: match f.compression() {
-                zip::CompressionMethod::Stored => 0,
-                zip::CompressionMethod::Deflated => 8,
-                zip::CompressionMethod::Bzip2 => 12,
-                zip::CompressionMethod::Zstd => 93,
-                _ => 0,
-            },
-        });
-    }
-
-    let _ = persist_memory_session(&live.session, &live.session_path);
-
-    Ok(ZipListResult {
-        entries,
-        count: limit,
-        truncated: total_entries > 8000,
-        total_entries,
-        total_uncompressed,
-        archive_size: doc_size,
-        source: "mtproto_sparse".into(),
-        backend: BACKEND.into(),
+        Ok(ZipListResult {
+            entries,
+            count: limit,
+            truncated: total_entries > 8000,
+            total_entries,
+            total_uncompressed,
+            archive_size: doc_size,
+            source: "mtproto_sparse".into(),
+            backend: BACKEND.into(),
+        })
     })
+    .await
+    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
 }
 
 /// Read single entry by fetching exact byte range lazily from Telegram MTProto (zero full download)
@@ -315,28 +323,36 @@ pub async fn preview_zip_entry_sparse(
         return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
-    let _ = sparse_reader.prefetch_tail();
+    let client = live.client.clone();
+    let session = live.session.clone();
+    let session_path = live.session_path.clone();
 
-    let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
-        let msg = e.to_string();
-        if msg.contains("Could not find EOCD") {
-            TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
-        } else {
-            TgError::new(TgErrorCode::Io, msg)
-        }
-    })?;
+    tokio::task::spawn_blocking(move || {
+        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let _ = sparse_reader.prefetch_tail();
 
-    let mut prev = super::zip_local::preview_zip_entry_from_archive(
-        archive,
-        &entry_name,
-        password.as_deref(),
-    )
-    .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+        let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("Could not find EOCD") {
+                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+            } else {
+                TgError::new(TgErrorCode::Io, msg)
+            }
+        })?;
 
-    prev.backend = BACKEND.into();
-    let _ = persist_memory_session(&live.session, &live.session_path);
-    Ok(prev)
+        let mut prev = super::zip_local::preview_zip_entry_from_archive(
+            archive,
+            &entry_name,
+            password.as_deref(),
+        )
+        .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+
+        prev.backend = BACKEND.into();
+        let _ = persist_memory_session(&session, &session_path);
+        Ok(prev)
+    })
+    .await
+    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
 }
 
 /// Extract single entry by fetching byte range lazily from Telegram MTProto directly to disk (zero full download)
@@ -385,26 +401,34 @@ pub async fn extract_zip_entry_sparse(
         return Err(TgError::new(TgErrorCode::Io, "Ukuran dokumen ZIP 0 byte"));
     }
 
-    let mut sparse_reader = TelegramSparseReader::new(&live.client, location, doc_size, rt);
-    let _ = sparse_reader.prefetch_tail();
+    let client = live.client.clone();
+    let session = live.session.clone();
+    let session_path = live.session_path.clone();
 
-    let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
-        let msg = e.to_string();
-        if msg.contains("Could not find EOCD") {
-            TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
-        } else {
-            TgError::new(TgErrorCode::Io, msg)
-        }
-    })?;
+    tokio::task::spawn_blocking(move || {
+        let mut sparse_reader = TelegramSparseReader::new(&client, location, doc_size, rt);
+        let _ = sparse_reader.prefetch_tail();
 
-    let bytes_written = super::zip_local::extract_zip_entry_from_archive(
-        archive,
-        &entry_name,
-        &dest_path,
-        password.as_deref(),
-    )
-    .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+        let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
+            let msg = e.to_string();
+            if msg.contains("Could not find EOCD") {
+                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+            } else {
+                TgError::new(TgErrorCode::Io, msg)
+            }
+        })?;
 
-    let _ = persist_memory_session(&live.session, &live.session_path);
-    Ok(bytes_written)
+        let bytes_written = super::zip_local::extract_zip_entry_from_archive(
+            archive,
+            &entry_name,
+            &dest_path,
+            password.as_deref(),
+        )
+        .map_err(|e| TgError::new(TgErrorCode::Io, e))?;
+
+        let _ = persist_memory_session(&session, &session_path);
+        Ok(bytes_written)
+    })
+    .await
+    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
 }
