@@ -927,12 +927,6 @@ pub(crate) async fn resolve_peer(
     if s.is_empty() {
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
-    // Fast path: check in-memory cache
-    if let Ok(guard) = peer_cache().read() {
-        if let Some(peer_ref) = guard.get(s) {
-            return Ok(*peer_ref);
-        }
-    }
     if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
         let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
         let res = user_to_ref(&me).await;
@@ -943,7 +937,6 @@ pub(crate) async fn resolve_peer(
         }
         return res;
     }
-    // Username (only if starts with @ or contains alphabetic characters)
     if s.starts_with('@') || (s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') && s.chars().any(|c| c.is_ascii_alphabetic())) {
         let uname = s.trim_start_matches('@');
         if let Some(peer) = client
@@ -964,7 +957,7 @@ pub(crate) async fn resolve_peer(
             format!("username @{uname} not found"),
         ));
     }
-    // Numeric Telegram id — search dialogs for matching peer id
+
     let want: i64 = s
         .parse()
         .map_err(|_| TgError::new(TgErrorCode::PeerNotFound, format!("invalid chat_id: {s}")))?;
@@ -977,6 +970,24 @@ pub(crate) async fn resolve_peer(
     };
     let want_bare: i64 = s_bare.parse().unwrap_or(want.abs());
 
+    // Fast path: check in-memory cache with all key variations
+    if let Ok(guard) = peer_cache().read() {
+        if let Some(peer_ref) = guard.get(s) {
+            return Ok(*peer_ref);
+        }
+        if let Some(peer_ref) = guard.get(s_bare) {
+            return Ok(*peer_ref);
+        }
+        let alt1 = format!("-100{s_bare}");
+        if let Some(peer_ref) = guard.get(&alt1) {
+            return Ok(*peer_ref);
+        }
+        let alt2 = format!("-{s_bare}");
+        if let Some(peer_ref) = guard.get(&alt2) {
+            return Ok(*peer_ref);
+        }
+    }
+
     let mut dialogs = client.iter_dialogs();
     while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
         let peer = dialog.peer();
@@ -988,6 +999,9 @@ pub(crate) async fn resolve_peer(
             if let Ok(ref pref) = res {
                 if let Ok(mut guard) = peer_cache().write() {
                     guard.insert(s.to_string(), *pref);
+                    guard.insert(s_bare.to_string(), *pref);
+                    guard.insert(format!("-100{s_bare}"), *pref);
+                    guard.insert(format!("-{s_bare}"), *pref);
                 }
             }
             return res;

@@ -1,3 +1,10 @@
+## v2.3.5 Multi-Key Channel Resolution Cache (`grammers_ops.rs`)
+
+### Pencarian Peer & Channel Instan (`grammers_ops.rs`)
+- **Multi-Key Peer Cache Mapping**:
+  - Menerapkan pemetaan *multi-key cache* (`s`, `s_bare`, `-100{s_bare}`, dan `-{s_bare}`) pada `resolve_peer`.
+  - Mengeliminasi pencarian ulang `iter_dialogs()` ketika frontend mengirim ID channel Telegram dalam format variatif (seperti `-1003214112048`, `3214112048`, atau `-3214112048`), menjamin penghapusan pesan instan tanpa kegagalan resolusi peer.
+
 ## v2.3.4 Optimasi Kecepatan & Presisi Penghapusan Media (`SpeedTest.tsx`, `mediaStudioDb.ts`, `drive_rpc.rs`)
 
 ### Akselerasi Penghapusan Instan & Presisi Target (`SpeedTest.tsx`, `mediaStudioDb.ts`, `drive_rpc.rs`)
