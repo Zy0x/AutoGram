@@ -161,7 +161,7 @@ export function Jobs() {
               jobId: job.id,
               apiId: Number(apiId) || 0,
               apiHash: String(apiHash || ''),
-              maxMessages: 100,
+              maxMessages: 0, // 0 = Full history migration loop
             });
             appendLog({
               type: 'info',

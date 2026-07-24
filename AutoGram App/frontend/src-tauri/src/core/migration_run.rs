@@ -122,76 +122,106 @@ fn run_forward(
     )
     .map_err(|e| e.user_message())?;
 
-    let resume_from = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
-    let cap = max_messages.clamp(1, 500);
+    let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
+    let batch_size = if max_messages > 0 { max_messages.clamp(1, 200) } else { 100 };
+    let max_total = if max_messages > 0 { max_messages } else { usize::MAX };
+
     let result = (|| -> Result<(i64, i64), String> {
-        let media = grammers_ops::list_media_blocking(
-            &sessions,
-            &identity,
-            &source,
-            cap,
-            resume_from,
-        )
-        .map_err(|e| e.user_message())?;
-        let ids: Vec<i64> = media.files.iter().map(|f| f.id).collect();
-        if ids.is_empty() {
-            return Ok((0, 0));
-        }
         let mut forwarded = 0i64;
         let mut skipped = 0i64;
-        for chunk in ids.chunks(50) {
-            // Level-1 dedupe: skip already ledgered source msg ids
-            let fresh: Vec<i64> = chunk
-                .iter()
-                .copied()
-                .filter(|&id| {
-                    !jobs_db::ledger_check(job_id, id, None, None, None, None)
-                        .map(|h| h.by_source_msg)
-                        .unwrap_or(false)
-                })
-                .collect();
-            skipped += (chunk.len() - fresh.len()) as i64;
-            if fresh.is_empty() {
-                continue;
+
+        loop {
+            if jobs_db::is_execution_cancelled(exec_id) {
+                return Err("Job execution dibatalkan oleh pengguna".into());
             }
-            let mut attempt = 0u32;
-            loop {
-                attempt += 1;
-                match grammers_ops::forward_messages_blocking(
-                    &sessions,
-                    &identity,
-                    &source,
-                    &dest,
-                    &fresh,
-                ) {
-                    Ok(n) => {
-                        forwarded += n as i64;
-                        for &sid in &fresh {
-                            let _ = jobs_db::ledger_insert(
-                                job_id, sid, None, None, None, None, None,
-                            );
-                        }
-                        break;
-                    }
-                    Err(e) => {
-                        let msg = e.user_message();
-                        if let Some(secs) = flood_wait_secs(&msg) {
-                            if attempt < 5 {
-                                sleep_flood(secs);
-                                continue;
+
+            let fetch_cap = (max_total - (forwarded + skipped) as usize).min(batch_size);
+            if fetch_cap == 0 {
+                break;
+            }
+
+            let media = grammers_ops::list_media_blocking(
+                &sessions,
+                &identity,
+                &source,
+                fetch_cap,
+                current_offset,
+            )
+            .map_err(|e| e.user_message())?;
+
+            let ids: Vec<i64> = media.files.iter().map(|f| f.id).collect();
+            if ids.is_empty() {
+                break;
+            }
+
+            for chunk in ids.chunks(50) {
+                if jobs_db::is_execution_cancelled(exec_id) {
+                    return Err("Job execution dibatalkan oleh pengguna".into());
+                }
+
+                // Level-1 dedupe: skip already ledgered source msg ids
+                let fresh: Vec<i64> = chunk
+                    .iter()
+                    .copied()
+                    .filter(|&id| {
+                        !jobs_db::ledger_check(job_id, id, None, None, None, None)
+                            .map(|h| h.by_source_msg)
+                            .unwrap_or(false)
+                    })
+                    .collect();
+                skipped += (chunk.len() - fresh.len()) as i64;
+                if fresh.is_empty() {
+                    continue;
+                }
+                let mut attempt = 0u32;
+                loop {
+                    attempt += 1;
+                    match grammers_ops::forward_messages_blocking(
+                        &sessions,
+                        &identity,
+                        &source,
+                        &dest,
+                        &fresh,
+                    ) {
+                        Ok(n) => {
+                            forwarded += n as i64;
+                            for &sid in &fresh {
+                                let _ = jobs_db::ledger_insert(
+                                    job_id, sid, None, None, None, None, None,
+                                );
                             }
+                            break;
                         }
-                        return Err(msg);
+                        Err(e) => {
+                            let msg = e.user_message();
+                            if let Some(secs) = flood_wait_secs(&msg) {
+                                if attempt < 5 {
+                                    sleep_flood(secs);
+                                    continue;
+                                }
+                            }
+                            return Err(msg);
+                        }
                     }
                 }
+                let _ = jobs_db::update_execution_status(
+                    exec_id,
+                    "RUNNING",
+                    Some(forwarded + skipped),
+                    Some((forwarded + skipped) + (ids.len() as i64)),
+                    chunk.last().copied(),
+                );
             }
-            let _ = jobs_db::update_execution_status(
-                exec_id,
-                "RUNNING",
-                Some(forwarded + skipped),
-                Some(ids.len() as i64),
-                chunk.last().copied(),
-            );
+
+            if let Some(&last_id) = ids.last() {
+                current_offset = Some(last_id);
+            } else {
+                break;
+            }
+
+            if max_messages > 0 && (forwarded + skipped) as usize >= max_messages {
+                break;
+            }
         }
         Ok((forwarded, skipped))
     })();
@@ -241,8 +271,10 @@ fn run_clean_copy(
     )
     .map_err(|e| e.user_message())?;
 
-    let resume_from = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
-    let cap = max_messages.clamp(1, 200);
+    let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
+    let batch_size = if max_messages > 0 { max_messages.clamp(1, 200) } else { 100 };
+    let max_total = if max_messages > 0 { max_messages } else { usize::MAX };
+
     let work_dir = sessions
         .parent()
         .map(|p| p.join("cache").join("clean_copy").join(format!("job_{job_id}")))
@@ -250,193 +282,228 @@ fn run_clean_copy(
     let _ = std::fs::create_dir_all(&work_dir);
 
     let result = (|| -> Result<(i64, i64, i64), String> {
-        let media = grammers_ops::list_media_blocking(
-            &sessions,
-            &identity,
-            &source,
-            cap,
-            resume_from,
-        )
-        .map_err(|e| e.user_message())?;
-
-        let files = media.files;
-        if files.is_empty() {
-            return Ok((0, 0, 0));
-        }
-        let total = files.len() as i64;
         let mut uploaded = 0i64;
         let mut skipped = 0i64;
         let mut failed = 0i64;
 
-        for (idx, row) in files.iter().enumerate() {
-            let source_msg_id = row.id;
-            let filename = row.name.clone();
-            let size = row.size as i64;
-            // Telegram unique: mime + size + name (stable enough without full media id API)
-            let tg_unique = format!(
-                "{}:{}:{}",
-                row.mime_type.as_deref().unwrap_or(""),
-                size,
-                filename
-            );
-
-            // Level 1 — already processed message id
-            let pre = jobs_db::ledger_check(
-                job_id,
-                source_msg_id,
-                Some(&tg_unique),
-                None,
-                Some(&filename),
-                Some(size),
-            )
-            .unwrap_or_default();
-            if pre.by_source_msg {
-                skipped += 1;
-                continue;
+        loop {
+            if jobs_db::is_execution_cancelled(exec_id) {
+                return Err("Job execution dibatalkan oleh pengguna".into());
             }
 
-            let dest_path = work_dir.join(format!(
-                "{}_{}",
-                source_msg_id,
-                sanitize_name(&filename)
-            ));
-            let dest_str = dest_path.to_string_lossy().to_string();
+            let fetch_cap = (max_total - (uploaded + skipped + failed) as usize).min(batch_size);
+            if fetch_cap == 0 {
+                break;
+            }
 
-            // Download with FloodWait retry
-            let mut dl_ok = false;
-            for attempt in 1..=5u32 {
-                match grammers_ops::download_file_blocking(
-                    &sessions,
-                    &identity,
-                    &source,
+            let media = grammers_ops::list_media_blocking(
+                &sessions,
+                &identity,
+                &source,
+                fetch_cap,
+                current_offset,
+            )
+            .map_err(|e| e.user_message())?;
+
+            let files = media.files;
+            if files.is_empty() {
+                break;
+            }
+
+            for (idx, row) in files.iter().enumerate() {
+                if jobs_db::is_execution_cancelled(exec_id) {
+                    return Err("Job execution dibatalkan oleh pengguna".into());
+                }
+
+                let source_msg_id = row.id;
+                let filename = row.name.clone();
+                let size = row.size as i64;
+                let tg_unique = format!(
+                    "{}:{}:{}:{}",
+                    row.id,
+                    row.mime_type.as_deref().unwrap_or(""),
+                    size,
+                    filename
+                );
+
+                // Level 1 — already processed message id
+                let pre = jobs_db::ledger_check(
+                    job_id,
                     source_msg_id,
-                    &dest_str,
-                ) {
-                    Ok(_) => {
-                        dl_ok = true;
-                        break;
+                    Some(&tg_unique),
+                    None,
+                    Some(&filename),
+                    Some(size),
+                )
+                .unwrap_or_default();
+                if pre.by_source_msg {
+                    skipped += 1;
+                    continue;
+                }
+
+                let dest_path = work_dir.join(format!(
+                    "{}_{}",
+                    source_msg_id,
+                    sanitize_name(&filename)
+                ));
+                let dest_str = dest_path.to_string_lossy().to_string();
+
+                // Download with FloodWait retry
+                let mut dl_ok = false;
+                for attempt in 1..=5u32 {
+                    if jobs_db::is_execution_cancelled(exec_id) {
+                        let _ = std::fs::remove_file(&dest_path);
+                        return Err("Job execution dibatalkan oleh pengguna".into());
                     }
-                    Err(e) => {
-                        let msg = e.user_message();
-                        if let Some(secs) = flood_wait_secs(&msg) {
-                            sleep_flood(secs);
-                            continue;
+
+                    match grammers_ops::download_file_blocking(
+                        &sessions,
+                        &identity,
+                        &source,
+                        source_msg_id,
+                        &dest_str,
+                    ) {
+                        Ok(_) => {
+                            dl_ok = true;
+                            break;
                         }
-                        if attempt >= 5 {
-                            tg_log::error(BACKEND, "download_fail", &msg);
-                            failed += 1;
+                        Err(e) => {
+                            let msg = e.user_message();
+                            if let Some(secs) = flood_wait_secs(&msg) {
+                                sleep_flood(secs);
+                                continue;
+                            }
+                            if attempt >= 5 {
+                                tg_log::error(BACKEND, "download_fail", &msg);
+                                failed += 1;
+                            }
                         }
                     }
                 }
-            }
-            if !dl_ok {
-                let _ = jobs_db::update_execution_status(
-                    exec_id,
-                    "RUNNING",
-                    Some(uploaded + skipped + failed),
-                    Some(total),
-                    Some(source_msg_id),
-                );
-                continue;
-            }
+                if !dl_ok {
+                    let _ = jobs_db::update_execution_status(
+                        exec_id,
+                        "RUNNING",
+                        Some(uploaded + skipped + failed),
+                        Some((uploaded + skipped + failed) + (files.len() as i64)),
+                        Some(source_msg_id),
+                    );
+                    continue;
+                }
 
-            let hash = hash_util::sha256_file(&dest_str)
-                .map(|h| h.sha256)
+                let hash = hash_util::sha256_file(&dest_str)
+                    .map(|h| h.sha256)
+                    .unwrap_or_default();
+
+                // Levels 2–4 after hash known
+                let hit = jobs_db::ledger_check(
+                    job_id,
+                    source_msg_id,
+                    Some(&tg_unique),
+                    if hash.is_empty() { None } else { Some(&hash) },
+                    Some(&filename),
+                    Some(size),
+                )
                 .unwrap_or_default();
+                if hit.is_duplicate() {
+                    skipped += 1;
+                    let _ = std::fs::remove_file(&dest_path);
+                    let _ = jobs_db::ledger_insert(
+                        job_id,
+                        source_msg_id,
+                        None,
+                        Some(&tg_unique),
+                        if hash.is_empty() { None } else { Some(&hash) },
+                        Some(&filename),
+                        Some(size),
+                    );
+                    let _ = jobs_db::update_execution_status(
+                        exec_id,
+                        "RUNNING",
+                        Some(uploaded + skipped + failed),
+                        Some((uploaded + skipped + failed) + (files.len() as i64)),
+                        Some(source_msg_id),
+                    );
+                    continue;
+                }
 
-            // Levels 2–4 after hash known
-            let hit = jobs_db::ledger_check(
-                job_id,
-                source_msg_id,
-                Some(&tg_unique),
-                if hash.is_empty() { None } else { Some(&hash) },
-                Some(&filename),
-                Some(size),
-            )
-            .unwrap_or_default();
-            if hit.is_duplicate() {
-                skipped += 1;
-                let _ = std::fs::remove_file(&dest_path);
+                // Re-upload
+                let mut up_msg_id: Option<i64> = None;
+                for attempt in 1..=5u32 {
+                    if jobs_db::is_execution_cancelled(exec_id) {
+                        let _ = std::fs::remove_file(&dest_path);
+                        return Err("Job execution dibatalkan oleh pengguna".into());
+                    }
+
+                    match grammers_ops::upload_file_blocking(
+                        &sessions,
+                        &identity,
+                        &dest,
+                        &dest_str,
+                        "",
+                        row.as_document,
+                        true,
+                        idx,
+                    ) {
+                        Ok(step) => {
+                            up_msg_id = step.message_id.filter(|m| *m > 0);
+                            uploaded += 1;
+                            break;
+                        }
+                        Err(e) => {
+                            let msg = e.user_message();
+                            if let Some(secs) = flood_wait_secs(&msg) {
+                                sleep_flood(secs);
+                                continue;
+                            }
+                            if attempt >= 5 {
+                                tg_log::error(BACKEND, "upload_fail", &msg);
+                                failed += 1;
+                            }
+                        }
+                    }
+                }
+
                 let _ = jobs_db::ledger_insert(
                     job_id,
                     source_msg_id,
-                    None,
+                    up_msg_id,
                     Some(&tg_unique),
                     if hash.is_empty() { None } else { Some(&hash) },
                     Some(&filename),
                     Some(size),
                 );
+                let _ = std::fs::remove_file(&dest_path);
                 let _ = jobs_db::update_execution_status(
                     exec_id,
                     "RUNNING",
                     Some(uploaded + skipped + failed),
-                    Some(total),
+                    Some((uploaded + skipped + failed) + (files.len() as i64)),
                     Some(source_msg_id),
                 );
-                continue;
+                tg_log::info(
+                    BACKEND,
+                    "clean_item",
+                    format!(
+                        "job={job_id} idx={}/{} msg={} up={:?} skip_dup={}",
+                        idx + 1,
+                        files.len(),
+                        source_msg_id,
+                        up_msg_id,
+                        hit.is_duplicate()
+                    ),
+                );
             }
 
-            // Re-upload
-            let mut up_msg_id: Option<i64> = None;
-            for attempt in 1..=5u32 {
-                match grammers_ops::upload_file_blocking(
-                    &sessions,
-                    &identity,
-                    &dest,
-                    &dest_str,
-                    "",
-                    row.as_document,
-                    true,
-                    idx,
-                ) {
-                    Ok(step) => {
-                        up_msg_id = step.message_id.filter(|m| *m > 0);
-                        uploaded += 1;
-                        break;
-                    }
-                    Err(e) => {
-                        let msg = e.user_message();
-                        if let Some(secs) = flood_wait_secs(&msg) {
-                            sleep_flood(secs);
-                            continue;
-                        }
-                        if attempt >= 5 {
-                            tg_log::error(BACKEND, "upload_fail", &msg);
-                            failed += 1;
-                        }
-                    }
-                }
+            if let Some(last_row) = files.last() {
+                current_offset = Some(last_row.id);
+            } else {
+                break;
             }
 
-            let _ = jobs_db::ledger_insert(
-                job_id,
-                source_msg_id,
-                up_msg_id,
-                Some(&tg_unique),
-                if hash.is_empty() { None } else { Some(&hash) },
-                Some(&filename),
-                Some(size),
-            );
-            let _ = std::fs::remove_file(&dest_path);
-            let _ = jobs_db::update_execution_status(
-                exec_id,
-                "RUNNING",
-                Some(uploaded + skipped + failed),
-                Some(total),
-                Some(source_msg_id),
-            );
-            tg_log::info(
-                BACKEND,
-                "clean_item",
-                format!(
-                    "job={job_id} idx={}/{} msg={} up={:?} skip_dup={}",
-                    idx + 1,
-                    total,
-                    source_msg_id,
-                    up_msg_id,
-                    hit.is_duplicate()
-                ),
-            );
+            if max_messages > 0 && (uploaded + skipped + failed) as usize >= max_messages {
+                break;
+            }
         }
         Ok((uploaded, skipped, failed))
     })();

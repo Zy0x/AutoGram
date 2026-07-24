@@ -664,3 +664,20 @@ pub fn cancel_execution(job_id: i64) -> Result<(), String> {
     .map_err(|e| format!("cancel execution: {e}"))?;
     Ok(())
 }
+
+pub fn is_execution_cancelled(exec_id: i64) -> bool {
+    let Ok(conn) = open_db() else { return false };
+    let status: Option<String> = conn
+        .query_row(
+            "SELECT status FROM executions WHERE id = ?1",
+            params![exec_id],
+            |r| r.get(0),
+        )
+        .optional()
+        .unwrap_or(None);
+    matches!(
+        status.as_deref().map(|s| s.to_ascii_uppercase()).as_deref(),
+        Some("CANCELLED") | Some("PAUSED") | Some("STOPPED")
+    )
+}
+

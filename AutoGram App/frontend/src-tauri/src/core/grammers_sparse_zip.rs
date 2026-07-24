@@ -125,7 +125,7 @@ impl<'a> TelegramSparseReader<'a> {
             return Ok(());
         }
         let last_idx = (self.doc_size - 1) / BLOCK_SIZE;
-        let start_idx = last_idx.saturating_sub(4);
+        let start_idx = last_idx.saturating_sub(16);
         for idx in start_idx..=last_idx {
             let _ = self.fetch_block(idx)?;
         }
@@ -226,8 +226,8 @@ fn parse_central_directory_fast(
         return Err(IoError::new(IoErrorKind::InvalidData, "file too small"));
     }
 
-    // Search for EOCD marker (PK\x05\x06) in the last 4 MB
-    let search_len = doc_size.min(4 * 1024 * 1024) as usize;
+    // Search for EOCD marker (PK\x05\x06) in the last 16 MB
+    let search_len = doc_size.min(16 * 1024 * 1024) as usize;
     let start_pos = doc_size - search_len as u64;
     reader.seek(SeekFrom::Start(start_pos))?;
     let mut tail_buf = vec![0u8; search_len];
