@@ -899,11 +899,12 @@ export function DriveZipBrowser({
             : (target.folderId ?? (target.kind === 'drive' ? null : Number(target.chatId) || null));
 
         if (onEnqueueUploadPaths) {
+          const isExplicitTopic = target.topicId !== undefined;
           await onEnqueueUploadPaths(tempPaths, {
             targetFolderId: targetFolder,
             targetLabel: target.label,
-            topicId: target.topicId ?? null,
-            skipTopic: target.topicId != null ? false : undefined,
+            topicId: target.topicId !== undefined ? target.topicId : null,
+            skipTopic: isExplicitTopic ? (target.topicId === null) : undefined,
           });
           onOpenTransferManager?.();
           setToastMsg(`Berhasil menambahkan ${tempPaths.length} berkas ke antrean Transfer Manager!`);
@@ -1811,6 +1812,7 @@ export function DriveZipBrowser({
                           kind: item.isSavedMessages ? 'saved' : item.isDriveFolder ? 'drive' : 'chat',
                           chatId: item.isSavedMessages ? 'me' : String(item.numericId || item.id),
                           folderId: item.folderId ?? null,
+                          topicId: null,
                           label: `${item.name} (${primaryBadgeLabel})`,
                         });
                       }}
@@ -1864,6 +1866,7 @@ export function DriveZipBrowser({
                               kind: 'chat',
                               chatId: String(item.numericId),
                               folderId: item.folderId ?? null,
+                              topicId: null,
                               label: `${item.name} (Grup Utama Forum)`,
                             });
                           }}
@@ -1929,12 +1932,12 @@ export function DriveZipBrowser({
                       setCustomPeerId('');
 
                       let chatId = targetName;
-                      let topicId: number | undefined;
+                      let topicId: number | null = null;
 
                       if (targetName.includes(':')) {
                         const parts = targetName.split(':');
                         chatId = parts[0];
-                        topicId = Number(parts[1]) || undefined;
+                        topicId = Number(parts[1]) || null;
                       }
 
                       void executeExtractAndUpload(entryList, {

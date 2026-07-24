@@ -1,3 +1,10 @@
+## v2.3.33 Fix Presisi Topic Mapping pada Ekstraksi ZIP Preview Modal
+
+### Perbaikan Logika Pemetaan Destinasi & Topik Target (`DriveZipBrowser.tsx`, `SpeedTest.tsx`)
+- **Penanganan Presisi `topicId` & `skipTopic`**: Menambahkan dukungan eksplisit `topicId` dan `skipTopic` pada opsi parameter `runUploadPaths` di `SpeedTest.tsx`. Memastikan `topicId` yang dipilih pengguna pada modal destinasi (Topik Spesifik, Topik Forum, atau Tanpa Topik / Grup Utama) diteruskan secara tepat ke tugas pengunggahan *Transfer Manager*.
+- **Pencegahan Fallback Otomatis `topicFilterRef.current`**: Memperbarui pengondisian penentuan topik di `SpeedTest.tsx` agar hanya menggunakan topik aktif saat ini (`topicFilterRef.current`) sebagai fallback jika pemanggil tidak menentukan parameter `topicId` secara eksplisit dan `skipTopic` bernilai `false`.
+- **Pengiriman Nilai Eksplisit `topicId: null`**: Memperbarui seluruh *click handler* pada modal pemilih destinasi ekstraksi `DriveZipBrowser.tsx` (Pesan Tersimpan, Drive Folder, Chat/Grup Utama, dan Custom Input) untuk mengirimkan `topicId: null` secara eksplisit, mengeliminasi penuh kesalahan pengunggahan file hasil ekstraksi ZIP ke topik aktif saat ini.
+
 ## v2.3.32 Serialized Request Lock, Stale Cancellation & Stream Auto-Stop (Proteksi Total FloodWait)
 
 ### Proteksi & Penghentian Stream Pembacaan ZIP (`driveApi.ts`, `DriveZipBrowser.tsx`)

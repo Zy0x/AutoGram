@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.32
+AutoGram Version: v2.3.33
 
 Current State:
+v2.3.33 Fix Presisi Topic Mapping pada Ekstraksi ZIP Preview Modal (Pesan Tersimpan, Drive Folder, Chat, & Forum Topic Target) — membenahi `DriveZipBrowser.tsx` dan `SpeedTest.tsx`. Mengatasi akar masalah kesalahan upload ke topik saat ini dengan melewatkan `topicId` & `skipTopic` secara presisi dari modal pemilihan destinasi ekstraksi ke `runUploadPaths`, serta mencegah fallback otomatis `topicFilterRef.current` ketika destinasi target memiliki topik khusus (atau tanpa topik).
+
+Previous:
 v2.3.32 Serialized Request Lock, Stale Cancellation & Stream Auto-Stop (Proteksi Total FloodWait saat Beralih/Menutup ZIP Preview) — membenahi `driveApi.ts` dan `DriveZipBrowser.tsx`. Mengimplementasikan `currentZipReadPromise` queue lock untuk menserialisasi pembacaan MTProto, `openRequestIdRef` untuk mengabaikan respons basi saat berpindah media secara cepat, serta eksekusi pembersihan `driveStopStream` otomatis ketika pratinjau ditutup atau beralih berkas untuk menghentikan arus unduhan paralel dan mencegah `FloodWaitError`.
 
 Previous:

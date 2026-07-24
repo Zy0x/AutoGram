@@ -4394,7 +4394,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const runUploadPaths = async (
     paths: string[],
-    opts?: { targetFolderId?: number | null; targetLabel?: string; skipTopic?: boolean }
+    opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
   ) => {
     if (!creds || !paths.length) return;
     
@@ -4447,8 +4447,12 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       topic_scope: transferSettings.topicScope || 'selected_plus_general',
       max_reupload_per_hour: transferSettings.maxReuploadPerHour ?? 10,
     };
-    // Upload into selected forum topic only when targeting current peer
-    if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
+    // Upload into selected forum topic: explicit topicId overrides, otherwise fall back to current active topic
+    if (opts?.topicId !== undefined) {
+      if (opts.topicId != null && opts.topicId > 0) {
+        options.topic_id = opts.topicId;
+      }
+    } else if (!opts?.skipTopic && sameDriveLocation(uploadPeer, peerId)) {
       const tid = topicFilterRef.current;
       if (tid != null && tid > 0) options.topic_id = tid;
     }
@@ -4464,8 +4468,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       paths: cleanPaths,
       targetFolderId: uploadPeer,
       targetLabel: destLabel,
-      skipTopic: opts?.skipTopic,
-      topicId: options.topic_id as number | null,
+      skipTopic: opts?.skipTopic ?? (opts?.topicId === null ? true : undefined),
+      topicId: (options.topic_id as number | null) ?? (opts?.topicId ?? null),
       names,
       options,
       startIndex,
