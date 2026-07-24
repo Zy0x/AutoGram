@@ -1898,9 +1898,29 @@ fn start_preview_stream_inner(
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
         let is_zip = mime.contains("zip") || name.to_lowercase().ends_with(".zip");
-        let max_doc_size = if is_zip { 500 * 1024 * 1024 } else { 64 * 1024 * 1024 };
 
-        // Non-media (apk/zip/binaries): never progressive-stream as if video.
+        // ZIP files: 100% MTProto Sparse Reader — zero full-file download for ZIPs of ANY size (1 MB to 5 GB)
+        if is_zip {
+            let _ = persist_memory_session(&live.session, &live.session_path);
+            return Ok(PreviewStreamResult {
+                status: "success".into(),
+                stream_id: String::new(),
+                stream_url: String::new(),
+                path: String::new(),
+                mime_type: mime,
+                size,
+                data_url: None,
+                text_content: None,
+                preview_kind: "zip".into(),
+                streaming: false,
+                backend: BACKEND.into(),
+                message: "Sparse ZIP Range Reader".into(),
+            });
+        }
+
+        let max_doc_size = 64 * 1024 * 1024;
+
+        // Non-media (apk/binaries): never progressive-stream as if video.
         // Large files > max_doc_size → instant metadata UI (download only).
         if !is_image && !is_video && !is_audio && size > max_doc_size {
             let _ = persist_memory_session(&live.session, &live.session_path);
