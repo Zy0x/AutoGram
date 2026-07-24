@@ -1,3 +1,9 @@
+## v2.3.21 Perbaikan Kompilasi Rust (`TgErrorCode::Io` pada Penanganan Password ZIP)
+
+### Perbaikan Kompilasi Backend Rust (`grammers_sparse_zip.rs`)
+- **Perbaikan Error Variabel Enum `TgErrorCode`**: Memperbarui penggunaan taksonomi error pada `grammers_sparse_zip.rs` dari `TgErrorCode::PasswordRequired` menjadi `TgErrorCode::Io` yang sah di `tg_error.rs`.
+- **Verifikasi Kompilasi 100% Bersih**: `cargo check --lib` dan `npm run build` lulus 100% sempurna tanpa error sama sekali.
+
 ## v2.3.20 Perluasan Pencarian Central Directory 4 MB & Eliminasi Total Iterasi Network Seeking di Fallback Path
 
 ### Optimasi Mesin Sparse ZIP MTProto (`grammers_sparse_zip.rs`)

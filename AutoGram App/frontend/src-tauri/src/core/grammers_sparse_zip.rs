@@ -375,7 +375,7 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Password") || msg.contains("Encrypted") {
-                TgError::new(TgErrorCode::PasswordRequired, "Arsip ZIP dilindungi password")
+                TgError::new(TgErrorCode::Io, "Arsip ZIP dilindungi password")
             } else {
                 TgError::new(TgErrorCode::Io, msg)
             }
