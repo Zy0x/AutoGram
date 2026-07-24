@@ -443,18 +443,6 @@ export function DriveTopBar({
         </div>
 
         <div className="td-topbar-actions">
-          {!hasSelection && onSelectAll && (
-            <button
-              type="button"
-              className="td-chip-btn td-chip-quiet td-chip-select-all"
-              onClick={onSelectAll}
-              title="Pilih semua yang terlihat (Ctrl+A)"
-              aria-label="Pilih semua yang terlihat (Ctrl+A)"
-            >
-              <ListChecks size={14} strokeWidth={2} aria-hidden />
-              <span className="td-chip-label">Pilih semua</span>
-            </button>
-          )}
 
           <div className="td-view-toggle" role="group" aria-label="View mode">
             <button
