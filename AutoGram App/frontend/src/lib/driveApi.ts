@@ -1387,31 +1387,70 @@ export async function driveDelete(
   return { status: 'success', deleted: gr.data?.deleted ?? 1, backend: 'grammers' };
 }
 
-/** Bulk delete via Grammers. */
+/** Bulk delete via Grammers. Supports array of IDs or { id, folderId } items. */
 export async function driveDeleteBatch(
   creds: DriveCredentials,
-  messageIds: number[],
-  folderId: number | null
+  messageIds: Array<number | { id: number; folderId?: number | null }>,
+  defaultFolderId: number | null
 ) {
-  const ids = messageIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
-  if (!ids.length) return { status: 'success', deleted: [], failed: [] };
+  const items = (messageIds || [])
+    .map((item) => {
+      if (typeof item === 'number') {
+        return { id: Number(item), folderId: defaultFolderId };
+      }
+      return { id: Number((item as any)?.id), folderId: (item as any)?.folderId ?? defaultFolderId };
+    })
+    .filter((x) => Number.isFinite(x.id) && x.id > 0);
+
+  if (!items.length) return { status: 'success', deleted: [], failed: [] };
+
+  // Group items by target chatId
+  const grouped = new Map<string, number[]>();
+  for (const item of items) {
+    const chatId = item.folderId == null ? 'me' : String(item.folderId);
+    const existing = grouped.get(chatId) || [];
+    existing.push(item.id);
+    grouped.set(chatId, existing);
+  }
+
   const id = requireGrammersIdentity(creds);
   const { tgDeleteMessages } = await import('./telegramBackend');
-  const chatId = folderId == null ? 'me' : String(folderId);
-  try {
-    const gr = await tgDeleteMessages({ ...id, chatId, messageIds: ids });
-    if (!gr?.ok) {
-      throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus batch gagal');
+
+  const allDeleted: number[] = [];
+  const allFailed: Array<{ id: number; error: string }> = [];
+
+  for (const [chatId, ids] of grouped.entries()) {
+    try {
+      const gr = await tgDeleteMessages({ ...id, chatId, messageIds: ids });
+      if (gr?.ok && gr.data) {
+        if (Array.isArray(gr.data.deletedIds)) {
+          allDeleted.push(...gr.data.deletedIds);
+        } else if (gr.data.deleted > 0) {
+          allDeleted.push(...ids);
+        }
+        if (Array.isArray(gr.data.failed)) {
+          allFailed.push(...gr.data.failed);
+        }
+      } else {
+        const errStr = gr?.userMessage || gr?.error?.message || 'Hapus batch gagal';
+        for (const mid of ids) {
+          allFailed.push({ id: mid, error: errStr });
+        }
+      }
+    } catch (e: any) {
+      const errStr = String(e?.message || e);
+      for (const mid of ids) {
+        allFailed.push({ id: mid, error: errStr });
+      }
     }
-    return { status: 'success', deleted: ids, failed: [], backend: 'grammers' };
-  } catch (e: any) {
-    return {
-      status: 'error',
-      deleted: [] as number[],
-      failed: ids.map((mid) => ({ id: mid, error: String(e?.message || e) })),
-      backend: 'grammers',
-    };
   }
+
+  return {
+    status: allFailed.length === 0 ? 'success' : allDeleted.length > 0 ? 'partial' : 'error',
+    deleted: allDeleted,
+    failed: allFailed,
+    backend: 'grammers',
+  };
 }
 
 export async function driveRename(

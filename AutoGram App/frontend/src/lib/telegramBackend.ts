@@ -590,7 +590,13 @@ export async function tgDeleteMessages(args: {
   chatId: string;
   messageIds: number[];
 }) {
-  return tgInvoke<{ status: string; deleted: number; backend: string }>('tg_delete_messages', {
+  return tgInvoke<{
+    status: string;
+    deleted: number;
+    deletedIds?: number[];
+    failed?: Array<{ id: number; error: string }>;
+    backend: string;
+  }>('tg_delete_messages', {
     ...identity(args),
     chatId: args.chatId,
     messageIds: args.messageIds,

@@ -115,9 +115,18 @@ async fn input_channel_from_peer(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FailedItem {
+    pub id: i64,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeleteMessagesResult {
     pub status: String,
     pub deleted: usize,
+    pub deleted_ids: Vec<i64>,
+    pub failed: Vec<FailedItem>,
     pub backend: String,
 }
 
@@ -138,6 +147,8 @@ pub fn delete_messages_blocking(
         return Ok(DeleteMessagesResult {
             status: "success".into(),
             deleted: 0,
+            deleted_ids: Vec::new(),
+            failed: Vec::new(),
             backend: BACKEND.into(),
         });
     }
@@ -148,14 +159,85 @@ pub fn delete_messages_blocking(
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
-                let n = client
-                    .delete_messages(peer, &ids)
-                    .await
-                    .map_err(|e| map_invocation(&e))?;
-                tg_log::info(BACKEND, "delete_messages", format!("chat={chat} n={n}"));
+                let mut deleted_ids: Vec<i64> = Vec::new();
+                let mut failed: Vec<FailedItem> = Vec::new();
+
+                // Chunk in max 50 message IDs per Telegram RPC call
+                const CHUNK_SIZE: usize = 50;
+                for chunk in ids.chunks(CHUNK_SIZE) {
+                    match client.delete_messages(peer, chunk).await {
+                        Ok(n) => {
+                            for &mid in chunk {
+                                deleted_ids.push(mid as i64);
+                            }
+                            tg_log::info(
+                                BACKEND,
+                                "delete_messages_chunk_ok",
+                                format!("chat={chat} n={n} chunk_len={}", chunk.len()),
+                            );
+                        }
+                        Err(err) => {
+                            tg_log::warn(
+                                BACKEND,
+                                "delete_messages_chunk_fail",
+                                format!(
+                                    "chat={chat} chunk_len={} err={err} - fallback to per-id",
+                                    chunk.len()
+                                ),
+                            );
+                            for &mid in chunk {
+                                let mut attempts = 0;
+                                loop {
+                                    attempts += 1;
+                                    match client.delete_messages(peer, &[mid]).await {
+                                        Ok(_) => {
+                                            deleted_ids.push(mid as i64);
+                                            break;
+                                        }
+                                        Err(single_err) => {
+                                            let tg_err = map_invocation(&single_err);
+                                            if let Some(secs) = tg_err.flood_wait_secs() {
+                                                if attempts <= 2 {
+                                                    tg_log::warn(
+                                                        BACKEND,
+                                                        "delete_messages_flood_wait",
+                                                        format!("mid={mid} waiting {secs}s"),
+                                                    );
+                                                    tokio::time::sleep(std::time::Duration::from_secs(
+                                                        (secs + 1) as u64,
+                                                    ))
+                                                    .await;
+                                                    continue;
+                                                }
+                                            }
+                                            failed.push(FailedItem {
+                                                id: mid as i64,
+                                                error: tg_err.user_message(),
+                                            });
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                tg_log::info(
+                    BACKEND,
+                    "delete_messages_batch_done",
+                    format!(
+                        "chat={chat} deleted={} failed={}",
+                        deleted_ids.len(),
+                        failed.len()
+                    ),
+                );
+
                 Ok(DeleteMessagesResult {
                     status: "success".into(),
-                    deleted: n,
+                    deleted: deleted_ids.len(),
+                    deleted_ids,
+                    failed,
                     backend: BACKEND.into(),
                 })
             })

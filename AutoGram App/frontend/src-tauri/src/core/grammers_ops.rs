@@ -925,49 +925,42 @@ pub(crate) async fn resolve_peer(
         let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
         return user_to_ref(&me).await;
     }
-    // Username
-    if s.starts_with('@') || s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    // Username (only if starts with @ or contains alphabetic characters)
+    if s.starts_with('@') || (s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') && s.chars().any(|c| c.is_ascii_alphabetic())) {
         let uname = s.trim_start_matches('@');
-        if uname.chars().any(|c| c.is_ascii_alphabetic()) {
-            if let Some(peer) = client
-                .resolve_username(uname)
-                .await
-                .map_err(|e| map_invocation(&e))?
-            {
-                return peer_to_ref(&peer).await;
-            }
-            return Err(TgError::new(
-                TgErrorCode::PeerNotFound,
-                format!("username @{uname} not found"),
-            ));
+        if let Some(peer) = client
+            .resolve_username(uname)
+            .await
+            .map_err(|e| map_invocation(&e))?
+        {
+            return peer_to_ref(&peer).await;
         }
+        return Err(TgError::new(
+            TgErrorCode::PeerNotFound,
+            format!("username @{uname} not found"),
+        ));
     }
     // Numeric Telegram id — search dialogs for matching peer id
     let want: i64 = s
         .parse()
         .map_err(|_| TgError::new(TgErrorCode::PeerNotFound, format!("invalid chat_id: {s}")))?;
 
+    let s_clean = s.trim_start_matches('-');
+    let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
+        &s_clean[3..]
+    } else {
+        s_clean
+    };
+    let want_bare: i64 = s_bare.parse().unwrap_or(want.abs());
+
     let mut dialogs = client.iter_dialogs();
     while let Some(dialog) = dialogs.next().await.map_err(|e| map_invocation(&e))? {
         let peer = dialog.peer();
         let pid = peer_id_i64(peer.id());
-        if pid == want {
+        let bid = peer.id().bare_id();
+
+        if pid == want || pid == -want || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs())) {
             return peer_to_ref(&peer).await;
-        }
-        // Also match bare channel id without -100 prefix
-        if want < 0 {
-            let bare = want
-                .to_string()
-                .trim_start_matches("-100")
-                .parse::<i64>()
-                .unwrap_or(0);
-            if bare != 0 {
-                if let Some(bid) = peer.id().bare_id() {
-                    if bid == bare {
-                        return peer_to_ref(&peer).await;
-                    }
-                }
-            }
         }
     }
     Err(TgError::new(

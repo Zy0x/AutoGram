@@ -4910,11 +4910,28 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
       const n = ids.length;
       try {
         setStatusText(n === 1 ? 'Menghapus…' : `Menghapus ${n} file…`);
-        const res = await driveDeleteBatch(creds, ids, peerId);
+        const items = ids.map((id) => {
+          const f = files.find((x) => x.id === id);
+          return { id, folderId: (f as any)?.folder_id ?? (f as any)?.folderId ?? peerId };
+        });
+        const res = await driveDeleteBatch(creds, items, peerId);
         const failed = Array.isArray((res as any)?.failed) ? (res as any).failed : [];
+        const deleted = Array.isArray((res as any)?.deleted) ? (res as any).deleted : [];
+        const deletedIds = deleted.map((x: any) => Number(x)).filter((x: number) => Number.isFinite(x) && x > 0);
+
+        if (deletedIds.length > 0) {
+          const deletedSet = new Set(deletedIds);
+          setFiles((prev) => prev.filter((f) => !deletedSet.has(f.id)));
+          liveFilesRef.current = liveFilesRef.current.filter((f) => !deletedSet.has(f.id));
+          const tid = topicFilterRef.current;
+          const cacheKey = `${peerId}_${tid || ''}`;
+          filesCacheRef.current.delete(cacheKey);
+        }
+
         setSelectedIds([]);
         selectionAnchorRef.current = null;
         await refreshFiles();
+
         if (failed.length) {
           setError(
             `Hapus sebagian gagal (${failed.length}): ${
@@ -4922,7 +4939,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             }`
           );
           setStatusText(
-            `Terhapus ${n - failed.length}/${n}${failed.length ? ` · ${failed.length} gagal` : ''}`
+            `Terhapus ${deletedIds.length}/${n}${failed.length ? ` · ${failed.length} gagal` : ''}`
           );
         } else {
           setStatusText(n === 1 ? 'File dihapus' : `${n} file dihapus`);
@@ -4939,6 +4956,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
           }
           const idsSet = new Set(ids);
           setFiles(prev => prev.filter(f => !idsSet.has(f.id)));
+          liveFilesRef.current = liveFilesRef.current.filter((f) => !idsSet.has(f.id));
+          const tid = topicFilterRef.current;
+          const cacheKey = `${peerId}_${tid || ''}`;
+          filesCacheRef.current.delete(cacheKey);
           setSelectedIds([]);
           selectionAnchorRef.current = null;
           setStatusText(n === 1 ? 'Hapus diantre (offline)' : `${n} hapus diantre (offline)`);
