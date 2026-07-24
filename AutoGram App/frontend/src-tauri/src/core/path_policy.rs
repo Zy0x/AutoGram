@@ -19,7 +19,6 @@ fn path_str_lower(p: &Path) -> String {
 
 fn has_blocked_substr(s: &str) -> bool {
     const MARKERS: &[&str] = &[
-        "/sessions/",
         "/.ssh/",
         "/secrets/",
         "/windows/system32/",
@@ -38,7 +37,13 @@ fn has_blocked_substr(s: &str) -> bool {
         "/sys/",
         "/dev/",
     ];
-    MARKERS.iter().any(|m| s.contains(m))
+    if MARKERS.iter().any(|m| s.contains(m)) {
+        return true;
+    }
+    if s.contains("/sessions/") && !s.contains("/sessions/preview/") && !s.contains("/sessions/cache/") {
+        return true;
+    }
+    false
 }
 
 /// True if path is forbidden as upload source or download target.

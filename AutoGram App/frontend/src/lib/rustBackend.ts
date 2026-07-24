@@ -142,12 +142,15 @@ export type ZipEntryPreview = {
   backend: string;
 };
 
-export async function zipListLocal(path: string): Promise<ZipListResult | null> {
-  if (!detectTauriRuntime() || !path) return null;
+export async function zipListLocal(path: string): Promise<ZipListResult> {
+  if (!detectTauriRuntime() || !path) {
+    throw new Error('ZIP preview membutuhkan aplikasi desktop (Rust).');
+  }
   try {
     return await invoke<ZipListResult>('zip_list_local', { path });
-  } catch {
-    return null;
+  } catch (err: any) {
+    console.error('[zipListLocal] invoke failed:', err, 'path:', path);
+    throw new Error(String(err?.message || err || 'Gagal membaca isi ZIP dari Rust'));
   }
 }
 
@@ -155,16 +158,19 @@ export async function zipPreviewEntry(
   path: string,
   entryName: string,
   password?: string
-): Promise<ZipEntryPreview | null> {
-  if (!detectTauriRuntime() || !path) return null;
+): Promise<ZipEntryPreview> {
+  if (!detectTauriRuntime() || !path) {
+    throw new Error('ZIP preview membutuhkan aplikasi desktop (Rust).');
+  }
   try {
     return await invoke<ZipEntryPreview>('zip_preview_entry', {
       path,
       entryName,
       password: password || null,
     });
-  } catch {
-    return null;
+  } catch (err: any) {
+    console.error('[zipPreviewEntry] invoke failed:', err, 'path:', path, 'entry:', entryName);
+    throw new Error(String(err?.message || err || 'Gagal membaca berkas dalam ZIP dari Rust'));
   }
 }
 
@@ -175,12 +181,17 @@ export async function zipExtractEntry(
   password?: string
 ): Promise<number> {
   if (!detectTauriRuntime() || !archivePath || !destPath) return 0;
-  return await invoke<number>('zip_extract_entry', {
-    archivePath,
-    entryName,
-    destPath,
-    password: password || null,
-  });
+  try {
+    return await invoke<number>('zip_extract_entry', {
+      archivePath,
+      entryName,
+      destPath,
+      password: password || null,
+    });
+  } catch (err: any) {
+    console.error('[zipExtractEntry] invoke failed:', err, 'archive:', archivePath, 'dest:', destPath);
+    throw new Error(String(err?.message || err || 'Gagal mengekstrak berkas dari Rust'));
+  }
 }
 
 export async function fileSha256(path: string) {

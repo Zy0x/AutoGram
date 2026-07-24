@@ -1,7 +1,7 @@
 AutoGram Version: v2.3.9
 
 Current State:
-v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
+v2.3.9 Pure Rust + Grammers Engine ZIP Preview & Single-Entry Extraction — pengunduhan MTProto media ZIP menggunakan Grammers Rust (`tgPreviewStream`), pembebasan direktori `/sessions/preview/` & `/sessions/cache/` pada security `path_policy.rs` agar berkas cache preview tidak terblokir, parsing central directory & ekstraksi berkas tunggal menggunakan parser native Rust `zip_local` (`zipListLocal`, `zipPreviewEntry`, `zipExtractEntry`), 100% tanpa runtime Telethon Python.
 
 Previous:
 v2.3.8 Self-Healing Cache & Automatic Database Sync untuk Berkas Terhapus di Telegram Server — eliminasi otomatis kartu media terhapus (retroaktif & real-time), pembersihan atomic entri `duplicate_history` & `message_mapping` di SQLite lokal (`purge_deleted_duplicates_batch`), penanganan signal `deleted_ids` dari Telethon RPC, dan rekonsiliasi presisi snapshot `localStorage`.
