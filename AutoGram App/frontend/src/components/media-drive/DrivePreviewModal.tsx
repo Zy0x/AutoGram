@@ -33,7 +33,7 @@ import {
   Printer,
   Repeat,
 } from 'lucide-react';
-import { MediaPreviewSkeleton, ModernProgressBar } from './DriveSkeleton';
+import { DeadCenterProgress } from './DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../lib/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../lib/driveSession';
@@ -2888,8 +2888,8 @@ export function DrivePreviewModal({
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
-            <div className="w-full max-w-4xl p-6">
-              <ModernProgressBar
+            <div className="w-full flex flex-col items-center justify-center min-h-[350px] p-6">
+              <DeadCenterProgress
                 isLoading={loading}
                 label={
                   switchingQuality
@@ -2901,7 +2901,6 @@ export function DrivePreviewModal({
                         : 'Menyiapkan stream media…'
                 }
               />
-              <MediaPreviewSkeleton />
             </div>
           )}
 

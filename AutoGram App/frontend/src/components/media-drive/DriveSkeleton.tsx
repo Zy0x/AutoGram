@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Rocket } from 'lucide-react';
 
 /**
  * Hook for smooth realistic progress interpolation (0% -> 100%)
@@ -35,62 +36,74 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
   return Math.min(100, Math.max(0, progress));
 }
 
-export interface ModernProgressBarProps {
+export interface DeadCenterProgressProps {
   percent?: number;
   label?: string;
   isLoading?: boolean;
-  isIndeterminate?: boolean;
 }
 
-export const ModernProgressBar: React.FC<ModernProgressBarProps> = ({
+export const DeadCenterProgress: React.FC<DeadCenterProgressProps> = ({
   percent,
-  label = 'Memuat data...',
+  label = 'Membaca katalog media Telegram MTProto...',
   isLoading = true,
 }) => {
   const smoothProgress = useSmoothProgress(isLoading, percent);
   const displayPercent = Math.round(smoothProgress);
 
   return (
-    <div className="w-full mb-5 select-none transition-all duration-300">
-      <div className="bg-[#141720]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
-        {/* Ambient Top Glow Border */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-        
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2.5 min-w-0 pr-3">
-            {/* Live Pulsing Status Indicator */}
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-            </span>
-            <span className="text-xs font-semibold text-slate-200 tracking-wide truncate">
-              {label}
-            </span>
-          </div>
-
-          {/* Real Percent Badge (0% - 100%) */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold shrink-0 shadow-inner">
-            <span>{displayPercent}%</span>
-          </div>
-        </div>
-
-        {/* Progress Track */}
-        <div className="h-2 w-full bg-slate-900/90 rounded-full p-0.5 border border-white/5 shadow-inner relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-[380px] w-full p-6 select-none my-auto">
+      <div className="flex flex-col items-center max-w-lg w-full relative">
+        {/* Track Container with Mascot Runner */}
+        <div className="relative w-full h-16 flex items-end mb-2">
+          {/* Animated Mascot / Rocket Runner riding on top of the progress bar */}
           <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_12px_rgba(6,182,212,0.6)] relative"
-            style={{ width: `${smoothProgress}%` }}
+            className="absolute bottom-3 transition-all duration-300 ease-out z-20 flex flex-col items-center pointer-events-none"
+            style={{
+              left: `clamp(0px, calc(${smoothProgress}% - 22px), calc(100% - 44px))`,
+            }}
           >
-            {/* Glowing Tip Accent */}
-            <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/80 rounded-full shadow-[0_0_8px_#ffffff]" />
+            <div className="relative transform -rotate-12 animate-bounce">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-[0_4px_16px_rgba(6,182,212,0.6)] flex items-center justify-center">
+                <div className="w-full h-full bg-[#141720] rounded-[14px] flex items-center justify-center text-cyan-300">
+                  <Rocket size={20} className="transform rotate-45 text-cyan-400" />
+                </div>
+              </div>
+              {/* Flame / Thriller Aura */}
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-2 bg-amber-400/80 blur-[3px] rounded-full" />
+            </div>
+          </div>
+
+          {/* Thick Rounded Pill Track (matching reference image) */}
+          <div className="h-5 w-full bg-[#181b24] rounded-full p-1 border border-white/10 shadow-[inner_0_2px_8px_rgba(0,0,0,0.6)] relative overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 transition-all duration-300 ease-out shadow-[0_0_16px_rgba(6,182,212,0.8)] relative"
+              style={{ width: `${smoothProgress}%` }}
+            >
+              {/* Head Highlight */}
+              <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white/90 rounded-full shadow-[0_0_10px_#ffffff]" />
+            </div>
           </div>
         </div>
+
+        {/* Centered Large Percentage Text (matching reference image) */}
+        <div className="text-2xl font-bold font-mono text-cyan-300 tracking-wider text-center drop-shadow-[0_2px_10px_rgba(6,182,212,0.4)] mt-1">
+          {displayPercent}%
+        </div>
+
+        {/* Status Label Text below percent */}
+        {label && (
+          <div className="text-xs text-slate-400 mt-2 text-center font-medium max-w-sm tracking-wide leading-relaxed">
+            {label}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// Backward compatibility alias
-export const MicroProgressBar = ModernProgressBar;
+// Aliases for full backward compatibility
+export const ModernProgressBar = DeadCenterProgress;
+export const MicroProgressBar = DeadCenterProgress;
 
 export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
   const items = Array.from({ length: count });
@@ -101,13 +114,8 @@ export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) 
           key={i}
           className="bg-[#181b22]/80 border border-white/5 rounded-xl p-2.5 flex flex-col justify-between h-[210px]"
         >
-          {/* Thumbnail area (aspect ratio 4:3) */}
           <div className="w-full h-[120px] skeleton-shimmer rounded-lg mb-2" />
-          
-          {/* Title line */}
           <div className="w-3/4 h-3.5 skeleton-shimmer rounded mb-1.5" />
-          
-          {/* Badge line */}
           <div className="flex items-center justify-between gap-2 mt-auto pt-1">
             <div className="w-12 h-3 skeleton-shimmer rounded" />
             <div className="w-16 h-3 skeleton-shimmer rounded" />
@@ -167,7 +175,6 @@ export const ZipCatalogSkeleton: React.FC<{ count?: number }> = ({ count = 8 }) 
 export const MediaPreviewSkeleton: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-[380px] bg-[#13151b] border border-white/5 rounded-2xl p-4">
-      {/* Header bar */}
       <div className="w-full flex items-center justify-between pb-4 mb-4 border-b border-white/5">
         <div className="w-48 h-4 skeleton-shimmer rounded" />
         <div className="flex gap-2">
@@ -175,7 +182,6 @@ export const MediaPreviewSkeleton: React.FC = () => {
           <div className="w-8 h-8 skeleton-shimmer rounded-lg" />
         </div>
       </div>
-      {/* Center media viewer */}
       <div className="w-full flex-1 skeleton-shimmer rounded-xl max-h-[280px]" />
     </div>
   );

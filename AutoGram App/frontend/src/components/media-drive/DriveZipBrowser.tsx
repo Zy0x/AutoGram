@@ -48,7 +48,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { ZipCatalogSkeleton, ModernProgressBar } from './DriveSkeleton';
+import { DeadCenterProgress } from './DriveSkeleton';
 import type { DriveCredentials } from '../../lib/driveApi';
 import { driveZipList, driveZipReadEntry, driveZipExtractEntry, clearZipEntryCache, driveStopStream } from '../../lib/driveApi';
 import { VSCodeCodeViewer } from '../common/VSCodeCodeViewer';
@@ -997,12 +997,11 @@ export function DriveZipBrowser({
 
   if (loading) {
     return (
-      <div className="drive-zip-browser is-loading p-5">
-        <ModernProgressBar
+      <div className="drive-zip-browser is-loading flex flex-col items-center justify-center min-h-[400px] w-full p-6">
+        <DeadCenterProgress
           isLoading={loading}
           label="Membaca katalog & indeks ZIP via MTProto Range Request..."
         />
-        <ZipCatalogSkeleton count={10} />
       </div>
     );
   }
