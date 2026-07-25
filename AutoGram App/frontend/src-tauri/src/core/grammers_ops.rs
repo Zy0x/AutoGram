@@ -1200,7 +1200,7 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                 thumb_data_url,
             }),
             Media::WebPage(wp) => {
-                let webpage_has_thumb = match &wp.raw {
+                let webpage_has_thumb = match &wp.raw.webpage {
                     grammers_client::tl::enums::WebPage::Page(page) => {
                         page.photo.is_some() || page.document.is_some()
                     }
