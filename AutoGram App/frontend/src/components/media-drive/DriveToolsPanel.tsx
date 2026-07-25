@@ -7,7 +7,6 @@ import { createPortal } from 'react-dom';
 import {
   X,
   Copy,
-  Scissors,
   HardDrive,
   Layers,
   Type,
@@ -17,10 +16,18 @@ import {
   AlertTriangle,
   Loader2,
   Play,
+  Settings2,
+  SlidersHorizontal,
+  Upload,
+  Download,
+  RotateCcw,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
-import type { DriveChat, DriveFile, DriveFolder } from '../../lib/driveTypes';
+import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, QualityMode } from '../../lib/driveTypes';
 import {
+  DEFAULT_TRANSFER_SETTINGS,
+  QUALITY_MODE_OPTIONS,
+  clampConcurrency,
   canShowDriveThumb,
   driveFileDisplayName,
   formatDriveBytes,
@@ -62,7 +69,7 @@ function preferredKeepId(g: DupGroup, keepNewest: boolean): number | null {
   return ordered[0]?.id ?? null;
 }
 
-export type DriveToolsTab = 'dups' | 'space' | 'rename' | 'copy' | 'filter';
+export type DriveToolsTab = 'dups' | 'space' | 'rename' | 'copy' | 'filter' | 'transfer';
 
 type Props = {
   open: boolean;
@@ -92,6 +99,10 @@ type Props = {
   filesHasMore?: boolean;
   topicFilter?: number | null;
   isForum?: boolean;
+  /** Optional Transfer Settings */
+  transferSettings?: DriveTransferSettings;
+  onTransferSettingsChange?: (next: DriveTransferSettings) => void;
+  transferActive?: boolean;
   /** Open full preview (e.g. from duplicate row click) */
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
@@ -104,12 +115,26 @@ type Props = {
   }) => void;
 };
 
-const TABS: { id: DriveToolsTab; label: string; icon: typeof Copy }[] = [
-  { id: 'copy', label: 'Salin batch', icon: Copy },
-  { id: 'dups', label: 'Duplikat', icon: Layers },
-  { id: 'rename', label: 'Bulk rename', icon: Type },
-  { id: 'space', label: 'Storage', icon: HardDrive },
-  { id: 'filter', label: 'Filter+', icon: Filter },
+export const TOOL_GROUPS: {
+  title: string;
+  tabs: { id: DriveToolsTab; label: string; icon: any }[];
+}[] = [
+  {
+    title: 'ALAT DRIVE',
+    tabs: [
+      { id: 'copy', label: 'Salin batch', icon: Copy },
+      { id: 'dups', label: 'Duplikat', icon: Layers },
+      { id: 'rename', label: 'Bulk rename', icon: Type },
+      { id: 'space', label: 'Storage', icon: HardDrive },
+      { id: 'filter', label: 'Filter+', icon: Filter },
+    ],
+  },
+  {
+    title: 'KONFIGURASI',
+    tabs: [
+      { id: 'transfer', label: 'Pengaturan Transfer', icon: Settings2 },
+    ],
+  },
 ];
 
 export function DriveToolsPanel({
@@ -136,6 +161,9 @@ export function DriveToolsPanel({
   filesHasMore = false,
   topicFilter = null,
   isForum = false,
+  transferSettings,
+  onTransferSettingsChange,
+  transferActive,
   onPreviewFile,
   onDeleteIds,
   onBulkRename,
@@ -147,6 +175,41 @@ export function DriveToolsPanel({
   const [copyDest, setCopyDest] = useState<string>('me');
   const [skipDup, setSkipDup] = useState(true);
   const [copyScope, setCopyScope] = useState<'selected' | 'all'>('selected');
+
+  const [xferSubTab, setXferSubTab] = useState<'upload' | 'download'>('upload');
+  const [xferDraft, setXferDraft] = useState<DriveTransferSettings>(() => ({
+    ...DEFAULT_TRANSFER_SETTINGS,
+    ...(transferSettings || {}),
+  }));
+
+  useEffect(() => {
+    if (open && transferSettings) {
+      setXferDraft({
+        ...DEFAULT_TRANSFER_SETTINGS,
+        ...transferSettings,
+      });
+      setXferSubTab('upload');
+    }
+  }, [open, transferSettings]);
+
+  const patchXfer = (partial: Partial<DriveTransferSettings>) => {
+    setXferDraft((d) => ({ ...d, ...partial }));
+  };
+
+  const applyXferSettings = () => {
+    if (!onTransferSettingsChange) return;
+    const next: DriveTransferSettings = {
+      ...xferDraft,
+      uploadConcurrency: clampConcurrency(xferDraft.uploadConcurrency),
+      downloadConcurrency: clampConcurrency(xferDraft.downloadConcurrency),
+      globalCaption: (xferDraft.globalCaption || '').slice(0, 1024),
+      qualityMode:
+        xferDraft.forceDocumentDefault && xferDraft.qualityMode !== 'ORIGINAL'
+          ? 'ORIGINAL'
+          : xferDraft.qualityMode,
+    };
+    onTransferSettingsChange(next);
+  };
 
   const groups = useMemo(
     () => findDuplicateGroups(files, dupMode),
@@ -210,22 +273,22 @@ export function DriveToolsPanel({
       className="td-tools-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Alat Drive"
+      aria-label="Alat & Pengaturan Drive"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="td-tools-panel"
+        className="td-tools-panel is-unified"
         data-dialog-layout="card"
         data-testid="drive-tools-panel"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="td-tools-head">
           <div className="td-tools-title">
-            <Scissors size={18} />
+            <SlidersHorizontal size={18} />
             <div>
-              <strong>Alat Drive</strong>
+              <strong>Alat &amp; Pengaturan Drive</strong>
               <span className="td-tools-sub">{locationLabel}</span>
             </div>
           </div>
@@ -234,24 +297,31 @@ export function DriveToolsPanel({
           </button>
         </header>
 
-        <nav className="td-tools-tabs" aria-label="Tab alat">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                className={`td-tools-tab ${tab === t.id ? 'active' : ''}`}
-                onClick={() => onTab(t.id)}
-              >
-                <Icon size={14} />
-                {t.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="td-tools-layout">
+          <aside className="td-tools-sidebar" aria-label="Kategori Alat dan Pengaturan">
+            {TOOL_GROUPS.map((group) => (
+              <div key={group.title} className="td-tools-sidebar-group">
+                <span className="td-tools-sidebar-header">{group.title}</span>
+                {group.tabs.map((t) => {
+                  const Icon = t.icon;
+                  const isActive = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
+                      onClick={() => onTab(t.id)}
+                    >
+                      <Icon size={15} />
+                      <span>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </aside>
 
-        <div className="td-tools-body">
+          <main className="td-tools-main">
           {tab === 'dups' && (
             <DupTab
               groups={groups}
@@ -609,6 +679,19 @@ export function DriveToolsPanel({
               </p>
             </div>
           )}
+
+          {tab === 'transfer' && (
+            <TransferTabContent
+              draft={xferDraft}
+              onChange={patchXfer}
+              onSave={applyXferSettings}
+              onReset={() => setXferDraft({ ...DEFAULT_TRANSFER_SETTINGS })}
+              transferActive={transferActive}
+              subTab={xferSubTab}
+              onSubTab={setXferSubTab}
+            />
+          )}
+          </main>
         </div>
       </div>
     </div>
@@ -616,6 +699,283 @@ export function DriveToolsPanel({
 
   if (typeof document === 'undefined') return null;
   return createPortal(node, document.body);
+}
+
+function TransferTabContent({
+  draft,
+  onChange,
+  onSave,
+  onReset,
+  transferActive,
+  subTab,
+  onSubTab,
+}: {
+  draft: DriveTransferSettings;
+  onChange: (partial: Partial<DriveTransferSettings>) => void;
+  onSave: () => void;
+  onReset: () => void;
+  transferActive?: boolean;
+  subTab: 'upload' | 'download';
+  onSubTab: (t: 'upload' | 'download') => void;
+}) {
+  return (
+    <div className="td-tools-xfer-container">
+      <div className="td-xfer-settings-tabs" role="tablist" aria-label="Bagian pengaturan">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'upload'}
+          className={`td-xfer-tab ${subTab === 'upload' ? 'active' : ''}`}
+          onClick={() => onSubTab('upload')}
+        >
+          <Upload size={15} />
+          Upload
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'download'}
+          className={`td-xfer-tab ${subTab === 'download' ? 'active' : ''}`}
+          onClick={() => onSubTab('download')}
+        >
+          <Download size={15} />
+          Download
+        </button>
+      </div>
+
+      <div className="td-xfer-settings-body">
+        {subTab === 'upload' && (
+          <section className="td-xfer-section" aria-label="Pengaturan upload">
+            <h3>Kualitas unggah</h3>
+            <p className="td-xfer-hint">
+              Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
+            </p>
+            <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
+              {QUALITY_MODE_OPTIONS.map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`td-xfer-radio ${draft.qualityMode === opt.id ? 'is-on' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="qualityMode"
+                    value={opt.id}
+                    checked={draft.qualityMode === opt.id}
+                    disabled={!!transferActive}
+                    onChange={() => {
+                      onChange({
+                        qualityMode: opt.id as QualityMode,
+                        forceDocumentDefault: opt.id === 'ORIGINAL',
+                      });
+                    }}
+                  />
+                  <span>
+                    <strong>{opt.label}</strong>
+                    <small>{opt.description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <h3>Hardware Re-encode (GPU)</h3>
+            <p className="td-xfer-hint">
+              Akselerasi GPU untuk konversi video sebelum diunggah.
+            </p>
+            <label className="td-xfer-range-row">
+              <MediaSelect
+                value={draft.reencodeHardware}
+                disabled={!!transferActive}
+                onChange={(value) => onChange({ reencodeHardware: value as any })}
+                ariaLabel="Hardware re-encode"
+                options={[
+                  { value: 'auto', label: 'Auto · Prioritas GPU', description: 'Pilih backend yang lolos capability test' },
+                  { value: 'nvidia', label: 'NVIDIA NVENC', description: 'CUDA/NVDEC dengan fallback aman' },
+                  { value: 'amd', label: 'AMD AMF', description: 'AMF hardware encoder' },
+                  { value: 'intel', label: 'Intel Quick Sync', description: 'QSV hardware encoder' },
+                  { value: 'cpu', label: 'CPU x264', description: 'Fallback kompatibilitas' },
+                ]}
+              />
+            </label>
+
+            <h3>Mode Re-encode</h3>
+            <p className="td-xfer-hint">
+              Keseimbangan antara kecepatan proses dan kualitas akhir.
+            </p>
+            <label className="td-xfer-range-row">
+              <MediaSelect
+                value={draft.reencodePreset}
+                disabled={!!transferActive}
+                onChange={(value) => onChange({ reencodePreset: value as any })}
+                ariaLabel="Mode re-encode"
+                options={[
+                  { value: 'speed', label: 'Kecepatan', description: 'Adaptif maksimum, menjaga cadangan memori' },
+                  { value: 'balanced', label: 'Seimbang', description: 'Default kualitas dan kecepatan' },
+                  { value: 'quality', label: 'Kualitas', description: 'Kompresi lebih teliti dan lebih lama' },
+                ]}
+              />
+            </label>
+
+            <h3>Paralel unggah</h3>
+            <p className="td-xfer-hint">
+              Berapa file di-pipeline ke data center Telegram bersamaan (1–8).
+            </p>
+            <label className="td-xfer-range-row">
+              <input
+                type="range"
+                min={1}
+                max={8}
+                value={draft.uploadConcurrency}
+                disabled={!!transferActive}
+                onChange={(e) => onChange({ uploadConcurrency: Number(e.target.value) })}
+                aria-label="Paralel upload"
+              />
+              <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
+            </label>
+
+            <h3>Opsi pengiriman</h3>
+            <div className="td-xfer-checks">
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.groupAsAlbum}
+                  disabled={!!transferActive}
+                  onChange={(e) => onChange({ groupAsAlbum: e.target.checked })}
+                />
+                <span>
+                  <strong>Kirim sebagai album</strong>
+                  <small>Kelompokkan foto/video sejenis (maks 10 per batch Telegram).</small>
+                </span>
+              </label>
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.silent}
+                  disabled={!!transferActive}
+                  onChange={(e) => onChange({ silent: e.target.checked })}
+                />
+                <span>
+                  <strong>Silent (tanpa notifikasi)</strong>
+                  <small>Kirim tanpa bunyi notifikasi di sisi penerima.</small>
+                </span>
+              </label>
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.spoiler}
+                  disabled={!!transferActive}
+                  onChange={(e) => onChange({ spoiler: e.target.checked })}
+                />
+                <span>
+                  <strong>Spoiler media</strong>
+                  <small>Tandai media sebagai spoiler (blur sampai diklik).</small>
+                </span>
+              </label>
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.forceDocumentDefault || draft.qualityMode === 'ORIGINAL'}
+                  disabled={!!transferActive}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    onChange({
+                      forceDocumentDefault: on,
+                      qualityMode: on ? 'ORIGINAL' : draft.qualityMode === 'ORIGINAL' ? 'HIGH_QUALITY' : draft.qualityMode,
+                    });
+                  }}
+                />
+                <span>
+                  <strong>Paksa dokumen (ORIGINAL)</strong>
+                  <small>File utuh tanpa kompresi foto Telegram.</small>
+                </span>
+              </label>
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.duplicatePolicy === 'SKIP'}
+                  disabled={!!transferActive}
+                  onChange={(e) => onChange({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
+                />
+                <span>
+                  <strong>Lewati berkas terunggah (De-duplikasi)</strong>
+                  <small>Deteksi riwayat Telegram dan database lokal otomatis.</small>
+                </span>
+              </label>
+            </div>
+
+            <h3>Caption default</h3>
+            <textarea
+              className="td-xfer-textarea"
+              rows={3}
+              maxLength={1024}
+              placeholder="Caption opsional…"
+              value={draft.globalCaption}
+              disabled={!!transferActive}
+              onChange={(e) => onChange({ globalCaption: e.target.value })}
+            />
+            <div className="td-xfer-charcount">{draft.globalCaption.length}/1024</div>
+          </section>
+        )}
+
+        {subTab === 'download' && (
+          <section className="td-xfer-section" aria-label="Pengaturan download">
+            <h3>Paralel unduh</h3>
+            <p className="td-xfer-hint">
+              Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch).
+            </p>
+            <label className="td-xfer-range-row">
+              <input
+                type="range"
+                min={1}
+                max={8}
+                value={draft.downloadConcurrency}
+                disabled={!!transferActive}
+                onChange={(e) => onChange({ downloadConcurrency: Number(e.target.value) })}
+                aria-label="Paralel download"
+              />
+              <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
+            </label>
+
+            <h3>Perilaku unduh</h3>
+            <div className="td-xfer-checks">
+              <label className="td-xfer-check">
+                <input
+                  type="checkbox"
+                  checked={draft.notifyDownloadDone}
+                  onChange={(e) => onChange({ notifyDownloadDone: e.target.checked })}
+                />
+                <span>
+                  <strong>Notifikasi saat unduhan selesai</strong>
+                  <small>Tampilkan pemberitahuan banner ketika batch download rampung.</small>
+                </span>
+              </label>
+            </div>
+          </section>
+        )}
+      </div>
+
+      <footer className="td-xfer-settings-foot">
+        <button
+          type="button"
+          className="td-btn-secondary"
+          disabled={!!transferActive}
+          onClick={onReset}
+          title="Kembalikan semua ke setelan awal"
+        >
+          <RotateCcw size={14} />
+          Reset Default
+        </button>
+        <button
+          type="button"
+          className="td-btn-primary"
+          onClick={onSave}
+          title="Simpan perubahan pengaturan transfer"
+        >
+          <Check size={14} />
+          Simpan Pengaturan
+        </button>
+      </footer>
+    </div>
+  );
 }
 
 /** Compact thumbnail for duplicate list rows (reuses grid thumb cache/batcher). */

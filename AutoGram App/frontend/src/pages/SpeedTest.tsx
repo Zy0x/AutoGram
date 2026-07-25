@@ -257,7 +257,7 @@ import { DriveExplorer } from '../components/media-drive/DriveExplorer';
 import { DrivePreviewModal } from '../components/media-drive/DrivePreviewModal';
 import { DriveContextMenu } from '../components/media-drive/DriveContextMenu';
 import { DriveTransferManager } from '../components/media-drive/DriveTransferManager';
-import { DriveTransferSettings as TransferSettingsModal } from '../components/media-drive/DriveTransferSettings';
+
 import {
   DriveConfirmDialog,
   type DriveConfirmState,
@@ -667,7 +667,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     ...DEFAULT_TRANSFER_SETTINGS,
     ...loadTransferSettings(),
   }));
-  const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
@@ -7175,7 +7174,10 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
               openMoveDestinationPicker(selectedIds, names);
             }}
             onRefresh={refreshFiles}
-            onOpenTransferSettings={() => setTransferSettingsOpen(true)}
+            onOpenTransferSettings={() => {
+              setToolsTab('transfer');
+              setToolsOpen(true);
+            }}
             onOpenTransferManager={openTransferManager}
             transferHasHistory={
               transfer.active || (transfer.items?.length ?? 0) > 0 || !!transfer.banner
@@ -7373,6 +7375,13 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             filesHasMore={filesHasMore}
             topicFilter={topicFilter}
             isForum={isForumChat}
+            transferSettings={transferSettings}
+            transferActive={transfer.active}
+            onTransferSettingsChange={(next: TransferSettingsState) => {
+              setTransferSettings(next);
+              saveTransferSettings(next);
+              void setSecureTransferSettings(next);
+            }}
             onPreviewFile={(f) => {
               // Keep tools open behind preview (z-index above tools) so user can resume dups after Esc
               setPreviewFile(f);
@@ -7384,18 +7393,6 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             onBulkRename={handleBulkRename}
             onSmartCopy={(opts) => {
               void handleSmartCopy(opts);
-            }}
-          />
-
-          <TransferSettingsModal
-            open={transferSettingsOpen}
-            settings={transferSettings}
-            transferActive={transfer.active}
-            onClose={() => setTransferSettingsOpen(false)}
-            onChange={(next: TransferSettingsState) => {
-              setTransferSettings(next);
-              saveTransferSettings(next);
-              void setSecureTransferSettings(next);
             }}
           />
 

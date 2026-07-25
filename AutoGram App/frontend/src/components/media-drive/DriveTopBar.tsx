@@ -11,13 +11,12 @@ import {
   ArrowUpDown,
   ZoomIn,
   ZoomOut,
-  Settings2,
   ListChecks,
   SquareX,
   ArrowLeftRight,
   SendHorizontal,
   MousePointerClick,
-  Wrench,
+  SlidersHorizontal,
   Pin,
   PinOff,
   Copy,
@@ -154,7 +153,7 @@ export function DriveTopBar({
   onDelete,
   onMoveSelected,
   onRefresh,
-  onOpenTransferSettings,
+  onOpenTransferSettings: _onOpenTransferSettings,
   onOpenTransferManager,
   transferBusy,
   actionsDisabled,
@@ -434,10 +433,10 @@ export function DriveTopBar({
               type="button"
               className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools}
-              title="Alat Drive: salin batch, duplikat, rename, filter, storage (Ctrl+Shift+T)"
-              aria-label="Buka alat Drive"
+              title="Alat & Pengaturan Drive: salin batch, duplikat, rename, filter, storage, transfer (Ctrl+Shift+T)"
+              aria-label="Buka alat & pengaturan Drive"
             >
-              <Wrench size={16} />
+              <SlidersHorizontal size={16} />
             </button>
           )}
         </div>
@@ -539,17 +538,7 @@ export function DriveTopBar({
               )}
             </button>
           )}
-          {onOpenTransferSettings && (
-            <button
-              type="button"
-              className="td-icon-btn"
-              onClick={onOpenTransferSettings}
-              title="Pengaturan Upload & Download"
-              aria-label="Pengaturan transfer"
-            >
-              <Settings2 size={16} />
-            </button>
-          )}
+
 
           {onDownloadAllClick && (
             <button
