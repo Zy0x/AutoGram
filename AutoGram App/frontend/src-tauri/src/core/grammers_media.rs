@@ -1042,14 +1042,14 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    // Pass 1: Standard frame extraction at timestamp 0
+    // Pass 1: Decode first video frame without input seek (crucial for AV1/VP9 sequence header OBU parsing)
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
-        .arg("-ss")
-        .arg("00:00:00.000")
+        .arg("-threads")
+        .arg("1")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
@@ -1068,7 +1068,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         Err(e) => (None, e.to_string()),
     };
 
-    // Pass 2: Fallback without explicit seeking timestamp if Pass 1 failed
+    // Pass 2: Output-level seek (-ss 00:00:00.500 after -i) if Pass 1 returned empty/failed
     if result.is_none() {
         let status2 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
@@ -1077,7 +1077,11 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("-y")
             .arg("-i")
             .arg(&sample_path)
+            .arg("-ss")
+            .arg("00:00:00.500")
             .arg("-an")
+            .arg("-threads")
+            .arg("1")
             .arg("-vframes")
             .arg("1")
             .arg("-vf")
