@@ -38,6 +38,10 @@ pub struct StreamEntry {
     #[serde(default)]
     pub paused: bool,
     pub updated_at_ms: u128,
+    /// Cached moov atom detection — set once in upsert_entry, never re-scanned on status polls.
+    /// Non-MP4 files default to true. MP4 files are scanned once when bytes arrive.
+    #[serde(default)]
+    pub moov_ready_cached: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -181,9 +185,29 @@ fn save_entry_disk(entry: &StreamEntry) {
     }
 }
 
+fn is_mp4_entry(entry: &StreamEntry) -> bool {
+    let lower = entry.label.to_ascii_lowercase();
+    entry.mime.eq_ignore_ascii_case("video/mp4")
+        || entry.mime.eq_ignore_ascii_case("video/quicktime")
+        || lower.ends_with(".mp4")
+        || lower.ends_with(".m4v")
+        || lower.ends_with(".mov")
+}
+
 pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
     entry.ranges = merge_ranges(entry.ranges);
     entry.updated_at_ms = now_ms();
+    // Cache moov detection ONCE here (not on every status poll).
+    // Non-MP4 or completed files are always ready; MP4 is scanned once
+    // per upsert until the atom is found — O(1) subsequent polls.
+    if !entry.moov_ready_cached && !entry.cancelled {
+        if entry.done || !is_mp4_entry(&entry) {
+            entry.moov_ready_cached = true;
+        } else {
+            entry.moov_ready_cached =
+                range_contains_atom(Path::new(&entry.path), &entry.ranges, b"moov");
+        }
+    }
     save_entry_disk(&entry);
     live_map()
         .write()
@@ -250,14 +274,8 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             // Align with Python first_play tiers (~96–384 KiB). Too-high thresholds
             // leave UI stuck on "Buffering" while bytes already sit on disk.
             let first_play = super::streaming_policy::first_play_bytes(total);
-            let lower_label = e.label.to_ascii_lowercase();
-            let is_mp4 = e.mime.eq_ignore_ascii_case("video/mp4")
-                || lower_label.ends_with(".mp4")
-                || lower_label.ends_with(".m4v")
-                || lower_label.ends_with(".mov");
-            let moov_ready = !is_mp4
-                || e.done
-                || range_contains_atom(Path::new(&e.path), &e.ranges, b"moov");
+            // moov_ready is cached by upsert_entry — no disk scan on every poll.
+            let moov_ready = !is_mp4_entry(&e) || e.done || e.moov_ready_cached;
             let stream_ready =
                 e.done || (prefix >= first_play.min(total.max(1)) && moov_ready);
             StreamStatusDto {
@@ -762,6 +780,7 @@ pub fn register_local_file(
         error: None,
         paused: false,
         updated_at_ms: now_ms(),
+        moov_ready_cached: true, // complete local file — always ready
     };
     upsert_entry(entry);
     let safe = label

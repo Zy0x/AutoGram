@@ -575,10 +575,22 @@ export function DrivePreviewModal({
    */
   const hasUserPlayRef = useRef(false);
   const isVideoCapturedRef = useRef(false);
+  /**
+   * Guard: prevents both poll (missing≥5 ticks) and onError rebind from
+   * calling loadPreview / rebind simultaneously — the main cause of
+   * "reload pemutar terus-menerus".
+   */
+  const softReloadInFlightRef = useRef(false);
+  const softReloadTimerRef = useRef<number | null>(null);
 
-  // Reset captured flag when file changes
+  // Reset captured flag + reload guards when file changes
   useEffect(() => {
     isVideoCapturedRef.current = false;
+    softReloadInFlightRef.current = false;
+    if (softReloadTimerRef.current != null) {
+      window.clearTimeout(softReloadTimerRef.current);
+      softReloadTimerRef.current = null;
+    }
   }, [file?.id]);
 
   const captureVideoFrame = useCallback(() => {
@@ -1080,7 +1092,7 @@ export function DrivePreviewModal({
   useEffect(() => {
     if (!streamId || streamDone) return;
     let alive = true;
-    let intervalMs = 600; // cold start
+    let intervalMs = 250; // cold start — fast initial nudge (was 600ms)
     let timer: any = null;
 
     const schedule = (ms: number) => {
@@ -1154,7 +1166,7 @@ export function DrivePreviewModal({
           (!!v && !v.paused && browserHasData) ||
           st.stream_ready === true ||
           prefix >= 1024 * 1024;
-        const wantMs = healthy ? 1500 : 400;
+        const wantMs = healthy ? 900 : 300; // (was 1500:400) — more responsive
         if (wantMs !== intervalMs) schedule(wantMs);
 
         if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {
@@ -1181,13 +1193,21 @@ export function DrivePreviewModal({
               }
             }
             if (streamMissingHitsRef.current >= 5) {
-              // Re-RPC only after 5 consecutive missing ticks (~3s) & video is truly stuck
+              // Re-RPC only after 5 consecutive missing ticks AND video is truly stuck.
+              // Guard: don’t overlap with onError rebind — that’s the reload-loop root cause.
               streamMissingHitsRef.current = 0;
-              setPlayerHint('Melanjutkan unduhan stream…');
-              window.setTimeout(() => {
-                if (mountGenRef.current !== activeMountGen) return;
-                loadPreviewRef.current(quality, { soft: true });
-              }, 500);
+              if (!softReloadInFlightRef.current) {
+                softReloadInFlightRef.current = true;
+                setPlayerHint('Melanjutkan unduhan stream…');
+                softReloadTimerRef.current = window.setTimeout(() => {
+                  softReloadInFlightRef.current = false;
+                  softReloadTimerRef.current = null;
+                  if (mountGenRef.current !== activeMountGen) return;
+                  loadPreviewRef.current(quality, { soft: true });
+                }, 600);
+              } else {
+                setPlayerHint('Melanjutkan stream…');
+              }
             } else {
               setPlayerHint('Melanjutkan stream…');
             }
@@ -1197,12 +1217,15 @@ export function DrivePreviewModal({
         }
         if (st.status === 'error') setHint(st.error || 'Stream error');
 
-        // Aggressive first-play nudge (≤900ms). Screenshot case: frame+duration ready
-        // but stuck on "Buffering… menunggu data stream" after MEDIA_ERR during fill.
+        // Aggressive first-play nudge (≤250ms cooldown).
+        // Triggers on stream_ready, browserHasData, or even bufferPct>=5%
+        // so video starts the instant enough bytes exist — YouTube-style.
         const now = Date.now();
+        const bufferHasEnough = pct >= 5 || prefix >= 128 * 1024;
         const streamReady =
           st.stream_ready === true ||
           browserHasData ||
+          bufferHasEnough ||
           (!!v && v.readyState >= 2) ||
           (!!v && Number.isFinite(v.duration) && v.duration > 0 && browserHasData);
         nativeStreamReadyRef.current = st.stream_ready === true;
@@ -1212,7 +1235,7 @@ export function DrivePreviewModal({
           !v.ended &&
           !seekWarnRef.current &&
           streamReady &&
-          now - playNudgeAtRef.current > 900
+          now - playNudgeAtRef.current > 250  // was 900ms — now 250ms for instant feel
         ) {
           const nearEnd =
             Number.isFinite(v.duration) &&
@@ -3201,37 +3224,48 @@ export function DrivePreviewModal({
                   // Progressive buffer hole / 503: do NOT tear down the stream.
                   // WebView2 often fires MEDIA_ERR_NETWORK while fill catches up;
                   // full reload restarts GetFile. Clear error by rebinding same URL.
-                  const progressiveFilling = !!streamUrl && !streamDone;
+                  // Use streamDoneRef (ref, not state) to avoid stale-closure false negatives.
+                  const progressiveFilling = !!streamUrl && !streamDoneRef.current;
                   if (progressiveFilling) {
                     mediaErrorCountRef.current += 1;
                     const v = videoRef.current;
                     const n = mediaErrorCountRef.current;
-                    // First few errors: soft rebind same src (clears MEDIA_ERR sticky state)
-                    if (v && streamUrl && nativeStreamReadyRef.current && n <= 2) {
-                      setPlayerHint('Buffering… menyambung putar');
-                      const t = v.currentTime || 0;
-                      const sticky = streamUrl;
-                      window.setTimeout(() => {
-                        const vv = videoRef.current;
-                        if (!vv || mountGenRef.current !== activeMountGen) return;
-                        try {
-                          if (vv.error) {
-                            vv.removeAttribute('src');
-                            vv.load();
-                            vv.src = sticky;
-                            if (t > 0.25) {
-                              ignoreSeekEventsRef.current += 1;
-                              vv.currentTime = t;
-                            }
-                          }
-                          void vv.play().then(() => {
-                            hasUserPlayRef.current = true;
-                            setPlayerHint(null);
-                          }).catch(() => undefined);
-                        } catch {
-                          /* ignore */
+                    // First few errors: soft rebind same src (clears MEDIA_ERR sticky state).
+                    // Guard: set softReloadInFlightRef so poll’s missing-5 path doesn’t
+                    // also call loadPreview at the same time — that’s the reload loop.
+                    if (v && streamUrl && n <= 3) {
+                      if (!softReloadInFlightRef.current) {
+                        softReloadInFlightRef.current = true;
+                        setPlayerHint('Buffering… menyambung putar');
+                        const t = v.currentTime || 0;
+                        const sticky = streamUrl;
+                        if (softReloadTimerRef.current != null) {
+                          window.clearTimeout(softReloadTimerRef.current);
                         }
-                      }, 350);
+                        softReloadTimerRef.current = window.setTimeout(() => {
+                          softReloadInFlightRef.current = false;
+                          softReloadTimerRef.current = null;
+                          const vv = videoRef.current;
+                          if (!vv || mountGenRef.current !== activeMountGen) return;
+                          try {
+                            if (vv.error) {
+                              vv.removeAttribute('src');
+                              vv.load();
+                              vv.src = sticky;
+                              if (t > 0.25) {
+                                ignoreSeekEventsRef.current += 1;
+                                vv.currentTime = t;
+                              }
+                            }
+                            void vv.play().then(() => {
+                              hasUserPlayRef.current = true;
+                              setPlayerHint(null);
+                            }).catch(() => undefined);
+                          } catch {
+                            /* ignore */
+                          }
+                        }, 350);
+                      }
                       return;
                     }
                     setPlayerHint(

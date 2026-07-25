@@ -2160,6 +2160,7 @@ fn start_preview_stream_inner(
             error: None,
             paused: false,
             updated_at_ms: now_ms(),
+            moov_ready_cached: false, // computed by upsert_entry once bytes arrive
         };
         stream_server::upsert_entry(entry);
         let cancel = register_cancel(&stream_id);
@@ -2229,6 +2230,7 @@ fn start_preview_stream_inner(
                     error: None,
                     paused: false,
                     updated_at_ms: now_ms(),
+                    moov_ready_cached: false,
                 });
             }
             // _boot_slot dropped here — UI can open another video without waiting for full fill.
@@ -2422,6 +2424,7 @@ fn start_preview_stream_inner(
                         error: None,
                         paused: false,
                         updated_at_ms: now_ms(),
+                        moov_ready_cached: false, // upsert_entry will compute from actual bytes
                     });
                     if offset >= size {
                         if let Some(missing) = first_missing_offset(&ranges, size) {
@@ -2464,6 +2467,7 @@ fn start_preview_stream_inner(
                         error: None,
                         paused: false,
                         updated_at_ms: now_ms(),
+                        moov_ready_cached: true, // done = always ready
                     });
                     tg_log::info(BACKEND, "progressive_done", format!("sid={sid} size={size}"));
                 }
@@ -2481,6 +2485,7 @@ fn start_preview_stream_inner(
                         error: if cancelled { None } else { Some(e.clone()) },
                         paused: cancelled,
                         updated_at_ms: now_ms(),
+                        moov_ready_cached: false,
                     });
                     if !cancelled {
                         tg_log::error(BACKEND, "progressive_fail", e);
