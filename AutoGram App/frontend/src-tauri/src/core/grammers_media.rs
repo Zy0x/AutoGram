@@ -2236,39 +2236,52 @@ fn start_preview_stream_inner(
 
             if is_video && size > 1024 * 1024 && !has_moov_head {
                 if let Some(loc) = media_to_input_location(&media) {
-                    let tail_budget: u64 = 2 * 1024 * 1024;
-                    let start_tail = (size.saturating_sub(tail_budget) / 4096) * 4096;
-                    let mut curr_offset = start_tail;
-                    while curr_offset < size {
-                        let tail_req = tl::functions::upload::GetFile {
+                    // Ultra-Fast 1-Shot MOOV Tail Fetch: Most MP4 moov atoms reside in the final 512 KiB.
+                    // Fetch final 512 KiB first (single MTProto roundtrip ~60ms).
+                    let tail_512k_offset = (size.saturating_sub(512 * 1024) / 4096) * 4096;
+                    let tail_req = tl::functions::upload::GetFile {
+                        precise: false,
+                        cdn_supported: false,
+                        location: loc.clone(),
+                        offset: tail_512k_offset as i64,
+                        limit: 512 * 1024,
+                    };
+                    let mut found_moov = false;
+                    if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req).await {
+                        if !f.bytes.is_empty() {
+                            if file.seek(SeekFrom::Start(tail_512k_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                let end_tail = tail_512k_offset + f.bytes.len() as u64;
+                                boot_ranges.push((tail_512k_offset, end_tail));
+                                if f.bytes.windows(4).any(|w| w == b"moov") {
+                                    found_moov = true;
+                                    tg_log::info(
+                                        BACKEND,
+                                        "moov_tail_bootstrapped_fast",
+                                        format!("sid={stream_id} offset={tail_512k_offset}"),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback to secondary 512KB tail chunk if moov wasn't in final 512KB
+                    if !found_moov && tail_512k_offset >= 512 * 1024 {
+                        let prev_tail_offset = tail_512k_offset - 512 * 1024;
+                        let tail_req2 = tl::functions::upload::GetFile {
                             precise: false,
                             cdn_supported: false,
                             location: loc.clone(),
-                            offset: curr_offset as i64,
+                            offset: prev_tail_offset as i64,
                             limit: 512 * 1024,
                         };
-                        match live.client.invoke(&tail_req).await {
-                            Ok(tl::enums::upload::File::File(f)) => {
-                                if !f.bytes.is_empty() {
-                                    if file.seek(SeekFrom::Start(curr_offset)).is_ok() {
-                                        if file.write_all(&f.bytes).is_ok() {
-                                            let end_tail = curr_offset + f.bytes.len() as u64;
-                                            boot_ranges.push((curr_offset, end_tail));
-                                            if f.bytes.windows(4).any(|w| w == b"moov") {
-                                                tg_log::info(
-                                                    BACKEND,
-                                                    "moov_tail_bootstrapped",
-                                                    format!("sid={stream_id} offset={curr_offset}"),
-                                                );
-                                                break;
-                                            }
-                                        }
-                                    }
+                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req2).await {
+                            if !f.bytes.is_empty() {
+                                if file.seek(SeekFrom::Start(prev_tail_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                    let end_tail = prev_tail_offset + f.bytes.len() as u64;
+                                    boot_ranges.push((prev_tail_offset, end_tail));
                                 }
                             }
-                            _ => break,
                         }
-                        curr_offset += 512 * 1024;
                     }
                     let _ = file.flush();
                 }
@@ -2333,6 +2346,13 @@ fn start_preview_stream_inner(
                 while offset < size {
                     if flag.load(Ordering::SeqCst) {
                         return Err("cancelled".into());
+                    }
+
+                    // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
+                    // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
+                    let current_filled = filled_bytes(&ranges);
+                    if current_filled > 15 * 1024 * 1024 {
+                        tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }
 
                     // Skip ranges already filled (e.g. bootstrapped tail range)

@@ -1166,7 +1166,7 @@ export function DrivePreviewModal({
           (!!v && !v.paused && browserHasData) ||
           st.stream_ready === true ||
           prefix >= 1024 * 1024;
-        const wantMs = healthy ? 900 : 300; // (was 1500:400) — more responsive
+        const wantMs = healthy ? 800 : 120; // 120ms initial fast poll for instant start
         if (wantMs !== intervalMs) schedule(wantMs);
 
         if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {
@@ -1217,7 +1217,7 @@ export function DrivePreviewModal({
         }
         if (st.status === 'error') setHint(st.error || 'Stream error');
 
-        // Aggressive first-play nudge (≤250ms cooldown).
+        // Aggressive first-play nudge (≤120ms cooldown).
         // Triggers on stream_ready, browserHasData, or even bufferPct>=5%
         // so video starts the instant enough bytes exist — YouTube-style.
         const now = Date.now();
@@ -1235,7 +1235,7 @@ export function DrivePreviewModal({
           !v.ended &&
           !seekWarnRef.current &&
           streamReady &&
-          now - playNudgeAtRef.current > 250  // was 900ms — now 250ms for instant feel
+          now - playNudgeAtRef.current > 120  // 120ms for instant play response
         ) {
           const nearEnd =
             Number.isFinite(v.duration) &&
