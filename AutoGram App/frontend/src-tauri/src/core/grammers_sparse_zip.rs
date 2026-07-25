@@ -12,6 +12,7 @@ use grammers_client::tl;
 use serde::{Deserialize, Serialize};
 
 use super::grammers_ops::{obtain_live_client, persist_memory_session, resolve_peer, runtime};
+use super::session_rate;
 use super::telegram_ops::TelegramIdentity;
 use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::zip_local::{sanitize_zip_path, ZipEntry, ZipEntryPreview, ZipListResult};
@@ -387,6 +388,8 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         api_id: opts.api_id,
         api_hash: opts.api_hash.clone(),
     };
+    session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
+    let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
     let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;
@@ -598,6 +601,8 @@ pub async fn preview_zip_entry_sparse(
         api_id: opts.api_id,
         api_hash: opts.api_hash.clone(),
     };
+    session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
+    let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
     let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;
@@ -753,6 +758,8 @@ pub async fn extract_zip_entry_sparse(
         api_id: opts.api_id,
         api_hash: opts.api_hash.clone(),
     };
+    session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
+    let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
     let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;

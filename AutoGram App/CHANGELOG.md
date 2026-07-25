@@ -1,3 +1,9 @@
+## v2.3.40 Resolusi Konflik MTProto Rate Governance (ZIP Sparse vs Video Stream)
+
+### Integrasi Semaphore Media & Rate-Guarding pada Engine ZIP Sparse (`grammers_sparse_zip.rs`)
+- **Integrasi `acquire_media_slot` pada Pembaca ZIP**: Mengintegrasikan `session_rate::acquire_media_slot` dan `session_rate::wait_if_flooded_capped` ke dalam `list_zip_sparse`, `preview_zip_entry_sparse`, dan `extract_zip_entry_sparse`.
+- **Eliminasi Total Tabrakan Socket MTProto**: Menggaransi seluruh permintaan MTProto pembacaan ZIP tunduk pada Single Global Concurrency Semaphore. Mencegah pembacaan ZIP merebut saluran MTProto pemutar video, mengeliminasi error `progressive_flood`, dan memastikan Media Preview diputar instan tanpa hambatan.
+
 ## v2.3.39 Stream Auto-Pause Fix & Eliminasi Loop Reload Pemutar Video
 
 ### Perbaikan Kritis Pemutaran Stream & Pemulihan Auto-Resume (`DrivePreviewModal.tsx`, `DriveZipBrowser.tsx`)
