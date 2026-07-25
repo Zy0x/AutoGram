@@ -1027,11 +1027,11 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     let saver = mode.contains("hemat") || mode.contains("saver");
 
     let (scale_arg, q_val) = if sharp {
-        ("scale='min(1080,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "2")
+        ("scale=-2:720,format=yuv420p", "2")
     } else if saver {
-        ("scale='min(360,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "6")
+        ("scale=-2:360,format=yuv420p", "6")
     } else {
-        ("scale='min(720,iw)':-2:force_original_aspect_ratio=decrease,format=yuv420p", "3")
+        ("scale=-2:480,format=yuv420p", "3")
     };
 
     let temp_dir = std::env::temp_dir();
@@ -1042,22 +1042,18 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    // Pass 1: Try fast keyframe extraction (-discard nokey)
+    // Pass 1: Standard frame extraction at timestamp 0
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
-        .arg("-err_detect")
-        .arg("ignore_err")
-        .arg("-discard")
-        .arg("nokey")
+        .arg("-ss")
+        .arg("00:00:00.000")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
-        .arg("-frames:v")
-        .arg("1")
-        .arg("-update")
+        .arg("-vframes")
         .arg("1")
         .arg("-vf")
         .arg(scale_arg)
@@ -1066,27 +1062,23 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg(&frame_path)
         .output();
 
-    let mut result = if status1.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
-        std::fs::read(&frame_path).ok()
-    } else {
-        None
+    let (mut result, err1) = match status1 {
+        Ok(out) if out.status.success() && frame_path.exists() => (std::fs::read(&frame_path).ok(), String::new()),
+        Ok(out) => (None, String::from_utf8_lossy(&out.stderr).trim().to_string()),
+        Err(e) => (None, e.to_string()),
     };
 
-    // Pass 2: If keyframe extraction failed, try standard decoding (no -discard nokey)
+    // Pass 2: Fallback without explicit seeking timestamp if Pass 1 failed
     if result.is_none() {
         let status2 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
             .arg("error")
             .arg("-y")
-            .arg("-err_detect")
-            .arg("ignore_err")
             .arg("-i")
             .arg(&sample_path)
             .arg("-an")
-            .arg("-frames:v")
-            .arg("1")
-            .arg("-update")
+            .arg("-vframes")
             .arg("1")
             .arg("-vf")
             .arg(scale_arg)
@@ -1095,8 +1087,25 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        if status2.map(|o| o.status.success()).unwrap_or(false) && frame_path.exists() {
-            result = std::fs::read(&frame_path).ok();
+        match status2 {
+            Ok(out) if out.status.success() && frame_path.exists() => {
+                result = std::fs::read(&frame_path).ok();
+            }
+            Ok(out) => {
+                let err2 = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                tg_log::warn(
+                    BACKEND,
+                    "ffmpeg_frame_failed",
+                    &format!("size={} ext={ext} err1='{err1}' err2='{err2}'", sample_bytes.len()),
+                );
+            }
+            Err(e) => {
+                tg_log::warn(
+                    BACKEND,
+                    "ffmpeg_exec_failed",
+                    &format!("size={} ext={ext} err={e}", sample_bytes.len()),
+                );
+            }
         }
     }
 
