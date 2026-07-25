@@ -428,6 +428,25 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
         Media::Photo(p) => p.thumbs(),
         Media::Document(d) => d.thumbs(),
         Media::Sticker(s) => s.document.thumbs(),
+        Media::WebPage(wp) => match &wp.raw {
+            tl::enums::WebPage::Page(page) => {
+                let mut out = Vec::new();
+                if let Some(tl::enums::Photo::Photo(photo)) = &page.photo {
+                    for s in &photo.sizes {
+                        out.push(PhotoSize::make(s));
+                    }
+                }
+                if let Some(tl::enums::Document::Document(doc)) = &page.document {
+                    if let Some(ref thumbs) = doc.thumbs {
+                        for s in thumbs {
+                            out.push(PhotoSize::make(s));
+                        }
+                    }
+                }
+                out
+            }
+            _ => vec![],
+        },
         _ => vec![],
     }
 }

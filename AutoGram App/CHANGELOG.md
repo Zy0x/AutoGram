@@ -1,3 +1,10 @@
+## v2.3.38 Support Thumbnail Extraction & Auto-Sync untuk Link Post Telegram (`Media::WebPage`)
+
+### Dukungan Thumbnail WebPage / Link Preview (`grammers_media.rs`, `grammers_ops.rs`)
+- **Dukungan `Media::WebPage` pada `media_thumbs`**: Memperbarui `media_thumbs` di `grammers_media.rs` agar mengekstrak layer gambar `PhotoSize` dari objek `page.photo` dan `page.document` yang terdapat di dalam pesan `Media::WebPage`.
+- **Aktivas `has_thumb` untuk Pesan Link**: Memperbarui `list_media` di `grammers_ops.rs` agar secara otomatis menandai `has_thumb: true` jika `Media::WebPage` memiliki pratinjau foto atau dokumen.
+- **Eliminasi Thumbnail Miss pada Tautan Telegram/Web**: Mengeliminasi total log `Thumbnail miss for chat=...` untuk pesan berisi tautan/link (seperti post Telegram `t.me/...`, link YouTube, dan web preview), menyajikan pratinjau thumbnail jernih dan tersinkronisasi di kartu grid.
+
 ## v2.3.37 Comprehensive Thumbnail Debug Logging & Diagnostic Enhancements
 
 ### Logging & Diagnostik Debug Thumbnail Terstruktur (`grammers_media.rs`, `telegram_ops.rs`, `thumbBatcher.ts`)

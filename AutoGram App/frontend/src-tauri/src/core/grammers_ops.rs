@@ -1199,7 +1199,13 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                 backend: BACKEND.into(),
                 thumb_data_url,
             }),
-            Media::WebPage(_) => {
+            Media::WebPage(wp) => {
+                let webpage_has_thumb = match &wp.raw {
+                    grammers_client::tl::enums::WebPage::Page(page) => {
+                        page.photo.is_some() || page.document.is_some()
+                    }
+                    _ => false,
+                };
                 let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
                 let clean_title = caption.lines().next().unwrap_or(caption).trim();
                 let display_name = if !clean_title.is_empty() {
@@ -1220,10 +1226,10 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                     mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
                     icon_type: if is_link { "link".into() } else { "document".into() },
                     created_at: created,
-                    has_thumb: false,
+                    has_thumb: webpage_has_thumb,
                     as_document: false,
                     backend: BACKEND.into(),
-                    thumb_data_url: None,
+                    thumb_data_url,
                 })
             }
             _ => None,
