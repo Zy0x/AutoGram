@@ -2696,8 +2696,9 @@ body.td-dnd-external {
   box-sizing: border-box;
   max-width: 100%;
   min-width: 0;
-  /* Isolate row paint so scroll doesn't reflow siblings */
-  contain: layout style;
+  overflow: visible;
+  /* Keep style containment without paint clipping so hover translateY & shadows extend smoothly */
+  contain: style;
 }
 .td-grid-row > .td-file-card {
   min-width: 0 !important;
@@ -2846,8 +2847,13 @@ body.td-dnd-external {
   box-sizing: border-box;
   user-select: none;
   -webkit-user-select: none;
-  /* Contain layout & style of card chrome; do not clip paint so hover translateY & box-shadow extend smoothly */
-  contain: layout style;
+  position: relative;
+  z-index: 1;
+  contain: style;
+  transition: z-index 0s;
+}
+.td-file-card:hover {
+  z-index: 10;
 }
 .td-file-card * {
   user-select: none;
