@@ -948,7 +948,7 @@ pub(crate) async fn resolve_peer(
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
 
-    let owner_id = client.get_me().await.map(|u| u.id()).unwrap_or(0);
+    let owner_id = client.get_me().await.map(|u| peer_id_i64(u.id())).unwrap_or(0);
     let ckey = |k: &str| format!("{owner_id}:{k}");
 
     if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
