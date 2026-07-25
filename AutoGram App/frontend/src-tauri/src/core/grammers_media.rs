@@ -437,6 +437,9 @@ fn media_thumbs(_client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
                 }
                 if let Some(doc) = &page.document {
                     let media_doc = tl::types::MessageMediaDocument {
+                        nopremium: false,
+                        spoiler: false,
+                        video: false,
                         round: false,
                         voice: false,
                         video_cover: None,
