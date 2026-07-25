@@ -286,13 +286,18 @@ export function DriveToolsPanel({
       >
         <header className="td-tools-head">
           <div className="td-tools-title">
-            <SlidersHorizontal size={18} />
-            <div>
-              <strong>Alat &amp; Pengaturan Drive</strong>
-              <span className="td-tools-sub">{locationLabel}</span>
+            <div className="td-tools-icon-wrap" aria-hidden="true">
+              <SlidersHorizontal size={20} />
+            </div>
+            <div className="td-tools-title-text">
+              <h2>Alat &amp; Pengaturan Drive</h2>
+              <div className="td-tools-sub" title={locationLabel}>
+                <span className="td-tools-loc-dot"></span>
+                <span>{locationLabel}</span>
+              </div>
             </div>
           </div>
-          <button type="button" className="td-icon-btn" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label="Tutup">
             <X size={18} />
           </button>
         </header>
@@ -312,7 +317,7 @@ export function DriveToolsPanel({
                       className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
                       onClick={() => onTab(t.id)}
                     >
-                      <Icon size={15} />
+                      <Icon size={16} />
                       <span>{t.label}</span>
                     </button>
                   );
@@ -338,34 +343,33 @@ export function DriveToolsPanel({
 
           {tab === 'space' && (
             <div className="td-tools-section">
-              <p className="td-tools-lead">
-                <strong>{displayCount.toLocaleString('id-ID')}</strong> file di{' '}
-                {scopeLabel}
-                {locationStatsLoading && !locationStatsAccurate ? '…' : ''} ·{' '}
-                <strong>
-                  {formatDriveBytes(displayBytes)}
-                  {locationStatsLoading && !locationStatsAccurate ? '…' : ''}
-                </strong>
-              </p>
+              <div className="td-tools-stats-hero">
+                <div className="td-tools-stats-main">
+                  <span className="td-tools-stats-count">{displayCount.toLocaleString('id-ID')}</span>
+                  <span className="td-tools-stats-label">file di {scopeLabel}</span>
+                  <span className="td-tools-stats-bytes">({formatDriveBytes(displayBytes)})</span>
+                </div>
+                <div className="td-tools-stats-status">
+                  {locationStatsAccurate ? (
+                    <span className="td-tools-badge-ok">Akurat (Metadata Telegram)</span>
+                  ) : locationStatsLoading ? (
+                    <span className="td-tools-badge-busy">Menghitung…</span>
+                  ) : (
+                    <span className="td-tools-badge-est">Perkiraan (Grid Loaded)</span>
+                  )}
+                </div>
+              </div>
+
               <p className="td-tools-hint">
                 {locationStatsAccurate ? (
-                  <>
-                    <span className="td-tools-badge-ok">Akurat</span> Total unik seluruh{' '}
-                    {scopeLabel} (metadata Telegram, tanpa unduh file). Tidak double-count
-                    antar filter.
-                  </>
+                  <>Total unik seluruh {scopeLabel} (metadata Telegram, tanpa unduh file). Tidak double-count antar filter.</>
                 ) : locationStatsLoading ? (
-                  <>
-                    <span className="td-tools-badge-busy">Menghitung…</span> Walk media di
-                    latar — angka akan final saat selesai. Grid tetap bisa dipakai.
-                  </>
+                  <>Walk media di latar — angka akan final saat selesai. Grid tetap bisa dipakai.</>
                 ) : (
-                  <>
-                    <span className="td-tools-badge-est">Perkiraan</span> Dari halaman
-                    grid / lower-bound. Buka tab ini memicu hitung akurat otomatis.
-                  </>
+                  <>Dari halaman grid / lower-bound. Buka tab ini memicu hitung akurat otomatis.</>
                 )}
               </p>
+
               {space.fileCount > 0 && (
                 <p className="td-tools-muted">
                   Grid dimuat: {space.fileCount.toLocaleString('id-ID')} file ·{' '}
@@ -373,6 +377,7 @@ export function DriveToolsPanel({
                   {filesHasMore ? ' (+ scroll untuk lebih banyak)' : ''}
                 </p>
               )}
+
               <h4 className="td-tools-h">
                 Per tipe {typeFromStats ? '(seluruh lokasi)' : '(yang dimuat di grid)'}
               </h4>
@@ -385,10 +390,8 @@ export function DriveToolsPanel({
                   </p>
                 )}
                 {typeRows.map((row) => {
-                  const denom =
-                    displayBytes > 0 ? displayBytes : space.totalBytes;
-                  const pct =
-                    denom > 0 ? Math.max(2, (row.bytes / denom) * 100) : 0;
+                  const denom = displayBytes > 0 ? displayBytes : space.totalBytes;
+                  const pct = denom > 0 ? Math.max(2, (row.bytes / denom) * 100) : 0;
                   return (
                     <div key={row.type} className="td-tools-bar-row">
                       <span className="td-tools-bar-label">
@@ -408,12 +411,14 @@ export function DriveToolsPanel({
                   );
                 })}
               </div>
+
               {space.largest.length > 0 && (
                 <>
-                  <h4 className="td-tools-h">File terbesar</h4>
-                  <ul className="td-tools-list">
+                  <h4 className="td-tools-h">File Terbesar</h4>
+                  <ul className="td-tools-largest-list">
                     {space.largest.map((f) => (
-                      <li key={f.id}>
+                      <li key={f.id} className="td-tools-largest-item">
+                        <FileTypeIcon file={f} size="sm" />
                         {onPreviewFile ? (
                           <button
                             type="button"
@@ -424,15 +429,15 @@ export function DriveToolsPanel({
                             <span className="td-tools-fname" title={f.name}>
                               {f.name}
                             </span>
-                            <span>{formatDriveBytes(f.size || 0)}</span>
+                            <span className="td-tools-size-badge">{formatDriveBytes(f.size || 0)}</span>
                           </button>
                         ) : (
-                          <>
+                          <div className="td-tools-linkrow static">
                             <span className="td-tools-fname" title={f.name}>
                               {f.name}
                             </span>
-                            <span>{formatDriveBytes(f.size || 0)}</span>
-                          </>
+                            <span className="td-tools-size-badge">{formatDriveBytes(f.size || 0)}</span>
+                          </div>
                         )}
                       </li>
                     ))}
@@ -444,56 +449,76 @@ export function DriveToolsPanel({
 
           {tab === 'rename' && (
             <div className="td-tools-section">
-              <p className="td-tools-lead">
-                Scope: {selectedFiles.length ? `${selectedFiles.length} terpilih` : `hingga 50 file di view`}.
-                Token: <code>{'{n}'}</code> <code>{'{n:3}'}</code> <code>{'{name}'}</code>{' '}
-                <code>{'{ext}'}</code> <code>{'{full}'}</code>
-              </p>
-              <label className="td-tools-field">
-                Pola
-                <input
-                  value={pattern}
-                  onChange={(e) => setPattern(e.target.value)}
-                  className="td-tools-input"
-                  spellCheck={false}
-                />
-              </label>
-              <label className="td-tools-field">
-                Mulai dari
-                <input
-                  type="number"
-                  min={0}
-                  value={startAt}
-                  onChange={(e) => setStartAt(Number(e.target.value) || 1)}
-                  className="td-tools-input td-tools-input-sm"
-                />
-              </label>
-              <h4 className="td-tools-h">Preview</h4>
-              <ul className="td-tools-list mono">
-                {renamePreview.length === 0 && <li>Tidak ada perubahan / file kosong</li>}
-                {renamePreview.map((r) => (
-                  <li key={r.id}>
-                    <span className="muted">{r.oldName}</span>
-                    <span aria-hidden> → </span>
-                    <strong>{r.newName}</strong>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy || renamePreview.length === 0}
-                onClick={() =>
-                  onBulkRename(
-                    applyBulkRenamePattern(renameScope, pattern, startAt).map((r) => ({
-                      id: r.id,
-                      newName: r.newName,
-                    }))
-                  )
-                }
-              >
-                <Check size={14} /> Terapkan rename
-              </button>
+              <div className="td-tools-lead-box">
+                <p className="td-tools-lead">
+                  Scope: <strong>{selectedFiles.length ? `${selectedFiles.length} terpilih` : `hingga 50 file di view`}</strong>.
+                </p>
+                <div className="td-tools-tokens">
+                  <span className="td-tools-token-label">Token:</span>
+                  <code className="td-token-badge">{'{n}'}</code>
+                  <code className="td-token-badge">{'{n:3}'}</code>
+                  <code className="td-token-badge">{'{name}'}</code>
+                  <code className="td-token-badge">{'{ext}'}</code>
+                  <code className="td-token-badge">{'{full}'}</code>
+                </div>
+              </div>
+
+              <div className="td-tools-rename-grid">
+                <label className="td-tools-field td-flex-grow">
+                  Pola Rename
+                  <input
+                    value={pattern}
+                    onChange={(e) => setPattern(e.target.value)}
+                    className="td-tools-input"
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="td-tools-field td-w-sm">
+                  Mulai Dari
+                  <input
+                    type="number"
+                    min={0}
+                    value={startAt}
+                    onChange={(e) => setStartAt(Number(e.target.value) || 1)}
+                    className="td-tools-input td-tools-input-sm"
+                  />
+                </label>
+              </div>
+
+              <h4 className="td-tools-h">Pratinjau Hasil Rename</h4>
+              <div className="td-tools-preview-container">
+                {renamePreview.length === 0 ? (
+                  <p className="td-tools-empty">Tidak ada perubahan / file kosong</p>
+                ) : (
+                  <ul className="td-tools-preview-list mono">
+                    {renamePreview.map((r) => (
+                      <li key={r.id} className="td-tools-preview-row">
+                        <span className="td-tools-oldname" title={r.oldName}>{r.oldName}</span>
+                        <span className="td-tools-arrow" aria-hidden>→</span>
+                        <strong className="td-tools-newname" title={r.newName}>{r.newName}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="td-tools-action-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary td-tools-btn-submit"
+                  disabled={busy || renamePreview.length === 0}
+                  onClick={() =>
+                    onBulkRename(
+                      applyBulkRenamePattern(renameScope, pattern, startAt).map((r) => ({
+                        id: r.id,
+                        newName: r.newName,
+                      }))
+                    )
+                  }
+                >
+                  <Check size={15} /> Terapkan Rename
+                </button>
+              </div>
             </div>
           )}
 
@@ -502,75 +527,82 @@ export function DriveToolsPanel({
               <p className="td-tools-lead">
                 Salin batch ke Drive/Chat (sumber tetap). Cocok untuk arsip chat → Drive.
               </p>
-              <label className="td-tools-field">
-                Scope
-                <MediaSelect
-                  value={copyScope}
-                  onChange={(value) => setCopyScope(value as 'selected' | 'all')}
-                  ariaLabel="Scope salin"
-                  options={[
-                    { value: 'selected', label: `Terpilih (${selectedFiles.length || 0})` },
-                    { value: 'all', label: `Semua di view (${files.length})` },
-                  ]}
-                />
-              </label>
-              <label className="td-tools-field">
-                Tujuan
-                <MediaSelect
-                  value={copyDest}
-                  onChange={setCopyDest}
-                  ariaLabel="Tujuan salin"
-                  options={destOptions.map((option) => ({ value: option.value, label: option.label }))}
-                />
-              </label>
-              <label className="td-tools-check">
-                <input
-                  type="checkbox"
-                  checked={skipDup}
-                  onChange={(e) => setSkipDup(e.target.checked)}
-                />
-                Skip duplikat (nama + ukuran di tujuan)
-              </label>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={
-                  busy ||
-                  (copyScope === 'selected' ? selectedFiles.length === 0 : files.length === 0)
-                }
-                onClick={() => {
-                  const pool = copyScope === 'selected' ? selectedFiles : files;
-                  const ids = pool.map((f) => f.id);
-                  let toFolderId: number | null = null;
-                  let targetLabel = 'Saved Messages';
-                  if (copyDest === 'me') {
-                    toFolderId = null;
-                  } else if (copyDest.startsWith('c:')) {
-                    toFolderId = Number(copyDest.slice(2));
-                    targetLabel =
-                      chats.find((c) => c.id === toFolderId)?.name || `Chat ${toFolderId}`;
-                  } else {
-                    toFolderId = Number(copyDest);
-                    targetLabel =
-                      folders.find((f) => f.id === toFolderId)?.name || `Folder ${toFolderId}`;
+              <div className="td-tools-form-stack">
+                <label className="td-tools-field">
+                  Scope
+                  <MediaSelect
+                    value={copyScope}
+                    onChange={(value) => setCopyScope(value as 'selected' | 'all')}
+                    ariaLabel="Scope salin"
+                    options={[
+                      { value: 'selected', label: `Terpilih (${selectedFiles.length || 0})` },
+                      { value: 'all', label: `Semua di view (${files.length})` },
+                    ]}
+                  />
+                </label>
+                <label className="td-tools-field">
+                  Tujuan
+                  <MediaSelect
+                    value={copyDest}
+                    onChange={setCopyDest}
+                    ariaLabel="Tujuan salin"
+                    options={destOptions.map((option) => ({ value: option.value, label: option.label }))}
+                  />
+                </label>
+                <div className="td-tools-card-check">
+                  <label className="td-tools-check">
+                    <input
+                      type="checkbox"
+                      checked={skipDup}
+                      onChange={(e) => setSkipDup(e.target.checked)}
+                    />
+                    <span>Skip duplikat (nama + ukuran di tujuan)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="td-tools-action-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary td-tools-btn-submit"
+                  disabled={
+                    busy ||
+                    (copyScope === 'selected' ? selectedFiles.length === 0 : files.length === 0)
                   }
-                  onSmartCopy({
-                    messageIds: ids,
-                    toFolderId,
-                    targetLabel,
-                    skipDuplicates: skipDup,
-                  });
-                }}
-              >
-                <Copy size={14} /> Mulai salin
-              </button>
+                  onClick={() => {
+                    const pool = copyScope === 'selected' ? selectedFiles : files;
+                    const ids = pool.map((f) => f.id);
+                    let toFolderId: number | null = null;
+                    let targetLabel = 'Saved Messages';
+                    if (copyDest === 'me') {
+                      toFolderId = null;
+                    } else if (copyDest.startsWith('c:')) {
+                      toFolderId = Number(copyDest.slice(2));
+                      targetLabel =
+                        chats.find((c) => c.id === toFolderId)?.name || `Chat ${toFolderId}`;
+                    } else {
+                      toFolderId = Number(copyDest);
+                      targetLabel =
+                        folders.find((f) => f.id === toFolderId)?.name || `Folder ${toFolderId}`;
+                    }
+                    onSmartCopy({
+                      messageIds: ids,
+                      toFolderId,
+                      targetLabel,
+                      skipDuplicates: skipDup,
+                    });
+                  }}
+                >
+                  <Copy size={15} /> Mulai Salin Batch
+                </button>
+              </div>
             </div>
           )}
 
           {tab === 'filter' && (
             <div className="td-tools-section">
               <p className="td-tools-lead">
-                Filter lanjutan di lokasi ini (di atas filter tipe media & search).
+                Filter lanjutan di lokasi ini (di atas filter tipe media &amp; search).
                 {isAdvFilterActive(advFilter) && (
                   <span className="td-tools-active"> · Aktif</span>
                 )}
@@ -612,7 +644,7 @@ export function DriveToolsPanel({
                   Dari tanggal
                   <input
                     type="date"
-                    className="td-tools-input"
+                    className="td-tools-input td-tools-date"
                     value={advFilter.dateFrom ?? ''}
                     onChange={(e) =>
                       onAdvFilter({ ...advFilter, dateFrom: e.target.value || null })
@@ -623,7 +655,7 @@ export function DriveToolsPanel({
                   Sampai tanggal
                   <input
                     type="date"
-                    className="td-tools-input"
+                    className="td-tools-input td-tools-date"
                     value={advFilter.dateTo ?? ''}
                     onChange={(e) =>
                       onAdvFilter({ ...advFilter, dateTo: e.target.value || null })
@@ -662,21 +694,25 @@ export function DriveToolsPanel({
                   />
                 </label>
               </div>
-              <div className="td-tools-actions">
+
+              <div className="td-tools-card-hint">
+                <p className="td-tools-hint-text">
+                  ⚡ <strong>Shortcut:</strong> <kbd className="td-tools-kbd">1 MB</kbd> ≈ 1.048.576 · contoh min video besar: <kbd className="td-tools-kbd">5000000</kbd>
+                </p>
+              </div>
+
+              <div className="td-tools-action-footer flex-between">
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className="btn btn-ghost td-tools-btn-reset"
                   onClick={() => onAdvFilter({ ...EMPTY_ADV_FILTER })}
                 >
-                  Reset filter
+                  <RotateCcw size={14} /> Reset Filter
                 </button>
-                <button type="button" className="btn btn-primary" onClick={onClose}>
-                  Terapkan
+                <button type="button" className="btn btn-primary td-tools-btn-submit" onClick={onClose}>
+                  <Check size={15} /> Terapkan Filter
                 </button>
               </div>
-              <p className="td-tools-hint">
-                Shortcut: <kbd>1 MB</kbd> ≈ 1048576 · contoh min video besar: 5000000
-              </p>
             </div>
           )}
 
@@ -1188,30 +1224,30 @@ function DupTab({
           </>
         )}
       </p>
-      <div className="td-tools-actions">
-        <label className="td-tools-check">
-          <input
-            type="radio"
-            checked={dupMode === 'name_size'}
-            onChange={() => onDupMode('name_size')}
-          />
-          Nama + ukuran
-        </label>
-        <label className="td-tools-check">
-          <input
-            type="radio"
-            checked={dupMode === 'both'}
-            onChange={() => onDupMode('both')}
-          />
-          + ukuran sama (soft)
-        </label>
-        <label className="td-tools-check" title="Preferensi default cerdas (bisa diubah per-item)">
+      <div className="td-tools-actions-bar">
+        <div className="td-tools-segmented" role="radiogroup" aria-label="Mode deteksi duplikat">
+          <button
+            type="button"
+            className={`td-segmented-item ${dupMode === 'name_size' ? 'active' : ''}`}
+            onClick={() => onDupMode('name_size')}
+          >
+            Nama + ukuran
+          </button>
+          <button
+            type="button"
+            className={`td-segmented-item ${dupMode === 'both' ? 'active' : ''}`}
+            onClick={() => onDupMode('both')}
+          >
+            + ukuran sama (soft)
+          </button>
+        </div>
+        <label className="td-tools-check-inline" title="Preferensi default cerdas (bisa diubah per-item)">
           <input
             type="checkbox"
             checked={keepNewest}
             onChange={(e) => setKeepNewest(e.target.checked)}
           />
-          Default: simpan terbaru
+          <span>Default: simpan terbaru</span>
         </label>
       </div>
 
