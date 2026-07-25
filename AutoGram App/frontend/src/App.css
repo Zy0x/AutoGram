@@ -2896,7 +2896,7 @@ body.td-dnd-external {
 .td-file-card:hover .td-file-card-inner {
   border-color: color-mix(in srgb, var(--td-primary) 85%, #fff);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--td-primary) 50%, transparent), 0 8px 24px rgba(0, 0, 0, 0.35);
-  transform: translateY(-1px);
+  transform: scale(1.012);
 }
 
 .td-file-card.selected .td-file-card-inner {
@@ -2908,7 +2908,7 @@ body.td-dnd-external {
 .td-file-card.selected:hover .td-file-card-inner {
   border-color: var(--td-primary);
   box-shadow: 0 0 0 1.5px var(--td-primary), 0 8px 24px rgba(0, 0, 0, 0.38);
-  transform: translateY(-1px);
+  transform: scale(1.012);
 }
 
 .td-file-card.is-new-upload .td-file-card-inner {
@@ -8359,7 +8359,7 @@ body:has(.td-page),
   overflow: auto !important;
   position: relative;
   /* Soft inset so first row isn't glued under the dock */
-  padding-top: 4px;
+  padding-top: 10px;
 }
 .td-menu-btn {
   display: none;
