@@ -98,11 +98,11 @@ const CARD_ASPECT_H = 3 / 2;
 const GRID_GAP = 10;
 const GRID_PAD_X = 14;
 /** Breathing room under topbar / above last row (virtual rows are absolute) */
-const GRID_PAD_TOP = 20;
+const GRID_PAD_TOP = 28;
 const GRID_PAD_BOTTOM = 20;
 const LIST_ROW_H = 48;
 const LIST_HEAD_H = 40;
-const LIST_PAD_TOP = 8;
+const LIST_PAD_TOP = 14;
 const LIST_PAD_BOTTOM = 16;
 const MARQUEE_THRESHOLD = 5;
 

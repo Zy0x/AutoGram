@@ -7372,9 +7372,9 @@ body:has(.td-page),
 .td-topbar {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   /* Compact chrome — more room for media grid */
-  padding: 8px 12px 10px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--td-border);
   background: color-mix(in srgb, var(--td-surface) 92%, transparent);
   backdrop-filter: blur(12px);
@@ -7393,18 +7393,18 @@ body:has(.td-page),
 .td-topbar-row-1 {
   justify-content: space-between;
   flex-wrap: wrap;
-  row-gap: 8px;
+  row-gap: 4px;
   overflow: visible;
-  min-height: 40px;
+  min-height: 34px;
 }
 .td-topbar-row-2 {
   flex-wrap: nowrap !important;
   align-items: center;
   gap: 8px;
   overflow: hidden;
-  height: 38px;
-  min-height: 38px;
-  max-height: 38px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
 }
 .td-topbar-row-2 .td-search {
   flex: 1 1 auto;
