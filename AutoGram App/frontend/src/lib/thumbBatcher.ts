@@ -4,6 +4,7 @@
  * Low-end: single flight, never one-shot Python spawn.
  */
 import { driveThumbnailsBatch, type DriveCredentials } from './driveApi';
+import { debugLog } from './debugMode';
 import type { DriveThumbQuality } from './driveTypes';
 import { DEFAULT_THUMB_QUALITY } from './driveTypes';
 import { getDrivePerfProfile } from './devicePerformance';
@@ -644,7 +645,7 @@ async function flushQueue() {
         }
       } else {
         // Miss: short soft-fail so visible cards can re-request soon without hammering.
-        console.warn(`[thumbBatcher] Thumbnail miss for chat=${folderId ?? 'home'} mid=${mid} quality=${quality}`);
+        debugLog('thumbBatcher', 'miss', { folderId: folderId ?? 'home', mid, quality });
         softFailAt.set(k, Date.now());
         resolveTask(task, null);
       }

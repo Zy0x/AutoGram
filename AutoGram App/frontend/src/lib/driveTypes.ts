@@ -1056,17 +1056,13 @@ export function canPreviewInApp(file: DriveFile): boolean {
  * (and waste bandwidth). Backend may still set has_thumb for misclassified docs.
  */
 export function canShowDriveThumb(file: DriveFile): boolean {
-  if (file.icon_type === 'link') {
-    return file.has_thumb === true;
-  }
-  // Never paint raw text/JSON, audio, or zip files as full-bleed card images
-  if (isTextDriveFile(file) || isAudioDriveFile(file) || isZipDriveFile(file)) return false;
-  if (file.has_thumb === true) return true;
-  if (isImageDriveFile(file) || isVideoDriveFile(file)) return true;
-  if (isPdfDriveFile(file)) return true;
+  // If Telegram or backend explicitly provides a thumbnail payload for this file, display it
+  if (file.has_thumb === true || !!file.thumb_data_url || !!file.thumbDataUrl) return true;
+  if (file.icon_type === 'link') return false;
+  if (isTextDriveFile(file) || isZipDriveFile(file)) return false;
+  if (isImageDriveFile(file) || isVideoDriveFile(file) || isPdfDriveFile(file) || isAudioDriveFile(file)) return true;
   const mime = (file.mime_type || '').toLowerCase();
-  if (mime.startsWith('image/') || mime.startsWith('video/')) return true;
-  if (mime === 'application/pdf') return true;
+  if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/') || mime === 'application/pdf') return true;
   const ext = driveFileExt(file);
   return IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) || PDF_EXTS.has(ext);
 }

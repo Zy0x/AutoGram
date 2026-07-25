@@ -260,7 +260,8 @@ function DriveFileCardInner({
     const inlineNow = file.thumb_data_url || file.thumbDataUrl;
     const alreadyPainted = !!(
       getCachedThumb(folderId, file.id) ||
-      (thumbQuality === 'saver' && inlineNow && String(inlineNow).startsWith('data:image/'))
+      (inlineNow && String(inlineNow).startsWith('data:image/')) ||
+      thumb
     );
     setThumbLoading(!alreadyPainted);
     requestThumb(creds, folderId, file.id, {

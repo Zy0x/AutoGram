@@ -459,10 +459,13 @@ export async function tgThumbsBatch(args: {
         quality: args.quality || 'seimbang',
       },
     });
+    const validHits = r?.data?.thumbs
+      ? Object.values(r.data.thumbs).filter((v): v is string => typeof v === 'string' && v.length > 0).length
+      : 0;
     debugLogLayer('rust', 'tg', 'thumbs_batch', {
       ok: r?.ok,
       n: args.messageIds.length,
-      hits: r?.data?.thumbs ? Object.keys(r.data.thumbs).length : 0,
+      hits: validHits,
     });
     return r;
   } catch (e) {
