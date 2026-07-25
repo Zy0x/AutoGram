@@ -2894,9 +2894,9 @@ body.td-dnd-external {
 }
 /* Keep position:absolute on .td-file-thumb-full (defined below) — do not reset display-only */
 .td-file-card:hover .td-file-card-inner {
-  border-color: color-mix(in srgb, var(--td-primary) 85%, #fff);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--td-primary) 50%, transparent), 0 8px 24px rgba(0, 0, 0, 0.35);
-  transform: scale(1.012);
+  border-color: var(--td-primary);
+  box-shadow: 0 0 0 1px var(--td-primary), 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: none !important;
 }
 
 .td-file-card.selected .td-file-card-inner {
@@ -2907,8 +2907,8 @@ body.td-dnd-external {
 
 .td-file-card.selected:hover .td-file-card-inner {
   border-color: var(--td-primary);
-  box-shadow: 0 0 0 1.5px var(--td-primary), 0 8px 24px rgba(0, 0, 0, 0.38);
-  transform: scale(1.012);
+  box-shadow: 0 0 0 1px var(--td-primary), 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: none !important;
 }
 
 .td-file-card.is-new-upload .td-file-card-inner {
