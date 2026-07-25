@@ -1695,6 +1695,22 @@ fn stream_public_url(stream_id: &str, label: &str) -> String {
         let fallback_reg = std::env::temp_dir().join("autogram_stream_registry");
         stream_server::ensure_started(fallback_reg)
     };
+    let safe: String = label
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .take(80)
+        .collect();
+    let name = if safe.is_empty() {
+        "media".into()
+    } else {
+        safe
+    };
     format!("http://127.0.0.1:{port}/stream/{stream_id}/{name}")
 }
 
