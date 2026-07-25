@@ -2,7 +2,7 @@
 //! Desktop preview is served by the native Rust Range HTTP registry.
 
 use std::collections::HashMap;
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -2217,6 +2217,61 @@ fn start_preview_stream_inner(
                 }
             }
             let _ = file.flush();
+
+            // Fast MOOV Tail Bootstrap: If moov atom is missing from head in MP4 video,
+            // pre-fetch the tail (last ~2 MB) BEFORE returning stream_url to Frontend!
+            let has_moov_head = boot_ranges.iter().any(|&(s, e)| {
+                if let Ok(mut f) = std::fs::File::open(&dest) {
+                    if f.seek(SeekFrom::Start(s)).is_ok() {
+                        let mut buf = vec![0u8; (e - s).min(1024 * 1024) as usize];
+                        if let Ok(n) = f.read(&mut buf) {
+                            return buf[..n].windows(4).any(|w| w == b"moov");
+                        }
+                    }
+                }
+                false
+            });
+
+            if is_video && size > 1024 * 1024 && !has_moov_head {
+                if let Some(loc) = media_to_input_location(&media) {
+                    let tail_budget: u64 = 2 * 1024 * 1024;
+                    let start_tail = (size.saturating_sub(tail_budget) / 4096) * 4096;
+                    let mut curr_offset = start_tail;
+                    while curr_offset < size {
+                        let tail_req = tl::functions::upload::GetFile {
+                            precise: false,
+                            cdn_supported: false,
+                            location: loc.clone(),
+                            offset: curr_offset as i64,
+                            limit: 512 * 1024,
+                        };
+                        match live.client.invoke(&tail_req).await {
+                            Ok(tl::enums::upload::File::File(f)) => {
+                                if !f.bytes.is_empty() {
+                                    if file.seek(SeekFrom::Start(curr_offset)).is_ok() {
+                                        if file.write_all(&f.bytes).is_ok() {
+                                            let end_tail = curr_offset + f.bytes.len() as u64;
+                                            boot_ranges.push((curr_offset, end_tail));
+                                            if f.bytes.windows(4).any(|w| w == b"moov") {
+                                                tg_log::info(
+                                                    BACKEND,
+                                                    "moov_tail_bootstrapped",
+                                                    format!("sid={stream_id} offset={curr_offset}"),
+                                                );
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            _ => break,
+                        }
+                        curr_offset += 512 * 1024;
+                    }
+                    let _ = file.flush();
+                }
+            }
+
             if !boot_ranges.is_empty() {
                 stream_server::upsert_entry(StreamEntry {
                     stream_id: stream_id.clone(),
@@ -2242,7 +2297,7 @@ fn start_preview_stream_inner(
         let fill_media = media;
         let live_bg = Arc::clone(&live);
         let session_bg = session_name.clone();
-        let boot_end = boot_ranges.last().map(|r| r.1).unwrap_or(0);
+        let boot_end = first_missing_offset(&boot_ranges, size).unwrap_or(0);
         tokio::spawn(async move {
             // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
             let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
@@ -2250,7 +2305,7 @@ fn start_preview_stream_inner(
             let flag = cancel;
             let mut offset: u64 = boot_end;
             let mut ranges: Vec<(u64, u64)> = boot_ranges;
-            let mut moov_bootstrapped = boot_end > 0;
+            let mut moov_bootstrapped = ranges.len() > 1 || boot_end > 0;
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
@@ -2276,6 +2331,14 @@ fn start_preview_stream_inner(
                 while offset < size {
                     if flag.load(Ordering::SeqCst) {
                         return Err("cancelled".into());
+                    }
+
+                    // Skip ranges already filled (e.g. bootstrapped tail range)
+                    while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= offset && offset < *e) {
+                        offset = end;
+                    }
+                    if offset >= size {
+                        break;
                     }
 
                     loop {

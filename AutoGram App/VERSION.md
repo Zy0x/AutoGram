@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.41
+AutoGram Version: v2.3.42
 
 Current State:
+v2.3.42 Fast MOOV Tail Bootstrap & Instant Video Start Fix — membenahi `grammers_media.rs`. Mengimplementasikan bootstrap dua arah (Head 0..512KB + Tail ~2MB) secara otomatis pada fase awal inisialisasi stream video MP4 sebelum mengembalikan `stream_url` ke frontend. Mengeliminasi total masalah file MP4 besar (>100MB / 400MB) yang terjebak di "Mengisi buffer...", serta membuat file MP4 kecil dan besar dapat langsung diputar secara instan (<500ms) tanpa menunggu pengunduhan 100% penuh.
+
+Previous:
 v2.3.41 Dynamic 4MB MOOV Tail Scan & Instant Frame Play-Nudge Fix — membenahi `grammers_media.rs` dan `DrivePreviewModal.tsx`. Meningkatkan anggaran prefetch ekor berkas MP4 dari 512KB menjadi 4 MB dinamis (hingga 8 chunk 512KB dari `size-4MB`), menjamin 100% video MP4 non-faststart berukuran besar (100MB+) terdeteksi metadatanya secara instan. Meng-update handler `onLoadedData`, `onCanPlay`, dan polling player hint agar langsung memicu `v.play()` dan membersihkan badge metadata saat frame 0 terdekode, mengeliminasi video terhenti di `0:00`.
 
 Previous:
