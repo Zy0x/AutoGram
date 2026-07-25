@@ -7441,16 +7441,18 @@ body:has(.td-page),
   flex-wrap: nowrap !important;
   align-items: center;
   gap: 8px;
-  overflow: hidden;
-  height: 34px;
-  min-height: 34px;
-  max-height: 34px;
+  overflow: visible;
+  height: 36px;
+  min-height: 36px;
 }
 .td-topbar-row-2 .td-search {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 6px 12px;
 }
 .td-topbar-row-2.has-selection-tools .td-search {
   flex: 1 1 30%;
