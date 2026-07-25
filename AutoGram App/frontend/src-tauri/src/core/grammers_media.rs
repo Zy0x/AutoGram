@@ -423,32 +423,35 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     None
 }
 
-fn media_thumbs(client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
+fn media_thumbs(_client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
     match media {
         Media::Photo(p) => p.thumbs(),
         Media::Document(d) => d.thumbs(),
         Media::Sticker(s) => s.document.thumbs(),
-        Media::WebPage(wp) => {
-            if let Some(client) = client {
-                match &wp.raw.webpage {
-                    tl::enums::WebPage::Page(page) => {
-                        let mut out = Vec::new();
-                        if let Some(tl::enums::Photo::Photo(photo)) = &page.photo {
-                            let p = grammers_client::media::Photo::from_raw(client.clone(), photo.clone());
-                            out.extend(p.thumbs());
-                        }
-                        if let Some(tl::enums::Document::Document(doc)) = &page.document {
-                            let d = grammers_client::media::Document::from_raw(client.clone(), doc.clone());
-                            out.extend(d.thumbs());
-                        }
-                        out
-                    }
-                    _ => vec![],
+        Media::WebPage(wp) => match &wp.raw.webpage {
+            tl::enums::WebPage::Page(page) => {
+                let mut out = Vec::new();
+                if let Some(photo) = &page.photo {
+                    let p = grammers_client::media::Photo::from_raw(photo.clone());
+                    out.extend(p.thumbs());
                 }
-            } else {
-                vec![]
+                if let Some(doc) = &page.document {
+                    let media_doc = tl::types::MessageMediaDocument {
+                        round: false,
+                        voice: false,
+                        video_cover: None,
+                        video_timestamp: None,
+                        document: Some(doc.clone()),
+                        alt_documents: None,
+                        ttl_seconds: None,
+                    };
+                    let d = grammers_client::media::Document::from_raw_media(media_doc);
+                    out.extend(d.thumbs());
+                }
+                out
             }
-        }
+            _ => vec![],
+        },
         _ => vec![],
     }
 }
