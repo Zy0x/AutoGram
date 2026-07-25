@@ -12,6 +12,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
+    // Bypass Service Worker for local Rust HTTP Range server (127.0.0.1 / localhost)
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.port === '0' || url.port === '') return;
+
     if (!url.pathname.includes('/stream/')) return;
 
     event.respondWith(handleMediaRequest(event.request));
