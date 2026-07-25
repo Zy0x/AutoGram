@@ -2364,36 +2364,46 @@ fn start_preview_stream_inner(
                     ranges.push((offset, end));
                     offset = end;
 
-                    // Section
+                    // Dynamic MOOV Tail Scan (Up to 4 MB budget: 8 chunks x 512 KiB from size-4MB to size)
                     if is_video && size > 1024 * 1024 && !moov_bootstrapped {
                         moov_bootstrapped = true;
                         let has_moov_in_head = chunk.windows(4).any(|w| w == b"moov");
                         if !has_moov_in_head {
                             if let Some(loc) = media_to_input_location(&fill_media) {
-                                let tail_offset = (size.saturating_sub(1024 * 1024) / 4096) * 4096;
-                                let tail_req = tl::functions::upload::GetFile {
-                                    precise: false,
-                                    cdn_supported: false,
-                                    location: loc,
-                                    offset: tail_offset as i64,
-                                    limit: 512 * 1024,
-                                };
-                                if let Ok(tl::enums::upload::File::File(f)) =
-                                    live.client.invoke(&tail_req).await
-                                {
-                                    if !f.bytes.is_empty() {
-                                        if file.seek(SeekFrom::Start(tail_offset)).is_ok() {
-                                            if file.write_all(&f.bytes).is_ok() {
-                                                let end_tail = tail_offset + f.bytes.len() as u64;
-                                                ranges.push((tail_offset, end_tail));
-                                                tg_log::info(
-                                                    BACKEND,
-                                                    "moov_tail_ready",
-                                                    format!("sid={sid} offset={tail_offset}"),
-                                                );
+                                let tail_budget: u64 = 4 * 1024 * 1024;
+                                let start_tail = (size.saturating_sub(tail_budget) / 4096) * 4096;
+                                let mut curr_offset = start_tail;
+                                while curr_offset < size {
+                                    let tail_req = tl::functions::upload::GetFile {
+                                        precise: false,
+                                        cdn_supported: false,
+                                        location: loc.clone(),
+                                        offset: curr_offset as i64,
+                                        limit: 512 * 1024,
+                                    };
+                                    if let Ok(tl::enums::upload::File::File(f)) =
+                                        live.client.invoke(&tail_req).await
+                                    {
+                                        if !f.bytes.is_empty() {
+                                            if file.seek(SeekFrom::Start(curr_offset)).is_ok() {
+                                                if file.write_all(&f.bytes).is_ok() {
+                                                    let end_tail = curr_offset + f.bytes.len() as u64;
+                                                    ranges.push((curr_offset, end_tail));
+                                                    if f.bytes.windows(4).any(|w| w == b"moov") {
+                                                        tg_log::info(
+                                                            BACKEND,
+                                                            "moov_tail_ready",
+                                                            format!("sid={sid} offset={curr_offset}"),
+                                                        );
+                                                        break; // moov atom found, stop tail prefetch!
+                                                    }
+                                                }
                                             }
                                         }
+                                    } else {
+                                        break;
                                     }
+                                    curr_offset += 512 * 1024;
                                 }
                             }
                         }

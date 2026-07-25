@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.40
+AutoGram Version: v2.3.41
 
 Current State:
-v2.3.40 Resolusi Konflik MTProto Rate Governance & Media Semaphore Parity (ZIP Sparse vs Video Stream) — membenahi `grammers_sparse_zip.rs`. Mengintegrasikan `session_rate::acquire_media_slot` dan `session_rate::wait_if_flooded_capped` ke dalam fungsi pembacaan ZIP (`list_zip_sparse`, `preview_zip_entry_sparse`, `extract_zip_entry_sparse`) sehingga seluruh operasi MTProto tunduk pada Single Global Concurrency Semaphore. Mengeliminasi total masalah perebutan saluran socket MTProto antara ZIP browser dan pemutar video, mencegah `progressive_flood` FloodWait, serta menjamin Media Preview diputar instan tanpa hambatan.
+v2.3.41 Dynamic 4MB MOOV Tail Scan & Instant Frame Play-Nudge Fix — membenahi `grammers_media.rs` dan `DrivePreviewModal.tsx`. Meningkatkan anggaran prefetch ekor berkas MP4 dari 512KB menjadi 4 MB dinamis (hingga 8 chunk 512KB dari `size-4MB`), menjamin 100% video MP4 non-faststart berukuran besar (100MB+) terdeteksi metadatanya secara instan. Meng-update handler `onLoadedData`, `onCanPlay`, dan polling player hint agar langsung memicu `v.play()` dan membersihkan badge metadata saat frame 0 terdekode, mengeliminasi video terhenti di `0:00`.
 
 Previous:
 v2.3.38 Support Thumbnail Extraction & Auto-Sync untuk Link Post Telegram (`Media::WebPage`) — membenahi `grammers_media.rs` dan `grammers_ops.rs`. Mengatasi akar masalah thumbnail miss pada pesan tautan/link (seperti `t.me/...`, YouTube, link artikel web) dengan mengaktifkan pengenalan `webpage_has_thumb` serta ekstraksi layer `PhotoSize` dari objek `page.photo` dan `page.document` di dalam `Media::WebPage`. Seluruh pesan link dengan pratinjau kini menampilkan thumbnail visual tajam dan tersinkronisasi di antarmuka grid.

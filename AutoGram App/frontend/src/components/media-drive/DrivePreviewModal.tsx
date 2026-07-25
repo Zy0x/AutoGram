@@ -1245,7 +1245,13 @@ export function DrivePreviewModal({
           }
         }
 
-        if (
+        if (v && (!v.paused || v.readyState >= 2 || (v.videoWidth && v.videoWidth > 0))) {
+          if (!v.paused) {
+            setPlayerHint(null);
+          } else if (streamReady || v.readyState >= 2) {
+            setPlayerHint((h) => (h && h.startsWith('Menyiapkan') ? null : h));
+          }
+        } else if (
           st.seek_capable &&
           st.moov_ready === false &&
           prefix > 0 &&
@@ -1253,17 +1259,6 @@ export function DrivePreviewModal({
           !seekWarnRef.current
         ) {
           setPlayerHint('Menyiapkan metadata…');
-        } else if (v && !v.paused && v.readyState >= 2) {
-          setPlayerHint(null);
-        } else if (
-          streamReady &&
-          v &&
-          v.paused &&
-          (browserHasData || v.readyState >= 2 || (Number.isFinite(v.duration) && v.duration > 0))
-        ) {
-          setPlayerHint((h) =>
-            h && /menunggu data stream|Buffering/i.test(h) ? 'Memulai pemutaran…' : h || 'Memulai pemutaran…'
-          );
         } else if (st.moov_ready === false && prefix > 0 && !browserHasData) {
           setPlayerHint((h) => h || 'Menyiapkan metadata…');
         } else if (st.moov_ready) {
@@ -3118,10 +3113,24 @@ export function DrivePreviewModal({
                 onLoadedData={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  setPlayerHint(null);
+                  const v = videoRef.current;
+                  if (v && v.paused && !v.ended) {
+                    void v.play().then(() => {
+                      hasUserPlayRef.current = true;
+                    }).catch(() => undefined);
+                  }
                 }}
                 onCanPlay={() => {
                   setHasVideoFrame(true);
                   setLoading(false);
+                  setPlayerHint(null);
+                  const v = videoRef.current;
+                  if (v && v.paused && !v.ended) {
+                    void v.play().then(() => {
+                      hasUserPlayRef.current = true;
+                    }).catch(() => undefined);
+                  }
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;

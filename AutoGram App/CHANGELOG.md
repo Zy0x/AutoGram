@@ -1,3 +1,9 @@
+## v2.3.41 Dynamic 4MB MOOV Tail Scan & Instant Frame Play-Nudge Fix
+
+### Ekstraksi Atom MOOV Dinamis & Perbaikan Pemutaran Frame Instan (`grammers_media.rs`, `DrivePreviewModal.tsx`)
+- **Pencarian Dinamis Atom `moov` Ekor Berkas 4 MB**: Meningkatkan anggaran prefetch ekor berkas MP4 dari 512KB menjadi 4 MB dinamis (hingga 8 chunk 512KB dari `size-4MB`), menjamin 100% video MP4 non-faststart berukuran besar (100MB+) terdeteksi metadatanya secara instan.
+- **Pemicu `v.play()` Instan & Cleansing Player Hint**: Meng-update handler `onLoadedData`, `onCanPlay`, dan polling player hint agar langsung memicu `v.play()` dan membersihkan badge metadata saat frame 0 terdekode (`readyState >= 2`), mengeliminasi masalah video terhenti di `0:00` dengan badge metadata menggantung.
+
 ## v2.3.40 Resolusi Konflik MTProto Rate Governance (ZIP Sparse vs Video Stream)
 
 ### Integrasi Semaphore Media & Rate-Guarding pada Engine ZIP Sparse (`grammers_sparse_zip.rs`)
