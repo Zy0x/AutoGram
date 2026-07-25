@@ -644,11 +644,13 @@ async function flushQueue() {
         }
       } else {
         // Miss: short soft-fail so visible cards can re-request soon without hammering.
+        console.warn(`[thumbBatcher] Thumbnail miss for chat=${folderId ?? 'home'} mid=${mid} quality=${quality}`);
         softFailAt.set(k, Date.now());
         resolveTask(task, null);
       }
     }
   } catch (err) {
+    console.error(`[thumbBatcher] Thumbnail batch failed for chat=${folderId ?? 'home'} ids=[${ids.join(',')}] quality=${quality}:`, err);
     const errStr = String(err || '').toLowerCase();
     if (errStr.includes('flood') || errStr.includes('wait') || errStr.includes('420')) {
       const match = errStr.match(/wait of (\d+)/i);

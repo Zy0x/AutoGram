@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.36
+AutoGram Version: v2.3.37
 
 Current State:
+v2.3.37 Comprehensive Thumbnail Debug Logging & Diagnostic Enhancements — membenahi `grammers_media.rs`, `telegram_ops.rs`, dan `thumbBatcher.ts`. Elevasi log kesalahan thumbnail dari debug ke `tg_log::warn` yang otomatis tampil di console/log file tanpa syarat. Menyajikan rincian lengkap gagal thumbnail: jenis media (Photo/Document/WebPage/Sticker), MIME type, nama berkas, ukuran berkas, jumlah layer PhotoSize Telegram, dan status ketersediaan FFmpeg lokal. Menambahkan `console.warn` dan `console.error` terstruktur pada `thumbBatcher.ts` frontend untuk pencatatan miss & failure RPC thumbnail.
+
+Previous:
 v2.3.36 Perbaikan Kritis Ekstraksi Frame Video MP4 (Faststart <= 2.5MB), Dynamic Recursive FFmpeg Search, & Fallback Layer Telegram — membenahi `grammers_media.rs`. Mengimplementasikan pencarian rekursif `search_ffmpeg_recursive` (hingga kedalaman 4 tingkat) untuk mendeteksi `ffmpeg.exe` secara otomatis di direktori aplikasi terinstal (CapCut, FormatFactory, BlueStacks, LOCALAPPDATA, Program Files). Menambahkan `make_faststart_mp4(&sample_bytes, &sample_bytes)` untuk rekonstruksi atom `moov` pada berkas video MP4 <= 2.5MB, serta menerapkan penarikan thumbnail statis layer Telegram (`PhotoSize`) sebagai Tier 6 fallback jika ekstraksi frame FFmpeg tidak memungkinkan, sehingga 100% video di antarmuka grid memiliki gambar thumbnail jernih.
 
 Previous:

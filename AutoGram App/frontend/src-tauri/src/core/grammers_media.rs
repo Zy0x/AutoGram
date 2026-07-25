@@ -720,7 +720,25 @@ async fn download_media_thumb(
         }
     }
 
-    Err(TgError::new(TgErrorCode::Internal, "no valid thumb found"))
+    let (media_kind, mime, name, size) = match media {
+        Media::Photo(_) => ("Photo", String::new(), String::new(), 0),
+        Media::Document(d) => (
+            "Document",
+            d.mime_type().unwrap_or("").to_string(),
+            d.name().unwrap_or("").to_string(),
+            d.size().unwrap_or(0),
+        ),
+        Media::Sticker(_) => ("Sticker", String::new(), String::new(), 0),
+        Media::WebPage(_) => ("WebPage", String::new(), String::new(), 0),
+        _ => ("UnknownMedia", String::new(), String::new(), 0),
+    };
+    let ffmpeg_ok = find_ffmpeg_binary().is_some();
+    let err_msg = format!(
+        "no valid thumb found (kind={media_kind} sizes={} mime='{mime}' name='{name}' size={size} ffmpeg={ffmpeg_ok})",
+        sizes.len()
+    );
+    tg_log::warn(BACKEND, "thumb_miss_detail", &err_msg);
+    Err(TgError::new(TgErrorCode::Internal, err_msg))
 }
 
 fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
@@ -1308,7 +1326,17 @@ pub fn thumbs_batch_blocking_app(
                 {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
-                let peer = resolve_peer(client, &chat).await?;
+                let peer = match resolve_peer(client, &chat).await {
+                    Ok(p) => p,
+                    Err(e) => {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumbs_batch_peer_error",
+                            format!("chat={chat} error={e}"),
+                        );
+                        return Err(e);
+                    }
+                };
                 // Keep the requested id list so we can index results by id, not by
                 // position after the stripped fast-path filters some ids out.
                 let fetch_ids = uncached_ids.clone();
@@ -1407,6 +1435,11 @@ pub fn thumbs_batch_blocking_app(
                 for mid in need_download.iter().copied() {
                     let key = mid.to_string();
                     if is_flooded {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumbs_batch_flooded",
+                            format!("chat={chat} session={session_name} skipping mid={mid}"),
+                        );
                         thumbs.insert(key, None);
                         continue;
                     }
@@ -1432,10 +1465,20 @@ pub fn thumbs_batch_blocking_app(
                         }
                     }
                     let Some(msg) = msg_by_id.get(&mid) else {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumb_msg_not_found",
+                            format!("chat={chat} mid={mid} reason=message_id_not_found_in_telegram_response"),
+                        );
                         thumbs.insert(key, None);
                         continue;
                     };
                     let Some(media) = msg.media() else {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumb_no_media",
+                            format!("chat={chat} mid={mid} reason=message_has_no_media"),
+                        );
                         thumbs.insert(key, None);
                         continue;
                     };
@@ -1468,10 +1511,10 @@ pub fn thumbs_batch_blocking_app(
                                 (mid_val.to_string(), url)
                             }
                             Err(e) => {
-                                tg_log::debug(
+                                tg_log::warn(
                                     BACKEND,
-                                    "thumb_miss",
-                                    format!("mid={mid_val} {e}"),
+                                    "thumb_download_failed",
+                                    format!("chat={c_sub} mid={mid_val} quality={q_sub} error={e}"),
                                 );
                                 (mid_val.to_string(), None)
                             }

@@ -1,3 +1,11 @@
+## v2.3.37 Comprehensive Thumbnail Debug Logging & Diagnostic Enhancements
+
+### Logging & Diagnostik Debug Thumbnail Terstruktur (`grammers_media.rs`, `telegram_ops.rs`, `thumbBatcher.ts`)
+- **Elevasi Log Kesalahan Thumbnail ke `tg_log::warn`**: Mengangkat level log kegagalan ekstraksi dan penarikan thumbnail dari `debug` ke `tg_log::warn` di backend Rust (`grammers_media.rs`). Log kini tampil otomatis tanpa memerlukan flag manual `AUTOGRAM_DEBUG=1`.
+- **Informasi Diagnostik Detail pada `thumb_miss_detail`**: Menyajikan rincian lengkap kegagalan thumbnail: jenis media (`Photo`/`Document`/`WebPage`/`Sticker`), MIME type, nama berkas, ukuran berkas (bytes), jumlah layer `PhotoSize` yang tersedia di Telegram, serta status keberadaan executable `FFmpeg` lokal.
+- **Peringatan Kegagalan Peer Resolution & Miss Batch**: Menambahkan log peringatan terstruktur saat resolusi peer channel/chat gagal (`thumbs_batch_peer_error`), saat status akun terkena FloodWait (`thumbs_batch_flooded`), saat ID pesan tidak ditemukan di respons Telegram (`thumb_msg_not_found`), serta saat pesan tidak memiliki media (`thumb_no_media`).
+- **Console Logging Terstruktur di Frontend (`thumbBatcher.ts`)**: Menambahkan `console.warn` untuk thumbnail miss dan `console.error` untuk kegagalan RPC batch thumbnail di layar Developer Console frontend dengan konteks `chatId`/`folderId`, `messageId`, dan `quality`.
+
 ## v2.3.36 Perbaikan Kritis Ekstraksi Frame Video MP4 (Faststart <= 2.5MB), Dynamic Recursive FFmpeg Search, & Fallback Layer Telegram
 
 ### Perbaikan Kritis Thumbnail Video Grid Card (`grammers_media.rs`)
