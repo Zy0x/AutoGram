@@ -8575,10 +8575,19 @@ body:has(.td-page),
   outline: 2px solid color-mix(in srgb, var(--td-primary) 80%, #fff);
   outline-offset: 2px;
 }
+.td-file-card:focus,
+.td-file-card:focus-visible {
+  outline: none !important;
+}
 .td-file-card:focus-visible .td-file-card-inner {
   outline: 2px solid var(--td-primary);
   outline-offset: 2px;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--td-primary) 28%, transparent);
+}
+.td-file-card.selected:focus-visible .td-file-card-inner {
+  outline: none !important;
+  border-color: var(--td-primary);
+  box-shadow: 0 0 0 2px var(--td-primary), 0 0 0 4px color-mix(in srgb, var(--td-primary) 35%, transparent), 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 /* Topbar: multi-row column; never clip selection strip or action chips */
