@@ -1184,27 +1184,25 @@ export function DrivePreviewModal({
           if (playingOk) {
             setPlayerHint((h) => h || 'Buffering…');
           } else {
-            // Attempt soft resume on existing stream ID without changing URL/remounting <video>
-            if (streamUrl && streamId) {
+            if (st.status === 'missing' && streamUrl && streamId) {
               const idx = streamUrl.indexOf('/stream/');
               if (idx >= 0) {
                 const base = streamUrl.slice(0, idx) + `/stream/${streamId}`;
                 void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
               }
             }
-            if (streamMissingHitsRef.current >= 5) {
-              // Re-RPC only after 5 consecutive missing ticks AND video is truly stuck.
-              // Guard: don’t overlap with onError rebind — that’s the reload-loop root cause.
+            if (streamMissingHitsRef.current >= 5 || st.status === 'cancelled') {
               streamMissingHitsRef.current = 0;
               if (!softReloadInFlightRef.current) {
                 softReloadInFlightRef.current = true;
+                liveStreamIdRef.current = null;
                 setPlayerHint('Melanjutkan unduhan stream…');
                 softReloadTimerRef.current = window.setTimeout(() => {
                   softReloadInFlightRef.current = false;
                   softReloadTimerRef.current = null;
                   if (mountGenRef.current !== activeMountGen) return;
-                  loadPreviewRef.current(quality, { soft: true });
-                }, 600);
+                  loadPreviewRef.current(quality, { soft: false, force: true });
+                }, 400);
               } else {
                 setPlayerHint('Melanjutkan stream…');
               }
@@ -1243,42 +1241,12 @@ export function DrivePreviewModal({
             v.currentTime >= v.duration - 0.35;
           if (!nearEnd) {
             playNudgeAtRef.current = now;
-            // Media error freezes the element — rebind same URL to clear error state,
-            // then defer play() so the element has time to load before we call play.
-            if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
-              const t = v.currentTime || 0;
-              try {
-                const sticky = streamUrl;
-                v.removeAttribute('src');
-                v.load();
-                v.src = sticky;
-                if (t > 0.25) {
-                  ignoreSeekEventsRef.current += 1;
-                  v.currentTime = t;
-                }
-              } catch {
-                /* ignore */
-              }
-              // After rebind, defer play until the element is ready (canplay/loadeddata)
-              window.setTimeout(() => {
-                const vv = videoRef.current;
-                if (vv && vv.paused && !vv.ended && !vv.error) {
-                  void vv.play().then(() => {
-                    hasUserPlayRef.current = true;
-                    setHasVideoFrame(true);
-                    setPlayerHint(null);
-                    setLoading(false);
-                  }).catch(() => undefined);
-                }
-              }, 300);
-            } else {
-              void v.play().then(() => {
-                hasUserPlayRef.current = true;
-                setHasVideoFrame(true);
-                setPlayerHint(null);
-                setLoading(false);
-              }).catch(() => undefined);
-            }
+            void v.play().then(() => {
+              hasUserPlayRef.current = true;
+              setHasVideoFrame(true);
+              setPlayerHint(null);
+              setLoading(false);
+            }).catch(() => undefined);
           }
         }
 
