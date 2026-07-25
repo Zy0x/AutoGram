@@ -919,6 +919,26 @@ fn peer_cache() -> &'static std::sync::RwLock<std::collections::HashMap<String, 
     PEER_RESOLVE_CACHE.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
 }
 
+pub(crate) fn clear_peer_cache_for_all(chat_id: &str) {
+    let s = chat_id.trim();
+    let s_clean = s.trim_start_matches('-');
+    let s_bare = if s_clean.starts_with("100") && s_clean.len() > 3 {
+        &s_clean[3..]
+    } else {
+        s_clean
+    };
+    if let Ok(mut guard) = peer_cache().write() {
+        let keys_to_remove: Vec<String> = guard
+            .keys()
+            .filter(|k| k.ends_with(&format!(":{s}")) || k.ends_with(&format!(":{s_bare}")))
+            .cloned()
+            .collect();
+        for k in keys_to_remove {
+            guard.remove(&k);
+        }
+    }
+}
+
 pub(crate) async fn resolve_peer(
     client: &Client,
     chat_id: &str,
@@ -927,12 +947,18 @@ pub(crate) async fn resolve_peer(
     if s.is_empty() {
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
+
+    let owner_id = client.get_me().await.map(|u| u.id()).unwrap_or(0);
+    let ckey = |k: &str| format!("{owner_id}:{k}");
+
     if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
         let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
         let res = user_to_ref(&me).await;
         if let Ok(ref pref) = res {
-            if let Ok(mut guard) = peer_cache().write() {
-                guard.insert(s.to_string(), *pref);
+            if owner_id != 0 {
+                if let Ok(mut guard) = peer_cache().write() {
+                    guard.insert(ckey(s), *pref);
+                }
             }
         }
         return res;
@@ -946,8 +972,10 @@ pub(crate) async fn resolve_peer(
         {
             let res = peer_to_ref(&peer).await;
             if let Ok(ref pref) = res {
-                if let Ok(mut guard) = peer_cache().write() {
-                    guard.insert(s.to_string(), *pref);
+                if owner_id != 0 {
+                    if let Ok(mut guard) = peer_cache().write() {
+                        guard.insert(ckey(s), *pref);
+                    }
                 }
             }
             return res;
@@ -970,21 +998,23 @@ pub(crate) async fn resolve_peer(
     };
     let want_bare: i64 = s_bare.parse().unwrap_or(want.abs());
 
-    // Fast path: check in-memory cache with all key variations
-    if let Ok(guard) = peer_cache().read() {
-        if let Some(peer_ref) = guard.get(s) {
-            return Ok(*peer_ref);
-        }
-        if let Some(peer_ref) = guard.get(s_bare) {
-            return Ok(*peer_ref);
-        }
-        let alt1 = format!("-100{s_bare}");
-        if let Some(peer_ref) = guard.get(&alt1) {
-            return Ok(*peer_ref);
-        }
-        let alt2 = format!("-{s_bare}");
-        if let Some(peer_ref) = guard.get(&alt2) {
-            return Ok(*peer_ref);
+    // Fast path: check in-memory cache scoped by active user identity
+    if owner_id != 0 {
+        if let Ok(guard) = peer_cache().read() {
+            if let Some(peer_ref) = guard.get(&ckey(s)) {
+                return Ok(*peer_ref);
+            }
+            if let Some(peer_ref) = guard.get(&ckey(s_bare)) {
+                return Ok(*peer_ref);
+            }
+            let alt1 = format!("-100{s_bare}");
+            if let Some(peer_ref) = guard.get(&ckey(&alt1)) {
+                return Ok(*peer_ref);
+            }
+            let alt2 = format!("-{s_bare}");
+            if let Some(peer_ref) = guard.get(&ckey(&alt2)) {
+                return Ok(*peer_ref);
+            }
         }
     }
 
@@ -997,11 +1027,13 @@ pub(crate) async fn resolve_peer(
         if pid == want || pid == -want || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs())) {
             let res = peer_to_ref(&peer).await;
             if let Ok(ref pref) = res {
-                if let Ok(mut guard) = peer_cache().write() {
-                    guard.insert(s.to_string(), *pref);
-                    guard.insert(s_bare.to_string(), *pref);
-                    guard.insert(format!("-100{s_bare}"), *pref);
-                    guard.insert(format!("-{s_bare}"), *pref);
+                if owner_id != 0 {
+                    if let Ok(mut guard) = peer_cache().write() {
+                        guard.insert(ckey(s), *pref);
+                        guard.insert(ckey(s_bare), *pref);
+                        guard.insert(ckey(&format!("-100{s_bare}")), *pref);
+                        guard.insert(ckey(&format!("-{s_bare}")), *pref);
+                    }
                 }
             }
             return res;
@@ -1366,7 +1398,18 @@ pub fn list_media_blocking_topic(
             with_client(sessions_dir, identity, true, |client| {
                 Box::pin(async move {
                     ensure_authorized(client, &session_name).await?;
-                    let peer = resolve_peer(client, &chat).await?;
+                    let mut peer_res = resolve_peer(client, &chat).await;
+                    if let Err(ref e) = peer_res {
+                        let err_str = e.to_string();
+                        if err_str.contains("CHANNEL_INVALID")
+                            || err_str.contains("CHANNEL_PRIVATE")
+                            || err_str.contains("PEER_ID_INVALID")
+                        {
+                            clear_peer_cache_for_all(&chat);
+                            peer_res = resolve_peer(client, &chat).await;
+                        }
+                    }
+                    let peer = peer_res?;
                     let mut iter = client.iter_messages(peer).limit(scan_limit);
                     if let Some(oid) = offset_id {
                         if oid > 0 {
@@ -1376,14 +1419,35 @@ pub fn list_media_blocking_topic(
                     let mut files = Vec::new();
                     let mut last_id: Option<i64> = None;
                     let mut scanned = 0usize;
-                    while let Some(msg) = iter.next().await.map_err(|e| map_invocation(&e))? {
+
+                    let mut first_item = iter.next().await;
+                    if let Err(ref e) = first_item {
+                        let err_str = e.to_string();
+                        if err_str.contains("CHANNEL_INVALID")
+                            || err_str.contains("CHANNEL_PRIVATE")
+                            || err_str.contains("PEER_ID_INVALID")
+                        {
+                            clear_peer_cache_for_all(&chat);
+                            let fresh_peer = resolve_peer(client, &chat).await?;
+                            let mut fresh_iter = client.iter_messages(fresh_peer).limit(scan_limit);
+                            if let Some(oid) = offset_id {
+                                if oid > 0 {
+                                    fresh_iter = fresh_iter.offset_id(oid as i32);
+                                }
+                            }
+                            iter = fresh_iter;
+                            first_item = iter.next().await;
+                        }
+                    }
+
+                    while let Ok(Some(msg)) = first_item {
                         last_id = Some(msg.id() as i64);
                         scanned += 1;
                         if let Some(want) = topic_filter {
                             let tid = message_topic_id(&msg);
-                            // Also accept messages whose id is the topic root itself
                             let mid = msg.id() as i64;
                             if tid != Some(want) && mid != want {
+                                first_item = iter.next().await;
                                 continue;
                             }
                         }
@@ -1393,6 +1457,7 @@ pub fn list_media_blocking_topic(
                                 break;
                             }
                         }
+                        first_item = iter.next().await;
                     }
                     let has_more = files.len() >= limit || scanned >= scan_limit;
                     let next_offset_id = if has_more {
