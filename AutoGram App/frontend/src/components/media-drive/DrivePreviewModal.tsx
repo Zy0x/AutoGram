@@ -1243,7 +1243,8 @@ export function DrivePreviewModal({
             v.currentTime >= v.duration - 0.35;
           if (!nearEnd) {
             playNudgeAtRef.current = now;
-            // Media error freezes the element — rebind same URL once to clear error
+            // Media error freezes the element — rebind same URL to clear error state,
+            // then defer play() so the element has time to load before we call play.
             if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
               const t = v.currentTime || 0;
               try {
@@ -1258,13 +1259,26 @@ export function DrivePreviewModal({
               } catch {
                 /* ignore */
               }
+              // After rebind, defer play until the element is ready (canplay/loadeddata)
+              window.setTimeout(() => {
+                const vv = videoRef.current;
+                if (vv && vv.paused && !vv.ended && !vv.error) {
+                  void vv.play().then(() => {
+                    hasUserPlayRef.current = true;
+                    setHasVideoFrame(true);
+                    setPlayerHint(null);
+                    setLoading(false);
+                  }).catch(() => undefined);
+                }
+              }, 300);
+            } else {
+              void v.play().then(() => {
+                hasUserPlayRef.current = true;
+                setHasVideoFrame(true);
+                setPlayerHint(null);
+                setLoading(false);
+              }).catch(() => undefined);
             }
-            void v.play().then(() => {
-              hasUserPlayRef.current = true;
-              setHasVideoFrame(true);
-              setPlayerHint(null);
-              setLoading(false);
-            }).catch(() => undefined);
           }
         }
 
@@ -1297,7 +1311,7 @@ export function DrivePreviewModal({
     };
 
     void tick();
-    schedule(600);
+    schedule(intervalMs); // use the cold-start interval (250ms), not a hardcoded value
     return () => {
       alive = false;
       if (timer) clearInterval(timer);

@@ -197,9 +197,21 @@ fn is_mp4_entry(entry: &StreamEntry) -> bool {
 pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
     entry.ranges = merge_ranges(entry.ranges);
     entry.updated_at_ms = now_ms();
-    // Cache moov detection ONCE here (not on every status poll).
-    // Non-MP4 or completed files are always ready; MP4 is scanned once
-    // per upsert until the atom is found — O(1) subsequent polls.
+
+    // Inherit moov_ready_cached from the existing live entry so the cache is
+    // never lost between fill-loop iterations.  Every chunk update rebuilds a
+    // fresh StreamEntry literal with moov_ready_cached: false, so without this
+    // inheritance the cache resets on every call — making it useless.
+    if !entry.moov_ready_cached {
+        if let Some(existing) = live_map().read().get(&entry.stream_id).cloned() {
+            if existing.moov_ready_cached {
+                entry.moov_ready_cached = true;
+            }
+        }
+    }
+
+    // If still not cached, scan now (once per upsert until found).
+    // Non-MP4 or completed files are always ready.
     if !entry.moov_ready_cached && !entry.cancelled {
         if entry.done || !is_mp4_entry(&entry) {
             entry.moov_ready_cached = true;
@@ -208,6 +220,7 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
                 range_contains_atom(Path::new(&entry.path), &entry.ranges, b"moov");
         }
     }
+
     save_entry_disk(&entry);
     live_map()
         .write()
