@@ -1,3 +1,10 @@
+## v2.3.39 Stream Auto-Pause Fix & Eliminasi Loop Reload Pemutar Video
+
+### Perbaikan Kritis Pemutaran Stream & Pemulihan Auto-Resume (`DrivePreviewModal.tsx`, `DriveZipBrowser.tsx`)
+- **Eliminasi Global `stopAll` pada ZIP Browser**: Mengapus panggilan `driveStopStream({ stopAll: true })` pada pengakhiran dan navigasi entri `DriveZipBrowser.tsx`. Menghentikan pembatalan tak sengaja pada saluran unduhan video di latar belakang.
+- **Pemulihan Stream Soft Resume Tanpa Remounting**: Memperbarui penanganan status stream `missing` / `cancelled` pada `DrivePreviewModal.tsx` agar melakukan *soft resume* otomatis via `POST /stream/{sid}/resume` tanpa merestart `stream_id` atau me-remount node `<video>`, menghentikan tombol Play berkedip/reload terus-menerus.
+- **Unconditional Auto-Resume saat Status Paused**: Memperbaiki syarat auto-resume pada polling *stream status* agar selalu membangunkan task pengunduhan Rust di latar belakang ketika status terdeteksi `paused`, menjamin berkas MP4/dokumen video besar diputar lancar.
+
 ## v2.3.38 Support Thumbnail Extraction & Auto-Sync untuk Link Post Telegram (`Media::WebPage`)
 
 ### Dukungan Thumbnail WebPage / Link Preview (`grammers_media.rs`, `grammers_ops.rs`)

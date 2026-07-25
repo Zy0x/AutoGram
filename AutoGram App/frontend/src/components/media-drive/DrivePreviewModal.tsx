@@ -1137,7 +1137,7 @@ export function DrivePreviewModal({
         setBufferPct(Math.min(100, Math.round(displayPct)));
 
         // If pipeline was paused (autoplay→pause race), resume while user is on preview
-        if (st.paused === true && streamUrl && streamId && hasUserPlayRef.current === false) {
+        if (st.paused === true && streamUrl && streamId) {
           try {
             const idx = streamUrl.indexOf('/stream/');
             if (idx >= 0) {
@@ -1171,18 +1171,26 @@ export function DrivePreviewModal({
             (browserHasData || v.readyState >= 2 || (!v.paused && v.currentTime > 0.2));
           if (playingOk) {
             setPlayerHint((h) => h || 'Buffering…');
-          } else if (streamMissingHitsRef.current >= 2) {
-            // Automatic resume: force re-RPC so native stream re-establishes (reuses disk
-            // partial + continues GetFile). Do not invalidate cache thrash.
-            streamMissingHitsRef.current = 0;
-            liveStreamIdRef.current = null;
-            setPlayerHint('Melanjutkan unduhan stream…');
-            window.setTimeout(() => {
-              if (mountGenRef.current !== activeMountGen) return;
-              loadPreviewRef.current(quality, { soft: true, force: true });
-            }, 500);
-          } else if (streamMissingHitsRef.current >= 1) {
-            setPlayerHint('Melanjutkan stream…');
+          } else {
+            // Attempt soft resume on existing stream ID without changing URL/remounting <video>
+            if (streamUrl && streamId) {
+              const idx = streamUrl.indexOf('/stream/');
+              if (idx >= 0) {
+                const base = streamUrl.slice(0, idx) + `/stream/${streamId}`;
+                void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
+              }
+            }
+            if (streamMissingHitsRef.current >= 5) {
+              // Re-RPC only after 5 consecutive missing ticks (~3s) & video is truly stuck
+              streamMissingHitsRef.current = 0;
+              setPlayerHint('Melanjutkan unduhan stream…');
+              window.setTimeout(() => {
+                if (mountGenRef.current !== activeMountGen) return;
+                loadPreviewRef.current(quality, { soft: true });
+              }, 500);
+            } else {
+              setPlayerHint('Melanjutkan stream…');
+            }
           }
         } else {
           streamMissingHitsRef.current = 0;
