@@ -144,14 +144,19 @@ export async function getPersistentThumbsSize(): Promise<number> {
     try {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const items = req.result as ThumbRow[];
-        let total = 0;
-        for (const item of items) {
-          total += (item.key.length + item.dataUrl.length + 8);
+      let total = 0;
+      const req = store.openCursor();
+      req.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (cursor) {
+          const row = cursor.value as ThumbRow;
+          if (row) {
+            total += (row.key?.length || 0) + (row.dataUrl?.length || 0) + 8;
+          }
+          cursor.continue();
+        } else {
+          resolve(total);
         }
-        resolve(total);
       };
       req.onerror = () => resolve(0);
     } catch {
@@ -164,26 +169,28 @@ export async function prunePersistentThumbsToSize(targetBytes: number): Promise<
   const db = await openDb();
   if (!db) return;
   try {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const items = await new Promise<ThumbRow[]>((resolve) => {
-      const req = store.getAll();
-      req.onsuccess = () => resolve((req.result as ThumbRow[]) || []);
-      req.onerror = () => resolve([]);
-    });
-
-    let currentSize = items.reduce((acc, item) => acc + item.key.length + item.dataUrl.length + 8, 0);
+    const currentSize = await getPersistentThumbsSize();
     if (currentSize <= targetBytes) return;
 
-    // Sort items by savedAt ascending (oldest first)
-    items.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+    let excess = currentSize - targetBytes;
 
-    for (const item of items) {
-      if (currentSize <= targetBytes) break;
-      const itemSize = item.key.length + item.dataUrl.length + 8;
-      store.delete(item.key);
-      currentSize -= itemSize;
-    }
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index('savedAt');
+
+    const req = index.openCursor();
+    req.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (cursor && excess > 0) {
+        const row = cursor.value as ThumbRow;
+        if (row) {
+          const itemSize = (row.key?.length || 0) + (row.dataUrl?.length || 0) + 8;
+          cursor.delete();
+          excess -= itemSize;
+        }
+        cursor.continue();
+      }
+    };
   } catch {
     /* best-effort pruning */
   }
