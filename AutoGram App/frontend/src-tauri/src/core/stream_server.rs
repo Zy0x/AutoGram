@@ -532,13 +532,12 @@ fn handle_stream(request: Request, sid: &str) {
         }
         (start, end - 1, 206)
     } else {
-        // Full GET incomplete → 206 solid prefix only
-        if !entry.done {
-            let solid = prefix.max(1).min(total.max(1));
-            (0, solid.saturating_sub(1), 206)
-        } else {
-            (0, total.saturating_sub(1), 200)
-        }
+        // Non-Range GET request: RFC 7233 Sec 4.1 forbids sending 206 Partial Content
+        // unless Range header was provided in request. Returning 206 without Range causes
+        // Chromium MEDIA_ELEMENT_ERROR: Format error (Code 4).
+        // Return 200 OK with available bytes + Accept-Ranges header so player can probe & Range seek.
+        let solid = if entry.done { total } else { prefix.max(1).min(total.max(1)) };
+        (0, solid.saturating_sub(1), 200)
     };
 
     let length = end_incl.saturating_sub(start).saturating_add(1);
