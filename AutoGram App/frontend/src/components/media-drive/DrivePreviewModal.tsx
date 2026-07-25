@@ -3214,6 +3214,16 @@ export function DrivePreviewModal({
                   setHasVideoFrame(true);
                   setLoading(false);
                   handlePlay();
+                  // Video is actually playing — reset error counters so transient
+                  // buffer holes start fresh (no "Buffer lambat" stuck after recovery).
+                  mediaErrorCountRef.current = 0;
+                  if (softReloadInFlightRef.current) {
+                    softReloadInFlightRef.current = false;
+                    if (softReloadTimerRef.current != null) {
+                      window.clearTimeout(softReloadTimerRef.current);
+                      softReloadTimerRef.current = null;
+                    }
+                  }
                   if (seekWarn && seekWarn.startsWith('Memuat')) {
                     setSeekWarn(null);
                   }
@@ -3231,70 +3241,99 @@ export function DrivePreviewModal({
                   }
                 }}
                 onError={(e) => {
-                  const mediaErr = videoRef.current?.error || (e.target as HTMLVideoElement)?.error;
-                  if (mediaErr && mediaErr.code === 1) {
-                    return; // MEDIA_ERR_ABORTED is not a failure
-                  }
-                  // Progressive buffer hole / 503: do NOT tear down the stream.
-                  // WebView2 often fires MEDIA_ERR_NETWORK while fill catches up;
-                  // full reload restarts GetFile. Clear error by rebinding same URL.
-                  // Use streamDoneRef (ref, not state) to avoid stale-closure false negatives.
+                  const v = videoRef.current;
+                  const mediaErr = v?.error || (e.target as HTMLVideoElement)?.error;
+                  // MEDIA_ERR_ABORTED (1): user navigation — harmless
+                  if (!mediaErr || mediaErr.code === 1) return;
+
                   const progressiveFilling = !!streamUrl && !streamDoneRef.current;
                   if (progressiveFilling) {
                     mediaErrorCountRef.current += 1;
-                    const v = videoRef.current;
                     const n = mediaErrorCountRef.current;
-                    // First few errors: soft rebind same src (clears MEDIA_ERR sticky state).
-                    // Guard: set softReloadInFlightRef so poll’s missing-5 path doesn’t
-                    // also call loadPreview at the same time — that’s the reload loop.
-                    if (v && streamUrl && n <= 3) {
+
+                    // MEDIA_ERR_NETWORK (2): browser ran out of buffered data.
+                    // Root cause of the "looping play" bug:
+                    //   rebind src → video resets to 0:00 → immediately errors again → loop.
+                    // Fix: NEVER rebind on network error. The fill loop is downloading more
+                    // bytes; we just need to call v.play() once the stream server has them.
+                    // The poll nudge (250ms) will call v.play() when streamReady / bufferPct>=5.
+                    if (mediaErr.code === 2) {
+                      // Block poll-triggered softReload for 2.5s so it doesn't interfere
                       if (!softReloadInFlightRef.current) {
                         softReloadInFlightRef.current = true;
-                        setPlayerHint('Buffering… menyambung putar');
-                        const t = v.currentTime || 0;
-                        const sticky = streamUrl;
                         if (softReloadTimerRef.current != null) {
                           window.clearTimeout(softReloadTimerRef.current);
                         }
                         softReloadTimerRef.current = window.setTimeout(() => {
                           softReloadInFlightRef.current = false;
                           softReloadTimerRef.current = null;
+                          // Nudge play — if data has arrived the video will resume
                           const vv = videoRef.current;
-                          if (!vv || mountGenRef.current !== activeMountGen) return;
-                          try {
-                            if (vv.error) {
-                              vv.removeAttribute('src');
-                              vv.load();
-                              vv.src = sticky;
-                              if (t > 0.25) {
-                                ignoreSeekEventsRef.current += 1;
-                                vv.currentTime = t;
-                              }
-                            }
+                          if (vv && vv.paused && !vv.ended && mountGenRef.current === activeMountGen) {
                             void vv.play().then(() => {
                               hasUserPlayRef.current = true;
                               setPlayerHint(null);
                             }).catch(() => undefined);
-                          } catch {
-                            /* ignore */
                           }
-                        }, 350);
+                        }, 2500);
+                      }
+                      if (n < 4) {
+                        setPlayerHint('Buffering… menunggu data stream');
+                      } else if (n < 12) {
+                        setPlayerHint(
+                          nativeStreamReadyRef.current
+                            ? 'Buffering… menunggu data stream'
+                            : 'Menyiapkan metadata dan buffer awal…'
+                        );
+                      } else {
+                        // After 12 network errors, encourage the user — but still
+                        // do NOT reload (that cancels the Telegram download pipeline).
+                        setPlayerHint('Mengisi buffer… tekan Play jika ingin mulai lebih awal');
                       }
                       return;
                     }
-                    setPlayerHint(
-                      nativeStreamReadyRef.current
-                        ? 'Buffering… menunggu data stream'
-                        : 'Menyiapkan metadata dan buffer awal…'
-                    );
-                    // NEVER force-reload progressive fill from onError thrash.
-                    // force loadPreview cancelled the live GetFile pipeline and
-                    // left registry entries cancelled=true with frozen buffer %.
-                    if (mediaErrorCountRef.current >= 12) {
-                      setPlayerHint('Buffer lambat — coba tombol Play, atau Muat ulang');
+
+                    // MEDIA_ERR_DECODE (3) or SRC_NOT_SUPPORTED (4): the element itself is
+                    // broken. A src rebind can clear it without restarting Telegram download.
+                    if (v && streamUrl && n <= 4 && !softReloadInFlightRef.current) {
+                      softReloadInFlightRef.current = true;
+                      setPlayerHint('Buffering… menyambung putar');
+                      const t = v.currentTime || 0;
+                      const sticky = streamUrl;
+                      if (softReloadTimerRef.current != null) {
+                        window.clearTimeout(softReloadTimerRef.current);
+                      }
+                      softReloadTimerRef.current = window.setTimeout(() => {
+                        softReloadInFlightRef.current = false;
+                        softReloadTimerRef.current = null;
+                        const vv = videoRef.current;
+                        if (!vv || mountGenRef.current !== activeMountGen) return;
+                        try {
+                          if (vv.error) {
+                            vv.removeAttribute('src');
+                            vv.load();
+                            vv.src = sticky;
+                            if (t > 0.25) {
+                              ignoreSeekEventsRef.current += 1;
+                              // Defer currentTime until element has loaded enough
+                              window.setTimeout(() => { try { vv.currentTime = t; } catch { /**/ } }, 200);
+                            }
+                          }
+                          void vv.play().then(() => {
+                            hasUserPlayRef.current = true;
+                            setPlayerHint(null);
+                          }).catch(() => undefined);
+                        } catch {
+                          /* ignore */
+                        }
+                      }, 400);
+                      return;
                     }
+                    // Exhausted retries — just hint, never hard-reload
+                    setPlayerHint('Mengisi buffer… tekan Play jika ingin mulai lebih awal');
                     return;
                   }
+
                   if (tryNextSrc()) return;
                   // Stale stream URL after worker restart / StrictMode teardown
                   if (streamUrl) {
