@@ -423,6 +423,17 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     None
 }
 
+fn map_tl_photo_size(s: &tl::enums::PhotoSize) -> PhotoSize {
+    match s {
+        tl::enums::PhotoSize::Size(sz) => PhotoSize::Size(sz.clone()),
+        tl::enums::PhotoSize::Progressive(p) => PhotoSize::Progressive(p.clone()),
+        tl::enums::PhotoSize::Cached(c) => PhotoSize::Cached(c.clone()),
+        tl::enums::PhotoSize::Stripped(st) => PhotoSize::Stripped(st.clone()),
+        tl::enums::PhotoSize::Path(pt) => PhotoSize::Path(pt.clone()),
+        tl::enums::PhotoSize::Empty => PhotoSize::Empty,
+    }
+}
+
 fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
     match media {
         Media::Photo(p) => p.thumbs(),
@@ -433,13 +444,13 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
                 let mut out = Vec::new();
                 if let Some(tl::enums::Photo::Photo(photo)) = &page.photo {
                     for s in &photo.sizes {
-                        out.push(PhotoSize::from(s.clone()));
+                        out.push(map_tl_photo_size(s));
                     }
                 }
                 if let Some(tl::enums::Document::Document(doc)) = &page.document {
                     if let Some(ref thumbs) = doc.thumbs {
                         for s in thumbs {
-                            out.push(PhotoSize::from(s.clone()));
+                            out.push(map_tl_photo_size(s));
                         }
                     }
                 }
