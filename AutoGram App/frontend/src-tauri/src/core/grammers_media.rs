@@ -654,9 +654,20 @@ async fn download_media_thumb(
                     }
                     return Ok(sample_bytes);
                 } else if is_video {
+                    let doc_size = d.size().unwrap_or(0) as usize;
                     let mode = quality.to_lowercase();
                     let sharp = mode.contains("jelas") || mode.contains("sharp");
-                    let max_sample = if sharp { 3072 * 1024 } else if saver { 768 * 1024 } else { 2048 * 1024 };
+                    // For video documents <= 12MB (which includes almost all chat clips, TikTok/Vam clips, and short videos),
+                    // download the full video payload so FFmpeg frame extraction succeeds 100% reliably.
+                    let max_sample = if doc_size > 0 && doc_size <= 12 * 1024 * 1024 {
+                        doc_size
+                    } else if sharp {
+                        4096 * 1024
+                    } else if saver {
+                        1024 * 1024
+                    } else {
+                        2560 * 1024
+                    };
                     let ext_hint = if name.ends_with(".webm") {
                         "webm"
                     } else if name.ends_with(".mkv") {
@@ -687,10 +698,9 @@ async fn download_media_thumb(
                         return Ok(frame_bytes);
                     }
 
-                    // Fallback for non-faststart MP4s (moov atom at end of file, e.g. Snaptik/TikTok 40MB+ videos or small <=2.5MB videos)
-                    let doc_size = d.size().unwrap_or(0) as usize;
+                    // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 40MB+ videos)
                     let chunk_bytes = 256 * 1024;
-                    if doc_size <= sample_bytes.len() + chunk_bytes {
+                    if doc_size > 0 && doc_size <= sample_bytes.len() + chunk_bytes {
                         // Entire video (or almost entire video) is already in sample_bytes.
                         // Pass sample_bytes as both head and tail so make_faststart_mp4 can extract moov from the end of sample_bytes.
                         if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &sample_bytes) {
@@ -698,9 +708,11 @@ async fn download_media_thumb(
                                 return Ok(frame_bytes);
                             }
                         }
-                    } else {
+                    } else if doc_size > 0 {
                         let total_chunks = doc_size / chunk_bytes;
-                        let skip = total_chunks.saturating_sub(12) as i32;
+                        // Fetch last 24 chunks (6 MB) to capture moov atom & stco tables for large videos
+                        let tail_chunks = 24.min(total_chunks);
+                        let skip = total_chunks.saturating_sub(tail_chunks) as i32;
                         let mut tail_bytes = Vec::new();
                         let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
                         while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
