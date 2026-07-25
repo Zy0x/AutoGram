@@ -1698,7 +1698,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             setScaleHint(
               res.has_more
                 ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar.'
-                : 'Jumlah & ukuran total dihitung akurat di latar…'
+                : null
             );
             // Stats after topics/files settle (no-op on low-end fullMediaStats=false)
             setStatsAccurate(false);
@@ -1936,7 +1936,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         setScaleHint(
           boot.files_has_more
             ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar (tanpa menunggu scroll).'
-            : 'Jumlah & ukuran total dihitung akurat di latar…'
+            : null
         );
         scheduleMediaStats({ force: true, delayMs: INITIAL_STATS_DELAY_MS });
       } else {
@@ -2491,7 +2491,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         setScaleHint(
           hasMore
             ? 'Folder besar — grid dimuat bertahap; jumlah & ukuran total dihitung otomatis di latar (tanpa menunggu scroll).'
-            : 'Jumlah & ukuran total dihitung akurat di latar…'
+            : null
         );
         // Topic history can still be large. Keep it in the same late stage so
         // switching topic never reintroduces a startup CPU/network spike.
