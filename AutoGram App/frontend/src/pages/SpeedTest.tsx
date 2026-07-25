@@ -7233,6 +7233,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             spaceLabel={spaceHint}
             statsLoading={statsLoading}
             statsAccurate={statsAccurate}
+            scaleHint={scaleHint}
           />
 
           <DriveTransferManager

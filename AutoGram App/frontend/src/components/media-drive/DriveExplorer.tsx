@@ -115,7 +115,7 @@ export function DriveExplorer({
   progressiveReady = true,
   initialScrollTop = 0,
   onScrollPositionChange,
-  scaleHint,
+  scaleHint: _scaleHint,
   error,
   viewMode,
   selectedIds,
@@ -713,9 +713,6 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
-
-
-      {scaleHint && <div className="td-scale-hint">{scaleHint}</div>}
 
       {marqueeBox && (
         <div

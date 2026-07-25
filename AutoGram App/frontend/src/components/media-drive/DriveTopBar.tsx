@@ -23,6 +23,7 @@ import {
   Edit2,
   Globe,
   FolderArchive,
+  Info,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -123,6 +124,8 @@ type Props = {
   statsLoading?: boolean;
   /** True when unique media_stats finished (location-wide accurate) */
   statsAccurate?: boolean;
+  /** Optional background calculation hint text */
+  scaleHint?: string | null;
 };
 
 export function DriveTopBar({
@@ -183,6 +186,7 @@ export function DriveTopBar({
   spaceLabel,
   statsLoading,
   statsAccurate,
+  scaleHint,
 }: Props) {
   // Always show filter bar for forum groups (at least "Semua media")
   const showTopics = !!isForum;
@@ -428,6 +432,12 @@ export function DriveTopBar({
             ) : null}
             {spaceLabel ? <span className="td-count-space"> · {spaceLabel}</span> : null}
           </span>
+          {scaleHint && (
+            <span className="td-hint-pill" title={scaleHint}>
+              <Info size={12} className="td-hint-pill-ico" aria-hidden />
+              <span className="td-hint-pill-text">{scaleHint}</span>
+            </span>
+          )}
           {onOpenTools && (
             <button
               type="button"

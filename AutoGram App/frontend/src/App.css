@@ -2482,6 +2482,34 @@ body.td-dnd-external {
   border-color: color-mix(in srgb, #22c55e 40%, var(--td-border));
 }
 
+.td-hint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--td-sub);
+  background: color-mix(in srgb, var(--td-hover) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--td-primary) 35%, var(--td-border));
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  transition: opacity 0.2s, max-width 0.2s;
+}
+.td-hint-pill-ico {
+  color: var(--td-primary, #f59e0b);
+  flex-shrink: 0;
+}
+.td-hint-pill-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .td-count-ellip {
   opacity: 0.75;
   letter-spacing: 0.02em;
