@@ -17,6 +17,7 @@ export interface ThumbnailRecord {
 
 export interface CheckpointRecord {
   jobId: string;
+  session?: string;
   folderId: number;
   sortMode: string;
   lastOffsetId: number;
@@ -30,6 +31,7 @@ export interface CheckpointRecord {
 
 export interface ActionJob {
   id: string;              // "act_" + timestamp + random
+  session?: string;
   type: 'delete' | 'rename' | 'move' | 'download';
   target: {
     messageId: number;

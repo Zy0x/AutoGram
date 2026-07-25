@@ -162,6 +162,7 @@ if (typeof window !== 'undefined') {
   import('@tauri-apps/api/event')
     .then(({ listen }) => {
       listen<{
+        session?: string;
         chatId?: string;
         messageId?: number;
         quality?: string;
@@ -170,6 +171,10 @@ if (typeof window !== 'undefined') {
       }>('thumb_single_ready', (event) => {
         const p = event.payload;
         if (!p || !p.messageId || !p.url) return;
+        const targetSession = p.session ? String(p.session).trim() : activeSession;
+        if (targetSession && targetSession !== 'unscoped' && activeSession !== 'unscoped' && targetSession !== activeSession) {
+          return;
+        }
         const mid = Number(p.messageId);
         if (!Number.isFinite(mid) || mid <= 0) return;
         const quality = mapRustThumbQuality(p.quality);
@@ -177,7 +182,7 @@ if (typeof window !== 'undefined') {
         const folderId =
           !chat || chat === 'me' || chat === 'saved' ? null : Number(chat);
         const folderPart = Number.isFinite(folderId as number) ? (folderId as number) : null;
-        const k = cacheKey(folderPart, mid, quality);
+        const k = cacheKey(folderPart, mid, quality, targetSession);
 
         if (p.isPlaceholder) {
           // Blur placeholder (32x32 stripped).
@@ -200,7 +205,7 @@ if (typeof window !== 'undefined') {
         notifyThumbReady(k, p.url, false);
 
         for (const [taskKey, task] of queue.entries()) {
-          if (task.messageId !== mid) continue;
+          if (task.messageId !== mid || task.creds.session !== targetSession) continue;
           memCache.set(taskKey, p.url);
           softFailAt.delete(taskKey);
           errorFailAt.delete(taskKey);
@@ -460,6 +465,12 @@ export function clearThumbCache() {
   softFailAt.clear();
   errorFailAt.clear();
   inflightByKey.clear();
+  contextGeneration += 1;
+  for (const [, task] of queue) {
+    resolveTask(task, null);
+  }
+  queue.clear();
+  metrics.queued = 0;
 }
 
 export function invalidateThumbFailures() {

@@ -209,6 +209,8 @@ import {
   refreshVisibleThumbsForQuality,
 } from '../lib/thumbBatcher';
 import { clearAvatarCache, invalidateAvatarFailures } from '../lib/avatarBatcher';
+import { clearPreviewCache } from '../lib/previewCache';
+import { clearZipBrowserCache } from '../components/media-drive/DriveZipBrowser';
 import {
   CHAT_SOFT_PREFETCH_DELAY_MS,
   INITIAL_STATS_DELAY_MS,
@@ -1016,10 +1018,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
     // Kill in-flight work for the previous account immediately.
     invalidateDriveGenerations();
     peerGen.current += 1;
+    setPreviewFile(null);
+    setContextMenu(null);
+    setConfirmDlg(null);
+    setQuery('');
     try {
       setThumbContext(null, null, null);
       clearThumbCache();
       invalidateThumbFailures();
+      clearPreviewCache();
+      clearZipBrowserCache();
     } catch {
       /* ignore */
     }

@@ -217,6 +217,11 @@ const zipIndexCacheMap = new Map<
 // Password memory cache across component instances
 const rememberedPasswordsMap = new Map<string, string>();
 
+export function clearZipBrowserCache(): void {
+  zipIndexCacheMap.clear();
+  rememberedPasswordsMap.clear();
+}
+
 export function DriveZipBrowser({
   creds,
   messageId,
@@ -620,7 +625,10 @@ export function DriveZipBrowser({
     }
   }, [rate, preview]);
 
-  const archiveKey = useMemo(() => `${messageId}:${archiveName || 'zip'}`, [messageId, archiveName]);
+  const archiveKey = useMemo(
+    () => `${creds.session || 'unscoped'}:${messageId}:${archiveName || 'zip'}`,
+    [creds.session, messageId, archiveName]
+  );
 
   const loadList = useCallback(async (forceRefresh = false) => {
     setLoading(true);

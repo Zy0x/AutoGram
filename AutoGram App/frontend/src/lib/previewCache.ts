@@ -46,9 +46,11 @@ const inflight = new Map<string, Promise<CachedPreview>>();
 export function previewCacheKey(
   folderId: number | null,
   messageId: number,
-  quality: string
+  quality: string,
+  session = 'unscoped'
 ): string {
-  return `${folderId ?? 'home'}:${messageId}:${quality || 'auto'}`;
+  const s = String(session || '').trim() || 'unscoped';
+  return `${s}:${folderId ?? 'home'}:${messageId}:${quality || 'auto'}`;
 }
 
 function touch(key: string, val: CachedPreview) {
@@ -64,9 +66,10 @@ function touch(key: string, val: CachedPreview) {
 export function getCachedPreview(
   folderId: number | null,
   messageId: number,
-  quality: string
+  quality: string,
+  session = 'unscoped'
 ): CachedPreview | null {
-  const key = previewCacheKey(folderId, messageId, quality);
+  const key = previewCacheKey(folderId, messageId, quality, session);
   const hit = cache.get(key);
   if (!hit) return null;
   if (Date.now() - hit.cachedAt > TTL_MS) {
@@ -82,10 +85,11 @@ export function setCachedPreview(
   folderId: number | null,
   messageId: number,
   quality: string,
-  res: Omit<CachedPreview, 'cachedAt'>
+  res: Omit<CachedPreview, 'cachedAt'>,
+  session = 'unscoped'
 ): CachedPreview {
   const entry: CachedPreview = { ...res, cachedAt: Date.now() };
-  touch(previewCacheKey(folderId, messageId, quality), entry);
+  touch(previewCacheKey(folderId, messageId, quality, session), entry);
   return entry;
 }
 
@@ -135,7 +139,8 @@ export async function loadPreviewCached(
   opts?: { force?: boolean }
 ): Promise<CachedPreview> {
   const q = quality || 'auto';
-  const hit = getCachedPreview(folderId, messageId, q);
+  const session = creds.session || 'unscoped';
+  const hit = getCachedPreview(folderId, messageId, q, session);
   // Complete local only (full file / faststart) — never trust hollow .stream. alone
   if (!opts?.force && hit && isSolidLocalHit(hit)) {
     return hit;
@@ -145,7 +150,7 @@ export async function loadPreviewCached(
     return hit;
   }
 
-  const key = previewCacheKey(folderId, messageId, q);
+  const key = previewCacheKey(folderId, messageId, q, session);
   const existing = inflight.get(key);
   if (existing && !opts?.force) return existing;
 
@@ -171,7 +176,7 @@ export async function loadPreviewCached(
       ) {
         return r;
       }
-      return setCachedPreview(folderId, messageId, q, r);
+      return setCachedPreview(folderId, messageId, q, r, session);
     } catch (e) {
       noteFloodFromError(e);
       throw e;
@@ -192,6 +197,7 @@ export function prefetchPreviews(
   quality: string
 ): void {
   const q = quality || 'auto';
+  const session = creds.session || 'unscoped';
   // De-dupe ids while preserving order
   const seen = new Set<number>();
   const ordered: number[] = [];
@@ -203,8 +209,8 @@ export function prefetchPreviews(
   if (isPreviewWarmPaused()) return;
   // Prefetch at most 1 neighbor — parallel full previews caused FloodWait storms.
   ordered.slice(0, 1).forEach((mid, i) => {
-    if (getCachedPreview(folderId, mid, q)) return;
-    const key = previewCacheKey(folderId, mid, q);
+    if (getCachedPreview(folderId, mid, q, session)) return;
+    const key = previewCacheKey(folderId, mid, q, session);
     if (inflight.has(key)) return;
     window.setTimeout(() => {
       if (isPreviewWarmPaused()) return;
@@ -254,12 +260,13 @@ export function warmPreviewHead(
   if (!messageId || messageId <= 0) return;
   if (isPreviewWarmPaused()) return;
   if (warmGlobalBusy) return;
-  const key = `${folderId ?? 'home'}:${messageId}`;
+  const session = creds.session || 'unscoped';
+  const key = `${session}:${folderId ?? 'home'}:${messageId}`;
   const doneAt = warmDone.get(key);
   if (doneAt && Date.now() - doneAt < WARM_TTL_MS) return;
   if (warmInflight.has(key)) return;
   // Already have a full preview cache entry with stream
-  const hit = getCachedPreview(folderId, messageId, 'auto');
+  const hit = getCachedPreview(folderId, messageId, 'auto', session);
   if (hit?.stream_url && (hit.buffered || 0) >= 64 * 1024) {
     warmDone.set(key, Date.now());
     return;
@@ -310,19 +317,22 @@ export function warmPreviewHeads(
 export function clearPreviewCache(): void {
   cache.clear();
   inflight.clear();
+  warmInflight.clear();
+  warmDone.clear();
 }
 
 /** Drop one entry (e.g. after failed render / stale stream URL). */
 export function invalidatePreview(
   folderId: number | null,
   messageId: number,
-  quality?: string
+  quality?: string,
+  session = 'unscoped'
 ): void {
   if (quality) {
-    cache.delete(previewCacheKey(folderId, messageId, quality));
+    cache.delete(previewCacheKey(folderId, messageId, quality, session));
     return;
   }
-  const prefix = `${folderId ?? 'home'}:${messageId}:`;
+  const prefix = `${session}:${folderId ?? 'home'}:${messageId}:`;
   for (const k of [...cache.keys()]) {
     if (k.startsWith(prefix)) cache.delete(k);
   }
