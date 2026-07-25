@@ -423,41 +423,32 @@ fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     None
 }
 
-fn map_tl_photo_size(s: &tl::enums::PhotoSize) -> PhotoSize {
-    match s {
-        tl::enums::PhotoSize::Size(sz) => PhotoSize::Size(sz.clone()),
-        tl::enums::PhotoSize::Progressive(p) => PhotoSize::Progressive(p.clone()),
-        tl::enums::PhotoSize::Cached(c) => PhotoSize::Cached(c.clone()),
-        tl::enums::PhotoSize::Stripped(st) => PhotoSize::Stripped(st.clone()),
-        tl::enums::PhotoSize::Path(pt) => PhotoSize::Path(pt.clone()),
-        tl::enums::PhotoSize::Empty => PhotoSize::Empty,
-    }
-}
-
-fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
+fn media_thumbs(client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
     match media {
         Media::Photo(p) => p.thumbs(),
         Media::Document(d) => d.thumbs(),
         Media::Sticker(s) => s.document.thumbs(),
-        Media::WebPage(wp) => match &wp.raw.webpage {
-            tl::enums::WebPage::Page(page) => {
-                let mut out = Vec::new();
-                if let Some(tl::enums::Photo::Photo(photo)) = &page.photo {
-                    for s in &photo.sizes {
-                        out.push(map_tl_photo_size(s));
-                    }
-                }
-                if let Some(tl::enums::Document::Document(doc)) = &page.document {
-                    if let Some(ref thumbs) = doc.thumbs {
-                        for s in thumbs {
-                            out.push(map_tl_photo_size(s));
+        Media::WebPage(wp) => {
+            if let Some(client) = client {
+                match &wp.raw.webpage {
+                    tl::enums::WebPage::Page(page) => {
+                        let mut out = Vec::new();
+                        if let Some(tl::enums::Photo::Photo(photo)) = &page.photo {
+                            let p = grammers_client::media::Photo::from_raw(client.clone(), photo.clone());
+                            out.extend(p.thumbs());
                         }
+                        if let Some(tl::enums::Document::Document(doc)) = &page.document {
+                            let d = grammers_client::media::Document::from_raw(client.clone(), doc.clone());
+                            out.extend(d.thumbs());
+                        }
+                        out
                     }
+                    _ => vec![],
                 }
-                out
+            } else {
+                vec![]
             }
-            _ => vec![],
-        },
+        }
         _ => vec![],
     }
 }
@@ -466,7 +457,7 @@ fn media_thumbs(media: &Media) -> Vec<PhotoSize> {
 /// Used by list_media so the grid paints like the official app on first paint.
 pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
     let mut best: Option<(usize, PhotoSize)> = None;
-    for s in media_thumbs(media) {
+    for s in media_thumbs(None, media) {
         if let Some(data) = s.to_data() {
             let bytes = unstrip_jpeg(&data).unwrap_or(data);
             if !bytes.is_empty() {
@@ -508,7 +499,7 @@ async fn download_media_thumb(
     media: &Media,
     quality: &str,
 ) -> Result<Vec<u8>, TgError> {
-    let sizes = media_thumbs(media);
+    let sizes = media_thumbs(Some(client), media);
     let mode = quality.to_lowercase();
     let saver = mode.contains("hemat") || mode.contains("saver");
 
@@ -1397,7 +1388,7 @@ pub fn thumbs_batch_blocking_app(
                     let mut got_stripped = false;
                     if let Some(msg) = msg_by_id.get(&mid) {
                         if let Some(media) = msg.media() {
-                            let sizes = media_thumbs(&media);
+                            let sizes = media_thumbs(Some(&client), &media);
                             for s in &sizes {
                                 if let Some(data) = s.to_data() {
                                     let bytes = unstrip_jpeg(&data).unwrap_or(data);
