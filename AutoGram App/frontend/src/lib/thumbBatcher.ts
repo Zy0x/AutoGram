@@ -360,6 +360,22 @@ export function getCachedThumb(folderId: number | null, messageId: number): stri
   return undefined;
 }
 
+/**
+ * Retrieve the saver (stripped/blurred) thumbnail regardless of active quality.
+ * Used as an instant blur placeholder in balanced/sharp modes while the
+ * higher-quality thumb is being fetched \u2014 mirrors Telegram\u2019s progressive loading UX.
+ * Returns null when not in cache (i.e., primeThumbsFromFileList not yet called).
+ */
+export function getCachedSaverThumb(
+  folderId: number | null,
+  messageId: number,
+  session = activeSession
+): string | null {
+  if (activeQuality === 'saver') return null; // already handled by getCachedThumb
+  const k = cacheKey(folderId, messageId, 'saver', session);
+  return memCache.has(k) ? memCache.get(k)! : null;
+}
+
 /** Seed a just-committed thumbnail without opening another Telegram worker. */
 export function primeThumbCache(
   creds: DriveCredentials,

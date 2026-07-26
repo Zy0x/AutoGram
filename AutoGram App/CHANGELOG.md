@@ -1,3 +1,11 @@
+## v2.3.49 Progressive Blur Placeholder — Thumbnail Instan Mode Seimbang/Jelas
+
+### Pemuatan Thumbnail Progresif Mirip Telegram App (`thumbBatcher.ts`, `DriveFileCard.tsx`)
+- **Saver Blur sebagai Placeholder Instan**: Kartu media di mode Seimbang/Jelas kini menampilkan versi buram (saver/stripped thumbnail) **secara langsung** saat pertama muncul, alih-alih menunggu ikon kosong selama 4–6 detik. Versi tajam balanced/sharp menggantikan blur begitu selesai diunduh dari Telegram.
+- **getCachedSaverThumb()**: Fungsi baru di `thumbBatcher.ts` untuk mengambil thumbnail saver dari memCache lintas-quality, sehingga kartu mode balanced/sharp bisa menggunakannya sebagai fallback tanpa mempengaruhi pipeline fetch balanced.
+- **Quality Switch Tanpa Kartu Kosong**: Saat pengguna beralih dari mode Hemat ke Seimbang/Jelas, kartu yang belum punya cache balanced langsung menampilkan saver blur sambil menunggu balanced diunduh — tidak ada lagi kartu kosong saat ganti mode.
+- **isPlaceholderImg Akurat pada Semua Path**: State `isPlaceholderImg` kini diset `true` pada semua jalur yang menampilkan blur (inline, saver fallback, quality-switch) dan di-clear menjadi `false` saat balanced tiba.
+
 ## v2.3.48 Optimasi Kecepatan Load Daftar Media & Thumbnail Grid
 
 ### Peningkatan Kecepatan Muat Thumbnail & Grid Media (`devicePerformance.ts`, `thumbBatcher.ts`, `DriveExplorer.tsx`, `DriveFileCard.tsx`, `driveApi.ts`)

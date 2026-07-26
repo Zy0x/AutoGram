@@ -14,6 +14,7 @@ import {
 import { usePointerDragPrime } from '../../lib/pointerDragPrime';
 import {
   getCachedThumb,
+  getCachedSaverThumb,
   invalidateThumb,
   requestThumb,
 } from '../../lib/thumbBatcher';
@@ -127,14 +128,22 @@ function DriveFileCardInner({
   const inlineThumb =
     (file.thumb_data_url || file.thumbDataUrl || '') as string;
   const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
+  // Saver fallback: blurred placeholder shown immediately in balanced/sharp mode
+  // while the higher-quality thumb is being fetched (mirrors Telegram progressive loading).
+  const saverFallback = (!cached && !inlineThumb.startsWith('data:image/') && canThumb)
+    ? getCachedSaverThumb(folderId, file.id)
+    : null;
   const [thumb, setThumb] = useState<string | null>(() => {
     if (cached) return cached;
     if (inlineThumb.startsWith('data:image/')) return inlineThumb;
+    if (saverFallback) return saverFallback;
     return null;
   });
   const [isPlaceholderImg, setIsPlaceholderImg] = useState<boolean>(() => {
     if (cached) return false;
-    return inlineThumb.startsWith('data:image/');
+    if (inlineThumb.startsWith('data:image/')) return true;
+    if (saverFallback) return true; // blur placeholder until balanced arrives
+    return false;
   });
   const [thumbLoading, setThumbLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -158,9 +167,20 @@ function DriveFileCardInner({
       setIsPlaceholderImg(true);
       setThumbLoading(thumbQuality !== 'saver');
     } else {
-      setThumb(null);
-      setIsPlaceholderImg(false);
-      setThumbLoading(true);
+      // No balanced cache, no inline thumb.
+      // Try saver cache as immediate blur placeholder (progressive loading like Telegram app).
+      const saver = (thumbQuality !== 'saver' && canThumb)
+        ? getCachedSaverThumb(folderId, file.id)
+        : null;
+      if (saver) {
+        setThumb(saver);
+        setIsPlaceholderImg(true);  // blurred until sharp arrives
+        setThumbLoading(true);       // still request balanced in background
+      } else {
+        setThumb(null);
+        setIsPlaceholderImg(false);
+        setThumbLoading(true);
+      }
     }
   }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
 
@@ -221,6 +241,14 @@ function DriveFileCardInner({
         return;
       }
       // Keep previous frame until sharper arrives, but mark loading.
+      // If switching FROM saver to balanced/sharp: show saver blur as placeholder.
+      if (!thumb) {
+        const saver = detail?.quality !== 'saver' ? getCachedSaverThumb(folderId, file.id) : null;
+        if (saver) {
+          setThumb(saver);
+          setIsPlaceholderImg(true);
+        }
+      }
       if (visible && creds) {
         setThumbLoading(true);
         void requestThumb(creds, folderId, file.id, {
@@ -229,6 +257,7 @@ function DriveFileCardInner({
         }).then((url) => {
           if (url) {
             setThumb(url);
+            setIsPlaceholderImg(false);
             setThumbLoading(false);
             setImgError(false);
           } else {
