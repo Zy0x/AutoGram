@@ -574,6 +574,7 @@ export function DrivePreviewModal({
    * (moov tail + pipeline), leaving "buffer tinggi tapi video tak start".
    */
   const hasUserPlayRef = useRef(false);
+  const userPausedRef = useRef(false);
   const isVideoCapturedRef = useRef(false);
   /**
    * Guard: prevents both poll (missing≥5 ticks) and onError rebind from
@@ -976,6 +977,7 @@ export function DrivePreviewModal({
     liveStreamIdRef.current = null;
     lastSeekKickRef.current = 0;
     hasUserPlayRef.current = false;
+    userPausedRef.current = false;
     // ZIP: browser lists central dir — skip heavy media stream/download path
     if (isZipDriveFile(file)) {
       setLoading(false);
@@ -1232,6 +1234,8 @@ export function DrivePreviewModal({
           v &&
           v.paused &&
           !v.ended &&
+          !hasUserPlayRef.current &&
+          !userPausedRef.current &&
           !seekWarnRef.current &&
           streamReady &&
           now - playNudgeAtRef.current > 120  // 120ms for instant play response
@@ -1388,17 +1392,12 @@ export function DrivePreviewModal({
   }, []);
 
   const handlePause = useCallback(() => {
-    // Never suspend Telegram fill before the user/autoplay has actually played.
-    if (!hasUserPlayRef.current) return;
-    if (!streamUrl || !streamId) return;
-    const baseUrl = getStreamBaseUrl(streamUrl, streamId);
-    if (baseUrl) {
-      fetch(`${baseUrl}/pause`, { method: 'POST' }).catch(() => undefined);
-    }
-  }, [streamUrl, streamId, getStreamBaseUrl]);
+    userPausedRef.current = true;
+  }, []);
 
   const handlePlay = useCallback(() => {
     hasUserPlayRef.current = true;
+    userPausedRef.current = false;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -3121,7 +3120,7 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   const v = videoRef.current;
-                  if (v && v.paused && !v.ended) {
+                  if (v && v.paused && !v.ended && !hasUserPlayRef.current && !userPausedRef.current) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
                     }).catch(() => undefined);
@@ -3132,7 +3131,7 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   const v = videoRef.current;
-                  if (v && v.paused && !v.ended) {
+                  if (v && v.paused && !v.ended && !hasUserPlayRef.current && !userPausedRef.current) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
                     }).catch(() => undefined);
@@ -3202,9 +3201,9 @@ export function DrivePreviewModal({
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint('Menunggu data…');
-                    // Stalled with data available — re-kick playback
+                    // Stalled with data available — re-kick playback only during active playback, not when user paused
                     const v = videoRef.current;
-                    if (v && v.paused && v.readyState >= 2) {
+                    if (v && v.paused && v.readyState >= 2 && hasUserPlayRef.current && !userPausedRef.current) {
                       void v.play().catch(() => undefined);
                     }
                   }

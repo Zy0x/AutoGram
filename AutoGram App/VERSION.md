@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.46
+AutoGram Version: v2.3.47
 
 Current State:
+v2.3.47 Eliminasi Total Flickering Loop Autoplay/Pause & State Machine Lock Video Player — membenahi `DrivePreviewModal.tsx`. Mengeliminasi total bug berkedip / looping autoplay-pause berulang-ulang dengan menambahkan state lock `userPausedRef`, menghapus pemanggilan `POST /pause` ke backend saat event `onPause` browser terpicu, dan membatasi play nudge hanya untuk pemutaran awal `!hasUserPlayRef.current && !userPausedRef.current`.
+
+Previous:
 v2.3.46 Fix Critical Video Reload Loops, Download Gap Elimination & Continuous Range Normalization — membenahi `stream_server.rs`, `grammers_media.rs`, `DrivePreviewModal.tsx`, dan `sw.js`. Mengeliminasi total bug loop reload ke 0:00 dengan menghapus reset `v.src` pada onError handler, memperbaiki algoritma `first_missing_offset` dan pengurutan interval range di Rust agar tidak mati prematur saat MOOV tail bootstrap terdeteksi, serta menaikkan threshold instant play ke 384KB untuk pemutaran video ultra-lancar tanpa kemacetan.
 
 Previous:

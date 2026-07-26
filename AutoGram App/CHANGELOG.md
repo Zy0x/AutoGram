@@ -1,3 +1,10 @@
+## v2.3.47 Eliminasi Total Flickering Loop Autoplay/Pause & State Machine Lock Video Player
+
+### Perbaikan Kritis Video Play/Pause State Machine (`DrivePreviewModal.tsx`)
+- **Eliminasi Total Bug Berkedip Autoplay/Pause**: Menambahkan ref `userPausedRef` untuk membedakan antara jeda eksplisit oleh pengguna vs event jeda browser.
+- **Pembersihan Ping-Pong `/pause` & `/resume`**: Menghapus pemanggilan `fetch('/pause')` pada `handlePause()` sehingga task pengunduhan Rust terus mengisi buffer di latar belakang tanpa terputus secara berulang-ulang.
+- **Guard Play Nudge Presisi**: Mengamankan handler `onLoadedData`, `onCanPlay`, `onStalled`, dan polling play nudge agar HANYA memicu `v.play()` pada pemutaran awal (`!hasUserPlayRef.current && !userPausedRef.current`), menghentikan pemutaran otomatis paksa saat pengguna telah mengklik pause.
+
 ## v2.3.46 Resolusi Kritis Loop Reload Video, Eliminasi Gap Pengunduhan & Normalisasi Range Presisi
 
 ### Perbaikan Kritis Streaming Video & Instant Load (`stream_server.rs`, `grammers_media.rs`, `DrivePreviewModal.tsx`, `sw.js`)
