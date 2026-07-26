@@ -1310,7 +1310,16 @@ export function DrivePreviewModal({
                     setHasVideoFrame(true);
                     setPlayerHint(null);
                     setLoading(false);
-                  }).catch(() => undefined);
+                  }).catch(() => {
+                    vv.muted = true;
+                    setMuted(true);
+                    void vv.play().then(() => {
+                      hasUserPlayRef.current = true;
+                      setHasVideoFrame(true);
+                      setPlayerHint(null);
+                      setLoading(false);
+                    }).catch(() => undefined);
+                  });
                 }
               }, 300);
             } else {
@@ -3230,7 +3239,13 @@ export function DrivePreviewModal({
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
-                    }).catch(() => undefined);
+                    }).catch(() => {
+                      v.muted = true;
+                      setMuted(true);
+                      void v.play().then(() => {
+                        hasUserPlayRef.current = true;
+                      }).catch(() => undefined);
+                    });
                   }
                 }}
                 onCanPlay={() => {
@@ -3245,7 +3260,13 @@ export function DrivePreviewModal({
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
-                    }).catch(() => undefined);
+                    }).catch(() => {
+                      v.muted = true;
+                      setMuted(true);
+                      void v.play().then(() => {
+                        hasUserPlayRef.current = true;
+                      }).catch(() => undefined);
+                    });
                   }
                 }}
                 onSeeking={() => {

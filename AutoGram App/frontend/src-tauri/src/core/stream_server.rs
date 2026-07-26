@@ -672,7 +672,8 @@ fn handle_stream(request: Request, sid: &str) {
     }
     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
     if status == 206 {
-        let cr = format!("bytes {start}-{end_incl}/{total}");
+        let actual_end = if out_len > 0 { start + out_len as u64 - 1 } else { start };
+        let cr = format!("bytes {start}-{actual_end}/{total}");
         if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
             res.add_header(h);
         }
