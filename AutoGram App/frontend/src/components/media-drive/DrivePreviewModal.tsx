@@ -2467,7 +2467,7 @@ export function DrivePreviewModal({
             ].filter(Boolean).join(' · ')}>
               {formatDriveBytes(file.size)}
               {durationLabel ? ` · ${durationLabel}` : ''}
-              {kindLabel ? ` · ${kindLabel}` : ''}
+              {isVideo ? (file.as_document ? ' · Dokumen File' : ' · Media Video') : kindLabel ? ` · ${kindLabel}` : ''}
               {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
               {fromCache && !loading ? ' · cache' : ''}
             </span>
@@ -3470,8 +3470,8 @@ export function DrivePreviewModal({
                       : playerHint
                         ? `${playerHint} · ${bufferPct}%`
                         : `Buffer ${bufferPct}%${
-                            activeQuality ? ` · ${activeQuality.label}` : ''
-                          }`}
+                            file.as_document ? ' · Dokumen File' : ' · Media Video'
+                          }${activeQuality ? ` · ${activeQuality.label}` : ''}`}
                   </span>
                 </div>
               )}
@@ -4059,7 +4059,7 @@ export function DrivePreviewModal({
                 </div>
               )}
               <div>
-                <strong>Pengiriman</strong> {file.as_document ? 'Dokumen/File (Asli)' : 'Media Native (Kompresi)'}
+                <strong>Pengiriman</strong> {file.as_document ? 'Dokumen/File (Asli)' : 'Media Video (Kompresi)'}
               </div>
               {isVideo && (
                 <div>
