@@ -2251,48 +2251,6 @@ fn start_preview_stream_inner(
                 false
             });
 
-            if is_video && size > 1024 * 1024 && !has_moov_head {
-                if let Some(loc) = media_to_input_location(&media) {
-                    // Dynamic MOOV Tail Bootstrap: Scale tail prefetch depth up to 6MB based on file size
-                    // to guarantee capturing moov atom for large 500MB - 4GB MP4 videos.
-                    let tail_depth: u64 = if size > 500 * 1024 * 1024 {
-                        6 * 1024 * 1024 // 6 MB for large videos (>500MB)
-                    } else if size > 100 * 1024 * 1024 {
-                        4 * 1024 * 1024 // 4 MB for medium videos (100MB-500MB)
-                    } else {
-                        2 * 1024 * 1024 // 2 MB for smaller videos
-                    };
-                    let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
-                    let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
-
-                    for i in 0..num_chunks {
-                        let chunk_off = tail_start_offset + i * (512 * 1024);
-                        if chunk_off >= size { break; }
-                        let req = tl::functions::upload::GetFile {
-                            precise: false,
-                            cdn_supported: false,
-                            location: loc.clone(),
-                            offset: chunk_off as i64,
-                            limit: 512 * 1024,
-                        };
-                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&req).await {
-                            if !f.bytes.is_empty() {
-                                if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                    let end_chunk = chunk_off + f.bytes.len() as u64;
-                                    boot_ranges.push((chunk_off, end_chunk));
-                                }
-                            }
-                        }
-                    }
-                    let _ = file.flush();
-                    tg_log::info(
-                        BACKEND,
-                        "moov_tail_prefetched_fast",
-                        format!("sid={stream_id} total_size={size}"),
-                    );
-                }
-            }
-
             if !boot_ranges.is_empty() {
                 stream_server::upsert_entry(StreamEntry {
                     stream_id: stream_id.clone(),
@@ -2319,6 +2277,7 @@ fn start_preview_stream_inner(
         let live_bg = Arc::clone(&live);
         let session_bg = session_name.clone();
         let boot_end = first_missing_offset(&boot_ranges, size).unwrap_or(0);
+        let need_async_moov_tail = is_video && size > 1024 * 1024 && !has_moov_head;
         tokio::spawn(async move {
             // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
             let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
@@ -2326,8 +2285,65 @@ fn start_preview_stream_inner(
             let flag = cancel;
             let mut offset: u64 = boot_end;
             let mut ranges: Vec<(u64, u64)> = boot_ranges;
-            let mut moov_bootstrapped = ranges.len() > 1 || boot_end > 0;
             let mut active_seek_target: Option<u64> = None;
+
+            // Parallel Async MOOV Tail Bootstrap: If moov is missing from head in MP4,
+            // fetch tail chunks in parallel tasks without blocking Frontend stream_url return!
+            if need_async_moov_tail {
+                if let Some(loc) = media_to_input_location(&fill_media) {
+                    let tail_depth: u64 = if size > 500 * 1024 * 1024 {
+                        6 * 1024 * 1024
+                    } else if size > 100 * 1024 * 1024 {
+                        4 * 1024 * 1024
+                    } else {
+                        2 * 1024 * 1024
+                    };
+                    let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
+                    let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
+
+                    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+                    for i in 0..num_chunks {
+                        let chunk_off = tail_start_offset + i * (512 * 1024);
+                        if chunk_off >= size { break; }
+                        let req = tl::functions::upload::GetFile {
+                            precise: false,
+                            cdn_supported: false,
+                            location: loc.clone(),
+                            offset: chunk_off as i64,
+                            limit: 512 * 1024,
+                        };
+                        let client = live.client.clone();
+                        let tx_clone = tx.clone();
+                        tokio::spawn(async move {
+                            let res = client.invoke(&req).await;
+                            let _ = tx_clone.send((chunk_off, res)).await;
+                        });
+                    }
+                    drop(tx);
+                    if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&dest_path) {
+                        while let Some((chunk_off, res)) = rx.recv().await {
+                            if let Ok(tl::enums::upload::File::File(f)) = res {
+                                if !f.bytes.is_empty() {
+                                    if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&f.bytes).is_ok() {
+                                        let end_chunk = chunk_off + f.bytes.len() as u64;
+                                        ranges.push((chunk_off, end_chunk));
+                                    }
+                                }
+                            }
+                        }
+                        let _ = f_disk.flush();
+                    }
+                    if let Some(mut e) = stream_server::get_entry(&sid) {
+                        e.ranges = ranges.clone();
+                        stream_server::upsert_entry(e);
+                    }
+                    tg_log::info(
+                        BACKEND,
+                        "moov_tail_prefetched_parallel_async",
+                        format!("sid={sid} total_size={size}"),
+                    );
+                }
+            }
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
