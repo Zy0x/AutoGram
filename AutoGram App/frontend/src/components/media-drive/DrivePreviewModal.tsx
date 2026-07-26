@@ -1259,11 +1259,9 @@ export function DrivePreviewModal({
         }
         if (st.status === 'error') setHint(st.error || 'Stream error');
 
-        // Aggressive first-play nudge (≤120ms cooldown).
-        // Triggers on stream_ready, browserHasData, or even bufferPct>=5%
-        // so video starts the instant enough bytes exist — YouTube-style.
+        // Instant Zero-Wait Playback Start: Start video the millisecond initial bytes exist
         const now = Date.now();
-        const bufferHasEnough = pct >= 5 || prefix >= 128 * 1024;
+        const bufferHasEnough = prefix > 0 || pct > 0;
         const streamReady =
           st.stream_ready === true ||
           browserHasData ||
