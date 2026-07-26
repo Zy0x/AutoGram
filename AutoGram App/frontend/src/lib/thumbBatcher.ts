@@ -411,6 +411,10 @@ export function primeThumbCache(
   // If UI is currently on saver, paint now. Other qualities must fetch properly.
   if (activeQuality === 'saver') {
     notifyThumbReady(saverKey, dataUrl, false);
+  } else {
+    // Paint instant blur placeholder on non-saver modes while high-res thumb downloads (Telegram progressive loading parity)
+    const activeKey = cacheKey(folderId, messageId, activeQuality, session);
+    notifyThumbReady(activeKey, dataUrl, true);
   }
 }
 

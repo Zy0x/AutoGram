@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.53
+AutoGram Version: v2.3.54
 
 Current State:
+v2.3.54 Instant 0ms Progressive Blur Thumbnail Paint & Real-Time Single-Item Streaming — membenahi `thumbBatcher.ts` dan `DriveFileCard.tsx`. Memancarkan event `autogram-thumb-ready` dengan `isPlaceholder: true` secara instan (0ms) dari inline mini-thumb Telegram pada mode "Seimbang" dan "Jelas". Mengeliminasi total tampilan flat icon 3 detik, sehingga kartu media langsung melukis versi buram (*progressive blur*) seketika saat pertama muncul dan berganti secara tajam (*smooth upgrade*) begitu thumbnail resolusi tinggi selesai diunduh.
+
+Previous:
 v2.3.53 Optimasi Performa Cold Start, Speed Loading List Card & Thumbnail Bulk IDB Read, & Fix Thumbnail Dokumen/File — membenahi `grammers_ops.rs`, `driveTypes.ts`, `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `SpeedTest.tsx`. Memadukan strategi performa ringan Telegram-Drive: mengimplementasikan `loadPersistentThumbs` bulk IndexedDB read (1 transaksi massal untuk seluruh kartu viewport), menambahkan `is_image_file` & `!doc.thumbs().is_empty()` pada `has_thumb` backend Rust, serta menata urutan waktu panggilan async cold start untuk mengeliminasi freeze/lag UI (<300ms boot).
 
 Previous:

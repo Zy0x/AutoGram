@@ -1,3 +1,10 @@
+## v2.3.54 Instant 0ms Progressive Blur Thumbnail Paint & Real-Time Streaming
+
+### Pemuatan Thumbnail Progresif Instan 0ms (`thumbBatcher.ts`, `DriveFileCard.tsx`)
+- **Instant Blur Placeholder Notification (0ms)**: Meng-update `primeThumbCache` agar langsung memancarkan event `autogram-thumb-ready` dengan `isPlaceholder: true` pada mode "Seimbang" dan "Jelas" begitu stripped inline thumb tiba dari `list_media`.
+- **Eliminasi Flat Icon Idle 3 Detik**: Mengeliminasi total tampilan flat icon generik selama 3 detik saat menunggu thumbnail resolusi tinggi. Kartu media langsung terlukis buram (*progressive blur*) seketika (0ms) saat pertama kali muncul, sama persis seperti perilaku Telegram App dan Telegram-Drive.
+- **Peningkatan Tajam Halus (*Smooth Upgrade*)**: Begitu thumbnail resolusi tinggi (HD/Seimbang) selesai diunduh oleh Rust Grammers backend, gambar buram secara otomatis dan halus digantikan oleh gambar jernih resolusi tinggi.
+
 ## v2.3.53 Optimasi Performa Cold Start, Speed Loading List Card & Thumbnail Bulk IDB Read, & Fix Thumbnail Dokumen/File
 
 ### Adopsi Strategi Performa Telegram-Drive (`thumbBatcher.ts`, `DriveExplorer.tsx`, `DriveFileCard.tsx`)
