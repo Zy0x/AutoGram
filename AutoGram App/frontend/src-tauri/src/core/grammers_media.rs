@@ -2350,7 +2350,7 @@ fn start_preview_stream_inner(
 
                     // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
                     // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
-                    let current_filled = filled_bytes(&ranges);
+                    let current_filled = stream_server::filled_bytes(&ranges);
                     if current_filled > 15 * 1024 * 1024 {
                         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }

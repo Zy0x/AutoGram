@@ -126,7 +126,7 @@ fn contiguous_end_from(ranges: &[(u64, u64)], start: u64) -> u64 {
     start
 }
 
-fn filled_bytes(ranges: &[(u64, u64)]) -> u64 {
+pub fn filled_bytes(ranges: &[(u64, u64)]) -> u64 {
     ranges.iter().map(|(s, e)| e.saturating_sub(*s)).sum()
 }
 
