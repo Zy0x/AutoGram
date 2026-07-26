@@ -1997,10 +1997,26 @@ fn start_preview_stream_inner(
 
         let name = media_name(&msg, &media, message_id);
         let mime = guess_mime(&name, &media);
-        let is_image = mime.starts_with("image/") && !mime.contains("gif");
-        let is_video = mime.starts_with("video/");
-        let is_audio = mime.starts_with("audio/");
-        let is_zip = mime.contains("zip") || name.to_lowercase().ends_with(".zip");
+        let name_lower = name.to_lowercase();
+        let is_video_ext = name_lower.ends_with(".mp4")
+            || name_lower.ends_with(".mov")
+            || name_lower.ends_with(".mkv")
+            || name_lower.ends_with(".webm")
+            || name_lower.ends_with(".avi")
+            || name_lower.ends_with(".m4v")
+            || name_lower.ends_with(".3gp")
+            || name_lower.ends_with(".ts")
+            || name_lower.ends_with(".flv")
+            || name_lower.ends_with(".wmv")
+            || name_lower.ends_with(".m2ts")
+            || name_lower.ends_with(".vob")
+            || name_lower.ends_with(".ogv")
+            || name_lower.ends_with(".3g2")
+            || name_lower.ends_with(".f4v");
+        let is_image = (mime.starts_with("image/") || name_lower.ends_with(".jpg") || name_lower.ends_with(".png") || name_lower.ends_with(".webp") || name_lower.ends_with(".jpeg")) && !mime.contains("gif");
+        let is_video = mime.starts_with("video/") || is_video_ext;
+        let is_audio = mime.starts_with("audio/") || name_lower.ends_with(".mp3") || name_lower.ends_with(".flac") || name_lower.ends_with(".ogg") || name_lower.ends_with(".m4a") || name_lower.ends_with(".wav") || name_lower.ends_with(".aac") || name_lower.ends_with(".opus");
+        let is_zip = mime.contains("zip") || name_lower.ends_with(".zip");
 
         // ZIP files: 100% MTProto Sparse Reader — zero full-file download for ZIPs of ANY size (1 MB to 5 GB)
         if is_zip {
