@@ -2185,9 +2185,8 @@ fn start_preview_stream_inner(
         let cancel = register_cancel(&stream_id);
         let stream_url = stream_public_url(&stream_id, &name);
 
-        // Bootstrap ~512 KiB head under a short-lived slot — enough for most
-        // players to start; full file fills in background (1–3s open target).
         let mut boot_ranges: Vec<(u64, u64)> = Vec::new();
+        let mut has_moov_head = false;
         {
             let _boot_slot = session_rate::acquire_media_slot(&session_name).await?;
             const BOOT_CHUNK: u64 = 256 * 1024;
@@ -2237,9 +2236,8 @@ fn start_preview_stream_inner(
             }
             let _ = file.flush();
 
-            // Fast MOOV Tail Bootstrap: If moov atom is missing from head in MP4 video,
-            // pre-fetch the tail (last ~2 MB) BEFORE returning stream_url to Frontend!
-            let has_moov_head = boot_ranges.iter().any(|&(s, e)| {
+            // Check if moov atom is already in the head 512KB
+            has_moov_head = boot_ranges.iter().any(|&(s, e)| {
                 if let Ok(mut f) = std::fs::File::open(&dest) {
                     if f.seek(SeekFrom::Start(s)).is_ok() {
                         let mut buf = vec![0u8; (e - s).min(1024 * 1024) as usize];
@@ -2511,50 +2509,7 @@ fn start_preview_stream_inner(
                     ranges.push((offset, end));
                     offset = end;
 
-                    // Dynamic MOOV Tail Scan (Up to 4 MB budget: 8 chunks x 512 KiB from size-4MB to size)
-                    if is_video && size > 1024 * 1024 && !moov_bootstrapped {
-                        moov_bootstrapped = true;
-                        let has_moov_in_head = chunk.windows(4).any(|w| w == b"moov");
-                        if !has_moov_in_head {
-                            if let Some(loc) = media_to_input_location(&fill_media) {
-                                let tail_budget: u64 = 4 * 1024 * 1024;
-                                let start_tail = (size.saturating_sub(tail_budget) / 4096) * 4096;
-                                let mut curr_offset = start_tail;
-                                while curr_offset < size {
-                                    let tail_req = tl::functions::upload::GetFile {
-                                        precise: false,
-                                        cdn_supported: false,
-                                        location: loc.clone(),
-                                        offset: curr_offset as i64,
-                                        limit: 512 * 1024,
-                                    };
-                                    if let Ok(tl::enums::upload::File::File(f)) =
-                                        live.client.invoke(&tail_req).await
-                                    {
-                                        if !f.bytes.is_empty() {
-                                            if file.seek(SeekFrom::Start(curr_offset)).is_ok() {
-                                                if file.write_all(&f.bytes).is_ok() {
-                                                    let end_tail = curr_offset + f.bytes.len() as u64;
-                                                    ranges.push((curr_offset, end_tail));
-                                                    if f.bytes.windows(4).any(|w| w == b"moov") {
-                                                        tg_log::info(
-                                                            BACKEND,
-                                                            "moov_tail_ready",
-                                                            format!("sid={sid} offset={curr_offset}"),
-                                                        );
-                                                        break; // moov atom found, stop tail prefetch!
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        break;
-                                    }
-                                    curr_offset += 512 * 1024;
-                                }
-                            }
-                        }
-                    }
+
 
                     // Section
                     stream_server::upsert_entry(StreamEntry {
