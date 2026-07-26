@@ -22,7 +22,7 @@ type Task = {
   contextKey: string;
   generation: number;
   creds: DriveCredentials;
-  folderId: number | string | null;
+  folderId: number | null;
   messageId: number;
   quality: DriveThumbQuality;
   priority: number;
@@ -251,7 +251,7 @@ function maxConcurrent(): number {
 }
 
 function cacheKey(
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number,
   quality: DriveThumbQuality,
   session = activeSession
@@ -275,7 +275,7 @@ function resolveTask(task: Task, value: string | null): void {
 /** Switch scheduler ownership. Queued work from another location cannot starve visible cards. */
 export function setThumbContext(
   creds: DriveCredentials | null,
-  folderId: number | string | null,
+  folderId: number | null,
   topicId?: number | null
 ): string {
   const session = creds?.session || 'unscoped';
@@ -330,7 +330,7 @@ export function setThumbQuality(q: DriveThumbQuality): void {
 /** Prefetch a list of visible ids with visible priority (scroll / quality switch). */
 export function requestVisibleThumbs(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageIds: number[]
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
@@ -348,7 +348,7 @@ export function requestVisibleThumbs(
   for (let i = 0; i < n; i++) scheduleFlush(true);
 }
 
-export function getCachedThumb(folderId: number | string | null, messageId: number): string | null | undefined {
+export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {
   const k = cacheKey(folderId, messageId, activeQuality);
   if (memCache.has(k)) return memCache.get(k)!;
   return undefined;
@@ -357,7 +357,7 @@ export function getCachedThumb(folderId: number | string | null, messageId: numb
 /** Seed a just-committed thumbnail without opening another Telegram worker. */
 export function primeThumbCache(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number,
   dataUrl: string
 ): void {
@@ -380,7 +380,7 @@ export function primeThumbCache(
  * Inject video frame captured from media player into memory/disk cache & update UI cards instantly.
  */
 export function cacheCapturedThumb(
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number,
   dataUrl: string,
   session = activeSession
@@ -402,7 +402,7 @@ export function cacheCapturedThumb(
  */
 export function refreshVisibleThumbsForQuality(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageIds: number[]
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
@@ -433,7 +433,7 @@ export function refreshVisibleThumbsForQuality(
  */
 export function primeThumbsFromFileList(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   files: Array<{ id: number; thumb_data_url?: string | null; thumbDataUrl?: string | null }>
 ): number {
   let n = 0;
@@ -480,7 +480,7 @@ export function invalidateThumbFailures() {
 
 /** Drop a single broken/stale thumb (e.g. revoked blob URL) and clear fail cooldowns. */
 export function invalidateThumb(
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number,
   session?: string
 ): void {
@@ -496,7 +496,7 @@ export function invalidateThumb(
  */
 export function forceRetryThumb(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number
 ): void {
   const k = cacheKey(folderId, messageId, activeQuality, creds.session);
@@ -569,7 +569,7 @@ function scheduleFlush(immediate = false) {
   }, delay);
 }
 
-export function notifyMediaDeleted(deletedIds: number[], peerId: number | string | null): void {
+export function notifyMediaDeleted(deletedIds: number[], peerId: number | null): void {
   if (!deletedIds || !deletedIds.length) return;
   window.dispatchEvent(
     new CustomEvent('autogram-media-deleted', {
@@ -699,7 +699,7 @@ async function flushQueue() {
 /** Request a thumb; coalesces with other visible cards. */
 export async function requestThumb(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number,
   opts?: { priority?: ThumbPriority; contextKey?: string; signal?: AbortSignal; bypassCache?: boolean }
 ): Promise<string | null> {
@@ -801,7 +801,7 @@ export async function requestThumb(
  */
 export function prefetchThumbs(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageIds: number[]
 ): void {
   if (thumbsPaused || !isDriveSessionReady()) return;

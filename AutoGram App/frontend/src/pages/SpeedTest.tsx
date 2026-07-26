@@ -334,7 +334,7 @@ interface QueueTask {
   id: string;
   kind: 'upload' | 'download' | 'download_one';
   paths?: string[];
-  targetFolderId?: number | string | null;
+  targetFolderId?: number | null;
   targetLabel?: string;
   skipTopic?: boolean;
   topicId?: number | null;
@@ -4446,7 +4446,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
 
   const runUploadPaths = async (
     paths: string[],
-    opts?: { targetFolderId?: number | string | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
+    opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
   ) => {
     if (!creds || !paths.length) return;
     
@@ -4864,7 +4864,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
   };
 
   const handleEnqueueSingleDownload = useCallback(
-    async (opts: { messageId: number; folderId: number | string | null; savePath: string; name: string }) => {
+    async (opts: { messageId: number; folderId: number | null; savePath: string; name: string }) => {
       if (!creds) return;
       openTransferManager();
       const currentItemsCount = transferRef.current.items.length;

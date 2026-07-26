@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play } from 'lucide-react';
 import type { DriveCredentials } from '../../lib/driveApi';
 import {
@@ -39,7 +39,7 @@ type Props = {
   /** Prefetch first ~MB for faster open after scroll/hover */
   onWarmPreview?: () => void;
   creds: DriveCredentials | null;
-  folderId: number | string | null;
+  folderId: number | null;
   thumbQuality?: string;
 };
 
@@ -63,17 +63,6 @@ function DriveFileCardInner({
   folderId,
   thumbQuality,
 }: Props) {
-  const effectiveFolderId = useMemo(() => {
-    const fid =
-      (file as any)?.folder_id ??
-      (file as any)?.folderId ??
-      (file as any)?.chat_id ??
-      (file as any)?.chatId ??
-      (file as any)?.peer_id ??
-      folderId;
-    return fid != null ? fid : null;
-  }, [file, folderId]);
-
   const canThumb = canShowDriveThumb(file);
   const isVideo = isVideoDriveFile(file);
   const durationSecs = driveFileDurationSeconds(file);
@@ -137,7 +126,7 @@ function DriveFileCardInner({
 
   const inlineThumb =
     (file.thumb_data_url || file.thumbDataUrl || '') as string;
-  const cached = canThumb ? getCachedThumb(effectiveFolderId, file.id) : undefined;
+  const cached = canThumb ? getCachedThumb(folderId, file.id) : undefined;
   const [thumb, setThumb] = useState<string | null>(() => {
     if (cached) return cached;
     if (inlineThumb.startsWith('data:image/')) return inlineThumb;
@@ -158,7 +147,7 @@ function DriveFileCardInner({
       setThumbLoading(false);
       return;
     }
-    const hit = getCachedThumb(effectiveFolderId, file.id);
+    const hit = getCachedThumb(folderId, file.id);
     const inline = file.thumb_data_url || file.thumbDataUrl;
     if (hit) {
       setThumb(hit);
@@ -173,7 +162,7 @@ function DriveFileCardInner({
       setIsPlaceholderImg(false);
       setThumbLoading(true);
     }
-  }, [canThumb, effectiveFolderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
+  }, [canThumb, folderId, file.id, thumbQuality, file.thumb_data_url, file.thumbDataUrl]);
 
   // Safety Timeout: Prevent permanent stuck spinner when thumb request returns null or is evicted
   useEffect(() => {
@@ -193,10 +182,10 @@ function DriveFileCardInner({
         | { key?: string; url?: string; isPlaceholder?: boolean }
         | undefined;
       if (!detail?.key || !detail?.url) return;
-      const targetSuffix = `:${effectiveFolderId ?? 'home'}:${file.id}`;
+      const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
       if (!detail.key.endsWith(targetSuffix)) return;
 
-      const hit = getCachedThumb(effectiveFolderId, file.id);
+      const hit = getCachedThumb(folderId, file.id);
       if (hit) {
         setThumb(hit);
         setIsPlaceholderImg(false);
@@ -218,7 +207,7 @@ function DriveFileCardInner({
       const detail = (ev as CustomEvent).detail as
         | { quality?: string; forceRefetch?: boolean }
         | undefined;
-      const hit = getCachedThumb(effectiveFolderId, file.id);
+      const hit = getCachedThumb(folderId, file.id);
       // Saver hits are instant; seimbang/jelas must not keep painting hemat blur
       // if the hit is missing for the new quality key.
       if (hit && !detail?.forceRefetch) {
@@ -234,7 +223,7 @@ function DriveFileCardInner({
       // Keep previous frame until sharper arrives, but mark loading.
       if (visible && creds) {
         setThumbLoading(true);
-        void requestThumb(creds, effectiveFolderId, file.id, {
+        void requestThumb(creds, folderId, file.id, {
           priority: 'visible',
           bypassCache: detail?.forceRefetch === true && detail?.quality !== 'saver',
         }).then((url) => {
@@ -254,12 +243,12 @@ function DriveFileCardInner({
       window.removeEventListener('autogram-thumb-ready', onReady);
       window.removeEventListener('autogram-thumb-quality', onQuality);
     };
-  }, [canThumb, effectiveFolderId, file.id, thumbQuality, visible, creds]);
+  }, [canThumb, folderId, file.id, thumbQuality, visible, creds]);
 
   useEffect(() => {
     if (!creds || !canThumb || !visible) return;
     const controller = new AbortController();
-    const hit = getCachedThumb(effectiveFolderId, file.id);
+    const hit = getCachedThumb(folderId, file.id);
     if (hit) {
       setThumb(hit);
       setThumbLoading(false);
@@ -270,12 +259,12 @@ function DriveFileCardInner({
     // Spinner only when nothing is painted yet or when only saver stripped placeholder is painted for non-saver mode.
     const inlineNow = file.thumb_data_url || file.thumbDataUrl;
     const alreadyPainted = !!(
-      getCachedThumb(effectiveFolderId, file.id) ||
+      getCachedThumb(folderId, file.id) ||
       (inlineNow && String(inlineNow).startsWith('data:image/')) ||
       thumb
     );
     setThumbLoading(!alreadyPainted);
-    requestThumb(creds, effectiveFolderId, file.id, {
+    requestThumb(creds, folderId, file.id, {
       priority: 'visible',
       signal: controller.signal,
     })
@@ -290,12 +279,12 @@ function DriveFileCardInner({
           // Auto-retry once after soft-fail cooldown (1.5s) if card remains visible and has no thumb
           retryTimer = window.setTimeout(() => {
             if (!cancelled && visible && creds) {
-              const freshHit = getCachedThumb(effectiveFolderId, file.id);
+              const freshHit = getCachedThumb(folderId, file.id);
               if (freshHit) {
                 setThumb(freshHit);
                 setImgError(false);
               } else {
-                void requestThumb(creds, effectiveFolderId, file.id, {
+                void requestThumb(creds, folderId, file.id, {
                   priority: 'visible',
                   bypassCache: true,
                 }).then((retryUrl) => {
@@ -318,27 +307,7 @@ function DriveFileCardInner({
       controller.abort();
       if (retryTimer != null) window.clearTimeout(retryTimer);
     };
-  }, [creds, file.id, canThumb, effectiveFolderId, visible, thumbQuality]);
-
-  const handleImageError = () => {
-    setImgError(true);
-    setThumb(null);
-    setIsPlaceholderImg(false);
-    invalidateThumb(effectiveFolderId, file.id, creds?.session);
-    if (creds && canThumb && visible) {
-      setThumbLoading(true);
-      void requestThumb(creds, effectiveFolderId, file.id, {
-        priority: 'visible',
-        bypassCache: true,
-      }).then((url) => {
-        if (url) {
-          setThumb(url);
-          setImgError(false);
-        }
-        setThumbLoading(false);
-      });
-    }
-  };
+  }, [creds, file.id, canThumb, folderId, visible, thumbQuality]);
 
   return (
     <div
@@ -449,7 +418,25 @@ function DriveFileCardInner({
               // URLs left empty tiles after LRU eviction.
               loading="eager"
               decoding="async"
-              onError={handleImageError}
+              onError={() => {
+                setImgError(true);
+                setThumb(null);
+                // Blob may have been revoked by the LRU — drop cache and refetch.
+                invalidateThumb(folderId, file.id, creds?.session);
+                if (creds && canThumb && visible) {
+                  setThumbLoading(true);
+                  void requestThumb(creds, folderId, file.id, {
+                    priority: 'visible',
+                    bypassCache: true,
+                  }).then((url) => {
+                    if (url) {
+                      setThumb(url);
+                      setImgError(false);
+                    }
+                    setThumbLoading(false);
+                  });
+                }
+              }}
             />
             <div className="td-file-thumb-grad" />
             {isVideo && (

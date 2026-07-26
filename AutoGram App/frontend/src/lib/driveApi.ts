@@ -289,7 +289,7 @@ async function runDrive(creds: DriveCredentials, extra: string[], retries = 4): 
   });
 }
 
-function folderArg(folderId: number | string | null | undefined): string[] {
+function folderArg(folderId: number | null | undefined): string[] {
   if (folderId === null || folderId === undefined) return [];
   return ['--folder-id', String(folderId)];
 }
@@ -505,7 +505,7 @@ export async function driveListChatFolders(
 export async function driveThumbnailsBatch(
   creds: DriveCredentials,
   messageIds: number[],
-  folderId: number | string | null,
+  folderId: number | null,
   opts?: { quality?: 'saver' | 'balanced' | 'sharp'; batchSize?: number }
 ) {
   if (!messageIds.length) return { status: 'success', thumbs: {} as Record<string, string | null> };
@@ -774,7 +774,7 @@ export async function driveCreateFolder(
 
 export async function driveListFiles(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   opts?: {
     pageSize?: number;
     offsetId?: number | null;
@@ -791,7 +791,7 @@ export async function driveListFiles(
   const sortMode = opts?.sortMode ?? 'newest';
 
   // 1. Try serving from local IndexedDB warm cache (completed indexing)
-  const folderKey = typeof folderId === 'number' ? folderId : Number(folderId) || 0;
+  const folderKey = folderId || 0;
   const jobId = `index_chat_${folderKey}${topicId ? `_topic_${topicId}` : ''}`;
   const cp = await getCheckpoint(jobId).catch(() => null);
 
@@ -908,7 +908,7 @@ export { addDriveEventListener } from './driveSession';
 
 export async function driveGetFile(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageId: number
 ) {
   // Approximate via list_media page around id is expensive; return minimal row from thumbs path.
@@ -1021,7 +1021,7 @@ export async function driveRenameTopic(
 export async function driveThumbnail(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null
+  folderId: number | null
 ) {
   const res = await driveThumbnailsBatch(creds, [messageId], folderId, { batchSize: 1 });
   const url = res?.thumbs?.[String(messageId)] ?? null;
@@ -1044,7 +1044,7 @@ function isTelegramDisconnectError(err: unknown): boolean {
 export async function drivePreview(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   _opts?: { quality?: string; skipPoster?: boolean }
 ) {
   if (!detectTauriRuntime()) {
@@ -1090,7 +1090,7 @@ export async function drivePreview(
 export async function drivePreviewWarm(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   _headBytes = 768 * 1024
 ) {
   if (!detectTauriRuntime()) return { status: 'no_session' };
@@ -1237,7 +1237,7 @@ const zipEntryCacheMap = new Map<string, Map<string, any>>();
 export function clearZipEntryCache(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null
+  folderId: number | null
 ): void {
   const archiveKey = `${creds?.session || ''}_${folderId ?? 'root'}_${messageId}`;
   zipEntryCacheMap.delete(archiveKey);
@@ -1247,7 +1247,7 @@ export function clearZipEntryCache(
 export async function driveZipList(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   forceRefresh?: boolean
 ): Promise<any> {
   if (!detectTauriRuntime()) {
@@ -1313,7 +1313,7 @@ let currentZipReadPromise: Promise<any> = Promise.resolve();
 export async function driveZipReadEntry(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   entry: string,
   password?: string,
   forceRefresh?: boolean
@@ -1416,7 +1416,7 @@ export async function driveZipReadEntry(
 export async function driveZipExtractEntry(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   entryName: string,
   destPath: string,
   password?: string
@@ -1442,7 +1442,7 @@ export async function driveZipExtractEntry(
 export async function driveDelete(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null
+  folderId: number | null
 ) {
   const id = await resolveGrammersIdentity(creds);
   const { tgDeleteMessages } = await import('./telegramBackend');
@@ -1461,8 +1461,8 @@ export async function driveDelete(
 /** Bulk delete via Grammers. Supports array of IDs or { id, folderId } items. */
 export async function driveDeleteBatch(
   creds: DriveCredentials,
-  messageIds: Array<number | { id: number; folderId?: number | string | null }>,
-  defaultFolderId: number | string | null
+  messageIds: Array<number | { id: number; folderId?: number | null }>,
+  defaultFolderId: number | null
 ) {
   const items = (messageIds || [])
     .map((item) => {
@@ -1531,7 +1531,7 @@ export async function driveDeleteBatch(
 export async function driveRename(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   newName: string
 ) {
   // MVP: re-upload under new name is heavy; use caption edit path via download+upload
@@ -1562,8 +1562,8 @@ export type DriveMoveOpts = {
 export async function driveMove(
   creds: DriveCredentials,
   messageId: number,
-  fromFolderId: number | string | null,
-  toFolderId: number | string | null,
+  fromFolderId: number | null,
+  toFolderId: number | null,
   opts?: DriveMoveOpts
 ) {
   const deleteSource = opts?.deleteSource !== false;
@@ -1592,7 +1592,7 @@ export async function driveMove(
 export async function driveDownload(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   savePath: string
 ) {
   return runDrive(creds, [
@@ -1613,7 +1613,7 @@ export async function driveDownload(
 export async function driveDownloadOpenSpawn(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   savePath: string,
   handlers: {
     onStdoutLine?: (line: string) => void;
@@ -1894,7 +1894,7 @@ async function spawnExclusiveTransfer(
 /** Long-running jobs also go through queue for start, but stay exclusive via job id */
 export async function driveUploadSpawn(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   filesJsonPath: string,
   optionsJsonPath: string,
   handlers: {
@@ -1923,7 +1923,7 @@ export async function driveUploadSpawn(
 
 export async function driveDownloadBatchSpawn(
   creds: DriveCredentials,
-  folderId: number | string | null,
+  folderId: number | null,
   messageIdsJsonPath: string,
   saveDir: string,
   optionsJsonPath: string,
@@ -2032,7 +2032,7 @@ export async function clearDriveTransferPause(): Promise<void> {
 export async function driveDownloadSpawn(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | string | null,
+  folderId: number | null,
   savePath: string,
   handlers: {
     onStdoutLine: (line: string) => void;

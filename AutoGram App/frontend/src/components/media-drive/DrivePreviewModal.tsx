@@ -86,7 +86,7 @@ import { DriveConfirmDialog, type DriveConfirmState } from './DriveConfirmDialog
 
 type Props = {
   file: DriveFile;
-  folderId: number | string | null;
+  folderId: number | null;
   creds: DriveCredentials;
   onClose: () => void;
   onNext?: () => void;
@@ -101,11 +101,11 @@ type Props = {
   onOpenTransferManager?: () => void;
   onEnqueueUploadPaths?: (
     paths: string[],
-    opts?: { targetFolderId?: number | string | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
+    opts?: { targetFolderId?: number | null; targetLabel?: string; topicId?: number | null; skipTopic?: boolean }
   ) => Promise<void>;
   onEnqueueDownloadSingle?: (opts: {
     messageId: number;
-    folderId: number | string | null;
+    folderId: number | null;
     savePath: string;
     name: string;
   }) => Promise<void>;
@@ -418,17 +418,6 @@ export function DrivePreviewModal({
   onEnqueueUploadPaths,
   onEnqueueDownloadSingle,
 }: Props) {
-  const effectiveFolderId = useMemo(() => {
-    const fid =
-      (file as any)?.folder_id ??
-      (file as any)?.folderId ??
-      (file as any)?.chat_id ??
-      (file as any)?.chatId ??
-      (file as any)?.peer_id ??
-      folderId;
-    return fid != null ? fid : null;
-  }, [file, folderId]);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -499,7 +488,7 @@ export function DrivePreviewModal({
         if (prev === null || prev <= 1) {
           clearInterval(timer);
           // Auto-trigger retry when countdown reaches zero
-          invalidatePreview(effectiveFolderId, file.id);
+          invalidatePreview(folderId, file.id);
           setError(null);
           setTextBody(null);
           setLoading(true);
@@ -521,7 +510,7 @@ export function DrivePreviewModal({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [floodCountdown, effectiveFolderId, file.id]);
+  }, [floodCountdown, folderId, file.id]);
 
   useEffect(() => {
     if (creds) {
@@ -630,12 +619,12 @@ export function DrivePreviewModal({
       const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
       if (dataUrl && dataUrl.startsWith('data:image/')) {
         isVideoCapturedRef.current = true;
-        cacheCapturedThumb(effectiveFolderId, file.id, dataUrl, creds?.session);
+        cacheCapturedThumb(folderId, file.id, dataUrl, creds?.session);
       }
     } catch {
       // Ignore cross-origin canvas errors if any
     }
-  }, [file, effectiveFolderId, creds?.session]);
+  }, [file, folderId, creds?.session]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const resumeAtRef = useRef<number>(0);
@@ -697,9 +686,9 @@ export function DrivePreviewModal({
   const kindLabel = formatDriveKindLabel(file);
   const displayName = driveFileDisplayName(file);
   const gridThumb = useMemo(() => {
-    const t = getCachedThumb(effectiveFolderId, file.id);
+    const t = getCachedThumb(folderId, file.id);
     return typeof t === 'string' ? t : null;
-  }, [effectiveFolderId, file.id]);
+  }, [folderId, file.id]);
 
   const activeQuality = useMemo(() => {
     const list = qualities.length >= 2 ? qualities : DEFAULT_VIDEO_QUALITIES;
@@ -869,7 +858,7 @@ export function DrivePreviewModal({
       }
 
       // Instant paint from cache (skip when force-retry after Failed to fetch)
-      const hit = force ? null : getCachedPreview(effectiveFolderId, file.id, qNorm);
+      const hit = force ? null : getCachedPreview(folderId, file.id, qNorm);
       const hasUsable =
         !!hit &&
         !!(hit.stream_url || hit.path || hit.data_url || hit.text_content);
@@ -879,7 +868,7 @@ export function DrivePreviewModal({
         // NEVER prefetch for ZIP archives, videos, or documents to prevent background 40-60 MB bandwidth consumption
         const isOnlyImage = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
         const ids = neighborIds.filter((id) => id && id !== file.id).slice(0, 5);
-        if (ids.length && isOnlyImage) prefetchPreviews(creds, effectiveFolderId, ids, qNorm);
+        if (ids.length && isOnlyImage) prefetchPreviews(creds, folderId, ids, qNorm);
 
         // Complete local only — hollow `.stream.` paths need a live stream re-RPC
         const solidLocal =
@@ -925,7 +914,7 @@ export function DrivePreviewModal({
       }
 
       try {
-        const res = await loadPreviewCached(creds, file.id, effectiveFolderId, qNorm, {
+        const res = await loadPreviewCached(creds, file.id, folderId, qNorm, {
           force,
         });
         if (mountGenRef.current !== activeMountGen) return;
@@ -935,7 +924,7 @@ export function DrivePreviewModal({
         // Prefetch neighbors for regular images only — never for ZIP, video, or doc
         const isOnlyImagePost = isImageDriveFile(file) && !isVideoDriveFile(file) && !isZipDriveFile(file) && !isPdfDriveFile(file) && !isTextDriveFile(file);
         const idsPost = neighborIds.filter((id) => id && id !== file.id).slice(0, 2);
-        if (idsPost.length && isOnlyImagePost) prefetchPreviews(creds, effectiveFolderId, idsPost, qNorm);
+        if (idsPost.length && isOnlyImagePost) prefetchPreviews(creds, folderId, idsPost, qNorm);
       } catch (e: any) {
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
@@ -971,7 +960,7 @@ export function DrivePreviewModal({
         setSwitchingQuality(false);
       }
     },
-    [applyResult, creds, file.id, effectiveFolderId, gridThumb, neighborIds]
+    [applyResult, creds, file.id, folderId, gridThumb, neighborIds]
   );
 
   // Load when file / folder changes
@@ -1002,7 +991,7 @@ export function DrivePreviewModal({
     const q = readQualityPref();
     setQuality(q);
     loadPreview(q);
-  }, [file.id, effectiveFolderId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [file.id, folderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     streamDoneRef.current = streamDone;
@@ -1050,7 +1039,7 @@ export function DrivePreviewModal({
     mountGenRef.current = gen;
     activeMountGen = gen;
     const mid = file.id;
-    const fid = effectiveFolderId;
+    const fid = folderId;
     return () => {
       const sid = streamIdRef.current;
       const c = credsRef.current;
@@ -1328,7 +1317,7 @@ export function DrivePreviewModal({
       if (timer) clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional stable poll (refs for loadPreview/seekWarn)
-  }, [streamId, streamDone, creds, file.size, file.id, effectiveFolderId, quality]);
+  }, [streamId, streamDone, creds, file.size, file.id, folderId, quality]);
 
   /** True if `t` sits inside any browser buffered range (with slack). */
   const timeInBuffered = useCallback((v: HTMLVideoElement, t: number, slack = 0.75) => {
@@ -1901,7 +1890,7 @@ export function DrivePreviewModal({
       if (onEnqueueDownloadSingle) {
         await onEnqueueDownloadSingle({
           messageId: file.id,
-          folderId: effectiveFolderId,
+          folderId,
           savePath,
           name: file.name,
         });
@@ -1911,7 +1900,7 @@ export function DrivePreviewModal({
           session: creds.session,
           apiId: Number(creds.apiId) || 0,
           apiHash: creds.apiHash,
-          chatId: String(effectiveFolderId ?? 'me'),
+          chatId: String(folderId ?? 'me'),
           messageId: file.id,
           destPath: savePath,
         });
@@ -1966,7 +1955,7 @@ export function DrivePreviewModal({
     setError(null);
     setOpenProgressMsg('Menyiapkan…');
     try {
-      await openDriveFileInSystem(creds, file, effectiveFolderId, path, (p) => {
+      await openDriveFileInSystem(creds, file, folderId, path, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(p.message);
       });
@@ -1992,7 +1981,7 @@ export function DrivePreviewModal({
     setError(null);
     setOpenProgressMsg('Menyiapkan Buka dengan…');
     try {
-      await openDriveFileWithApp(creds, file, effectiveFolderId, path, (p) => {
+      await openDriveFileWithApp(creds, file, folderId, path, (p) => {
         if (openCancelledRef.current) return;
         setOpenProgressMsg(p.message);
       });
@@ -2799,7 +2788,7 @@ export function DrivePreviewModal({
                 disabled={loading}
                 onClick={() => {
                   resetViewTools();
-                  invalidatePreview(effectiveFolderId, file.id);
+                  invalidatePreview(folderId, file.id);
                   setSrcOverride(null);
                   setError(null);
                   setTextBody(null);
@@ -2967,7 +2956,7 @@ export function DrivePreviewModal({
                 type="button"
                 className="td-btn-primary"
                 onClick={() => {
-                  invalidatePreview(effectiveFolderId, file.id);
+                  invalidatePreview(folderId, file.id);
                   setError(null);
                   setFloodCountdown(null);
                   setTextBody(null);
@@ -3351,7 +3340,7 @@ export function DrivePreviewModal({
                     const now = Date.now();
                     if (now - mediaErrorRecoverAtRef.current < 5000) return;
                     mediaErrorRecoverAtRef.current = now;
-                    invalidatePreview(effectiveFolderId, file.id);
+                    invalidatePreview(folderId, file.id);
                     setHasVideoFrame(false);
                     liveStreamIdRef.current = null;
                     setStreamUrl(null);
@@ -3680,7 +3669,7 @@ export function DrivePreviewModal({
                     const now = Date.now();
                     if (now - mediaErrorRecoverAtRef.current < 5000) return;
                     mediaErrorRecoverAtRef.current = now;
-                    invalidatePreview(effectiveFolderId, file.id);
+                    invalidatePreview(folderId, file.id);
                     liveStreamIdRef.current = null;
                     setStreamUrl(null);
                     setStreamId(null);
@@ -3753,7 +3742,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="td-btn-primary"
                   onClick={() => {
-                    invalidatePreview(effectiveFolderId, file.id);
+                    invalidatePreview(folderId, file.id);
                     setError(null);
                     setStreamDone(false);
                     setBufferPct(0);
@@ -3788,7 +3777,7 @@ export function DrivePreviewModal({
                 type="button"
                 className="td-btn-primary"
                 onClick={() => {
-                  invalidatePreview(effectiveFolderId, file.id);
+                  invalidatePreview(folderId, file.id);
                   setError(null);
                   setTextBody(null);
                   loadPreview(quality, { force: true });
@@ -3807,7 +3796,7 @@ export function DrivePreviewModal({
                   <DriveZipBrowser
                     creds={creds}
                     messageId={file.id}
-                    folderId={effectiveFolderId}
+                    folderId={folderId}
                     archiveName={displayName}
                     onClose={onClose}
                     onPrev={hasPrev ? () => onPrev?.() : undefined}
@@ -3899,7 +3888,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="td-btn-primary"
                   onClick={() => {
-                    invalidatePreview(effectiveFolderId, file.id);
+                    invalidatePreview(folderId, file.id);
                     setError(null);
                     loadPreview(quality, { force: true });
                   }}
