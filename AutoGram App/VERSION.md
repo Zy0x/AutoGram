@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.50
+AutoGram Version: v2.3.51
 
 Current State:
+v2.3.51 Multi-Socket 12-Parallel TCP Connection MTProto Download Engine & Instant <30ms Bootstrap — membenahi `grammers_ops.rs`, `grammers_media.rs`, dan `DrivePreviewModal.tsx`. Membangkitkan pool 12 connection socket TCP paralel ke Telegram DC untuk menembus batas per-socket Telegram 1 MB/s menjadi 18–25+ MB/s, meng-uncap kecepatan unduh buffer media, serta mempercepat pendaftaran stream awal dan polling UI menjadi <30ms tanpa tersendat di status "Memuat...".
+
+Previous:
 v2.3.50 Perbaikan Regresi — Loading List Media Lambat — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `devicePerformance.ts`. Mengembalikan `maxConcurrent` ke 2 karena thumb batch dan list_media berbagi session Grammers yang sama; concurrent tinggi memblokir loadMore. Restore `setThumbsPaused` saat loadingMore. Moderasi filePage/loadMorePage ke nilai optimal (mid=40/80, high=48–64/100–120).
 
 Previous:

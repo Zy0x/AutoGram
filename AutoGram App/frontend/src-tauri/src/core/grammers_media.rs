@@ -16,7 +16,7 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
 use super::grammers_ops::{
-    obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
+    obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
 };
 use super::path_policy;
 use super::session_rate;
@@ -2190,7 +2190,7 @@ fn start_preview_stream_inner(
         let mut has_moov_head = false;
         {
             let _boot_slot = session_rate::acquire_media_slot(&session_name).await?;
-            const BOOT_CHUNK: u64 = 256 * 1024;
+            const BOOT_CHUNK: u64 = 512 * 1024;
             const BOOT_TARGET: u64 = 512 * 1024;
             let mut iter = live
                 .client
@@ -2263,18 +2263,22 @@ fn start_preview_stream_inner(
                     error: None,
                     paused: false,
                     updated_at_ms: now_ms(),
-                    moov_ready_cached: false,
+                    moov_ready_cached: has_moov_head || !is_video,
                     moov_tail_fetching: false,
                 });
             }
             // _boot_slot dropped here — UI can open another video without waiting for full fill.
         }
 
+        // Establish a pool of 12 parallel Client connections (12 distinct TCP sockets to Telegram DC)
+        let download_clients = obtain_download_clients(sessions_dir, identity, 12)
+            .await
+            .unwrap_or_else(|_| vec![live.client.clone()]);
+
         let dest_path = dest.clone();
         let sid = stream_id.clone();
         let mime_bg = mime.clone();
         let fill_media = media;
-        let live_bg = Arc::clone(&live);
         let session_bg = session_name.clone();
         let boot_end = first_missing_offset(&boot_ranges, size).unwrap_or(0);
         let need_async_moov_tail = is_video && size > 1024 * 1024 && !has_moov_head;
@@ -2292,7 +2296,7 @@ fn start_preview_stream_inner(
                 };
                 let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
                 let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
-                let tail_client = live.client.clone();
+                let tail_clients = download_clients.clone();
                 let tail_dest = dest.clone();
                 let tail_sid = stream_id.clone();
 
@@ -2315,7 +2319,7 @@ fn start_preview_stream_inner(
                             offset: chunk_off as i64,
                             limit: 512 * 1024,
                         };
-                        let client = tail_client.clone();
+                        let client = tail_clients[(i as usize) % tail_clients.len()].clone();
                         let tx_clone = tx.clone();
                         tokio::spawn(async move {
                             let res = client.invoke(&req).await;
@@ -2355,25 +2359,26 @@ fn start_preview_stream_inner(
             }
         }
 
+        let fill_clients = download_clients;
         tokio::spawn(async move {
             // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
             let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
-            let live = live_bg;
             let flag = cancel;
             let mut offset: u64 = boot_end;
             let mut ranges: Vec<(u64, u64)> = boot_ranges;
             let mut active_seek_target: Option<u64> = None;
 
+            let media_input_loc = media_to_input_location(&fill_media);
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
+                const PARALLEL_WORKERS: usize = 12; // 12 parallel MTProto TCP sockets
                 let skip = if boot_end > 0 {
                     ((boot_end / CHUNK_SIZE).min(i32::MAX as u64)) as i32
                 } else {
                     0
                 };
-                let mut iter = live
-                    .client
+                let mut iter = fill_clients[0]
                     .iter_download(&fill_media)
                     .chunk_size(CHUNK_SIZE as i32);
                 if skip > 0 {
@@ -2418,21 +2423,104 @@ fn start_preview_stream_inner(
                         } else if offset != target {
                             offset = target;
                             let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
-                            iter = live
-                                .client
+                            iter = fill_clients[0]
                                 .iter_download(&fill_media)
                                 .chunk_size(CHUNK_SIZE as i32)
                                 .skip_chunks(skip);
                         }
                     }
 
-                    // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
-                    // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
-                    // Bypass pacing sleep when an active_seek_target is being fulfilled (e.g. MOOV tail or user scrub).
+                    // Maximum Speed Multi-Socket Pipeline: 12 parallel MTProto TCP sockets
+                    // Fetches 12 x 512KB chunks concurrently per step across 12 distinct TCP connections.
                     if active_seek_target.is_none() {
-                        let current_filled = stream_server::filled_bytes(&ranges);
-                        if current_filled > 15 * 1024 * 1024 {
-                            tokio::time::sleep(std::time::Duration::from_millis(60)).await;
+                        if let Some(ref loc) = media_input_loc {
+                            let mut pending_offsets = Vec::new();
+                            let mut scan_off = offset;
+
+                            while pending_offsets.len() < PARALLEL_WORKERS && scan_off < size {
+                                while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= scan_off && scan_off < *e) {
+                                    if end > scan_off {
+                                        scan_off = end;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                if scan_off >= size { break; }
+                                pending_offsets.push(scan_off);
+                                scan_off += CHUNK_SIZE;
+                            }
+
+                            if !pending_offsets.is_empty() {
+                                let (tx, mut rx) = tokio::sync::mpsc::channel(pending_offsets.len());
+                                for (idx, chunk_off) in pending_offsets.into_iter().enumerate() {
+                                    let req = tl::functions::upload::GetFile {
+                                        precise: false,
+                                        cdn_supported: false,
+                                        location: loc.clone(),
+                                        offset: chunk_off as i64,
+                                        limit: 512 * 1024,
+                                    };
+                                    let client = fill_clients[idx % fill_clients.len()].clone();
+                                    let tx_clone = tx.clone();
+                                    tokio::spawn(async move {
+                                        let res = client.invoke(&req).await;
+                                        let _ = tx_clone.send((chunk_off, res)).await;
+                                    });
+                                }
+                                drop(tx);
+
+                                let mut written_any = false;
+                                while let Some((chunk_off, res)) = rx.recv().await {
+                                    match res {
+                                        Ok(tl::enums::upload::File::File(f)) if !f.bytes.is_empty() => {
+                                            if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                                ranges.push((chunk_off, chunk_off + f.bytes.len() as u64));
+                                                written_any = true;
+                                            }
+                                        }
+                                        Err(e) => {
+                                            let mapped = map_invocation(&e);
+                                            session_rate::note_error(&session_bg, &mapped);
+                                            if mapped.code() == TgErrorCode::FloodWait {
+                                                if let Some(secs) = mapped.flood_wait_secs() {
+                                                    tg_log::warn(
+                                                        BACKEND,
+                                                        "progressive_flood",
+                                                        format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
+                                                    );
+                                                    tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                                }
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                if written_any {
+                                    let _ = file.flush();
+                                    ranges = stream_server::merge_ranges(&ranges);
+                                    if let Some(next_gap) = first_missing_offset(&ranges, size) {
+                                        offset = next_gap;
+                                    } else {
+                                        offset = size;
+                                    }
+                                    stream_server::upsert_entry(StreamEntry {
+                                        stream_id: sid.clone(),
+                                        path: dest_path.display().to_string(),
+                                        total_size: size,
+                                        mime: mime_bg.clone(),
+                                        label: name.clone(),
+                                        done: offset >= size,
+                                        ranges: ranges.clone(),
+                                        cancelled: false,
+                                        error: None,
+                                        paused: false,
+                                        updated_at_ms: now_ms(),
+                                        moov_ready_cached: false,
+                                        moov_tail_fetching: false,
+                                    });
+                                    continue;
+                                }
+                            }
                         }
                     }
 

@@ -1183,7 +1183,7 @@ export function DrivePreviewModal({
           (!!v && !v.paused && browserHasData) ||
           st.stream_ready === true ||
           prefix >= 1024 * 1024;
-        const wantMs = healthy ? 800 : 120; // 120ms initial fast poll for instant start
+        const wantMs = healthy ? 800 : 60; // 60ms initial fast poll for instant start
         if (wantMs !== intervalMs) schedule(wantMs);
 
         if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {

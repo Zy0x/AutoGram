@@ -599,6 +599,30 @@ pub(crate) async fn obtain_live_client(
     Ok(live)
 }
 
+/// Create a pool of N parallel Client connections for high-speed multi-socket media downloading.
+/// Each Client opens an independent TCP socket connection to Telegram DC sharing the in-memory session.
+pub(crate) async fn obtain_download_clients(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    count: usize,
+) -> Result<Vec<Client>, TgError> {
+    let primary = obtain_live_client(sessions_dir, identity, true, false).await?;
+    let mut clients = vec![primary.client.clone()];
+    if count <= 1 {
+        return Ok(clients);
+    }
+    for _ in 1..count {
+        let SenderPool { runner, handle, .. } =
+            SenderPool::new(Arc::clone(&primary.session), identity.api_id as i32);
+        let client = Client::new(handle);
+        tokio::spawn(async move {
+            runner.run().await;
+        });
+        clients.push(client);
+    }
+    Ok(clients)
+}
+
 /// Blocking wrappers for Tauri `spawn_blocking` / sync call sites.
 pub fn probe_sessions_blocking(
     sessions_dir: &Path,
