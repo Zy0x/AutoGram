@@ -1781,7 +1781,8 @@ fn usable_live_preview(r: &PreviewStreamResult) -> bool {
     }
     if r.streaming && !r.stream_id.is_empty() {
         let st = stream_server::status_of(&r.stream_id);
-        return st.status != "missing" && st.error.is_none();
+        // Exclude both 'missing' and 'cancelled' streams so cancelled sessions trigger a fresh active stream
+        return st.status != "missing" && st.status != "cancelled" && st.error.is_none();
     }
     false
 }
@@ -2355,12 +2356,32 @@ fn start_preview_stream_inner(
                         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }
 
-                    // Skip ranges already filled (e.g. bootstrapped tail range)
+                    // Skip contiguous ranges starting at current offset, then check for remaining gaps.
                     while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= offset && offset < *e) {
-                        offset = end;
+                        if end > offset {
+                            offset = end;
+                        } else {
+                            break;
+                        }
                     }
-                    if offset >= size {
-                        break;
+
+                    // Check if any unfilled gaps remain anywhere between 0 and size
+                    match first_missing_offset(&ranges, size) {
+                        None => {
+                            // Entire file 100% downloaded
+                            break;
+                        }
+                        Some(next_gap) => {
+                            if next_gap != offset {
+                                offset = next_gap;
+                                let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                                iter = live
+                                    .client
+                                    .iter_download(&fill_media)
+                                    .chunk_size(CHUNK_SIZE as i32)
+                                    .skip_chunks(skip);
+                            }
+                        }
                     }
 
                     loop {

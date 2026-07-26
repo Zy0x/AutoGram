@@ -89,10 +89,10 @@ function Test-ViteUp {
 function Test-CdpUp {
   # BUG-5 FIX: Try IPv6 first (AutoGram WebView2), then IPv4 as fallback.
   # Verify the page is actually AutoGram, not GoogleDriveFS (which also uses :9222 on IPv4).
-  foreach ($host in @('::1', '127.0.0.1')) {
-    if (-not (Test-TcpPort $host 9222 350)) { continue }
+  foreach ($hName in @('::1', '127.0.0.1')) {
+    if (-not (Test-TcpPort $hName 9222 350)) { continue }
     try {
-      $url = if ($host -eq '::1') { 'http://[::1]:9222/json' } else { 'http://127.0.0.1:9222/json' }
+      $url = if ($hName -eq '::1') { 'http://[::1]:9222/json' } else { 'http://127.0.0.1:9222/json' }
       $resp = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 2
       if ($resp.StatusCode -ne 200) { continue }
       # Check that one of the targets is actually AutoGram (localhost:1420 or tauri)
@@ -100,7 +100,7 @@ function Test-CdpUp {
       if ($json -match 'localhost:1420' -or $json -match 'tauri') {
         # Store the working CDP URL globally for heal-remote.mjs
         $script:ResolvedCdpUrl = $url
-        Write-EnsureLog "CDP resolved: $url (host=$host)"
+        Write-EnsureLog "CDP resolved: $url (host=$hName)"
         return $true
       }
     } catch {}

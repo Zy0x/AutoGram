@@ -431,6 +431,26 @@ fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
 fn handle_stream(request: Request, sid: &str) {
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
+        Some(e) if e.cancelled => {
+            // If entry was marked cancelled but file on disk exists and has data,
+            // allow serving existing bytes (or recover if whole partial is usable)
+            let p = PathBuf::from(&e.path);
+            if p.is_file() && fs::metadata(&p).map(|m| m.len()).unwrap_or(0) > 0 {
+                e
+            } else {
+                match try_recover_partial(sid) {
+                    Some(recovered) => recovered,
+                    None => {
+                        let mut res = Response::from_string("Stream cancelled").with_status_code(StatusCode(410));
+                        for h in cors_headers() {
+                            res.add_header(h);
+                        }
+                        let _ = request.respond(res);
+                        return;
+                    }
+                }
+            }
+        }
         _ => {
             // BUG-1 FIX: Before giving up with 404, try recovering from orphaned .partial
             match try_recover_partial(sid) {
@@ -691,6 +711,16 @@ fn handle(request: Request) {
                 let action = action.split('?').next().unwrap_or(action);
                 if action == "pause" || action == "resume" {
                     if let Some(mut e) = get_entry(sid) {
+                        if e.cancelled && action == "resume" {
+                            // Sesi dibatalkan — kembalikan 410 Gone agar frontend force re-RPC stream baru
+                            let body = r#"{"ok":false,"reason":"cancelled","action":"re_rpc"}"#;
+                            let mut res = Response::from_string(body).with_status_code(StatusCode(410));
+                            for h in cors_headers() {
+                                res.add_header(h);
+                            }
+                            let _ = request.respond(res);
+                            return;
+                        }
                         e.paused = action == "pause";
                         upsert_entry(e);
                         let mut res = Response::from_string(action).with_status_code(StatusCode(200));
