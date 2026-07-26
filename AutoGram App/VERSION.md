@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.49
+AutoGram Version: v2.3.50
 
 Current State:
-v2.3.49 Progressive Blur Placeholder — Thumbnail Instan Mode Seimbang/Jelas — membenahi `thumbBatcher.ts` dan `DriveFileCard.tsx`. Menambahkan `getCachedSaverThumb()` untuk mengambil thumbnail saver lintas-quality sebagai blur placeholder instan di mode Seimbang/Jelas, sehingga kartu media tidak lagi tampil kosong selama 4–6 detik, melainkan langsung menampilkan versi buram yang kemudian digantikan versi tajam saat selesai diunduh. Mirip progressive loading Telegram app asli.
+v2.3.50 Perbaikan Regresi — Loading List Media Lambat — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `devicePerformance.ts`. Mengembalikan `maxConcurrent` ke 2 karena thumb batch dan list_media berbagi session Grammers yang sama; concurrent tinggi memblokir loadMore. Restore `setThumbsPaused` saat loadingMore. Moderasi filePage/loadMorePage ke nilai optimal (mid=40/80, high=48–64/100–120).
 
 Previous:
 v2.3.46 Dynamic 6MB MOOV Tail Bootstrap & Non-Corrupting Range Server Fallback — membenahi `grammers_media.rs`, `stream_server.rs`, dan `DrivePreviewModal.tsx`. Meningkatkan skala prefetch ekor berkas MP4 (termasuk Dokumen File) hingga 6 MB dinamis untuk berkas >500 MB (seperti 1.18 GB MP4), mengabaikan pacing sleep saat melayani seek/MOOV request, memperluas pencarian atom ke 8 MB, dan mengembalikan HTTP 503 saat range belum siap alih-alih mengirim 1 byte respon korup yang merusak demuxer HTML5 Chromium.

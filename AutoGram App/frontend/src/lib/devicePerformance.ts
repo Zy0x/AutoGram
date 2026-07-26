@@ -139,8 +139,8 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
   if (tier === 'low') {
     return {
       tier: 'low',
-      filePage: 24,
-      loadMorePage: 48,
+      filePage: 20,
+      loadMorePage: 40,
       chatPage: 32,
       chatSoftPrefetchMax: 96,
       defaultThumbQuality: 'saver', // stripped inline — like Telegram grid
@@ -150,7 +150,7 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
       thumbBatch: 16,
       thumbFlushMs: 8,
       thumbQueueMax: 80,
-      thumbConcurrent: 3,
+      thumbConcurrent: 2,
       thumbResumeMs: 80,
       thumbPrefetchRows: 2,
       prefetchNextPage: false,
@@ -166,8 +166,8 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
   if (tier === 'mid') {
     return {
       tier: 'mid',
-      filePage: 48,
-      loadMorePage: 100,
+      filePage: 40,
+      loadMorePage: 80,
       chatPage: 48,
       chatSoftPrefetchMax: 200,
       defaultThumbQuality: 'saver',
@@ -177,7 +177,7 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
       thumbBatch: 40,
       thumbFlushMs: 2,
       thumbQueueMax: 240,
-      thumbConcurrent: 8,
+      thumbConcurrent: 2,
       thumbResumeMs: 20,
       thumbPrefetchRows: 5,
       prefetchNextPage: true,
@@ -194,8 +194,8 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
   const turbo = fastNet;
   return {
     tier: 'high',
-    filePage: turbo ? 80 : 60,
-    loadMorePage: turbo ? 180 : 120,
+    filePage: turbo ? 64 : 48,
+    loadMorePage: turbo ? 120 : 100,
     chatPage: turbo ? 80 : 56,
     chatSoftPrefetchMax: turbo ? 400 : 250,
     // Saver = stripped thumbs from message metadata (Telegram-app feel).
@@ -207,7 +207,7 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
     thumbBatch: turbo ? 96 : 72,
     thumbFlushMs: turbo ? 0 : 0,
     thumbQueueMax: turbo ? 600 : 400,
-    thumbConcurrent: turbo ? 16 : 10,
+    thumbConcurrent: 2,
     thumbResumeMs: 0,
     thumbPrefetchRows: turbo ? 10 : 6,
     prefetchNextPage: true,

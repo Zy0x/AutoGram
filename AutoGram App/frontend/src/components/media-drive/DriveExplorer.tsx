@@ -436,19 +436,18 @@ export function DriveExplorer({
     perf.prefetchNextPage,
   ]);
 
-  // While fetching next page: reduce (not stop) thumb batching to avoid network RPC collision.
-  // Visible thumbs already in queue still proceed at 1 concurrent flight.
+  // Pause thumbnail batching while fetching next page.
+  // driveThumbnailsBatch and list_media share the same Grammers session —
+  // thumb calls running in parallel queue ahead of loadMore and stall the file list.
+  // Pause thumbs so Grammers can process list_media without competition.
   useEffect(() => {
     if (loadingMore) {
-      // Partial pause: allow 1 concurrent flight so visible cards don't freeze.
-      // Full pause would blank already-requested visible items during loadMore.
-      setThumbsPaused(false); // ensure not stuck
-      // We don't call setThumbsPaused(true) — scheduler natural queue drain handles backpressure
+      setThumbsPaused(true);
     } else {
-      // Resume immediately; no artificial delay needed since scheduler is self-throttled.
+      // Resume after short delay to let the new files render first
       const timer = setTimeout(() => {
         setThumbsPaused(false);
-      }, 200);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [loadingMore]);

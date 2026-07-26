@@ -6,6 +6,14 @@
 - **Auto-Trim Real-time pada Slider (`Settings.tsx`)**: Menggeser slider limit ke angka yang lebih rendah dari ukuran cache saat ini langsung memicu pemangkasan otomatis di latar belakang.
 - **Toggle Control & Indikator UI (`Settings.tsx`)**: Menambahkan sakelar "Auto-Prune Latar Belakang" di Pengaturan untuk mengaktifkan/menonaktifkan pembersihan otomatis sesuai kebutuhan pengguna.
 
+## v2.3.50 Perbaikan Regresi — Loading List Media Lambat (maxConcurrent & loadingMore)
+
+### Perbaikan Regresi Kecepatan Loading (`thumbBatcher.ts`, `DriveExplorer.tsx`, `devicePerformance.ts`)
+- **Kembalikan maxConcurrent ke 2**: `driveThumbnailsBatch` dan `list_media` berbagi session Grammers yang sama di Rust. Menaikkan concurrent ke 10–16 menyebabkan thumb batch calls mengantri di depan `list_media`/`loadMore`, membuat daftar file tampak beku. Dikembalikan ke 2 (1 visible + 1 prefetch) — batch size yang lebih besar tetap mengurangi total RPCs.
+- **Restore setThumbsPaused saat loadingMore**: Thumbnail batching kembali di-pause saat `loadMore` berjalan, memberi Grammers kebebasan memproses `list_media` tanpa persaingan. File list muncul lebih cepat, thumb baru diproses 300ms setelah halaman berikutnya selesai dimuat.
+- **Moderasi filePage/loadMorePage**: Nilai yang terlalu besar (80/180) memperlambat backend scan per call. Dikembalikan ke nilai moderat: mid=40/80, high=48–64/100–120. Masih lebih baik dari nilai awal (mid=32/72, high=48/100).
+- **Simplifikasi context switch flush**: `setThumbContext()` kembali fire 1 `scheduleFlush` (bukan N paralel) sesuai maxConcurrent=2.
+
 ## v2.3.49 Progressive Blur Placeholder — Thumbnail Instan Mode Seimbang/Jelas
 
 ### Pemuatan Thumbnail Progresif Mirip Telegram App (`thumbBatcher.ts`, `DriveFileCard.tsx`)

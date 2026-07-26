@@ -247,9 +247,12 @@ function queueMax(): number {
 }
 
 function maxConcurrent(): number {
-  // Use full profile concurrent count — FloodWait is handled server-side by Grammers.
-  // Hard-cap at 24 for safety; profile already limits turbo to 16.
-  return Math.min(24, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
+  // Cap at 2 concurrent thumb batch flights.
+  // REASON: driveThumbnailsBatch and list_media share the SAME Grammers session in Rust.
+  // High concurrency (10-16) queues many thumb batches in front of list_media/loadMore,
+  // making the file list appear stuck. 2 flights = 1 visible + 1 prefetch, enough throughput.
+  // Larger batch sizes (profile.thumbBatch) reduce total RPCs without adding parallelism.
+  return Math.min(2, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
 }
 
 function cacheKey(
@@ -293,11 +296,7 @@ export function setThumbContext(
     resolveTask(task, null);
   }
   metrics.queued = queue.size;
-  if (queue.size) {
-    // Fire parallel flushes immediately after context switch so visible cards load fast
-    const n = maxConcurrent();
-    for (let i = 0; i < n; i++) scheduleFlush(true);
-  }
+  if (queue.size) scheduleFlush(true);
   return next;
 }
 
