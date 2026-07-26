@@ -1257,7 +1257,7 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                     mime_type: final_mime,
                     icon_type: icon.into(),
                     created_at: created,
-                    has_thumb: has_thumb || is_video_file,
+                    has_thumb: has_thumb || is_video_file || is_image_file || !doc.thumbs().is_empty(),
                     as_document: true,
                     backend: BACKEND.into(),
                     thumb_data_url,

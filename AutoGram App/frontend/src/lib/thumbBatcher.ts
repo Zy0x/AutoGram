@@ -346,17 +346,28 @@ export function requestVisibleThumbs(
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
-  for (const mid of ids) {
-    const k = cacheKey(folderId, mid, activeQuality, creds.session);
-    if (memCache.has(k)) continue;
-    void requestThumb(creds, folderId, mid, {
-      priority: 'visible',
-      contextKey: activeContextKey,
-    });
-  }
-  // Immediate multi-flight flush
-  const n = maxConcurrent();
-  for (let i = 0; i < n; i++) scheduleFlush(true);
+  const missing = ids.filter((mid) => !memCache.has(cacheKey(folderId, mid, activeQuality, creds.session)));
+  if (!missing.length) return;
+
+  const missingKeys = missing.map((mid) => cacheKey(folderId, mid, activeQuality, creds.session));
+  void loadPersistentThumbs(missingKeys).then((persisted) => {
+    for (const [key, url] of persisted) {
+      memCache.set(key, url);
+      softFailAt.delete(key);
+      errorFailAt.delete(key);
+      notifyThumbReady(key, url, false);
+    }
+    for (const mid of missing) {
+      const k = cacheKey(folderId, mid, activeQuality, creds.session);
+      if (memCache.has(k)) continue;
+      void requestThumb(creds, folderId, mid, {
+        priority: 'visible',
+        contextKey: activeContextKey,
+      });
+    }
+    const n = maxConcurrent();
+    for (let i = 0; i < n; i++) scheduleFlush(true);
+  });
 }
 
 export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {

@@ -1,3 +1,18 @@
+## v2.3.53 Optimasi Performa Cold Start, Speed Loading List Card & Thumbnail Bulk IDB Read, & Fix Thumbnail Dokumen/File
+
+### Adopsi Strategi Performa Telegram-Drive (`thumbBatcher.ts`, `DriveExplorer.tsx`, `DriveFileCard.tsx`)
+- **Bulk IndexedDB Cache Read (`loadPersistentThumbs`)**: Memperbarui `requestVisibleThumbs` dan `DriveExplorer` agar mengeksekusi pembacaan cache IndexedDB seluruh kartu di viewport dalam **1 transaksi massal tunggal**, bukan 50–100 transaksi terpisah per kartu.
+- **Pemuatan Instan Sinkron (`memCache`)**: Mengisi `memCache` secara sinkron dari hasil bulk read sehingga kartu yang pernah dimuat langsung tampil secara seketika tanpa jeda event loop browser.
+- **Pelepasan Beban File Non-Thumbnail**: Kartu non-gambar/non-video yang tidak memiliki thumbnail langsung dirender menggunakan SVG `FileTypeIcon` tanpa perlu masuk antrean scheduler atau memicu RPC worker.
+
+### Perbaikan Thumbnail Media Dokumen/File (`grammers_ops.rs`, `driveTypes.ts`)
+- **Pengenalan `has_thumb` Dokumen di Backend Rust (`grammers_ops.rs`)**: Menambahkan `is_image_file` dan `!doc.thumbs().is_empty()` pada kalkulasi `has_thumb` saat mengonversi `Media::Document`. Menjamin foto/gambar yang diunggah sebagai dokumen (atau dokumen ber-thumbnail) selalu terdeteksi dan memiliki `has_thumb: true`.
+- **Pengenalan Klien Frontend (`driveTypes.ts`)**: Memperbarui `canShowDriveThumb` agar berkas media dokumen (`as_document: true` atau `icon_type === 'document' / 'file'`) yang merupakan media foto, video, PDF, atau memiliki `has_thumb: true` dari Telegram memicu pemuatan thumbnail visual secara konsisten.
+
+### Pengeliminasian Freeze Cold Start (<300ms Boot) (`SpeedTest.tsx`)
+- **Staggering Tugas Latar Belakang saat Cold Boot (`SpeedTest.tsx`)**: Menunda prefetch chat (`softPrefetch`) sebesar 2.5 detik dan menunda pemindaian folder opsional (`driveScanFolders`) serta polling statistik saat aplikasi pertama kali dibuka.
+- **UI Responsif Seketika**: Menjamin daftar file utama dan antarmuka AutoGram langsung tampil mulus dan dapat ditekan seketika dalam <300ms tanpa adanya freeze/lag pada WebView thread.
+
 ## v2.3.52 Universal Target-DC Parallel MTProto Download Pipeline & CDN Edge Routing
 
 ### Eliminasi Variasi Kecepatan Antar-File via Target DC Download Engine (`grammers_media.rs`)

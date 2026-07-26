@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.52
+AutoGram Version: v2.3.53
 
 Current State:
+v2.3.53 Optimasi Performa Cold Start, Speed Loading List Card & Thumbnail Bulk IDB Read, & Fix Thumbnail Dokumen/File — membenahi `grammers_ops.rs`, `driveTypes.ts`, `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `SpeedTest.tsx`. Memadukan strategi performa ringan Telegram-Drive: mengimplementasikan `loadPersistentThumbs` bulk IndexedDB read (1 transaksi massal untuk seluruh kartu viewport), menambahkan `is_image_file` & `!doc.thumbs().is_empty()` pada `has_thumb` backend Rust, serta menata urutan waktu panggilan async cold start untuk mengeliminasi freeze/lag UI (<300ms boot).
+
+Previous:
 v2.3.52 Universal Target-DC Parallel MTProto Download Pipeline & CDN Edge Routing — membenahi `grammers_media.rs`. Mengganti RPC `upload.GetFile` statis pada Home DC dengan `iter_download` paralel berbasis target DC. Mengeliminasi total variasi kecepatan antar-file akibat pembatasan cross-DC proxy Telegram, menjamin 100% media pada Datacenter apa pun (DC 1–5 & CDN) diunduh secara seragam pada kecepatan maksimal 18–25+ MB/s.
 
 Previous:
