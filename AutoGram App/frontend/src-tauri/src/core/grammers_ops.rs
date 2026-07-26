@@ -109,9 +109,10 @@ pub(crate) fn runtime() -> Result<&'static Runtime, TgError> {
         return Ok(runtime);
     }
 
+    let worker_count = std::cmp::max(4, std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
-        .worker_threads(2)
+        .worker_threads(worker_count)
         .thread_name("autogram-grammers")
         .build()
         .map_err(|e| TgError::new(TgErrorCode::Internal, format!("tokio runtime: {e}")))?;
@@ -347,6 +348,26 @@ fn live_clients() -> &'static Mutex<HashMap<String, CachedLiveClient>> {
 pub fn disconnect_cached_session(session_name: &str) {
     if let Some(entry) = live_clients().lock().remove(session_name) {
         entry.live.client.disconnect();
+    }
+}
+
+pub fn purge_inactive_sessions(active_session: &str) {
+    let active = active_session.trim();
+    let mut map = live_clients().lock();
+    let to_remove: Vec<String> = map
+        .keys()
+        .filter(|s| *s != active && !s.is_empty())
+        .cloned()
+        .collect();
+    for s in to_remove {
+        if let Some(entry) = map.remove(&s) {
+            entry.live.client.disconnect();
+            tg_log::info(
+                BACKEND,
+                "purge_inactive_session",
+                format!("disconnected inactive session: {s}"),
+            );
+        }
     }
 }
 

@@ -285,7 +285,13 @@ export function setThumbContext(
 ): string {
   const session = creds?.session || 'unscoped';
   const next = `${session}:${folderId ?? 'home'}:${topicId ?? 'all'}`;
+  const isSessionSwitch = session !== activeSession && activeSession !== 'unscoped';
   activeSession = session;
+  if (isSessionSwitch) {
+    softFailAt.clear();
+    errorFailAt.clear();
+    inflightByKey.clear();
+  }
   if (next === activeContextKey) return next;
   activeContextKey = next;
   contextGeneration += 1;

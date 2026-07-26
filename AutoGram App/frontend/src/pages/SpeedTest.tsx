@@ -1040,6 +1040,11 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         .catch(() => undefined);
     }
 
+    // Purge passive MTProto live clients from Rust memory so they don't clog Tokio runtime threads.
+    void import('../lib/telegramBackend')
+      .then((m) => m.tgPurgeInactiveSessions(next))
+      .catch(() => undefined);
+
     // Keep Active Targets aligned with the session the user just picked.
     try {
       setActiveSessionTargets([

@@ -825,6 +825,10 @@ pub fn tg_move_messages(req: MoveMessagesRequest) -> OpResult<super::drive_rpc::
     }
 }
 
+pub fn tg_purge_inactive_sessions(active_session: &str) {
+    super::grammers_ops::purge_inactive_sessions(active_session);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

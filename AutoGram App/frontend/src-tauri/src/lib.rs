@@ -1248,6 +1248,15 @@ async fn tg_list_topics(
 }
 
 #[tauri::command]
+async fn tg_purge_inactive_sessions(active_session: String) {
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_purge_inactive_sessions(&active_session);
+    })
+    .await
+    .ok();
+}
+
+#[tauri::command]
 async fn tg_thumbs_batch(
     app: AppHandle,
     request: core::telegram_ops::ThumbsBatchRequest,
@@ -1471,6 +1480,7 @@ pub fn run() {
             tg_login,
             tg_download_file,
             tg_list_topics,
+            tg_purge_inactive_sessions,
             tg_thumbs_batch,
             tg_preview_stream,
             tg_stop_stream,

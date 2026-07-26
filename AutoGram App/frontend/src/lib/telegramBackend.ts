@@ -286,6 +286,17 @@ export async function tgDisconnectSession(session: string): Promise<boolean> {
   }
 }
 
+/** Disconnect all inactive Grammers live clients to free up Tokio threads. */
+export async function tgPurgeInactiveSessions(activeSession: string): Promise<void> {
+  if (!detectTauriRuntime() || !activeSession) return;
+  try {
+    await invoke('tg_purge_inactive_sessions', { activeSession });
+    debugLogLayer('rust', 'tg', 'purge_inactive_sessions', { activeSession });
+  } catch (e) {
+    debugLogLayer('rust', 'tg', 'purge_inactive_sessions_fail', String(e));
+  }
+}
+
 /** Grammers dialog list — dual-path alternative to Telethon list_chats. */
 export async function tgListDialogs(args: {
   session: string;
