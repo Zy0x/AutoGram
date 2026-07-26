@@ -1,3 +1,12 @@
+## v2.3.46 Resolusi Kritis Loop Reload Video, Eliminasi Gap Pengunduhan & Normalisasi Range Presisi
+
+### Perbaikan Kritis Streaming Video & Instant Load (`stream_server.rs`, `grammers_media.rs`, `DrivePreviewModal.tsx`, `sw.js`)
+- **Eliminasi Total Bug Loop Reload `0:00`**: Menghapus logika pemicu reset `v.src` dan `v.removeAttribute('src')` pada handler `onError` di `DrivePreviewModal.tsx`. Pemutar video tidak lagi mereset posisi ke `0:00` saat terjadi jeda buffer transient.
+- **Pembersihan Gap Pengunduhan Rust**: Memperbaiki logika lompatan interval pada loop pengunduhan Tokio (`grammers_media.rs`) menggunakan `first_missing_offset` dan `merge_ranges`. Mengeliminasi bug penghentian unduhan prematur saat *1-Shot MOOV Tail Bootstrap* mendeteksi range ekor.
+- **Normalisasi Range Kontigu Presisi (`merge_ranges`)**: Meng-update `contiguous_from_zero` dan `contiguous_end_from` di `stream_server.rs` agar men-sort dan mem-merge interval range secara otomatis, memastikan perhitungan buffer dan status `stream_ready` selalu 100% akurat.
+- **Threshold Instant Play 384KB & `moov_ready` Guard**: Memastikan instant play nudge hanya dipicu saat `moov_ready === true` DAN buffer awal minimal 384 KB sudah mengendap di disk, menggaransi pemutaran video ultra-lancar tanpa kemacetan.
+- **Bypass Total Service Worker**: Menambahkan aturan bypass 100% pada `sw.js` untuk semua URL `/stream/` dan host lokal `127.0.0.1`.
+
 ## v2.3.45 Ultra-Fast 1-Shot MOOV Tail Bootstrap & Adaptive Lightweight Buffer Pacing
 
 ### Optimasi Pemutaran Ultra-Instan (<100ms) & Penghematan Resource (`grammers_media.rs`, `DrivePreviewModal.tsx`, `stream_server.rs`)

@@ -90,13 +90,14 @@ pub fn stream_port() -> u16 {
     PORT.load(Ordering::SeqCst)
 }
 
-fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
+pub fn merge_ranges(ranges: &[(u64, u64)]) -> Vec<(u64, u64)> {
     if ranges.is_empty() {
-        return ranges;
+        return vec![];
     }
-    ranges.sort_by_key(|r| r.0);
-    let mut out = vec![ranges[0]];
-    for (s, e) in ranges.into_iter().skip(1) {
+    let mut sorted = ranges.to_vec();
+    sorted.sort_by_key(|r| r.0);
+    let mut out = vec![sorted[0]];
+    for (s, e) in sorted.into_iter().skip(1) {
         let last = out.last_mut().unwrap();
         if s <= last.1 {
             last.1 = last.1.max(e);
@@ -108,19 +109,18 @@ fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
 }
 
 fn contiguous_from_zero(ranges: &[(u64, u64)]) -> u64 {
-    if ranges.is_empty() || ranges[0].0 > 0 {
+    let norm = merge_ranges(ranges);
+    if norm.is_empty() || norm[0].0 > 0 {
         return 0;
     }
-    ranges[0].1
+    norm[0].1
 }
 
 fn contiguous_end_from(ranges: &[(u64, u64)], start: u64) -> u64 {
-    for &(s, e) in ranges {
+    let norm = merge_ranges(ranges);
+    for &(s, e) in &norm {
         if s <= start && start < e {
             return e;
-        }
-        if s > start {
-            break;
         }
     }
     start
@@ -195,7 +195,7 @@ fn is_mp4_entry(entry: &StreamEntry) -> bool {
 }
 
 pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
-    entry.ranges = merge_ranges(entry.ranges);
+    entry.ranges = merge_ranges(&entry.ranges);
     entry.updated_at_ms = now_ms();
 
     // Inherit moov_ready_cached from the existing live entry so the cache is

@@ -2426,13 +2426,14 @@ fn start_preview_stream_inner(
                         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }
 
-                    // Skip ranges already filled (e.g. bootstrapped tail range)
-                    while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= offset && offset < *e) {
-                        offset = end;
-                    }
-                    if offset >= size {
-                        break;
-                    }
+                    // Skip ranges already filled, ensuring we find the exact first missing offset from 0..size
+                    // without prematurely breaking when a tail range exists.
+                    ranges = stream_server::merge_ranges(&ranges);
+                    let next_offset = match first_missing_offset(&ranges, size) {
+                        Some(missing) => missing,
+                        None => break, // Entire file 0..size is 100% downloaded
+                    };
+                    offset = next_offset;
 
                     loop {
                         if let Some(e) = stream_server::get_entry(&sid) {

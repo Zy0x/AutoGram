@@ -1219,9 +1219,10 @@ export function DrivePreviewModal({
         // Triggers on stream_ready, browserHasData, or even bufferPct>=5%
         // so video starts the instant enough bytes exist — YouTube-style.
         const now = Date.now();
-        const bufferHasEnough = pct >= 5 || prefix >= 128 * 1024;
+        const firstPlayThreshold = Math.max(384 * 1024, (total || 0) * 0.005);
+        const bufferHasEnough = prefix >= firstPlayThreshold || (total > 0 && prefix >= total * 0.98);
         const streamReady =
-          st.stream_ready === true ||
+          (st.stream_ready === true && st.moov_ready === true) ||
           browserHasData ||
           bufferHasEnough ||
           (!!v && v.readyState >= 2) ||
@@ -3266,8 +3267,6 @@ export function DrivePreviewModal({
                     if (v && streamUrl && n <= 4 && !softReloadInFlightRef.current) {
                       softReloadInFlightRef.current = true;
                       setPlayerHint('Buffering… menyambung putar');
-                      const t = v.currentTime || 0;
-                      const sticky = streamUrl;
                       if (softReloadTimerRef.current != null) {
                         window.clearTimeout(softReloadTimerRef.current);
                       }
@@ -3276,25 +3275,11 @@ export function DrivePreviewModal({
                         softReloadTimerRef.current = null;
                         const vv = videoRef.current;
                         if (!vv || mountGenRef.current !== activeMountGen) return;
-                        try {
-                          if (vv.error) {
-                            vv.removeAttribute('src');
-                            vv.load();
-                            vv.src = sticky;
-                            if (t > 0.25) {
-                              ignoreSeekEventsRef.current += 1;
-                              // Defer currentTime until element has loaded enough
-                              window.setTimeout(() => { try { vv.currentTime = t; } catch { /**/ } }, 200);
-                            }
-                          }
-                          void vv.play().then(() => {
-                            hasUserPlayRef.current = true;
-                            setPlayerHint(null);
-                          }).catch(() => undefined);
-                        } catch {
-                          /* ignore */
-                        }
-                      }, 400);
+                        void vv.play().then(() => {
+                          hasUserPlayRef.current = true;
+                          setPlayerHint(null);
+                        }).catch(() => undefined);
+                      }, 500);
                       return;
                     }
                     // Exhausted retries — just hint, never hard-reload

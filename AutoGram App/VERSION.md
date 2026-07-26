@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.45
+AutoGram Version: v2.3.46
 
 Current State:
+v2.3.46 Fix Critical Video Reload Loops, Download Gap Elimination & Continuous Range Normalization — membenahi `stream_server.rs`, `grammers_media.rs`, `DrivePreviewModal.tsx`, dan `sw.js`. Mengeliminasi total bug loop reload ke 0:00 dengan menghapus reset `v.src` pada onError handler, memperbaiki algoritma `first_missing_offset` dan pengurutan interval range di Rust agar tidak mati prematur saat MOOV tail bootstrap terdeteksi, serta menaikkan threshold instant play ke 384KB untuk pemutaran video ultra-lancar tanpa kemacetan.
+
+Previous:
 v2.3.45 Ultra-Fast 1-Shot MOOV Tail Bootstrap & Adaptive Lightweight Buffer Pacing — membenahi `grammers_media.rs`, `stream_server.rs`, dan `DrivePreviewModal.tsx`. Mengoptimalkan pre-fetch ekor berkas MP4 menjadi 1-shot request 512KB (~60ms), menerapkan *Adaptive Lightweight Pacing* (sleep 60ms saat buffer mencapai 15 MB) untuk menghemat CPU & RAM, serta mempercepat polling status UI ke 120ms untuk pemutaran video ultra-instan (<100ms) dan pengoperasian yang sangat ringan.
 
 Previous:
