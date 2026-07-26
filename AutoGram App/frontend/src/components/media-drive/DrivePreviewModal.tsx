@@ -1376,7 +1376,7 @@ export function DrivePreviewModal({
     if (streamTimeoutRef.current != null) {
       window.clearTimeout(streamTimeoutRef.current);
     }
-    const timeoutMs = size > 500 * 1024 * 1024 ? 60000 : STREAM_TIMEOUT_MS;
+    const timeoutMs = (file?.size || 0) > 500 * 1024 * 1024 ? 60000 : STREAM_TIMEOUT_MS;
     streamTimeoutRef.current = window.setTimeout(() => {
       streamTimeoutRef.current = null;
       const v = videoRef.current;
@@ -1395,7 +1395,7 @@ export function DrivePreviewModal({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamId, streamDone, bufferPct, size]);
+  }, [streamId, streamDone, bufferPct, file?.size]);
 
   /** True if `t` sits inside any browser buffered range (with slack). */
   const timeInBuffered = useCallback((v: HTMLVideoElement, t: number, slack = 0.75) => {
