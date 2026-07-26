@@ -2055,7 +2055,15 @@ fn start_preview_stream_inner(
         let is_image = mime.starts_with("image/") && !mime.contains("gif");
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
-        let is_zip = mime.contains("zip") || name.to_lowercase().ends_with(".zip");
+        let is_zip = !is_video
+            && !is_audio
+            && !is_image
+            && (mime.contains("zip")
+                || name.to_lowercase().ends_with(".zip")
+                || name.to_lowercase().ends_with(".7z")
+                || name.to_lowercase().ends_with(".rar")
+                || name.to_lowercase().ends_with(".tar")
+                || name.to_lowercase().ends_with(".gz"));
 
         // ZIP files: 100% MTProto Sparse Reader — zero full-file download for ZIPs of ANY size (1 MB to 5 GB)
         if is_zip {
