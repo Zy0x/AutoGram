@@ -548,9 +548,9 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
 
-            // Wait up to 10 seconds (with fast 25ms ticks) for Telegram download to reach start
+            // Wait up to 45 seconds (with fast 30ms ticks) for Telegram download to reach start
             let mut waited = 0;
-            while waited < 10000 {
+            while waited < 45000 {
                 let r = if entry.ranges.is_empty() {
                     vec![]
                 } else {
@@ -561,8 +561,8 @@ fn handle_stream(request: Request, sid: &str) {
                     have_end = have;
                     break;
                 }
-                thread::sleep(Duration::from_millis(25));
-                waited += 25;
+                thread::sleep(Duration::from_millis(30));
+                waited += 30;
                 if let Some(updated) = get_entry(sid) {
                     entry = updated;
                 } else {

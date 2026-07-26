@@ -1,3 +1,10 @@
+## v2.3.51 Auto-Resume Buffer & Smooth Video Player Recovery
+
+### Perbaikan Pemutaran Video Terjeda & Auto-Resume Buffer (`stream_server.rs`, `DrivePreviewModal.tsx`)
+- **Range Request Timeout HTTP Extended (45s)**: Memperpanjang batas waktu tunggu Range request di backend Rust (`stream_server.rs`) dari 10 detik menjadi 45 detik agar Chromium/WebKit tidak melempar kesalahan prematur HTTP 503 yang memicu `MEDIA_ERR_NETWORK` (`code 2`) pada elemen `<video>`.
+- **Pembedaan State Jeda Manual vs Stall Buffer**: Menggunakan `userExplicitlyPausedRef` untuk membedakan antara tindakan jeda manual pengguna dan jeda otomatis akibat pengisian buffer Telegram.
+- **Pembersihan Error & Re-bind Aman**: Saat kesalahan jaringan terjadi karena gap buffer, pemutar video menyimpan posisi `currentTime` ke `resumeAtRef.current`. Saat data buffer tiba di `currentTime`, polling loop memicu re-bind aman yang memulihkan posisi secara otomatis setelah metadata terverifikasi (`readyState >= 1`) dan memutar video (*auto-resume*) tanpa terhenti atau terreset ke `0:00`.
+
 ## v2.3.50 Smart Auto-Pruning Engine & Active File Lock Protection
 
 ### Pemangkasan Cache Otomatis Cerdas & Perlindungan Berkas Aktif (`autoCachePruner.ts`, `jobs_db.rs`, `App.tsx`, `Settings.tsx`)

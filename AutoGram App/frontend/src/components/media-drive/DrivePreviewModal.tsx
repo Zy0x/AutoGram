@@ -574,6 +574,7 @@ export function DrivePreviewModal({
    * (moov tail + pipeline), leaving "buffer tinggi tapi video tak start".
    */
   const hasUserPlayRef = useRef(false);
+  const userExplicitlyPausedRef = useRef(false);
   const isVideoCapturedRef = useRef(false);
   /**
    * Guard: prevents both poll (missing≥5 ticks) and onError rebind from
@@ -591,6 +592,7 @@ export function DrivePreviewModal({
   // Reset captured flag + reload guards when file changes
   useEffect(() => {
     isVideoCapturedRef.current = false;
+    userExplicitlyPausedRef.current = false;
     softReloadInFlightRef.current = false;
     softRetryCountRef.current = 0; // BUG-3 FIX: reset retry counter on file change
     if (softReloadTimerRef.current != null) {
@@ -1271,7 +1273,7 @@ export function DrivePreviewModal({
         nativeStreamReadyRef.current = st.stream_ready === true;
         if (
           v &&
-          v.paused &&
+          (v.paused || v.error) &&
           !v.ended &&
           !seekWarnRef.current &&
           streamReady &&
@@ -1284,45 +1286,22 @@ export function DrivePreviewModal({
           if (!nearEnd) {
             playNudgeAtRef.current = now;
             // Media error freezes the element — rebind same URL to clear error state,
-            // then defer play() so the element has time to load before we call play.
+            // then let onLoadedMetadata restore currentTime once metadata is loaded (readyState >= 1).
             if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
-              const t = v.currentTime || 0;
+              const t = v.currentTime || resumeAtRef.current || 0;
+              if (t > 0.25) resumeAtRef.current = t;
               try {
                 const sticky = streamUrl;
                 v.removeAttribute('src');
                 v.load();
                 v.src = sticky;
-                if (t > 0.25) {
-                  ignoreSeekEventsRef.current += 1;
-                  v.currentTime = t;
-                }
               } catch {
                 /* ignore */
               }
-              // After rebind, defer play until the element is ready (canplay/loadeddata)
-              window.setTimeout(() => {
-                const vv = videoRef.current;
-                if (vv && vv.paused && !vv.ended && !vv.error) {
-                  void vv.play().then(() => {
-                    hasUserPlayRef.current = true;
-                    setHasVideoFrame(true);
-                    setPlayerHint(null);
-                    setLoading(false);
-                  }).catch(() => {
-                    vv.muted = true;
-                    setMuted(true);
-                    void vv.play().then(() => {
-                      hasUserPlayRef.current = true;
-                      setHasVideoFrame(true);
-                      setPlayerHint(null);
-                      setLoading(false);
-                    }).catch(() => undefined);
-                  });
-                }
-              }, 300);
-            } else {
+            } else if (!userExplicitlyPausedRef.current) {
               void v.play().then(() => {
                 hasUserPlayRef.current = true;
+                userExplicitlyPausedRef.current = false;
                 setHasVideoFrame(true);
                 setPlayerHint(null);
                 setLoading(false);
@@ -3304,12 +3283,18 @@ export function DrivePreviewModal({
                   }
                 }}
                 onPlay={() => {
+                  userExplicitlyPausedRef.current = false;
                   handlePlay();
                 }}
                 onPause={() => {
+                  const v = videoRef.current;
+                  if (v && !v.error && !v.ended) {
+                    userExplicitlyPausedRef.current = true;
+                  }
                   handlePause();
                 }}
                 onPlaying={() => {
+                  userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
                   setLoading(false);
                   handlePlay();
@@ -3334,7 +3319,7 @@ export function DrivePreviewModal({
                     setPlayerHint('Menunggu data…');
                     // Stalled with data available — re-kick playback
                     const v = videoRef.current;
-                    if (v && v.paused && v.readyState >= 2) {
+                    if (v && v.paused && v.readyState >= 2 && !userExplicitlyPausedRef.current) {
                       void v.play().catch(() => undefined);
                     }
                   }
@@ -3348,52 +3333,22 @@ export function DrivePreviewModal({
                   const progressiveFilling = !!streamUrl && !streamDoneRef.current;
                   if (progressiveFilling) {
                     mediaErrorCountRef.current += 1;
-                    const n = mediaErrorCountRef.current;
 
                     // MEDIA_ERR_NETWORK (2): browser ran out of buffered data.
-                    // Root cause of the "looping play" bug:
-                    //   rebind src → video resets to 0:00 → immediately errors again → loop.
-                    // Fix: NEVER rebind on network error. The fill loop is downloading more
-                    // bytes; we just need to call v.play() once the stream server has them.
-                    // The poll nudge (250ms) will call v.play() when streamReady / bufferPct>=5.
+                    // Save playback position. The poll loop (tick) will auto-rebind & play
+                    // as soon as the stream server has data for currentTime.
                     if (mediaErr.code === 2) {
-                      // Block poll-triggered softReload for 2.5s so it doesn't interfere
-                      if (!softReloadInFlightRef.current) {
-                        softReloadInFlightRef.current = true;
-                        if (softReloadTimerRef.current != null) {
-                          window.clearTimeout(softReloadTimerRef.current);
-                        }
-                        softReloadTimerRef.current = window.setTimeout(() => {
-                          softReloadInFlightRef.current = false;
-                          softReloadTimerRef.current = null;
-                          // Nudge play — if data has arrived the video will resume
-                          const vv = videoRef.current;
-                          if (vv && vv.paused && !vv.ended && mountGenRef.current === activeMountGen) {
-                            void vv.play().then(() => {
-                              hasUserPlayRef.current = true;
-                              setPlayerHint(null);
-                            }).catch(() => undefined);
-                          }
-                        }, 2500);
+                      if (v) {
+                        const t = v.currentTime || 0;
+                        if (t > 0.25) resumeAtRef.current = t;
                       }
-                      if (n < 4) {
-                        setPlayerHint('Buffering… menunggu data stream');
-                      } else if (n < 12) {
-                        setPlayerHint(
-                          nativeStreamReadyRef.current
-                            ? 'Buffering… menunggu data stream'
-                            : 'Menyiapkan metadata dan buffer awal…'
-                        );
-                      } else {
-                        // After 12 network errors, encourage the user — but still
-                        // do NOT reload (that cancels the Telegram download pipeline).
-                        setPlayerHint('Mengisi buffer… tekan Play jika ingin mulai lebih awal');
-                      }
+                      setPlayerHint('Buffering… menunggu data stream');
                       return;
                     }
 
                     // MEDIA_ERR_DECODE (3) or SRC_NOT_SUPPORTED (4): the element itself is
                     // broken. A src rebind can clear it without restarting Telegram download.
+                    const n = mediaErrorCountRef.current;
                     if (v && streamUrl && n <= 4 && !softReloadInFlightRef.current) {
                       softReloadInFlightRef.current = true;
                       setPlayerHint('Buffering… menyambung putar');
