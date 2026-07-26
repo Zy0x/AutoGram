@@ -2289,8 +2289,8 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         filesCacheRef.current.set(cacheKey, persisted.files);
         setFilesHasMore(persisted.hasMore);
         setNextOffsetId(persisted.nextOffsetId);
-        setLoadingFiles(false);
       }
+      setLoadingFiles(false);
     } else {
       setFiles([]);
       setTotalFileCount(null);

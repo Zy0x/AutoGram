@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, Image as ImageIcon } from 'lucide-react';
 
 /**
  * Hook for smooth realistic progress interpolation (0% -> 100%)
@@ -18,12 +18,12 @@ export function useSmoothProgress(isLoading: boolean = true, targetPercent?: num
       return;
     }
 
-    // Realistic multi-stage smooth progress curve (0% -> 100%)
-    setProgress(15);
-    const t1 = setTimeout(() => setProgress(42), 180);
-    const t2 = setTimeout(() => setProgress(72), 480);
-    const t3 = setTimeout(() => setProgress(88), 900);
-    const t4 = setTimeout(() => setProgress(96), 1600);
+    // Fast responsive multi-stage progress curve (0% -> 100%)
+    setProgress(25);
+    const t1 = setTimeout(() => setProgress(58), 120);
+    const t2 = setTimeout(() => setProgress(82), 320);
+    const t3 = setTimeout(() => setProgress(94), 650);
+    const t4 = setTimeout(() => setProgress(98), 1200);
 
     return () => {
       clearTimeout(t1);
@@ -44,18 +44,31 @@ export interface CenteredGlassmorphicProgressProps {
 
 export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgressProps> = ({
   percent,
-  label = 'Membaca katalog media Telegram MTProto...',
+  label,
   isLoading = true,
 }) => {
   const smoothProgress = useSmoothProgress(isLoading, percent);
   const displayPercent = Math.round(smoothProgress);
-  const remainingSecs = Math.max(1, Math.ceil((100 - displayPercent) / 7));
+  const remainingSecs = Math.max(1, Math.ceil((100 - displayPercent) / 12));
+
+  // Dynamic context message based on progress stage
+  const dynamicStatus = label || (
+    displayPercent < 35
+      ? 'Menghubungkan Telegram MTProto…'
+      : displayPercent < 70
+      ? 'Membaca katalog media drive…'
+      : displayPercent < 90
+      ? 'Menyusun metadata & file…'
+      : 'Hampir selesai…'
+  );
 
   return (
     <div className="ag-compact-card select-none">
-      {/* Brand Logo Box */}
-      <div className="ag-logo-box">
-        <Zap size={26} strokeWidth={2.5} />
+      {/* Outer Pulse Glow Ring */}
+      <div className="ag-logo-wrapper">
+        <div className="ag-logo-box">
+          <Zap size={26} strokeWidth={2.5} />
+        </div>
       </div>
 
       {/* Brand Header */}
@@ -67,7 +80,7 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
       {/* Progress Box */}
       <div className="ag-progress-box">
         <div className="ag-progress-header">
-          <span className="ag-progress-label">Loading</span>
+          <span className="ag-progress-label">Memuat Katalog</span>
           <span className="ag-progress-percent">{displayPercent}%</span>
         </div>
         <div className="ag-slim-track">
@@ -77,21 +90,15 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
 
       {/* Context Text */}
       <div className="ag-context-text">
-        {label ? (
-          <span>{label}</span>
-        ) : (
-          <span>
-            Scanning <strong>media files</strong> from Telegram MTProto
-          </span>
-        )}
+        <span>{dynamicStatus}</span>
       </div>
 
       {/* Estimate Text */}
       <div className="ag-estimate-text">
         {displayPercent >= 100
-          ? 'Complete!'
-          : displayPercent > 85
-          ? 'Almost done...'
+          ? 'Selesai!'
+          : displayPercent > 88
+          ? 'Menyiapkan tampilan…'
           : `~${remainingSecs} detik tersisa`}
       </div>
     </div>
@@ -103,21 +110,38 @@ export const DeadCenterProgress = CenteredGlassmorphicProgress;
 export const ModernProgressBar = CenteredGlassmorphicProgress;
 export const MicroProgressBar = CenteredGlassmorphicProgress;
 
-export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) => {
+export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 16 }) => {
   const items = Array.from({ length: count });
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', width: '100%' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))',
+        gap: '14px',
+        width: '100%',
+        padding: '4px',
+      }}
+    >
       {items.map((_, i) => (
         <div
           key={i}
-          className="bg-[#181b22]/80 border border-white/5 rounded-xl p-2.5 flex flex-col justify-between"
-          style={{ height: '210px', borderRadius: '14px', background: 'rgba(24, 27, 34, 0.8)', border: '1px solid rgba(255, 255, 255, 0.06)', padding: '10px' }}
+          className="ag-skeleton-card"
         >
-          <div className="skeleton-shimmer" style={{ width: '100%', height: '120px', borderRadius: '10px', marginBottom: '8px' }} />
-          <div className="skeleton-shimmer" style={{ width: '75%', height: '14px', borderRadius: '4px', marginBottom: '6px' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
-            <div className="skeleton-shimmer" style={{ width: '48px', height: '12px', borderRadius: '4px' }} />
-            <div className="skeleton-shimmer" style={{ width: '64px', height: '12px', borderRadius: '4px' }} />
+          {/* Thumbnail Box Skeleton */}
+          <div className="ag-skeleton-thumb skeleton-shimmer">
+            <div className="ag-skeleton-icon-placeholder">
+              <ImageIcon size={22} className="opacity-20 text-white/40" />
+            </div>
+            <div className="ag-skeleton-badge skeleton-shimmer" />
+          </div>
+
+          {/* Title & Metadata Skeleton */}
+          <div className="ag-skeleton-details">
+            <div className="skeleton-shimmer ag-skeleton-line-title" style={{ width: `${65 + (i % 4) * 10}%` }} />
+            <div className="ag-skeleton-meta-row">
+              <div className="skeleton-shimmer ag-skeleton-pill" style={{ width: '48px' }} />
+              <div className="skeleton-shimmer ag-skeleton-pill" style={{ width: '56px' }} />
+            </div>
           </div>
         </div>
       ))}
@@ -128,13 +152,16 @@ export const DriveGridSkeleton: React.FC<{ count?: number }> = ({ count = 12 }) 
 export const DriveListSkeleton: React.FC<{ count?: number }> = ({ count = 10 }) => {
   const items = Array.from({ length: count });
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '4px' }}>
       {items.map((_, i) => (
-        <div
-          key={i}
-          className="skeleton-shimmer"
-          style={{ height: '48px', borderRadius: '10px', background: 'rgba(24, 27, 34, 0.6)', border: '1px solid rgba(255, 255, 255, 0.06)' }}
-        />
+        <div key={i} className="ag-skeleton-list-row">
+          <div className="skeleton-shimmer ag-skeleton-list-icon" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="skeleton-shimmer" style={{ width: `${40 + (i % 3) * 15}%`, height: '14px', borderRadius: '4px' }} />
+            <div className="skeleton-shimmer" style={{ width: '120px', height: '11px', borderRadius: '3px', opacity: 0.6 }} />
+          </div>
+          <div className="skeleton-shimmer" style={{ width: '70px', height: '14px', borderRadius: '4px' }} />
+        </div>
       ))}
     </div>
   );
@@ -158,3 +185,4 @@ export const MediaPreviewSkeleton: React.FC = () => {
     </div>
   );
 };
+

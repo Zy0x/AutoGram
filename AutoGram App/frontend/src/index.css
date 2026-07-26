@@ -1224,9 +1224,9 @@ html, body {
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #181b22 0%, #292d3b 50%, #181b22 100%);
-  background-size: 200% 100%;
-  animation: shimmerWave 1.8s infinite linear;
+  background: linear-gradient(90deg, #151822 0%, #252c3c 35%, #363e54 50%, #252c3c 65%, #151822 100%);
+  background-size: 250% 100%;
+  animation: shimmerWave 1.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 6px;
 }
 
@@ -1253,7 +1253,7 @@ html, body {
   background-size: 200% 100%;
 }
 
-/* AutoGram Sleek Compact Loading Screen (Exact User Template Adaptation) */
+/* AutoGram Sleek Compact Loading Screen */
 .ag-loading-wrapper {
   position: relative;
   width: 100%;
@@ -1266,10 +1266,14 @@ html, body {
 }
 
 .ag-loading-depth-layer {
-  opacity: 0.25;
+  opacity: 0.68;
   pointer-events: none;
-  padding: 1rem;
+  padding: 1.25rem;
   user-select: none;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transition: opacity 300ms ease;
 }
 
 .ag-loading-overlay {
@@ -1282,20 +1286,20 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 20, 25, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(12, 15, 22, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 1.5rem;
 }
 
 .ag-compact-card {
-  background: #1a1f2e;
-  border: 1px solid #2a3142;
-  border-radius: 20px;
-  padding: 36px 28px;
-  max-width: 320px;
+  background: rgba(22, 27, 39, 0.88);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: 24px;
+  padding: 34px 28px;
+  max-width: 340px;
   width: 100%;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 35px rgba(245, 166, 35, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1303,6 +1307,31 @@ html, body {
   overflow: hidden;
   box-sizing: border-box;
   gap: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.ag-logo-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ag-logo-wrapper::before {
+  content: '';
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  background: rgba(245, 166, 35, 0.2);
+  filter: blur(10px);
+  animation: agPulseRing 2.5s ease-in-out infinite;
+}
+
+@keyframes agPulseRing {
+  0%, 100% { transform: scale(0.95); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.8; }
 }
 
 .ag-logo-box {
@@ -1313,14 +1342,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 24px rgba(245, 166, 35, 0.25), 0 0 60px rgba(245, 166, 35, 0.08);
+  box-shadow: 0 4px 24px rgba(245, 166, 35, 0.35), 0 0 60px rgba(245, 166, 35, 0.12);
   animation: agPulseGlow 3s ease-in-out infinite;
   color: #ffffff;
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes agPulseGlow {
-  0%, 100% { box-shadow: 0 4px 24px rgba(245, 166, 35, 0.25), 0 0 60px rgba(245, 166, 35, 0.08); }
-  50% { box-shadow: 0 4px 32px rgba(245, 166, 35, 0.35), 0 0 80px rgba(245, 166, 35, 0.12); }
+  0%, 100% { box-shadow: 0 4px 24px rgba(245, 166, 35, 0.3), 0 0 60px rgba(245, 166, 35, 0.1); }
+  50% { box-shadow: 0 4px 34px rgba(245, 166, 35, 0.45), 0 0 80px rgba(245, 166, 35, 0.18); }
 }
 
 .ag-brand-block {
@@ -1328,7 +1359,7 @@ html, body {
 }
 
 .ag-brand-name {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: #e8ecf1;
   letter-spacing: 0.3px;
@@ -1336,7 +1367,7 @@ html, body {
 
 .ag-brand-sub {
   font-size: 12px;
-  color: #5a6375;
+  color: #727c92;
   margin-top: 3px;
   font-weight: 400;
 }
@@ -1355,7 +1386,7 @@ html, body {
 
 .ag-progress-label {
   font-size: 12px;
-  color: #5a6375;
+  color: #727c92;
   font-weight: 400;
 }
 
@@ -1369,8 +1400,8 @@ html, body {
 
 .ag-slim-track {
   width: 100%;
-  height: 4px;
-  background: #232837;
+  height: 5px;
+  background: #1c2230;
   border-radius: 100px;
   overflow: hidden;
   position: relative;
@@ -1378,10 +1409,11 @@ html, body {
 
 .ag-slim-fill {
   height: 100%;
-  background: linear-gradient(90deg, #f5a623 0%, #e07b39 100%);
+  background: linear-gradient(90deg, #f5a623 0%, #ff8c33 100%);
   border-radius: 100px;
   position: relative;
-  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(245, 166, 35, 0.4);
 }
 
 .ag-slim-fill::after {
@@ -1391,9 +1423,9 @@ html, body {
   top: 0;
   bottom: 0;
   width: 40px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35));
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45));
   border-radius: 100px;
-  animation: agShimmer 2s ease-in-out infinite;
+  animation: agShimmer 1.8s ease-in-out infinite;
 }
 
 @keyframes agShimmer {
@@ -1405,21 +1437,102 @@ html, body {
 .ag-context-text {
   text-align: center;
   font-size: 12px;
-  color: #5a6375;
+  color: #838ea3;
   line-height: 1.6;
-  max-width: 250px;
+  max-width: 260px;
 }
 
 .ag-context-text strong {
-  color: #8b95a7;
+  color: #a5b1c7;
   font-weight: 500;
 }
 
 .ag-estimate-text {
   font-size: 11px;
-  color: #5a6375;
-  opacity: 0.75;
+  color: #616c80;
+  opacity: 0.85;
   margin-top: -8px;
+}
+
+/* Skeleton Card Components */
+.ag-skeleton-card {
+  height: 210px;
+  border-radius: 14px;
+  background: rgba(22, 26, 35, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: transform 200ms ease;
+}
+
+.ag-skeleton-thumb {
+  width: 100%;
+  height: 124px;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ag-skeleton-icon-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ag-skeleton-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 18px;
+  border-radius: 6px;
+}
+
+.ag-skeleton-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.ag-skeleton-line-title {
+  height: 14px;
+  border-radius: 4px;
+}
+
+.ag-skeleton-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ag-skeleton-pill {
+  height: 12px;
+  border-radius: 4px;
+}
+
+.ag-skeleton-list-row {
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(22, 26, 35, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ag-skeleton-list-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 
