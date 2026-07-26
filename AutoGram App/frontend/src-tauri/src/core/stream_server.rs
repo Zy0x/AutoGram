@@ -538,7 +538,18 @@ fn handle_stream(request: Request, sid: &str) {
     let (start, end_incl, status) = if let Some((rs, re)) = parse_range(range_hdr.as_deref()) {
         let start = rs;
         let mut have_end = contiguous_end_from(&ranges, start);
-        if have_end <= start && !entry.done {
+
+        // Require at least 128 KiB (or remaining total) before serving Range when download is in progress.
+        // Returning micro-chunks (e.g. 12 bytes) closes HTTP 206 responses prematurely, causing
+        // Chromium's demuxer to freeze while video.paused remains false.
+        let min_chunk: u64 = if total > start {
+            (128 * 1024).min(total - start)
+        } else {
+            1
+        };
+        let want_end = (start + min_chunk).min(total);
+
+        if have_end < want_end && !entry.done {
             // Tell the Grammers fill loop to jump here before we wait. This is
             // the critical path for scrub/seek on a partially downloaded file.
             let _ = super::grammers_media::request_progressive_range(sid, start);
@@ -548,7 +559,7 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
 
-            // Wait up to 45 seconds (with fast 30ms ticks) for Telegram download to reach start
+            // Wait up to 45 seconds (with fast 30ms ticks) for Telegram download to reach want_end
             let mut waited = 0;
             while waited < 45000 {
                 let r = if entry.ranges.is_empty() {
@@ -557,7 +568,7 @@ fn handle_stream(request: Request, sid: &str) {
                     entry.ranges.clone()
                 };
                 let have = contiguous_end_from(&r, start);
-                if have > start || entry.done {
+                if have >= want_end || have >= start + 65536 || entry.done {
                     have_end = have;
                     break;
                 }

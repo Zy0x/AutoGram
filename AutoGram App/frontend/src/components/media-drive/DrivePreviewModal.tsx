@@ -1102,6 +1102,8 @@ export function DrivePreviewModal({
   const seekWarnRef = useRef(seekWarn);
   seekWarnRef.current = seekWarn;
   const playNudgeAtRef = useRef(0);
+  const lastPlayTimeRef = useRef(0);
+  const lastTimeAdvanceAtRef = useRef(Date.now());
   const pollInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -1306,6 +1308,40 @@ export function DrivePreviewModal({
                 setPlayerHint(null);
                 setLoading(false);
               }).catch(() => undefined);
+            }
+          }
+        }
+
+        // Stall Watchdog: Detect Chromium demuxer freeze (video.paused === false but currentTime is stuck)
+        if (v && !v.paused && !v.ended && !v.error) {
+          const cur = v.currentTime || 0;
+          if (Math.abs(cur - lastPlayTimeRef.current) > 0.05) {
+            lastPlayTimeRef.current = cur;
+            lastTimeAdvanceAtRef.current = now;
+          } else if (now - lastTimeAdvanceAtRef.current > 1600 && now - playNudgeAtRef.current > 1000) {
+            playNudgeAtRef.current = now;
+            const stuckMs = now - lastTimeAdvanceAtRef.current;
+            if (stuckMs > 3200 && streamUrl && isHttpStreamUrl(streamUrl)) {
+              // Frozen > 3.2s: perform clean rebind to wake Chromium media engine
+              lastTimeAdvanceAtRef.current = now;
+              const t = cur > 0.25 ? cur : 0;
+              if (t > 0) resumeAtRef.current = t;
+              try {
+                const sticky = streamUrl;
+                v.removeAttribute('src');
+                v.load();
+                v.src = sticky;
+              } catch {
+                /* ignore */
+              }
+            } else {
+              // Micro-nudge
+              try {
+                ignoreSeekEventsRef.current += 1;
+                v.currentTime = cur;
+              } catch {
+                /* ignore */
+              }
             }
           }
         }

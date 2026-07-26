@@ -1,3 +1,9 @@
+## v2.3.52 128 KiB Minimum Chunk Buffer & React Stall Watchdog
+
+### Perbaikan Kebekuan Demuxer pada Batas Buffer (*Micro-Chunk Freeze*) (`stream_server.rs`, `DrivePreviewModal.tsx`)
+- **128 KiB Minimum Chunk Threshold di Rust (`stream_server.rs`)**: Menetapkan batas ambang minimal **128 KiB** data kontigu di depan `start` sebelum server HTTP mengirim status `206 Partial Content` ketika unduhan sedang berjalan. Mencegah pengiriman potongan mikro (seperti 12 byte) yang sebelumnya menyebabkan demuxer Chromium tertidur (*deadlock/frozen*) saat `video.paused === false`.
+- **Stall Watchdog Otomatis di React (`DrivePreviewModal.tsx`)**: Menambahkan *watchdog* pemantau kebekuan pemutar pada polling loop `tick()`. Jika posisi `currentTime` tidak bergerak selama > 1.6 detik padahal video sedang aktif memutar (`!video.paused`), sistem melakukan micro-nudge. Jika tetap terhenti > 3.2 detik sementara buffer disk tersedia, sistem otomatis memicu *re-bind* bersih untuk membangunkan engine Chromium tanpa intervensi manual pengguna.
+
 ## v2.3.51 Auto-Resume Buffer & Smooth Video Player Recovery
 
 ### Perbaikan Pemutaran Video Terjeda & Auto-Resume Buffer (`stream_server.rs`, `DrivePreviewModal.tsx`)
