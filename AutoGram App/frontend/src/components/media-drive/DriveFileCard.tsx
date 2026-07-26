@@ -301,6 +301,7 @@ function DriveFileCardInner({
         if (cancelled) return;
         if (url) {
           setThumb(url);
+          setIsPlaceholderImg(false);
           setImgError(false);
           setThumbLoading(false);
         } else {
@@ -311,6 +312,7 @@ function DriveFileCardInner({
               const freshHit = getCachedThumb(folderId, file.id);
               if (freshHit) {
                 setThumb(freshHit);
+                setIsPlaceholderImg(false);
                 setImgError(false);
               } else {
                 void requestThumb(creds, folderId, file.id, {
@@ -319,6 +321,7 @@ function DriveFileCardInner({
                 }).then((retryUrl) => {
                   if (!cancelled && retryUrl) {
                     setThumb(retryUrl);
+                    setIsPlaceholderImg(false);
                     setImgError(false);
                   }
                 });

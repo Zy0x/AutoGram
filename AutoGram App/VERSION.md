@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.56
+AutoGram Version: v2.3.57
 
 Current State:
+v2.3.57 Universal Document Thumbnail Sample Extraction & Instant HD Blur Resolution Patch — membenahi `grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`, dan `DriveFileCard.tsx`. Membuka pembatasan ekstraksi thumbnail berkas dokumen (seperti pada `/-1004468191168/73`, PDF, maupun foto/video yang diunggah sebagai berkas tanpa thumbnail statis Telegram) sehingga backend Rust selalu mengunduh sample chunk dan mengisolasi image/video/PDF/FFmpeg frame. Memperbarui `DriveFileCard.tsx` agar memanggil `setIsPlaceholderImg(false)` seketika saat gambar HD tiba, mengeliminasi masalah thumbnail buram (blur) yang tak kunjung jernih.
+
+Previous:
 v2.3.56 Reliable Message-ID Mapping & Truncated Faststart MP4 Header Patching — membenahi `grammers_media.rs`. Mengoreksi pemetaan `msg_by_id` dalam `drive_thumbnails_batch` agar menggunakan `msg.id()` secara langsung (bukan indeks array `msgs.get(i)` yang rentan tertukar saat ada pesan terhapus), mengeliminasi akar masalah thumbnail miss pada berkas media pesan tertentu (seperti `/-1004468191168/73`), serta mengimplementasikan `patch_head_mp4` untuk memperbaiki header atom `mdat` pada sampel video faststart MP4.
 
 Previous:

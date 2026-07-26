@@ -1,3 +1,10 @@
+## v2.3.57 Universal Document Thumbnail Sample Extraction & Instant HD Blur Resolution Patch
+
+### Perbaikan Ekstraksi Sample Dokumen & Resolusi HD Blur (`grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`, `DriveFileCard.tsx`)
+- **Universal Document Sample Extraction (`download_media_thumb`)**: Mengeliminasi pembatasan guard MIME/ekstensi pada berkas dokumen. Rust backend kini selalu mengunduh *sample chunk* (256KB–512KB) dari Telegram untuk seluruh berkas media/dokumen (seperti `/-1004468191168/73`, PDF, HEIC, maupun foto/video tanpa layer thumbnail statis Telegram).
+- **Deteksi Magic Bytes & Frame Extraction**: Menambahkan penanganan magic bytes otomatis untuk format Gambar (JPEG, PNG, WebP, GIF, BMP), PDF (`%PDF-`), Video, dan dokumen umum. Menggunakan FFmpeg frame extraction (`extract_ffmpeg_frame_sync`) untuk menghasilkan thumbnail jernih.
+- **Pembersihan Blur pada Mode HD (`DriveFileCard.tsx`)**: Memperbarui penanganan penyerapan promise thumbnail di `DriveFileCard.tsx` agar memanggil `setIsPlaceholderImg(false)` seketika saat gambar HD resolusi tinggi tiba. Menghilangkan kelas `.td-thumb-is-placeholder` (`filter: blur(12px)`) sehingga gambar langsung tampil tajam dan jernih tanpa tertahan buram.
+
 ## v2.3.56 Reliable Message-ID Mapping & Truncated Faststart MP4 Header Patching
 
 ### Perbaikan Pemetaan Pesan & Header Truncated MP4 (`grammers_media.rs`)

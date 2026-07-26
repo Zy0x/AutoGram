@@ -1064,7 +1064,10 @@ export function canShowDriveThumb(file: DriveFile): boolean {
   const mime = (file.mime_type || '').toLowerCase();
   if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/') || mime === 'application/pdf') return true;
   const ext = driveFileExt(file);
-  return IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) || PDF_EXTS.has(ext);
+  if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext) || PDF_EXTS.has(ext)) return true;
+  // Document/file items (e.g. photos/videos sent as files, PDFs, custom media, or msg 73 without static thumbs):
+  // allow backend sample chunk extraction unless text/zip
+  return !!(file.as_document || file.icon_type === 'document' || file.icon_type === 'file');
 }
 
 export function matchesMediaFilter(file: DriveFile, filter: DriveMediaFilter): boolean {
