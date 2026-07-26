@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.55
+AutoGram Version: v2.3.56
 
 Current State:
+v2.3.56 Reliable Message-ID Mapping & Truncated Faststart MP4 Header Patching — membenahi `grammers_media.rs`. Mengoreksi pemetaan `msg_by_id` dalam `drive_thumbnails_batch` agar menggunakan `msg.id()` secara langsung (bukan indeks array `msgs.get(i)` yang rentan tertukar saat ada pesan terhapus), mengeliminasi akar masalah thumbnail miss pada berkas media pesan tertentu (seperti `/-1004468191168/73`), serta mengimplementasikan `patch_head_mp4` untuk memperbaiki header atom `mdat` pada sampel video faststart MP4.
+
+Previous:
 v2.3.55 Dynamic 16MB Tail Scan for 2K/4K/AV1 Videos, Reverse moov Finder, & Silent FFmpeg Log Execution — membenahi `grammers_media.rs`. Meningkatkan penarikan ekor berkas (*tail_bytes*) secara dinamis hingga 16 MB (64 chunk) untuk video berukuran besar (>50MB), mengimplementasikan pencarian terbalik (*reverse moov scan*) dengan validasi ukuran atom, serta menambahkan flag `-loglevel quiet`, `-err_detect ignore_err`, dan `-flags low_delay` pada eksekusi FFmpeg. Mengeliminasi total log error bising (`Missing Sequence Header`, `Invalid data found`) dan menjamin 100% video MP4 2K/AV1 besar tanpa thumbnail Telegram terdekode frame-nya dengan sukses.
 
 Previous:

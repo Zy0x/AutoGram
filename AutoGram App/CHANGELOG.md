@@ -1,3 +1,9 @@
+## v2.3.56 Reliable Message-ID Mapping & Truncated Faststart MP4 Header Patching
+
+### Perbaikan Pemetaan Pesan & Header Truncated MP4 (`grammers_media.rs`)
+- **Direct `msg.id()` Map Assignment (`drive_thumbnails_batch`)**: Memperbarui penyerapan objek pesan dalam `drive_thumbnails_batch` agar memetakan `msg_by_id.insert(msg.id(), msg)` secara langsung dari ID pesan Telegram, mengeliminasi masalah *mismatched index/missing message object* (seperti pada berkas `/-1004468191168/73`) ketika ada pesan di dalam daftar yang terhapus atau bergeser.
+- **Faststart Truncated MP4 Header Patching (`patch_head_mp4`)**: Mengimplementasikan `patch_head_mp4` yang menyesuaikan ukuran atom `mdat` pada potongan sampel awal video MP4 faststart. Menjamin FFmpeg dapat memproses dan mengekstraksi frame 0 dari sampel 2.5 MB tanpa gagal akibat indikasi berkas terpotong.
+
 ## v2.3.55 Dynamic 16MB Tail Scan for 2K/4K/AV1 Videos, Reverse moov Finder, & Silent FFmpeg Execution
 
 ### Perbaikan Ekstraksi Frame & Eliminasi Log Error FFmpeg (`grammers_media.rs`)

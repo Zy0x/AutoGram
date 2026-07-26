@@ -698,6 +698,12 @@ async fn download_media_thumb(
                         return Ok(frame_bytes);
                     }
 
+                    // Try patched mdat header for truncated faststart MP4s
+                    let patched_sample = patch_head_mp4(&sample_bytes);
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched_sample, quality, ext_hint) {
+                        return Ok(frame_bytes);
+                    }
+
                     // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 40MB+ videos)
                     let chunk_bytes = 256 * 1024;
                     if doc_size > 0 && doc_size <= sample_bytes.len() + chunk_bytes {
@@ -859,6 +865,21 @@ fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {
             }
         }
     }
+}
+
+fn patch_head_mp4(sample_bytes: &[u8]) -> Vec<u8> {
+    let mut patched = sample_bytes.to_vec();
+    if patched.len() >= 12 {
+        for i in 4..=patched.len() - 8 {
+            if &patched[i..i + 4] == b"mdat" {
+                let mdat_start = i - 4;
+                let new_len = (patched.len() - mdat_start) as u32;
+                patched[mdat_start..mdat_start + 4].copy_from_slice(&new_len.to_be_bytes());
+                break;
+            }
+        }
+    }
+    patched
 }
 
 fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
@@ -1426,9 +1447,9 @@ pub fn thumbs_batch_blocking_app(
                 // media onto the wrong card (missing / swapped thumbs).
                 let mut msg_by_id: HashMap<i32, grammers_client::message::Message> =
                     HashMap::with_capacity(fetch_ids.len());
-                for (i, mid) in fetch_ids.iter().enumerate() {
-                    if let Some(Some(msg)) = msgs.get(i) {
-                        msg_by_id.insert(*mid, msg.clone());
+                for msg_opt in msgs {
+                    if let Some(msg) = msg_opt {
+                        msg_by_id.insert(msg.id(), msg);
                     }
                 }
 
