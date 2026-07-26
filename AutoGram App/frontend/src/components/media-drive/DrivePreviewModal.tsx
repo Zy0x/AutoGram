@@ -1044,11 +1044,10 @@ export function DrivePreviewModal({
       const sid = streamIdRef.current;
       const c = credsRef.current;
       window.setTimeout(() => {
-        // Remounted (StrictMode or fast re-open) — do not kill the new session
-        if (globalStreamTeardownGen !== gen) return;
+        // Remounted or modal still open for this generation — do not kill the active session
+        if (globalStreamTeardownGen !== gen || mountGenRef.current === gen) return;
         if (!c) return;
         if (sid) void driveStopStream(c, sid, { deletePartial: false });
-        // Do NOT stopAll incomplete — thrash-cancel of multi-video fills
         try {
           invalidatePreview(fid, mid);
         } catch {
