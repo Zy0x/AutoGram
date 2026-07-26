@@ -169,7 +169,7 @@ function DriveFileCardInner({
     if (!thumbLoading) return;
     const timer = setTimeout(() => {
       setThumbLoading(false);
-    }, 8000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [thumbLoading]);
 
@@ -276,7 +276,7 @@ function DriveFileCardInner({
           setThumbLoading(false);
         } else {
           setThumbLoading(false);
-          // Auto-retry once after soft-fail cooldown (1.5s) if card remains visible and has no thumb
+          // Auto-retry once after soft-fail cooldown (0.6s) if card remains visible and has no thumb
           retryTimer = window.setTimeout(() => {
             if (!cancelled && visible && creds) {
               const freshHit = getCachedThumb(folderId, file.id);
@@ -295,7 +295,7 @@ function DriveFileCardInner({
                 });
               }
             }
-          }, 1500);
+          }, 600);
         }
       })
       .catch(() => {

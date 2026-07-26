@@ -513,8 +513,8 @@ export async function driveThumbnailsBatch(
   const batch =
     opts?.batchSize ??
     (quality === 'saver' ? 24 : quality === 'sharp' ? 16 : 32);
-  // Backend caps at 64; send full requested batch so scroll fill is fewer RPCs.
-  const ids = messageIds.slice(0, Math.min(64, batch));
+  // Backend caps at 96; send full requested batch so scroll fill is fewer RPCs.
+  const ids = messageIds.slice(0, Math.min(96, batch));
 
   if (!detectTauriRuntime()) {
     return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };

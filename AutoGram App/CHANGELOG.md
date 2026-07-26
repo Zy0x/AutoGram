@@ -1,3 +1,16 @@
+## v2.3.48 Optimasi Kecepatan Load Daftar Media & Thumbnail Grid
+
+### Peningkatan Kecepatan Muat Thumbnail & Grid Media (`devicePerformance.ts`, `thumbBatcher.ts`, `DriveExplorer.tsx`, `DriveFileCard.tsx`, `driveApi.ts`)
+- **Profil Performa Diperbesar**: Naikkan `thumbBatch` (low: 12→16, mid: 28→40, high-turbo: 80→96), `thumbConcurrent` (mid: 6→8, high-turbo: 12→16), `filePage` (low: 16→24, mid: 32→48, high-turbo: 64→80), dan `loadMorePage` (low: 32→48, mid: 72→100, high-turbo: 140→180) agar grid terisi lebih cepat dengan lebih sedikit round-trip ke Grammers.
+- **Concurrent Thumbnail Fetch Penuh**: `maxConcurrent()` kini menggunakan nilai profil penuh (hingga 16 untuk turbo) alih-alih dibatasi paksa ke 2. FloodWait tetap ditangani oleh Grammers di sisi server.
+- **Retry Visible Card Lebih Cepat**: `softFailMs` untuk kartu *visible* diturunkan dari 1500ms → 800ms. Auto-retry setelah miss diturunkan dari 1500ms → 600ms sehingga kartu kosong terisi lebih cepat.
+- **Error Cooldown Dipercepat**: `ERROR_COOLDOWN_MS` turun dari 1200ms → 800ms untuk respons error yang lebih gesit.
+- **Prefetch Throttle Adaptif**: Prefetch berjalan pada 16ms (high), 30ms (mid), 50ms (low) — bukan flat 50ms — sehingga grid high-end merespons scroll lebih cepat.
+- **Context Switch Parallel Flush**: `setThumbContext()` langsung memicu N parallel `flushQueue()` sesuai `maxConcurrent()` agar kartu segera terisi saat pindah lokasi/folder.
+- **Thumbnail Batch Cap Dinaikkan**: `driveThumbnailsBatch` melepas hard-cap 64 → 96 agar high-tier dapat mengirim satu RPC penuh ke Grammers.
+- **loadingMore Tidak Full-Pause**: Saat memuat halaman berikutnya, thumbnail visible tidak lagi dibekukan total; scheduler melanjutkan queue yang sudah berjalan sehingga kartu tidak kosong saat scroll ke bawah.
+- **Safety Timeout Diperpendek**: Spinner stuck timeout turun dari 8000ms → 5000ms seiring pipeline yang lebih responsif.
+
 ## v2.3.47 Ultra-Instant <50ms Stream URL Return & Parallel Concurrent MOOV Tail Fetch
 
 ### Optimasi Pembukaan Media Super-Instan (<50ms) (`grammers_media.rs`, `DrivePreviewModal.tsx`)

@@ -111,7 +111,7 @@ const errorFailAt = new Map<string, number>();
 /** In-flight promise per cache key — collapses race after await loadPersistentThumb. */
 const inflightByKey = new Map<string, Promise<string | null>>();
 
-const ERROR_COOLDOWN_MS = 1200;
+const ERROR_COOLDOWN_MS = 800;
 
 const queue = new Map<string, Task>();
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -218,8 +218,9 @@ if (typeof window !== 'undefined') {
     .catch(() => {});
 }
 
-function softFailMs(): number {
-  // Soft-fail for 1.5s so missing/loading items can re-try gracefully without long delays.
+function softFailMs(priority?: number): number {
+  // Visible cards retry faster (800ms); prefetch/near can wait longer (1500ms).
+  if (priority === 0) return 800; // visible
   return 1_500;
 }
 
@@ -246,8 +247,9 @@ function queueMax(): number {
 }
 
 function maxConcurrent(): number {
-  // Cap at max 2 flights to avoid Telegram API FloodWait burst limits
-  return Math.min(2, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
+  // Use full profile concurrent count — FloodWait is handled server-side by Grammers.
+  // Hard-cap at 24 for safety; profile already limits turbo to 16.
+  return Math.min(24, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
 }
 
 function cacheKey(
@@ -291,7 +293,11 @@ export function setThumbContext(
     resolveTask(task, null);
   }
   metrics.queued = queue.size;
-  if (queue.size) scheduleFlush(true);
+  if (queue.size) {
+    // Fire parallel flushes immediately after context switch so visible cards load fast
+    const n = maxConcurrent();
+    for (let i = 0; i < n; i++) scheduleFlush(true);
+  }
   return next;
 }
 
@@ -717,7 +723,7 @@ export async function requestThumb(
     const hit = memCache.get(k);
     if (hit) return hit;
     const failAt = softFailAt.get(k);
-    if (failAt != null && Date.now() - failAt < softFailMs()) {
+    if (failAt != null && Date.now() - failAt < softFailMs(priorityValue(opts?.priority))) {
       return null;
     }
     const errAt = errorFailAt.get(k);

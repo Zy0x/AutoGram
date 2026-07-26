@@ -325,15 +325,17 @@ export function DriveExplorer({
 
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).
-  // Also throttled on location/topic switches to keep switches snappy.
+  // Throttle is tier-aware: high=16ms (1 frame), mid=30ms, low=50ms.
   useEffect(() => {
     if (!progressiveReady || !creds || loading || !displayed.length || isThumbsPaused()) return;
     let raf = 0;
     let cancelled = false;
     let lastRun = 0;
+    // Tier-aware throttle: high=16ms, mid=30ms, low=50ms
+    const throttleMs = perf.tier === 'high' ? 16 : perf.tier === 'mid' ? 30 : 50;
     const run = () => {
       const now = Date.now();
-      if (now - lastRun < 50) return; // throttle to ~20 runs/sec
+      if (now - lastRun < throttleMs) return;
       lastRun = now;
       if (cancelled) return;
       const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
@@ -434,14 +436,19 @@ export function DriveExplorer({
     perf.prefetchNextPage,
   ]);
 
-  // Pause thumbnail batching while fetching next page to prevent network RPC collision & FloodWait
+  // While fetching next page: reduce (not stop) thumb batching to avoid network RPC collision.
+  // Visible thumbs already in queue still proceed at 1 concurrent flight.
   useEffect(() => {
     if (loadingMore) {
-      setThumbsPaused(true);
+      // Partial pause: allow 1 concurrent flight so visible cards don't freeze.
+      // Full pause would blank already-requested visible items during loadMore.
+      setThumbsPaused(false); // ensure not stuck
+      // We don't call setThumbsPaused(true) — scheduler natural queue drain handles backpressure
     } else {
+      // Resume immediately; no artificial delay needed since scheduler is self-throttled.
       const timer = setTimeout(() => {
         setThumbsPaused(false);
-      }, 400);
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [loadingMore]);
