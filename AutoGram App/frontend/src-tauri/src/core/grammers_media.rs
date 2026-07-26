@@ -2253,8 +2253,17 @@ fn start_preview_stream_inner(
 
             if is_video && size > 1024 * 1024 && !has_moov_head {
                 if let Some(loc) = media_to_input_location(&media) {
-                    // Deep 2.5MB MOOV Tail Pre-fetch (up to 5 x 512KB chunks) for large MP4 files (e.g. 300MB+)
-                    let tail_depth: u64 = 2560 * 1024; // 2.5 MB
+                    // Dynamic MOOV Tail Pre-fetch Depth based on file size:
+                    // Small (<100MB): 2.5 MB (5 chunks)
+                    // Medium (100MB-500MB): 6 MB (12 chunks)
+                    // Large (>500MB, e.g. 1.86 GB 4K video): 16 MB (32 chunks)
+                    let tail_depth: u64 = if size > 500 * 1024 * 1024 {
+                        16 * 1024 * 1024
+                    } else if size > 100 * 1024 * 1024 {
+                        6 * 1024 * 1024
+                    } else {
+                        2560 * 1024
+                    };
                     let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
                     let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
 
@@ -2280,8 +2289,8 @@ fn start_preview_stream_inner(
                     let _ = file.flush();
                     tg_log::info(
                         BACKEND,
-                        "moov_tail_prefetched_2_5mb",
-                        format!("sid={stream_id} total_size={size}"),
+                        "moov_tail_prefetched_dynamic",
+                        format!("sid={stream_id} total_size={size} depth_mb={}", tail_depth / (1024 * 1024)),
                     );
                 }
             }

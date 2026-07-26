@@ -1368,14 +1368,15 @@ export function DrivePreviewModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional stable poll (refs for loadPreview/seekWarn)
   }, [streamId, streamDone, creds, file.size, file.id, folderId, quality]);
 
-  // BUG-4 FIX: Stream timeout guard — if video has not started playing after STREAM_TIMEOUT_MS,
-  // show a clear error message with a retry button instead of infinite spinner.
+  // BUG-4 FIX: Stream timeout guard — refreshes automatically as long as buffer progress advances.
+  // Only triggers error UI if download is completely stuck (0 B/s) without any progress.
   useEffect(() => {
     if (!streamId || streamDone) return;
     // Clear any previous timeout
     if (streamTimeoutRef.current != null) {
       window.clearTimeout(streamTimeoutRef.current);
     }
+    const timeoutMs = size > 500 * 1024 * 1024 ? 60000 : STREAM_TIMEOUT_MS;
     streamTimeoutRef.current = window.setTimeout(() => {
       streamTimeoutRef.current = null;
       const v = videoRef.current;
@@ -1386,7 +1387,7 @@ export function DrivePreviewModal({
         );
         setPlayerHint(null);
       }
-    }, STREAM_TIMEOUT_MS);
+    }, timeoutMs);
     return () => {
       if (streamTimeoutRef.current != null) {
         window.clearTimeout(streamTimeoutRef.current);
@@ -1394,7 +1395,7 @@ export function DrivePreviewModal({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamId, streamDone]);
+  }, [streamId, streamDone, bufferPct, size]);
 
   /** True if `t` sits inside any browser buffered range (with slack). */
   const timeInBuffered = useCallback((v: HTMLVideoElement, t: number, slack = 0.75) => {
