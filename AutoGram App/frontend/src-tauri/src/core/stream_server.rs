@@ -138,9 +138,8 @@ fn range_contains_atom(path: &Path, ranges: &[(u64, u64)], atom: &[u8; 4]) -> bo
         if end <= start {
             continue;
         }
-        // Scan only the edges of an available island. MP4 metadata is normally
-        // in the head or tail, and status polling must remain bounded.
-        let len = (end - start).min(2 * 1024 * 1024) as usize;
+        // Scan edges of available range islands (up to 8 MB) to detect MOOV atom on large MP4 videos.
+        let len = (end - start).min(8 * 1024 * 1024) as usize;
         let mut buf = vec![0u8; len];
         if file.seek(SeekFrom::Start(start)).is_ok() {
             if let Ok(n) = file.read(&mut buf) {
@@ -149,8 +148,8 @@ fn range_contains_atom(path: &Path, ranges: &[(u64, u64)], atom: &[u8; 4]) -> bo
                 }
             }
         }
-        if end - start > 2 * 1024 * 1024 {
-            let tail_start = end.saturating_sub(2 * 1024 * 1024);
+        if end - start > 8 * 1024 * 1024 {
+            let tail_start = end.saturating_sub(8 * 1024 * 1024);
             if file.seek(SeekFrom::Start(tail_start)).is_ok() {
                 if let Ok(n) = file.read(&mut buf) {
                     if buf[..n].windows(4).any(|w| w == atom) {
@@ -536,9 +535,9 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
 
-            // Wait up to 6.5 seconds for Telegram download to reach start
+            // Wait up to 10 seconds (with fast 25ms ticks) for Telegram download to reach start
             let mut waited = 0;
-            while waited < 6500 {
+            while waited < 10000 {
                 let r = if entry.ranges.is_empty() {
                     vec![]
                 } else {
@@ -549,8 +548,8 @@ fn handle_stream(request: Request, sid: &str) {
                     have_end = have;
                     break;
                 }
-                thread::sleep(Duration::from_millis(35));
-                waited += 35;
+                thread::sleep(Duration::from_millis(25));
+                waited += 25;
                 if let Some(updated) = get_entry(sid) {
                     entry = updated;
                 } else {
@@ -558,10 +557,9 @@ fn handle_stream(request: Request, sid: &str) {
                 }
             }
 
-            // RFC 7233 Sec 4.4: 416 Range Not Satisfiable is strictly for start >= total!
-            // Returning 416 when start < total destroys Chromium HTML5 media decoder state.
             if have_end <= start && !entry.done {
                 if start >= total {
+                    // RFC 7233 Sec 4.4: 416 Range Not Satisfiable is for start >= total
                     let mut res = Response::from_string("Range Not Satisfiable")
                         .with_status_code(StatusCode(416));
                     for h in cors_headers() {
@@ -573,9 +571,18 @@ fn handle_stream(request: Request, sid: &str) {
                     let _ = request.respond(res);
                     return;
                 }
-                // Data still buffering for start < total — fallback to available ranges or advance end
-                let latest_ranges = if entry.ranges.is_empty() { vec![] } else { entry.ranges.clone() };
-                have_end = contiguous_end_from(&latest_ranges, start).max(start.saturating_add(1)).min(total);
+                // Data still buffering for start < total — Return 503 Service Unavailable
+                // so Chromium media engine retries cleanly without corrupting its demuxer with 1 byte responses.
+                let mut res = Response::from_string("Media range still buffering")
+                    .with_status_code(StatusCode(503));
+                for h in cors_headers() {
+                    res.add_header(h);
+                }
+                if let Ok(h) = Header::from_bytes(&b"Retry-After"[..], b"1") {
+                    res.add_header(h);
+                }
+                let _ = request.respond(res);
+                return;
             }
         }
         let solid_end = if entry.done {

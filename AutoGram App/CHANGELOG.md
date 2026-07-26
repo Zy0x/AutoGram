@@ -1,3 +1,11 @@
+## v2.3.46 Dynamic 6MB MOOV Tail Bootstrap & Non-Corrupting Range Server Fallback
+
+### Perbaikan Playback Video Dokumen/File Berkas Besar (`grammers_media.rs`, `stream_server.rs`, `DrivePreviewModal.tsx`)
+- **Dynamic 6MB MOOV Tail Bootstrap**: Mengubah kedalaman prefetch ekor berkas MP4 (baik Media Video maupun Dokumen File) agar berskala secara dinamis hingga 6 MB (12 chunk x 512KB) untuk berkas video >500 MB (contoh: 1.18 GB MP4), menjamin atom `moov` tertangkap sempurna pada video non-faststart berukuran besar.
+- **Pacing Bypass for Active Seek/MOOV Requests**: Thread pengunduhan latar belakang Tokio di `grammers_media.rs` secara otomatis mengabaikan *lightweight pacing sleep* (60ms) ketika melayani permintaan seek atau pemenuhan atom `moov`, sehingga chunk ekor/seek diunduh pada kecepatan maksimal MTProto.
+- **8MB Atom Scan & Non-Corrupting HTTP 503 Fallback**: Perluas jangkauan pemindaian atom `range_contains_atom` di `stream_server.rs` ke 8 MB, perpanjang waktu tunggu Range request ke 10 detik dengan polling 25ms, serta kembalikan HTTP 503 `Retry-After: 1` saat range belum siap alih-alih mengirim 1 byte respon korup yang merusak demuxer HTML5 Chromium.
+- **MOOV-Aware Play Nudge**: `DrivePreviewModal.tsx` memastikan metadata `moov` telah siap sebelum memicu pemicuan `play()` pada video MP4, mengeliminasi masalah video terhenti di `0:00` saat buffer telah mencapai 8-9%.
+
 ## v2.3.45 Ultra-Fast 1-Shot MOOV Tail Bootstrap & Adaptive Lightweight Buffer Pacing
 
 ### Optimasi Pemutaran Ultra-Instan (<100ms) & Penghematan Resource (`grammers_media.rs`, `DrivePreviewModal.tsx`, `stream_server.rs`)

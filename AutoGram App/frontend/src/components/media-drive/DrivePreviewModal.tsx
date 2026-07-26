@@ -1259,13 +1259,13 @@ export function DrivePreviewModal({
         }
         if (st.status === 'error') setHint(st.error || 'Stream error');
 
-        // Instant Zero-Wait Playback Start: Start video the millisecond initial bytes exist
+        // Instant Playback Start: Start video as soon as stream server and moov metadata are ready
         const now = Date.now();
-        const bufferHasEnough = prefix > 0 || pct > 0;
+        const isMp4 = file.name.toLowerCase().endsWith('.mp4') || (file.mime_type && file.mime_type.toLowerCase() === 'video/mp4');
+        const moovOk = !isMp4 || st.moov_ready === true || st.stream_ready === true;
         const streamReady =
-          st.stream_ready === true ||
+          (st.stream_ready === true && moovOk) ||
           browserHasData ||
-          bufferHasEnough ||
           (!!v && v.readyState >= 2) ||
           (!!v && Number.isFinite(v.duration) && v.duration > 0 && browserHasData);
         nativeStreamReadyRef.current = st.stream_ready === true;

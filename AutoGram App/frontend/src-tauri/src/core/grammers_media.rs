@@ -2253,9 +2253,15 @@ fn start_preview_stream_inner(
 
             if is_video && size > 1024 * 1024 && !has_moov_head {
                 if let Some(loc) = media_to_input_location(&media) {
-                    // Fast 1.5MB Tail Bootstrap (3 x 512KB chunks) for instant <200ms Frontend Stream URL return.
-                    // Any deeper moov scanning is handled background-async by spawn_progressive_fill.
-                    let tail_depth: u64 = 1536 * 1024; // 1.5 MB max blocking tail
+                    // Dynamic MOOV Tail Bootstrap: Scale tail prefetch depth up to 6MB based on file size
+                    // to guarantee capturing moov atom for large 500MB - 4GB MP4 videos.
+                    let tail_depth: u64 = if size > 500 * 1024 * 1024 {
+                        6 * 1024 * 1024 // 6 MB for large videos (>500MB)
+                    } else if size > 100 * 1024 * 1024 {
+                        4 * 1024 * 1024 // 4 MB for medium videos (100MB-500MB)
+                    } else {
+                        2 * 1024 * 1024 // 2 MB for smaller videos
+                    };
                     let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
                     let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
 
@@ -2386,9 +2392,12 @@ fn start_preview_stream_inner(
 
                     // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
                     // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
-                    let current_filled = stream_server::filled_bytes(&ranges);
-                    if current_filled > 15 * 1024 * 1024 {
-                        tokio::time::sleep(std::time::Duration::from_millis(60)).await;
+                    // Bypass pacing sleep when an active_seek_target is being fulfilled (e.g. MOOV tail or user scrub).
+                    if active_seek_target.is_none() {
+                        let current_filled = stream_server::filled_bytes(&ranges);
+                        if current_filled > 15 * 1024 * 1024 {
+                            tokio::time::sleep(std::time::Duration::from_millis(60)).await;
+                        }
                     }
 
                     // Skip contiguous ranges starting at current offset

@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.45
+AutoGram Version: v2.3.46
 
 Current State:
+v2.3.46 Dynamic 6MB MOOV Tail Bootstrap & Non-Corrupting Range Server Fallback — membenahi `grammers_media.rs`, `stream_server.rs`, dan `DrivePreviewModal.tsx`. Meningkatkan skala prefetch ekor berkas MP4 (termasuk Dokumen File) hingga 6 MB dinamis untuk berkas >500 MB (seperti 1.18 GB MP4), mengabaikan pacing sleep saat melayani seek/MOOV request, memperluas pencarian atom ke 8 MB, dan mengembalikan HTTP 503 saat range belum siap alih-alih mengirim 1 byte respon korup yang merusak demuxer HTML5 Chromium.
+
+Previous:
 v2.3.45 Ultra-Fast 1-Shot MOOV Tail Bootstrap & Adaptive Lightweight Buffer Pacing — membenahi `grammers_media.rs`, `stream_server.rs`, dan `DrivePreviewModal.tsx`. Mengoptimalkan pre-fetch ekor berkas MP4 menjadi 1-shot request 512KB (~60ms), menerapkan *Adaptive Lightweight Pacing* (sleep 60ms saat buffer mencapai 15 MB) untuk menghemat CPU & RAM, serta mempercepat polling status UI ke 120ms untuk pemutaran video ultra-instan (<100ms) dan pengoperasian yang sangat ringan.
 
 Previous:
