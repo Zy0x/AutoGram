@@ -259,16 +259,22 @@ export function Settings() {
     return 5120; // default 5 GB limit
   });
 
-  const handleCacheLimitChange = (newMb: number) => {
-    setCacheLimitMB(newMb);
-    localStorage.setItem('autogram_cache_limit_mb', String(newMb));
+  const [autoPruneEnabled, setAutoPruneEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('autogram_auto_prune_enabled');
+    return saved === null ? true : saved === 'true';
+  });
+
+  const handleToggleAutoPrune = (enabled: boolean) => {
+    setAutoPruneEnabled(enabled);
+    localStorage.setItem('autogram_auto_prune_enabled', String(enabled));
   };
 
-  const handleTrimCache = async () => {
-    if (cacheLimitMB === 0) return;
+  const handleTrimCache = async (overrideLimitMB?: number) => {
+    const targetMb = overrideLimitMB !== undefined ? overrideLimitMB : cacheLimitMB;
+    if (targetMb === 0) return;
     setIsTrimming(true);
     try {
-      const limitBytes = cacheLimitMB * 1024 * 1024;
+      const limitBytes = targetMb * 1024 * 1024;
       const { prunePersistentThumbsToSize } = await import('../lib/thumbPersistentCache');
       await prunePersistentThumbsToSize(limitBytes);
       clearThumbCache();
@@ -285,6 +291,14 @@ export function Settings() {
       console.error('Failed to trim cache', err);
     } finally {
       setIsTrimming(false);
+    }
+  };
+
+  const handleCacheLimitChange = (newMb: number) => {
+    setCacheLimitMB(newMb);
+    localStorage.setItem('autogram_cache_limit_mb', String(newMb));
+    if (newMb > 0 && cacheSize !== null && cacheSize > newMb * 1024 * 1024) {
+      void handleTrimCache(newMb);
     }
   };
 
@@ -1098,7 +1112,7 @@ export function Settings() {
                         type="button"
                         className="btn btn-secondary"
                         style={{ padding: '3px 10px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444', whiteSpace: 'nowrap' }}
-                        onClick={handleTrimCache}
+                        onClick={() => void handleTrimCache()}
                         disabled={isTrimming || isCalculating || isClearing}
                       >
                         {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}
@@ -1107,6 +1121,34 @@ export function Settings() {
                   )}
                 </div>
               )}
+
+              {/* Toggle Pemangkasan Otomatis (Auto-Prune) */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingTop: '10px',
+                marginTop: '4px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                fontSize: '0.8rem',
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>
+                    Auto-Prune Latar Belakang
+                  </span>
+                  <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                    Otomatis memangkas cache lama secara berkala saat melebihi batas (melindungi berkas aktif &amp; transfer).
+                  </span>
+                </div>
+                <label className="toggle-switch" style={{ marginLeft: '12px', flexShrink: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={autoPruneEnabled}
+                    onChange={(e) => handleToggleAutoPrune(e.target.checked)}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -1123,7 +1165,7 @@ export function Settings() {
                   type="button" 
                   className="btn btn-secondary" 
                   style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)' }}
-                  onClick={handleTrimCache} 
+                  onClick={() => void handleTrimCache()} 
                   disabled={isCalculating || isClearing || isTrimming}
                 >
                   {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}

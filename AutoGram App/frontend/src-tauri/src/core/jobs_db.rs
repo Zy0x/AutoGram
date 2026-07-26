@@ -634,9 +634,18 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
     if current_total > target_bytes {
         files.sort_by_key(|f| f.modified);
 
+        let now = std::time::SystemTime::now();
+        let protect_window = std::time::Duration::from_secs(600); // 10 minutes active file protection
+
         for f in files {
             if current_total <= target_bytes {
                 break;
+            }
+            // Skip files modified/accessed in the last 10 minutes (protect active previews/streams)
+            if let Ok(age) = now.duration_since(f.modified) {
+                if age < protect_window {
+                    continue;
+                }
             }
             if std::fs::remove_file(&f.path).is_ok() {
                 removed_count += 1;

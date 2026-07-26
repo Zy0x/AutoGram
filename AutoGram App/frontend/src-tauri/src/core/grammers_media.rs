@@ -2180,6 +2180,7 @@ fn start_preview_stream_inner(
             paused: false,
             updated_at_ms: now_ms(),
             moov_ready_cached: false, // computed by upsert_entry once bytes arrive
+            moov_tail_fetching: false,
         };
         stream_server::upsert_entry(entry);
         let cancel = register_cancel(&stream_id);
@@ -2263,6 +2264,7 @@ fn start_preview_stream_inner(
                     paused: false,
                     updated_at_ms: now_ms(),
                     moov_ready_cached: false,
+                    moov_tail_fetching: false,
                 });
             }
             // _boot_slot dropped here — UI can open another video without waiting for full fill.
@@ -2276,29 +2278,32 @@ fn start_preview_stream_inner(
         let session_bg = session_name.clone();
         let boot_end = first_missing_offset(&boot_ranges, size).unwrap_or(0);
         let need_async_moov_tail = is_video && size > 1024 * 1024 && !has_moov_head;
-        tokio::spawn(async move {
-            // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
-            let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
-            let live = live_bg;
-            let flag = cancel;
-            let mut offset: u64 = boot_end;
-            let mut ranges: Vec<(u64, u64)> = boot_ranges;
-            let mut active_seek_target: Option<u64> = None;
 
-            // Parallel Async MOOV Tail Bootstrap: If moov is missing from head in MP4,
-            // fetch tail chunks in parallel tasks without blocking Frontend stream_url return!
-            if need_async_moov_tail {
-                if let Some(loc) = media_to_input_location(&fill_media) {
-                    let tail_depth: u64 = if size > 500 * 1024 * 1024 {
-                        6 * 1024 * 1024
-                    } else if size > 100 * 1024 * 1024 {
-                        4 * 1024 * 1024
-                    } else {
-                        2 * 1024 * 1024
-                    };
-                    let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
-                    let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
+        // Spawn MOOV tail fetch as a fully INDEPENDENT task so fill loop starts immediately.
+        // This is the key fix: tail and fill run in true parallel — no blocking.
+        if need_async_moov_tail {
+            if let Some(loc) = media_to_input_location(&fill_media) {
+                let tail_depth: u64 = if size > 500 * 1024 * 1024 {
+                    6 * 1024 * 1024
+                } else if size > 100 * 1024 * 1024 {
+                    4 * 1024 * 1024
+                } else {
+                    2 * 1024 * 1024
+                };
+                let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
+                let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
+                let tail_client = live.client.clone();
+                let tail_dest = dest.clone();
+                let tail_sid = stream_id.clone();
 
+                // Mark entry as tail-fetching NOW so moov_ready=true on next status poll
+                // This allows the UI to start playback as soon as prefix bytes are ready.
+                if let Some(mut e) = stream_server::get_entry(&stream_id) {
+                    e.moov_tail_fetching = true;
+                    stream_server::upsert_entry(e);
+                }
+
+                tokio::spawn(async move {
                     let (tx, mut rx) = tokio::sync::mpsc::channel(16);
                     for i in 0..num_chunks {
                         let chunk_off = tail_start_offset + i * (512 * 1024);
@@ -2310,7 +2315,7 @@ fn start_preview_stream_inner(
                             offset: chunk_off as i64,
                             limit: 512 * 1024,
                         };
-                        let client = live.client.clone();
+                        let client = tail_client.clone();
                         let tx_clone = tx.clone();
                         tokio::spawn(async move {
                             let res = client.invoke(&req).await;
@@ -2318,30 +2323,47 @@ fn start_preview_stream_inner(
                         });
                     }
                     drop(tx);
-                    if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&dest_path) {
+                    let mut tail_ranges: Vec<(u64, u64)> = Vec::new();
+                    if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&tail_dest) {
                         while let Some((chunk_off, res)) = rx.recv().await {
                             if let Ok(tl::enums::upload::File::File(f)) = res {
                                 if !f.bytes.is_empty() {
                                     if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&f.bytes).is_ok() {
-                                        let end_chunk = chunk_off + f.bytes.len() as u64;
-                                        ranges.push((chunk_off, end_chunk));
+                                        tail_ranges.push((chunk_off, chunk_off + f.bytes.len() as u64));
                                     }
                                 }
                             }
                         }
                         let _ = f_disk.flush();
                     }
-                    if let Some(mut e) = stream_server::get_entry(&sid) {
-                        e.ranges = ranges.clone();
+                    // After tail completes: merge ranges + force moov_ready_cached=true
+                    // so stream_ready becomes true on next poll and UI can start playback.
+                    if let Some(mut e) = stream_server::get_entry(&tail_sid) {
+                        for r in tail_ranges {
+                            e.ranges.push(r);
+                        }
+                        e.moov_ready_cached = true; // tail has MOOV — mark ready NOW
+                        e.moov_tail_fetching = false; // superseded by moov_ready_cached
                         stream_server::upsert_entry(e);
                     }
                     tg_log::info(
                         BACKEND,
-                        "moov_tail_prefetched_parallel_async",
-                        format!("sid={sid} total_size={size}"),
+                        "moov_tail_done_independent",
+                        format!("sid={tail_sid} size={size}"),
                     );
-                }
+                });
             }
+        }
+
+        tokio::spawn(async move {
+            // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
+            let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
+            let live = live_bg;
+            let flag = cancel;
+            let mut offset: u64 = boot_end;
+            let mut ranges: Vec<(u64, u64)> = boot_ranges;
+            let mut active_seek_target: Option<u64> = None;
+
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
@@ -2525,6 +2547,7 @@ fn start_preview_stream_inner(
                         paused: false,
                         updated_at_ms: now_ms(),
                         moov_ready_cached: false, // upsert_entry will compute from actual bytes
+                        moov_tail_fetching: false,
                     });
                     if offset >= size {
                         if let Some(missing) = first_missing_offset(&ranges, size) {
@@ -2568,6 +2591,7 @@ fn start_preview_stream_inner(
                         paused: false,
                         updated_at_ms: now_ms(),
                         moov_ready_cached: true, // done = always ready
+                        moov_tail_fetching: false,
                     });
                     tg_log::info(BACKEND, "progressive_done", format!("sid={sid} size={size}"));
                 }
@@ -2586,6 +2610,7 @@ fn start_preview_stream_inner(
                         paused: cancelled,
                         updated_at_ms: now_ms(),
                         moov_ready_cached: false,
+                        moov_tail_fetching: false,
                     });
                     if !cancelled {
                         tg_log::error(BACKEND, "progressive_fail", e);

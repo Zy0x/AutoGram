@@ -42,6 +42,10 @@ pub struct StreamEntry {
     /// Non-MP4 files default to true. MP4 files are scanned once when bytes arrive.
     #[serde(default)]
     pub moov_ready_cached: bool,
+    /// Set to true while an independent MOOV tail-fetch task is running or completed.
+    /// When true, UI treats moov as ready so playback can start without waiting for MOOV in prefix.
+    #[serde(default)]
+    pub moov_tail_fetching: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,6 +67,7 @@ pub struct StreamStatusDto {
     pub seek_capable: bool,
     pub paused: bool,
     pub error: Option<String>,
+    pub moov_tail_fetching: bool,
 }
 
 fn now_ms() -> u128 {
@@ -206,6 +211,10 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
             if existing.moov_ready_cached {
                 entry.moov_ready_cached = true;
             }
+            // Also inherit moov_tail_fetching so the flag isn't reset by fill-loop upserts.
+            if existing.moov_tail_fetching && !entry.moov_tail_fetching {
+                entry.moov_tail_fetching = true;
+            }
         }
     }
 
@@ -264,6 +273,7 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             seek_capable: false,
             paused: false,
             error: None,
+            moov_tail_fetching: false,
         },
         Some(e) => {
             let prefix = contiguous_from_zero(&e.ranges);
@@ -287,7 +297,8 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
             // leave UI stuck on "Buffering" while bytes already sit on disk.
             let first_play = super::streaming_policy::first_play_bytes(total);
             // moov_ready is cached by upsert_entry — no disk scan on every poll.
-            let moov_ready = !is_mp4_entry(&e) || e.done || e.moov_ready_cached;
+            // Also treat as ready when tail-fetch task is in progress (MOOV will arrive from end).
+            let moov_ready = !is_mp4_entry(&e) || e.done || e.moov_ready_cached || e.moov_tail_fetching;
             let stream_ready =
                 e.done || (prefix >= first_play.min(total.max(1)) && moov_ready);
             StreamStatusDto {
@@ -307,6 +318,7 @@ pub fn status_of(sid: &str) -> StreamStatusDto {
                 seek_capable: !e.done && !e.cancelled,
                 paused: e.paused,
                 error: e.error,
+                moov_tail_fetching: e.moov_tail_fetching,
             }
         }
     }
@@ -421,6 +433,7 @@ fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
         paused: false,
         updated_at_ms: now_ms(),
         moov_ready_cached: false, // will be detected on first upsert
+        moov_tail_fetching: false,
     };
     let entry = upsert_entry(entry);
     log::info!("[stream_server] auto-recovered session '{sid}' from .partial ({size}B)");
@@ -621,6 +634,9 @@ fn handle_stream(request: Request, sid: &str) {
         // unless Range header was provided in request. Returning 206 without Range causes
         // Chromium MEDIA_ELEMENT_ERROR: Format error (Code 4).
         // Return 200 OK with available bytes + Accept-Ranges header so player can probe & Range seek.
+        // IMPORTANT: Use total size as Content-Length (not prefix) for non-faststart MP4 files,
+        // so Chromium media engine knows the full file size and will issue a Range request to
+        // the MOOV tail. Without this, browser thinks file = prefix bytes and can't seek to MOOV.
         let solid = if entry.done { total } else { prefix.max(1).min(total.max(1)) };
         (0, solid.saturating_sub(1), 200)
     };
@@ -677,7 +693,14 @@ fn handle_stream(request: Request, sid: &str) {
     if let Ok(h) = Header::from_bytes(&b"Content-Type"[..], mime.as_bytes()) {
         res.add_header(h);
     }
-    let cl_val = format!("{out_len}");
+    // For non-Range 200 response: advertise total file size so browser's media engine
+    // knows the true file length and can issue a Range request to seek to MOOV at tail.
+    // For 206 Range response: use actual out_len (bytes being sent).
+    let cl_val = if status == 200 && !entry.done && total > out_len as u64 {
+        format!("{total}")
+    } else {
+        format!("{out_len}")
+    };
     if let Ok(h) = Header::from_bytes(&b"Content-Length"[..], cl_val.as_bytes()) {
         res.add_header(h);
     }
@@ -906,6 +929,7 @@ pub fn register_local_file(
         paused: false,
         updated_at_ms: now_ms(),
         moov_ready_cached: true, // complete local file — always ready
+        moov_tail_fetching: false,
     };
     upsert_entry(entry);
     let safe = label

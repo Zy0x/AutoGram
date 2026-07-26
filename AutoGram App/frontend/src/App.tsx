@@ -12,6 +12,7 @@ import { Automation } from './pages/Automation';
 import { isMediaStudioAvailable } from './lib/capabilities';
 import { bootstrapSecureCredentials } from './lib/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/debugMode';
+import { checkAndAutoPruneCache } from './lib/autoCachePruner';
 
 /** Code-split Media Studio — keeps main shell light until tab opens */
 const SpeedTest = lazy(() =>
@@ -51,6 +52,21 @@ function App() {
         if (on) debugLog('app', 'Debug Mode active after boot');
       })
       .catch(() => undefined);
+
+    // Initial startup cache check & auto-prune (delayed 5s to avoid boot lag)
+    const timer = setTimeout(() => {
+      void checkAndAutoPruneCache();
+    }, 5000);
+
+    // Periodic background check every 15 minutes
+    const interval = setInterval(() => {
+      void checkAndAutoPruneCache();
+    }, 15 * 60 * 1000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
 
   const driveFocus = activeTab === 'speedtest' && isMediaStudioAvailable();

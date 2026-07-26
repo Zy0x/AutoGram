@@ -1,3 +1,11 @@
+## v2.3.50 Smart Auto-Pruning Engine & Active File Lock Protection
+
+### Pemangkasan Cache Otomatis Cerdas & Perlindungan Berkas Aktif (`autoCachePruner.ts`, `jobs_db.rs`, `App.tsx`, `Settings.tsx`)
+- **Smart Auto-Pruning Engine (`autoCachePruner.ts`)**: Menambahkan pengelola pemangkasan cache otomatis yang berjalan saat aplikasi dimulai dan setiap 15 menit secara latar belakang. Memastikan cache (IndexedDB + Disk Cache Backend Rust) mematuhi batas `autogram_cache_limit_mb` tanpa tindakan manual.
+- **Active File Protection Window 10 Menit (`jobs_db.rs`)**: Fungsi `trim_disk_cache` kini memproteksi berkas cache media/pratinjau yang baru diakses atau dibuat dalam 10 menit terakhir, serta memanfaatkan penanganan aman OS file lock Windows agar video/audio/pratinjau yang sedang aktif tidak terputus.
+- **Auto-Trim Real-time pada Slider (`Settings.tsx`)**: Menggeser slider limit ke angka yang lebih rendah dari ukuran cache saat ini langsung memicu pemangkasan otomatis di latar belakang.
+- **Toggle Control & Indikator UI (`Settings.tsx`)**: Menambahkan sakelar "Auto-Prune Latar Belakang" di Pengaturan untuk mengaktifkan/menonaktifkan pembersihan otomatis sesuai kebutuhan pengguna.
+
 ## v2.3.49 Progressive Blur Placeholder — Thumbnail Instan Mode Seimbang/Jelas
 
 ### Pemuatan Thumbnail Progresif Mirip Telegram App (`thumbBatcher.ts`, `DriveFileCard.tsx`)
