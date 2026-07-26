@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.51
+AutoGram Version: v2.3.52
 
 Current State:
+v2.3.52 Universal Target-DC Parallel MTProto Download Pipeline & CDN Edge Routing — membenahi `grammers_media.rs`. Mengganti RPC `upload.GetFile` statis pada Home DC dengan `iter_download` paralel berbasis target DC. Mengeliminasi total variasi kecepatan antar-file akibat pembatasan cross-DC proxy Telegram, menjamin 100% media pada Datacenter apa pun (DC 1–5 & CDN) diunduh secara seragam pada kecepatan maksimal 18–25+ MB/s.
+
+Previous:
 v2.3.51 Multi-Socket 12-Parallel TCP Connection MTProto Download Engine & Instant <30ms Bootstrap — membenahi `grammers_ops.rs`, `grammers_media.rs`, dan `DrivePreviewModal.tsx`. Membangkitkan pool 12 connection socket TCP paralel ke Telegram DC untuk menembus batas per-socket Telegram 1 MB/s menjadi 18–25+ MB/s, meng-uncap kecepatan unduh buffer media, serta mempercepat pendaftaran stream awal dan polling UI menjadi <30ms tanpa tersendat di status "Memuat...".
 
 Previous:

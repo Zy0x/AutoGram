@@ -2286,43 +2286,42 @@ fn start_preview_stream_inner(
         // Spawn MOOV tail fetch as a fully INDEPENDENT task so fill loop starts immediately.
         // This is the key fix: tail and fill run in true parallel — no blocking.
         if need_async_moov_tail {
-            if let Some(loc) = media_to_input_location(&fill_media) {
-                let tail_depth: u64 = if size > 500 * 1024 * 1024 {
-                    6 * 1024 * 1024
-                } else if size > 100 * 1024 * 1024 {
-                    4 * 1024 * 1024
-                } else {
-                    2 * 1024 * 1024
-                };
-                let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
-                let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
-                let tail_clients = download_clients.clone();
-                let tail_dest = dest.clone();
-                let tail_sid = stream_id.clone();
+            let tail_media = fill_media.clone();
+            let tail_depth: u64 = if size > 500 * 1024 * 1024 {
+                6 * 1024 * 1024
+            } else if size > 100 * 1024 * 1024 {
+                4 * 1024 * 1024
+            } else {
+                2 * 1024 * 1024
+            };
+            let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
+            let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
+            let tail_clients = download_clients.clone();
+            let tail_dest = dest.clone();
+            let tail_sid = stream_id.clone();
 
-                // Mark entry as tail-fetching NOW so moov_ready=true on next status poll
-                // This allows the UI to start playback as soon as prefix bytes are ready.
-                if let Some(mut e) = stream_server::get_entry(&stream_id) {
-                    e.moov_tail_fetching = true;
-                    stream_server::upsert_entry(e);
-                }
+            // Mark entry as tail-fetching NOW so moov_ready=true on next status poll
+            // This allows the UI to start playback as soon as prefix bytes are ready.
+            if let Some(mut e) = stream_server::get_entry(&stream_id) {
+                e.moov_tail_fetching = true;
+                stream_server::upsert_entry(e);
+            }
 
-                tokio::spawn(async move {
-                    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
-                    for i in 0..num_chunks {
-                        let chunk_off = tail_start_offset + i * (512 * 1024);
-                        if chunk_off >= size { break; }
-                        let req = tl::functions::upload::GetFile {
-                            precise: false,
-                            cdn_supported: false,
-                            location: loc.clone(),
-                            offset: chunk_off as i64,
-                            limit: 512 * 1024,
-                        };
-                        let client = tail_clients[(i as usize) % tail_clients.len()].clone();
+            tokio::spawn(async move {
+                let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+                for i in 0..num_chunks {
+                    let chunk_off = tail_start_offset + i * (512 * 1024);
+                    if chunk_off >= size { break; }
+                    let client = tail_clients[(i as usize) % tail_clients.len()].clone();
+                    let media_item = tail_media.clone();
+                        let skip = (chunk_off / (512 * 1024)) as i32;
                         let tx_clone = tx.clone();
                         tokio::spawn(async move {
-                            let res = client.invoke(&req).await;
+                            let mut iter = client
+                                .iter_download(&media_item)
+                                .chunk_size(512 * 1024)
+                                .skip_chunks(skip);
+                            let res = iter.next().await;
                             let _ = tx_clone.send((chunk_off, res)).await;
                         });
                     }
@@ -2330,10 +2329,10 @@ fn start_preview_stream_inner(
                     let mut tail_ranges: Vec<(u64, u64)> = Vec::new();
                     if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&tail_dest) {
                         while let Some((chunk_off, res)) = rx.recv().await {
-                            if let Ok(tl::enums::upload::File::File(f)) = res {
-                                if !f.bytes.is_empty() {
-                                    if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&f.bytes).is_ok() {
-                                        tail_ranges.push((chunk_off, chunk_off + f.bytes.len() as u64));
+                            if let Ok(Some(bytes)) = res {
+                                if !bytes.is_empty() {
+                                    if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&bytes).is_ok() {
+                                        tail_ranges.push((chunk_off, chunk_off + bytes.len() as u64));
                                     }
                                 }
                             }
@@ -2356,7 +2355,6 @@ fn start_preview_stream_inner(
                         format!("sid={tail_sid} size={size}"),
                     );
                 });
-            }
         }
 
         let fill_clients = download_clients;
@@ -2368,7 +2366,6 @@ fn start_preview_stream_inner(
             let mut ranges: Vec<(u64, u64)> = boot_ranges;
             let mut active_seek_target: Option<u64> = None;
 
-            let media_input_loc = media_to_input_location(&fill_media);
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
@@ -2430,96 +2427,93 @@ fn start_preview_stream_inner(
                         }
                     }
 
-                    // Maximum Speed Multi-Socket Pipeline: 12 parallel MTProto TCP sockets
-                    // Fetches 12 x 512KB chunks concurrently per step across 12 distinct TCP connections.
+                    // Maximum Speed Multi-Socket Target DC Pipeline: 12 parallel MTProto TCP sockets
+                    // Connects directly to the media's target DC (DC 1, 2, 3, 4, 5, or CDN) across 12 distinct TCP connections.
                     if active_seek_target.is_none() {
-                        if let Some(ref loc) = media_input_loc {
-                            let mut pending_offsets = Vec::new();
-                            let mut scan_off = offset;
+                        let mut pending_offsets = Vec::new();
+                        let mut scan_off = offset;
 
-                            while pending_offsets.len() < PARALLEL_WORKERS && scan_off < size {
-                                while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= scan_off && scan_off < *e) {
-                                    if end > scan_off {
-                                        scan_off = end;
-                                    } else {
-                                        break;
-                                    }
+                        while pending_offsets.len() < PARALLEL_WORKERS && scan_off < size {
+                            while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= scan_off && scan_off < *e) {
+                                if end > scan_off {
+                                    scan_off = end;
+                                } else {
+                                    break;
                                 }
-                                if scan_off >= size { break; }
-                                pending_offsets.push(scan_off);
-                                scan_off += CHUNK_SIZE;
                             }
+                            if scan_off >= size { break; }
+                            pending_offsets.push(scan_off);
+                            scan_off += CHUNK_SIZE;
+                        }
 
-                            if !pending_offsets.is_empty() {
-                                let (tx, mut rx) = tokio::sync::mpsc::channel(pending_offsets.len());
-                                for (idx, chunk_off) in pending_offsets.into_iter().enumerate() {
-                                    let req = tl::functions::upload::GetFile {
-                                        precise: false,
-                                        cdn_supported: false,
-                                        location: loc.clone(),
-                                        offset: chunk_off as i64,
-                                        limit: 512 * 1024,
-                                    };
-                                    let client = fill_clients[idx % fill_clients.len()].clone();
-                                    let tx_clone = tx.clone();
-                                    tokio::spawn(async move {
-                                        let res = client.invoke(&req).await;
-                                        let _ = tx_clone.send((chunk_off, res)).await;
-                                    });
-                                }
-                                drop(tx);
+                        if !pending_offsets.is_empty() {
+                            let (tx, mut rx) = tokio::sync::mpsc::channel(pending_offsets.len());
+                            for (idx, chunk_off) in pending_offsets.into_iter().enumerate() {
+                                let client = fill_clients[idx % fill_clients.len()].clone();
+                                let media_item = fill_media.clone();
+                                let skip = (chunk_off / CHUNK_SIZE) as i32;
+                                let tx_clone = tx.clone();
+                                tokio::spawn(async move {
+                                    let mut iter = client
+                                        .iter_download(&media_item)
+                                        .chunk_size(CHUNK_SIZE as i32)
+                                        .skip_chunks(skip);
+                                    let res = iter.next().await;
+                                    let _ = tx_clone.send((chunk_off, res)).await;
+                                });
+                            }
+                            drop(tx);
 
-                                let mut written_any = false;
-                                while let Some((chunk_off, res)) = rx.recv().await {
-                                    match res {
-                                        Ok(tl::enums::upload::File::File(f)) if !f.bytes.is_empty() => {
-                                            if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                                ranges.push((chunk_off, chunk_off + f.bytes.len() as u64));
-                                                written_any = true;
+                            let mut written_any = false;
+                            while let Some((chunk_off, res)) = rx.recv().await {
+                                match res {
+                                    Ok(Some(bytes)) if !bytes.is_empty() => {
+                                        if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&bytes).is_ok() {
+                                            ranges.push((chunk_off, chunk_off + bytes.len() as u64));
+                                            written_any = true;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        let mapped = map_invocation(&e);
+                                        session_rate::note_error(&session_bg, &mapped);
+                                        if mapped.code() == TgErrorCode::FloodWait {
+                                            if let Some(secs) = mapped.flood_wait_secs() {
+                                                tg_log::warn(
+                                                    BACKEND,
+                                                    "progressive_flood",
+                                                    format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
+                                                );
+                                                tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
                                             }
                                         }
-                                        Err(e) => {
-                                            let mapped = map_invocation(&e);
-                                            session_rate::note_error(&session_bg, &mapped);
-                                            if mapped.code() == TgErrorCode::FloodWait {
-                                                if let Some(secs) = mapped.flood_wait_secs() {
-                                                    tg_log::warn(
-                                                        BACKEND,
-                                                        "progressive_flood",
-                                                        format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
-                                                    );
-                                                    tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
-                                                }
-                                            }
-                                        }
-                                        _ => {}
                                     }
+                                    _ => {}
                                 }
-                                if written_any {
-                                    let _ = file.flush();
-                                    ranges = stream_server::merge_ranges(&ranges);
-                                    if let Some(next_gap) = first_missing_offset(&ranges, size) {
-                                        offset = next_gap;
-                                    } else {
-                                        offset = size;
-                                    }
-                                    stream_server::upsert_entry(StreamEntry {
-                                        stream_id: sid.clone(),
-                                        path: dest_path.display().to_string(),
-                                        total_size: size,
-                                        mime: mime_bg.clone(),
-                                        label: name.clone(),
-                                        done: offset >= size,
-                                        ranges: ranges.clone(),
-                                        cancelled: false,
-                                        error: None,
-                                        paused: false,
-                                        updated_at_ms: now_ms(),
-                                        moov_ready_cached: false,
-                                        moov_tail_fetching: false,
-                                    });
-                                    continue;
+                            }
+                            if written_any {
+                                let _ = file.flush();
+                                ranges = stream_server::merge_ranges(&ranges);
+                                if let Some(next_gap) = first_missing_offset(&ranges, size) {
+                                    offset = next_gap;
+                                } else {
+                                    offset = size;
                                 }
+                                stream_server::upsert_entry(StreamEntry {
+                                    stream_id: sid.clone(),
+                                    path: dest_path.display().to_string(),
+                                    total_size: size,
+                                    mime: mime_bg.clone(),
+                                    label: name.clone(),
+                                    done: offset >= size,
+                                    ranges: ranges.clone(),
+                                    cancelled: false,
+                                    error: None,
+                                    paused: false,
+                                    updated_at_ms: now_ms(),
+                                    moov_ready_cached: false,
+                                    moov_tail_fetching: false,
+                                });
+                                continue;
                             }
                         }
                     }
