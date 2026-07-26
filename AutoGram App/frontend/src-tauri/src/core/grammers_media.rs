@@ -1669,9 +1669,10 @@ pub struct PreviewStreamResult {
 }
 
 fn guess_mime(name: &str, media: &Media) -> String {
+    let mut raw_mime = String::new();
     if let Media::Document(d) = media {
         if let Some(m) = d.mime_type() {
-            return m.to_string();
+            raw_mime = m.to_string();
         }
     }
     let ext = Path::new(name)
@@ -1679,22 +1680,42 @@ fn guess_mime(name: &str, media: &Media) -> String {
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    match ext.as_str() {
-        "mp4" | "m4v" | "mov" => "video/mp4".into(),
-        "webm" => "video/webm".into(),
-        "mkv" => "video/x-matroska".into(),
-        "mp3" => "audio/mpeg".into(),
-        "m4a" | "aac" => "audio/mp4".into(),
-        "ogg" | "opus" => "audio/ogg".into(),
-        "jpg" | "jpeg" => "image/jpeg".into(),
-        "png" => "image/png".into(),
-        "webp" => "image/webp".into(),
-        "gif" => "image/gif".into(),
-        "pdf" => "application/pdf".into(),
-        _ => match media {
-            Media::Photo(_) => "image/jpeg".into(),
-            _ => "application/octet-stream".into(),
-        },
+    let ext_mime = match ext.as_str() {
+        "mp4" | "m4v" => Some("video/mp4"),
+        "mov" => Some("video/quicktime"),
+        "webm" => Some("video/webm"),
+        "mkv" => Some("video/x-matroska"),
+        "avi" => Some("video/x-msvideo"),
+        "3gp" => Some("video/3gpp"),
+        "ogv" => Some("video/ogg"),
+        "ts" => Some("video/mp2t"),
+        "flv" => Some("video/x-flv"),
+        "mp3" => Some("audio/mpeg"),
+        "m4a" | "aac" => Some("audio/mp4"),
+        "ogg" | "opus" => Some("audio/ogg"),
+        "wav" => Some("audio/wav"),
+        "flac" => Some("audio/flac"),
+        "jpg" | "jpeg" => Some("image/jpeg"),
+        "png" => Some("image/png"),
+        "webp" => Some("image/webp"),
+        "gif" => Some("image/gif"),
+        "pdf" => Some("application/pdf"),
+        "zip" => Some("application/zip"),
+        _ => None,
+    };
+    if let Some(em) = ext_mime {
+        return em.to_string();
+    }
+    if !raw_mime.is_empty()
+        && raw_mime != "application/octet-stream"
+        && raw_mime != "binary/octet-stream"
+        && raw_mime != "application/x-download"
+    {
+        return raw_mime;
+    }
+    match media {
+        Media::Photo(_) => "image/jpeg".into(),
+        _ => "application/octet-stream".into(),
     }
 }
 

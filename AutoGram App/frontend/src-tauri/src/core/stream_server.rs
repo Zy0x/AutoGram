@@ -576,10 +576,47 @@ fn handle_stream(request: Request, sid: &str) {
         }
     }
 
-    let mime = if entry.mime.is_empty() {
+    let raw_mime = if entry.mime.is_empty() {
         "application/octet-stream"
     } else {
         &entry.mime
+    };
+
+    let mime_buf;
+    let mime = if raw_mime == "application/octet-stream"
+        || raw_mime == "binary/octet-stream"
+        || raw_mime == "application/x-download"
+    {
+        let ext = Path::new(&entry.label)
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        mime_buf = match ext.as_str() {
+            "mp4" | "m4v" => "video/mp4".to_string(),
+            "mov" => "video/quicktime".to_string(),
+            "webm" => "video/webm".to_string(),
+            "mkv" => "video/x-matroska".to_string(),
+            "avi" => "video/x-msvideo".to_string(),
+            "3gp" => "video/3gpp".to_string(),
+            "ogv" => "video/ogg".to_string(),
+            "ts" => "video/mp2t".to_string(),
+            "flv" => "video/x-flv".to_string(),
+            "mp3" => "audio/mpeg".to_string(),
+            "m4a" | "aac" => "audio/mp4".to_string(),
+            "ogg" | "opus" => "audio/ogg".to_string(),
+            "wav" => "audio/wav".to_string(),
+            "flac" => "audio/flac".to_string(),
+            "jpg" | "jpeg" => "image/jpeg".to_string(),
+            "png" => "image/png".to_string(),
+            "webp" => "image/webp".to_string(),
+            "gif" => "image/gif".to_string(),
+            "pdf" => "application/pdf".to_string(),
+            _ => raw_mime.to_string(),
+        };
+        &mime_buf
+    } else {
+        raw_mime
     };
 
     let mut res = Response::from_data(out).with_status_code(StatusCode(status));
