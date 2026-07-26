@@ -582,14 +582,25 @@ export function DrivePreviewModal({
    */
   const softReloadInFlightRef = useRef(false);
   const softReloadTimerRef = useRef<number | null>(null);
+  /** BUG-3 FIX: Count soft retry escalations to prevent infinite loop */
+  const softRetryCountRef = useRef(0);
+  /** BUG-4 FIX: Timeout guard — if video hasn’t started after 30s, show error UI */
+  const streamTimeoutRef = useRef<number | null>(null);
+  const STREAM_TIMEOUT_MS = 30_000;
 
   // Reset captured flag + reload guards when file changes
   useEffect(() => {
     isVideoCapturedRef.current = false;
     softReloadInFlightRef.current = false;
+    softRetryCountRef.current = 0; // BUG-3 FIX: reset retry counter on file change
     if (softReloadTimerRef.current != null) {
       window.clearTimeout(softReloadTimerRef.current);
       softReloadTimerRef.current = null;
+    }
+    // BUG-4 FIX: clear timeout on file change
+    if (streamTimeoutRef.current != null) {
+      window.clearTimeout(streamTimeoutRef.current);
+      streamTimeoutRef.current = null;
     }
   }, [file?.id]);
 
@@ -1184,18 +1195,46 @@ export function DrivePreviewModal({
           if (playingOk) {
             setPlayerHint((h) => h || 'Buffering…');
           } else {
-            // Attempt soft resume on existing stream ID without changing URL/remounting <video>
+            // BUG-3 FIX: Call /resume but CHECK the response status before acting.
+            // 410 Gone = session expired on server side — force immediate re-RPC.
             if (streamUrl && streamId) {
               const idx = streamUrl.indexOf('/stream/');
               if (idx >= 0) {
                 const base = streamUrl.slice(0, idx) + `/stream/${streamId}`;
-                void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
+                fetch(`${base}/resume`, { method: 'POST' }).then((r) => {
+                  if (r.status === 410) {
+                    // Server confirmed session is gone — force fresh tg_preview_stream
+                    softRetryCountRef.current = 999; // skip further soft retries
+                    softReloadInFlightRef.current = false;
+                    if (mountGenRef.current !== activeMountGen) return;
+                    invalidatePreview(folderId, file.id);
+                    liveStreamIdRef.current = null;
+                    setStreamUrl(null);
+                    setStreamId(null);
+                    setHasVideoFrame(false);
+                    setPlayerHint('Memuat ulang stream…');
+                    window.setTimeout(() => {
+                      if (mountGenRef.current !== activeMountGen) return;
+                      loadPreviewRef.current(quality, { soft: false, force: true });
+                    }, 400);
+                  }
+                }).catch(() => undefined);
               }
             }
             if (streamMissingHitsRef.current >= 5) {
               // Re-RPC only after 5 consecutive missing ticks AND video is truly stuck.
-              // Guard: don’t overlap with onError rebind — that’s the reload-loop root cause.
+              // Guard: don't overlap with onError rebind — that's the reload-loop root cause.
               streamMissingHitsRef.current = 0;
+              softRetryCountRef.current += 1;
+
+              // BUG-3 FIX: After MAX_SOFT_RETRIES failed escalations, show error UI and stop.
+              const MAX_SOFT_RETRIES = 3;
+              if (softRetryCountRef.current > MAX_SOFT_RETRIES) {
+                setPlayerHint(null);
+                setError('Stream tidak dapat dilanjutkan — klik Muat Ulang untuk mencoba lagi.');
+                return; // stop retrying in this poll tick
+              }
+
               if (!softReloadInFlightRef.current) {
                 softReloadInFlightRef.current = true;
                 setPlayerHint('Melanjutkan unduhan stream…');
@@ -1203,7 +1242,8 @@ export function DrivePreviewModal({
                   softReloadInFlightRef.current = false;
                   softReloadTimerRef.current = null;
                   if (mountGenRef.current !== activeMountGen) return;
-                  loadPreviewRef.current(quality, { soft: true });
+                  // BUG-3 FIX: force=true so soft guard doesn’t short-circuit the re-RPC
+                  loadPreviewRef.current(quality, { soft: false, force: true });
                 }, 600);
               } else {
                 setPlayerHint('Melanjutkan stream…');
@@ -1318,6 +1358,34 @@ export function DrivePreviewModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional stable poll (refs for loadPreview/seekWarn)
   }, [streamId, streamDone, creds, file.size, file.id, folderId, quality]);
+
+  // BUG-4 FIX: Stream timeout guard — if video has not started playing after STREAM_TIMEOUT_MS,
+  // show a clear error message with a retry button instead of infinite spinner.
+  useEffect(() => {
+    if (!streamId || streamDone) return;
+    // Clear any previous timeout
+    if (streamTimeoutRef.current != null) {
+      window.clearTimeout(streamTimeoutRef.current);
+    }
+    streamTimeoutRef.current = window.setTimeout(() => {
+      streamTimeoutRef.current = null;
+      const v = videoRef.current;
+      const notStarted = !v || (v.readyState < 2 && v.currentTime < 0.1);
+      if (notStarted) {
+        setError(
+          'Video tidak dapat diputar — stream gagal memuat setelah 30 detik. Klik Muat Ulang untuk mencoba kembali.'
+        );
+        setPlayerHint(null);
+      }
+    }, STREAM_TIMEOUT_MS);
+    return () => {
+      if (streamTimeoutRef.current != null) {
+        window.clearTimeout(streamTimeoutRef.current);
+        streamTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamId, streamDone]);
 
   /** True if `t` sits inside any browser buffered range (with slack). */
   const timeInBuffered = useCallback((v: HTMLVideoElement, t: number, slack = 0.75) => {

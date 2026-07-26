@@ -1,5 +1,5 @@
 {
-  "cdpUrl": "http://127.0.0.1:9222",
+  "cdpUrl": "http://[::1]:9222",
   "viteUrl": "http://127.0.0.1:1420",
   "appName": "AutoGram Media Studio",
   "heartbeatMs": 5000,

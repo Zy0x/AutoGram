@@ -22,7 +22,11 @@ New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $ensureLog = Join-Path $logDir 'ensure-remote.log'
 $vitePort = 1420
 $viteUrl = "http://127.0.0.1:$vitePort/"
-$cdpUrl = 'http://127.0.0.1:9222/json/version'
+# BUG-5 FIX: Frontend WebView2 binds on IPv6 [::1]:9222, NOT 127.0.0.1:9222.
+# GoogleDriveFS hijacks 127.0.0.1:9222 — using that always connects to the wrong process.
+$cdpUrlIPv6 = 'http://[::1]:9222/json'
+$cdpUrlIPv4 = 'http://127.0.0.1:9222/json'
+$cdpUrl     = $cdpUrlIPv6   # primary (AutoGram WebView2)
 $script:EnsureStart = [Diagnostics.Stopwatch]::StartNew()
 
 function Write-EnsureLog([string]$msg) {
@@ -83,14 +87,25 @@ function Test-ViteUp {
 }
 
 function Test-CdpUp {
-  if (-not (Test-TcpPort '127.0.0.1' 9222 350)) {
-    return $false
+  # BUG-5 FIX: Try IPv6 first (AutoGram WebView2), then IPv4 as fallback.
+  # Verify the page is actually AutoGram, not GoogleDriveFS (which also uses :9222 on IPv4).
+  foreach ($host in @('::1', '127.0.0.1')) {
+    if (-not (Test-TcpPort $host 9222 350)) { continue }
+    try {
+      $url = if ($host -eq '::1') { 'http://[::1]:9222/json' } else { 'http://127.0.0.1:9222/json' }
+      $resp = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 2
+      if ($resp.StatusCode -ne 200) { continue }
+      # Check that one of the targets is actually AutoGram (localhost:1420 or tauri)
+      $json = $resp.Content
+      if ($json -match 'localhost:1420' -or $json -match 'tauri') {
+        # Store the working CDP URL globally for heal-remote.mjs
+        $script:ResolvedCdpUrl = $url
+        Write-EnsureLog "CDP resolved: $url (host=$host)"
+        return $true
+      }
+    } catch {}
   }
-  try {
-    return ((Invoke-WebRequest $cdpUrl -UseBasicParsing -TimeoutSec 1).StatusCode -eq 200)
-  } catch {
-    return $false
-  }
+  return $false
 }
 
 function Get-NodePath {

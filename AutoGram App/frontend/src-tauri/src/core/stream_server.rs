@@ -387,16 +387,63 @@ fn handle_register(mut request: Request) {
     }
 }
 
+/// BUG-1 FIX: Attempt to recover a stream session from an orphaned .partial
+/// file in the preview cache when the in-memory / disk registry entry is gone.
+/// Pattern: stream_id like "g42794-945520-59436" → preview/{sid}.partial
+fn try_recover_partial(sid: &str) -> Option<StreamEntry> {
+    let registry_dir = REGISTRY_DIR.get()?;
+    // preview cache sits one level above the registry dir (e.g. …/cache/registry → …/cache/preview)
+    let preview_dir = registry_dir.parent().unwrap_or(registry_dir).join("preview");
+    let partial_path = preview_dir.join(format!("{sid}.partial"));
+    if !partial_path.is_file() {
+        return None;
+    }
+    let size = fs::metadata(&partial_path).ok()?.len();
+    if size == 0 {
+        return None;
+    }
+    // Infer mime from stream_id label portion ("ag_zip_upload_…sound_document…mp4" → video/mp4)
+    let mime = if sid.to_ascii_lowercase().ends_with("mp4") {
+        "video/mp4"
+    } else {
+        "application/octet-stream"
+    }
+    .to_string();
+    let entry = StreamEntry {
+        stream_id: sid.to_string(),
+        path: partial_path.to_string_lossy().into_owned(),
+        total_size: size,
+        mime,
+        label: format!("{sid}.partial"),
+        done: false,
+        ranges: vec![(0, size)], // treat all downloaded bytes as contiguous
+        cancelled: false,
+        error: None,
+        paused: false,
+        updated_at_ms: now_ms(),
+        moov_ready_cached: false, // will be detected on first upsert
+    };
+    let entry = upsert_entry(entry);
+    log::info!("[stream_server] auto-recovered session '{sid}' from .partial ({size}B)");
+    Some(entry)
+}
+
 fn handle_stream(request: Request, sid: &str) {
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
         _ => {
-            let mut res = Response::from_string("Stream expired").with_status_code(StatusCode(404));
-            for h in cors_headers() {
-                res.add_header(h);
+            // BUG-1 FIX: Before giving up with 404, try recovering from orphaned .partial
+            match try_recover_partial(sid) {
+                Some(recovered) => recovered,
+                None => {
+                    let mut res = Response::from_string("Stream expired").with_status_code(StatusCode(404));
+                    for h in cors_headers() {
+                        res.add_header(h);
+                    }
+                    let _ = request.respond(res);
+                    return;
+                }
             }
-            let _ = request.respond(res);
-            return;
         }
     };
 
@@ -647,6 +694,16 @@ fn handle(request: Request) {
                         e.paused = action == "pause";
                         upsert_entry(e);
                         let mut res = Response::from_string(action).with_status_code(StatusCode(200));
+                        for h in cors_headers() {
+                            res.add_header(h);
+                        }
+                        let _ = request.respond(res);
+                        return;
+                    } else if action == "resume" {
+                        // BUG-2 FIX: Session expired — return 410 Gone so frontend knows to
+                        // force a full re-RPC (tg_preview_stream) instead of looping forever.
+                        let body = r#"{"ok":false,"reason":"expired","action":"re_rpc"}"#;
+                        let mut res = Response::from_string(body).with_status_code(StatusCode(410));
                         for h in cors_headers() {
                             res.add_header(h);
                         }
