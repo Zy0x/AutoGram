@@ -44,7 +44,7 @@ const cache = new Map<string, CachedPreview>();
 const inflight = new Map<string, Promise<CachedPreview>>();
 
 export function previewCacheKey(
-  folderId: number | null,
+  folderId: number | string | null,
   messageId: number,
   quality: string,
   session = 'unscoped'
@@ -64,7 +64,7 @@ function touch(key: string, val: CachedPreview) {
 }
 
 export function getCachedPreview(
-  folderId: number | null,
+  folderId: number | string | null,
   messageId: number,
   quality: string,
   session = 'unscoped'
@@ -82,7 +82,7 @@ export function getCachedPreview(
 }
 
 export function setCachedPreview(
-  folderId: number | null,
+  folderId: number | string | null,
   messageId: number,
   quality: string,
   res: Omit<CachedPreview, 'cachedAt'>,
@@ -134,7 +134,7 @@ function isFreshStreamHit(hit: CachedPreview, maxAgeMs?: number): boolean {
 export async function loadPreviewCached(
   creds: DriveCredentials,
   messageId: number,
-  folderId: number | null,
+  folderId: number | string | null,
   quality: string,
   opts?: { force?: boolean }
 ): Promise<CachedPreview> {
@@ -192,9 +192,9 @@ export async function loadPreviewCached(
 /** Prefetch neighbors in background (fire-and-forget). */
 export function prefetchPreviews(
   creds: DriveCredentials,
-  folderId: number | null,
+  folderId: number | string | null,
   messageIds: number[],
-  quality: string
+  quality = 'auto'
 ): void {
   const q = quality || 'auto';
   const session = creds.session || 'unscoped';
@@ -253,7 +253,7 @@ function noteFloodFromError(err: unknown): void {
  */
 export function warmPreviewHead(
   creds: DriveCredentials,
-  folderId: number | null,
+  folderId: number | string | null,
   messageId: number,
   opts?: { headBytes?: number }
 ): void {
@@ -296,7 +296,7 @@ export function warmPreviewHead(
 /** Warm visible videos — max 1, slow stagger (FloodWait-safe). */
 export function warmPreviewHeads(
   creds: DriveCredentials,
-  folderId: number | null,
+  folderId: number | string | null,
   messageIds: number[],
   max = 1
 ): void {
@@ -323,7 +323,7 @@ export function clearPreviewCache(): void {
 
 /** Drop one entry (e.g. after failed render / stale stream URL). */
 export function invalidatePreview(
-  folderId: number | null,
+  folderId: number | string | null,
   messageId: number,
   quality?: string,
   session = 'unscoped'
