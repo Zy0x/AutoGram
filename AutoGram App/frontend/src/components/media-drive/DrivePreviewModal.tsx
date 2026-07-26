@@ -898,7 +898,7 @@ export function DrivePreviewModal({
         setStreamId(null);
         setBufferPct(0);
         setStreamDone(false);
-        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream…' : 'Memuat…');
+        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream video…' : 'Memuat…');
         setSeekWarn(null);
         setPoster(gridThumb);
         // Keep spinner only when we have no poster at all
