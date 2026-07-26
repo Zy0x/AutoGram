@@ -765,6 +765,34 @@ async fn download_media_thumb(
                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                     return Ok(frame_bytes);
                 }
+
+                // Ultimate fallback for document media (e.g. msg 73 / image sent as document):
+                // If sample_bytes contains JPEG/PNG/WebP/GIF/BMP header anywhere in first 64 bytes,
+                // finish downloading image payload and return sample_bytes directly!
+                if sample_bytes.len() >= 64 {
+                    let head = &sample_bytes[..sample_bytes.len().min(64)];
+                    let is_image_data = head.windows(2).any(|w| w == [0xff, 0xd8])
+                        || head.windows(4).any(|w| w == b"\x89PNG")
+                        || head.windows(4).any(|w| w == b"WEBP")
+                        || head.windows(3).any(|w| w == b"GIF")
+                        || head.starts_with(b"BM");
+                    if is_image_data {
+                        let doc_size = d.size().unwrap_or(0) as usize;
+                        let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
+                            doc_size
+                        } else {
+                            2048 * 1024
+                        };
+                        while sample_bytes.len() < max_bytes {
+                            if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                                sample_bytes.extend_from_slice(&chunk);
+                            } else {
+                                break;
+                            }
+                        }
+                        return Ok(sample_bytes);
+                    }
+                }
             }
         }
     }
