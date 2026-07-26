@@ -583,14 +583,18 @@ fn handle_stream(request: Request, sid: &str) {
         } else {
             have_end
         };
-        let mut end = re.map(|e| e + 1).unwrap_or(solid_end).min(solid_end);
-        if end <= start {
-            end = (start + 1).min(solid_end.max(start + 1));
-        }
-        // Progressive stream range chunk size (up to 16 MiB for high speed smooth video buffering)
-        if re.is_none() && !entry.done {
-            let cap = (start + 16 * 1024 * 1024).min(solid_end);
-            end = end.min(cap).max(start.saturating_add(1).min(solid_end));
+        let mut end = if !entry.done {
+            solid_end
+        } else {
+            total
+        };
+        if let Some(requested_end) = re {
+            let req_end = requested_end + 1;
+            if req_end > solid_end {
+                end = solid_end;
+            } else {
+                end = solid_end.min(req_end.max(solid_end.min(start + 16 * 1024 * 1024)));
+            }
         }
         if end <= start && solid_end > start {
             end = solid_end;
