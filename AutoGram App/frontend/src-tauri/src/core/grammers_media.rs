@@ -119,7 +119,6 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
         stream_server::upsert_entry(e);
         hit = true;
     }
-    live_preview_map().lock().retain(|_, v| v.stream_id != stream_id);
     hit
 }
 
@@ -701,17 +700,18 @@ async fn download_media_thumb(
 
                     // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 40MB+ videos)
                     let chunk_bytes = 256 * 1024;
-                    // First try reconstructing faststart MP4 if sample_bytes already contains moov (e.g. at end of sample_bytes)
-                    if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &sample_bytes) {
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                            return Ok(frame_bytes);
+                    if doc_size > 0 && doc_size <= sample_bytes.len() + chunk_bytes {
+                        // Entire video (or almost entire video) is already in sample_bytes.
+                        // Pass sample_bytes as both head and tail so make_faststart_mp4 can extract moov from the end of sample_bytes.
+                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &sample_bytes) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                return Ok(frame_bytes);
+                            }
                         }
-                    }
-
-                    // Fetch tail bytes if doc_size is large or unknown to capture moov atom at end of file
-                    if doc_size == 0 || doc_size > sample_bytes.len() + chunk_bytes {
-                        let total_chunks = if doc_size > 0 { doc_size / chunk_bytes } else { 0 };
-                        let tail_chunks = if total_chunks > 0 { 32.min(total_chunks) } else { 32 };
+                    } else if doc_size > 0 {
+                        let total_chunks = doc_size / chunk_bytes;
+                        // Fetch last 24 chunks (6 MB) to capture moov atom & stco tables for large videos
+                        let tail_chunks = 24.min(total_chunks);
                         let skip = total_chunks.saturating_sub(tail_chunks) as i32;
                         let mut tail_bytes = Vec::new();
                         let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
@@ -883,55 +883,24 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
     let mut moov_slice = tail_bytes[pos..pos + moov_size].to_vec();
     patch_moov_offsets(&mut moov_slice, moov_size);
 
-    // Walk top-level atoms in sample_bytes (ftyp, free, skip, wide) to find mdat or media payload start
-    let mut offset = 0;
-    let mut header_len = 0;
-    while offset + 8 <= sample_bytes.len() {
-        let atom_size = u32::from_be_bytes([
-            sample_bytes[offset],
-            sample_bytes[offset + 1],
-            sample_bytes[offset + 2],
-            sample_bytes[offset + 3],
-        ]) as usize;
-        let atom_type = &sample_bytes[offset + 4..offset + 8];
+    let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {
+        u32::from_be_bytes([
+            sample_bytes[0],
+            sample_bytes[1],
+            sample_bytes[2],
+            sample_bytes[3],
+        ]) as usize
+    } else {
+        32
+    };
 
-        if atom_type == b"mdat" {
-            header_len = offset;
-            break;
-        } else if atom_type == b"ftyp" || atom_type == b"free" || atom_type == b"skip" || atom_type == b"wide" {
-            if atom_size < 8 || offset + atom_size > sample_bytes.len() {
-                header_len = offset;
-                break;
-            }
-            offset += atom_size;
-            header_len = offset;
-        } else {
-            header_len = offset;
-            break;
-        }
-    }
+    let ftyp_len = ftyp_size.min(sample_bytes.len());
+    let mut out = Vec::with_capacity(ftyp_len + moov_size + sample_bytes.len() - ftyp_len);
 
-    if header_len == 0 {
-        let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {
-            u32::from_be_bytes([
-                sample_bytes[0],
-                sample_bytes[1],
-                sample_bytes[2],
-                sample_bytes[3],
-            ]) as usize
-        } else {
-            32
-        };
-        header_len = ftyp_size.min(sample_bytes.len());
-    }
-
-    let mdat_payload_len = sample_bytes.len().saturating_sub(header_len);
-    let mut out = Vec::with_capacity(header_len + moov_size + mdat_payload_len);
-
-    out.extend_from_slice(&sample_bytes[0..header_len]);
+    out.extend_from_slice(&sample_bytes[0..ftyp_len]);
     out.extend_from_slice(&moov_slice);
 
-    let mut mdat_rem = sample_bytes[header_len..].to_vec();
+    let mut mdat_rem = sample_bytes[ftyp_len..].to_vec();
     if mdat_rem.len() >= 8 && &mdat_rem[4..8] == b"mdat" {
         let new_mdat_len = mdat_rem.len() as u32;
         mdat_rem[0..4].copy_from_slice(&new_mdat_len.to_be_bytes());
@@ -1128,14 +1097,14 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             }
             Ok(out) => {
                 let err2 = String::from_utf8_lossy(&out.stderr).trim().to_string();
-                tg_log::debug(
+                tg_log::warn(
                     BACKEND,
                     "ffmpeg_frame_failed",
                     &format!("size={} ext={ext} err1='{err1}' err2='{err2}'", sample_bytes.len()),
                 );
             }
             Err(e) => {
-                tg_log::debug(
+                tg_log::warn(
                     BACKEND,
                     "ffmpeg_exec_failed",
                     &format!("size={} ext={ext} err={e}", sample_bytes.len()),
@@ -1669,10 +1638,9 @@ pub struct PreviewStreamResult {
 }
 
 fn guess_mime(name: &str, media: &Media) -> String {
-    let mut raw_mime = String::new();
     if let Media::Document(d) = media {
         if let Some(m) = d.mime_type() {
-            raw_mime = m.to_string();
+            return m.to_string();
         }
     }
     let ext = Path::new(name)
@@ -1680,42 +1648,22 @@ fn guess_mime(name: &str, media: &Media) -> String {
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    let ext_mime = match ext.as_str() {
-        "mp4" | "m4v" => Some("video/mp4"),
-        "mov" => Some("video/quicktime"),
-        "webm" => Some("video/webm"),
-        "mkv" => Some("video/x-matroska"),
-        "avi" => Some("video/x-msvideo"),
-        "3gp" => Some("video/3gpp"),
-        "ogv" => Some("video/ogg"),
-        "ts" => Some("video/mp2t"),
-        "flv" => Some("video/x-flv"),
-        "mp3" => Some("audio/mpeg"),
-        "m4a" | "aac" => Some("audio/mp4"),
-        "ogg" | "opus" => Some("audio/ogg"),
-        "wav" => Some("audio/wav"),
-        "flac" => Some("audio/flac"),
-        "jpg" | "jpeg" => Some("image/jpeg"),
-        "png" => Some("image/png"),
-        "webp" => Some("image/webp"),
-        "gif" => Some("image/gif"),
-        "pdf" => Some("application/pdf"),
-        "zip" => Some("application/zip"),
-        _ => None,
-    };
-    if let Some(em) = ext_mime {
-        return em.to_string();
-    }
-    if !raw_mime.is_empty()
-        && raw_mime != "application/octet-stream"
-        && raw_mime != "binary/octet-stream"
-        && raw_mime != "application/x-download"
-    {
-        return raw_mime;
-    }
-    match media {
-        Media::Photo(_) => "image/jpeg".into(),
-        _ => "application/octet-stream".into(),
+    match ext.as_str() {
+        "mp4" | "m4v" | "mov" => "video/mp4".into(),
+        "webm" => "video/webm".into(),
+        "mkv" => "video/x-matroska".into(),
+        "mp3" => "audio/mpeg".into(),
+        "m4a" | "aac" => "audio/mp4".into(),
+        "ogg" | "opus" => "audio/ogg".into(),
+        "jpg" | "jpeg" => "image/jpeg".into(),
+        "png" => "image/png".into(),
+        "webp" => "image/webp".into(),
+        "gif" => "image/gif".into(),
+        "pdf" => "application/pdf".into(),
+        _ => match media {
+            Media::Photo(_) => "image/jpeg".into(),
+            _ => "application/octet-stream".into(),
+        },
     }
 }
 
@@ -1833,7 +1781,7 @@ fn usable_live_preview(r: &PreviewStreamResult) -> bool {
     }
     if r.streaming && !r.stream_id.is_empty() {
         let st = stream_server::status_of(&r.stream_id);
-        return st.status != "missing" && st.status != "cancelled" && st.status != "error" && st.error.is_none();
+        return st.status != "missing" && st.error.is_none();
     }
     false
 }
@@ -1868,8 +1816,6 @@ pub fn start_preview_stream_blocking(
     if let Some(existing) = live_preview_map().lock().get(&key).cloned() {
         if usable_live_preview(&existing) {
             return Ok(existing);
-        } else {
-            live_preview_map().lock().remove(&key);
         }
     }
 
@@ -1899,8 +1845,6 @@ pub fn start_preview_stream_blocking(
             if let Some(existing) = live_preview_map().lock().get(&key).cloned() {
                 if usable_live_preview(&existing) {
                     return Ok(existing);
-                } else {
-                    live_preview_map().lock().remove(&key);
                 }
             }
             let now = std::time::Instant::now();
@@ -2055,15 +1999,7 @@ fn start_preview_stream_inner(
         let is_image = mime.starts_with("image/") && !mime.contains("gif");
         let is_video = mime.starts_with("video/");
         let is_audio = mime.starts_with("audio/");
-        let is_zip = !is_video
-            && !is_audio
-            && !is_image
-            && (mime.contains("zip")
-                || name.to_lowercase().ends_with(".zip")
-                || name.to_lowercase().ends_with(".7z")
-                || name.to_lowercase().ends_with(".rar")
-                || name.to_lowercase().ends_with(".tar")
-                || name.to_lowercase().ends_with(".gz"));
+        let is_zip = mime.contains("zip") || name.to_lowercase().ends_with(".zip");
 
         // ZIP files: 100% MTProto Sparse Reader — zero full-file download for ZIPs of ANY size (1 MB to 5 GB)
         if is_zip {
@@ -2232,13 +2168,13 @@ fn start_preview_stream_inner(
         let cancel = register_cancel(&stream_id);
         let stream_url = stream_public_url(&stream_id, &name);
 
-        // Bootstrap ~256 KiB head under a short-lived slot — enough for instant
-        // stream URL response (<100ms open target); remaining file & MOOV tail fill in background.
+        // Bootstrap ~512 KiB head under a short-lived slot — enough for most
+        // players to start; full file fills in background (1–3s open target).
         let mut boot_ranges: Vec<(u64, u64)> = Vec::new();
         {
             let _boot_slot = session_rate::acquire_media_slot(&session_name).await?;
             const BOOT_CHUNK: u64 = 256 * 1024;
-            const BOOT_TARGET: u64 = 256 * 1024;
+            const BOOT_TARGET: u64 = 512 * 1024;
             let mut iter = live
                 .client
                 .iter_download(&media)
@@ -2284,6 +2220,73 @@ fn start_preview_stream_inner(
             }
             let _ = file.flush();
 
+            // Fast MOOV Tail Bootstrap: If moov atom is missing from head in MP4 video,
+            // pre-fetch the tail (last ~2 MB) BEFORE returning stream_url to Frontend!
+            let has_moov_head = boot_ranges.iter().any(|&(s, e)| {
+                if let Ok(mut f) = std::fs::File::open(&dest) {
+                    if f.seek(SeekFrom::Start(s)).is_ok() {
+                        let mut buf = vec![0u8; (e - s).min(1024 * 1024) as usize];
+                        if let Ok(n) = f.read(&mut buf) {
+                            return buf[..n].windows(4).any(|w| w == b"moov");
+                        }
+                    }
+                }
+                false
+            });
+
+            if is_video && size > 1024 * 1024 && !has_moov_head {
+                if let Some(loc) = media_to_input_location(&media) {
+                    // Ultra-Fast 1-Shot MOOV Tail Fetch: Most MP4 moov atoms reside in the final 512 KiB.
+                    // Fetch final 512 KiB first (single MTProto roundtrip ~60ms).
+                    let tail_512k_offset = (size.saturating_sub(512 * 1024) / 4096) * 4096;
+                    let tail_req = tl::functions::upload::GetFile {
+                        precise: false,
+                        cdn_supported: false,
+                        location: loc.clone(),
+                        offset: tail_512k_offset as i64,
+                        limit: 512 * 1024,
+                    };
+                    let mut found_moov = false;
+                    if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req).await {
+                        if !f.bytes.is_empty() {
+                            if file.seek(SeekFrom::Start(tail_512k_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                let end_tail = tail_512k_offset + f.bytes.len() as u64;
+                                boot_ranges.push((tail_512k_offset, end_tail));
+                                if f.bytes.windows(4).any(|w| w == b"moov") {
+                                    found_moov = true;
+                                    tg_log::info(
+                                        BACKEND,
+                                        "moov_tail_bootstrapped_fast",
+                                        format!("sid={stream_id} offset={tail_512k_offset}"),
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback to secondary 512KB tail chunk if moov wasn't in final 512KB
+                    if !found_moov && tail_512k_offset >= 512 * 1024 {
+                        let prev_tail_offset = tail_512k_offset - 512 * 1024;
+                        let tail_req2 = tl::functions::upload::GetFile {
+                            precise: false,
+                            cdn_supported: false,
+                            location: loc.clone(),
+                            offset: prev_tail_offset as i64,
+                            limit: 512 * 1024,
+                        };
+                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req2).await {
+                            if !f.bytes.is_empty() {
+                                if file.seek(SeekFrom::Start(prev_tail_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                    let end_tail = prev_tail_offset + f.bytes.len() as u64;
+                                    boot_ranges.push((prev_tail_offset, end_tail));
+                                }
+                            }
+                        }
+                    }
+                    let _ = file.flush();
+                }
+            }
+
             if !boot_ranges.is_empty() {
                 stream_server::upsert_entry(StreamEntry {
                     stream_id: stream_id.clone(),
@@ -2300,6 +2303,7 @@ fn start_preview_stream_inner(
                     moov_ready_cached: false,
                 });
             }
+            // _boot_slot dropped here — UI can open another video without waiting for full fill.
         }
 
         let dest_path = dest.clone();
@@ -2309,88 +2313,13 @@ fn start_preview_stream_inner(
         let live_bg = Arc::clone(&live);
         let session_bg = session_name.clone();
         let boot_end = first_missing_offset(&boot_ranges, size).unwrap_or(0);
-        let is_video_bg = is_video;
-        let total_size_bg = size;
         tokio::spawn(async move {
+            // Optional fill permit — if busy, still try (cancelled old streams free bandwidth).
             let _fill_slot = session_rate::try_acquire_media_slot(&session_bg);
             let live = live_bg;
             let flag = cancel;
-            let mut ranges: Vec<(u64, u64)> = boot_ranges;
-
-            // Fast MOOV Tail Bootstrap inside background task:
-            // Fetch tail 512 KiB in background so moov atom is available for non-faststart MP4s
-            let has_moov_head = ranges.iter().any(|&(s, e)| {
-                if let Ok(mut f) = std::fs::File::open(&dest_path) {
-                    if f.seek(SeekFrom::Start(s)).is_ok() {
-                        let mut buf = vec![0u8; (e - s).min(1024 * 1024) as usize];
-                        if let Ok(n) = f.read(&mut buf) {
-                            return buf[..n].windows(4).any(|w| w == b"moov");
-                        }
-                    }
-                }
-                false
-            });
-
-            if is_video_bg && total_size_bg > 1024 * 1024 && !has_moov_head {
-                if let Ok(mut file) = std::fs::OpenOptions::new().write(true).read(true).open(&dest_path) {
-                    if let Some(loc) = media_to_input_location(&fill_media) {
-                        let tail_512k_offset = (total_size_bg.saturating_sub(512 * 1024) / 4096) * 4096;
-                        let tail_req = tl::functions::upload::GetFile {
-                            precise: false,
-                            cdn_supported: false,
-                            location: loc.clone(),
-                            offset: tail_512k_offset as i64,
-                            limit: 512 * 1024,
-                        };
-                        let mut found_moov = false;
-                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req).await {
-                            if !f.bytes.is_empty() {
-                                if file.seek(SeekFrom::Start(tail_512k_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                    let end_tail = tail_512k_offset + f.bytes.len() as u64;
-                                    ranges.push((tail_512k_offset, end_tail));
-                                    if f.bytes.windows(4).any(|w| w == b"moov") {
-                                        found_moov = true;
-                                    }
-                                }
-                            }
-                        }
-                        if !found_moov && tail_512k_offset >= 512 * 1024 {
-                            let prev_tail_offset = tail_512k_offset - 512 * 1024;
-                            let tail_req2 = tl::functions::upload::GetFile {
-                                precise: false,
-                                cdn_supported: false,
-                                location: loc.clone(),
-                                offset: prev_tail_offset as i64,
-                                limit: 512 * 1024,
-                            };
-                            if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req2).await {
-                                if !f.bytes.is_empty() {
-                                    if file.seek(SeekFrom::Start(prev_tail_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                        let end_tail = prev_tail_offset + f.bytes.len() as u64;
-                                        ranges.push((prev_tail_offset, end_tail));
-                                    }
-                                }
-                            }
-                        }
-                        let _ = file.flush();
-                        stream_server::upsert_entry(StreamEntry {
-                            stream_id: sid.clone(),
-                            path: dest_path.display().to_string(),
-                            total_size: total_size_bg,
-                            mime: mime_bg.clone(),
-                            label: String::new(),
-                            done: false,
-                            ranges: ranges.clone(),
-                            cancelled: false,
-                            error: None,
-                            paused: false,
-                            updated_at_ms: now_ms(),
-                            moov_ready_cached: false,
-                        });
-                    }
-                }
-            }
             let mut offset: u64 = boot_end;
+            let mut ranges: Vec<(u64, u64)> = boot_ranges;
             let mut moov_bootstrapped = ranges.len() > 1 || boot_end > 0;
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
@@ -2421,19 +2350,18 @@ fn start_preview_stream_inner(
 
                     // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
                     // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
-                    let current_filled: u64 = ranges.iter().map(|(s, e)| e.saturating_sub(*s)).sum();
+                    let current_filled = filled_bytes(&ranges);
                     if current_filled > 15 * 1024 * 1024 {
                         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }
 
-                    // Skip ranges already filled, ensuring we find the exact first missing offset from 0..size
-                    // without prematurely breaking when a tail range exists.
-                    ranges = stream_server::merge_ranges(&ranges);
-                    let next_offset = match first_missing_offset(&ranges, size) {
-                        Some(missing) => missing,
-                        None => break, // Entire file 0..size is 100% downloaded
-                    };
-                    offset = next_offset;
+                    // Skip ranges already filled (e.g. bootstrapped tail range)
+                    while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= offset && offset < *e) {
+                        offset = end;
+                    }
+                    if offset >= size {
+                        break;
+                    }
 
                     loop {
                         if let Some(e) = stream_server::get_entry(&sid) {

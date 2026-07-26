@@ -90,14 +90,13 @@ pub fn stream_port() -> u16 {
     PORT.load(Ordering::SeqCst)
 }
 
-pub fn merge_ranges(ranges: &[(u64, u64)]) -> Vec<(u64, u64)> {
+fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
     if ranges.is_empty() {
-        return vec![];
+        return ranges;
     }
-    let mut sorted = ranges.to_vec();
-    sorted.sort_by_key(|r| r.0);
-    let mut out = vec![sorted[0]];
-    for (s, e) in sorted.into_iter().skip(1) {
+    ranges.sort_by_key(|r| r.0);
+    let mut out = vec![ranges[0]];
+    for (s, e) in ranges.into_iter().skip(1) {
         let last = out.last_mut().unwrap();
         if s <= last.1 {
             last.1 = last.1.max(e);
@@ -109,18 +108,19 @@ pub fn merge_ranges(ranges: &[(u64, u64)]) -> Vec<(u64, u64)> {
 }
 
 fn contiguous_from_zero(ranges: &[(u64, u64)]) -> u64 {
-    let norm = merge_ranges(ranges);
-    if norm.is_empty() || norm[0].0 > 0 {
+    if ranges.is_empty() || ranges[0].0 > 0 {
         return 0;
     }
-    norm[0].1
+    ranges[0].1
 }
 
 fn contiguous_end_from(ranges: &[(u64, u64)], start: u64) -> u64 {
-    let norm = merge_ranges(ranges);
-    for &(s, e) in &norm {
+    for &(s, e) in ranges {
         if s <= start && start < e {
             return e;
+        }
+        if s > start {
+            break;
         }
     }
     start
@@ -195,7 +195,7 @@ fn is_mp4_entry(entry: &StreamEntry) -> bool {
 }
 
 pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
-    entry.ranges = merge_ranges(&entry.ranges);
+    entry.ranges = merge_ranges(entry.ranges);
     entry.updated_at_ms = now_ms();
 
     // Inherit moov_ready_cached from the existing live entry so the cache is
@@ -576,47 +576,10 @@ fn handle_stream(request: Request, sid: &str) {
         }
     }
 
-    let raw_mime = if entry.mime.is_empty() {
+    let mime = if entry.mime.is_empty() {
         "application/octet-stream"
     } else {
         &entry.mime
-    };
-
-    let mime_buf;
-    let mime = if raw_mime == "application/octet-stream"
-        || raw_mime == "binary/octet-stream"
-        || raw_mime == "application/x-download"
-    {
-        let ext = Path::new(&entry.label)
-            .extension()
-            .and_then(|s| s.to_str())
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        mime_buf = match ext.as_str() {
-            "mp4" | "m4v" => "video/mp4".to_string(),
-            "mov" => "video/quicktime".to_string(),
-            "webm" => "video/webm".to_string(),
-            "mkv" => "video/x-matroska".to_string(),
-            "avi" => "video/x-msvideo".to_string(),
-            "3gp" => "video/3gpp".to_string(),
-            "ogv" => "video/ogg".to_string(),
-            "ts" => "video/mp2t".to_string(),
-            "flv" => "video/x-flv".to_string(),
-            "mp3" => "audio/mpeg".to_string(),
-            "m4a" | "aac" => "audio/mp4".to_string(),
-            "ogg" | "opus" => "audio/ogg".to_string(),
-            "wav" => "audio/wav".to_string(),
-            "flac" => "audio/flac".to_string(),
-            "jpg" | "jpeg" => "image/jpeg".to_string(),
-            "png" => "image/png".to_string(),
-            "webp" => "image/webp".to_string(),
-            "gif" => "image/gif".to_string(),
-            "pdf" => "application/pdf".to_string(),
-            _ => raw_mime.to_string(),
-        };
-        &mime_buf
-    } else {
-        raw_mime
     };
 
     let mut res = Response::from_data(out).with_status_code(StatusCode(status));

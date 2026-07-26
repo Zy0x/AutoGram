@@ -574,7 +574,6 @@ export function DrivePreviewModal({
    * (moov tail + pipeline), leaving "buffer tinggi tapi video tak start".
    */
   const hasUserPlayRef = useRef(false);
-  const userPausedRef = useRef(false);
   const isVideoCapturedRef = useRef(false);
   /**
    * Guard: prevents both poll (missing≥5 ticks) and onError rebind from
@@ -899,7 +898,7 @@ export function DrivePreviewModal({
         setStreamId(null);
         setBufferPct(0);
         setStreamDone(false);
-        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream video…' : 'Memuat…');
+        setPlayerHint(isVideoDriveFile(file) ? 'Menyiapkan stream…' : 'Memuat…');
         setSeekWarn(null);
         setPoster(gridThumb);
         // Keep spinner only when we have no poster at all
@@ -977,7 +976,6 @@ export function DrivePreviewModal({
     liveStreamIdRef.current = null;
     lastSeekKickRef.current = 0;
     hasUserPlayRef.current = false;
-    userPausedRef.current = false;
     // ZIP: browser lists central dir — skip heavy media stream/download path
     if (isZipDriveFile(file)) {
       setLoading(false);
@@ -1046,10 +1044,11 @@ export function DrivePreviewModal({
       const sid = streamIdRef.current;
       const c = credsRef.current;
       window.setTimeout(() => {
-        // Remounted or modal still open for this generation — do not kill the active session
-        if (globalStreamTeardownGen !== gen || mountGenRef.current === gen) return;
+        // Remounted (StrictMode or fast re-open) — do not kill the new session
+        if (globalStreamTeardownGen !== gen) return;
         if (!c) return;
         if (sid) void driveStopStream(c, sid, { deletePartial: false });
+        // Do NOT stopAll incomplete — thrash-cancel of multi-video fills
         try {
           invalidatePreview(fid, mid);
         } catch {
@@ -1183,27 +1182,28 @@ export function DrivePreviewModal({
             !v.error &&
             (browserHasData || v.readyState >= 2 || (!v.paused && v.currentTime > 0.2));
           if (playingOk) {
-            streamMissingHitsRef.current = 0;
-            setPlayerHint(null);
+            setPlayerHint((h) => h || 'Buffering…');
           } else {
-            if (st.status === 'missing' && streamUrl && streamId) {
+            // Attempt soft resume on existing stream ID without changing URL/remounting <video>
+            if (streamUrl && streamId) {
               const idx = streamUrl.indexOf('/stream/');
               if (idx >= 0) {
                 const base = streamUrl.slice(0, idx) + `/stream/${streamId}`;
                 void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
               }
             }
-            if (streamMissingHitsRef.current >= 25 || st.status === 'cancelled') {
+            if (streamMissingHitsRef.current >= 5) {
+              // Re-RPC only after 5 consecutive missing ticks AND video is truly stuck.
+              // Guard: don’t overlap with onError rebind — that’s the reload-loop root cause.
               streamMissingHitsRef.current = 0;
               if (!softReloadInFlightRef.current) {
                 softReloadInFlightRef.current = true;
-                liveStreamIdRef.current = null;
                 setPlayerHint('Melanjutkan unduhan stream…');
                 softReloadTimerRef.current = window.setTimeout(() => {
                   softReloadInFlightRef.current = false;
                   softReloadTimerRef.current = null;
                   if (mountGenRef.current !== activeMountGen) return;
-                  loadPreviewRef.current(quality, { soft: false, force: true });
+                  loadPreviewRef.current(quality, { soft: true });
                 }, 600);
               } else {
                 setPlayerHint('Melanjutkan stream…');
@@ -1221,10 +1221,9 @@ export function DrivePreviewModal({
         // Triggers on stream_ready, browserHasData, or even bufferPct>=5%
         // so video starts the instant enough bytes exist — YouTube-style.
         const now = Date.now();
-        const firstPlayThreshold = Math.max(384 * 1024, (total || 0) * 0.005);
-        const bufferHasEnough = prefix >= firstPlayThreshold || (total > 0 && prefix >= total * 0.98);
+        const bufferHasEnough = pct >= 5 || prefix >= 128 * 1024;
         const streamReady =
-          (st.stream_ready === true && st.moov_ready === true) ||
+          st.stream_ready === true ||
           browserHasData ||
           bufferHasEnough ||
           (!!v && v.readyState >= 2) ||
@@ -1234,8 +1233,6 @@ export function DrivePreviewModal({
           v &&
           v.paused &&
           !v.ended &&
-          !hasUserPlayRef.current &&
-          !userPausedRef.current &&
           !seekWarnRef.current &&
           streamReady &&
           now - playNudgeAtRef.current > 120  // 120ms for instant play response
@@ -1246,12 +1243,42 @@ export function DrivePreviewModal({
             v.currentTime >= v.duration - 0.35;
           if (!nearEnd) {
             playNudgeAtRef.current = now;
-            void v.play().then(() => {
-              hasUserPlayRef.current = true;
-              setHasVideoFrame(true);
-              setPlayerHint(null);
-              setLoading(false);
-            }).catch(() => undefined);
+            // Media error freezes the element — rebind same URL to clear error state,
+            // then defer play() so the element has time to load before we call play.
+            if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
+              const t = v.currentTime || 0;
+              try {
+                const sticky = streamUrl;
+                v.removeAttribute('src');
+                v.load();
+                v.src = sticky;
+                if (t > 0.25) {
+                  ignoreSeekEventsRef.current += 1;
+                  v.currentTime = t;
+                }
+              } catch {
+                /* ignore */
+              }
+              // After rebind, defer play until the element is ready (canplay/loadeddata)
+              window.setTimeout(() => {
+                const vv = videoRef.current;
+                if (vv && vv.paused && !vv.ended && !vv.error) {
+                  void vv.play().then(() => {
+                    hasUserPlayRef.current = true;
+                    setHasVideoFrame(true);
+                    setPlayerHint(null);
+                    setLoading(false);
+                  }).catch(() => undefined);
+                }
+              }, 300);
+            } else {
+              void v.play().then(() => {
+                hasUserPlayRef.current = true;
+                setHasVideoFrame(true);
+                setPlayerHint(null);
+                setLoading(false);
+              }).catch(() => undefined);
+            }
           }
         }
 
@@ -1392,12 +1419,17 @@ export function DrivePreviewModal({
   }, []);
 
   const handlePause = useCallback(() => {
-    userPausedRef.current = true;
-  }, []);
+    // Never suspend Telegram fill before the user/autoplay has actually played.
+    if (!hasUserPlayRef.current) return;
+    if (!streamUrl || !streamId) return;
+    const baseUrl = getStreamBaseUrl(streamUrl, streamId);
+    if (baseUrl) {
+      fetch(`${baseUrl}/pause`, { method: 'POST' }).catch(() => undefined);
+    }
+  }, [streamUrl, streamId, getStreamBaseUrl]);
 
   const handlePlay = useCallback(() => {
     hasUserPlayRef.current = true;
-    userPausedRef.current = false;
     if (!streamUrl || !streamId) return;
     const baseUrl = getStreamBaseUrl(streamUrl, streamId);
     if (baseUrl) {
@@ -3120,7 +3152,7 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   const v = videoRef.current;
-                  if (v && v.paused && !v.ended && !hasUserPlayRef.current && !userPausedRef.current) {
+                  if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
                     }).catch(() => undefined);
@@ -3131,7 +3163,7 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   const v = videoRef.current;
-                  if (v && v.paused && !v.ended && !hasUserPlayRef.current && !userPausedRef.current) {
+                  if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
                     }).catch(() => undefined);
@@ -3201,9 +3233,9 @@ export function DrivePreviewModal({
                 onStalled={() => {
                   if (streamUrl && !streamDone && !seekWarn) {
                     setPlayerHint('Menunggu data…');
-                    // Stalled with data available — re-kick playback only during active playback, not when user paused
+                    // Stalled with data available — re-kick playback
                     const v = videoRef.current;
-                    if (v && v.paused && v.readyState >= 2 && hasUserPlayRef.current && !userPausedRef.current) {
+                    if (v && v.paused && v.readyState >= 2) {
                       void v.play().catch(() => undefined);
                     }
                   }
@@ -3266,6 +3298,8 @@ export function DrivePreviewModal({
                     if (v && streamUrl && n <= 4 && !softReloadInFlightRef.current) {
                       softReloadInFlightRef.current = true;
                       setPlayerHint('Buffering… menyambung putar');
+                      const t = v.currentTime || 0;
+                      const sticky = streamUrl;
                       if (softReloadTimerRef.current != null) {
                         window.clearTimeout(softReloadTimerRef.current);
                       }
@@ -3274,11 +3308,25 @@ export function DrivePreviewModal({
                         softReloadTimerRef.current = null;
                         const vv = videoRef.current;
                         if (!vv || mountGenRef.current !== activeMountGen) return;
-                        void vv.play().then(() => {
-                          hasUserPlayRef.current = true;
-                          setPlayerHint(null);
-                        }).catch(() => undefined);
-                      }, 500);
+                        try {
+                          if (vv.error) {
+                            vv.removeAttribute('src');
+                            vv.load();
+                            vv.src = sticky;
+                            if (t > 0.25) {
+                              ignoreSeekEventsRef.current += 1;
+                              // Defer currentTime until element has loaded enough
+                              window.setTimeout(() => { try { vv.currentTime = t; } catch { /**/ } }, 200);
+                            }
+                          }
+                          void vv.play().then(() => {
+                            hasUserPlayRef.current = true;
+                            setPlayerHint(null);
+                          }).catch(() => undefined);
+                        } catch {
+                          /* ignore */
+                        }
+                      }, 400);
                       return;
                     }
                     // Exhausted retries — just hint, never hard-reload
