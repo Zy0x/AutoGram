@@ -1370,7 +1370,7 @@ export function DrivePreviewModal({
     streamTimeoutRef.current = window.setTimeout(() => {
       streamTimeoutRef.current = null;
       const v = videoRef.current;
-      const notStarted = !v || (v.readyState < 2 && v.currentTime < 0.1);
+      const notStarted = (!v || (v.readyState < 2 && v.currentTime < 0.1)) && !hasVideoFrame;
       if (notStarted) {
         setError(
           'Video tidak dapat diputar — stream gagal memuat setelah 30 detik. Klik Muat Ulang untuk mencoba kembali.'
@@ -3182,6 +3182,7 @@ export function DrivePreviewModal({
                 controls
                 playsInline
                 autoPlay
+                muted={muted}
                 loop={loopVideo}
                 preload="auto"
                 className={`drive-preview-media drive-preview-video${
@@ -3216,6 +3217,10 @@ export function DrivePreviewModal({
                   setLoading(false);
                 }}
                 onLoadedData={() => {
+                  if (streamTimeoutRef.current != null) {
+                    window.clearTimeout(streamTimeoutRef.current);
+                    streamTimeoutRef.current = null;
+                  }
                   setHasVideoFrame(true);
                   setLoading(false);
                   setPlayerHint(null);
@@ -3227,6 +3232,10 @@ export function DrivePreviewModal({
                   }
                 }}
                 onCanPlay={() => {
+                  if (streamTimeoutRef.current != null) {
+                    window.clearTimeout(streamTimeoutRef.current);
+                    streamTimeoutRef.current = null;
+                  }
                   setHasVideoFrame(true);
                   setLoading(false);
                   setPlayerHint(null);

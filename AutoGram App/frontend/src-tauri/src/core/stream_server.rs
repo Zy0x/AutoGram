@@ -536,9 +536,9 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
 
-            // Wait up to 8 seconds for Telegram download to reach start
+            // Wait up to 6.5 seconds for Telegram download to reach start
             let mut waited = 0;
-            while waited < 8000 {
+            while waited < 6500 {
                 let r = if entry.ranges.is_empty() {
                     vec![]
                 } else {
@@ -549,8 +549,8 @@ fn handle_stream(request: Request, sid: &str) {
                     have_end = have;
                     break;
                 }
-                thread::sleep(Duration::from_millis(50));
-                waited += 50;
+                thread::sleep(Duration::from_millis(35));
+                waited += 35;
                 if let Some(updated) = get_entry(sid) {
                     entry = updated;
                 } else {
@@ -558,17 +558,24 @@ fn handle_stream(request: Request, sid: &str) {
                 }
             }
 
+            // RFC 7233 Sec 4.4: 416 Range Not Satisfiable is strictly for start >= total!
+            // Returning 416 when start < total destroys Chromium HTML5 media decoder state.
             if have_end <= start && !entry.done {
-                let mut res = Response::from_string("Range Not Satisfiable")
-                    .with_status_code(StatusCode(416));
-                for h in cors_headers() {
-                    res.add_header(h);
+                if start >= total {
+                    let mut res = Response::from_string("Range Not Satisfiable")
+                        .with_status_code(StatusCode(416));
+                    for h in cors_headers() {
+                        res.add_header(h);
+                    }
+                    if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes()) {
+                        res.add_header(h);
+                    }
+                    let _ = request.respond(res);
+                    return;
                 }
-                if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes()) {
-                    res.add_header(h);
-                }
-                let _ = request.respond(res);
-                return;
+                // Data still buffering for start < total — fallback to available ranges or advance end
+                let latest_ranges = if entry.ranges.is_empty() { vec![] } else { entry.ranges.clone() };
+                have_end = contiguous_end_from(&latest_ranges, start).max(start.saturating_add(1)).min(total);
             }
         }
         let solid_end = if entry.done {
@@ -649,11 +656,18 @@ fn handle_stream(request: Request, sid: &str) {
         &entry.mime
     };
 
-    let mut res = Response::from_data(out).with_status_code(StatusCode(status));
+    let out_len = out.len();
+    let mut res = Response::from_data(out)
+        .with_status_code(StatusCode(status))
+        .with_chunked_threshold(usize::MAX);
     for h in cors_headers() {
         res.add_header(h);
     }
     if let Ok(h) = Header::from_bytes(&b"Content-Type"[..], mime.as_bytes()) {
+        res.add_header(h);
+    }
+    let cl_val = format!("{out_len}");
+    if let Ok(h) = Header::from_bytes(&b"Content-Length"[..], cl_val.as_bytes()) {
         res.add_header(h);
     }
     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
