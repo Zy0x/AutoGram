@@ -187,7 +187,7 @@ function writeQualityPref(q: string) {
 /** Progressive partial files are not playable via convertFileSrc (no Range / hollow middle). */
 function isProgressiveStreamPath(path: string | null | undefined): boolean {
   if (!path) return false;
-  return /\.stream\./i.test(path) || /\.stream$/i.test(path);
+  return /\.stream\./i.test(path) || /\.stream$/i.test(path) || /\.partial$/i.test(path) || /\.partial\./i.test(path) || /\.tmp$/i.test(path);
 }
 
 function isHttpStreamUrl(url: string | null | undefined): boolean {
@@ -675,6 +675,8 @@ export function DrivePreviewModal({
 
   if (file.id !== prevFileId) {
     setPrevFileId(file.id);
+    liveStreamIdRef.current = null;
+    nativeStreamReadyRef.current = false;
     setDataUrl(null);
     setPath(null);
     setStreamUrl(null);
