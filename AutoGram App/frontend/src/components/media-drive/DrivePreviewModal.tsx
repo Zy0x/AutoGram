@@ -1181,7 +1181,8 @@ export function DrivePreviewModal({
             !v.error &&
             (browserHasData || v.readyState >= 2 || (!v.paused && v.currentTime > 0.2));
           if (playingOk) {
-            setPlayerHint((h) => h || 'Buffering…');
+            streamMissingHitsRef.current = 0;
+            setPlayerHint(null);
           } else {
             if (st.status === 'missing' && streamUrl && streamId) {
               const idx = streamUrl.indexOf('/stream/');
@@ -1190,7 +1191,7 @@ export function DrivePreviewModal({
                 void fetch(`${base}/resume`, { method: 'POST' }).catch(() => undefined);
               }
             }
-            if (streamMissingHitsRef.current >= 5 || st.status === 'cancelled') {
+            if (streamMissingHitsRef.current >= 25 || st.status === 'cancelled') {
               streamMissingHitsRef.current = 0;
               if (!softReloadInFlightRef.current) {
                 softReloadInFlightRef.current = true;
@@ -1201,7 +1202,7 @@ export function DrivePreviewModal({
                   softReloadTimerRef.current = null;
                   if (mountGenRef.current !== activeMountGen) return;
                   loadPreviewRef.current(quality, { soft: false, force: true });
-                }, 400);
+                }, 600);
               } else {
                 setPlayerHint('Melanjutkan stream…');
               }
