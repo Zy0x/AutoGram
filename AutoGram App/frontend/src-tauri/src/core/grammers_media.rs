@@ -710,9 +710,16 @@ async fn download_media_thumb(
                         }
                     } else if doc_size > 0 {
                         let total_chunks = doc_size / chunk_bytes;
-                        // Fetch last 24 chunks (6 MB) to capture moov atom & stco tables for large videos
-                        let tail_chunks = 24.min(total_chunks);
-                        let skip = total_chunks.saturating_sub(tail_chunks) as i32;
+                        // Fetch tail chunks dynamically to capture moov atom & stco tables for large videos:
+                        // 64 chunks (16 MB) for videos > 50MB, 40 chunks (10 MB) for videos > 25MB, else 24 chunks (6 MB)
+                        let tail_chunks_count = if doc_size > 50 * 1024 * 1024 {
+                            64.min(total_chunks)
+                        } else if doc_size > 25 * 1024 * 1024 {
+                            40.min(total_chunks)
+                        } else {
+                            24.min(total_chunks)
+                        };
+                        let skip = total_chunks.saturating_sub(tail_chunks_count) as i32;
                         let mut tail_bytes = Vec::new();
                         let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
                         while let Some(chunk) = tail_iter.next().await.map_err(|e| map_invocation(&e))? {
@@ -861,10 +868,19 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
     let moov_tag = b"moov";
     let mut moov_pos = None;
     if tail_bytes.len() >= 8 {
-        for i in 4..=tail_bytes.len() - 4 {
+        for i in (4..=tail_bytes.len() - 4).rev() {
             if &tail_bytes[i..i + 4] == moov_tag {
-                moov_pos = Some(i - 4);
-                break;
+                let candidate = i - 4;
+                let candidate_sz = u32::from_be_bytes([
+                    tail_bytes[candidate],
+                    tail_bytes[candidate + 1],
+                    tail_bytes[candidate + 2],
+                    tail_bytes[candidate + 3],
+                ]) as usize;
+                if candidate_sz >= 8 && candidate + candidate_sz <= tail_bytes.len() {
+                    moov_pos = Some(candidate);
+                    break;
+                }
             }
         }
     }
@@ -1046,8 +1062,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
-        .arg("error")
+        .arg("quiet")
         .arg("-y")
+        .arg("-err_detect")
+        .arg("ignore_err")
+        .arg("-flags")
+        .arg("low_delay")
         .arg("-threads")
         .arg("1")
         .arg("-i")
@@ -1068,17 +1088,21 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         Err(e) => (None, e.to_string()),
     };
 
-    // Pass 2: Output-level seek (-ss 00:00:00.500 after -i) if Pass 1 returned empty/failed
+    // Pass 2: Output-level seek (-ss 00:00:00.100 after -i) if Pass 1 returned empty/failed
     if result.is_none() {
         let status2 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg("quiet")
             .arg("-y")
+            .arg("-err_detect")
+            .arg("ignore_err")
+            .arg("-flags")
+            .arg("low_delay")
             .arg("-i")
             .arg(&sample_path)
             .arg("-ss")
-            .arg("00:00:00.500")
+            .arg("00:00:00.100")
             .arg("-an")
             .arg("-threads")
             .arg("1")

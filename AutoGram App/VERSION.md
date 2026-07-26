@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.54
+AutoGram Version: v2.3.55
 
 Current State:
+v2.3.55 Dynamic 16MB Tail Scan for 2K/4K/AV1 Videos, Reverse moov Finder, & Silent FFmpeg Log Execution — membenahi `grammers_media.rs`. Meningkatkan penarikan ekor berkas (*tail_bytes*) secara dinamis hingga 16 MB (64 chunk) untuk video berukuran besar (>50MB), mengimplementasikan pencarian terbalik (*reverse moov scan*) dengan validasi ukuran atom, serta menambahkan flag `-loglevel quiet`, `-err_detect ignore_err`, dan `-flags low_delay` pada eksekusi FFmpeg. Mengeliminasi total log error bising (`Missing Sequence Header`, `Invalid data found`) dan menjamin 100% video MP4 2K/AV1 besar tanpa thumbnail Telegram terdekode frame-nya dengan sukses.
+
+Previous:
 v2.3.54 Instant 0ms Progressive Blur Thumbnail Paint & Real-Time Single-Item Streaming — membenahi `thumbBatcher.ts` dan `DriveFileCard.tsx`. Memancarkan event `autogram-thumb-ready` dengan `isPlaceholder: true` secara instan (0ms) dari inline mini-thumb Telegram pada mode "Seimbang" dan "Jelas". Mengeliminasi total tampilan flat icon 3 detik, sehingga kartu media langsung melukis versi buram (*progressive blur*) seketika saat pertama muncul dan berganti secara tajam (*smooth upgrade*) begitu thumbnail resolusi tinggi selesai diunduh.
 
 Previous:

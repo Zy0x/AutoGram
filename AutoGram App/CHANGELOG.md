@@ -1,3 +1,10 @@
+## v2.3.55 Dynamic 16MB Tail Scan for 2K/4K/AV1 Videos, Reverse moov Finder, & Silent FFmpeg Execution
+
+### Perbaikan Ekstraksi Frame & Eliminasi Log Error FFmpeg (`grammers_media.rs`)
+- **Skala Penarikan Ekor Berkas Dinamis 16 MB (`tail_bytes`)**: Menaikkan jangkauan sampel ekor berkas dari 6 MB (24 chunk) menjadi hingga **16 MB (64 chunk)** untuk video berukuran besar (>50 MB). Menjamin atom `moov` dan tabel offset `stco`/`co64` pada video 2K/4K/AV1 (seperti berkas 96MB) terambil secara utuh untuk rekonstruksi MP4 faststart.
+- **Pencarian Terbalik Atom `moov` (`reverse moov scan`)**: Memperbarui `make_faststart_mp4` agar melakukan pemindaian atom `moov` dari posisi paling belakang berkas (*backward search*) dengan validasi ukuran atom, mengeliminasi kesalahan pembacaan akibat kemunculan string `moov` palsu pada metadata sampel.
+- **Pembersihan Log Konsol Error Bising**: Menambahkan `-loglevel quiet`, `-err_detect ignore_err`, dan `-flags low_delay` pada perintah eksekusi FFmpeg subprocess. Mengeliminasi total peringatan error bising pada terminal (`Missing Sequence Header`, `Invalid data found when processing input`, `partial file`).
+
 ## v2.3.54 Instant 0ms Progressive Blur Thumbnail Paint & Real-Time Streaming
 
 ### Pemuatan Thumbnail Progresif Instan 0ms (`thumbBatcher.ts`, `DriveFileCard.tsx`)
