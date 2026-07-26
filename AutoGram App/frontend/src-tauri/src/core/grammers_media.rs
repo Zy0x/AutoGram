@@ -2322,6 +2322,7 @@ fn start_preview_stream_inner(
             let mut offset: u64 = boot_end;
             let mut ranges: Vec<(u64, u64)> = boot_ranges;
             let mut moov_bootstrapped = ranges.len() > 1 || boot_end > 0;
+            let mut active_seek_target: Option<u64> = None;
             let result = async {
                 // grammers GetFile: MIN=4KiB MAX=512KiB (panic outside range)
                 const CHUNK_SIZE: u64 = 512 * 1024;
@@ -2349,6 +2350,41 @@ fn start_preview_stream_inner(
                         return Err("cancelled".into());
                     }
 
+                    // Check for new incoming seek/range requests from HTTP stream server
+                    if let Some(requested) = take_seek_request(&sid) {
+                        let requested = requested.min(size.saturating_sub(1));
+                        let aligned = (requested / CHUNK_SIZE) * CHUNK_SIZE;
+                        let already_available = ranges
+                            .iter()
+                            .any(|(start, end)| *start <= requested && requested < *end);
+                        if !already_available {
+                            active_seek_target = Some(aligned);
+                            tg_log::info(
+                                BACKEND,
+                                "progressive_seek_target_locked",
+                                format!("sid={sid} target={aligned}"),
+                            );
+                        }
+                    }
+
+                    // If we have an active seek target (e.g. moov tail or user scrub), check if fulfilled
+                    if let Some(target) = active_seek_target {
+                        let fulfilled = ranges
+                            .iter()
+                            .any(|(start, end)| *start <= target && target < *end);
+                        if fulfilled {
+                            active_seek_target = None;
+                        } else if offset != target {
+                            offset = target;
+                            let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                            iter = live
+                                .client
+                                .iter_download(&fill_media)
+                                .chunk_size(CHUNK_SIZE as i32)
+                                .skip_chunks(skip);
+                        }
+                    }
+
                     // Adaptive Lightweight Pacing: If we already have 15 MB buffered ahead,
                     // sleep briefly (60ms) to keep CPU & RAM lightweight while video plays smoothly.
                     let current_filled = stream_server::filled_bytes(&ranges);
@@ -2356,7 +2392,7 @@ fn start_preview_stream_inner(
                         tokio::time::sleep(std::time::Duration::from_millis(60)).await;
                     }
 
-                    // Skip contiguous ranges starting at current offset, then check for remaining gaps.
+                    // Skip contiguous ranges starting at current offset
                     while let Some(&(_, end)) = ranges.iter().find(|(s, e)| *s <= offset && offset < *e) {
                         if end > offset {
                             offset = end;
@@ -2365,21 +2401,23 @@ fn start_preview_stream_inner(
                         }
                     }
 
-                    // Check if any unfilled gaps remain anywhere between 0 and size
-                    match first_missing_offset(&ranges, size) {
-                        None => {
-                            // Entire file 100% downloaded
-                            break;
-                        }
-                        Some(next_gap) => {
-                            if next_gap != offset {
-                                offset = next_gap;
-                                let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
-                                iter = live
-                                    .client
-                                    .iter_download(&fill_media)
-                                    .chunk_size(CHUNK_SIZE as i32)
-                                    .skip_chunks(skip);
+                    // Only advance to first_missing_offset if no active seek target is pending
+                    if active_seek_target.is_none() {
+                        match first_missing_offset(&ranges, size) {
+                            None => {
+                                // Entire file 100% downloaded
+                                break;
+                            }
+                            Some(next_gap) => {
+                                if next_gap != offset {
+                                    offset = next_gap;
+                                    let skip = (offset / CHUNK_SIZE).min(i32::MAX as u64) as i32;
+                                    iter = live
+                                        .client
+                                        .iter_download(&fill_media)
+                                        .chunk_size(CHUNK_SIZE as i32)
+                                        .skip_chunks(skip);
+                                }
                             }
                         }
                     }
@@ -2396,29 +2434,6 @@ fn start_preview_stream_inner(
                             break;
                         }
                         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                    }
-
-                    if let Some(requested) = take_seek_request(&sid) {
-                        let requested = requested.min(size.saturating_sub(1));
-                        let aligned = (requested / CHUNK_SIZE) * CHUNK_SIZE;
-                        let already_available = ranges
-                            .iter()
-                            .any(|(start, end)| *start <= requested && requested < *end);
-                        if !already_available && aligned != offset {
-                            let skip = (aligned / CHUNK_SIZE).min(i32::MAX as u64) as i32;
-                            iter = live
-                                .client
-                                .iter_download(&fill_media)
-                                .chunk_size(CHUNK_SIZE as i32)
-                                .skip_chunks(skip);
-                            offset = aligned;
-                            tg_log::info(
-                                BACKEND,
-                                "progressive_seek",
-                                format!("sid={sid} offset={aligned}"),
-                            );
-                            continue;
-                        }
                     }
 
                     // Resilient next-chunk fetch with retry loop
