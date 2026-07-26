@@ -2237,38 +2237,26 @@ fn start_preview_stream_inner(
 
             if is_video && size > 1024 * 1024 && !has_moov_head {
                 if let Some(loc) = media_to_input_location(&media) {
-                    // Fast 1MB MOOV Tail Pre-fetch (two 512KB chunks) for zero-wait instant video playback
-                    let tail_1m_offset = (size.saturating_sub(1024 * 1024) / 4096) * 4096;
-                    let tail_req1 = tl::functions::upload::GetFile {
-                        precise: false,
-                        cdn_supported: false,
-                        location: loc.clone(),
-                        offset: tail_1m_offset as i64,
-                        limit: 512 * 1024,
-                    };
-                    if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req1).await {
-                        if !f.bytes.is_empty() {
-                            if file.seek(SeekFrom::Start(tail_1m_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                let end_tail = tail_1m_offset + f.bytes.len() as u64;
-                                boot_ranges.push((tail_1m_offset, end_tail));
-                            }
-                        }
-                    }
+                    // Deep 2.5MB MOOV Tail Pre-fetch (up to 5 x 512KB chunks) for large MP4 files (e.g. 300MB+)
+                    let tail_depth: u64 = 2560 * 1024; // 2.5 MB
+                    let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
+                    let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);
 
-                    let tail_512k_offset = (size.saturating_sub(512 * 1024) / 4096) * 4096;
-                    if tail_512k_offset > tail_1m_offset {
-                        let tail_req2 = tl::functions::upload::GetFile {
+                    for i in 0..num_chunks {
+                        let chunk_off = tail_start_offset + i * (512 * 1024);
+                        if chunk_off >= size { break; }
+                        let req = tl::functions::upload::GetFile {
                             precise: false,
                             cdn_supported: false,
                             location: loc.clone(),
-                            offset: tail_512k_offset as i64,
+                            offset: chunk_off as i64,
                             limit: 512 * 1024,
                         };
-                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&tail_req2).await {
+                        if let Ok(tl::enums::upload::File::File(f)) = live.client.invoke(&req).await {
                             if !f.bytes.is_empty() {
-                                if file.seek(SeekFrom::Start(tail_512k_offset)).is_ok() && file.write_all(&f.bytes).is_ok() {
-                                    let end_tail = tail_512k_offset + f.bytes.len() as u64;
-                                    boot_ranges.push((tail_512k_offset, end_tail));
+                                if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&f.bytes).is_ok() {
+                                    let end_chunk = chunk_off + f.bytes.len() as u64;
+                                    boot_ranges.push((chunk_off, end_chunk));
                                 }
                             }
                         }
@@ -2276,7 +2264,7 @@ fn start_preview_stream_inner(
                     let _ = file.flush();
                     tg_log::info(
                         BACKEND,
-                        "moov_tail_prefetched_1mb",
+                        "moov_tail_prefetched_2_5mb",
                         format!("sid={stream_id} total_size={size}"),
                     );
                 }
