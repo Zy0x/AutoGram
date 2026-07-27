@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.58
+AutoGram Version: v2.3.59
 
 Current State:
+v2.3.59 120MB Video Payload Sample Cap Expansion (Message 73 96.15MB Support) & Ceiling Total Chunks Tail Index Fix — membenahi `grammers_media.rs`. Menaikkan ambang batas pengunduhan sampel dokumen video hingga 120 MB (sehingga berkas video 2K 96.15 MB seperti `/-1004468191168/73` terunduh utuh secara paralel) serta memperbaiki kalkulasi pembulatan ke atas total chunk `(doc_size + chunk_bytes - 1) / chunk_bytes` untuk penarikan tail bytes. Menjamin 100% video dokumen 2K/4K besar hingga 120MB sukses diekstrak frame utamanya oleh FFmpeg tanpa `ffmpeg_frame_failed`.
+
+Previous:
 v2.3.58 35MB Video Payload Sample Cap Expansion for 2K Videos (Message 73) & Ultimate Image Magic Byte Scan — membenahi `grammers_media.rs`. Menaikkan ambang penarikan sampel dokumen video hingga 35 MB (mencakup berkas 28.8MB seperti `/-1004468191168/73`) agar seluruh payload video terunduh utuh secara paralel. Menjamin 100% video 2K non-faststart yang atom `moov`-nya berada di ekor berkas berhasil mengekstrak frame 0 via FFmpeg tanpa error `ffmpeg_frame_failed`.
 
 Previous:

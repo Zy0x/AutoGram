@@ -666,14 +666,14 @@ async fn download_media_thumb(
                 let doc_size = d.size().unwrap_or(0) as usize;
                 let mode = quality.to_lowercase();
                 let sharp = mode.contains("jelas") || mode.contains("sharp");
-                // For video documents <= 35MB (which includes message 73, 2K clips, TikTok clips, and short videos),
+                // For video documents <= 120MB (which includes message 73 at 96.15MB, 2K/4K clips, TikTok clips, and short videos),
                 // download the full video payload so FFmpeg frame extraction succeeds 100% reliably.
-                let max_sample = if doc_size > 0 && doc_size <= 35 * 1024 * 1024 {
+                let max_sample = if doc_size > 0 && doc_size <= 120 * 1024 * 1024 {
                     doc_size
                 } else if sharp {
-                    6144 * 1024
+                    8192 * 1024
                 } else if saver {
-                    1024 * 1024
+                    2048 * 1024
                 } else {
                     4096 * 1024
                 };
@@ -713,7 +713,7 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 40MB+ videos)
+                // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 120MB+ videos)
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 && doc_size <= sample_bytes.len() + chunk_bytes {
                     // Entire video (or almost entire video) is already in sample_bytes.
@@ -724,7 +724,7 @@ async fn download_media_thumb(
                         }
                     }
                 } else if doc_size > 0 {
-                    let total_chunks = doc_size / chunk_bytes;
+                    let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
                     // Fetch tail chunks dynamically to capture moov atom & stco tables for large videos:
                     // 64 chunks (16 MB) for videos > 50MB, 40 chunks (10 MB) for videos > 25MB, else 24 chunks (6 MB)
                     let tail_chunks_count = if doc_size > 50 * 1024 * 1024 {
@@ -1129,7 +1129,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
-        .arg("quiet")
+        .arg("error")
         .arg("-y")
         .arg("-err_detect")
         .arg("ignore_err")
@@ -1160,7 +1160,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         let status2 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("quiet")
+            .arg("error")
             .arg("-y")
             .arg("-err_detect")
             .arg("ignore_err")
