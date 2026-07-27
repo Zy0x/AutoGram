@@ -712,17 +712,36 @@ async fn download_media_thumb(
                 }
 
 
-                // Quota-saver tail chunk fetch (downloads 16, 32, or 48 chunks = up to 12 MB from end of file progressively)
+                // Quota-saver tail chunk fetch (downloads 2, 4, 8, 16, or 32 chunks = starting from just 512 KB!)
                 let chunk_bytes = 256 * 1024;
+                if doc_size > 0 {
+                    let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
+                    for tail_chunks_count in [2usize, 4usize, 8usize, 16usize, 32usize] {
+                        let actual_tail_count = tail_chunks_count.min(total_chunks);
+                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
+                        let mut tail_bytes = Vec::new();
+                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
+                            tail_bytes.extend_from_slice(&chunk);
+                        }
+                        if !tail_bytes.is_empty() {
+                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                            }
+                        }
+                        if actual_tail_count >= total_chunks {
+                            break;
+                        }
+                    }
+                }
 
                 // Detect AV1 video early: AV1 OBU header pattern in first 8 bytes.
                 // AV1 requires hardware acceleration; if FFmpeg cannot decode it after
-                // the initial 3.5MB sample, skip the 25MB rescue to avoid huge quota waste.
+                // the initial 3.5MB sample and 512KB tail fetch, skip the 25MB rescue to avoid huge quota waste.
                 let is_likely_av1 = sample_bytes.len() >= 4 && (
-                    // AV1 Sequence OBU forbidden_bit=0, type=1 (0b0000_10_0_0 = 0x0A) or (0b0001_00_0_0 = 0x12)
-                    // More reliable: look for "AV01" in ftyp or "av01" codec box
                     sample_bytes.windows(4).any(|w| w == b"AV01" || w == b"av01" || w == b"av1C")
-                    // Also check if already tried FFmpeg and got no frame (initial extract failed)
                 );
 
                 if is_likely_av1 {
@@ -731,36 +750,9 @@ async fn download_media_thumb(
                         "thumb_av1_skip_rescue",
                         "AV1 video detected — skipping 25MB rescue download to save quota. Falling through to Tier 6/7 stripped thumbnail.",
                     );
-                    // Fall through to Tier 6/7 (static Telegram thumbnail layers).
-                    // Do NOT download more data — AV1 needs hardware decode which may not be available.
                 } else {
-                    // Non-AV1: try tail-chunk fetch and ultimate rescue download
-                    if doc_size > 0 {
-                        let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                        for tail_chunks_count in [16usize, 32usize, 48usize] {
-                            let actual_tail_count = tail_chunks_count.min(total_chunks);
-                            let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
-                            let mut tail_bytes = Vec::new();
-                            let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                            while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                                tail_bytes.extend_from_slice(&chunk);
-                            }
-                            if !tail_bytes.is_empty() {
-                                if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                        return Ok(frame_bytes);
-                                    }
-                                }
-                            }
-                            if actual_tail_count >= total_chunks {
-                                break;
-                            }
-                        }
-                    }
-
-                    // ULTIMATE RESCUE FALLBACK: Expand sample download up to 25MB for stubborn 2K/4K video files
-                    // where moov is in the middle or larger than 12MB.
-                    // SKIPPED for AV1 (detected above) to conserve quota.
+                    // Non-AV1: ultimate rescue download up to 25MB for stubborn 2K/4K video files
+                    // where moov is in the middle or larger than 8MB.
                     let rescue_cap = 25 * 1024 * 1024;
                     if doc_size > 0 && sample_bytes.len() < rescue_cap {
                         while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
@@ -1309,17 +1301,44 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         }
     }
 
+fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(raw_data.len() + 1024);
+    let mut pos = 0;
+    while pos + 4 < raw_data.len() {
+        let nal_len = u32::from_be_bytes([
+            raw_data[pos],
+            raw_data[pos + 1],
+            raw_data[pos + 2],
+            raw_data[pos + 3],
+        ]) as usize;
+        if nal_len > 0 && nal_len < 16 * 1024 * 1024 && pos + 4 + nal_len <= raw_data.len() {
+            out.extend_from_slice(&[0x00, 0x00, 0x00, 0x01]);
+            out.extend_from_slice(&raw_data[pos + 4..pos + 4 + nal_len]);
+            pos += 4 + nal_len;
+        } else {
+            break;
+        }
+    }
+    if out.is_empty() {
+        raw_data.to_vec()
+    } else {
+        out
+    }
+}
+
     // Pass 5: Direct bitstream / mdat payload snapshot extraction.
     // If standard container demuxing failed (e.g. missing moov atom in initial sample buffer),
-    // extract raw bitstream from mdat payload offset and force raw demuxers (-f h264 / -f hevc / -f m4v).
+    // extract raw bitstream from mdat payload offset, convert MP4 AVCC length-prefixes to Annex-B start codes,
+    // and force raw demuxers (-f h264 / -f hevc / -f m4v).
     // This allows "playing/seeking" a tiny initial buffer directly into a thumbnail snapshot.
     if result.is_none() && sample_bytes.len() >= 128 {
         if let Some(mdat_pos) = sample_bytes.windows(4).position(|w| w == b"mdat") {
             let stream_start = mdat_pos + 4;
             if stream_start < sample_bytes.len() {
+                let raw_slice = &sample_bytes[stream_start..];
+                let annexb_bytes = convert_avcc_to_annexb(raw_slice);
                 let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.bin"));
-                let raw_data = &sample_bytes[stream_start..];
-                if std::fs::write(&stream_path, raw_data).is_ok() {
+                if std::fs::write(&stream_path, &annexb_bytes).is_ok() {
                     for fmt in ["h264", "hevc", "m4v", "mpegts"] {
                         let status5 = std::process::Command::new(&ff_exe)
                             .arg("-hide_banner")
