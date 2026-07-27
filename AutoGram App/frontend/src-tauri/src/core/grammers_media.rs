@@ -1431,7 +1431,8 @@ async fn make_smart_target_mp4(
 
     let mut target_frame_bytes = Vec::new();
     let mut iter = client.iter_download(d).chunk_size(chunk_size as i32).skip_chunks(target_chunk);
-    for _ in 0..6 {
+    // Fetch 16 chunks (4 MB) starting at target_chunk to provide enough keyframes for 1s-3s seeking
+    for _ in 0..16 {
         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
             target_frame_bytes.extend_from_slice(&chunk);
         } else {
@@ -1717,13 +1718,15 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    // Pass 1: Standard clean FFmpeg decode (without low_delay flag, which corrupts AV1/HEVC reference buffer allocation)
+    // Pass 1: Seek to 1.0 second (-ss 00:00:01) to bypass black intro/fade-in screens common in 3D animations and vertical videos
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
-        .args(av1_hwaccel_args)          // Phase 2: disable HW accel for AV1
+        .args(av1_hwaccel_args)
+        .arg("-ss")
+        .arg("00:00:01")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
@@ -1752,14 +1755,39 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         Err(ref e) => (None, e.to_string()),
     };
 
-    // Pass 2: Input-level seek (-ss 0 before -i) for AV1/VP9/H265 container keyframe alignment
+    // Pass 2: Input-level seek (-ss 00:00:00.500 before -i) for 0.5s timestamp
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
             .arg("error")
             .arg("-y")
-            .args(av1_hwaccel_args)      // Phase 2: disable HW accel for AV1
+            .args(av1_hwaccel_args)
+            .arg("-ss")
+            .arg("00:00:00.500")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        result = check_frame_file();
+    }
+
+    // Pass 3: Direct start of stream (-ss 0) fallback
+    if result.is_none() {
+        let _ = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .args(av1_hwaccel_args)
             .arg("-ss")
             .arg("0")
             .arg("-i")
