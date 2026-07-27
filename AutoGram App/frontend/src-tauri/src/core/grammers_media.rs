@@ -711,59 +711,83 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
+
                 // Quota-saver tail chunk fetch (downloads 16, 32, or 48 chunks = up to 12 MB from end of file progressively)
                 let chunk_bytes = 256 * 1024;
-                if doc_size > 0 {
-                    let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_chunks_count in [16usize, 32usize, 48usize] {
-                        let actual_tail_count = tail_chunks_count.min(total_chunks);
-                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
-                        let mut tail_bytes = Vec::new();
-                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                            tail_bytes.extend_from_slice(&chunk);
-                        }
-                        if !tail_bytes.is_empty() {
-                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
-                            }
-                        }
-                        if actual_tail_count >= total_chunks {
-                            break;
-                        }
-                    }
-                }
 
-                // ULTIMATE RESCUE FALLBACK: Expand sample download up to 25MB for stubborn 2K/4K/AV1 video files
-                // where moov is in the middle or larger than 12MB.
-                let rescue_cap = 25 * 1024 * 1024;
-                if doc_size > 0 && sample_bytes.len() < rescue_cap {
-                    while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
-                        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
-                            sample_bytes.extend_from_slice(&chunk);
-                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
-                                let patched = patch_head_mp4(&sample_bytes);
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
-                                    return Ok(frame_bytes);
+                // Detect AV1 video early: AV1 OBU header pattern in first 8 bytes.
+                // AV1 requires hardware acceleration; if FFmpeg cannot decode it after
+                // the initial 3.5MB sample, skip the 25MB rescue to avoid huge quota waste.
+                let is_likely_av1 = sample_bytes.len() >= 4 && (
+                    // AV1 Sequence OBU forbidden_bit=0, type=1 (0b0000_10_0_0 = 0x0A) or (0b0001_00_0_0 = 0x12)
+                    // More reliable: look for "AV01" in ftyp or "av01" codec box
+                    sample_bytes.windows(4).any(|w| w == b"AV01" || w == b"av01" || w == b"av1C")
+                    // Also check if already tried FFmpeg and got no frame (initial extract failed)
+                );
+
+                if is_likely_av1 {
+                    tg_log::warn(
+                        BACKEND,
+                        "thumb_av1_skip_rescue",
+                        "AV1 video detected — skipping 25MB rescue download to save quota. Falling through to Tier 6/7 stripped thumbnail.",
+                    );
+                    // Fall through to Tier 6/7 (static Telegram thumbnail layers).
+                    // Do NOT download more data — AV1 needs hardware decode which may not be available.
+                } else {
+                    // Non-AV1: try tail-chunk fetch and ultimate rescue download
+                    if doc_size > 0 {
+                        let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
+                        for tail_chunks_count in [16usize, 32usize, 48usize] {
+                            let actual_tail_count = tail_chunks_count.min(total_chunks);
+                            let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
+                            let mut tail_bytes = Vec::new();
+                            let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                            while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
+                                tail_bytes.extend_from_slice(&chunk);
+                            }
+                            if !tail_bytes.is_empty() {
+                                if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                        return Ok(frame_bytes);
+                                    }
                                 }
                             }
-                        } else {
-                            break;
+                            if actual_tail_count >= total_chunks {
+                                break;
+                            }
                         }
                     }
-                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                        return Ok(frame_bytes);
+
+                    // ULTIMATE RESCUE FALLBACK: Expand sample download up to 25MB for stubborn 2K/4K video files
+                    // where moov is in the middle or larger than 12MB.
+                    // SKIPPED for AV1 (detected above) to conserve quota.
+                    let rescue_cap = 25 * 1024 * 1024;
+                    if doc_size > 0 && sample_bytes.len() < rescue_cap {
+                        while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
+                            if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                                sample_bytes.extend_from_slice(&chunk);
+                                if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                                        return Ok(frame_bytes);
+                                    }
+                                    let patched = patch_head_mp4(&sample_bytes);
+                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
+                                        return Ok(frame_bytes);
+                                    }
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                            return Ok(frame_bytes);
+                        }
+                        let patched = patch_head_mp4(&sample_bytes);
+                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
+                            return Ok(frame_bytes);
+                        }
                     }
-                    let patched = patch_head_mp4(&sample_bytes);
-                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
-                        return Ok(frame_bytes);
-                    }
-                }
+                } // end non-AV1 rescue block
             } else {
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {
@@ -1285,6 +1309,59 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         }
     }
 
+    // Pass 5: Direct bitstream / mdat payload snapshot extraction.
+    // If standard container demuxing failed (e.g. missing moov atom in initial sample buffer),
+    // extract raw bitstream from mdat payload offset and force raw demuxers (-f h264 / -f hevc / -f m4v).
+    // This allows "playing/seeking" a tiny initial buffer directly into a thumbnail snapshot.
+    if result.is_none() && sample_bytes.len() >= 128 {
+        if let Some(mdat_pos) = sample_bytes.windows(4).position(|w| w == b"mdat") {
+            let stream_start = mdat_pos + 4;
+            if stream_start < sample_bytes.len() {
+                let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.bin"));
+                let raw_data = &sample_bytes[stream_start..];
+                if std::fs::write(&stream_path, raw_data).is_ok() {
+                    for fmt in ["h264", "hevc", "m4v", "mpegts"] {
+                        let status5 = std::process::Command::new(&ff_exe)
+                            .arg("-hide_banner")
+                            .arg("-loglevel")
+                            .arg("quiet")
+                            .arg("-y")
+                            .arg("-f")
+                            .arg(fmt)
+                            .arg("-err_detect")
+                            .arg("ignore_err")
+                            .arg("-i")
+                            .arg(&stream_path)
+                            .arg("-an")
+                            .arg("-vframes")
+                            .arg("1")
+                            .arg("-vf")
+                            .arg(scale_arg)
+                            .arg("-q:v")
+                            .arg(q_val)
+                            .arg(&frame_path)
+                            .output();
+
+                        if let Ok(out) = status5 {
+                            if out.status.success() && frame_path.exists() {
+                                result = std::fs::read(&frame_path).ok();
+                                if result.is_some() {
+                                    tg_log::warn(
+                                        BACKEND,
+                                        "ffmpeg_pass5_success",
+                                        &format!("Raw bitstream snapshot extracted using -f {fmt} from mdat offset {stream_start}"),
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    let _ = std::fs::remove_file(&stream_path);
+                }
+            }
+        }
+    }
+
     let _ = std::fs::remove_file(&sample_path);
     let _ = std::fs::remove_file(&frame_path);
 
@@ -1476,8 +1553,11 @@ pub fn thumbs_batch_blocking_app(
         {
             let mem = thumb_mem_cache().lock();
             if let Some(url) = mem.get(&cache_key) {
-                // Reject tiny 40x22 stripped placeholders for non-saver modes
-                if q_key == "hemat" || url.len() > 600 {
+                // Accept any valid cached thumbnail regardless of size.
+                // NOTE: A 310-byte JPEG encodes to ~437-char data URL which previously
+                // was incorrectly rejected by url.len() > 600. Use len > 0 here;
+                // the real validity gate is the 64-byte min at disk-read time below.
+                if !url.is_empty() {
                     found_url = Some(url.clone());
                 }
             }
@@ -1489,6 +1569,10 @@ pub fn thumbs_batch_blocking_app(
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
+                    // 64 bytes is the real minimum for any JPEG/PNG/WebP thumbnail.
+                    // Do NOT apply a data-URL character-length filter here — small
+                    // but valid thumbnails (e.g. stripped 310-byte JPEGs) would be
+                    // wrongly discarded and re-downloaded on every grid open.
                     let min_disk = 64;
                     if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
@@ -1667,10 +1751,13 @@ pub fn thumbs_batch_blocking_app(
                         thumbs.insert(key, None);
                         continue;
                     }
-                    // Disk hit for THIS quality only (never fall back to hemat blur here)
+                    // Disk hit for THIS quality only (never fall back to hemat blur here).
+                    // Accept any non-empty cached URL — do NOT apply a character-length
+                    // threshold (previously url.len() > 600) which rejected valid small
+                    // thumbnails (e.g. 310-byte JPEG → ~437-char data URL).
                     let q_cache = format!("{chat_safe}_{mid}_{q_key}");
                     if let Some(url) = thumb_mem_cache().lock().get(&q_cache).cloned() {
-                        if q_key == "hemat" || url.len() > 600 {
+                        if !url.is_empty() {
                             thumbs.insert(key, Some(url));
                             continue;
                         }
