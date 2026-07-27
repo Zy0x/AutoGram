@@ -2928,33 +2928,51 @@ fn start_preview_stream_inner(
                     }
                     drop(tx);
                     let mut tail_ranges: Vec<(u64, u64)> = Vec::new();
+                    // Phase 6 (moov verification): accumulate tail bytes to scan for moov atom
+                    // before marking moov_ready_cached — prevents false-positive stream-ready signals.
+                    let mut tail_bytes_buf: Vec<u8> = Vec::new();
                     if let Ok(mut f_disk) = std::fs::OpenOptions::new().write(true).open(&tail_dest) {
                         while let Some((chunk_off, res)) = rx.recv().await {
                             if let Ok(Some(bytes)) = res {
                                 if !bytes.is_empty() {
                                     if f_disk.seek(SeekFrom::Start(chunk_off)).is_ok() && f_disk.write_all(&bytes).is_ok() {
                                         tail_ranges.push((chunk_off, chunk_off + bytes.len() as u64));
+                                        // Keep tail bytes in memory for moov scan (capped at 8 MB)
+                                        if tail_bytes_buf.len() < 8 * 1024 * 1024 {
+                                            tail_bytes_buf.extend_from_slice(&bytes);
+                                        }
                                     }
                                 }
                             }
                         }
                         let _ = f_disk.flush();
                     }
-                    // After tail completes: merge ranges + force moov_ready_cached=true
-                    // so stream_ready becomes true on next poll and UI can start playback.
+                    // Phase 6 (moov verification): scan actual tail bytes to confirm moov is present.
+                    // If tail_depth was insufficient, moov_ready_cached stays false so a larger
+                    // rescue fetch can be triggered instead of serving a broken stream.
+                    let has_moov = tail_bytes_buf.windows(4).any(|w| w == b"moov");
+                    // After tail completes: merge ranges + set moov_ready_cached based on actual scan.
                     if let Some(mut e) = stream_server::get_entry(&tail_sid) {
                         for r in tail_ranges {
                             e.ranges.push(r);
                         }
-                        e.moov_ready_cached = true; // tail has MOOV — mark ready NOW
-                        e.moov_tail_fetching = false; // superseded by moov_ready_cached
+                        e.moov_ready_cached = has_moov;
+                        e.moov_tail_fetching = false;
                         stream_server::upsert_entry(e);
                     }
-                    tg_log::info(
-                        BACKEND,
-                        "moov_tail_done_independent",
-                        format!("sid={tail_sid} size={size}"),
-                    );
+                    if has_moov {
+                        tg_log::info(
+                            BACKEND,
+                            "moov_tail_done_independent",
+                            format!("sid={tail_sid} size={size} moov=found"),
+                        );
+                    } else {
+                        tg_log::warn(
+                            BACKEND,
+                            "moov_tail_no_moov",
+                            format!("sid={tail_sid} size={size} tail_buf_len={} — moov not in tail; stream may need deeper fetch", tail_bytes_buf.len()),
+                        );
+                    }
                 });
         }
 
