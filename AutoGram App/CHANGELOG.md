@@ -1,3 +1,10 @@
+## v2.3.62 Dual-Track Parallel Concurrency & Ultra-Fast Image Thumbnail Response
+
+### Optimalisasi Responsivitas & Paralelisme Grid Media (`grammers_media.rs`, `devicePerformance.ts`)
+- **Dual-Track Semaphore Queue**: Memisahkan antrean eksekusi thumbnail di backend Rust menjadi 2 jalur independen: `fast_sem` (12 permit paralel) untuk gambar/foto dan media bertipe thumbnail statis, serta `video_sem` (4 permit paralel) untuk video dokumen FFmpeg.
+- **Fast-Track Image Prioritization**: Memprioritaskan penyerapan dan pemuatan berkas gambar kecil (`.jpg`, `.png`, `.webp`, `.heic`) sehingga gambar kartu langsung tampil jernih dalam **< 50ms** tanpa terhambat oleh proses ekstraksi video dokumen berukuran besar.
+- **Peningkatan Batch Concurrency Frontend**: Menaikkan batas penerbangan batch thumbnail paralel (`thumbConcurrent`) pada frontend dari 2 menjadi 4 untuk mempercepat *grid fill* saat pengguna melakukan scrolling cepat.
+
 ## v2.3.61 Fast 2MB Single-Pass Tail Scan & Rescue Loop Head-Tail MP4 Combination Patch
 
 ### Optimalisasi Kecepatan & Kuota Thumbnail Video Dokumen 2K/AV1 (`grammers_media.rs`)

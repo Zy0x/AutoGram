@@ -1886,9 +1886,43 @@ pub fn thumbs_batch_blocking_app(
                 }
 
                 let mut set = tokio::task::JoinSet::new();
-                let thumb_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
+                let fast_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(12));
+                let video_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
                 let is_flooded = session_rate::flood_remaining_secs(&session_name).unwrap_or(0) > 0;
-                for mid in need_download.iter().copied() {
+
+                // Sort need_download so fast-path items (photos, image docs, static thumbs) spawn BEFORE heavy video extraction tasks
+                let mut sorted_download = need_download.clone();
+                sorted_download.sort_by_key(|mid| {
+                    if let Some(msg) = msg_by_id.get(mid) {
+                        if let Some(media) = msg.media() {
+                            match media {
+                                Media::Document(ref d) => {
+                                    let mime = d.mime_type().unwrap_or("").to_lowercase();
+                                    let name = d.name().unwrap_or("").to_lowercase();
+                                    let has_video_attr = d.raw.video;
+                                    let sizes = media_thumbs(Some(&client), &media);
+                                    let is_v = has_video_attr
+                                        || mime.starts_with("video/")
+                                        || name.ends_with(".mp4")
+                                        || name.ends_with(".mov")
+                                        || name.ends_with(".mkv")
+                                        || name.ends_with(".webm")
+                                        || name.ends_with(".avi")
+                                        || name.ends_with(".ts");
+                                    let has_static = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)));
+                                    is_v && !has_static // Video without static thumb is heavy (key = 1), fast items are key = 0
+                                }
+                                _ => false,
+                            }
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                });
+
+                for mid in sorted_download.iter().copied() {
                     let key = mid.to_string();
                     if is_flooded {
                         tg_log::warn(
@@ -1947,7 +1981,32 @@ pub fn thumbs_batch_blocking_app(
                     let q_sub = quality_owned.clone();
                     let c_sub = chat_safe.clone();
                     let t_sub = t_dir.clone();
-                    let sem_sub = thumb_sem.clone();
+
+                    let is_heavy_video = match &media {
+                        Media::Document(d) => {
+                            let mime = d.mime_type().unwrap_or("").to_lowercase();
+                            let name = d.name().unwrap_or("").to_lowercase();
+                            let has_video_attr = d.raw.video;
+                            let sizes = media_thumbs(Some(&client), &media);
+                            let is_v = has_video_attr
+                                || mime.starts_with("video/")
+                                || name.ends_with(".mp4")
+                                || name.ends_with(".mov")
+                                || name.ends_with(".mkv")
+                                || name.ends_with(".webm")
+                                || name.ends_with(".avi")
+                                || name.ends_with(".ts");
+                            let has_static = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)));
+                            is_v && !has_static
+                        }
+                        _ => false,
+                    };
+
+                    let sem_sub = if is_heavy_video {
+                        video_sem.clone()
+                    } else {
+                        fast_sem.clone()
+                    };
 
                     set.spawn(async move {
                         let _permit = sem_sub.acquire_owned().await.ok();
