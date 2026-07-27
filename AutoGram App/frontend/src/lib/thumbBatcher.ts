@@ -513,6 +513,9 @@ export function clearThumbCache() {
   }
   queue.clear();
   metrics.queued = 0;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('autogram-cache-cleared'));
+  }
 }
 
 export function invalidateThumbFailures() {
@@ -862,19 +865,4 @@ export function prefetchThumbs(
       });
     }
   });
-}
-
-/**
- * Completely wipe in-memory thumbnail caches and fail cooldown timers.
- * Emits 'autogram-cache-cleared' custom event so UI components automatically re-request thumbnails.
- */
-export function clearThumbCache(): void {
-  memCache.clear();
-  softFailAt.clear();
-  errorFailAt.clear();
-  inflightByKey.clear();
-  queue.clear();
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('autogram-cache-cleared'));
-  }
 }
