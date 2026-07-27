@@ -735,6 +735,35 @@ async fn download_media_thumb(
                         }
                     }
                 }
+
+                // ULTIMATE RESCUE FALLBACK: Expand sample download up to 25MB for stubborn 2K/4K/AV1 video files
+                // where moov is in the middle or larger than 12MB.
+                let rescue_cap = 25 * 1024 * 1024;
+                if doc_size > 0 && sample_bytes.len() < rescue_cap {
+                    while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
+                        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                            sample_bytes.extend_from_slice(&chunk);
+                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                                let patched = patch_head_mp4(&sample_bytes);
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                        return Ok(frame_bytes);
+                    }
+                    let patched = patch_head_mp4(&sample_bytes);
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
+                        return Ok(frame_bytes);
+                    }
+                }
             } else {
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {

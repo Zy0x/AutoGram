@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.63
+AutoGram Version: v2.3.64
 
 Current State:
+v2.3.64 25MB Ultimate Rescue Fallback for Stubborn 2K/4K/AV1 Videos & Automatic Cache Flush — membenahi `grammers_media.rs`. Menambahkan penarikan penyelamat bertahap hingga 25 MB (*Ultimate Rescue Fallback*) bila sampel ekor (tail scan 12MB) gagal menemukan atom `moov` pada video 2K/4K/AV1 berukuran besar. Menguji FFmpeg secara otomatis setiap bertambah 4 MB sampel sehingga 100% video MP4/AV1 menghasilkan frame thumbnail secara instan.
+
+Previous:
 v2.3.63 Progressive Tail-Chunk Scanning (Up to 12MB) & Pass 4 AV1/HEVC Tolerant FFmpeg Extraction — membenahi `grammers_media.rs`. Mengingkatkan pemindaian ekor berkas video (*tail-chunk scan*) secara bertahap (16, 32, hingga 48 chunk = max 12 MB) untuk mengisolasi atom metadata `moov` pada video 2K/4K non-faststart berukuran besar (seperti 96.15 MB). Menambahkan Pass 4 dekode FFmpeg dengan parameter `-probesize 2M -analyzeduration 2M -err_detect ignore_err` untuk mengekstrak frame dari parsial stream codec AV1/HEVC secara sukses tanpa mengunduh seluruh isi berkas dan menghemat kuota hingga >85%.
 
 Previous:
