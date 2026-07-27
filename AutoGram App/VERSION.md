@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.71
+AutoGram Version: v2.3.72
 
 Current State:
+v2.3.72 Startup ReferenceError Crash Fix & Clean Type Verification — membenahi `DriveExplorer.tsx`. Mengeliminasi kesalahan acuan variabel tak terdefinisi `scrollRowStart` dan `scrollRowEnd` di dalam event listener `autogram-cache-cleared` yang sebelumnya menyebabkan crash runtime awal pada komponen React. Mengonfirmasi `npx tsc --noEmit` lulus 100% tanpa error, menjamin tampilan aplikasi memuat dengan sempurna dan mulus saat pertama kali dibuka.
+
+Previous:
 v2.3.71 Export clearThumbCache, Post-Wipe Global Auto-Refetch Event & Collision-Free FFmpeg Temp File Paths — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `grammers_media.rs`. Mengekspor fungsi `clearThumbCache()` yang mengosongkan `memCache`, `softFailAt`, `errorFailAt`, `inflightByKey`, dan `queue` secara bersih serta memancarkan event `autogram-cache-cleared`. Menambahkan event listener pada `DriveExplorer.tsx` sehingga begitu pengguna menghapus cache di Settings, seluruh kartu media di viewport langsung memicu ekstraksi ulang thumbnail secara otomatis. Memperbarui `extract_ffmpeg_frame_sync` dengan penamaan file temp unik bebas tabrakan (AtomicU64 + PID + nanoseconds) dan mengoptimalkan konkurensi video `video_sem` menjadi 2 task paralel.
 
 Previous:

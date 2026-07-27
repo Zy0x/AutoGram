@@ -398,10 +398,9 @@ export function DriveExplorer({
   useEffect(() => {
     const handleCacheCleared = () => {
       if (!creds || !displayed.length) return;
-      const visStart = Math.max(0, scrollRowStart * cols);
-      const visEnd = Math.min(displayed.length, (scrollRowEnd + 1) * cols);
+      const visEnd = Math.min(displayed.length, 40);
       const visibleIds: number[] = [];
-      for (let i = visStart; i < visEnd; i++) {
+      for (let i = 0; i < visEnd; i++) {
         const f = displayed[i];
         if (f && canShowDriveThumb(f)) visibleIds.push(f.id);
       }
@@ -411,7 +410,7 @@ export function DriveExplorer({
     };
     window.addEventListener('autogram-cache-cleared', handleCacheCleared);
     return () => window.removeEventListener('autogram-cache-cleared', handleCacheCleared);
-  }, [creds, folderId, displayed, scrollRowStart, scrollRowEnd, cols]);
+  }, [creds, folderId, displayed]);
 
   const warmFile = useCallback(
     (_file: DriveFile) => {

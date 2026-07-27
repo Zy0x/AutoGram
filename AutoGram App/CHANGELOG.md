@@ -1,3 +1,9 @@
+## v2.3.72 Startup ReferenceError Crash Fix & Clean Type Verification
+
+### Perbaikan Crash Layar Hitam Saat Awal Masuk (`DriveExplorer.tsx`)
+- **Eliminasi `ReferenceError: scrollRowStart is not defined`**: Memperbaiki variabel acuan tak terdefinisi di dalam event listener `autogram-cache-cleared` pada `DriveExplorer.tsx`. Menggantinya dengan iterasi 40 item pertama pada array `displayed`, mengeliminasi crash unhandled runtime pada React yang menyebabkan layar aplikasi menjadi hitam polos saat pertama kali dibuka.
+- **Verifikasi TypeScript 100% (Clean Type Check)**: Menjalankan `npx tsc --noEmit` dan mengonfirmasi 0 error kompilasi/tipe di seluruh frontend.
+
 ## v2.3.71 Export clearThumbCache, Post-Wipe Global Auto-Refetch Event & Collision-Free FFmpeg Temp File Paths
 
 ### Perbaikan Pengosongan Cooldown Timer & Auto-Refetch Realtime (`thumbBatcher.ts`, `DriveExplorer.tsx`, `grammers_media.rs`)
