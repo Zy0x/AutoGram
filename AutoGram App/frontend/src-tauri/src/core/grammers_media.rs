@@ -1125,18 +1125,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
 
     let _ = std::fs::write(&sample_path, sample_bytes);
 
-    // Pass 1: Decode first video frame without input seek (crucial for AV1/VP9 sequence header OBU parsing)
+    // Pass 1: Standard clean FFmpeg decode (without low_delay flag, which corrupts AV1/HEVC reference buffer allocation)
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
-        .arg("-err_detect")
-        .arg("ignore_err")
-        .arg("-flags")
-        .arg("low_delay")
-        .arg("-threads")
-        .arg("1")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
@@ -1155,24 +1149,18 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         Err(e) => (None, e.to_string()),
     };
 
-    // Pass 2: Output-level seek (-ss 00:00:00.100 after -i) if Pass 1 returned empty/failed
+    // Pass 2: Input-level seek (-ss 0 before -i) for AV1/VP9/H265 container keyframe alignment
     if result.is_none() {
         let status2 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
             .arg("error")
             .arg("-y")
-            .arg("-err_detect")
-            .arg("ignore_err")
-            .arg("-flags")
-            .arg("low_delay")
+            .arg("-ss")
+            .arg("0")
             .arg("-i")
             .arg(&sample_path)
-            .arg("-ss")
-            .arg("00:00:00.100")
             .arg("-an")
-            .arg("-threads")
-            .arg("1")
             .arg("-vframes")
             .arg("1")
             .arg("-vf")
@@ -1182,7 +1170,35 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        match status2 {
+        if let Ok(out) = status2 {
+            if out.status.success() && frame_path.exists() {
+                result = std::fs::read(&frame_path).ok();
+            }
+        }
+    }
+
+    // Pass 3: Output-level seek (-ss 00:00:00.100 after -i) fallback
+    if result.is_none() {
+        let status3 = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-ss")
+            .arg("00:00:00.100")
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        match status3 {
             Ok(out) if out.status.success() && frame_path.exists() => {
                 result = std::fs::read(&frame_path).ok();
             }

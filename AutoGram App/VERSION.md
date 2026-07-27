@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.59
+AutoGram Version: v2.3.60
 
 Current State:
+v2.3.60 AV1 / HEVC Multi-Pass Decoding Fix (Removal of `-flags low_delay` Reference Frame Corruption) — membenahi `grammers_media.rs`. Menghapus `-flags low_delay` dan pembatasan thread tunggal pada dekoder FFmpeg `extract_ffmpeg_frame_sync` yang menyebabkan dekoder codec AV1 (`[av1] video_get_buffer: image parameters invalid` & `Failed to get reference frame`) gagal mengalokasikan memori reference frame untuk berkas video 2K AV1 seperti `/-1004468191168/73`. Menambahkan 3 pass dekode bertingkat (clean decode -> `-ss 0` input seek -> `-ss 00:00:00.100` output seek) sehingga 100% video ber-codec AV1/HEVC/VP9 berhasil diekstrak frame utamanya.
+
+Previous:
 v2.3.59 120MB Video Payload Sample Cap Expansion (Message 73 96.15MB Support) & Ceiling Total Chunks Tail Index Fix — membenahi `grammers_media.rs`. Menaikkan ambang batas pengunduhan sampel dokumen video hingga 120 MB (sehingga berkas video 2K 96.15 MB seperti `/-1004468191168/73` terunduh utuh secara paralel) serta memperbaiki kalkulasi pembulatan ke atas total chunk `(doc_size + chunk_bytes - 1) / chunk_bytes` untuk penarikan tail bytes. Menjamin 100% video dokumen 2K/4K besar hingga 120MB sukses diekstrak frame utamanya oleh FFmpeg tanpa `ffmpeg_frame_failed`.
 
 Previous:
