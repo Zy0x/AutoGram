@@ -892,10 +892,10 @@ async fn download_media_thumb(
                 // Apply 8 MB sample budget for AV1 / 2K MP4 video documents to handle sparse keyframes.
 
                 // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
-                // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 8MB (AV1) to handle late moov atoms.
+                // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 12MB (AV1) to handle late moov atoms and sparse keyframes.
                 let max_sample = if is_av1_video {
-                    // AV1 needs more headroom — saver uses 4 MB, normal uses 8 MB
-                    if saver { 4 * 1024 * 1024 } else { 8 * 1024 * 1024 }
+                    // AV1 needs more headroom — saver uses 4 MB, normal uses 12 MB
+                    if saver { 4 * 1024 * 1024 } else { 12 * 1024 * 1024 }
                 } else if saver {
                     768 * 1024
                 } else {
