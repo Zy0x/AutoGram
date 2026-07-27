@@ -395,6 +395,24 @@ export function DriveExplorer({
     perf.tier,
   ]);
 
+  useEffect(() => {
+    const handleCacheCleared = () => {
+      if (!creds || !displayed.length) return;
+      const visStart = Math.max(0, scrollRowStart * cols);
+      const visEnd = Math.min(displayed.length, (scrollRowEnd + 1) * cols);
+      const visibleIds: number[] = [];
+      for (let i = visStart; i < visEnd; i++) {
+        const f = displayed[i];
+        if (f && canShowDriveThumb(f)) visibleIds.push(f.id);
+      }
+      if (visibleIds.length) {
+        requestVisibleThumbs(creds, folderId, visibleIds);
+      }
+    };
+    window.addEventListener('autogram-cache-cleared', handleCacheCleared);
+    return () => window.removeEventListener('autogram-cache-cleared', handleCacheCleared);
+  }, [creds, folderId, displayed, scrollRowStart, scrollRowEnd, cols]);
+
   const warmFile = useCallback(
     (_file: DriveFile) => {
       // Disable automatic video stream pre-fetching on card hover to prevent Telegram FLOOD_WAIT_27.

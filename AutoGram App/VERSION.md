@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.70
+AutoGram Version: v2.3.71
 
 Current State:
+v2.3.71 Export clearThumbCache, Post-Wipe Global Auto-Refetch Event & Collision-Free FFmpeg Temp File Paths — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `grammers_media.rs`. Mengekspor fungsi `clearThumbCache()` yang mengosongkan `memCache`, `softFailAt`, `errorFailAt`, `inflightByKey`, dan `queue` secara bersih serta memancarkan event `autogram-cache-cleared`. Menambahkan event listener pada `DriveExplorer.tsx` sehingga begitu pengguna menghapus cache di Settings, seluruh kartu media di viewport langsung memicu ekstraksi ulang thumbnail secara otomatis. Memperbarui `extract_ffmpeg_frame_sync` dengan penamaan file temp unik bebas tabrakan (AtomicU64 + PID + nanoseconds) dan mengoptimalkan konkurensi video `video_sem` menjadi 2 task paralel.
+
+Previous:
 v2.3.70 25MB Progressive Head Sampling, 64-Bit MP4 MOOV Atom Parser & Comprehensive Settings Cache Wipe — membenahi `grammers_media.rs`, `jobs_db.rs`, dan `Settings.tsx`. Menambahkan dukungan parser 64-bit atom size pada `make_faststart_mp4` dan meningkatkan sampel penyelamat video hingga 25 MB dengan pengujian FFmpeg progresif setiap 4 MB chunk (sehingga video seperti `/-1004468191168/70`, `71`, `72` diekstrak gambarnya secara instan). Memperbarui fungsi tombol "Hapus Cache" di halaman Settings dan backend `clear_disk_cache()` untuk membersihkan `thumb_mem_cache` di memori Rust dan direktori `sessions/thumbs` secara utuh.
 
 Previous:

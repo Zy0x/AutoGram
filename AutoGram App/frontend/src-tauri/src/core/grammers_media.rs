@@ -1757,7 +1757,11 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     let av1_hwaccel_args: &[&str] = &["-hwaccel", "none"];
 
     let temp_dir = std::env::temp_dir();
-    let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    static FF_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let seq = FF_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let pid = std::process::id();
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let rand_id = format!("{pid}_{seq}_{nanos}");
     let ext = if ext_hint.is_empty() { "mp4" } else { ext_hint };
     let sample_path = temp_dir.join(format!("autogram_vid_sample_{rand_id}.{ext}"));
     let frame_path = temp_dir.join(format!("autogram_vid_frame_{rand_id}.jpg"));
@@ -2454,7 +2458,7 @@ pub fn thumbs_batch_blocking_app(
 
                 let mut set = tokio::task::JoinSet::new();
                 let fast_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(12));
-                let video_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
+                let video_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
                 let is_flooded = session_rate::flood_remaining_secs(&session_name).unwrap_or(0) > 0;
 
                 // Sort need_download so fast-path items (photos, image docs, static thumbs) spawn BEFORE heavy video extraction tasks

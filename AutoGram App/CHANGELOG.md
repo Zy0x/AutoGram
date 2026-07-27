@@ -1,3 +1,11 @@
+## v2.3.71 Export clearThumbCache, Post-Wipe Global Auto-Refetch Event & Collision-Free FFmpeg Temp File Paths
+
+### Perbaikan Pengosongan Cooldown Timer & Auto-Refetch Realtime (`thumbBatcher.ts`, `DriveExplorer.tsx`, `grammers_media.rs`)
+- **Fungsi `clearThumbCache()` Sejati (`thumbBatcher.ts`)**: Mengekspor fungsi `clearThumbCache()` yang secara nyata mengosongkan `memCache`, `softFailAt`, `errorFailAt`, `inflightByKey`, dan `queue`. Mengeliminasi bug di mana timestamp kegagalan terdahulu mengunci pemanggilan thumbnail baru pasca penghapusan cache di Settings.
+- **Event Global `autogram-cache-cleared` & Auto-Refetch di Viewport (`DriveExplorer.tsx`)**: Begitu pengguna menekan tombol "Hapus Cache" di halaman Settings, sistem memancarkan event `autogram-cache-cleared` yang langsung ditangkap oleh `DriveExplorer.tsx` untuk memicu permintaan ekstraksi thumbnail ulang pada seluruh kartu media yang terlihat di layar secara otomatis.
+- **File Temp FFmpeg Unik Bebas Tabrakan (`AtomicU64` + PID)**: Mengubah penamaan file temp di `extract_ffmpeg_frame_sync` menggunakan urutan atomik `AtomicU64`, ID proses (PID), dan nanoseconds untuk menjamin 0% risiko tabrakan nama file temp pada Windows saat beberapa ekstraksi video berjalan bersamaan.
+- **Optimasi Konkurensi Video (`video_sem = 2`)**: Menyesuaikan Semaphore ekstraksi video menjadi 2 task paralel agar pemanfaatan CPU dan bandwidth disk I/O pada Windows tetap stabil tanpa menyebabkan crash pada proses FFmpeg.
+
 ## v2.3.70 25MB Progressive Head Sampling, 64-Bit MP4 MOOV Atom Parser & Comprehensive Settings Cache Wipe
 
 ### Perbaikan Ekstraksi Frame Video & Pembersihan Cache di Settings (`grammers_media.rs`, `jobs_db.rs`, `Settings.tsx`)
