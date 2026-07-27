@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.65
+AutoGram Version: v2.3.66
 
 Current State:
-v2.3.65 Document Video Saver Mode Lightweight Extraction & Extended Magic Bytes Fallback Fix — membenahi `grammers_media.rs`. Menghapus pemblokiran total thumbnail video dokumen pada mode Hemat (`saver mode: skipping heavy video frame extraction`) jika Telegram tidak menyediakan layer thumbnail statis (`sizes == 0`). Memungkinkan ekstraksi frame sampel ringan (768KB) via FFmpeg sehingga seluruh media/video dokumen (seperti `/-1004468191168/73`) menghasilkan thumbnail jernih secara instan. Menambahkan penanganan magic bytes lengkap untuk format video/gambar/PDF tanpa ekstensi standar.
+v2.3.66 AV1 Video Thumbnail Fix — Hardware Acceleration Bypass, Larger Sample Budget & Graceful Degradation — membenahi `grammers_media.rs`. Menambahkan deteksi kapabilitas decoder AV1 runtime (`ffmpeg_supports_av1` + `OnceLock`), menonaktifkan hardware acceleration DXVA/D3D11 untuk AV1 di semua 4 pass FFmpeg (`-hwaccel none`), meningkatkan budget sampel AV1 dari 2 MB ke 8 MB, memperbaiki Pass 5 OBU rescue terpisah dari Annex-B H.264/HEVC, menambahkan graceful degradation saat decoder AV1 tidak tersedia, dan meningkatkan tail fetch depth dari 2 MB ke 3 MB untuk video kecil.
 
 Previous:
 v2.3.64 25MB Ultimate Rescue Fallback for Stubborn 2K/4K/AV1 Videos & Automatic Cache Flush — membenahi `grammers_media.rs`. Menambahkan penarikan penyelamat bertahap hingga 25 MB (*Ultimate Rescue Fallback*) bila sampel ekor (tail scan 12MB) gagal menemukan atom `moov` pada video 2K/4K/AV1 berukuran besar. Menguji FFmpeg secara otomatis setiap bertambah 4 MB sampel sehingga 100% video MP4/AV1 menghasilkan frame thumbnail secara instan.

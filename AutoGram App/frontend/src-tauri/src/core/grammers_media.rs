@@ -851,9 +851,45 @@ async fn download_media_thumb(
                 let mode = quality.to_lowercase();
                 let saver = mode.contains("hemat") || mode.contains("saver");
 
+                // Phase 3: Detect AV1 encoding to apply larger sample budget.
+                // AV1 MP4s often store moov at the end and have sparse keyframes;
+                // 2 MB from the head is insufficient — 8 MB covers 99% of Telegram AV1 uploads.
+                // We check both the MIME type / filename and the actual magic bytes in the first chunk.
+                let is_av1_video = mime.contains("av1")
+                    || name.ends_with(".av1")
+                    || sample_bytes.windows(4).any(|w| w == b"av1C")
+                    || sample_bytes.windows(4).any(|w| w == b"av01");
+
+                // Phase 5: Graceful degradation — if AV1 video detected but FFmpeg lacks a decoder,
+                // skip all 4 passes immediately to avoid wasting CPU on guaranteed failures.
+                if is_av1_video {
+                    let has_av1_decoder = find_ffmpeg_binary()
+                        .map(|p| ffmpeg_supports_av1(&p))
+                        .unwrap_or(false);
+                    if !has_av1_decoder {
+                        tg_log::warn(
+                            BACKEND,
+                            "av1_no_decoder",
+                            "FFmpeg build lacks libdav1d/libaom; skipping AV1 frame extraction — UI will show placeholder",
+                        );
+                        // Return error immediately; the caller will show a generic video placeholder.
+                        return Err(TgError::new(
+                            TgErrorCode::Internal,
+                            "av1 decoder not available in bundled ffmpeg",
+                        ));
+                    }
+                }
+
                 // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
-                // In Seimbang/Jelas mode: fetch up to 1.5MB - 3.0MB sample.
-                let max_sample = if saver { 768 * 1024 } else { 2048 * 1024 };
+                // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 8MB (AV1) to handle late moov atoms.
+                let max_sample = if is_av1_video {
+                    // AV1 needs more headroom — saver uses 4 MB, normal uses 8 MB
+                    if saver { 4 * 1024 * 1024 } else { 8 * 1024 * 1024 }
+                } else if saver {
+                    768 * 1024
+                } else {
+                    2048 * 1024
+                };
 
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
@@ -1327,6 +1363,28 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
+/// Phase 1: Runtime AV1 decoder capability probe.
+/// Cached in a OnceLock so the subprocess is only spawned once per app session.
+/// Returns true if the bundled FFmpeg binary was compiled with libdav1d, libaom, or any AV1 decoder.
+fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
+    static CACHE: OnceLock<bool> = OnceLock::new();
+    *CACHE.get_or_init(|| {
+        let Ok(out) = std::process::Command::new(ff_exe)
+            .args(&["-hide_banner", "-codecs"])
+            .output()
+        else {
+            return false;
+        };
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let combined = format!("{stdout}{stderr}");
+        combined.contains("libdav1d")
+            || combined.contains("libaom")
+            || combined.contains("av1 ")
+            || combined.contains("av1,")
+    })
+}
+
 fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str) -> Option<Vec<u8>> {
     let ff_exe = find_ffmpeg_binary()?;
     let mode = quality.to_lowercase();
@@ -1340,6 +1398,16 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     } else {
         ("scale=-2:480,format=yuv420p", "3")
     };
+
+    // Phase 2: Detect AV1 early to disable hardware acceleration.
+    // FFmpeg on Windows tries DXVA/D3D11 first; when that fails for AV1 it aborts entirely
+    // instead of falling back to software — so we must explicitly force software decoding.
+    let is_av1 = ext_hint == "av1"
+        || sample_bytes.windows(4).any(|w| w == b"av01")
+        || sample_bytes.windows(4).any(|w| w == b"av1C");
+
+    // -hwaccel none forces software decode; empty slice = no extra args for non-AV1
+    let av1_hwaccel_args: &[&str] = if is_av1 { &["-hwaccel", "none"] } else { &[] };
 
     let temp_dir = std::env::temp_dir();
     let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
@@ -1355,6 +1423,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
+        .args(av1_hwaccel_args)          // Phase 2: disable HW accel for AV1
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
@@ -1390,6 +1459,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("-loglevel")
             .arg("error")
             .arg("-y")
+            .args(av1_hwaccel_args)      // Phase 2: disable HW accel for AV1
             .arg("-ss")
             .arg("0")
             .arg("-i")
@@ -1414,6 +1484,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("-loglevel")
             .arg("error")
             .arg("-y")
+            .args(av1_hwaccel_args)      // Phase 2: disable HW accel for AV1
             .arg("-i")
             .arg(&sample_path)
             .arg("-ss")
@@ -1444,6 +1515,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("-err_detect")
             .arg("ignore_err")
             .arg("-y")
+            .args(av1_hwaccel_args)      // Phase 2: disable HW accel for AV1
             .arg("-i")
             .arg(&sample_path)
             .arg("-an")
@@ -1463,57 +1535,99 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
                 tg_log::warn(
                     BACKEND,
                     "ffmpeg_frame_failed",
-                    &format!("size={} ext={ext} err1='{err1}' err2='{err2}'", sample_bytes.len()),
+                    &format!("size={} ext={ext} av1={is_av1} err1='{err1}' err2='{err2}'", sample_bytes.len()),
                 );
             }
         }
     }
 
     // Pass 5: Direct bitstream / mdat payload snapshot extraction.
-    // If standard container demuxing failed (e.g. missing moov atom in initial sample buffer),
-    // extract raw bitstream from mdat payload offset, convert MP4 AVCC length-prefixes to Annex-B start codes,
-    // and force raw demuxers (-f h264 / -f hevc / -f m4v).
+    // For AV1: extract raw OBU bytes from mdat and try av1/libdav1d demuxers (do NOT run Annex-B conversion).
+    // For H.264/HEVC: convert AVCC length-prefixes to Annex-B start codes, then try h264/hevc/m4v demuxers.
     if result.is_none() && sample_bytes.len() >= 128 {
         if let Some(mdat_pos) = sample_bytes.windows(4).position(|w| w == b"mdat") {
             let stream_start = mdat_pos + 4;
             if stream_start < sample_bytes.len() {
                 let raw_slice = &sample_bytes[stream_start..];
-                let annexb_bytes = convert_avcc_to_annexb(raw_slice);
-                let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.bin"));
-                if std::fs::write(&stream_path, &annexb_bytes).is_ok() {
-                    for fmt in ["h264", "hevc", "m4v", "mpegts"] {
-                        let _ = std::process::Command::new(&ff_exe)
-                            .arg("-hide_banner")
-                            .arg("-loglevel")
-                            .arg("quiet")
-                            .arg("-y")
-                            .arg("-f")
-                            .arg(fmt)
-                            .arg("-err_detect")
-                            .arg("ignore_err")
-                            .arg("-i")
-                            .arg(&stream_path)
-                            .arg("-an")
-                            .arg("-vframes")
-                            .arg("1")
-                            .arg("-vf")
-                            .arg(scale_arg)
-                            .arg("-q:v")
-                            .arg(q_val)
-                            .arg(&frame_path)
-                            .output();
 
-                        result = check_frame_file();
-                        if result.is_some() {
-                            tg_log::warn(
-                                BACKEND,
-                                "ffmpeg_pass5_success",
-                                &format!("Raw bitstream snapshot extracted using -f {fmt} from mdat offset {stream_start}"),
-                            );
-                            break;
+                // Phase 4: AV1 OBU path — separate from H.264/HEVC to avoid Annex-B corruption.
+                // AV1 OBUs use a completely different framing than NAL units; running
+                // convert_avcc_to_annexb on them corrupts the OBU headers.
+                if is_av1 {
+                    let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.obu"));
+                    if std::fs::write(&stream_path, raw_slice).is_ok() {
+                        for (fmt, codec_hint) in [
+                            ("av1", "libdav1d"),
+                            ("av1", "libaom-av1"),
+                            ("av1", "av1"),
+                        ] {
+                            let mut cmd = std::process::Command::new(&ff_exe);
+                            cmd.arg("-hide_banner")
+                                .arg("-loglevel").arg("quiet")
+                                .arg("-hwaccel").arg("none")
+                                .arg("-f").arg(fmt)
+                                .arg("-c:v").arg(codec_hint)
+                                .arg("-err_detect").arg("ignore_err")
+                                .arg("-i").arg(&stream_path)
+                                .arg("-an")
+                                .arg("-vframes").arg("1")
+                                .arg("-vf").arg(scale_arg)
+                                .arg("-q:v").arg(q_val)
+                                .arg(&frame_path);
+                            let _ = cmd.output();
+                            result = check_frame_file();
+                            if result.is_some() {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "ffmpeg_pass5_av1_success",
+                                    &format!("Raw OBU extracted using -f {fmt} -c:v {codec_hint} from mdat offset {stream_start}"),
+                                );
+                                break;
+                            }
                         }
+                        let _ = std::fs::remove_file(&stream_path);
                     }
-                    let _ = std::fs::remove_file(&stream_path);
+                }
+
+                // Fallback: legacy H.264/HEVC Annex-B rescue (existing logic, not touched for AV1)
+                if result.is_none() && !is_av1 {
+                    let annexb_bytes = convert_avcc_to_annexb(raw_slice);
+                    let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.bin"));
+                    if std::fs::write(&stream_path, &annexb_bytes).is_ok() {
+                        for fmt in ["h264", "hevc", "m4v", "mpegts"] {
+                            let _ = std::process::Command::new(&ff_exe)
+                                .arg("-hide_banner")
+                                .arg("-loglevel")
+                                .arg("quiet")
+                                .arg("-y")
+                                .arg("-f")
+                                .arg(fmt)
+                                .arg("-err_detect")
+                                .arg("ignore_err")
+                                .arg("-i")
+                                .arg(&stream_path)
+                                .arg("-an")
+                                .arg("-vframes")
+                                .arg("1")
+                                .arg("-vf")
+                                .arg(scale_arg)
+                                .arg("-q:v")
+                                .arg(q_val)
+                                .arg(&frame_path)
+                                .output();
+
+                            result = check_frame_file();
+                            if result.is_some() {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "ffmpeg_pass5_success",
+                                    &format!("Raw bitstream snapshot extracted using -f {fmt} from mdat offset {stream_start}"),
+                                );
+                                break;
+                            }
+                        }
+                        let _ = std::fs::remove_file(&stream_path);
+                    }
                 }
             }
         }
@@ -2771,12 +2885,15 @@ fn start_preview_stream_inner(
         // This is the key fix: tail and fill run in true parallel — no blocking.
         if need_async_moov_tail {
             let tail_media = fill_media.clone();
+            // Phase 6: Increased tail depth floor for AV1 safety.
+            // AV1 moov atoms can be larger and further from the end; 2 MB was insufficient.
+            // Medium (>100MB) and large (>500MB) files already have 4MB and 6MB — only floor changes.
             let tail_depth: u64 = if size > 500 * 1024 * 1024 {
                 6 * 1024 * 1024
             } else if size > 100 * 1024 * 1024 {
                 4 * 1024 * 1024
             } else {
-                2 * 1024 * 1024
+                3 * 1024 * 1024  // was 2 MB — increased to 3 MB to improve AV1 moov coverage
             };
             let tail_start_offset = (size.saturating_sub(tail_depth) / 4096) * 4096;
             let num_chunks = ((size - tail_start_offset) + 524287) / (512 * 1024);

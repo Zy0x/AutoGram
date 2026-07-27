@@ -1,3 +1,13 @@
+## v2.3.66 AV1 Video Thumbnail Fix — Hardware Acceleration Bypass, Larger Sample Budget & Graceful Degradation
+
+### Perbaikan Ekstraksi Thumbnail Video AV1 (`grammers_media.rs`)
+- **Deteksi Kapabilitas Decoder AV1 (`ffmpeg_supports_av1`)**: Menambahkan fungsi baru yang menjalankan `ffmpeg -codecs` sekali saat startup dan menyimpan hasilnya ke `OnceLock<bool>`. Mendeteksi ketersediaan `libdav1d`, `libaom`, atau decoder AV1 lainnya dalam binary FFmpeg yang terbundel.
+- **Bypass Hardware Acceleration untuk AV1 (Fase 2)**: FFmpeg di Windows mencoba DXVA/D3D11 terlebih dahulu untuk AV1; saat gagal, proses dekoding dibatalkan alih-alih jatuh ke software decoder. Kini semua 4 pass FFmpeg menyertakan `-hwaccel none` secara otomatis bila konten AV1 terdeteksi dari bytes `av01`/`av1C` di data sampel.
+- **Peningkatan Budget Sampel AV1 (Fase 3)**: Budget sampel video AV1 ditingkatkan dari 2 MB ke **8 MB** (mode Seimbang/Jelas) dan **4 MB** (mode Hemat), karena video AV1 Telegram menyimpan atom `moov` di ujung berkas dan memiliki keyframe awal yang jarang. Budget mode non-AV1 tidak berubah.
+- **Perbaikan Pass 5 OBU Rescue — Pisah dari Annex-B (Fase 4)**: Pass 5 kini memiliki jalur terpisah untuk AV1: mengekstrak payload `mdat` mentah sebagai file `.obu` dan mencoba demuxer `-f av1 -c:v libdav1d`, `libaom-av1`, lalu `av1`. Konversi `convert_avcc_to_annexb` **tidak dijalankan** untuk AV1 karena OBU menggunakan framing berbeda dari NAL unit H.264/HEVC. Jalur H.264/HEVC lama tetap tidak diubah.
+- **Graceful Degradation (Fase 5)**: Jika video AV1 terdeteksi namun FFmpeg tidak memiliki decoder AV1, backend langsung mengembalikan error `av1_no_decoder` dengan log peringatan dan melewati seluruh 4 pass FFmpeg. Antarmuka akan menampilkan placeholder video generik tanpa retry CPU yang sia-sia.
+- **Peningkatan Kedalaman Tail Fetch untuk AV1 (Fase 6)**: Batas minimum pengambilan ekor berkas video di `start_preview_stream_inner` ditingkatkan dari 2 MB ke **3 MB** untuk berkas kecil (≤100 MB), meningkatkan peluang mendapatkan atom `moov` pada video AV1 non-faststart.
+
 ## v2.3.65 Document Video Saver Mode Lightweight Extraction & Extended Magic Bytes Fallback Fix
 
 ### Perbaikan Ekstraksi Thumbnail Video Dokumen Mode Hemat & Magic Bytes (`grammers_media.rs`)
