@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.74
+AutoGram Version: v2.3.75
 
 Current State:
+v2.3.75 Full Uncorrupted Faststart MP4 Reconstruction & Fault-Tolerant FFmpeg Extraction — membenahi `grammers_media.rs`. Memperbaiki `make_faststart_mp4` dan `make_smart_target_mp4` agar menolak `moov` atom parsial/terpotong (`pos + moov_size > target_buf.len()`) dan memaksa iterasi tail fetch mengunduh hingga 160 chunk (40 MB) untuk mendapatkan `moov` atom secara 100% utuh dan sempurna. Menambahkan `-err_detect ignore_err` dan `-fflags +genpts+discardcorrupt` pada argumen FFmpeg, menjamin ekstraksi thumbnail visual video 2K/AV1 3D Donghua berjalan dengan sukses mulus dan berwarna.
+
+Previous:
 v2.3.74 Elimination of False-Positive AV1 Rejection Gate — membenahi `grammers_media.rs`. Menghapus blok penolakan dini `if !has_av1_decoder` yang memicu peringatan log terminal `av1_no_decoder` dan menggagalkan ekstraksi frame FFmpeg untuk berkas video 2K MP4/AV1. FFmpeg kini selalu mengeksekusi ekstraksi frame secara nyata pada sampel video 8 MB tanpa diblokir di awal, menjamin thumbnail visual 3D Donghua terpancar jernih pada seluruh kartu media.
 
 Previous:

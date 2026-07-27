@@ -943,7 +943,7 @@ async fn download_media_thumb(
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_count in [8usize, 24usize, 48usize] {
+                    for tail_count in [8usize, 24usize, 48usize, 96usize, 160usize] {
                         let actual_tail_count = tail_count.min(total_chunks);
                         let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
                         let mut tail_bytes = Vec::new();
@@ -1332,7 +1332,7 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
             target_buf[pos + 3],
         ]) as usize
     } else {
-        target_buf.len() - pos
+        return None;
     };
 
     let moov_size = if raw_sz == 1 && pos + 16 <= target_buf.len() {
@@ -1347,11 +1347,14 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
             target_buf[pos + 15],
         ]) as usize
     } else if raw_sz >= 8 {
-        raw_sz.min(target_buf.len() - pos)
+        raw_sz
     } else {
-        target_buf.len() - pos
+        return None;
     };
-    if moov_size < 8 {
+
+    if pos + moov_size > target_buf.len() {
+        // moov atom is truncated in current target_buf.
+        // Return None so caller fetches a larger tail sample to get the complete moov atom.
         return None;
     }
 
@@ -1427,11 +1430,11 @@ async fn make_smart_target_mp4(
             target_buf[pos + 3],
         ]) as usize
     } else {
-        target_buf.len() - pos
+        return None;
     };
 
-    let moov_size = if raw_sz >= 8 { raw_sz.min(target_buf.len() - pos) } else { target_buf.len() - pos };
-    if moov_size < 8 {
+    let moov_size = if raw_sz >= 8 { raw_sz } else { return None; };
+    if pos + moov_size > target_buf.len() {
         return None;
     }
 
@@ -1769,6 +1772,10 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg("-loglevel")
         .arg("error")
         .arg("-y")
+        .arg("-err_detect")
+        .arg("ignore_err")
+        .arg("-fflags")
+        .arg("+genpts+discardcorrupt")
         .args(av1_hwaccel_args)
         .arg("-ss")
         .arg("0")
