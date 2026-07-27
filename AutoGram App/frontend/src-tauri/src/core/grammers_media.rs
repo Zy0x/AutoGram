@@ -1779,7 +1779,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         None
     };
 
-    // Pass 1: Seek to 2.0s (-ss 00:00:02) to bypass black intro/title screens common in 3D Donghua and videos
+    // Pass 1: Direct start of stream (-ss 0) to extract first keyframe from sample without seeking past EOF
     let status1 = std::process::Command::new(&ff_exe)
         .arg("-hide_banner")
         .arg("-loglevel")
@@ -1787,7 +1787,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg("-y")
         .args(av1_hwaccel_args)
         .arg("-ss")
-        .arg("00:00:02")
+        .arg("0")
         .arg("-i")
         .arg(&sample_path)
         .arg("-an")
@@ -1800,12 +1800,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg(&frame_path)
         .output();
 
-    let (mut result, err1) = match status1 {
+    let (mut result, _err1) = match status1 {
         Ok(ref out) => (check_frame_file(), String::from_utf8_lossy(&out.stderr).trim().to_string()),
         Err(ref e) => (None, e.to_string()),
     };
 
-    // Pass 2: Seek to 5.0s for longer intro titles
+    // Pass 2: Output-level seek (-ss 00:00:00.100 after -i) fallback
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
@@ -1813,10 +1813,10 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("error")
             .arg("-y")
             .args(av1_hwaccel_args)
-            .arg("-ss")
-            .arg("00:00:05")
             .arg("-i")
             .arg(&sample_path)
+            .arg("-ss")
+            .arg("00:00:00.100")
             .arg("-an")
             .arg("-vframes")
             .arg("1")
@@ -1830,32 +1830,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         result = check_frame_file();
     }
 
-    // Pass 3: Seek to 1.0s
-    if result.is_none() {
-        let _ = std::process::Command::new(&ff_exe)
-            .arg("-hide_banner")
-            .arg("-loglevel")
-            .arg("error")
-            .arg("-y")
-            .args(av1_hwaccel_args)
-            .arg("-ss")
-            .arg("00:00:01")
-            .arg("-i")
-            .arg(&sample_path)
-            .arg("-an")
-            .arg("-vframes")
-            .arg("1")
-            .arg("-vf")
-            .arg(scale_arg)
-            .arg("-q:v")
-            .arg(q_val)
-            .arg(&frame_path)
-            .output();
-
-        result = check_frame_file();
-    }
-
-    // Pass 4: Input-level seek (-ss 00:00:00.500 before -i) for 0.5s timestamp
+    // Pass 3: Seek to 0.5s (-ss 00:00:00.500)
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
@@ -1880,7 +1855,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         result = check_frame_file();
     }
 
-    // Pass 5: Direct start of stream (-ss 0) fallback
+    // Pass 4: Seek to 1.0s (-ss 00:00:01)
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
@@ -1889,7 +1864,32 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg("-y")
             .args(av1_hwaccel_args)
             .arg("-ss")
-            .arg("0")
+            .arg("00:00:01")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        result = check_frame_file();
+    }
+
+    // Pass 5: Seek to 2.0s (-ss 00:00:02)
+    if result.is_none() {
+        let _ = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .args(av1_hwaccel_args)
+            .arg("-ss")
+            .arg("00:00:02")
             .arg("-i")
             .arg(&sample_path)
             .arg("-an")

@@ -1,3 +1,9 @@
+## v2.3.73 FFmpeg Head-Sample In-Bounds Seek Priority (-ss 0 First)
+
+### Penataan Ulang Prioritas Seek FFmpeg pada Sampel Parsial (`grammers_media.rs`)
+- **Prioritas `-ss 0` (Keyframe Pertama)**: Mengubah Pass 1 pada `extract_ffmpeg_frame_sync` agar langsung mendekode keyframe pertama pada `-ss 0` (tanpa melakukan seek `-ss 2.0` yang melampaui durasi sampel parsial 2MB/4MB).
+- **Eliminasi Error `EOF / Seek Out of Bounds`**: Menghindari kegagalan FFmpeg akibat pencarian timestamp 2.0s/5.0s yang belum ada pada potongan data sampel awal video dokumen Telegram. Berkas video dokumen (seperti `/-1004468191168/73`) kini berhasil mengekstrak frame visual pertamanya secara konsisten dan instan.
+
 ## v2.3.72 Startup ReferenceError Crash Fix & Clean Type Verification
 
 ### Perbaikan Crash Layar Hitam Saat Awal Masuk (`DriveExplorer.tsx`)

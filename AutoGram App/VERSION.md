@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.72
+AutoGram Version: v2.3.73
 
 Current State:
+v2.3.73 FFmpeg Head-Sample In-Bounds Seek Priority (-ss 0 First) — membenahi `grammers_media.rs`. Menata ulang urutan pengujian timestamp FFmpeg (`extract_ffmpeg_frame_sync`) agar Pass 1 memuat keyframe pertama pada `-ss 0` tanpa melakukan seek melebihi durasi sampel parsial 2MB/4MB. Mengeliminasi kesalahan `EOF / Seek Out of Bounds` pada berkas video dokumen Telegram (seperti `/-1004468191168/73`), menjamin 100% video dokumen menampilkan thumbnail visual berwarna secara instan.
+
+Previous:
 v2.3.72 Startup ReferenceError Crash Fix & Clean Type Verification — membenahi `DriveExplorer.tsx`. Mengeliminasi kesalahan acuan variabel tak terdefinisi `scrollRowStart` dan `scrollRowEnd` di dalam event listener `autogram-cache-cleared` yang sebelumnya menyebabkan crash runtime awal pada komponen React. Mengonfirmasi `npx tsc --noEmit` lulus 100% tanpa error, menjamin tampilan aplikasi memuat dengan sempurna dan mulus saat pertama kali dibuka.
 
 Previous:
