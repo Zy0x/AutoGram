@@ -961,6 +961,9 @@ async fn download_media_thumb(
                                     return Ok(frame_bytes);
                                 }
                             }
+                            if let Some(frame_bytes) = make_smart_target_mp4(client, d, &sample_bytes, &tail_bytes, quality, ext_hint).await {
+                                return Ok(frame_bytes);
+                            }
                         }
                         if actual_tail_count >= total_chunks {
                             break;
@@ -1240,6 +1243,62 @@ fn patch_head_mp4(sample_bytes: &[u8]) -> Vec<u8> {
     patched
 }
 
+fn parse_first_chunk_offset(moov_buf: &[u8]) -> Option<u64> {
+    let stco_tag = b"stco";
+    if moov_buf.len() >= 16 {
+        for i in 4..=moov_buf.len() - 16 {
+            if &moov_buf[i..i + 4] == stco_tag {
+                let entry_count = u32::from_be_bytes([
+                    moov_buf[i + 8],
+                    moov_buf[i + 9],
+                    moov_buf[i + 10],
+                    moov_buf[i + 11],
+                ]);
+                if entry_count > 0 {
+                    let first_off = u32::from_be_bytes([
+                        moov_buf[i + 12],
+                        moov_buf[i + 13],
+                        moov_buf[i + 14],
+                        moov_buf[i + 15],
+                    ]) as u64;
+                    if first_off > 0 {
+                        return Some(first_off);
+                    }
+                }
+            }
+        }
+    }
+    let co64_tag = b"co64";
+    if moov_buf.len() >= 20 {
+        for i in 4..=moov_buf.len() - 20 {
+            if &moov_buf[i..i + 4] == co64_tag {
+                let entry_count = u32::from_be_bytes([
+                    moov_buf[i + 8],
+                    moov_buf[i + 9],
+                    moov_buf[i + 10],
+                    moov_buf[i + 11],
+                ]);
+                if entry_count > 0 {
+                    let first_off = u64::from_be_bytes([
+                        moov_buf[i + 12],
+                        moov_buf[i + 13],
+                        moov_buf[i + 14],
+                        moov_buf[i + 15],
+                        moov_buf[i + 16],
+                        moov_buf[i + 17],
+                        moov_buf[i + 18],
+                        moov_buf[i + 19],
+                    ]);
+                    if first_off > 0 {
+                        return Some(first_off);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
     if sample_bytes.len() < 16 || tail_bytes.is_empty() {
         return None;
@@ -1248,7 +1307,6 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
     let mut moov_pos = None;
     let mut target_buf = tail_bytes;
 
-    // 1. Search in tail_bytes first
     if tail_bytes.len() >= 8 {
         for i in (4..=tail_bytes.len() - 4).rev() {
             if &tail_bytes[i..i + 4] == moov_tag {
@@ -1257,7 +1315,6 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
             }
         }
     }
-    // 2. Fallback search in sample_bytes if not found in tail_bytes
     if moov_pos.is_none() && sample_bytes.len() >= 8 {
         for i in (4..=sample_bytes.len() - 4).rev() {
             if &sample_bytes[i..i + 4] == moov_tag {
@@ -1313,6 +1370,110 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
     out.extend_from_slice(&mdat_rem);
 
     Some(out)
+}
+
+async fn make_smart_target_mp4(
+    client: &grammers_client::Client,
+    d: &grammers_client::types::Document,
+    sample_bytes: &[u8],
+    tail_bytes: &[u8],
+    quality: &str,
+    ext_hint: &str,
+) -> Option<Vec<u8>> {
+    if sample_bytes.len() < 16 || tail_bytes.is_empty() {
+        return None;
+    }
+    let moov_tag = b"moov";
+    let mut moov_pos = None;
+    let mut target_buf = tail_bytes;
+
+    if tail_bytes.len() >= 8 {
+        for i in (4..=tail_bytes.len() - 4).rev() {
+            if &tail_bytes[i..i + 4] == moov_tag {
+                moov_pos = Some(i - 4);
+                break;
+            }
+        }
+    }
+    if moov_pos.is_none() && sample_bytes.len() >= 8 {
+        for i in (4..=sample_bytes.len() - 4).rev() {
+            if &sample_bytes[i..i + 4] == moov_tag {
+                moov_pos = Some(i - 4);
+                target_buf = sample_bytes;
+                break;
+            }
+        }
+    }
+
+    let pos = moov_pos?;
+    let raw_sz = if pos + 4 <= target_buf.len() {
+        u32::from_be_bytes([
+            target_buf[pos],
+            target_buf[pos + 1],
+            target_buf[pos + 2],
+            target_buf[pos + 3],
+        ]) as usize
+    } else {
+        target_buf.len() - pos
+    };
+
+    let moov_size = if raw_sz >= 8 { raw_sz.min(target_buf.len() - pos) } else { target_buf.len() - pos };
+    if moov_size < 8 {
+        return None;
+    }
+
+    let moov_slice = &target_buf[pos..pos + moov_size];
+    let first_off = parse_first_chunk_offset(moov_slice)?;
+
+    let chunk_size = 256 * 1024u64;
+    let target_chunk = (first_off / chunk_size) as i32;
+    let chunk_start_byte = (target_chunk as u64) * chunk_size;
+
+    let mut target_frame_bytes = Vec::new();
+    let mut iter = client.iter_download(d).chunk_size(chunk_size as i32).skip_chunks(target_chunk);
+    for _ in 0..6 {
+        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+            target_frame_bytes.extend_from_slice(&chunk);
+        } else {
+            break;
+        }
+    }
+    if target_frame_bytes.is_empty() {
+        return None;
+    }
+
+    let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {
+        u32::from_be_bytes([
+            sample_bytes[0],
+            sample_bytes[1],
+            sample_bytes[2],
+            sample_bytes[3],
+        ]) as usize
+    } else {
+        32
+    };
+    let ftyp_len = ftyp_size.min(sample_bytes.len());
+
+    let new_first_off = (ftyp_len + moov_size) as u64 + (first_off.saturating_sub(chunk_start_byte));
+    let shift_needed = new_first_off.wrapping_sub(first_off);
+
+    let mut patched_moov = moov_slice.to_vec();
+    patch_moov_offsets(&mut patched_moov, shift_needed as usize);
+
+    let mut out = Vec::with_capacity(ftyp_len + moov_size + target_frame_bytes.len() + 16);
+    out.extend_from_slice(&sample_bytes[0..ftyp_len]);
+    out.extend_from_slice(&patched_moov);
+
+    if target_frame_bytes.len() >= 8 && &target_frame_bytes[4..8] == b"mdat" {
+        out.extend_from_slice(&target_frame_bytes);
+    } else {
+        let mdat_hdr_size = (target_frame_bytes.len() + 8) as u32;
+        out.extend_from_slice(&mdat_hdr_size.to_be_bytes());
+        out.extend_from_slice(b"mdat");
+        out.extend_from_slice(&target_frame_bytes);
+    }
+
+    extract_ffmpeg_frame_sync(&out, quality, ext_hint)
 }
 
 pub(crate) fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
