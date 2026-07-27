@@ -910,61 +910,7 @@ async fn download_media_thumb(
                     }
                 }
 
-                let is_likely_av1 = sample_bytes.len() >= 4 && (
-                    sample_bytes.windows(4).any(|w| w == b"AV01" || w == b"av01" || w == b"av1C")
-                );
-
-                let has_static_telegram_thumb = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_) | PhotoSize::Cached(_)));
-
-                if is_likely_av1 && has_static_telegram_thumb {
-                    tg_log::warn(
-                        BACKEND,
-                        "thumb_av1_skip_rescue",
-                        "AV1 video detected with static Telegram thumb available — skipping rescue download to save quota.",
-                    );
-                } else {
-                    // Rescue download up to 16MB sample for video documents without static thumbs (or 2K/4K/AV1 files)
-                    let rescue_cap = 16 * 1024 * 1024;
-                    if doc_size > 0 && sample_bytes.len() < rescue_cap {
-                        while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
-                            if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
-                                sample_bytes.extend_from_slice(&chunk);
-                                if sample_bytes.len() % (1024 * 1024) == 0 {
-                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                                        return Ok(frame_bytes);
-                                    }
-                                    let patched = patch_head_mp4(&sample_bytes);
-                                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
-                                        return Ok(frame_bytes);
-                                    }
-                                    if !saved_tail_bytes.is_empty() {
-                                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &saved_tail_bytes) {
-                                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                                return Ok(frame_bytes);
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                            return Ok(frame_bytes);
-                        }
-                        let patched = patch_head_mp4(&sample_bytes);
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
-                            return Ok(frame_bytes);
-                        }
-                        if !saved_tail_bytes.is_empty() {
-                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &saved_tail_bytes) {
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
-                            }
-                        }
-                    }
-                } // end non-AV1 rescue block
+                // End of video thumb extraction pass (quota saved)
             } else {
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {
