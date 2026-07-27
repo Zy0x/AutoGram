@@ -807,6 +807,15 @@ async fn download_media_thumb(
                     return Ok(sample_bytes);
                 }
 
+                // If sample_bytes is text/json (e.g. daemon file-json test.jpg), reject immediately without wasting CPU/FFmpeg
+                let is_text_or_json = sample_bytes.len() > 0 && (
+                    sample_bytes.starts_with(b"{") || sample_bytes.starts_with(b"[") || sample_bytes.starts_with(b"<!--") || sample_bytes.starts_with(b"http")
+                );
+                if is_text_or_json {
+                    let err_msg = format!("file '{name}' is text/json data despite image extension");
+                    return Err(TgError::new(TgErrorCode::Internal, err_msg));
+                }
+
                 // Non-web image format (HEIC, TIFF, BMP, PSD, etc.): transcode to JPEG frame via FFmpeg
                 let ext_hint = if name.contains('.') {
                     name.rsplit('.').next().unwrap_or("jpg")
@@ -833,13 +842,17 @@ async fn download_media_thumb(
             } else if is_video {
                 let doc_size = d.size().unwrap_or(0) as usize;
                 let mode = quality.to_lowercase();
-                let sharp = mode.contains("jelas") || mode.contains("sharp");
+                let saver = mode.contains("hemat") || mode.contains("saver");
 
-                let max_sample = if sharp {
-                    4096 * 1024
-                } else {
-                    3584 * 1024
-                };
+                // Hemat (Saver) mode: DO NOT perform heavy video sample/tail chunk downloads.
+                // Fall back immediately to flat icon to save network quota.
+                if saver {
+                    let err_msg = format!("saver mode: skipping heavy video frame extraction for '{name}' to conserve quota");
+                    return Err(TgError::new(TgErrorCode::Internal, err_msg));
+                }
+
+                // Cap header sample to 1.5MB max to conserve bandwidth
+                let max_sample = 1536 * 1024;
 
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
@@ -877,29 +890,22 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Quota-saver single-pass fast tail chunk fetch (starts at 8 chunks = 2MB to cover 99.9% moov atoms in 1 pass)
+                // Quota-saver single-pass fast tail chunk fetch (max 1 pass of 8 chunks = 2MB to cover 99.9% moov atoms)
                 let chunk_bytes = 256 * 1024;
-                let mut saved_tail_bytes = Vec::new();
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_chunks_count in [8usize, 16usize, 32usize, 64usize] {
-                        let actual_tail_count = tail_chunks_count.min(total_chunks);
-                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
-                        let mut tail_bytes = Vec::new();
-                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                            tail_bytes.extend_from_slice(&chunk);
-                        }
-                        if !tail_bytes.is_empty() {
-                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
+                    let actual_tail_count = 8usize.min(total_chunks);
+                    let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
+                    let mut tail_bytes = Vec::new();
+                    let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                    while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
+                        tail_bytes.extend_from_slice(&chunk);
+                    }
+                    if !tail_bytes.is_empty() {
+                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                return Ok(frame_bytes);
                             }
-                            saved_tail_bytes = tail_bytes;
-                        }
-                        if actual_tail_count >= total_chunks {
-                            break;
                         }
                     }
                 }
