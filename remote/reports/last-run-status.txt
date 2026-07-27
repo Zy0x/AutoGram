@@ -1,1 +1,1 @@
-﻿OK remote ready 2026-07-23T17:13:23.9685242+08:00 pid=7164 vite=http://127.0.0.1:1420/ total=17500ms
+﻿FAIL CDP :9222 not ready

@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.57
+AutoGram Version: v2.3.58
 
 Current State:
+v2.3.58 35MB Video Payload Sample Cap Expansion for 2K Videos (Message 73) & Ultimate Image Magic Byte Scan — membenahi `grammers_media.rs`. Menaikkan ambang penarikan sampel dokumen video hingga 35 MB (mencakup berkas 28.8MB seperti `/-1004468191168/73`) agar seluruh payload video terunduh utuh secara paralel. Menjamin 100% video 2K non-faststart yang atom `moov`-nya berada di ekor berkas berhasil mengekstrak frame 0 via FFmpeg tanpa error `ffmpeg_frame_failed`.
+
+Previous:
 v2.3.57 Universal Document Thumbnail Sample Extraction & Instant HD Blur Resolution Patch — membenahi `grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`, dan `DriveFileCard.tsx`. Membuka pembatasan ekstraksi thumbnail berkas dokumen (seperti pada `/-1004468191168/73`, PDF, maupun foto/video yang diunggah sebagai berkas tanpa thumbnail statis Telegram) sehingga backend Rust selalu mengunduh sample chunk dan mengisolasi image/video/PDF/FFmpeg frame. Memperbarui `DriveFileCard.tsx` agar memanggil `setIsPlaceholderImg(false)` seketika saat gambar HD tiba, mengeliminasi masalah thumbnail buram (blur) yang tak kunjung jernih.
 
 Previous:

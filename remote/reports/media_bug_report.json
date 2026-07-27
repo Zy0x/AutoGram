@@ -1,0 +1,365 @@
+{
+  "target": {
+    "path": "/-1003214112048/42794",
+    "chatId": -1003214112048,
+    "msgId": 42794
+  },
+  "generatedAt": "2026-07-26T12:21:55.775Z",
+  "bugsFound": 2,
+  "bugs": [
+    {
+      "id": "IPC_001",
+      "desc": "__TAURI__ tidak tersedia di window — Tauri IPC tidak dapat digunakan",
+      "detail": {
+        "hasTauri": false,
+        "keys": [],
+        "hasInvoke": false,
+        "hasCoreInvoke": false
+      },
+      "ts": "2026-07-26T12:21:45.609Z"
+    },
+    {
+      "id": "NET_001",
+      "desc": "3 request media gagal (status>=400 atau timeout)",
+      "detail": {
+        "failed": [
+          {
+            "name": "http://127.0.0.1:58006/stream/g42794-945520-59436/ag_zip_upload_1784826388761_0_sound_document_6298606291619159931.mp4",
+            "status": 0,
+            "dur": 1
+          },
+          {
+            "name": "http://127.0.0.1:58006/stream/g42794-945520-59436/ag_zip_upload_1784826388761_0_sound_document_6298606291619159931.mp4",
+            "status": 0,
+            "dur": 4
+          },
+          {
+            "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/reenc_1784910735672_19724.mp4",
+            "status": 0,
+            "dur": 4
+          }
+        ]
+      },
+      "ts": "2026-07-26T12:21:53.413Z"
+    }
+  ],
+  "steps": [
+    {
+      "name": "start",
+      "ts": "2026-07-26T12:21:45.236Z",
+      "target": "/-1003214112048/42794",
+      "chatId": -1003214112048,
+      "msgId": 42794
+    },
+    {
+      "name": "cdp_targets",
+      "ts": "2026-07-26T12:21:45.251Z",
+      "count": 2,
+      "targets": [
+        {
+          "type": "page",
+          "title": "Tauri + React + Typescript",
+          "url": "http://localhost:1420/"
+        },
+        {
+          "type": "service_worker",
+          "title": "Service Worker http://localhost:1420/sw.js",
+          "url": "http://localhost:1420/sw.js"
+        }
+      ]
+    },
+    {
+      "name": "selected_target",
+      "ts": "2026-07-26T12:21:45.252Z",
+      "title": "Tauri + React + Typescript",
+      "url": "http://localhost:1420/"
+    },
+    {
+      "name": "cdp_connected",
+      "ts": "2026-07-26T12:21:45.257Z",
+      "ws": "ws://[::1]:9222/devtools/page/C2C8CC3D21D455F1CCD3AC5F059C8AEF"
+    },
+    {
+      "name": "screenshot",
+      "ts": "2026-07-26T12:21:45.602Z",
+      "file": "01_initial.png"
+    },
+    {
+      "name": "page_info",
+      "ts": "2026-07-26T12:21:45.604Z",
+      "url": "http://localhost:1420/",
+      "pathname": "/",
+      "title": "Tauri + React + Typescript"
+    },
+    {
+      "name": "body_text",
+      "ts": "2026-07-26T12:21:45.607Z",
+      "length": 2171,
+      "sample": "Drive Telegram · [TD] AutoGram SESSION Lavender 7 ms · Sangat Kuat Muat + Folder Saved Messages TERBARU 8 #Gudang Saved Messages Mantan Thea Lavender Telegram DRIVES [TD] 3 #Gudang Drive #Gudang - Donghua 3D Drive #Gudang ~ Donghua Drive CHATS 17 FOLDER CHAT TELEGRAM Semua Chat All Gudang Lavender Telegram RANDOM LAVENDER Thea RANDOM LAVENDER Mantan File Sharing Bot All NSFW TOPIK #Gudang ~ MMD & "
+    },
+    {
+      "name": "has_app_content",
+      "ts": "2026-07-26T12:21:45.607Z",
+      "result": true
+    },
+    {
+      "name": "tauri_ipc",
+      "ts": "2026-07-26T12:21:45.609Z",
+      "hasTauri": false,
+      "keys": [],
+      "hasInvoke": false,
+      "hasCoreInvoke": false
+    },
+    {
+      "name": "service_worker",
+      "ts": "2026-07-26T12:21:45.612Z",
+      "swRegistered": true,
+      "swState": "activated",
+      "swScriptURL": "http://localhost:1420/sw.js"
+    },
+    {
+      "name": "nav_drive_attempt",
+      "ts": "2026-07-26T12:21:45.612Z"
+    },
+    {
+      "name": "nav_result",
+      "ts": "2026-07-26T12:21:45.622Z",
+      "clicked": true,
+      "text": "Drive\nTelegram · [TD]\nAutoGram\nSESSION\nL",
+      "tag": "ASIDE"
+    },
+    {
+      "name": "screenshot",
+      "ts": "2026-07-26T12:21:48.977Z",
+      "file": "02_after_nav.png"
+    },
+    {
+      "name": "drive_state",
+      "ts": "2026-07-26T12:21:48.987Z"
+    },
+    {
+      "name": "file_cards",
+      "ts": "2026-07-26T12:21:48.989Z",
+      "count": 280,
+      "first": {
+        "className": "td-file-card  is-video has-thumb",
+        "dataAttrs": "data-msg-id=42806, data-drive-file=1",
+        "hasImg": true,
+        "imgSrc": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPE"
+      }
+    },
+    {
+      "name": "screenshot",
+      "ts": "2026-07-26T12:21:52.846Z",
+      "file": "03_after_card_click.png"
+    },
+    {
+      "name": "modal_state",
+      "ts": "2026-07-26T12:21:52.850Z",
+      "modals": 1,
+      "previews": 11,
+      "videos": 1,
+      "images": 0,
+      "video": {
+        "src": "http://asset.localhost/F%3A%5CAutoGram%5CAutoGram%20App%5Cworker%5Ccache%5Cpreview%5Cg42806-948559-59871.partial",
+        "currentSrc": "http://asset.localhost/F%3A%5CAutoGram%5CAutoGram%20App%5Cworker%5Ccache%5Cpreview%5Cg42806-948559-59871.partial",
+        "readyState": 4,
+        "networkState": 1,
+        "paused": false,
+        "duration": 5.03125,
+        "error": null
+      }
+    },
+    {
+      "name": "network_media_requests",
+      "ts": "2026-07-26T12:21:53.413Z",
+      "count": 30,
+      "entries": [
+        {
+          "name": "http://127.0.0.1:58006/stream/g42794-945520-59436/ag_zip_upload_1784826388761_0_sound_document_6298606291619159931.mp4",
+          "status": 0,
+          "dur": 1
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42794-945520-59436/ag_zip_upload_1784826388761_0_sound_document_6298606291619159931.mp4",
+          "status": 0,
+          "dur": 4
+        },
+        {
+          "name": "http://ipc.localhost/tg_stop_stream",
+          "status": 200,
+          "dur": 3
+        },
+        {
+          "name": "http://ipc.localhost/tg_preview_stream",
+          "status": 200,
+          "dur": 458
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/reenc_1784910735672_19724.mp4",
+          "status": 0,
+          "dur": 4
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/resume",
+          "status": 200,
+          "dur": 3
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/reenc_1784910735672_19724.mp4",
+          "status": 0,
+          "dur": 368
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/resume",
+          "status": 200,
+          "dur": 15
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/reenc_1784910735672_19724.mp4",
+          "status": 0,
+          "dur": 265
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42806-948559-59871/reenc_1784910735672_19724.mp4",
+          "status": 0,
+          "dur": 207
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/tg_stop_stream",
+          "status": 200,
+          "dur": 4
+        },
+        {
+          "name": "http://ipc.localhost/tg_preview_stream",
+          "status": 200,
+          "dur": 5115
+        },
+        {
+          "name": "http://ipc.localhost/tg_list_media",
+          "status": 200,
+          "dur": 237
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42791-953483-60574/34.mp4",
+          "status": 0,
+          "dur": 5
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 4
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42791-953483-60574/34.mp4",
+          "status": 0,
+          "dur": 2470
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42791-953483-60574/resume",
+          "status": 200,
+          "dur": 16
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 3
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42791-953483-60574/34.mp4",
+          "status": 0,
+          "dur": 971
+        },
+        {
+          "name": "http://ipc.localhost/stream_status_local",
+          "status": 200,
+          "dur": 2
+        },
+        {
+          "name": "http://127.0.0.1:58006/stream/g42791-953483-60574/34.mp4",
+          "status": 0,
+          "dur": 61
+        }
+      ]
+    },
+    {
+      "name": "react_root",
+      "ts": "2026-07-26T12:21:53.417Z"
+    },
+    {
+      "name": "routing_check",
+      "ts": "2026-07-26T12:21:53.417Z"
+    },
+    {
+      "name": "route_info",
+      "ts": "2026-07-26T12:21:53.418Z"
+    },
+    {
+      "name": "try_navigate_chat",
+      "ts": "2026-07-26T12:21:53.418Z",
+      "chatId": -1003214112048,
+      "msgId": 42794
+    },
+    {
+      "name": "navigate_result",
+      "ts": "2026-07-26T12:21:53.419Z",
+      "error": "no invoke"
+    },
+    {
+      "name": "screenshot",
+      "ts": "2026-07-26T12:21:55.769Z",
+      "file": "04_final.png"
+    },
+    {
+      "name": "dom_errors",
+      "ts": "2026-07-26T12:21:55.774Z",
+      "errorDivs": [],
+      "loadingDivs": 0
+    }
+  ]
+}

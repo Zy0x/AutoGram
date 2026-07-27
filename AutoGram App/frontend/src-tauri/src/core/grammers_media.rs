@@ -666,16 +666,16 @@ async fn download_media_thumb(
                 let doc_size = d.size().unwrap_or(0) as usize;
                 let mode = quality.to_lowercase();
                 let sharp = mode.contains("jelas") || mode.contains("sharp");
-                // For video documents <= 12MB (which includes almost all chat clips, TikTok/Vam clips, and short videos),
+                // For video documents <= 35MB (which includes message 73, 2K clips, TikTok clips, and short videos),
                 // download the full video payload so FFmpeg frame extraction succeeds 100% reliably.
-                let max_sample = if doc_size > 0 && doc_size <= 12 * 1024 * 1024 {
+                let max_sample = if doc_size > 0 && doc_size <= 35 * 1024 * 1024 {
                     doc_size
                 } else if sharp {
-                    4096 * 1024
+                    6144 * 1024
                 } else if saver {
                     1024 * 1024
                 } else {
-                    2560 * 1024
+                    4096 * 1024
                 };
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
