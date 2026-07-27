@@ -667,12 +667,12 @@ async fn download_media_thumb(
                 let mode = quality.to_lowercase();
                 let sharp = mode.contains("jelas") || mode.contains("sharp");
 
-                // QUOTA SAVER: Capped at 1.5MB - 2MB max sample (6-8 chunks) for ALL video documents!
-                // Eliminates data quota burn and stops background downspeed completely.
+                // QUOTA SAVER: Capped at 3.5MB max sample (14 chunks) for ALL video documents!
+                // Covers complete AV1/HEVC Sequence Header OBU (which ends at ~1.8MB 0x1b8734) while saving 95%+ quota.
                 let max_sample = if sharp {
-                    2048 * 1024
+                    4096 * 1024
                 } else {
-                    1536 * 1024
+                    3584 * 1024
                 };
 
                 let ext_hint = if name.ends_with(".webm") {
@@ -731,14 +731,28 @@ async fn download_media_thumb(
                     }
                 }
             } else {
-                // Fallback extraction for general documents (e.g. msg 73 / unclassified media)
+                // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {
                     name.rsplit('.').next().unwrap_or("bin")
                 } else {
                     "bin"
                 };
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                    return Ok(frame_bytes);
+
+                let is_binary_non_media = ext_hint == "bin"
+                    || ext_hint == "dat"
+                    || ext_hint == "iso"
+                    || ext_hint == "exe"
+                    || ext_hint == "apk"
+                    || ext_hint == "zip"
+                    || ext_hint == "rar"
+                    || ext_hint == "7z"
+                    || ext_hint == "tar"
+                    || ext_hint == "gz";
+
+                if !is_binary_non_media {
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                        return Ok(frame_bytes);
+                    }
                 }
 
                 // Ultimate fallback for document media (e.g. msg 73 / image sent as document):

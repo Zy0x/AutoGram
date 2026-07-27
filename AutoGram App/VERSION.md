@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.61
+AutoGram Version: v2.3.62
 
 Current State:
+v2.3.62 3.5MB AV1 Sequence Header OBU Head Coverage & Non-Media Binary FFmpeg Bypass — membenahi `grammers_media.rs`. Menyesuaikan batas sampel kepala dokumen video hingga 3.5 MB (`3584 * 1024` bytes) untuk menjangkau Sequence Header OBU AV1 2K yang berada di offset ~1.8 MB (`0x1b8734`), mengeliminasi `Missing Sequence Header` & `partial file` secara total. Menambahkan bypass otomatis untuk berkas non-media (`.bin`, `.dat`, `.iso`, `.exe`, `.apk`, `.zip`) agar tidak memicu eksekusi FFmpeg dan menjaga efisiensi penggunaan kuota pengguna serta penghentian downspeed instan.
+
+Previous:
 v2.3.61 Quota-Saver 1.5MB Head + 2MB Tail Video Sampling & Ultra-Resilient Faststart MP4 Reconstruction — membenahi `grammers_media.rs`. Menghentikan penggunaan kuota berlebih dan downspeed berkepanjangan dengan membatasi pengunduhan sampel video dokumen secara ketat hingga 1.5 MB (head) + 2 MB (tail ekor berkas). Memperbaiki parser `make_faststart_mp4` agar mampu mengisolasi atom `moov` dan merekonstruksi faststart MP4 mini ~3.5MB secara seratus persen akurat. Menghemat kuota pengguna hingga 96.5% untuk berkas besar (seperti `/-1004468191168/73` 96.15MB) sekaligus menjamin ekstraksi thumbnail jernih tanpa downspeed berkepanjangan.
 
 Previous:
