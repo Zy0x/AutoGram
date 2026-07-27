@@ -500,6 +500,99 @@ async fn download_thumb_bytes(client: &Client, thumb: &PhotoSize) -> Result<Vec<
     Ok(out)
 }
 
+fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(raw_data.len() + 1024);
+    let mut pos = 0;
+    while pos + 4 < raw_data.len() {
+        let nal_len = u32::from_be_bytes([
+            raw_data[pos],
+            raw_data[pos + 1],
+            raw_data[pos + 2],
+            raw_data[pos + 3],
+        ]) as usize;
+        if nal_len > 0 && nal_len < 16 * 1024 * 1024 && pos + 4 + nal_len <= raw_data.len() {
+            out.extend_from_slice(&[0x00, 0x00, 0x00, 0x01]);
+            out.extend_from_slice(&raw_data[pos + 4..pos + 4 + nal_len]);
+            pos += 4 + nal_len;
+        } else {
+            break;
+        }
+    }
+    if out.is_empty() {
+        raw_data.to_vec()
+    } else {
+        out
+    }
+}
+
+fn render_pdf_first_page_winrt(pdf_bytes: &[u8]) -> Option<Vec<u8>> {
+    let temp_dir = std::env::temp_dir();
+    let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let sample_pdf_path = temp_dir.join(format!("autogram_pdf_{rand_id}.pdf"));
+    let out_jpg_path = temp_dir.join(format!("autogram_pdf_thumb_{rand_id}.jpg"));
+
+    if std::fs::write(&sample_pdf_path, pdf_bytes).is_err() {
+        return None;
+    }
+
+    let ps_cmd = format!(
+        "[Windows.Data.Pdf.PdfDocument, Windows.Data.Pdf, ContentType = WindowsRuntime] | Out-Null; \
+         [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime] | Out-Null; \
+         $fileTask = [Windows.Storage.StorageFile]::GetFileFromPathAsync('{}'); \
+         while ($fileTask.Status -eq [Windows.Foundation.AsyncStatus]::Started) {{ [System.Threading.Thread]::Sleep(10) }} \
+         $file = $fileTask.GetResults(); \
+         $docTask = [Windows.Data.Pdf.PdfDocument]::LoadFromFileAsync($file); \
+         while ($docTask.Status -eq [Windows.Foundation.AsyncStatus]::Started) {{ [System.Threading.Thread]::Sleep(10) }} \
+         $doc = $docTask.GetResults(); \
+         if ($doc.PageCount -gt 0) {{ \
+             $page = $doc.GetPage(0); \
+             $stream = [Windows.Storage.Streams.InMemoryRandomAccessStream]::new(); \
+             $renderTask = $page.RenderToStreamAsync($stream); \
+             while ($renderTask.Status -eq [Windows.Foundation.AsyncStatus]::Started) {{ [System.Threading.Thread]::Sleep(10) }} \
+             $buf = New-Object byte[] $stream.Size; \
+             $reader = [Windows.Storage.Streams.DataReader]::new($stream); \
+             $reader.LoadAsync($stream.Size).GetAwaiter().GetResult() | Out-Null; \
+             $reader.ReadBytes($buf); \
+             [System.IO.File]::WriteAllBytes('{}', $buf); \
+         }}",
+        sample_pdf_path.to_string_lossy().replace('\\', "\\\\"),
+        out_jpg_path.to_string_lossy().replace('\\', "\\\\")
+    );
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = std::process::Command::new("powershell")
+            .arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-Command")
+            .arg(&ps_cmd)
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+    }
+
+    let res = if out_jpg_path.exists() {
+        let b = std::fs::read(&out_jpg_path).ok();
+        if let Some(ref data) = b {
+            if data.len() >= 512 {
+                b
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let _ = std::fs::remove_file(&sample_pdf_path);
+    let _ = std::fs::remove_file(&out_jpg_path);
+
+    res
+}
+
 async fn download_media_thumb(
     client: &Client,
     media: &Media,
@@ -682,6 +775,9 @@ async fn download_media_thumb(
 
                 return Ok(sample_bytes);
             } else if is_pdf {
+                if let Some(frame_bytes) = render_pdf_first_page_winrt(&sample_bytes) {
+                    return Ok(frame_bytes);
+                }
                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, "pdf") {
                     return Ok(frame_bytes);
                 }
@@ -695,8 +791,6 @@ async fn download_media_thumb(
                 let mode = quality.to_lowercase();
                 let sharp = mode.contains("jelas") || mode.contains("sharp");
 
-                // QUOTA SAVER: Capped at 3.5MB max sample (14 chunks) for ALL video documents!
-                // Covers complete AV1/HEVC Sequence Header OBU (which ends at ~1.8MB 0x1b8734) while saving 95%+ quota.
                 let max_sample = if sharp {
                     4096 * 1024
                 } else {
@@ -739,12 +833,11 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-
-                // Quota-saver tail chunk fetch (downloads 2, 4, 8, 16, or 32 chunks = starting from just 512 KB!)
+                // Quota-saver tail chunk fetch (downloads 2, 4, 8, 16, 32, 48, or 64 chunks)
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_chunks_count in [2usize, 4usize, 8usize, 16usize, 32usize] {
+                    for tail_chunks_count in [2usize, 4usize, 8usize, 16usize, 32usize, 48usize, 64usize] {
                         let actual_tail_count = tail_chunks_count.min(total_chunks);
                         let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
                         let mut tail_bytes = Vec::new();
@@ -765,28 +858,26 @@ async fn download_media_thumb(
                     }
                 }
 
-                // Detect AV1 video early: AV1 OBU header pattern in first 8 bytes.
-                // AV1 requires hardware acceleration; if FFmpeg cannot decode it after
-                // the initial 3.5MB sample and 512KB tail fetch, skip the 25MB rescue to avoid huge quota waste.
                 let is_likely_av1 = sample_bytes.len() >= 4 && (
                     sample_bytes.windows(4).any(|w| w == b"AV01" || w == b"av01" || w == b"av1C")
                 );
 
-                if is_likely_av1 {
+                let has_static_telegram_thumb = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_) | PhotoSize::Cached(_)));
+
+                if is_likely_av1 && has_static_telegram_thumb {
                     tg_log::warn(
                         BACKEND,
                         "thumb_av1_skip_rescue",
-                        "AV1 video detected — skipping 25MB rescue download to save quota. Falling through to Tier 6/7 stripped thumbnail.",
+                        "AV1 video detected with static Telegram thumb available — skipping rescue download to save quota.",
                     );
                 } else {
-                    // Non-AV1: ultimate rescue download up to 25MB for stubborn 2K/4K video files
-                    // where moov is in the middle or larger than 8MB.
-                    let rescue_cap = 25 * 1024 * 1024;
+                    // Rescue download up to 16MB sample for video documents without static thumbs (or 2K/4K/AV1 files)
+                    let rescue_cap = 16 * 1024 * 1024;
                     if doc_size > 0 && sample_bytes.len() < rescue_cap {
                         while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
                             if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                                 sample_bytes.extend_from_slice(&chunk);
-                                if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                                if sample_bytes.len() % (2 * 1024 * 1024) == 0 {
                                     if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                                         return Ok(frame_bytes);
                                     }
@@ -1251,15 +1342,25 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg(&frame_path)
         .output();
 
+    let check_frame_file = || -> Option<Vec<u8>> {
+        if frame_path.exists() {
+            if let Ok(b) = std::fs::read(&frame_path) {
+                if b.len() >= 512 {
+                    return Some(b);
+                }
+            }
+        }
+        None
+    };
+
     let (mut result, err1) = match status1 {
-        Ok(out) if out.status.success() && frame_path.exists() => (std::fs::read(&frame_path).ok(), String::new()),
-        Ok(out) => (None, String::from_utf8_lossy(&out.stderr).trim().to_string()),
-        Err(e) => (None, e.to_string()),
+        Ok(ref out) => (check_frame_file(), String::from_utf8_lossy(&out.stderr).trim().to_string()),
+        Err(ref e) => (None, e.to_string()),
     };
 
     // Pass 2: Input-level seek (-ss 0 before -i) for AV1/VP9/H265 container keyframe alignment
     if result.is_none() {
-        let status2 = std::process::Command::new(&ff_exe)
+        let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
             .arg("error")
@@ -1278,16 +1379,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        if let Ok(out) = status2 {
-            if out.status.success() && frame_path.exists() {
-                result = std::fs::read(&frame_path).ok();
-            }
-        }
+        result = check_frame_file();
     }
 
     // Pass 3: Output-level seek (-ss 00:00:00.100 after -i) fallback
     if result.is_none() {
-        let status3 = std::process::Command::new(&ff_exe)
+        let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
             .arg("error")
@@ -1306,11 +1403,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        if let Ok(out) = status3 {
-            if out.status.success() && frame_path.exists() {
-                result = std::fs::read(&frame_path).ok();
-            }
-        }
+        result = check_frame_file();
     }
 
     // Pass 4: Low-strictness / ignore-err decode for partial AV1/HEVC streams
@@ -1338,11 +1431,9 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        match status4 {
-            Ok(out) if out.status.success() && frame_path.exists() => {
-                result = std::fs::read(&frame_path).ok();
-            }
-            Ok(out) => {
+        result = check_frame_file();
+        if result.is_none() {
+            if let Ok(out) = status4 {
                 let err2 = String::from_utf8_lossy(&out.stderr).trim().to_string();
                 tg_log::warn(
                     BACKEND,
@@ -1350,46 +1441,13 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
                     &format!("size={} ext={ext} err1='{err1}' err2='{err2}'", sample_bytes.len()),
                 );
             }
-            Err(e) => {
-                tg_log::warn(
-                    BACKEND,
-                    "ffmpeg_exec_failed",
-                    &format!("size={} ext={ext} err={e}", sample_bytes.len()),
-                );
-            }
         }
     }
-
-fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(raw_data.len() + 1024);
-    let mut pos = 0;
-    while pos + 4 < raw_data.len() {
-        let nal_len = u32::from_be_bytes([
-            raw_data[pos],
-            raw_data[pos + 1],
-            raw_data[pos + 2],
-            raw_data[pos + 3],
-        ]) as usize;
-        if nal_len > 0 && nal_len < 16 * 1024 * 1024 && pos + 4 + nal_len <= raw_data.len() {
-            out.extend_from_slice(&[0x00, 0x00, 0x00, 0x01]);
-            out.extend_from_slice(&raw_data[pos + 4..pos + 4 + nal_len]);
-            pos += 4 + nal_len;
-        } else {
-            break;
-        }
-    }
-    if out.is_empty() {
-        raw_data.to_vec()
-    } else {
-        out
-    }
-}
 
     // Pass 5: Direct bitstream / mdat payload snapshot extraction.
     // If standard container demuxing failed (e.g. missing moov atom in initial sample buffer),
     // extract raw bitstream from mdat payload offset, convert MP4 AVCC length-prefixes to Annex-B start codes,
     // and force raw demuxers (-f h264 / -f hevc / -f m4v).
-    // This allows "playing/seeking" a tiny initial buffer directly into a thumbnail snapshot.
     if result.is_none() && sample_bytes.len() >= 128 {
         if let Some(mdat_pos) = sample_bytes.windows(4).position(|w| w == b"mdat") {
             let stream_start = mdat_pos + 4;
@@ -1399,7 +1457,7 @@ fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
                 let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.bin"));
                 if std::fs::write(&stream_path, &annexb_bytes).is_ok() {
                     for fmt in ["h264", "hevc", "m4v", "mpegts"] {
-                        let status5 = std::process::Command::new(&ff_exe)
+                        let _ = std::process::Command::new(&ff_exe)
                             .arg("-hide_banner")
                             .arg("-loglevel")
                             .arg("quiet")
@@ -1420,18 +1478,14 @@ fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
                             .arg(&frame_path)
                             .output();
 
-                        if let Ok(out) = status5 {
-                            if out.status.success() && frame_path.exists() {
-                                result = std::fs::read(&frame_path).ok();
-                                if result.is_some() {
-                                    tg_log::warn(
-                                        BACKEND,
-                                        "ffmpeg_pass5_success",
-                                        &format!("Raw bitstream snapshot extracted using -f {fmt} from mdat offset {stream_start}"),
-                                    );
-                                    break;
-                                }
-                            }
+                        result = check_frame_file();
+                        if result.is_some() {
+                            tg_log::warn(
+                                BACKEND,
+                                "ffmpeg_pass5_success",
+                                &format!("Raw bitstream snapshot extracted using -f {fmt} from mdat offset {stream_start}"),
+                            );
+                            break;
                         }
                     }
                     let _ = std::fs::remove_file(&stream_path);

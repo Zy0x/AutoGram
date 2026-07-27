@@ -1,3 +1,17 @@
+## v2.3.60 Native WinRT PDF Page 1 Render, AV1/2K Video Rescue & Non-Zero FFmpeg Exit Frame Extraction
+
+### Perbaikan Thumbnail Halaman Pertama PDF & Video Dokumen (AV1 / 2K / 4K) (`grammers_media.rs`)
+- **Native WinRT PDF Page 1 Rendering (`render_pdf_first_page_winrt`)**: Mengintegrasikan modul rendering native Windows (`Windows.Data.Pdf.PdfDocument`) yang secara akurat merender Halaman 1 dari berkas PDF menjadi thumbnail JPEG resolusi tinggi tanpa bergantung pada embedded logo/stream internal.
+- **Pelepasan Skip Rescue pada Video AV1 / Dokumen**: Mengoreksi pengondisian `is_likely_av1` agar tetap menjalankan *sample rescue download* (hingga 16MB) jika Telegram tidak menyediakan layer thumbnail statis (`sizes == 0`). Menjamin video AV1/2K/4K yang dikirim sebagai dokumen dapat terproses sempurna.
+- **Pencapaian Ekstraksi Frame FFmpeg pada Sample Terpotong**: Memperbarui Pass 1–4 pada `extract_ffmpeg_frame_sync` agar memeriksa keberadaan berkas `frame_path` secara langsung tanpa digagalkan oleh exit code non-zero FFmpeg akibat pembacaan sampel berkas hingga EOF.
+
+## v2.3.59 Native WinRT PDF Page 1 Render, AV1/2K Video Rescue & Non-Zero FFmpeg Exit Frame Extraction
+
+### Perbaikan Thumbnail Halaman Pertama PDF & Video Dokumen (AV1 / 2K / 4K) (`grammers_media.rs`)
+- **Native WinRT PDF Page 1 Rendering (`render_pdf_first_page_winrt`)**: Mengintegrasikan modul rendering native Windows (`Windows.Data.Pdf.PdfDocument`) yang secara akurat merender Halaman 1 dari berkas PDF menjadi thumbnail JPEG resolusi tinggi tanpa bergantung pada embedded logo/stream internal.
+- **Pelepasan Skip Rescue pada Video AV1 / Dokumen**: Mengoreksi pengondisian `is_likely_av1` agar tetap menjalankan *sample rescue download* (hingga 16MB) jika Telegram tidak menyediakan layer thumbnail statis (`sizes == 0`). Menjamin video AV1/2K/4K yang dikirim sebagai dokumen dapat terproses sempurna.
+- **Pencapaian Ekstraksi Frame FFmpeg pada Sample Terpotong**: Memperbarui Pass 1–4 pada `extract_ffmpeg_frame_sync` agar memeriksa keberadaan berkas `frame_path` secara langsung tanpa digagalkan oleh exit code non-zero FFmpeg akibat pembacaan sampel berkas hingga EOF.
+
 ## v2.3.58 Non-Web Image Transcoding, Embedded PDF Cover Extraction & Document Thumbnail Guard Patch
 
 ### Perbaikan Thumbnail Dokumen Tanpa Layer Statis (`grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`)
