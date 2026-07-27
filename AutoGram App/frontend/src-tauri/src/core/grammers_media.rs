@@ -969,18 +969,26 @@ async fn download_media_thumb(
                     }
                 }
 
-                // Ultimate Rescue Fallback for video documents (up to 25MB head sample for stubborn video files):
-                // Download additional head chunks and test FFmpeg progressively every 4MB chunk
-                let max_rescue_bytes = if doc_size > 25 * 1024 * 1024 {
+                // Ultimate Rescue Fallback for video documents:
+                // Download additional head chunks and test FFmpeg progressively.
+                // AV1: rescue up to 32MB (large non-faststart AV1 videos have moov at end and big first chunks).
+                // Others: rescue up to 25MB or file size.
+                let max_rescue_bytes = if is_av1_video {
+                    doc_size.min(32 * 1024 * 1024)
+                } else if doc_size > 25 * 1024 * 1024 {
                     25 * 1024 * 1024
                 } else {
                     doc_size.min(12 * 1024 * 1024)
                 };
                 if doc_size > 0 && sample_bytes.len() < max_rescue_bytes {
+                    let milestone_step = 4 * 1024 * 1024_usize;
+                    let mut next_rescue_milestone =
+                        (sample_bytes.len() / milestone_step + 1) * milestone_step;
                     while sample_bytes.len() < max_rescue_bytes {
                         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                             sample_bytes.extend_from_slice(&chunk);
-                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                            if sample_bytes.len() >= next_rescue_milestone {
+                                next_rescue_milestone += milestone_step;
                                 if let Some(ref tail_b) = last_tail_bytes {
                                     if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
                                         if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
@@ -1795,6 +1803,43 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             err1 = String::from_utf8_lossy(&out.stderr).trim().to_string();
             if let Some(b) = check_frame_file() {
                 result = Some(b);
+                break;
+            }
+        }
+    }
+
+    // AV1-with-moov fast pass: when moov IS present but the first video chunk spans
+    // past the sample boundary, -noaccurate_seek lets FFmpeg grab any partial frame
+    // without requiring a complete GOP decode from the keyframe.
+    let has_moov = sample_bytes.windows(4).any(|w| w == b"moov");
+    if result.is_none() && is_av1 && has_moov {
+        for seek_pos in ["0", "00:00:00.033", "00:00:00.100", "00:00:00.500", "00:00:01", "00:00:02", "00:00:05"] {
+            let _ = std::process::Command::new(&ff_exe)
+                .arg("-hide_banner")
+                .arg("-loglevel").arg("quiet")
+                .arg("-y")
+                .arg("-noaccurate_seek")
+                .arg("-hwaccel").arg("none")
+                .arg("-err_detect").arg("ignore_err")
+                .arg("-fflags").arg("+genpts+discardcorrupt")
+                .arg("-probesize").arg("12M")
+                .arg("-analyzeduration").arg("12M")
+                .arg("-ss").arg(seek_pos)
+                .arg("-i").arg(&sample_path)
+                .arg("-an")
+                .arg("-vframes").arg("1")
+                .arg("-vf").arg(scale_arg)
+                .arg("-q:v").arg(q_val)
+                .arg("-y")
+                .arg(&frame_path)
+                .output();
+            result = check_frame_file();
+            if result.is_some() {
+                tg_log::warn(
+                    BACKEND,
+                    "ffmpeg_av1_noaccurate_seek_success",
+                    &format!("seek_pos={seek_pos} size={}", sample_bytes.len()),
+                );
                 break;
             }
         }
