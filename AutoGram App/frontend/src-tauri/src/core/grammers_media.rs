@@ -889,24 +889,7 @@ async fn download_media_thumb(
                     || sample_bytes.windows(4).any(|w| w == b"av1C")
                     || sample_bytes.windows(4).any(|w| w == b"av01");
 
-                // Phase 5: Graceful degradation — if AV1 video detected but FFmpeg lacks a decoder,
-                // skip all 4 passes immediately to avoid wasting CPU on guaranteed failures.
-                if is_av1_video {
-                    let has_av1_decoder = find_ffmpeg_binary()
-                        .map(|p| ffmpeg_supports_av1(&p))
-                        .unwrap_or(false);
-                    if !has_av1_decoder {
-                        tg_log::warn(
-                            BACKEND,
-                            "av1_no_decoder",
-                            "FFmpeg build lacks libdav1d/libaom; skipping AV1 frame extraction — UI will show flat icon placeholder",
-                        );
-                        return Err(TgError::new(
-                            TgErrorCode::Internal,
-                            "av1 decoder not available in bundled ffmpeg",
-                        ));
-                    }
-                }
+                // Apply 8 MB sample budget for AV1 / 2K MP4 video documents to handle sparse keyframes.
 
                 // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
                 // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 8MB (AV1) to handle late moov atoms.
@@ -1620,6 +1603,7 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
 /// Phase 1: Runtime AV1 decoder capability probe.
 /// Cached in a OnceLock so the subprocess is only spawned once per app session.
 /// Returns true if the bundled FFmpeg binary was compiled with libdav1d, libaom, or any AV1 decoder.
+#[allow(dead_code)]
 fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
     static CACHE: OnceLock<bool> = OnceLock::new();
     *CACHE.get_or_init(|| {

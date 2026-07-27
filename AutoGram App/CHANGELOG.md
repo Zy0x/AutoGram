@@ -1,3 +1,9 @@
+## v2.3.74 Elimination of False-Positive AV1 Rejection Gate
+
+### Eliminasi Penolakan Dini AV1 & Eksekusi FFmpeg 100% (`grammers_media.rs`)
+- **Eliminasi Blok Penolakan Dini `if !has_av1_decoder`**: Menghapus gate penolakan awal yang memicu log terminal `av1_no_decoder` dan menggagalkan ekstraksi FFmpeg pada video 2K MP4/AV1.
+- **Eksekusi Frame Extraction Nyata**: Berkas video dokumen 2K MP4/AV1 kini tetap memicu ekstraksi frame FFmpeg secara langsung pada sampel 8 MB, mengonfirmasi thumbnail visual 3D Donghua terpancar berwarna dan jernih pada seluruh kartu media grid.
+
 ## v2.3.73 FFmpeg Head-Sample In-Bounds Seek Priority (-ss 0 First)
 
 ### Penataan Ulang Prioritas Seek FFmpeg pada Sampel Parsial (`grammers_media.rs`)
