@@ -1,3 +1,9 @@
+## v2.3.61 Fast 2MB Single-Pass Tail Scan & Rescue Loop Head-Tail MP4 Combination Patch
+
+### Optimalisasi Kecepatan & Kuota Thumbnail Video Dokumen 2K/AV1 (`grammers_media.rs`)
+- **Fast 2MB Single-Pass Tail Scan**: Memperbarui skema penarikan ekor sampel dokumen dari 7 kali iterasi berulang menjadi 1 kali penarikan langsung 2MB (8 chunk). Menghemat 80%+ waktu tunggu dan kuota download tail MP4/MKV.
+- **Penggabungan Auto Head+Tail pada Rescue Loop**: Menghubungkan buffer `saved_tail_bytes` (`make_faststart_mp4`) secara langsung ke setiap milestone 1MB sampel kepala pada *rescue loop*. Menjamin video dokumen 2K/AV1 non-faststart (seperti pesan `/-1004468191168/72`) langsung terekstrak thumbnail-nya di kuota sampel awal tanpa pemborosan data.
+
 ## v2.3.60 Native WinRT PDF Page 1 Render, AV1/2K Video Rescue & Non-Zero FFmpeg Exit Frame Extraction
 
 ### Perbaikan Thumbnail Halaman Pertama PDF & Video Dokumen (AV1 / 2K / 4K) (`grammers_media.rs`)

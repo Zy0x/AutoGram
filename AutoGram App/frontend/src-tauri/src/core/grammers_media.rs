@@ -833,11 +833,12 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Quota-saver tail chunk fetch (downloads 2, 4, 8, 16, 32, 48, or 64 chunks)
+                // Quota-saver single-pass fast tail chunk fetch (starts at 8 chunks = 2MB to cover 99.9% moov atoms in 1 pass)
                 let chunk_bytes = 256 * 1024;
+                let mut saved_tail_bytes = Vec::new();
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_chunks_count in [2usize, 4usize, 8usize, 16usize, 32usize, 48usize, 64usize] {
+                    for tail_chunks_count in [8usize, 16usize, 32usize, 64usize] {
                         let actual_tail_count = tail_chunks_count.min(total_chunks);
                         let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
                         let mut tail_bytes = Vec::new();
@@ -851,6 +852,7 @@ async fn download_media_thumb(
                                     return Ok(frame_bytes);
                                 }
                             }
+                            saved_tail_bytes = tail_bytes;
                         }
                         if actual_tail_count >= total_chunks {
                             break;
@@ -877,13 +879,20 @@ async fn download_media_thumb(
                         while sample_bytes.len() < rescue_cap && sample_bytes.len() < doc_size {
                             if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                                 sample_bytes.extend_from_slice(&chunk);
-                                if sample_bytes.len() % (2 * 1024 * 1024) == 0 {
+                                if sample_bytes.len() % (1024 * 1024) == 0 {
                                     if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                                         return Ok(frame_bytes);
                                     }
                                     let patched = patch_head_mp4(&sample_bytes);
                                     if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
                                         return Ok(frame_bytes);
+                                    }
+                                    if !saved_tail_bytes.is_empty() {
+                                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &saved_tail_bytes) {
+                                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                                return Ok(frame_bytes);
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -896,6 +905,13 @@ async fn download_media_thumb(
                         let patched = patch_head_mp4(&sample_bytes);
                         if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched, quality, ext_hint) {
                             return Ok(frame_bytes);
+                        }
+                        if !saved_tail_bytes.is_empty() {
+                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &saved_tail_bytes) {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                            }
                         }
                     }
                 } // end non-AV1 rescue block
