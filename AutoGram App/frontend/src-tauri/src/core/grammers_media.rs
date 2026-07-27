@@ -72,7 +72,9 @@ pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
     if !cancel_flags().lock().contains_key(stream_id) {
         return false;
     }
-    seek_requests().lock().insert(stream_id.to_string(), offset);
+    // 512 KB Alignment Boundary to prevent Telegram CDN offset shift / MP4 box corruption
+    let aligned_offset = offset - (offset % (512 * 1024));
+    seek_requests().lock().insert(stream_id.to_string(), aligned_offset);
     true
 }
 
@@ -277,6 +279,48 @@ pub struct ThumbsBatchResult {
 fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
     static CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(10000)))
+}
+
+pub fn prune_thumb_cache(t_dir: &Path) {
+    if !t_dir.is_dir() {
+        return;
+    }
+    let t_dir_buf = t_dir.to_path_buf();
+    std::thread::spawn(move || {
+        let Ok(entries) = std::fs::read_dir(&t_dir_buf) else { return; };
+        let mut files: Vec<(PathBuf, SystemTime, u64)> = Vec::new();
+
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if !p.is_file() {
+                continue;
+            }
+            let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if fname.ends_with(".part") {
+                let _ = std::fs::remove_file(&p);
+                continue;
+            }
+            if let Ok(meta) = p.metadata() {
+                let modified = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+                files.push((p, modified, meta.len()));
+            }
+        }
+
+        files.sort_by_key(|(_, modified, _)| *modified);
+        let max_files = 500usize;
+        let max_bytes = 256 * 1024 * 1024u64; // 256 MB cap
+        let mut total_bytes: u64 = files.iter().map(|(_, _, len)| *len).sum();
+
+        while files.len() > max_files || total_bytes > max_bytes {
+            if let Some((path, _, len)) = files.first().cloned() {
+                let _ = std::fs::remove_file(&path);
+                total_bytes = total_bytes.saturating_sub(len);
+                files.remove(0);
+            } else {
+                break;
+            }
+        }
+    });
 }
 
 fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
@@ -1689,6 +1733,7 @@ pub fn thumbs_batch_blocking_app(
         .collect();
     let t_dir = thumb_dir(sessions_dir);
     let _ = std::fs::create_dir_all(&t_dir);
+    prune_thumb_cache(&t_dir);
 
     // Section
     let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
@@ -1831,10 +1876,14 @@ pub fn thumbs_batch_blocking_app(
                                         continue;
                                     }
                                     if let Some(url) = to_data_url(&bytes) {
-                                        // Always keep stripped under hemat only
+                                        // Always keep stripped under hemat only using atomic .part rename
                                         let cache_file = t_dir
                                             .join(format!("{chat_safe}_{mid}_hemat.jpg"));
-                                        let _ = std::fs::write(&cache_file, &bytes);
+                                        let rand_id = now_ms();
+                                        let part_file = t_dir.join(format!("{chat_safe}_{mid}_hemat.{rand_id}.part"));
+                                        if std::fs::write(&part_file, &bytes).is_ok() {
+                                            let _ = std::fs::rename(&part_file, &cache_file);
+                                        }
                                         thumb_mem_cache().lock().insert(
                                             format!("{chat_safe}_{mid}_hemat"),
                                             url.clone(),
@@ -2011,6 +2060,8 @@ pub fn thumbs_batch_blocking_app(
                     set.spawn(async move {
                         let _permit = sem_sub.acquire_owned().await.ok();
                         let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
+                        let rand_id = now_ms();
+                        let part_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.{rand_id}.part"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
                                 // Accept any valid thumbnail payload (>= 64 bytes)
@@ -2018,7 +2069,9 @@ pub fn thumbs_batch_blocking_app(
                                 if bytes.len() < min_ok {
                                     return (mid_val.to_string(), None);
                                 }
-                                let _ = std::fs::write(&cache_file, &bytes);
+                                if std::fs::write(&part_file, &bytes).is_ok() {
+                                    let _ = std::fs::rename(&part_file, &cache_file);
+                                }
                                 let url = to_data_url(&bytes);
                                 if let Some(ref u) = url {
                                     thumb_mem_cache().lock().insert(

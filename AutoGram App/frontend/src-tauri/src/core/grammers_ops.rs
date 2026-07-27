@@ -505,7 +505,7 @@ where
                             MAX_ATTEMPTS,
                         ),
                     );
-                    tokio::time::sleep(Duration::from_secs(flood as u64)).await;
+                    tokio::time::sleep(Duration::from_secs((flood + 1) as u64)).await;
                 }
                 disconnect_cached_session(session_name);
                 tg_log::warn(
