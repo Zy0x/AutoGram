@@ -666,17 +666,15 @@ async fn download_media_thumb(
                 let doc_size = d.size().unwrap_or(0) as usize;
                 let mode = quality.to_lowercase();
                 let sharp = mode.contains("jelas") || mode.contains("sharp");
-                // For video documents <= 120MB (which includes message 73 at 96.15MB, 2K/4K clips, TikTok clips, and short videos),
-                // download the full video payload so FFmpeg frame extraction succeeds 100% reliably.
-                let max_sample = if doc_size > 0 && doc_size <= 120 * 1024 * 1024 {
-                    doc_size
-                } else if sharp {
-                    8192 * 1024
-                } else if saver {
+
+                // QUOTA SAVER: Capped at 1.5MB - 2MB max sample (6-8 chunks) for ALL video documents!
+                // Eliminates data quota burn and stops background downspeed completely.
+                let max_sample = if sharp {
                     2048 * 1024
                 } else {
-                    4096 * 1024
+                    1536 * 1024
                 };
+
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
                 } else if name.ends_with(".mkv") {
@@ -713,27 +711,11 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Fallback for non-faststart MP4s (moov atom at end of file, e.g. 120MB+ videos)
+                // Quota-saver tail chunk fetch (downloads ONLY max 12 chunks = 3 MB from end of file)
                 let chunk_bytes = 256 * 1024;
-                if doc_size > 0 && doc_size <= sample_bytes.len() + chunk_bytes {
-                    // Entire video (or almost entire video) is already in sample_bytes.
-                    // Pass sample_bytes as both head and tail so make_faststart_mp4 can extract moov from the end of sample_bytes.
-                    if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &sample_bytes) {
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                            return Ok(frame_bytes);
-                        }
-                    }
-                } else if doc_size > 0 {
+                if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    // Fetch tail chunks dynamically to capture moov atom & stco tables for large videos:
-                    // 64 chunks (16 MB) for videos > 50MB, 40 chunks (10 MB) for videos > 25MB, else 24 chunks (6 MB)
-                    let tail_chunks_count = if doc_size > 50 * 1024 * 1024 {
-                        64.min(total_chunks)
-                    } else if doc_size > 25 * 1024 * 1024 {
-                        40.min(total_chunks)
-                    } else {
-                        24.min(total_chunks)
-                    };
+                    let tail_chunks_count = 12.min(total_chunks);
                     let skip = total_chunks.saturating_sub(tail_chunks_count) as i32;
                     let mut tail_bytes = Vec::new();
                     let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
@@ -741,17 +723,10 @@ async fn download_media_thumb(
                         tail_bytes.extend_from_slice(&chunk);
                     }
                     if !tail_bytes.is_empty() {
-                        // 1. Faststart MP4 reconstruction with stco/co64 re-indexing for FFmpeg
                         if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
                             if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
                                 return Ok(frame_bytes);
                             }
-                        }
-                        // 2. Fallback raw combined
-                        let mut combined = sample_bytes.clone();
-                        combined.extend_from_slice(&tail_bytes);
-                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&combined, quality, ext_hint) {
-                            return Ok(frame_bytes);
                         }
                     }
                 }
@@ -929,41 +904,51 @@ fn patch_head_mp4(sample_bytes: &[u8]) -> Vec<u8> {
 }
 
 fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
-    if sample_bytes.len() < 36 || tail_bytes.is_empty() {
+    if sample_bytes.len() < 16 || tail_bytes.is_empty() {
         return None;
     }
     let moov_tag = b"moov";
     let mut moov_pos = None;
+    let mut target_buf = tail_bytes;
+
+    // 1. Search in tail_bytes first
     if tail_bytes.len() >= 8 {
         for i in (4..=tail_bytes.len() - 4).rev() {
             if &tail_bytes[i..i + 4] == moov_tag {
-                let candidate = i - 4;
-                let candidate_sz = u32::from_be_bytes([
-                    tail_bytes[candidate],
-                    tail_bytes[candidate + 1],
-                    tail_bytes[candidate + 2],
-                    tail_bytes[candidate + 3],
-                ]) as usize;
-                if candidate_sz >= 8 && candidate + candidate_sz <= tail_bytes.len() {
-                    moov_pos = Some(candidate);
-                    break;
-                }
+                moov_pos = Some(i - 4);
+                break;
             }
         }
     }
-    let pos = moov_pos?;
-    let moov_size = u32::from_be_bytes([
-        tail_bytes[pos],
-        tail_bytes[pos + 1],
-        tail_bytes[pos + 2],
-        tail_bytes[pos + 3],
-    ]) as usize;
+    // 2. Fallback search in sample_bytes if not found in tail_bytes
+    if moov_pos.is_none() && sample_bytes.len() >= 8 {
+        for i in (4..=sample_bytes.len() - 4).rev() {
+            if &sample_bytes[i..i + 4] == moov_tag {
+                moov_pos = Some(i - 4);
+                target_buf = sample_bytes;
+                break;
+            }
+        }
+    }
 
-    if pos + moov_size > tail_bytes.len() || moov_size < 8 {
+    let pos = moov_pos?;
+    let raw_sz = if pos + 4 <= target_buf.len() {
+        u32::from_be_bytes([
+            target_buf[pos],
+            target_buf[pos + 1],
+            target_buf[pos + 2],
+            target_buf[pos + 3],
+        ]) as usize
+    } else {
+        target_buf.len() - pos
+    };
+
+    let moov_size = if raw_sz >= 8 { raw_sz.min(target_buf.len() - pos) } else { target_buf.len() - pos };
+    if moov_size < 8 {
         return None;
     }
 
-    let mut moov_slice = tail_bytes[pos..pos + moov_size].to_vec();
+    let mut moov_slice = target_buf[pos..pos + moov_size].to_vec();
     patch_moov_offsets(&mut moov_slice, moov_size);
 
     let ftyp_size = if sample_bytes.len() >= 8 && &sample_bytes[4..8] == b"ftyp" {

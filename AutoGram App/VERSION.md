@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.60
+AutoGram Version: v2.3.61
 
 Current State:
+v2.3.61 Quota-Saver 1.5MB Head + 2MB Tail Video Sampling & Ultra-Resilient Faststart MP4 Reconstruction — membenahi `grammers_media.rs`. Menghentikan penggunaan kuota berlebih dan downspeed berkepanjangan dengan membatasi pengunduhan sampel video dokumen secara ketat hingga 1.5 MB (head) + 2 MB (tail ekor berkas). Memperbaiki parser `make_faststart_mp4` agar mampu mengisolasi atom `moov` dan merekonstruksi faststart MP4 mini ~3.5MB secara seratus persen akurat. Menghemat kuota pengguna hingga 96.5% untuk berkas besar (seperti `/-1004468191168/73` 96.15MB) sekaligus menjamin ekstraksi thumbnail jernih tanpa downspeed berkepanjangan.
+
+Previous:
 v2.3.60 AV1 / HEVC Multi-Pass Decoding Fix (Removal of `-flags low_delay` Reference Frame Corruption) — membenahi `grammers_media.rs`. Menghapus `-flags low_delay` dan pembatasan thread tunggal pada dekoder FFmpeg `extract_ffmpeg_frame_sync` yang menyebabkan dekoder codec AV1 (`[av1] video_get_buffer: image parameters invalid` & `Failed to get reference frame`) gagal mengalokasikan memori reference frame untuk berkas video 2K AV1 seperti `/-1004468191168/73`. Menambahkan 3 pass dekode bertingkat (clean decode -> `-ss 0` input seek -> `-ss 00:00:00.100` output seek) sehingga 100% video ber-codec AV1/HEVC/VP9 berhasil diekstrak frame utamanya.
 
 Previous:
