@@ -1539,6 +1539,10 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         ("scale=-2:480,format=yuv420p", "3")
     };
 
+    let is_av1 = ext_hint == "av1"
+        || sample_bytes.windows(4).any(|w| w == b"av01")
+        || sample_bytes.windows(4).any(|w| w == b"av1C");
+
     // Always force software decode (-hwaccel none) for single-frame thumbnail extractions.
     // FFmpeg on Windows tries DXVA2/D3D11VA hardware acceleration by default for AV1/HEVC containers,
     // which crashes with 'Your platform doesn't support hardware accelerated AV1 decoding' when GPU lacks HW AV1 decode support.
