@@ -835,16 +835,32 @@ async fn download_media_thumb(
 
                 return Ok(sample_bytes);
             } else if is_pdf {
+                // PDF extraction: try embedded cover image stream first, then WinRT PDF page render
+                if let Some(img_bytes) = extract_embedded_pdf_image(&sample_bytes) {
+                    return Ok(img_bytes);
+                }
                 if let Some(frame_bytes) = render_pdf_first_page_winrt(&sample_bytes) {
                     return Ok(frame_bytes);
                 }
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, "pdf") {
-                    return Ok(frame_bytes);
-                }
 
-                // PDF Fallback: Search for embedded JPEG or PNG cover image stream in first chunk
-                if let Some(img_bytes) = extract_embedded_pdf_image(&sample_bytes) {
-                    return Ok(img_bytes);
+                // If sample_bytes is partial (e.g. 256KB of multi-MB PDF), download additional sample
+                // to include trailer/XRef structure so WinRT or embedded image search can succeed
+                let doc_size = d.size().unwrap_or(0) as usize;
+                if doc_size > 0 && doc_size <= 8 * 1024 * 1024 && sample_bytes.len() < doc_size {
+                    let max_pdf_sample = doc_size.min(2048 * 1024);
+                    while sample_bytes.len() < max_pdf_sample {
+                        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                            sample_bytes.extend_from_slice(&chunk);
+                        } else {
+                            break;
+                        }
+                    }
+                    if let Some(img_bytes) = extract_embedded_pdf_image(&sample_bytes) {
+                        return Ok(img_bytes);
+                    }
+                    if let Some(frame_bytes) = render_pdf_first_page_winrt(&sample_bytes) {
+                        return Ok(frame_bytes);
+                    }
                 }
             } else if is_video {
                 let doc_size = d.size().unwrap_or(0) as usize;
@@ -870,9 +886,8 @@ async fn download_media_thumb(
                         tg_log::warn(
                             BACKEND,
                             "av1_no_decoder",
-                            "FFmpeg build lacks libdav1d/libaom; skipping AV1 frame extraction — UI will show placeholder",
+                            "FFmpeg build lacks libdav1d/libaom; skipping AV1 frame extraction — UI will show flat icon placeholder",
                         );
-                        // Return error immediately; the caller will show a generic video placeholder.
                         return Err(TgError::new(
                             TgErrorCode::Internal,
                             "av1 decoder not available in bundled ffmpeg",
@@ -968,6 +983,12 @@ async fn download_media_thumb(
                     "bin"
                 };
 
+                let is_known_media_ext = matches!(
+                    ext_hint,
+                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv" | "wmv"
+                        | "jpg" | "jpeg" | "png" | "webp" | "bmp" | "gif" | "heic" | "heif" | "avif" | "tiff"
+                );
+
                 let is_binary_archive_or_text = sample_bytes.len() > 0 && (
                     sample_bytes.starts_with(b"{")
                         || sample_bytes.starts_with(b"[")
@@ -976,6 +997,7 @@ async fn download_media_thumb(
                         || sample_bytes.starts_with(b"PK\x03\x04")
                         || sample_bytes.starts_with(b"Rar!\x1a\x07")
                         || sample_bytes.starts_with(b"7z\xbc\xaf\x27\x1c")
+                        || !is_known_media_ext
                 );
 
                 if !is_binary_archive_or_text {
@@ -1037,6 +1059,8 @@ async fn download_media_thumb(
         }
     }
 
+
+
     let (media_kind, mime, name, size) = match media {
         Media::Photo(_) => ("Photo", String::new(), String::new(), 0),
         Media::Document(d) => (
@@ -1054,7 +1078,11 @@ async fn download_media_thumb(
         "no valid thumb found (kind={media_kind} sizes={} mime='{mime}' name='{name}' size={size} ffmpeg={ffmpeg_ok})",
         sizes.len()
     );
-    tg_log::warn(BACKEND, "thumb_miss_detail", &err_msg);
+    if media_kind == "Document" && !mime.starts_with("video/") && !mime.starts_with("image/") {
+        tg_log::info(BACKEND, "thumb_miss_detail", &err_msg);
+    } else {
+        tg_log::warn(BACKEND, "thumb_miss_detail", &err_msg);
+    }
     Err(TgError::new(TgErrorCode::Internal, err_msg))
 }
 
@@ -1746,6 +1774,8 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
     None
 }
 
+
+
 fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
         return None;
@@ -1753,12 +1783,15 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
     let is_jpeg = bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8;
     let is_png = bytes.len() >= 8 && &bytes[0..4] == b"\x89PNG";
     let is_webp = bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP";
+    let is_svg = bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml");
     let mime = if is_jpeg {
         "image/jpeg"
     } else if is_png {
         "image/png"
     } else if is_webp {
         "image/webp"
+    } else if is_svg {
+        "image/svg+xml"
     } else {
         "image/jpeg"
     };
@@ -1822,18 +1855,29 @@ pub fn thumbs_batch_blocking_app(
         let key = mid.to_string();
         let cache_key = format!("{chat_safe}_{mid}_{q_key}");
         let mut found_url: Option<String> = None;
+        let mut is_negative_hit = false;
         {
             let mem = thumb_mem_cache().lock();
             if let Some(url) = mem.get(&cache_key) {
-                // Accept any valid cached thumbnail regardless of size.
-                // NOTE: A 310-byte JPEG encodes to ~437-char data URL which previously
-                // was incorrectly rejected by url.len() > 600. Use len > 0 here;
-                // the real validity gate is the 64-byte min at disk-read time below.
-                if !url.is_empty() {
+                if url == "NOT_FOUND" {
+                    is_negative_hit = true;
+                } else if !url.is_empty() {
                     found_url = Some(url.clone());
                 }
             }
         }
+        if !is_negative_hit && found_url.is_none() {
+            let nothumb_file = t_dir.join(format!("{cache_key}.nothumb"));
+            if nothumb_file.is_file() {
+                thumb_mem_cache().lock().insert(cache_key.clone(), "NOT_FOUND".to_string());
+                is_negative_hit = true;
+            }
+        }
+        if is_negative_hit {
+            thumbs.insert(key, None);
+            continue;
+        }
+
         if found_url.is_none() {
             // Prefer exact quality file; fall back to hemat (stripped) so grid
             // reopens like Telegram without re-hitting the network.
@@ -2066,11 +2110,22 @@ pub fn thumbs_batch_blocking_app(
                     // threshold (previously url.len() > 600) which rejected valid small
                     // thumbnails (e.g. 310-byte JPEG → ~437-char data URL).
                     let q_cache = format!("{chat_safe}_{mid}_{q_key}");
-                    if let Some(url) = thumb_mem_cache().lock().get(&q_cache).cloned() {
-                        if !url.is_empty() {
-                            thumbs.insert(key, Some(url));
-                            continue;
+                    let mut is_neg = false;
+                    {
+                        let mem = thumb_mem_cache().lock();
+                        if let Some(url) = mem.get(&q_cache) {
+                            if url == "NOT_FOUND" {
+                                is_neg = true;
+                            } else if !url.is_empty() {
+                                thumbs.insert(key, Some(url.clone()));
+                                continue;
+                            }
                         }
+                    }
+                    if is_neg || t_dir.join(format!("{q_cache}.nothumb")).is_file() {
+                        thumb_mem_cache().lock().insert(q_cache, "NOT_FOUND".to_string());
+                        thumbs.insert(key, None);
+                        continue;
                     }
                     let q_file = t_dir.join(format!("{q_cache}.jpg"));
                     if q_file.is_file() {
@@ -2146,6 +2201,12 @@ pub fn thumbs_batch_blocking_app(
                                 // Accept any valid thumbnail payload (>= 64 bytes)
                                 let min_ok = 64;
                                 if bytes.len() < min_ok {
+                                    let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
+                                    let _ = std::fs::write(&nothumb_file, b"none");
+                                    thumb_mem_cache().lock().insert(
+                                        format!("{c_sub}_{mid_val}_{q_sub}"),
+                                        "NOT_FOUND".to_string(),
+                                    );
                                     return (mid_val.to_string(), None);
                                 }
                                 if std::fs::write(&part_file, &bytes).is_ok() {
@@ -2161,11 +2222,26 @@ pub fn thumbs_batch_blocking_app(
                                 (mid_val.to_string(), url)
                             }
                             Err(e) => {
-                                tg_log::warn(
-                                    BACKEND,
-                                    "thumb_download_failed",
-                                    format!("chat={c_sub} mid={mid_val} quality={q_sub} error={e}"),
+                                let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
+                                let _ = std::fs::write(&nothumb_file, b"none");
+                                thumb_mem_cache().lock().insert(
+                                    format!("{c_sub}_{mid_val}_{q_sub}"),
+                                    "NOT_FOUND".to_string(),
                                 );
+                                let err_str = e.to_string();
+                                if !err_str.contains("no valid thumb found") {
+                                    tg_log::warn(
+                                        BACKEND,
+                                        "thumb_download_failed",
+                                        format!("chat={c_sub} mid={mid_val} quality={q_sub} error={err_str}"),
+                                    );
+                                } else {
+                                    tg_log::info(
+                                        BACKEND,
+                                        "thumb_not_present",
+                                        format!("chat={c_sub} mid={mid_val} quality={q_sub} cached negative result"),
+                                    );
+                                }
                                 (mid_val.to_string(), None)
                             }
                         }

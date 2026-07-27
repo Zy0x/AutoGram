@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.66
+AutoGram Version: v2.3.67
 
 Current State:
+v2.3.67 PDF FFmpeg Bypass, Non-Media Document Filtering & Disk/Memory Negative Caching (.nothumb) — membenahi `grammers_media.rs`. Menghapus pemanggilan FFmpeg secara total pada dokumen PDF (`extract_ffmpeg_frame_sync(..., "pdf")`) dan mengutamakan penarikan stream cover image tertanam (`extract_embedded_pdf_image`) serta WinRT PDF renderer dengan penarikan sampel bertahap hingga 2 MB. Menambahkan penyaringan ekstensi non-media (`!is_known_media_ext`) agar berkas non-media seperti `.apk`, `.zip`, `.rar`, `.7z`, `.exe`, dll. tidak memicu FFmpeg. Menambahkan mekanisme *negative caching* ke disk cache (`.nothumb`) dan memori (`"NOT_FOUND"`) sehingga dokumen tanpa thumbnail (seperti `InstaPro2-ADC.apk`) langsung teresolusi 0ms tanpa pengunduhan ulang berulang kali via MTProto dan tanpa log kegagalan beruntun.
+
+Previous:
 v2.3.66 AV1 Video Thumbnail Fix — Hardware Acceleration Bypass, Larger Sample Budget & Graceful Degradation — membenahi `grammers_media.rs`. Menambahkan deteksi kapabilitas decoder AV1 runtime (`ffmpeg_supports_av1` + `OnceLock`), menonaktifkan hardware acceleration DXVA/D3D11 untuk AV1 di semua 4 pass FFmpeg (`-hwaccel none`), meningkatkan budget sampel AV1 dari 2 MB ke 8 MB, memperbaiki Pass 5 OBU rescue terpisah dari Annex-B H.264/HEVC, menambahkan graceful degradation saat decoder AV1 tidak tersedia, dan meningkatkan tail fetch depth dari 2 MB ke 3 MB untuk video kecil.
 
 Previous:

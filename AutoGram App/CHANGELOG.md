@@ -1,3 +1,11 @@
+## v2.3.67 PDF FFmpeg Bypass, Non-Media Document Filtering & Disk/Memory Negative Caching (.nothumb)
+
+### Perbaikan Thumbnail PDF & Berkas Non-Media (`grammers_media.rs`)
+- **Pembersihan Total FFmpeg dari PDF**: Menghapus pemanggilan `extract_ffmpeg_frame_sync(..., "pdf")` yang tidak valid. Mengganti alur PDF agar mengutamakan penarikan stream cover image tertanam (`extract_embedded_pdf_image`) dan WinRT PDF renderer dengan penarikan sampel bertahap hingga 2 MB bila sampel awal terpotong, mengeliminasi pesan log error `ffmpeg_frame_failed` untuk berkas PDF.
+- **Penyaringan Berkas Non-Media (`!is_known_media_ext`)**: Menambahkan pengujian ekstensi media yang valid (`.mp4`, `.mov`, `.mkv`, `.jpg`, `.png`, `.webp`, dll.). Berkas dokumen non-media seperti `.apk`, `.zip`, `.rar`, `.7z`, `.exe`, `.msi`, `.txt`, `.doc`, dll. kini mem-bypass eksekusi FFmpeg secara total.
+- **Disk & Memory Negative Caching (`.nothumb`)**: Setiap dokumen yang tidak memiliki thumbnail statis maupun frame visual yang dapat diekstrak kini secara otomatis menyimpan tanda negatif `.nothumb` di disk cache dan `"NOT_FOUND"` di memori. Permintaan thumbnail berikutnya untuk berkas tersebut (seperti `InstaPro2-ADC.apk`) langsung meresolusi `None` secara instan (0ms, 0 network MTProto, 0 CPU, 0 log warning).
+- **Pembersihan Log**: Mengubah tingkat log `thumb_miss_detail` dari `warn` menjadi `info` untuk dokumen non-media secara wajar.
+
 ## v2.3.66 AV1 Video Thumbnail Fix — Hardware Acceleration Bypass, Larger Sample Budget & Graceful Degradation
 
 ### Perbaikan Ekstraksi Thumbnail Video AV1 (`grammers_media.rs`)
