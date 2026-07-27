@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.62
+AutoGram Version: v2.3.63
 
 Current State:
+v2.3.63 Progressive Tail-Chunk Scanning (Up to 12MB) & Pass 4 AV1/HEVC Tolerant FFmpeg Extraction — membenahi `grammers_media.rs`. Mengingkatkan pemindaian ekor berkas video (*tail-chunk scan*) secara bertahap (16, 32, hingga 48 chunk = max 12 MB) untuk mengisolasi atom metadata `moov` pada video 2K/4K non-faststart berukuran besar (seperti 96.15 MB). Menambahkan Pass 4 dekode FFmpeg dengan parameter `-probesize 2M -analyzeduration 2M -err_detect ignore_err` untuk mengekstrak frame dari parsial stream codec AV1/HEVC secara sukses tanpa mengunduh seluruh isi berkas dan menghemat kuota hingga >85%.
+
+Previous:
 v2.3.62 3.5MB AV1 Sequence Header OBU Head Coverage & Non-Media Binary FFmpeg Bypass — membenahi `grammers_media.rs`. Menyesuaikan batas sampel kepala dokumen video hingga 3.5 MB (`3584 * 1024` bytes) untuk menjangkau Sequence Header OBU AV1 2K yang berada di offset ~1.8 MB (`0x1b8734`), mengeliminasi `Missing Sequence Header` & `partial file` secara total. Menambahkan bypass otomatis untuk berkas non-media (`.bin`, `.dat`, `.iso`, `.exe`, `.apk`, `.zip`) agar tidak memicu eksekusi FFmpeg dan menjaga efisiensi penggunaan kuota pengguna serta penghentian downspeed instan.
 
 Previous:

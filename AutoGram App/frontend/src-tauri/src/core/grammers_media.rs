@@ -711,22 +711,27 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Quota-saver tail chunk fetch (downloads ONLY max 12 chunks = 3 MB from end of file)
+                // Quota-saver tail chunk fetch (downloads 16, 32, or 48 chunks = up to 12 MB from end of file progressively)
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    let tail_chunks_count = 12.min(total_chunks);
-                    let skip = total_chunks.saturating_sub(tail_chunks_count) as i32;
-                    let mut tail_bytes = Vec::new();
-                    let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                    while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                        tail_bytes.extend_from_slice(&chunk);
-                    }
-                    if !tail_bytes.is_empty() {
-                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                return Ok(frame_bytes);
+                    for tail_chunks_count in [16usize, 32usize, 48usize] {
+                        let actual_tail_count = tail_chunks_count.min(total_chunks);
+                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
+                        let mut tail_bytes = Vec::new();
+                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
+                            tail_bytes.extend_from_slice(&chunk);
+                        }
+                        if !tail_bytes.is_empty() {
+                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
                             }
+                        }
+                        if actual_tail_count >= total_chunks {
+                            break;
                         }
                     }
                 }
@@ -1197,7 +1202,39 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
             .arg(&frame_path)
             .output();
 
-        match status3 {
+        if let Ok(out) = status3 {
+            if out.status.success() && frame_path.exists() {
+                result = std::fs::read(&frame_path).ok();
+            }
+        }
+    }
+
+    // Pass 4: Low-strictness / ignore-err decode for partial AV1/HEVC streams
+    if result.is_none() {
+        let status4 = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-probesize")
+            .arg("2M")
+            .arg("-analyzeduration")
+            .arg("2M")
+            .arg("-err_detect")
+            .arg("ignore_err")
+            .arg("-y")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        match status4 {
             Ok(out) if out.status.success() && frame_path.exists() => {
                 result = std::fs::read(&frame_path).ok();
             }
