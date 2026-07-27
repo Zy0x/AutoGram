@@ -1249,8 +1249,7 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                     mime
                 };
 
-                let is_text = mime_l.starts_with("text/") || name_l.ends_with(".txt") || name_l.ends_with(".json") || name_l.ends_with(".js") || name_l.ends_with(".py");
-                let is_zip = mime_l.contains("zip") || name_l.ends_with(".zip");
+                let is_pdf = mime_l == "application/pdf" || mime_l.contains("pdf") || name_l.ends_with(".pdf");
 
                 Some(MediaFileRow {
                     id,
@@ -1260,7 +1259,7 @@ fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>)
                     mime_type: final_mime,
                     icon_type: icon.into(),
                     created_at: created,
-                    has_thumb: has_thumb || is_video_file || is_image_file || !doc.thumbs().is_empty() || (!is_text && !is_zip),
+                    has_thumb: has_thumb || is_video_file || is_image_file || is_audio_file || is_pdf || !doc.thumbs().is_empty(),
                     as_document: true,
                     backend: BACKEND.into(),
                     thumb_data_url,

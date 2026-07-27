@@ -657,10 +657,38 @@ async fn download_media_thumb(
                         break;
                     }
                 }
+
+                // Check if image format is a standard web image format (JPEG, PNG, WebP, GIF)
+                let is_standard_web_image = sample_bytes.len() >= 4 && (
+                    (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8 && sample_bytes[2] == 0xff)
+                        || sample_bytes.starts_with(b"\x89PNG")
+                        || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"WEBP")
+                        || sample_bytes.starts_with(b"GIF8")
+                );
+
+                if is_standard_web_image {
+                    return Ok(sample_bytes);
+                }
+
+                // Non-web image format (HEIC, TIFF, BMP, PSD, etc.): transcode to JPEG frame via FFmpeg
+                let ext_hint = if name.contains('.') {
+                    name.rsplit('.').next().unwrap_or("jpg")
+                } else {
+                    "jpg"
+                };
+                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                    return Ok(frame_bytes);
+                }
+
                 return Ok(sample_bytes);
             } else if is_pdf {
                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, "pdf") {
                     return Ok(frame_bytes);
+                }
+
+                // PDF Fallback: Search for embedded JPEG or PNG cover image stream in first chunk
+                if let Some(img_bytes) = extract_embedded_pdf_image(&sample_bytes) {
+                    return Ok(img_bytes);
                 }
             } else if is_video {
                 let doc_size = d.size().unwrap_or(0) as usize;
@@ -876,6 +904,37 @@ async fn download_media_thumb(
     );
     tg_log::warn(BACKEND, "thumb_miss_detail", &err_msg);
     Err(TgError::new(TgErrorCode::Internal, err_msg))
+}
+
+fn extract_embedded_pdf_image(pdf_bytes: &[u8]) -> Option<Vec<u8>> {
+    if pdf_bytes.len() < 128 {
+        return None;
+    }
+    // Search for JPEG header \xFF\xD8\xFF in pdf_bytes
+    let max_len = pdf_bytes.len().saturating_sub(64);
+    for i in 0..max_len {
+        if pdf_bytes[i] == 0xff && pdf_bytes[i + 1] == 0xd8 && pdf_bytes[i + 2] == 0xff {
+            // Find end of JPEG marker \xFF\xD9
+            if let Some(end_rel) = pdf_bytes[i + 3..].windows(2).position(|w| w == [0xff, 0xd9]) {
+                let end_pos = i + 3 + end_rel + 2;
+                let jpeg_data = &pdf_bytes[i..end_pos];
+                if jpeg_data.len() >= 512 {
+                    return Some(jpeg_data.to_vec());
+                }
+            }
+        }
+        // Search for PNG header \x89PNG
+        if pdf_bytes[i..].starts_with(b"\x89PNG\r\n\x1a\n") {
+            if let Some(end_rel) = pdf_bytes[i + 8..].windows(4).position(|w| w == b"IEND") {
+                let end_pos = i + 8 + end_rel + 8;
+                let png_data = &pdf_bytes[i..end_pos.min(pdf_bytes.len())];
+                if png_data.len() >= 256 {
+                    return Some(png_data.to_vec());
+                }
+            }
+        }
+    }
+    None
 }
 
 fn patch_moov_offsets(moov_buf: &mut [u8], shift_amount: usize) {

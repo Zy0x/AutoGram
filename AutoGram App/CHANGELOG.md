@@ -1,3 +1,10 @@
+## v2.3.58 Non-Web Image Transcoding, Embedded PDF Cover Extraction & Document Thumbnail Guard Patch
+
+### Perbaikan Thumbnail Dokumen Tanpa Layer Statis (`grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`)
+- **Transcoding Gambar Dokumen Non-Web (HEIC/TIFF/PSD)**: Berkas gambar mentah yang dikirim sebagai dokumen kini di-transcode secara otomatis menjadi format JPEG terkompresi di backend Rust melalui FFmpeg jika format aslinya tidak didukung secara native oleh tag `<img>` browser.
+- **Embedded Cover Extraction pada Berkas PDF**: Menambahkan modul pemindaian *embedded image stream* (JPEG/PNG) dari sampel berkas PDF untuk disajikan sebagai thumbnail jernih apabila sistem tidak memiliki demuxer PDF FFmpeg lokal.
+- **Pembersihan Over-reporting `has_thumb` Dokumen Non-Media**: Memperbarui kalkulasi `has_thumb` di Rust backend dan `canShowDriveThumb` di frontend agar berkas dokumen non-media (seperti `.docx`, `.xlsx`, `.pptx`, `.zip`) yang tidak memiliki thumbnail dari Telegram langsung dirender dengan SVG `FileTypeIcon` tanpa memicu batch RPC yang sia-sia.
+
 ## v2.3.57 Universal Document Thumbnail Sample Extraction & Instant HD Blur Resolution Patch
 
 ### Perbaikan Ekstraksi Sample Dokumen & Resolusi HD Blur (`grammers_media.rs`, `grammers_ops.rs`, `driveTypes.ts`, `DriveFileCard.tsx`)

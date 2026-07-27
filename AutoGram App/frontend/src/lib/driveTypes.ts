@@ -1059,7 +1059,7 @@ export function canShowDriveThumb(file: DriveFile): boolean {
   // If Telegram or backend explicitly provides a thumbnail payload for this file, display it
   if (file.has_thumb === true || !!file.thumb_data_url || !!file.thumbDataUrl) return true;
   if (file.icon_type === 'link') return false;
-  if (isTextDriveFile(file) || isZipDriveFile(file)) return false;
+  if (isTextDriveFile(file) || isZipDriveFile(file) || isOfficeDriveFile(file)) return false;
   if (isImageDriveFile(file) || isVideoDriveFile(file) || isPdfDriveFile(file) || isAudioDriveFile(file)) return true;
   const mime = (file.mime_type || '').toLowerCase();
   if (mime.startsWith('image/') || mime.startsWith('video/') || mime.startsWith('audio/') || mime === 'application/pdf') return true;
