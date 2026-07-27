@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.68
+AutoGram Version: v2.3.69
 
 Current State:
+v2.3.69 Automatic Fallback DataUrl Auto-Purge & Media-Document Negative Cache Elimination — membenahi `grammers_media.rs` dan `thumbPersistentCache.ts`. Menambahkan penapisan otomatis `isFallbackDataUrl` di IndexedDB frontend sehingga dataUrl gambar hitam solid dari build terdahulu dihapus secara otomatis tanpa perlu tindakan manual hapus cache pengguna. Menghapus penguncian negative cache (`.nothumb` / `"NOT_FOUND"`) secara total untuk dokumen video dan gambar pada Rust backend, menjamin setiap berkas video yang sempat tertunda langsung dicoba ulang ekstraksinya secara otomatis hingga 100% frame visual video terpancar jernih.
+
+Previous:
 v2.3.68 Real-Time Video Thumbnail Frame Extraction, Multi-Timestamp Seek (2s/5s) & Solid Black Fallback Card Purge — membenahi `grammers_media.rs`. Mengeliminasi total penyimpanan gambar hitam solid cadangan (`generate_video_fallback_card` / `#0f172a`) ke disk cache `.jpg` saat FFmpeg gagal, sehingga kartu media yang tidak memiliki thumbnail visual beralih ke ikon tipe berkas vektor (`FileTypeIcon`) yang bersih alih-alih kotak hitam. Memperbarui `prune_thumb_cache` untuk membuang berkas cache hitam dari build sebelumnya secara otomatis. Mengoptimalkan `extract_ffmpeg_frame_sync` dengan multi-pass timestamp seek (2s, 5s, 1s, 0.5s, 0s) dan validasi non-black frame agar video animasi 3D/donghua yang memiliki intro gelap berhasil mendapatkan frame visual berwarna yang terang.
 
 Previous:

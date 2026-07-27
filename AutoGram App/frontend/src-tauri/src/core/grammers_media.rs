@@ -296,7 +296,7 @@ pub fn prune_thumb_cache(t_dir: &Path) {
                 continue;
             }
             let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if fname.ends_with(".part") {
+            if fname.ends_with(".part") || fname.ends_with(".nothumb") {
                 let _ = std::fs::remove_file(&p);
                 continue;
             }
@@ -2594,11 +2594,20 @@ pub fn thumbs_batch_blocking_app(
                                 let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
                                 let _ = std::fs::remove_file(&nothumb_file);
 
-                                let _ = std::fs::write(&nothumb_file, b"none");
-                                thumb_mem_cache().lock().insert(
-                                    format!("{c_sub}_{mid_val}_{q_sub}"),
-                                    "NOT_FOUND".to_string(),
-                                );
+                                let is_media_doc = matches!(&media_cloned, Media::Photo(_)) || matches!(&media_cloned, Media::Document(d) if {
+                                    let mime = d.mime_type().unwrap_or("").to_lowercase();
+                                    let name = d.name().unwrap_or("").to_lowercase();
+                                    mime.starts_with("video/") || mime.starts_with("image/")
+                                        || name.ends_with(".mp4") || name.ends_with(".mov") || name.ends_with(".mkv") || name.ends_with(".webm") || name.ends_with(".avi")
+                                });
+
+                                if !is_media_doc {
+                                    let _ = std::fs::write(&nothumb_file, b"none");
+                                    thumb_mem_cache().lock().insert(
+                                        format!("{c_sub}_{mid_val}_{q_sub}"),
+                                        "NOT_FOUND".to_string(),
+                                    );
+                                }
                                 let err_str = e.to_string();
                                 if !err_str.contains("no valid thumb found") {
                                     tg_log::warn(

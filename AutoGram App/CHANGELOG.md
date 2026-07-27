@@ -1,3 +1,10 @@
+## v2.3.69 Automatic Fallback DataUrl Auto-Purge & Media-Document Negative Cache Elimination
+
+### Auto-Purge Cache Hitam IndexedDB & Eliminasi Negative Lock Berkas Media (`thumbPersistentCache.ts`, `grammers_media.rs`)
+- **Penapisan Otomatis `isFallbackDataUrl` (Frontend IndexedDB)**: Menambahkan penapisan otomatis pada `loadPersistentThumb` dan `loadPersistentThumbs` di `thumbPersistentCache.ts`. Jika IndexedDB menyimpan dataUrl dari gambar hitam cadangan lama, sistem secara otomatis menghapus baris tersebut dan mengembalikan `null`, sehingga pengguna **tidak perlu lagi menghapus cache secara manual** untuk memuat ulang thumbnail visual yang benar.
+- **Penghapusan Negative Cache (`.nothumb` / `"NOT_FOUND"`) Berkas Media (Backend Rust)**: Mengubah `thumbs_batch_blocking_app` agar **tidak pernah** menulis file `.nothumb` ke disk maupun menyimpan `"NOT_FOUND"` ke memori untuk dokumen video/gambar (`is_media_doc`). Jika ekstraksi frame video sempat gagal pada antrean awal (misal karena batasan batas konkurensi), berkas media tidak lagi terkunci secara permanen dan secara otomatis dicoba ulang pada giliran berikutnya hingga frame visual asli berhasil terpancar.
+- **Pembersihan File `.nothumb` Otomatis (`prune_thumb_cache`)**: Menambahkan instruksi penghapusan otomatis seluruh berkas penanda negatif `.nothumb` lama di folder `t_dir` saat aplikasi dibuka.
+
 ## v2.3.68 Real-Time Video Thumbnail Frame Extraction, Multi-Timestamp Seek (2s/5s) & Solid Black Fallback Card Purge
 
 ### Perbaikan Ekstraksi Frame Video Real & Pembersihan Cache Hitam (`grammers_media.rs`)
