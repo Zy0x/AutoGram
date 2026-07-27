@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.76
+AutoGram Version: v2.3.77
 
 Current State:
+v2.3.77 Universal Media Preview Frame Capture & Grid Thumbnail Sync — membenahi `DrivePreviewModal.tsx`. Menambahkan mekanisme fallback otomatis yang menangkap frame visual dari modal preview media (baik video, gambar, PDF, maupun poster media) saat dibuka oleh pengguna. Frame yang ditangkap langsung disimpan ke memori `thumbBatcher` & cache disk SQLite lokal serta menyebarkan event `autogram-thumb-ready`, secara instan memperbarui kartu thumbnail media yang sebelumnya belum/gagal tampil di kisi `DriveExplorer`.
+
+Previous:
 v2.3.76 Child-Box Validated MP4 `moov` Atom Location — membenahi `grammers_media.rs`. Memperkenalkan fungsi `locate_valid_moov_atom` yang memverifikasi struktur signature child box MP4 asli (`mvhd`, `trak`, `cmov`, `meta`, `udta`). Mengeliminasi false-positive pencarian `moov` pada byte acak data stream video `mdat` dan menggaransi `make_faststart_mp4` serta `make_smart_target_mp4` 100% mendeteksi header `moov` yang autentik dan utuh dari berkas video dokumen Telegram (`/-1004468191168/73`).
 
 Previous:

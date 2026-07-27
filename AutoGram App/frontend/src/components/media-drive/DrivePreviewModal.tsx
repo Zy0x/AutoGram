@@ -608,7 +608,7 @@ export function DrivePreviewModal({
 
   const captureVideoFrame = useCallback(() => {
     const v = videoRef.current;
-    if (!v || !file || isAudioDriveFile(file) || isVideoCapturedRef.current) return;
+    if (!v || !file || isAudioDriveFile(file)) return;
     if (v.videoWidth <= 0 || v.videoHeight <= 0 || v.readyState < 2) return;
     try {
       const canvas = document.createElement('canvas');
@@ -633,6 +633,36 @@ export function DrivePreviewModal({
       if (dataUrl && dataUrl.startsWith('data:image/')) {
         isVideoCapturedRef.current = true;
         cacheCapturedThumb(folderId, file.id, dataUrl, creds?.session);
+      }
+    } catch {
+      // Ignore cross-origin canvas errors if any
+    }
+  }, [file, folderId, creds?.session]);
+
+  const captureImageFrame = useCallback((imgEl: HTMLImageElement) => {
+    if (!file || !imgEl || imgEl.naturalWidth <= 0 || imgEl.naturalHeight <= 0) return;
+    try {
+      const canvas = document.createElement('canvas');
+      const maxDim = 640;
+      let w = imgEl.naturalWidth;
+      let h = imgEl.naturalHeight;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(imgEl, 0, 0, w, h);
+      const capturedUrl = canvas.toDataURL('image/jpeg', 0.82);
+      if (capturedUrl && capturedUrl.startsWith('data:image/')) {
+        cacheCapturedThumb(folderId, file.id, capturedUrl, creds?.session);
       }
     } catch {
       // Ignore cross-origin canvas errors if any
@@ -771,6 +801,11 @@ export function DrivePreviewModal({
       );
       setDataUrl(nextData);
       setPath(nextPath);
+      if (nextData && nextData.startsWith('data:image/')) {
+        cacheCapturedThumb(folderId, file.id, nextData, creds?.session);
+      } else if (res.poster_url && res.poster_url.startsWith('data:image/')) {
+        cacheCapturedThumb(folderId, file.id, res.poster_url, creds?.session);
+      }
       // Only update stream URL when it actually changes (string) — prevents
       // React key/effect churn when poll/soft revalidate repaints same stream.
       setStreamUrl((prev) => {
@@ -3141,6 +3176,7 @@ export function DrivePreviewModal({
                   setMediaHeight(img.naturalHeight);
                   setLoading(false);
                   setError(null);
+                  captureImageFrame(img);
                 }}
                 onError={() => {
                   if (!tryNextSrc()) {
@@ -3249,6 +3285,7 @@ export function DrivePreviewModal({
                   setHasVideoFrame(true);
                   setLoading(false);
                   setPlayerHint(null);
+                  captureVideoFrame();
                   const v = videoRef.current;
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
@@ -3270,6 +3307,7 @@ export function DrivePreviewModal({
                   setHasVideoFrame(true);
                   setLoading(false);
                   setPlayerHint(null);
+                  captureVideoFrame();
                   const v = videoRef.current;
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
@@ -3283,6 +3321,9 @@ export function DrivePreviewModal({
                     });
                   }
                 }}
+                onTimeUpdate={() => {
+                  captureVideoFrame();
+                }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
                   // Mark + kick early: seeked may never fire until Range data exists
@@ -3290,6 +3331,7 @@ export function DrivePreviewModal({
                   handleSeekJump();
                 }}
                 onSeeked={() => {
+                  captureVideoFrame();
                   if (ignoreSeekEventsRef.current > 0) {
                     ignoreSeekEventsRef.current -= 1;
                     userSeekPendingRef.current = false;
@@ -3320,6 +3362,7 @@ export function DrivePreviewModal({
                 }}
                 onPlay={() => {
                   userExplicitlyPausedRef.current = false;
+                  captureVideoFrame();
                   handlePlay();
                 }}
                 onPause={() => {
@@ -3327,12 +3370,14 @@ export function DrivePreviewModal({
                   if (v && !v.error && !v.ended) {
                     userExplicitlyPausedRef.current = true;
                   }
+                  captureVideoFrame();
                   handlePause();
                 }}
                 onPlaying={() => {
                   userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
                   setLoading(false);
+                  captureVideoFrame();
                   handlePlay();
                   // Video is actually playing — reset error counters so transient
                   // buffer holes start fresh (no "Buffer lambat" stuck after recovery).

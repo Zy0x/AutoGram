@@ -1,3 +1,9 @@
+## v2.3.77 Universal Media Preview Frame Capture & Grid Thumbnail Sync
+
+### Tangkapan Frame Preview Media sebagai Fallback Thumbnail Kartu (`DrivePreviewModal.tsx`)
+- **Tangkapan Frame Gambar & Video Otomatis**: Mengintegrasikan `captureImageFrame` pada event `onLoad` elemen gambar dan `captureVideoFrame` pada event `onLoadedData`, `onCanPlay`, `onPlaying`, `onTimeUpdate`, `onSeeked`, `onPlay`, dan `onPause`.
+- **Sinkronisasi Langsung ke Memori & Disk Cache (`thumbBatcher.ts`)**: Setiap kali media dibuka dalam modal pratinjau (preview), frame visual yang berhasil ditampilkan langsung disimpan ke memori `thumbBatcher` dan SQLite cache disk lokal, kemudian disiarkan melalui event `autogram-thumb-ready`. Kartu media pada kisi `DriveExplorer` yang sebelumnya kosong/gagal thumbnail akan langsung memperbarui tampilannya secara real-time.
+
 ## v2.3.76 Child-Box Validated MP4 `moov` Atom Location
 
 ### Verifikasi Autentisitas Header `moov` dengan Child-Box Checking (`grammers_media.rs`)
