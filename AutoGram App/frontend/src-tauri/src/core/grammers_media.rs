@@ -1374,7 +1374,7 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
 
 async fn make_smart_target_mp4(
     client: &grammers_client::Client,
-    d: &grammers_client::types::Document,
+    d: &grammers_client::media::Document,
     sample_bytes: &[u8],
     tail_bytes: &[u8],
     quality: &str,
