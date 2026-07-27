@@ -1800,7 +1800,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         .arg(&frame_path)
         .output();
 
-    let (mut result, _err1) = match status1 {
+    let (mut result, err1) = match status1 {
         Ok(ref out) => (check_frame_file(), String::from_utf8_lossy(&out.stderr).trim().to_string()),
         Err(ref e) => (None, e.to_string()),
     };
