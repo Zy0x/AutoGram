@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.67
+AutoGram Version: v2.3.68
 
 Current State:
+v2.3.68 Real-Time Video Thumbnail Frame Extraction, Multi-Timestamp Seek (2s/5s) & Solid Black Fallback Card Purge — membenahi `grammers_media.rs`. Mengeliminasi total penyimpanan gambar hitam solid cadangan (`generate_video_fallback_card` / `#0f172a`) ke disk cache `.jpg` saat FFmpeg gagal, sehingga kartu media yang tidak memiliki thumbnail visual beralih ke ikon tipe berkas vektor (`FileTypeIcon`) yang bersih alih-alih kotak hitam. Memperbarui `prune_thumb_cache` untuk membuang berkas cache hitam dari build sebelumnya secara otomatis. Mengoptimalkan `extract_ffmpeg_frame_sync` dengan multi-pass timestamp seek (2s, 5s, 1s, 0.5s, 0s) dan validasi non-black frame agar video animasi 3D/donghua yang memiliki intro gelap berhasil mendapatkan frame visual berwarna yang terang.
+
+Previous:
 v2.3.67 PDF FFmpeg Bypass, Non-Media Document Filtering & Disk/Memory Negative Caching (.nothumb) — membenahi `grammers_media.rs`. Menghapus pemanggilan FFmpeg secara total pada dokumen PDF (`extract_ffmpeg_frame_sync(..., "pdf")`) dan mengutamakan penarikan stream cover image tertanam (`extract_embedded_pdf_image`) serta WinRT PDF renderer dengan penarikan sampel bertahap hingga 2 MB. Menambahkan penyaringan ekstensi non-media (`!is_known_media_ext`) agar berkas non-media seperti `.apk`, `.zip`, `.rar`, `.7z`, `.exe`, dll. tidak memicu FFmpeg. Menambahkan mekanisme *negative caching* ke disk cache (`.nothumb`) dan memori (`"NOT_FOUND"`) sehingga dokumen tanpa thumbnail (seperti `InstaPro2-ADC.apk`) langsung teresolusi 0ms tanpa pengunduhan ulang berulang kali via MTProto dan tanpa log kegagalan beruntun.
 
 Previous:

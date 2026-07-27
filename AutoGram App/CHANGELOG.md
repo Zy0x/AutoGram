@@ -1,3 +1,11 @@
+## v2.3.68 Real-Time Video Thumbnail Frame Extraction, Multi-Timestamp Seek (2s/5s) & Solid Black Fallback Card Purge
+
+### Perbaikan Ekstraksi Frame Video Real & Pembersihan Cache Hitam (`grammers_media.rs`)
+- **Eliminasi Total Gambar Hitam Solid (`generate_video_fallback_card` / `#0f172a`)**: Menghapus pemanggilan `generate_video_fallback_card()` saat FFmpeg gagal pada `download_media_thumb` dan `thumbs_batch_blocking_app`. Berkas cadangan gambar hitam solid tidak lagi ditulis ke cache disk (`.jpg`), sehingga kartu media tanpa thumbnail visual beralih dengan bersih ke ikon tipe berkas vektor (`FileTypeIcon`) alih-alih menampilkan kotak hitam polos dengan tombol play.
+- **Pembersihan Cache Otomatis di `prune_thumb_cache`**: Memperbarui skrip pembersihan cache thumbnail untuk memindai dan menghapus berkas `.jpg` di disk cache yang berisi payload gambar hitam solid dari build terdahulu secara otomatis saat aplikasi dibuka.
+- **Multi-Timestamp Seek (2s, 5s, 1s, 0.5s, 0s)**: Menyesuaikan alur seek FFmpeg `extract_ffmpeg_frame_sync` agar mencoba timestamp 2.0 detik terlebih dahulu (Pass 1) dan 5.0 detik (Pass 2) untuk melewati layar judul/intro gelap yang sering ada pada video animasi 3D/donghua.
+- **Validasi Frame Non-Black (`is_fallback_black_card_bytes`)**: Menambahkan pemeriksaan kecerahan frame pada hasil keluaran FFmpeg. Jika frame yang diekstrak terdeteksi gelap/hitam solid, sistem secara otomatis melanjutkan ke pass timestamp berikutnya hingga berhasil mendapatkan frame visual berwarna yang jernih.
+
 ## v2.3.67 PDF FFmpeg Bypass, Non-Media Document Filtering & Disk/Memory Negative Caching (.nothumb)
 
 ### Perbaikan Thumbnail PDF & Berkas Non-Media (`grammers_media.rs`)
