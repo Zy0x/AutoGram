@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.69
+AutoGram Version: v2.3.70
 
 Current State:
+v2.3.70 25MB Progressive Head Sampling, 64-Bit MP4 MOOV Atom Parser & Comprehensive Settings Cache Wipe — membenahi `grammers_media.rs`, `jobs_db.rs`, dan `Settings.tsx`. Menambahkan dukungan parser 64-bit atom size pada `make_faststart_mp4` dan meningkatkan sampel penyelamat video hingga 25 MB dengan pengujian FFmpeg progresif setiap 4 MB chunk (sehingga video seperti `/-1004468191168/70`, `71`, `72` diekstrak gambarnya secara instan). Memperbarui fungsi tombol "Hapus Cache" di halaman Settings dan backend `clear_disk_cache()` untuk membersihkan `thumb_mem_cache` di memori Rust dan direktori `sessions/thumbs` secara utuh.
+
+Previous:
 v2.3.69 Automatic Fallback DataUrl Auto-Purge & Media-Document Negative Cache Elimination — membenahi `grammers_media.rs` dan `thumbPersistentCache.ts`. Menambahkan penapisan otomatis `isFallbackDataUrl` di IndexedDB frontend sehingga dataUrl gambar hitam solid dari build terdahulu dihapus secara otomatis tanpa perlu tindakan manual hapus cache pengguna. Menghapus penguncian negative cache (`.nothumb` / `"NOT_FOUND"`) secara total untuk dokumen video dan gambar pada Rust backend, menjamin setiap berkas video yang sempat tertunda langsung dicoba ulang ekstraksinya secara otomatis hingga 100% frame visual video terpancar jernih.
 
 Previous:

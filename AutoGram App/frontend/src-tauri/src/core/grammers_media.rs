@@ -281,6 +281,10 @@ fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
     CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(10000)))
 }
 
+pub fn clear_thumb_mem_cache() {
+    thumb_mem_cache().lock().clear();
+}
+
 pub fn prune_thumb_cache(t_dir: &Path) {
     if !t_dir.is_dir() {
         return;
@@ -980,17 +984,22 @@ async fn download_media_thumb(
                     }
                 }
 
-                // Rescue loop for video documents (up to 16MB head sample for larger video files):
-                // Download additional head chunks if FFmpeg needs more keyframe/header data
-                let max_rescue_bytes = if doc_size > 16 * 1024 * 1024 {
-                    16 * 1024 * 1024
+                // Ultimate Rescue Fallback for video documents (up to 25MB head sample for stubborn video files):
+                // Download additional head chunks and test FFmpeg progressively every 4MB chunk
+                let max_rescue_bytes = if doc_size > 25 * 1024 * 1024 {
+                    25 * 1024 * 1024
                 } else {
-                    doc_size.min(8 * 1024 * 1024)
+                    doc_size.min(12 * 1024 * 1024)
                 };
                 if doc_size > 0 && sample_bytes.len() < max_rescue_bytes {
                     while sample_bytes.len() < max_rescue_bytes {
                         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                             sample_bytes.extend_from_slice(&chunk);
+                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
+                            }
                         } else {
                             break;
                         }
@@ -1343,7 +1352,22 @@ fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>>
         target_buf.len() - pos
     };
 
-    let moov_size = if raw_sz >= 8 { raw_sz.min(target_buf.len() - pos) } else { target_buf.len() - pos };
+    let moov_size = if raw_sz == 1 && pos + 16 <= target_buf.len() {
+        u64::from_be_bytes([
+            target_buf[pos + 8],
+            target_buf[pos + 9],
+            target_buf[pos + 10],
+            target_buf[pos + 11],
+            target_buf[pos + 12],
+            target_buf[pos + 13],
+            target_buf[pos + 14],
+            target_buf[pos + 15],
+        ]) as usize
+    } else if raw_sz >= 8 {
+        raw_sz.min(target_buf.len() - pos)
+    } else {
+        target_buf.len() - pos
+    };
     if moov_size < 8 {
         return None;
     }

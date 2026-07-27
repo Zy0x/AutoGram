@@ -1,3 +1,10 @@
+## v2.3.70 25MB Progressive Head Sampling, 64-Bit MP4 MOOV Atom Parser & Comprehensive Settings Cache Wipe
+
+### Perbaikan Ekstraksi Frame Video & Pembersihan Cache di Settings (`grammers_media.rs`, `jobs_db.rs`, `Settings.tsx`)
+- **Dukungan Parser Header 64-Bit MP4 `moov` Box (`raw_sz == 1`)**: Menyesuaikan fungsi `make_faststart_mp4` di `grammers_media.rs` agar mampu membaca ukuran box `moov` 64-bit yang tersimpan di byte `pos + 8`, mengeliminasi kegagalan faststart pada video 2K/4K/64-bit MP4 berukuran besar (seperti `/-1004468191168/70`, `71`, `72`).
+- **Sampel Penyelamat 25MB dengan Pengujian Progresif**: Meningkatkan batas sampel penyelamat video hingga 25 MB (`max_rescue_bytes = 25MB`) dan menjalankan pengujian FFmpeg secara progresif setiap kali 4 MB data baru diunduh. Begitu frame visual berhasil diekstrak (misal di MB ke-4 atau ke-8), proses langsung selesai tanpa mengunduh sisa data.
+- **Pembersihan Cache Thumbnail di Halaman Settings**: Memperbarui backend `clear_disk_cache()` di `jobs_db.rs` agar mengosongkan memori Rust `clear_thumb_mem_cache()` dan menghapus folder `sessions/thumbs` secara utuh. Ketika pengguna menekan tombol "Hapus Cache" di halaman Settings, seluruh memori Rust, IndexedDB browser, LocalStorage, dan disk cache thumbnail dibersihkan 100% tanpa menyisakan sisa.
+
 ## v2.3.69 Automatic Fallback DataUrl Auto-Purge & Media-Document Negative Cache Elimination
 
 ### Auto-Purge Cache Hitam IndexedDB & Eliminasi Negative Lock Berkas Media (`thumbPersistentCache.ts`, `grammers_media.rs`)
