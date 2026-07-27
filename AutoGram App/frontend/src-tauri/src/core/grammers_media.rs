@@ -941,6 +941,7 @@ async fn download_media_thumb(
                 // Progressive multi-pass tail chunk fetch (8 chunks = 2MB, 24 chunks = 6MB, 48 chunks = 12MB)
                 // Covers large 2K/4K MP4 video documents where moov atom exceeds 2MB or is offset from EOF.
                 let chunk_bytes = 256 * 1024;
+                let mut last_tail_bytes: Option<Vec<u8>> = None;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
                     for tail_count in [8usize, 24usize, 48usize, 96usize, 160usize] {
@@ -952,6 +953,7 @@ async fn download_media_thumb(
                             tail_bytes.extend_from_slice(&chunk);
                         }
                         if !tail_bytes.is_empty() {
+                            last_tail_bytes = Some(tail_bytes.clone());
                             if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
                                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
                                     return Ok(frame_bytes);
@@ -979,12 +981,26 @@ async fn download_media_thumb(
                         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                             sample_bytes.extend_from_slice(&chunk);
                             if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                                if let Some(ref tail_b) = last_tail_bytes {
+                                    if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
+                                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                            return Ok(frame_bytes);
+                                        }
+                                    }
+                                }
                                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                                     return Ok(frame_bytes);
                                 }
                             }
                         } else {
                             break;
+                        }
+                    }
+                    if let Some(ref tail_b) = last_tail_bytes {
+                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                return Ok(frame_bytes);
+                            }
                         }
                     }
                     if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
@@ -1739,35 +1755,50 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         None
     };
 
-    // Pass 1: Direct start of stream (-ss 0) to extract first keyframe from sample without seeking past EOF
-    let status1 = std::process::Command::new(&ff_exe)
-        .arg("-hide_banner")
-        .arg("-loglevel")
-        .arg("error")
-        .arg("-y")
-        .arg("-err_detect")
-        .arg("ignore_err")
-        .arg("-fflags")
-        .arg("+genpts+discardcorrupt")
-        .args(av1_hwaccel_args)
-        .arg("-ss")
-        .arg("0")
-        .arg("-i")
-        .arg(&sample_path)
-        .arg("-an")
-        .arg("-vframes")
-        .arg("1")
-        .arg("-vf")
-        .arg(scale_arg)
-        .arg("-q:v")
-        .arg(q_val)
-        .arg(&frame_path)
-        .output();
-
-    let (mut result, err1) = match status1 {
-        Ok(ref out) => (check_frame_file(), String::from_utf8_lossy(&out.stderr).trim().to_string()),
-        Err(ref e) => (None, e.to_string()),
+    let av1_decoders: &[&[&str]] = if is_av1 {
+        &[&["-c:v", "libdav1d"], &["-c:v", "av1"], &[]]
+    } else {
+        &[&[]]
     };
+
+    let mut result = None;
+    let mut err1 = String::new();
+
+    // Pass 1: Direct start of stream (-ss 0) to extract first keyframe from sample without seeking past EOF
+    for c_arg in av1_decoders {
+        let status1 = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .arg("-err_detect")
+            .arg("ignore_err")
+            .arg("-fflags")
+            .arg("+genpts+discardcorrupt")
+            .args(av1_hwaccel_args)
+            .args(*c_arg)
+            .arg("-ss")
+            .arg("0")
+            .arg("-i")
+            .arg(&sample_path)
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path)
+            .output();
+
+        if let Ok(ref out) = status1 {
+            err1 = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            if let Some(b) = check_frame_file() {
+                result = Some(b);
+                break;
+            }
+        }
+    }
 
     // Pass 2: Output-level seek (-ss 00:00:00.100 after -i) fallback
     if result.is_none() {

@@ -1,3 +1,9 @@
+## v2.3.78 Multi-Decoder CPU Software Fallback (`libdav1d` / `av1`) & Head Rescue Loop
+
+### Penanganan Dekode AV1 Software Multithreaded CPU (`grammers_media.rs`)
+- **Dekoder Software `libdav1d` / `av1` Pilihan Utama**: Mempercepat dan menggaransi dekode AV1 menggunakan CPU software decoder VideoLAN (`libdav1d`) dengan opsi `-hwaccel none`, sepenuhnya mengeliminasi error GPU hardware acceleration (`Function not implemented / Missing Sequence Header`).
+- **Kombinasi Ekspansi Head Rescue Loop dengan `last_tail_bytes`**: Menghubungkan ekspansi sampel kepala (*head sample expansion* hingga 25 MB) dengan atom `moov` tail yang telah didapat sebelumnya. Rekonstruksi Faststart MP4 pada video AV1 2K/4K high bitrate 3D Donghua kini memuat hingga 25 MB data video awal, menggaransi ekstraksi keyframe visual berjalan 100% tanpa hambatan.
+
 ## v2.3.77 Universal Media Preview Frame Capture & Grid Thumbnail Sync
 
 ### Tangkapan Frame Preview Media sebagai Fallback Thumbnail Kartu (`DrivePreviewModal.tsx`)
