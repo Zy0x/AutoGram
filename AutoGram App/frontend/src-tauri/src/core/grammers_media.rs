@@ -889,13 +889,14 @@ async fn download_media_thumb(
                     || sample_bytes.windows(4).any(|w| w == b"av1C")
                     || sample_bytes.windows(4).any(|w| w == b"av01");
 
-                // Apply 8 MB sample budget for AV1 / 2K MP4 video documents to handle sparse keyframes.
-
-                // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
-                // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 8MB (AV1) to handle late moov atoms.
+                // Apply head-sample budget for initial FFmpeg frame extraction.
+                // AV1 note (from observed logs): the first AV1 video chunk often starts at ~4 MB
+                // and spans 5-8 MB, so an 8 MB budget clips the chunk. 12 MB covers the full first chunk
+                // for typical Telegram AV1 uploads (1080p 30s clips).
+                // In Saver (Hemat) mode: fetch up to 4MB (AV1) or 768KB (other) for bandwidth savings.
                 let max_sample = if is_av1_video {
-                    // AV1 needs more headroom — saver uses 4 MB, normal uses 8 MB
-                    if saver { 4 * 1024 * 1024 } else { 8 * 1024 * 1024 }
+                    // AV1: saver=4MB, normal=12MB (was 8MB — increased to cover full first AV1 chunk)
+                    if saver { 4 * 1024 * 1024 } else { 12 * 1024 * 1024 }
                 } else if saver {
                     768 * 1024
                 } else {
@@ -969,18 +970,28 @@ async fn download_media_thumb(
                     }
                 }
 
-                // Ultimate Rescue Fallback for video documents (up to 25MB head sample for stubborn video files):
-                // Download additional head chunks and test FFmpeg progressively every 4MB chunk
-                let max_rescue_bytes = if doc_size > 25 * 1024 * 1024 {
+                // Ultimate Rescue Fallback: download more head chunks and test FFmpeg at regular milestones.
+                // AV1: rescue up to 32MB (large non-faststart AV1 videos have moov at end and big first chunks).
+                // Others: rescue up to 25MB or file size.
+                let max_rescue_bytes = if is_av1_video {
+                    doc_size.min(32 * 1024 * 1024)
+                } else if doc_size > 25 * 1024 * 1024 {
                     25 * 1024 * 1024
                 } else {
                     doc_size.min(12 * 1024 * 1024)
                 };
                 if doc_size > 0 && sample_bytes.len() < max_rescue_bytes {
+                    // Fix: use milestone tracker instead of modulo.
+                    // Bug: if initial sample_bytes.len() is not an exact multiple of 4MB
+                    // (e.g. 8,613,604 bytes), `% (4*1024*1024) == 0` never fires.
+                    let milestone_step = 4 * 1024 * 1024_usize;
+                    let mut next_rescue_milestone =
+                        (sample_bytes.len() / milestone_step + 1) * milestone_step;
                     while sample_bytes.len() < max_rescue_bytes {
                         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                             sample_bytes.extend_from_slice(&chunk);
-                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
+                            if sample_bytes.len() >= next_rescue_milestone {
+                                next_rescue_milestone += milestone_step;
                                 if let Some(ref tail_b) = last_tail_bytes {
                                     if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
                                         if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
@@ -1732,6 +1743,13 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
 
     let av1_hwaccel_args: &[&str] = &["-hwaccel", "none"];
 
+    // AV1 without a moov atom = truncated / non-faststart MP4.
+    // All MP4-demux passes will always fail → skip them immediately to save CPU and suppress log noise.
+    let has_moov = sample_bytes.windows(4).any(|w| w == b"moov");
+    let skip_mp4_passes = is_av1 && !has_moov;
+    // Use "quiet" for AV1 streams to suppress expected OBU bit-level parse noise on partial files.
+    let loglevel = if is_av1 { "quiet" } else { "error" };
+
     let temp_dir = std::env::temp_dir();
     static FF_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     let seq = FF_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -1764,12 +1782,15 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
     let mut result = None;
     let mut err1 = String::new();
 
+    // Passes 1-6: MP4-container demux strategies — skipped entirely if AV1 and no moov atom present.
+    if !skip_mp4_passes {
+
     // Pass 1: Direct start of stream (-ss 0) to extract first keyframe from sample without seeking past EOF
     for c_arg in av1_decoders {
         let status1 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .arg("-err_detect")
             .arg("ignore_err")
@@ -1800,12 +1821,49 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         }
     }
 
+    // AV1-with-moov fast pass: when moov IS present but the first video chunk spans
+    // past the sample boundary, -noaccurate_seek lets FFmpeg grab any partial frame
+    // without requiring a complete GOP decode from the keyframe. Also uses a large
+    // probesize/analyzeduration so FFmpeg can resolve the AV1 stream parameters fully.
+    if result.is_none() && is_av1 && has_moov {
+        for seek_pos in ["0", "00:00:00.033", "00:00:00.100", "00:00:00.500", "00:00:01", "00:00:02", "00:00:05"] {
+            let _ = std::process::Command::new(&ff_exe)
+                .arg("-hide_banner")
+                .arg("-loglevel").arg("quiet")
+                .arg("-y")
+                .arg("-noaccurate_seek")
+                .arg("-hwaccel").arg("none")
+                .arg("-err_detect").arg("ignore_err")
+                .arg("-fflags").arg("+genpts+discardcorrupt")
+                .arg("-probesize").arg("12M")
+                .arg("-analyzeduration").arg("12M")
+                .arg("-ss").arg(seek_pos)
+                .arg("-i").arg(&sample_path)
+                .arg("-an")
+                .arg("-vframes").arg("1")
+                .arg("-vf").arg(scale_arg)
+                .arg("-q:v").arg(q_val)
+                .arg("-y")
+                .arg(&frame_path)
+                .output();
+            result = check_frame_file();
+            if result.is_some() {
+                tg_log::warn(
+                    BACKEND,
+                    "ffmpeg_av1_noaccurate_seek_success",
+                    &format!("seek_pos={seek_pos} size={}", sample_bytes.len()),
+                );
+                break;
+            }
+        }
+    }
+
     // Pass 2: Output-level seek (-ss 00:00:00.100 after -i) fallback
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .args(av1_hwaccel_args)
             .arg("-i")
@@ -1830,7 +1888,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .args(av1_hwaccel_args)
             .arg("-ss")
@@ -1855,7 +1913,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .args(av1_hwaccel_args)
             .arg("-ss")
@@ -1880,7 +1938,7 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .args(av1_hwaccel_args)
             .arg("-ss")
@@ -1900,12 +1958,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         result = check_frame_file();
     }
 
-    // Pass 3: Output-level seek (-ss 00:00:00.100 after -i) fallback
+    // Pass 6: Output-level seek re-attempt (-ss 00:00:00.100 after -i) without decoder override
     if result.is_none() {
         let _ = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-y")
             .args(av1_hwaccel_args)      // Phase 2: disable HW accel for AV1
             .arg("-i")
@@ -1925,12 +1983,12 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         result = check_frame_file();
     }
 
-    // Pass 4: Low-strictness / ignore-err decode for partial AV1/HEVC streams
+    // Pass 7: Low-strictness / ignore-err decode for partial AV1/HEVC streams
     if result.is_none() {
         let status4 = std::process::Command::new(&ff_exe)
             .arg("-hide_banner")
             .arg("-loglevel")
-            .arg("error")
+            .arg(loglevel)
             .arg("-probesize")
             .arg("2M")
             .arg("-analyzeduration")
@@ -1964,7 +2022,9 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
         }
     }
 
-    // Pass 5: Direct bitstream / mdat payload snapshot extraction.
+    } // end if !skip_mp4_passes
+
+    // Pass 8: Direct bitstream / mdat payload snapshot extraction.
     // For AV1: extract raw OBU bytes from mdat and try av1/libdav1d demuxers (do NOT run Annex-B conversion).
     // For H.264/HEVC: convert AVCC length-prefixes to Annex-B start codes, then try h264/hevc/m4v demuxers.
     if result.is_none() && sample_bytes.len() >= 128 {
@@ -1978,7 +2038,11 @@ fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str)
                 // convert_avcc_to_annexb on them corrupts the OBU headers.
                 if is_av1 {
                     let stream_path = temp_dir.join(format!("autogram_vid_stream_{rand_id}.obu"));
-                    if std::fs::write(&stream_path, raw_slice).is_ok() {
+                    // Only attempt OBU decode if a Sequence Header OBU (type=1, forbidden_bit=0) is present.
+                    // Without a seq header, libdav1d/libaom-av1 will always fail on mid-stream OBU slices.
+                    // AV1 OBU header byte: [forbidden=0][obu_type:4][...]; seq header = obu_type 1.
+                    let has_seq_hdr_obu = raw_slice.iter().any(|&b| (b & 0x80) == 0 && ((b >> 3) & 0x0f) == 1);
+                    if has_seq_hdr_obu && std::fs::write(&stream_path, raw_slice).is_ok() {
                         for (fmt, codec_hint) in [
                             ("av1", "libdav1d"),
                             ("av1", "libaom-av1"),
