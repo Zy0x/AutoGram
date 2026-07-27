@@ -942,29 +942,41 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Single-pass fast tail chunk fetch (max 8 chunks = 2MB to cover moov atoms at the end)
+                // Progressive multi-pass tail chunk fetch (8 chunks = 2MB, 24 chunks = 6MB, 48 chunks = 12MB)
+                // Covers large 2K/4K MP4 video documents where moov atom exceeds 2MB or is offset from EOF.
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    let actual_tail_count = 8usize.min(total_chunks);
-                    let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
-                    let mut tail_bytes = Vec::new();
-                    let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                    while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                        tail_bytes.extend_from_slice(&chunk);
-                    }
-                    if !tail_bytes.is_empty() {
-                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                return Ok(frame_bytes);
+                    for tail_count in [8usize, 24usize, 48usize] {
+                        let actual_tail_count = tail_count.min(total_chunks);
+                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
+                        let mut tail_bytes = Vec::new();
+                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
+                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
+                            tail_bytes.extend_from_slice(&chunk);
+                        }
+                        if !tail_bytes.is_empty() {
+                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
+                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
+                                    return Ok(frame_bytes);
+                                }
                             }
+                        }
+                        if actual_tail_count >= total_chunks {
+                            break;
                         }
                     }
                 }
 
-                // Rescue loop for small/medium videos (<= 8MB): download additional chunks if FFmpeg needs more data to reach keyframe
-                if doc_size > 0 && doc_size <= 8 * 1024 * 1024 && sample_bytes.len() < doc_size {
-                    while sample_bytes.len() < doc_size {
+                // Rescue loop for video documents (up to 16MB head sample for larger video files):
+                // Download additional head chunks if FFmpeg needs more keyframe/header data
+                let max_rescue_bytes = if doc_size > 16 * 1024 * 1024 {
+                    16 * 1024 * 1024
+                } else {
+                    doc_size.min(8 * 1024 * 1024)
+                };
+                if doc_size > 0 && sample_bytes.len() < max_rescue_bytes {
+                    while sample_bytes.len() < max_rescue_bytes {
                         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
                             sample_bytes.extend_from_slice(&chunk);
                         } else {
@@ -1078,6 +1090,28 @@ async fn download_media_thumb(
         "no valid thumb found (kind={media_kind} sizes={} mime='{mime}' name='{name}' size={size} ffmpeg={ffmpeg_ok})",
         sizes.len()
     );
+
+    let is_video_doc = media_kind == "Document" && (
+        mime.starts_with("video/")
+            || name.ends_with(".mp4")
+            || name.ends_with(".mov")
+            || name.ends_with(".mkv")
+            || name.ends_with(".webm")
+            || name.ends_with(".avi")
+            || name.ends_with(".m4v")
+            || name.ends_with(".3gp")
+            || name.ends_with(".ts")
+            || name.ends_with(".flv")
+            || name.ends_with(".wmv")
+    );
+
+    if is_video_doc {
+        tg_log::info(BACKEND, "thumb_miss_fallback", &format!("Generating fallback video card image for '{name}'"));
+        if let Some(fallback_bytes) = generate_video_fallback_card() {
+            return Ok(fallback_bytes);
+        }
+    }
+
     if media_kind == "Document" && !mime.starts_with("video/") && !mime.starts_with("image/") {
         tg_log::info(BACKEND, "thumb_miss_detail", &err_msg);
     } else {
@@ -1411,6 +1445,40 @@ fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
             || combined.contains("av1 ")
             || combined.contains("av1,")
     })
+}
+
+fn generate_video_fallback_card() -> Option<Vec<u8>> {
+    if let Some(ff_exe) = find_ffmpeg_binary() {
+        let temp_dir = std::env::temp_dir();
+        let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let frame_path = temp_dir.join(format!("autogram_fallback_vidcard_{rand_id}.jpg"));
+
+        let status = std::process::Command::new(&ff_exe)
+            .arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-y")
+            .arg("-f")
+            .arg("lavfi")
+            .arg("-i")
+            .arg("color=c=0x0f172a:s=480x270")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-q:v")
+            .arg("3")
+            .arg(&frame_path)
+            .output();
+
+        if status.is_ok() && frame_path.exists() {
+            if let Ok(b) = std::fs::read(&frame_path) {
+                let _ = std::fs::remove_file(&frame_path);
+                if b.len() >= 256 {
+                    return Some(b);
+                }
+            }
+        }
+    }
+    None
 }
 
 fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &str) -> Option<Vec<u8>> {
