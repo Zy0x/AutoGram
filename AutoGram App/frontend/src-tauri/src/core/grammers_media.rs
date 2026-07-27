@@ -1297,57 +1297,56 @@ fn parse_first_chunk_offset(moov_buf: &[u8]) -> Option<u64> {
     None
 }
 
+fn locate_valid_moov_atom(buf: &[u8]) -> Option<(usize, usize)> {
+    if buf.len() < 8 {
+        return None;
+    }
+    for i in (4..=buf.len() - 4).rev() {
+        if &buf[i..i + 4] == b"moov" {
+            let pos = i - 4;
+            let raw_sz = u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as usize;
+            let moov_size = if raw_sz == 1 && pos + 16 <= buf.len() {
+                u64::from_be_bytes([
+                    buf[pos + 8],
+                    buf[pos + 9],
+                    buf[pos + 10],
+                    buf[pos + 11],
+                    buf[pos + 12],
+                    buf[pos + 13],
+                    buf[pos + 14],
+                    buf[pos + 15],
+                ]) as usize
+            } else if raw_sz >= 8 {
+                raw_sz
+            } else {
+                continue;
+            };
+
+            // Validate that this is an authentic MP4 moov atom containing child boxes (mvhd, trak, cmov, meta, udta)
+            // This prevents false positives when the 4 bytes 'moov' occur inside raw mdat video bitstream.
+            let check_len = moov_size.min(buf.len().saturating_sub(pos));
+            if check_len >= 8 {
+                let is_valid = buf[pos..pos + check_len]
+                    .windows(4)
+                    .any(|w| w == b"mvhd" || w == b"trak" || w == b"cmov" || w == b"meta" || w == b"udta");
+                if is_valid {
+                    return Some((pos, moov_size));
+                }
+            }
+        }
+    }
+    None
+}
+
 fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
     if sample_bytes.len() < 16 || tail_bytes.is_empty() {
         return None;
     }
-    let moov_tag = b"moov";
-    let mut moov_pos = None;
-    let mut target_buf = tail_bytes;
 
-    if tail_bytes.len() >= 8 {
-        for i in (4..=tail_bytes.len() - 4).rev() {
-            if &tail_bytes[i..i + 4] == moov_tag {
-                moov_pos = Some(i - 4);
-                break;
-            }
-        }
-    }
-    if moov_pos.is_none() && sample_bytes.len() >= 8 {
-        for i in (4..=sample_bytes.len() - 4).rev() {
-            if &sample_bytes[i..i + 4] == moov_tag {
-                moov_pos = Some(i - 4);
-                target_buf = sample_bytes;
-                break;
-            }
-        }
-    }
-
-    let pos = moov_pos?;
-    let raw_sz = if pos + 4 <= target_buf.len() {
-        u32::from_be_bytes([
-            target_buf[pos],
-            target_buf[pos + 1],
-            target_buf[pos + 2],
-            target_buf[pos + 3],
-        ]) as usize
-    } else {
-        return None;
-    };
-
-    let moov_size = if raw_sz == 1 && pos + 16 <= target_buf.len() {
-        u64::from_be_bytes([
-            target_buf[pos + 8],
-            target_buf[pos + 9],
-            target_buf[pos + 10],
-            target_buf[pos + 11],
-            target_buf[pos + 12],
-            target_buf[pos + 13],
-            target_buf[pos + 14],
-            target_buf[pos + 15],
-        ]) as usize
-    } else if raw_sz >= 8 {
-        raw_sz
+    let (target_buf, pos, moov_size) = if let Some((p, sz)) = locate_valid_moov_atom(tail_bytes) {
+        (tail_bytes, p, sz)
+    } else if let Some((p, sz)) = locate_valid_moov_atom(sample_bytes) {
+        (sample_bytes, p, sz)
     } else {
         return None;
     };
@@ -1399,41 +1398,15 @@ async fn make_smart_target_mp4(
     if sample_bytes.len() < 16 || tail_bytes.is_empty() {
         return None;
     }
-    let moov_tag = b"moov";
-    let mut moov_pos = None;
-    let mut target_buf = tail_bytes;
 
-    if tail_bytes.len() >= 8 {
-        for i in (4..=tail_bytes.len() - 4).rev() {
-            if &tail_bytes[i..i + 4] == moov_tag {
-                moov_pos = Some(i - 4);
-                break;
-            }
-        }
-    }
-    if moov_pos.is_none() && sample_bytes.len() >= 8 {
-        for i in (4..=sample_bytes.len() - 4).rev() {
-            if &sample_bytes[i..i + 4] == moov_tag {
-                moov_pos = Some(i - 4);
-                target_buf = sample_bytes;
-                break;
-            }
-        }
-    }
-
-    let pos = moov_pos?;
-    let raw_sz = if pos + 4 <= target_buf.len() {
-        u32::from_be_bytes([
-            target_buf[pos],
-            target_buf[pos + 1],
-            target_buf[pos + 2],
-            target_buf[pos + 3],
-        ]) as usize
+    let (target_buf, pos, moov_size) = if let Some((p, sz)) = locate_valid_moov_atom(tail_bytes) {
+        (tail_bytes, p, sz)
+    } else if let Some((p, sz)) = locate_valid_moov_atom(sample_bytes) {
+        (sample_bytes, p, sz)
     } else {
         return None;
     };
 
-    let moov_size = if raw_sz >= 8 { raw_sz } else { return None; };
     if pos + moov_size > target_buf.len() {
         return None;
     }

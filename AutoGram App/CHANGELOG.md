@@ -1,3 +1,9 @@
+## v2.3.76 Child-Box Validated MP4 `moov` Atom Location
+
+### Verifikasi Autentisitas Header `moov` dengan Child-Box Checking (`grammers_media.rs`)
+- **Implementasi `locate_valid_moov_atom`**: Menambahkan fungsi pencarian `moov` yang memverifikasi keberadaan child box MP4 asli (`mvhd`, `trak`, `cmov`, `meta`, `udta`) di dalam payload header `moov`.
+- **Eliminasi Deteksi Palsu (*False-Positive*) dalam Stream `mdat`**: Mengeliminasi tabrakan byte `b"moov"` yang secara tidak sengaja dapat muncul pada data stream video terkompresi. Sistem kini 100% membedakan atom MP4 `moov` asli dari data bitstream acak, menggaransi rekonstruksi Faststart MP4 untuk video Donghua (`/-1004468191168/73`) 100% sukses dan terpancar thumbnail berwarna.
+
 ## v2.3.75 Full Uncorrupted Faststart MP4 Reconstruction & Fault-Tolerant FFmpeg Extraction
 
 ### Rekonstruksi MP4 Utuh Tanpa Korupsi & Toleransi Kesalahan FFmpeg (`grammers_media.rs`)

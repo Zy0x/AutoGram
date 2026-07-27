@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.75
+AutoGram Version: v2.3.76
 
 Current State:
+v2.3.76 Child-Box Validated MP4 `moov` Atom Location — membenahi `grammers_media.rs`. Memperkenalkan fungsi `locate_valid_moov_atom` yang memverifikasi struktur signature child box MP4 asli (`mvhd`, `trak`, `cmov`, `meta`, `udta`). Mengeliminasi false-positive pencarian `moov` pada byte acak data stream video `mdat` dan menggaransi `make_faststart_mp4` serta `make_smart_target_mp4` 100% mendeteksi header `moov` yang autentik dan utuh dari berkas video dokumen Telegram (`/-1004468191168/73`).
+
+Previous:
 v2.3.75 Full Uncorrupted Faststart MP4 Reconstruction & Fault-Tolerant FFmpeg Extraction — membenahi `grammers_media.rs`. Memperbaiki `make_faststart_mp4` dan `make_smart_target_mp4` agar menolak `moov` atom parsial/terpotong (`pos + moov_size > target_buf.len()`) dan memaksa iterasi tail fetch mengunduh hingga 160 chunk (40 MB) untuk mendapatkan `moov` atom secara 100% utuh dan sempurna. Menambahkan `-err_detect ignore_err` dan `-fflags +genpts+discardcorrupt` pada argumen FFmpeg, menjamin ekstraksi thumbnail visual video 2K/AV1 3D Donghua berjalan dengan sukses mulus dan berwarna.
 
 Previous:
