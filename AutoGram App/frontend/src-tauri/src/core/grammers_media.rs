@@ -758,19 +758,26 @@ async fn download_media_thumb(
 
         if !sample_bytes.is_empty() {
             if !is_image && !is_video && !is_pdf && sample_bytes.len() >= 4 {
-                // Image magic bytes: JPEG (0xFF 0xD8 0xFF), PNG (\x89PNG), WebP (RIFF...WEBP), GIF (GIF8), BMP (BM)
-                if (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8 && sample_bytes[2] == 0xff)
+                // Image magic bytes: JPEG (0xFF 0xD8), PNG (\x89PNG), WebP (RIFF...WEBP), GIF (GIF8), BMP (BM), HEIC/HEIF/AVIF
+                if (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8)
                     || (sample_bytes.starts_with(b"\x89PNG"))
                     || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"WEBP")
                     || (sample_bytes.starts_with(b"GIF8"))
                     || (sample_bytes.starts_with(b"BM"))
+                    || (sample_bytes.len() >= 12 && &sample_bytes[4..8] == b"ftyp" && (
+                        &sample_bytes[8..12] == b"heic" || &sample_bytes[8..12] == b"heif" || &sample_bytes[8..12] == b"mif1" || &sample_bytes[8..12] == b"avif"
+                    ))
                 {
                     is_image = true;
                 }
-                // Video magic bytes: MP4/MOV (ftyp/moov/mdat at offset 4), MKV/WebM (0x1A 0x45 0xDF 0xA3), AVI (RIFF...AVI )
+                // Video magic bytes: MP4/MOV (ftyp/moov/mdat at offset 4), MKV/WebM (0x1A 0x45 0xDF 0xA3), AVI (RIFF...AVI ), TS (0x47), FLV (FLV), OGV (OggS), WMV (\x30\x26\xB2\x75)
                 else if (sample_bytes.len() >= 8 && (&sample_bytes[4..8] == b"ftyp" || &sample_bytes[4..8] == b"moov" || &sample_bytes[4..8] == b"mdat"))
                     || (sample_bytes.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]))
                     || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"AVI ")
+                    || (sample_bytes.starts_with(b"FLV"))
+                    || (sample_bytes.starts_with(b"OggS"))
+                    || (sample_bytes.starts_with(&[0x30, 0x26, 0xB2, 0x75]))
+                    || (sample_bytes.starts_with(&[0x47]))
                 {
                     is_video = true;
                 }
@@ -844,15 +851,9 @@ async fn download_media_thumb(
                 let mode = quality.to_lowercase();
                 let saver = mode.contains("hemat") || mode.contains("saver");
 
-                // Hemat (Saver) mode: DO NOT perform heavy video sample/tail chunk downloads.
-                // Fall back immediately to flat icon to save network quota.
-                if saver {
-                    let err_msg = format!("saver mode: skipping heavy video frame extraction for '{name}' to conserve quota");
-                    return Err(TgError::new(TgErrorCode::Internal, err_msg));
-                }
-
-                // Cap header sample to 1.5MB max to conserve bandwidth
-                let max_sample = 1536 * 1024;
+                // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
+                // In Seimbang/Jelas mode: fetch up to 1.5MB - 3.0MB sample.
+                let max_sample = if saver { 768 * 1024 } else { 2048 * 1024 };
 
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
@@ -890,7 +891,7 @@ async fn download_media_thumb(
                     return Ok(frame_bytes);
                 }
 
-                // Quota-saver single-pass fast tail chunk fetch (max 1 pass of 8 chunks = 2MB to cover 99.9% moov atoms)
+                // Single-pass fast tail chunk fetch (max 8 chunks = 2MB to cover moov atoms at the end)
                 let chunk_bytes = 256 * 1024;
                 if doc_size > 0 {
                     let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
@@ -910,7 +911,19 @@ async fn download_media_thumb(
                     }
                 }
 
-                // End of video thumb extraction pass (quota saved)
+                // Rescue loop for small/medium videos (<= 8MB): download additional chunks if FFmpeg needs more data to reach keyframe
+                if doc_size > 0 && doc_size <= 8 * 1024 * 1024 && sample_bytes.len() < doc_size {
+                    while sample_bytes.len() < doc_size {
+                        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                            sample_bytes.extend_from_slice(&chunk);
+                        } else {
+                            break;
+                        }
+                    }
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                        return Ok(frame_bytes);
+                    }
+                }
             } else {
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {
@@ -919,19 +932,19 @@ async fn download_media_thumb(
                     "bin"
                 };
 
-                let is_binary_non_media = ext_hint == "bin"
-                    || ext_hint == "dat"
-                    || ext_hint == "iso"
-                    || ext_hint == "exe"
-                    || ext_hint == "apk"
-                    || ext_hint == "zip"
-                    || ext_hint == "rar"
-                    || ext_hint == "7z"
-                    || ext_hint == "tar"
-                    || ext_hint == "gz";
+                let is_binary_archive_or_text = sample_bytes.len() > 0 && (
+                    sample_bytes.starts_with(b"{")
+                        || sample_bytes.starts_with(b"[")
+                        || sample_bytes.starts_with(b"<!--")
+                        || sample_bytes.starts_with(b"http")
+                        || sample_bytes.starts_with(b"PK\x03\x04")
+                        || sample_bytes.starts_with(b"Rar!\x1a\x07")
+                        || sample_bytes.starts_with(b"7z\xbc\xaf\x27\x1c")
+                );
 
-                if !is_binary_non_media {
-                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                if !is_binary_archive_or_text {
+                    let test_ext = if ext_hint == "bin" || ext_hint == "dat" { "mp4" } else { ext_hint };
+                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, test_ext) {
                         return Ok(frame_bytes);
                     }
                 }

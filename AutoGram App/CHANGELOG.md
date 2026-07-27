@@ -1,3 +1,9 @@
+## v2.3.65 Document Video Saver Mode Lightweight Extraction & Extended Magic Bytes Fallback Fix
+
+### Perbaikan Ekstraksi Thumbnail Video Dokumen Mode Hemat & Magic Bytes (`grammers_media.rs`)
+- **Pelepasan Rejeki Total Mode Saver**: Menghapus pengondisian `if saver { return Err(...) }` pada Tier 5 dokumen video. Backend Rust kini selalu melakukan penarikan sampel ringan (768 KB) untuk mengekstrak frame thumbnail visual via FFmpeg, menjamin video dokumen (seperti `/-1004468191168/73`) yang tidak memiliki layer thumbnail statis dari Telegram (`sizes == 0`) tetap dapat menampilkan thumbnail visual di kartu media tanpa tertahan sebagai flat icon.
+- **Deteksi Magic Bytes & Multi-Format Fallback**: Menambahkan deteksi magic bytes komprehensif untuk format Video (MP4, MOV, MKV, WebM, AVI, TS, FLV, OGV, WMV), Gambar (JPEG, PNG, WebP, GIF, BMP, HEIC, HEIF, AVIF), dan PDF pada sampel berkas tanpa ekstensi standar (`.bin`/`.dat`), serta menambahkan rescue loop hingga 8MB untuk video kecil/sedang yang membutuhkan data tambahan untuk isolasi keyframe.
+
 ## v2.3.62 Dual-Track Parallel Concurrency & Ultra-Fast Image Thumbnail Response
 
 ### Optimalisasi Responsivitas & Paralelisme Grid Media (`grammers_media.rs`, `devicePerformance.ts`)
