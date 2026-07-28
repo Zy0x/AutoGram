@@ -1194,9 +1194,12 @@ export function DrivePreviewModal({
             /* ignore */
           }
         }
-        // Prefer playable prefix % (what <video> can start with). Never artificially
-        // cap at 35% — that hid multi-MB heads as "stuck low" in the UI.
-        let displayPct = Math.max(pct, browserPct);
+        // Player buffer bar reflects browser TimeRanges when video has loaded metadata,
+        // so when slow internet occurs, slider dot reaches the buffer bar end before pausing.
+        let displayPct = browserHasData ? browserPct : pct;
+        if (st.done || (total > 0 && prefix >= total * 0.99)) {
+          displayPct = 100;
+        }
         if (!Number.isFinite(displayPct) || displayPct < 0) displayPct = 0;
         setBufferPct(Math.min(100, Math.round(displayPct)));
 
