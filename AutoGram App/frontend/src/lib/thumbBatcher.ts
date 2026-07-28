@@ -41,9 +41,31 @@ export type ThumbSchedulerMetrics = {
 };
 
 
+function toOptimizedBlobUrl(url: string): string {
+  if (!url || !url.startsWith('data:image/') || typeof window === 'undefined') return url;
+  try {
+    const commaIdx = url.indexOf(',');
+    if (commaIdx === -1) return url;
+    const header = url.substring(0, commaIdx);
+    const mimeMatch = header.match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const base64Str = url.substring(commaIdx + 1);
+    const binaryStr = window.atob(base64Str);
+    const len = binaryStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch {
+    return url;
+  }
+}
+
 class LRUThumbnailCache {
   private cache = new Map<string, string>();
-  private readonly MAX_SIZE = 1000;
+  private readonly MAX_SIZE = 1200;
 
   get(key: string): string | undefined {
     const value = this.cache.get(key);
@@ -55,7 +77,7 @@ class LRUThumbnailCache {
   }
 
   set(key: string, value: string): void {
-    const url = value;
+    const url = value.startsWith('data:image/') ? toOptimizedBlobUrl(value) : value;
 
     while (this.cache.size >= this.MAX_SIZE) {
       this.evictLRU();

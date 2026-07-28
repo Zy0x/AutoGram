@@ -120,18 +120,8 @@ function detectTier(): PerfTier {
   } catch {
     /* ignore */
   }
-  const { cores, memGb, saveData, mobile, fastNet } = readHw();
-  if (saveData || cores <= 4 || memGb <= 4 || (mobile && cores <= 6)) {
-    return 'low';
-  }
-  // Desktop / strong laptop + fast net → full turbo
-  if (!mobile && cores >= 6 && memGb >= 6 && fastNet) {
-    return 'high';
-  }
-  if (cores <= 6 || memGb <= 6 || mobile) {
-    return 'mid';
-  }
-  return 'high';
+  // Default to 'mid' (Mode Standar) as requested by user
+  return 'mid';
 }
 
 function buildProfile(tier: PerfTier): DrivePerfProfile {
@@ -139,17 +129,17 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
   if (tier === 'low') {
     return {
       tier: 'low',
-      filePage: 20,
-      loadMorePage: 40,
+      filePage: 24,
+      loadMorePage: 48,
       chatPage: 32,
       chatSoftPrefetchMax: 96,
       defaultThumbQuality: 'saver', // stripped inline — like Telegram grid
       defaultGridZoom: 1,
       statsDelayMs: 4000,
       fullMediaStats: false,
-      thumbBatch: 16,
+      thumbBatch: 20,
       thumbFlushMs: 8,
-      thumbQueueMax: 80,
+      thumbQueueMax: 100,
       thumbConcurrent: 2,
       thumbResumeMs: 80,
       thumbPrefetchRows: 2,
@@ -160,26 +150,26 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
       folderScanDelayMs: 2500,
       thumbSoftFailMs: 1_800,
       fastNet: false,
-      label: 'Mode Hemat (otomatis — perangkat terbatas)',
+      label: 'Mode Hemat',
     };
   }
   if (tier === 'mid') {
     return {
       tier: 'mid',
-      filePage: 40,
-      loadMorePage: 80,
+      filePage: 48,
+      loadMorePage: 96,
       chatPage: 48,
-      chatSoftPrefetchMax: 200,
+      chatSoftPrefetchMax: 240,
       defaultThumbQuality: 'saver',
       defaultGridZoom: 2,
       statsDelayMs: 1000,
       fullMediaStats: true,
-      thumbBatch: 40,
+      thumbBatch: 48,
       thumbFlushMs: 2,
-      thumbQueueMax: 240,
+      thumbQueueMax: 300,
       thumbConcurrent: 4,
       thumbResumeMs: 20,
-      thumbPrefetchRows: 5,
+      thumbPrefetchRows: 6,
       prefetchNextPage: true,
       avatarBatch: 8,
       avatarQueueMax: 32,
@@ -187,37 +177,35 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
       folderScanDelayMs: 500,
       thumbSoftFailMs: 1_200,
       fastNet,
-      label: 'Mode Seimbang',
+      label: 'Mode Standar (Default)',
     };
   }
   // HIGH — maximize throughput for fast devices / networks
   const turbo = fastNet;
   return {
     tier: 'high',
-    filePage: turbo ? 64 : 48,
-    loadMorePage: turbo ? 120 : 100,
-    chatPage: turbo ? 80 : 56,
-    chatSoftPrefetchMax: turbo ? 400 : 250,
-    // Saver = stripped thumbs from message metadata (Telegram-app feel).
-    // Balanced/jelas download larger layers and stall the grid.
+    filePage: turbo ? 80 : 64,
+    loadMorePage: turbo ? 160 : 120,
+    chatPage: turbo ? 96 : 64,
+    chatSoftPrefetchMax: turbo ? 500 : 300,
     defaultThumbQuality: 'saver',
     defaultGridZoom: 2,
-    statsDelayMs: 350,
+    statsDelayMs: 300,
     fullMediaStats: true,
     thumbBatch: turbo ? 96 : 72,
-    thumbFlushMs: turbo ? 0 : 0,
+    thumbFlushMs: 0,
     thumbQueueMax: turbo ? 600 : 400,
-    thumbConcurrent: 4,
+    thumbConcurrent: 6,
     thumbResumeMs: 0,
     thumbPrefetchRows: turbo ? 10 : 6,
     prefetchNextPage: true,
-    avatarBatch: turbo ? 14 : 10,
-    avatarQueueMax: turbo ? 56 : 40,
-    avatarBootPauseMs: turbo ? 40 : 80,
+    avatarBatch: turbo ? 16 : 10,
+    avatarQueueMax: turbo ? 64 : 40,
+    avatarBootPauseMs: turbo ? 20 : 60,
     folderScanDelayMs: 0,
     thumbSoftFailMs: 800,
     fastNet: turbo,
-    label: turbo ? 'Mode Turbo (koneksi cepat)' : 'Mode Penuh',
+    label: turbo ? 'Mode Turbo (Maksimal)' : 'Mode Performa Tinggi',
   };
 }
 

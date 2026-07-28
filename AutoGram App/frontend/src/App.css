@@ -2849,7 +2849,9 @@ body.td-dnd-external {
   -webkit-user-select: none;
   position: relative;
   z-index: 1;
-  contain: style;
+  contain: content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
   transition: z-index 0s;
 }
 .td-file-card:hover {
