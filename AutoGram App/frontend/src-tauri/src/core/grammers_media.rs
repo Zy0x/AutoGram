@@ -289,6 +289,16 @@ pub fn prune_thumb_cache(t_dir: &Path) {
     if !t_dir.is_dir() {
         return;
     }
+    static LAST_PRUNE: OnceLock<Mutex<u128>> = OnceLock::new();
+    let lock = LAST_PRUNE.get_or_init(|| Mutex::new(0));
+    let now = now_ms();
+    {
+        let mut last = lock.lock();
+        if now.saturating_sub(*last) < 60_000 {
+            return;
+        }
+        *last = now;
+    }
     let t_dir_buf = t_dir.to_path_buf();
     std::thread::spawn(move || {
         let Ok(entries) = std::fs::read_dir(&t_dir_buf) else { return; };
@@ -517,22 +527,23 @@ fn media_thumbs(_client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
 }
 
 /// Inline stripped JPEG (Telegram mini-thumb) as data-URL — no network GetFile.
+/// Inline stripped JPEG (Telegram mini-thumb) as data-URL — no network GetFile.
 /// Used by list_media so the grid paints like the official app on first paint.
 pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
-    let mut best: Option<(usize, PhotoSize)> = None;
+    let mut best: Option<(usize, Vec<u8>)> = None;
     for s in media_thumbs(None, media) {
         if let Some(data) = s.to_data() {
             let bytes = unstrip_jpeg(&data).unwrap_or(data);
             if !bytes.is_empty() {
                 let size = bytes.len();
                 if best.as_ref().map_or(true, |(b, _)| size > *b) {
-                    best = Some((size, s.clone()));
+                    best = Some((size, bytes));
                 }
             }
         }
     }
-    if let Some((_, s)) = best {
-        if let Some(url) = to_data_url(&s.to_data().unwrap()) {
+    if let Some((_, bytes)) = best {
+        if let Some(url) = to_data_url(&bytes) {
             return Some(url);
         }
     }

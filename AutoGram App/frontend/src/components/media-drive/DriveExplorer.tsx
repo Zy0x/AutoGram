@@ -19,7 +19,7 @@ import {
   type DriveAdvFilter,
 } from '../../lib/drivePower';
 import { getDrivePerfProfile } from '../../lib/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, requestVisibleThumbs, setThumbsPaused } from '../../lib/thumbBatcher';
+import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused } from '../../lib/thumbBatcher';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -191,6 +191,12 @@ export function DriveExplorer({
   const [liveSelected, setLiveSelected] = useState<number[] | null>(null);
   /** Last computed final selection for commit (same as live) */
   const liveSelectedRef = useRef<number[] | null>(null);
+
+  useEffect(() => {
+    if (creds && files.length) {
+      primeThumbsFromFileList(creds, folderId, files);
+    }
+  }, [creds, folderId, files]);
 
   useEffect(() => {
     const el = parentRef.current;
