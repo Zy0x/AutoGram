@@ -1,6 +1,6 @@
-import { SpeedTestOverlays } from './SpeedTestOverlays';
-import { SpeedTestModalsContainer } from './SpeedTestModalsContainer';
-import { SpeedTestProps, readSessionsCache, writeSessionsCache } from './speedTestUtils';
+import { MediaStudioOverlays } from './MediaStudioOverlays';
+import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
+import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/driveSession';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
@@ -323,7 +323,7 @@ interface QueueTask {
 
 type LocationKind = 'saved' | 'drive' | 'chat';
 
-export function SpeedTest({ onExitToApp }: SpeedTestProps = {}) {
+export function MediaStudio({ onExitToApp }: MediaStudioProps = {}) {
   if (!canUseLocalTelegramWorker()) {
     return (
       <main className="main-content page-stack">
@@ -351,7 +351,7 @@ export function SpeedTest({ onExitToApp }: SpeedTestProps = {}) {
   return <MediaDriveDesktop onExitToApp={onExitToApp} />;
 }
 
-function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
+function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   // Instant restore from cache — avoids waiting list-sessions before first paint boot
   const [sessions, setSessions] = useState<string[]>(() => readSessionsCache());
   const [session, setSession] = useState(() => {
@@ -7380,7 +7380,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             }}
           />
 
-          <SpeedTestOverlays
+          <MediaStudioOverlays
             dragActive={dragActive}
             mediaDragActive={mediaDragActive}
             breadcrumb={breadcrumb}
@@ -7588,7 +7588,7 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         </div>
       </div>
 
-      <SpeedTestModalsContainer
+      <MediaStudioModalsContainer
         previewFile={previewFile}
         setPreviewFile={setPreviewFile}
         peerId={typeof peerId === 'number' ? peerId : null}

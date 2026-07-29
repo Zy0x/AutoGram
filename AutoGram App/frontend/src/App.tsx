@@ -15,11 +15,11 @@ import { bootstrapDebugMode, debugLog } from './lib/debugMode';
 import { checkAndAutoPruneCache } from './lib/autoCachePruner';
 
 /** Code-split Media Studio — keeps main shell light until tab opens */
-const SpeedTest = lazy(() =>
-  import('./pages/SpeedTest').then((m) => ({ default: m.SpeedTest }))
+const MediaStudio = lazy(() =>
+  import('./pages/MediaStudio').then((m) => ({ default: m.MediaStudio }))
 );
 
-const DESKTOP_ONLY_TABS = new Set(['speedtest']);
+const DESKTOP_ONLY_TABS = new Set(['speedtest', 'media-studio']);
 
 function initialTab(): string {
   const saved = localStorage.getItem('lastActiveTab') || 'dashboard';
@@ -69,7 +69,7 @@ function App() {
     };
   }, []);
 
-  const driveFocus = activeTab === 'speedtest' && isMediaStudioAvailable();
+  const driveFocus = (activeTab === 'speedtest' || activeTab === 'media-studio') && isMediaStudioAvailable();
 
   return (
     <div className={`app-layout ${driveFocus ? 'app-layout-drive-focus' : ''}`}>
@@ -84,7 +84,7 @@ function App() {
         {activeTab === 'accounts' && <Accounts />}
         {activeTab === 'profiles' && <Profiles />}
         {activeTab === 'automation' && <Automation />}
-        {activeTab === 'speedtest' && isMediaStudioAvailable() && (
+        {(activeTab === 'speedtest' || activeTab === 'media-studio') && isMediaStudioAvailable() && (
           <Suspense
             fallback={
               <main className="main-content main-content-fill td-page">
@@ -94,7 +94,7 @@ function App() {
               </main>
             }
           >
-            <SpeedTest onExitToApp={() => setActiveTab('dashboard')} />
+            <MediaStudio onExitToApp={() => setActiveTab('dashboard')} />
           </Suspense>
         )}
         {activeTab === 'settings' && <Settings />}

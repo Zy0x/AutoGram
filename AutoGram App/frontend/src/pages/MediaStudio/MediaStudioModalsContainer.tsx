@@ -8,7 +8,7 @@ import { RemoteUploadModal } from '../../components/media-drive/RemoteUploadModa
 import type { DriveCredentials } from '../../lib/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/driveTypes';
 
-export interface SpeedTestModalsContainerProps {
+export interface MediaStudioModalsContainerProps {
   previewFile: DriveFile | null;
   setPreviewFile: (f: DriveFile | null) => void;
   peerId: number | null;
@@ -66,7 +66,7 @@ export interface SpeedTestModalsContainerProps {
   handleRemoteUpload: (url: string, targetFolderId: number | null) => Promise<void>;
 }
 
-export const SpeedTestModalsContainer: React.FC<SpeedTestModalsContainerProps> = ({
+export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProps> = ({
   previewFile,
   setPreviewFile,
   peerId,

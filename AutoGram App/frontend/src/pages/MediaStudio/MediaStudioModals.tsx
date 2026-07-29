@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FolderPlus, Trash2, Edit3, FolderInput, X } from 'lucide-react';
 import { DriveFolder, DriveFile } from '../../lib/driveTypes';
 
-type SpeedTestModalsProps = {
+type MediaStudioModalsProps = {
   // New Folder Modal
   showNewFolderModal: boolean;
   onCloseNewFolderModal: () => void;
@@ -25,7 +25,7 @@ type SpeedTestModalsProps = {
   onConfirmMove: (files: DriveFile[], targetFolderId: number | null) => void;
 };
 
-export const SpeedTestModals: React.FC<SpeedTestModalsProps> = ({
+export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
   showNewFolderModal,
   onCloseNewFolderModal,
   onCreateFolder,

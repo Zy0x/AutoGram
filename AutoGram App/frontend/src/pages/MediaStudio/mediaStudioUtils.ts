@@ -1,4 +1,4 @@
-export interface SpeedTestProps {
+export interface MediaStudioProps {
   onExitToApp?: () => void;
 }
 

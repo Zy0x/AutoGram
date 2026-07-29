@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { DriveFile, DriveFolder, DriveViewMode, formatDriveBytes } from '../../lib/driveTypes';
 
-type SpeedTestGridProps = {
+type MediaStudioGridProps = {
   folders: DriveFolder[];
   files: DriveFile[];
   viewMode: DriveViewMode;
@@ -29,7 +29,7 @@ type SpeedTestGridProps = {
   isDragOver: boolean;
 };
 
-export const SpeedTestGrid: React.FC<SpeedTestGridProps> = ({
+export const MediaStudioGrid: React.FC<MediaStudioGridProps> = ({
   folders,
   files,
   viewMode,

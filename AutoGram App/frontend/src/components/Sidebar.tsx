@@ -11,7 +11,7 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' as const, short: 'Home', full: 'Beranda', desktopOnly: false },
   { id: 'jobs', icon: ArrowRightLeft, labelKey: 'nav.forwarder' as const, short: 'Forward', full: 'Forwarder', desktopOnly: false },
-  { id: 'speedtest', icon: HardDrive, labelKey: 'nav.drives' as const, short: 'Drives', full: 'Drives', desktopOnly: true },
+  { id: 'media-studio', icon: HardDrive, labelKey: 'nav.drives' as const, short: 'Drives', full: 'Drives', desktopOnly: true },
   { id: 'accounts', icon: Users, labelKey: 'nav.accounts' as const, short: 'Akun', full: 'Accounts', desktopOnly: false },
   { id: 'profiles', icon: Bookmark, labelKey: null, short: 'Profil', full: 'Profiles', desktopOnly: false },
   { id: 'automation', icon: CalendarClock, labelKey: null, short: 'Auto', full: 'Automation', desktopOnly: false },

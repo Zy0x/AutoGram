@@ -1,7 +1,7 @@
 import React from 'react';
 import { Upload, AlertTriangle, RefreshCw } from 'lucide-react';
 
-export interface SpeedTestOverlaysProps {
+export interface MediaStudioOverlaysProps {
   dragActive: boolean;
   mediaDragActive: boolean;
   breadcrumb: string;
@@ -12,7 +12,7 @@ export interface SpeedTestOverlaysProps {
   onResetCircuit?: () => void;
 }
 
-export const SpeedTestOverlays: React.FC<SpeedTestOverlaysProps> = ({
+export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
   dragActive,
   mediaDragActive,
   breadcrumb,

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { DriveFolder, DriveChat, DriveTopic } from '../../lib/driveTypes';
 
-type SpeedTestSidebarProps = {
+type MediaStudioSidebarProps = {
   sessions: string[];
   currentSession: string;
   onSelectSession: (sess: string) => void;
@@ -30,7 +30,7 @@ type SpeedTestSidebarProps = {
   onRefreshSidebar: () => void;
 };
 
-export const SpeedTestSidebar: React.FC<SpeedTestSidebarProps> = ({
+export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
   sessions,
   currentSession,
   onSelectSession,

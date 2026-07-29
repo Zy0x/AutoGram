@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { DriveMediaFilter, DriveViewMode, DriveSortMode } from '../../lib/driveTypes';
 
-type SpeedTestToolbarProps = {
+type MediaStudioToolbarProps = {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   mediaFilter: DriveMediaFilter;
@@ -25,7 +25,7 @@ type SpeedTestToolbarProps = {
   onUploadClick: () => void;
 };
 
-export const SpeedTestToolbar: React.FC<SpeedTestToolbarProps> = ({
+export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
   searchQuery,
   onSearchChange,
   mediaFilter,

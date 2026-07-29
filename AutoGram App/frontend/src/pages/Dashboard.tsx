@@ -96,7 +96,7 @@ export function Dashboard({ onNavigate }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => go('speedtest')}
+            onClick={() => go('media-studio')}
             disabled={!drivesOk}
             title={!drivesOk ? 'Drives hanya di desktop AutoGram' : undefined}
           >
