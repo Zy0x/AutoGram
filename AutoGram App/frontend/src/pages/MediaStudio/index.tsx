@@ -3986,7 +3986,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       label: parentId != null ? 'Nama folder' : 'Nama Drive',
       placeholder: parentId != null ? 'mis. Semester 1' : 'mis. Materi Kelas A',
       confirmLabel: parentId != null ? 'Buat folder' : 'Buat Drive',
-      onConfirm: (name) => {
+      onConfirm: (name: any) => {
         void (async () => {
           try {
             if (!creds) {
@@ -4073,7 +4073,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       label: 'Nama Topik',
       placeholder: 'mis. Dokumentasi',
       confirmLabel: 'Buat Topik',
-      onConfirm: (name) => {
+      onConfirm: (name: any) => {
         void (async () => {
           try {
             if (!creds) {
@@ -4179,7 +4179,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       placeholder: currentTitle,
       defaultValue: currentTitle,
       confirmLabel: 'Simpan',
-      onConfirm: (name) => {
+      onConfirm: (name: any) => {
         void (async () => {
           try {
             setStatusText(`Mengganti nama topik "${currentTitle}"…`);
@@ -4228,7 +4228,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       placeholder: folderName,
       defaultValue: folderName,
       confirmLabel: 'Simpan',
-      onConfirm: (name) => {
+      onConfirm: (name: any) => {
         void (async () => {
           try {
             setStatusText(`Mengganti nama ${kindLabel.toLowerCase()}…`);
@@ -4326,7 +4326,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       detail:
         'Pilih Drive atau Folder induk. Hierarki via metadata parent= di Telegram (bukan salin file). Kosongkan ke root = jadi Drive.',
       choices,
-      onConfirm: (choice) => {
+      onConfirm: (choice: any) => {
         runReparent(choice.id, choice.label);
       },
     });
@@ -4409,7 +4409,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             : `${f.name} (Folder)`,
         kind: 'drive' as const,
       })),
-      onConfirm: (choice) => {
+      onConfirm: (choice: any) => {
         if (choice.id == null) {
           setError('Pilih Drive atau Folder sebagai induk.');
           return;
@@ -5061,7 +5061,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       defaultValue: driveFileDisplayName(file),
       placeholder: driveFileDisplayName(file),
       confirmLabel: 'Simpan',
-      onConfirm: (name) => {
+      onConfirm: (name: any) => {
         if (name === file.name) return;
         void (async () => {
           try {
@@ -5780,7 +5780,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         detail: `→ ${targetLabel}`,
         isForum: forum,
         topics: topicsList,
-        onConfirm: (choice) => {
+        onConfirm: (choice: any) => {
           if (isTransferJobActive() || transfer.active || moveActiveRef.current) {
             setError('Transfer/pindah masih berjalan — Stop dulu di Transfer Manager.');
             openTransferManager();
@@ -5852,7 +5852,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             ? names[0]
             : `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`,
         choices,
-        onConfirm: (dest) => {
+        onConfirm: (dest: any) => {
           void requestMoveToTarget(messageIds, peerId, dest.id, dest.label, {
             isForum: !!dest.isForum,
           });

@@ -1,1 +1,1 @@
-export { DriveSidebar } from './DriveSidebar/index';
+export * from '../drive/DriveSidebar';

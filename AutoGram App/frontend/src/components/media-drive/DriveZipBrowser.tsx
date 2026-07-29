@@ -1,2 +1,2 @@
-export { DriveZipBrowser } from './DriveZipBrowser/index';
-export type { ZipEntry, TargetDestination } from './DriveZipBrowser/zipUtils';
+export * from '../drive/DriveZipBrowser/index';
+export * from '../drive/DriveZipBrowser/zipUtils';
