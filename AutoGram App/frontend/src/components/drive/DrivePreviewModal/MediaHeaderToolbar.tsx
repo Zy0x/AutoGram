@@ -1,232 +1,153 @@
 import React from 'react';
 import {
   X,
-  Download,
-  ExternalLink,
-  Printer,
   ChevronLeft,
   ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Sliders,
-  Check,
+  Download,
+  Printer,
+  Info,
+  Maximize2,
+  Minimize2,
+  ExternalLink,
 } from 'lucide-react';
-import { DriveFile, formatDriveBytes } from '../../../lib/telegram/driveTypes';
-import { PlayQuality } from './previewUtils';
+import type { DriveFile } from '../../../lib/telegram/driveTypes';
+import { driveFileDisplayName, formatDriveBytes } from '../../../lib/telegram/driveTypes';
+import { isDesktop } from '../../../lib/tauri/platform';
 
-type MediaHeaderToolbarProps = {
+export interface MediaHeaderToolbarProps {
   file: DriveFile;
-  kind: 'video' | 'audio' | 'image' | 'text' | 'pdf' | 'zip' | 'other';
-  hasPrev?: boolean;
-  hasNext?: boolean;
+  onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
-  onClose: () => void;
-  qualities: PlayQuality[];
-  selectedQuality: string;
-  onSelectQuality: (q: string) => void;
-  showQualityMenu: boolean;
-  setShowQualityMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  qualityBtnRef: React.RefObject<HTMLButtonElement | null>;
-  qualityMenuPosition: { top: number; left: number; width: number } | null;
-  qualityMetaNote: string | null;
-  zoom: number;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetZoom: () => void;
-  onRotate: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
   onDownload: () => void;
-  onOpenSystem: () => void;
   onPrintPdf?: () => void;
-  isDownloading?: boolean;
-  isOpenSystem?: boolean;
-};
+  isPdf?: boolean;
+  onOpenSystem?: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  showInfo?: boolean;
+  onToggleInfo?: () => void;
+  saving?: boolean;
+  openingSystem?: boolean;
+}
 
 export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
   file,
-  kind,
-  hasPrev,
-  hasNext,
+  onClose,
   onPrev,
   onNext,
-  onClose,
-  qualities,
-  selectedQuality,
-  onSelectQuality,
-  showQualityMenu,
-  setShowQualityMenu,
-  qualityBtnRef,
-  qualityMenuPosition,
-  qualityMetaNote,
-  zoom,
-  onZoomIn,
-  onZoomOut,
-  onResetZoom,
-  onRotate,
+  hasPrev,
+  hasNext,
   onDownload,
-  onOpenSystem,
   onPrintPdf,
-  isDownloading,
-  isOpenSystem,
+  isPdf,
+  onOpenSystem,
+    isFullscreen,
+  onToggleFullscreen,
+  showInfo,
+  onToggleInfo,
+  saving,
+  openingSystem,
 }) => {
+  const displayName = driveFileDisplayName(file);
+
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100 select-none">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="flex items-center gap-1">
-          {onPrev && (
-            <button
-              onClick={onPrev}
-              disabled={!hasPrev}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="Prev (Left Arrow)"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-          {onNext && (
-            <button
-              onClick={onNext}
-              disabled={!hasNext}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-              title="Next (Right Arrow)"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-semibold text-sm sm:text-base text-slate-100 truncate max-w-xs sm:max-w-md md:max-w-lg" title={file.name}>
-            {file.name}
-          </h3>
-          <p className="text-xs text-slate-400 font-mono flex items-center gap-2">
-            <span>{formatDriveBytes(file.size)}</span>
-            {file.mime_type && <span className="opacity-60">• {file.mime_type}</span>}
-          </p>
-        </div>
+    <header className="drive-preview-header">
+      <div className="drive-preview-title" title={displayName}>
+        <span className="font-semibold text-sm text-slate-100">{displayName}</span>
+        <span className="text-xs text-slate-400 font-mono ml-2">({formatDriveBytes(file.size)})</span>
       </div>
 
-      <div className="flex items-center gap-2">
-        {qualities.length > 0 && (
-          <div className="relative">
-            <button
-              ref={qualityBtnRef}
-              onClick={() => setShowQualityMenu(!showQualityMenu)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700/60 transition-all"
-              title="Video Quality"
-            >
-              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{selectedQuality.toUpperCase()}</span>
-            </button>
-
-            {showQualityMenu && qualityMenuPosition && (
-              <div
-                style={{
-                  position: 'fixed',
-                  top: `${qualityMenuPosition.top}px`,
-                  left: `${qualityMenuPosition.left}px`,
-                  width: `${qualityMenuPosition.width}px`,
-                }}
-                className="z-50 py-1.5 bg-slate-900/95 border border-slate-700/80 rounded-xl shadow-2xl backdrop-blur-md text-xs"
-              >
-                <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 mb-1 flex items-center justify-between">
-                  <span>Stream Quality</span>
-                  {qualityMetaNote && <span className="text-[10px] text-amber-400 font-normal">{qualityMetaNote}</span>}
-                </div>
-                {qualities.map((q) => (
-                  <button
-                    key={q.id}
-                    onClick={() => {
-                      onSelectQuality(q.id);
-                      setShowQualityMenu(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                      selectedQuality === q.id ? 'text-indigo-400 font-medium bg-indigo-950/30' : 'text-slate-300'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      {q.label}
-                      {q.recommended && <span className="px-1.5 py-0.5 text-[9px] bg-indigo-500/20 text-indigo-300 rounded font-normal">REC</span>}
-                    </span>
-                    {selectedQuality === q.id && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {kind === 'image' && (
-          <div className="hidden sm:flex items-center gap-1 bg-slate-800/80 border border-slate-700/60 rounded-lg p-0.5">
-            <button
-              onClick={onZoomOut}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-all"
-              title="Zoom Out (-)"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onResetZoom}
-              className="px-2 text-xs font-mono text-slate-300 hover:text-white transition-colors"
-              title="Reset Zoom"
-            >
-              {Math.round(zoom * 100)}%
-            </button>
-            <button
-              onClick={onZoomIn}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-all"
-              title="Zoom In (+)"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <div className="w-px h-4 bg-slate-700 mx-0.5" />
-            <button
-              onClick={onRotate}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-all"
-              title="Rotate 90°"
-            >
-              <RotateCw className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {kind === 'pdf' && onPrintPdf && (
+      <div className="flex items-center gap-1.5">
+        {onPrev && (
           <button
-            onClick={onPrintPdf}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700/60 transition-all"
-            title="Print PDF"
+            type="button"
+            disabled={!hasPrev}
+            onClick={onPrev}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
+            title="File Sebelumnya (Panah Kiri)"
           >
-            <Printer className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden sm:inline">Print</span>
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        {onNext && (
+          <button
+            type="button"
+            disabled={!hasNext}
+            onClick={onNext}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
+            title="File Berikutnya (Panah Kanan)"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
+
+        {isDesktop() && onOpenSystem && (
+          <button
+            type="button"
+            disabled={openingSystem}
+            onClick={onOpenSystem}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
+            title="Buka Aplikasi Sistem"
+          >
+            <ExternalLink size={16} />
+          </button>
+        )}
+
+        {isPdf && onPrintPdf && (
+          <button
+            type="button"
+            onClick={onPrintPdf}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
+            title="Cetak PDF"
+          >
+            <Printer size={16} />
           </button>
         )}
 
         <button
-          onClick={onOpenSystem}
-          disabled={isOpenSystem}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-xs text-slate-200 border border-slate-700/60 transition-all"
-          title="Open in System Default Application"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="hidden sm:inline">Open</span>
-        </button>
-
-        <button
+          type="button"
+          disabled={saving}
           onClick={onDownload}
-          disabled={isDownloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-xs font-medium text-white shadow-lg shadow-indigo-600/20 transition-all"
-          title="Save File Locally"
+          className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
+          title="Download File"
         >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Save</span>
+          <Download size={16} />
         </button>
 
+        {onToggleInfo && (
+          <button
+            type="button"
+            onClick={onToggleInfo}
+            className={`p-1.5 rounded-lg transition-colors ${
+              showInfo ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            }`}
+            title="Detail Info File"
+          >
+            <Info size={16} />
+          </button>
+        )}
+
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
+            title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh'}
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+        )}
+
         <button
+          type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all ml-1"
-          title="Close Modal (Esc)"
+          className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-red-500/20 hover:text-red-300 ml-1"
+          title="Tutup (ESC)"
         >
-          <X className="w-5 h-5" />
+          <X size={18} />
         </button>
       </div>
     </header>

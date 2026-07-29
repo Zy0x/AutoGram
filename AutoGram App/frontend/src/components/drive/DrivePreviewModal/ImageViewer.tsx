@@ -1,100 +1,126 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, clamp } from './previewUtils';
+import React from 'react';
+import { ZoomIn, ZoomOut, RotateCw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
 
-type ImageViewerProps = {
+export interface ImageViewerProps {
   src: string;
-  alt: string;
   zoom: number;
   rotation: number;
-  onZoomChange: (newZoom: number) => void;
-  thumbSrc?: string | null;
-};
+  flipH: boolean;
+  flipV: boolean;
+  pan: { x: number; y: number };
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onRotateCw: () => void;
+  onRotateCcw: () => void;
+  onFlipH: () => void;
+  onFlipV: () => void;
+  onReset: () => void;
+  onLoadImage?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+}
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({
   src,
-  alt,
   zoom,
   rotation,
-  onZoomChange,
-  thumbSrc,
+  flipH,
+  flipV,
+  pan,
+  onZoomIn,
+  onZoomOut,
+  onRotateCw,
+  onRotateCcw,
+  onFlipH,
+  onFlipV,
+  onReset,
+  onLoadImage,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
-
-  useEffect(() => {
-    if (zoom === 1) {
-      setPan({ x: 0, y: 0 });
-    }
-  }, [zoom]);
-
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
-      const nextZoom = clamp(zoom + delta, MIN_ZOOM, MAX_ZOOM);
-      onZoomChange(nextZoom);
-    },
-    [zoom, onZoomChange]
-  );
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (zoom <= 1) return;
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    setPan({
-      x: dragStartRef.current.panX + dx,
-      y: dragStartRef.current.panY + dy,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  const transformStyle = {
+    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
+    transition: 'transform 0.15s ease-out',
+    maxHeight: '100%',
+    maxWidth: '100%',
+    objectFit: 'contain' as const,
   };
 
   return (
-    <div
-      ref={containerRef}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      className={`w-full h-full flex items-center justify-center p-4 overflow-hidden select-none ${
-        zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
-      }`}
-    >
-      <div className="relative max-w-full max-h-full flex items-center justify-center m-auto transition-transform duration-75">
-        {thumbSrc && (
-          <img
-            src={thumbSrc}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-contain filter blur-md opacity-40 pointer-events-none"
-          />
-        )}
+    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden select-none bg-black/60">
+      <div className="flex-1 w-full h-full flex items-center justify-center p-4">
         <img
           src={src}
-          alt={alt}
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
-            transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0, 0, 1)',
-          }}
-          className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl pointer-events-auto"
-          draggable={false}
+          alt=""
+          onLoad={onLoadImage}
+          style={transformStyle}
+          className="cursor-grab active:cursor-grabbing max-w-full max-h-full rounded-md shadow-2xl"
         />
+      </div>
+
+      {/* Image Floating Toolbar */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl px-3 py-1.5 flex items-center gap-2 shadow-2xl z-20">
+        <button
+          type="button"
+          onClick={onZoomOut}
+          className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+          title="Zoom Out"
+        >
+          <ZoomOut size={16} />
+        </button>
+        <span className="text-xs font-mono text-slate-200 min-w-[40px] text-center">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          type="button"
+          onClick={onZoomIn}
+          className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+          title="Zoom In"
+        >
+          <ZoomIn size={16} />
+        </button>
+
+        <div className="w-px h-4 bg-slate-800 mx-1" />
+
+        <button
+          type="button"
+          onClick={onRotateCcw}
+          className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+          title="Putar Kiri 90°"
+        >
+          <RotateCcw size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onRotateCw}
+          className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+          title="Putar Kanan 90°"
+        >
+          <RotateCw size={16} />
+        </button>
+
+        <div className="w-px h-4 bg-slate-800 mx-1" />
+
+        <button
+          type="button"
+          onClick={onFlipH}
+          className={`p-1.5 rounded-lg ${flipH ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+          title="Cermin Horizontal"
+        >
+          <FlipHorizontal size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onFlipV}
+          className={`p-1.5 rounded-lg ${flipV ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+          title="Cermin Vertikal"
+        >
+          <FlipVertical size={16} />
+        </button>
+
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 ml-1 px-2 py-1 hover:bg-slate-800 rounded-md"
+        >
+          Reset
+        </button>
       </div>
     </div>
   );
