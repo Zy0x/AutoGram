@@ -39,6 +39,8 @@ export type ZipBrowserProps = {
   folders?: DriveFolder[];
   chats?: DriveChat[];
   onRefreshDrive?: () => void;
+  onOpenTransferManager?: () => void;
+  onEnqueueUploadPaths?: (paths: string[], opts?: any) => Promise<void>;
 };
 
 export type Category = 'all' | 'image' | 'doc' | 'media';
