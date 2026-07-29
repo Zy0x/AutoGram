@@ -407,4 +407,5 @@ export async function driveRenameTopic(
     throw new Error(gr?.userMessage || gr?.error?.message || 'Rename topik Grammers gagal.');
   }
   return { status: 'success', topic_id: topicId, title: clean, backend: 'grammers' };
-}
+}
+export { addDriveEventListener } from '../driveSession';
