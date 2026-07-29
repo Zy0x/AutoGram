@@ -1,3 +1,7 @@
+import { SpeedTestOverlays } from './SpeedTestOverlays';
+import { SpeedTestModalsContainer } from './SpeedTestModalsContainer';
+import { SpeedTestProps, readSessionsCache, writeSessionsCache } from './speedTestUtils';
+import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/driveSession';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -13,7 +17,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HardDrive, AlertTriangle, Upload } from 'lucide-react';
+import { HardDrive, Upload } from 'lucide-react';
 import { canUseLocalTelegramWorker } from '../../lib/platform';
 import {
   openDriveMoveConfirm,
@@ -254,25 +258,12 @@ import {
 } from '../../lib/chatSearch';
 import { DriveSidebar } from '../../components/media-drive/DriveSidebar';
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/media-drive/DriveTopBar';
-import { RemoteUploadModal } from '../../components/media-drive/RemoteUploadModal';
 import { DriveExplorer } from '../../components/media-drive/DriveExplorer';
-import { DrivePreviewModal } from '../../components/media-drive/DrivePreviewModal';
-import { DriveContextMenu } from '../../components/media-drive/DriveContextMenu';
 import { DriveTransferManager } from '../../components/media-drive/DriveTransferManager';
 
-import {
-  DriveConfirmDialog,
-  type DriveConfirmState,
-} from '../../components/media-drive/DriveConfirmDialog';
-import {
-  DriveInputDialog,
-  type DriveInputState,
-} from '../../components/media-drive/DriveInputDialog';
-import {
-  DriveDestinationPicker,
-  type DriveDestChoice,
-  type DriveDestPickerState,
-} from '../../components/media-drive/DriveDestinationPicker';
+import { type DriveConfirmState } from '../../components/media-drive/DriveConfirmDialog';
+import { type DriveInputState } from '../../components/media-drive/DriveInputDialog';
+import { type DriveDestChoice, type DriveDestPickerState } from '../../components/media-drive/DriveDestinationPicker';
 import type { JobChild } from '../../lib/jobProcess';
 import { tgDownloadFile } from '../../lib/telegramBackend';
 import {
@@ -297,24 +288,7 @@ const LS_TM_MIN = 'autogram_transfer_minimized';
 /** Last used Telegram session — restore instantly so drive boot need not wait list-sessions */
 const LS_SESSION = 'autogram_drive_session';
 /** Cached picker names for first paint of session <select> */
-const LS_SESSIONS_CACHE = 'autogram_drive_sessions_cache';
-function readSessionsCache(): string[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(LS_SESSIONS_CACHE) || '[]');
-    if (!Array.isArray(raw)) return [];
-    return raw.map(String).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
 
-function writeSessionsCache(list: string[]) {
-  try {
-    localStorage.setItem(LS_SESSIONS_CACHE, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
-}
 
 async function flushTransferDebugLog(session: TransferSession) {
   if (!session || !session.debugLogs || !session.debugLogs.length) return;
@@ -348,10 +322,6 @@ interface QueueTask {
 }
 
 type LocationKind = 'saved' | 'drive' | 'chat';
-
-type SpeedTestProps = {
-  onExitToApp?: () => void;
-};
 
 export function SpeedTest({ onExitToApp }: SpeedTestProps = {}) {
   if (!canUseLocalTelegramWorker()) {
@@ -7410,15 +7380,16 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
             }}
           />
 
-          {error && (
-            <div className="td-error-banner" role="alert">
-              <AlertTriangle size={15} />
-              <span>{error}</span>
-              <button type="button" className="td-chip-btn" onClick={() => setError(null)}>
-                Tutup
-              </button>
-            </div>
-          )}
+          <SpeedTestOverlays
+            dragActive={dragActive}
+            mediaDragActive={mediaDragActive}
+            breadcrumb={breadcrumb}
+            error={error}
+            setError={setError}
+            driveCircuitTripped={creds ? isDriveSessionCircuitTripped(creds) : false}
+            retrySec={0}
+            onResetCircuit={() => creds && resetDriveSessionCircuit(creds)}
+          />
 
           {hasPersistedQueue && (
             <div
@@ -7617,236 +7588,58 @@ function MediaDriveDesktop({ onExitToApp }: SpeedTestProps) {
         </div>
       </div>
 
-      {previewFile && creds && (
-        <DrivePreviewModal
-          file={previewFile}
-          folderId={peerId}
-          creds={creds}
-          folders={folders}
-          chats={chats}
-          onRefreshDrive={() => {
-            void refreshFiles();
-            void refreshLocations();
-          }}
-          onOpenTransferManager={openTransferManager}
-          onEnqueueUploadPaths={runUploadPaths}
-          onEnqueueDownloadSingle={handleEnqueueSingleDownload}
-          onClose={() => setPreviewFile(null)}
-          hasPrev={previewIndex > 0}
-          hasNext={previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1}
-          neighborIds={
-            previewIndex >= 0
-              ? [
-                  sortedPreviewList[previewIndex - 1]?.id,
-                  sortedPreviewList[previewIndex + 1]?.id,
-                  sortedPreviewList[previewIndex + 2]?.id,
-                  sortedPreviewList[previewIndex + 3]?.id,
-                  sortedPreviewList[previewIndex - 2]?.id,
-                ].filter((id): id is number => typeof id === 'number' && id > 0)
-              : []
-          }
-          onPrev={() => {
-            if (previewIndex > 0) setPreviewFile(sortedPreviewList[previewIndex - 1]);
-          }}
-          onNext={() => {
-            if (previewIndex >= 0 && previewIndex < sortedPreviewList.length - 1) {
-              setPreviewFile(sortedPreviewList[previewIndex + 1]);
-            }
-          }}
-        />
-      )}
-
-      {contextMenu && (
-        <DriveContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          target={
-            contextMenu.kind === 'file'
-              ? { kind: 'file', file: contextMenu.file }
-              : contextMenu.kind === 'location'
-                ? {
-                    kind: 'location',
-                    locationKind: contextMenu.locationKind,
-                    id: contextMenu.id,
-                    name: contextMenu.name,
-                  }
-                : { kind: 'canvas' }
-          }
-          onClose={() => setContextMenu(null)}
-          onPreview={
-            contextMenu.kind === 'file'
-              ? () => setPreviewFile(contextMenu.file)
-              : undefined
-          }
-          onDownload={
-            contextMenu.kind === 'file'
-              ? () => downloadOne(contextMenu.file)
-              : undefined
-          }
-          onOpenSystem={
-            contextMenu.kind === 'file'
-              ? () => openOneInSystem(contextMenu.file)
-              : undefined
-          }
-          onOpenWith={
-            contextMenu.kind === 'file'
-              ? () => openOneWithApp(contextMenu.file)
-              : undefined
-          }
-          onReveal={
-            contextMenu.kind === 'file' ? () => revealOne(contextMenu.file) : undefined
-          }
-          onRename={
-            contextMenu.kind === 'file' ? () => handleRename(contextMenu.file) : undefined
-          }
-          onDelete={
-            contextMenu.kind === 'file'
-              ? () => handleDeleteIds([contextMenu.file.id])
-              : contextMenu.kind === 'canvas' && selectedIds.length > 0
-                ? () => handleDeleteIds(selectedIds)
-                : undefined
-          }
-          onMove={
-            contextMenu.kind === 'file' ? () => handleMove(contextMenu.file) : undefined
-          }
-          onUpload={contextMenu.kind === 'canvas' ? handleUpload : undefined}
-          onCreateFolder={
-            contextMenu.kind === 'canvas'
-              ? locationKind === 'drive' && activePeerId != null
-                ? () => handleCreateFolder({ parentId: activePeerId })
-                : () => handleCreateFolder({ parentId: null })
-              : undefined
-          }
-          onCreateSubfolder={
-            contextMenu.kind === 'location' && contextMenu.locationKind === 'drive' && contextMenu.id != null
-              ? () => handleCreateFolder({ parentId: contextMenu.id })
-              : contextMenu.kind === 'canvas' &&
-                  (folders.length > 0 || (locationKind === 'drive' && activePeerId != null))
-                ? handleCreateSubfolder
-                : undefined
-          }
-          onOpenLocation={
-            contextMenu.kind === 'location'
-              ? () => {
-                  if (contextMenu.locationKind === 'saved') {
-                    setLocationKind('saved');
-                    setActivePeerId(null);
-                  } else if (contextMenu.locationKind === 'drive' && contextMenu.id != null) {
-                    setLocationKind('drive');
-                    setActivePeerId(contextMenu.id);
-                  } else if (contextMenu.locationKind === 'chat' && contextMenu.id != null) {
-                    setLocationKind('chat');
-                    setActivePeerId(contextMenu.id);
-                  }
-                  setTopicFilter(null);
-                  topicFilterRef.current = null;
-                }
-              : undefined
-          }
-          onDeleteFolder={
-            contextMenu.kind === 'location' &&
-            contextMenu.locationKind === 'drive' &&
-            contextMenu.id != null
-              ? () => handleDeleteFolder(contextMenu.id as number, contextMenu.name)
-              : undefined
-          }
-          onRenameFolder={
-            contextMenu.kind === 'location' &&
-            contextMenu.locationKind === 'drive' &&
-            contextMenu.id != null
-              ? () => handleRenameFolder(contextMenu.id as number, contextMenu.name)
-              : undefined
-          }
-          onReparentFolder={
-            contextMenu.kind === 'location' &&
-            contextMenu.locationKind === 'drive' &&
-            contextMenu.id != null
-              ? () => handleReparentFolder(contextMenu.id as number, contextMenu.name)
-              : undefined
-          }
-          renameFolderLabel={
-            contextMenu.kind === 'location' && contextMenu.locationKind === 'drive'
-              ? `Ganti nama ${labelDriveItem(folders.find((f) => f.id === contextMenu.id))}…`
-              : undefined
-          }
-          reparentFolderLabel="Pindah ke Drive/Folder…"
-          deleteFolderLabel={
-            contextMenu.kind === 'location' && contextMenu.locationKind === 'drive'
-              ? `Hapus ${labelDriveItem(folders.find((f) => f.id === contextMenu.id))}…`
-              : undefined
-          }
-          onCopyId={
-            contextMenu.kind === 'location' && contextMenu.id != null
-              ? () => {
-                  const id = String(contextMenu.id);
-                  void navigator.clipboard?.writeText(id).then(
-                    () => setStatusText(`ID disalin: ${id}`),
-                    () => setStatusText(`ID: ${id}`)
-                  );
-                }
-              : contextMenu.kind === 'file'
-                ? () => {
-                    const file = contextMenu.file;
-                    const segments = breadcrumbSegs
-                      .map((s) => (s.id != null ? String(s.id) : null))
-                      .filter(Boolean);
-                    const fullPath = '/' + [...segments, String(file.id)].join('/');
-                    void navigator.clipboard?.writeText(fullPath).then(
-                      () => setStatusText(`ID disalin: ${fullPath}`),
-                      () => setStatusText(`ID: ${fullPath}`)
-                    );
-                  }
-                : undefined
-          }
-          onRefresh={contextMenu.kind === 'canvas' ? () => void refreshFiles() : undefined}
-          onSelectAll={
-            contextMenu.kind === 'canvas' ? handleSelectAllDisplayed : undefined
-          }
-          onClearSelection={
-            contextMenu.kind === 'canvas' ? clearSelection : undefined
-          }
-          selectedCount={selectedIds.length}
-          createFolderLabel={
-            locationKind === 'drive' && activePeerId != null
-              ? 'Buat folder di sini'
-              : 'Buat Drive [TD] (root)'
-          }
-          createSubfolderLabel={
-            locationKind === 'drive' && activePeerId != null
-              ? 'Buat folder di Drive/Folder lain…'
-              : 'Buat folder di…'
-          }
-          locationLabel={
-            locationKind === 'saved'
-              ? 'Saved Messages'
-              : locationKind === 'drive'
-                ? (() => {
-                    const f = folders.find((x) => x.id === activePeerId);
-                    const k = labelDriveItem(f);
-                    return f ? `${f.name} (${k})` : 'Drive';
-                  })()
-                : chats.find((c) => c.id === activePeerId)?.name || 'Chat'
-          }
-        />
-      )}
-
-      <DriveConfirmDialog
-        state={activeConfirm}
-        onClose={() => {
-          closeDriveMoveConfirm();
-          setConfirmDlg(null);
-        }}
+      <SpeedTestModalsContainer
+        previewFile={previewFile}
+        setPreviewFile={setPreviewFile}
+        peerId={typeof peerId === 'number' ? peerId : null}
+        creds={creds}
+        folders={folders}
+        chats={chats}
+        refreshFiles={refreshFiles}
+        refreshLocations={refreshLocations}
+        openTransferManager={openTransferManager}
+        runUploadPaths={runUploadPaths}
+        handleEnqueueSingleDownload={handleEnqueueSingleDownload}
+        previewIndex={previewIndex}
+        sortedPreviewList={sortedPreviewList}
+        contextMenu={contextMenu}
+        setContextMenu={setContextMenu}
+        downloadOne={downloadOne}
+        openOneInSystem={openOneInSystem}
+        openOneWithApp={openOneWithApp}
+        revealOne={revealOne}
+        handleRename={handleRename}
+        handleDeleteIds={handleDeleteIds}
+        handleMove={handleMove}
+        handleUpload={handleUpload}
+        locationKind={locationKind}
+        activePeerId={activePeerId}
+        handleCreateFolder={handleCreateFolder}
+        handleCreateSubfolder={handleCreateSubfolder}
+        setLocationKind={setLocationKind}
+        setActivePeerId={setActivePeerId}
+        setTopicFilter={setTopicFilter}
+        topicFilterRef={topicFilterRef}
+        handleDeleteFolder={handleDeleteFolder}
+        handleRenameFolder={handleRenameFolder}
+        handleReparentFolder={handleReparentFolder}
+        labelDriveItem={labelDriveItem}
+        breadcrumbSegs={breadcrumbSegs}
+        setStatusText={setStatusText}
+        handleSelectAllDisplayed={handleSelectAllDisplayed}
+        clearSelection={clearSelection}
+        selectedIds={selectedIds}
+        activeConfirm={activeConfirm}
+        closeDriveMoveConfirm={closeDriveMoveConfirm}
+        setConfirmDlg={setConfirmDlg}
+        inputDlg={inputDlg}
+        setInputDlg={setInputDlg}
+        destPicker={destPicker}
+        setDestPicker={setDestPicker}
+        remoteUploadOpen={remoteUploadOpen}
+        setRemoteUploadOpen={setRemoteUploadOpen}
+        handleRemoteUpload={handleRemoteUpload}
       />
-      <DriveInputDialog state={inputDlg} onClose={() => setInputDlg(null)} />
-      <DriveDestinationPicker state={destPicker} onClose={() => setDestPicker(null)} />
-      <RemoteUploadModal
-        isOpen={remoteUploadOpen}
-        onClose={() => setRemoteUploadOpen(false)}
-        folders={chats
-          .filter((c) => c.is_drive_folder || c.title_raw?.includes('[TD]') || c.name?.includes('[TD]'))
-          .map((c) => ({ id: c.id, name: c.title_raw || c.name }))}
-        onUpload={handleRemoteUpload}
-      />
-    </main>
+      </main>
   );
 }
