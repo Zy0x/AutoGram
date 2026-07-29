@@ -2348,5 +2348,45 @@
     "mtime": 1785345938.0,
     "ast_hash": "f4526cd97ee5b92dfd4403864ecc06d4",
     "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/Jobs/JobEditor/JobFilterSettings.tsx": {
+    "mtime": 1785352262.0,
+    "ast_hash": "4cc268c9f660a560837b1308f7e676ac",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/Jobs/JobEditor/JobSourceTargetConfig.tsx": {
+    "mtime": 1785352262.0,
+    "ast_hash": "85d9535c34ad990833efe6920b3401c7",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveSidebar/SidebarRecentsSection.tsx": {
+    "mtime": 1785352304.0,
+    "ast_hash": "7ef00b6b125e8479cf97041bc740d92f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveSidebar/SidebarSessionHeader.tsx": {
+    "mtime": 1785352210.0,
+    "ast_hash": "f45f6d1860ee445e5662b9fd4b0b1a47",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveToolsPanel/DuplicatesTab.tsx": {
+    "mtime": 1785352262.0,
+    "ast_hash": "afcbb147fb93a3c6501ff548ab794985",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveToolsPanel/SpaceUsageTab.tsx": {
+    "mtime": 1785352284.0,
+    "ast_hash": "8133fe7068fd9de1e691bf82a16fd3ac",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/Accounts/AccountLoginModal.tsx": {
+    "mtime": 1785352262.0,
+    "ast_hash": "0efab9aaaeec35fb55bba73384a2b210",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/Accounts/SessionManagerTable.tsx": {
+    "mtime": 1785352262.0,
+    "ast_hash": "bff9d8b682a5bd4d0e5d6aeba20b41cd",
+    "semantic_hash": ""
   }
 }

@@ -1825,8 +1825,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "download_registry.rs"
     },
     {
@@ -1836,8 +1836,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_registrydata",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "registrydata"
     },
     {
@@ -1847,8 +1847,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_rs_vec",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "vec"
     },
     {
@@ -1858,8 +1858,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_rs_string",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "string"
     },
     {
@@ -1869,8 +1869,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_get_registry_path",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "get_registry_path()"
     },
     {
@@ -1880,8 +1880,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_rs_pathbuf",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "pathbuf"
     },
     {
@@ -1891,8 +1891,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_load_unlocked",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "load_unlocked()"
     },
     {
@@ -1902,8 +1902,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "hashset",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "hashset"
     },
     {
@@ -1913,8 +1913,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_save_unlocked",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "save_unlocked()"
     },
     {
@@ -1924,8 +1924,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_register_download_path",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "register_download_path()"
     },
     {
@@ -1935,8 +1935,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_unregister_download_path",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "unregister_download_path()"
     },
     {
@@ -1946,8 +1946,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_list_active_download_paths",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "list_active_download_paths()"
     },
     {
@@ -1957,8 +1957,8 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_clear_download_registry",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "clear_download_registry()"
     },
     {
@@ -1968,8 +1968,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_cleanupresult",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "cleanupresult"
     },
     {
@@ -1979,8 +1979,8 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_download_registry_cleanup_paths",
-      "community": 9,
-      "community_name": "tg_log.rs",
+      "community": 77,
+      "community_name": "e2e-gudang-thumbs.mjs",
       "norm_label": "cleanup_paths()"
     },
     {
@@ -3112,8 +3112,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_mod",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "grammers/mod.rs"
     },
     {
@@ -3123,8 +3123,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "session.rs"
     },
     {
@@ -3134,8 +3134,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_now_ms",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "now_ms()"
     },
     {
@@ -3145,8 +3145,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_cache_root",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "cache_root()"
     },
     {
@@ -3156,8 +3156,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_rs_path",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "path"
     },
     {
@@ -3167,8 +3167,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_rs_pathbuf",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "pathbuf"
     },
     {
@@ -3178,8 +3178,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_preview_dir",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "preview_dir()"
     },
     {
@@ -3189,8 +3189,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_session_thumb_dir",
-      "community": 2,
-      "community_name": "grammers_media.rs",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "thumb_dir()"
     },
     {
@@ -3618,8 +3618,8 @@
       "source_location": "L1380",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_stream_warm_preview_head_blocking",
-      "community": 22,
-      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "warm_preview_head_blocking()"
     },
     {
@@ -3783,8 +3783,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_thumbs_prune_thumb_cache",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "prune_thumb_cache()"
     },
     {
@@ -3794,8 +3794,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_thumbs_rs_path",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "path"
     },
     {
@@ -4036,8 +4036,8 @@
       "source_location": "L1238",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_thumbs_thumbs_batch_blocking",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "thumbs_batch_blocking()"
     },
     {
@@ -4047,8 +4047,8 @@
       "source_location": "L1248",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_thumbs_thumbs_batch_blocking_app",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "thumbs_batch_blocking_app()"
     },
     {
@@ -4058,8 +4058,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_thumbs_rs_apphandle",
-      "community": 35,
-      "community_name": "tg_error.rs",
+      "community": 2,
+      "community_name": "grammers_media.rs",
       "norm_label": "apphandle"
     },
     {
@@ -4069,8 +4069,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "topics.rs"
     },
     {
@@ -4080,8 +4080,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_topicrow",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "topicrow"
     },
     {
@@ -4091,8 +4091,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_rs_string",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "string"
     },
     {
@@ -4102,8 +4102,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_rs_option",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "option"
     },
     {
@@ -4113,8 +4113,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_listtopicsresult",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "listtopicsresult"
     },
     {
@@ -4124,8 +4124,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_rs_vec",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "vec"
     },
     {
@@ -4135,8 +4135,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_list_topics_blocking",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "list_topics_blocking()"
     },
     {
@@ -4146,8 +4146,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_rs_path",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 22,
+      "community_name": "AutoGram App/src-tauri/tauri.conf.json",
       "norm_label": "path"
     },
     {
@@ -4157,8 +4157,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_topics_rs_result",
-      "community": 245,
-      "community_name": "@tauri-apps/api",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "result"
     },
     {
@@ -4179,8 +4179,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_client_pool_peer_id_i64",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "peer_id_i64()"
     },
     {
@@ -4190,8 +4190,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "peerid",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "peerid"
     },
     {
@@ -4267,8 +4267,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_client_pool_is_fatal_auth_error",
-      "community": 26,
-      "community_name": "DrivePreviewModal.tsx",
+      "community": 35,
+      "community_name": "tg_error.rs",
       "norm_label": "is_fatal_auth_error()"
     },
     {
@@ -4674,8 +4674,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "media_transfer.rs"
     },
     {
@@ -4685,8 +4685,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_upload_album_blocking",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "upload_album_blocking()"
     },
     {
@@ -4696,8 +4696,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_rs_path",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "path"
     },
     {
@@ -4707,8 +4707,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_rs_string",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "string"
     },
     {
@@ -4718,8 +4718,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_rs_option",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "option"
     },
     {
@@ -4729,8 +4729,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_rs_result",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "result"
     },
     {
@@ -4740,8 +4740,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_rs_vec",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "vec"
     },
     {
@@ -4751,8 +4751,8 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_upload_file_blocking",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "upload_file_blocking()"
     },
     {
@@ -4762,8 +4762,8 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_upload_file_blocking_topic",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "upload_file_blocking_topic()"
     },
     {
@@ -4773,8 +4773,8 @@
       "source_location": "L302",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_downloadfileresult",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "downloadfileresult"
     },
     {
@@ -4784,8 +4784,8 @@
       "source_location": "L314",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_media_transfer_download_file_blocking",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 245,
+      "community_name": "@tauri-apps/api",
       "norm_label": "download_file_blocking()"
     },
     {
@@ -5004,8 +5004,8 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_peer_resolver_resolve_peer",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "resolve_peer()"
     },
     {
@@ -5015,8 +5015,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_peer_resolver_rs_client",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 20,
+      "community_name": "drive_rpc.rs",
       "norm_label": "client"
     },
     {
@@ -5037,8 +5037,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_resolve_sessions_dir",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 6,
+      "community_name": "grammers_ops.rs",
       "norm_label": "resolve_sessions_dir()"
     },
     {
@@ -5070,8 +5070,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_rs_pathbuf",
-      "community": 26,
-      "community_name": "DrivePreviewModal.tsx",
+      "community": 6,
+      "community_name": "grammers_ops.rs",
       "norm_label": "pathbuf"
     },
     {
@@ -5202,8 +5202,8 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_probe_sessions_blocking",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "probe_sessions_blocking()"
     },
     {
@@ -5213,8 +5213,8 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_sessionproberesult",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "sessionproberesult"
     },
     {
@@ -5268,8 +5268,8 @@
       "source_location": "L278",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_import_session_blocking",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "import_session_blocking()"
     },
     {
@@ -5521,8 +5521,8 @@
       "source_location": "L969",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_ops_session_auth_sessions_dir_nonempty",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 6,
+      "community_name": "grammers_ops.rs",
       "norm_label": "sessions_dir_nonempty()"
     },
     {
@@ -5565,8 +5565,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "grammers_sparse_zip.rs"
     },
     {
@@ -5598,8 +5598,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_get_cached_catalog",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "get_cached_catalog()"
     },
     {
@@ -5609,8 +5609,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_rs_option",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "option"
     },
     {
@@ -5620,8 +5620,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_set_cached_catalog",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "set_cached_catalog()"
     },
     {
@@ -5631,8 +5631,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_rs_string",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "string"
     },
     {
@@ -5642,8 +5642,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_invalidate_cached_catalog",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "invalidate_cached_catalog()"
     },
     {
@@ -5653,8 +5653,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_sparsezipopts",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "sparsezipopts"
     },
     {
@@ -5719,8 +5719,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "runtime",
-      "community": 13,
-      "community_name": "TgError",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "runtime"
     },
     {
@@ -5763,8 +5763,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_telegramsparsereader_a_prefetch_tail",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": ".prefetch_tail()"
     },
     {
@@ -5862,8 +5862,8 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_list_zip_sparse",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "list_zip_sparse()"
     },
     {
@@ -5873,8 +5873,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_rs_result",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "result"
     },
     {
@@ -5906,8 +5906,8 @@
       "source_location": "L583",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_preview_zip_entry_sparse",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "preview_zip_entry_sparse()"
     },
     {
@@ -5928,8 +5928,8 @@
       "source_location": "L739",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_grammers_sparse_zip_extract_zip_entry_sparse",
-      "community": 8,
-      "community_name": "list_zip_sparse",
+      "community": 61,
+      "community_name": "stats_db.rs",
       "norm_label": "extract_zip_entry_sparse()"
     },
     {
@@ -5939,8 +5939,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "hash_util.rs"
     },
     {
@@ -5950,8 +5950,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_filehashresult",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "filehashresult"
     },
     {
@@ -5961,8 +5961,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_rs_string",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "string"
     },
     {
@@ -5972,8 +5972,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_sha256_file",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "sha256_file()"
     },
     {
@@ -5983,8 +5983,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_rs_result",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "result"
     },
     {
@@ -5994,8 +5994,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_quick_fingerprint",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "quick_fingerprint()"
     },
     {
@@ -6005,8 +6005,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_hash_util_hashes_small_file",
-      "community": 10,
-      "community_name": "path_policy.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "hashes_small_file()"
     },
     {
@@ -6896,8 +6896,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "media_prep.rs"
     },
     {
@@ -6907,8 +6907,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_temp_dir",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "temp_dir()"
     },
     {
@@ -6918,8 +6918,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_rs_pathbuf",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "pathbuf"
     },
     {
@@ -6929,8 +6929,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_unique_name",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "unique_name()"
     },
     {
@@ -6940,8 +6940,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_is_remote_url",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "is_remote_url()"
     },
     {
@@ -6951,8 +6951,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_download_remote_url",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "download_remote_url()"
     },
     {
@@ -6962,8 +6962,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_rs_result",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "result"
     },
     {
@@ -6973,8 +6973,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_rs_string",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "string"
     },
     {
@@ -6984,8 +6984,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_ext_from_url_or_ctype",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "ext_from_url_or_ctype()"
     },
     {
@@ -6995,8 +6995,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_qualitypreset",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "qualitypreset"
     },
     {
@@ -7006,8 +7006,8 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_resolve_quality_preset",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "resolve_quality_preset()"
     },
     {
@@ -7017,8 +7017,8 @@
       "source_location": "L165",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_maybe_reencode_for_telegram",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "maybe_reencode_for_telegram()"
     },
     {
@@ -7028,8 +7028,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_rs_option",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "option"
     },
     {
@@ -7039,8 +7039,8 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_prepare_upload_path",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "prepare_upload_path()"
     },
     {
@@ -7050,8 +7050,8 @@
       "source_location": "L277",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_media_prep_cleanup_temp",
-      "community": 73,
-      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
+      "community": 10,
+      "community_name": "path_policy.rs",
       "norm_label": "cleanup_temp()"
     },
     {
@@ -7061,8 +7061,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "migration_run.rs"
     },
     {
@@ -7072,8 +7072,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_migrationrunresult",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "migrationrunresult"
     },
     {
@@ -7083,8 +7083,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_rs_string",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "string"
     },
     {
@@ -7094,8 +7094,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_is_clean_copy_mode",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "is_clean_copy_mode()"
     },
     {
@@ -7105,8 +7105,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_flood_wait_secs",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "flood_wait_secs()"
     },
     {
@@ -7116,8 +7116,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_rs_option",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "option"
     },
     {
@@ -7127,8 +7127,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_sleep_flood",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "sleep_flood()"
     },
     {
@@ -7138,8 +7138,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_run_job_forward_mvp",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "run_job_forward_mvp()"
     },
     {
@@ -7149,8 +7149,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_rs_result",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "result"
     },
     {
@@ -7160,8 +7160,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_run_forward",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "run_forward()"
     },
     {
@@ -7171,8 +7171,8 @@
       "source_location": "L232",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_run_clean_copy",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "run_clean_copy()"
     },
     {
@@ -7182,8 +7182,8 @@
       "source_location": "L556",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_finish_result",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "finish_result()"
     },
     {
@@ -7193,8 +7193,8 @@
       "source_location": "L604",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_sanitize_name",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "sanitize_name()"
     },
     {
@@ -7204,8 +7204,8 @@
       "source_location": "L624",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_code_ok",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 35,
+      "community_name": "tg_error.rs",
       "norm_label": "_code_ok()"
     },
     {
@@ -7215,8 +7215,8 @@
       "source_location": "L629",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_migration_run_tg_err_ok",
-      "community": 15,
-      "community_name": "jobs_db.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "_tg_err_ok()"
     },
     {
@@ -8788,8 +8788,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "duration",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "duration"
     },
     {
@@ -9118,8 +9118,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "smart_throttle.rs"
     },
     {
@@ -9129,8 +9129,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "smartthrottle"
     },
     {
@@ -9140,8 +9140,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "atomicu64",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "atomicu64"
     },
     {
@@ -9151,8 +9151,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "atomicu32",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "atomicu32"
     },
     {
@@ -9162,8 +9162,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_rs_atomicbool",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "atomicbool"
     },
     {
@@ -9173,8 +9173,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle_new",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": ".new()"
     },
     {
@@ -9184,8 +9184,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_rs_self",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": "self"
     },
     {
@@ -9195,8 +9195,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle_calc_burst_limit",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": ".calc_burst_limit()"
     },
     {
@@ -9206,8 +9206,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle_human_delay",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": ".human_delay()"
     },
     {
@@ -9217,8 +9217,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle_handle_flood_wait",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": ".handle_flood_wait()"
     },
     {
@@ -9228,8 +9228,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_smart_throttle_smartthrottle_reset_health",
-      "community": 11,
-      "community_name": "session_rate.rs",
+      "community": 8,
+      "community_name": "list_zip_sparse",
       "norm_label": ".reset_health()"
     },
     {
@@ -10955,8 +10955,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_telethon_session_import_telethon_session_path",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "telethon_session_path()"
     },
     {
@@ -10977,8 +10977,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_telethon_session_import_rs_pathbuf",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "pathbuf"
     },
     {
@@ -10988,8 +10988,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_telethon_session_import_grammers_session_path",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "grammers_session_path()"
     },
     {
@@ -11153,8 +11153,8 @@
       "source_location": "L373",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_telethon_session_import_paths_are_distinct",
-      "community": 6,
-      "community_name": "grammers_ops.rs",
+      "community": 17,
+      "community_name": "telethon_session_import.rs",
       "norm_label": "paths_are_distinct()"
     },
     {
@@ -11725,8 +11725,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "transfer_state.rs"
     },
     {
@@ -11736,8 +11736,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstateconfig",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "transferstateconfig"
     },
     {
@@ -11747,8 +11747,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_rs_option",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "option"
     },
     {
@@ -11758,8 +11758,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_rs_string",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "string"
     },
     {
@@ -11769,8 +11769,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "transferstatemanager"
     },
     {
@@ -11780,8 +11780,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_new",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".new()"
     },
     {
@@ -11791,8 +11791,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_rs_into",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "into"
     },
     {
@@ -11802,8 +11802,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_rs_self",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "self"
     },
     {
@@ -11813,8 +11813,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_create",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".create()"
     },
     {
@@ -11824,8 +11824,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_rs_result",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": "result"
     },
     {
@@ -11835,8 +11835,8 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_update_status",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".update_status()"
     },
     {
@@ -11846,8 +11846,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_save_scan_complete",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".save_scan_complete()"
     },
     {
@@ -11857,8 +11857,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_save_progress",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".save_progress()"
     },
     {
@@ -11868,8 +11868,8 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_load",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".load()"
     },
     {
@@ -11879,8 +11879,8 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_tauri_src_core_transfer_state_transferstatemanager_log_audit",
-      "community": 77,
-      "community_name": "e2e-gudang-thumbs.mjs",
+      "community": 9,
+      "community_name": "tg_log.rs",
       "norm_label": ".log_audit()"
     },
     {
@@ -15256,8 +15256,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "vscodecodeviewer.tsx"
     },
     {
@@ -15267,8 +15267,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer_vscodecodeviewerprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "vscodecodeviewerprops"
     },
     {
@@ -15278,8 +15278,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer_detectlanguage",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "detectlanguage()"
     },
     {
@@ -15289,8 +15289,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer_escapehtml",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "escapehtml()"
     },
     {
@@ -15300,8 +15300,8 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer_highlightline",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "highlightline()"
     },
     {
@@ -15311,12 +15311,12 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_common_vscodecodeviewer_vscodecodeviewer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 248,
+      "community_name": "@tauri-apps/plugin-shell",
       "norm_label": "vscodecodeviewer()"
     },
     {
-      "label": "drive/DriveConfirmDialog.tsx",
+      "label": "DriveConfirmDialog.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveConfirmDialog.tsx",
       "source_location": "L1",
@@ -15324,7 +15324,7 @@
       "id": "autogram_app_frontend_src_components_drive_driveconfirmdialog",
       "community": 29,
       "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "drive/driveconfirmdialog.tsx"
+      "norm_label": "driveconfirmdialog.tsx"
     },
     {
       "label": "DriveConfirmKind",
@@ -15393,7 +15393,7 @@
       "norm_label": "driveconfirmdialog()"
     },
     {
-      "label": "drive/DriveContextMenu.tsx",
+      "label": "DriveContextMenu.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveContextMenu.tsx",
       "source_location": "L1",
@@ -15401,7 +15401,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivecontextmenu",
       "community": 18,
       "community_name": "SpeedTest.tsx",
-      "norm_label": "drive/drivecontextmenu.tsx"
+      "norm_label": "drivecontextmenu.tsx"
     },
     {
       "label": "DriveLocationKind",
@@ -15448,15 +15448,15 @@
       "norm_label": "drivecontextmenu()"
     },
     {
-      "label": "drive/DriveDestinationPicker.tsx",
+      "label": "DriveDestinationPicker.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveDestinationPicker.tsx",
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
-      "norm_label": "drive/drivedestinationpicker.tsx"
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
+      "norm_label": "drivedestinationpicker.tsx"
     },
     {
       "label": "DriveDestChoice",
@@ -15465,8 +15465,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker_drivedestchoice",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
       "norm_label": "drivedestchoice"
     },
     {
@@ -15476,8 +15476,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker_drivedestpickerstate",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
       "norm_label": "drivedestpickerstate"
     },
     {
@@ -15487,8 +15487,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker_props",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
       "norm_label": "props"
     },
     {
@@ -15498,8 +15498,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker_kindicon",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
       "norm_label": "kindicon()"
     },
     {
@@ -15509,12 +15509,12 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivedestinationpicker_drivedestinationpicker",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
+      "community": 18,
+      "community_name": "SpeedTest.tsx",
       "norm_label": "drivedestinationpicker()"
     },
     {
-      "label": "drive/DriveExplorer.tsx",
+      "label": "DriveExplorer.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveExplorer.tsx",
       "source_location": "L1",
@@ -15522,7 +15522,7 @@
       "id": "autogram_app_frontend_src_components_drive_driveexplorer",
       "community": 23,
       "community_name": "DriveExplorer.tsx",
-      "norm_label": "drive/driveexplorer.tsx"
+      "norm_label": "driveexplorer.tsx"
     },
     {
       "label": "Props",
@@ -15547,7 +15547,7 @@
       "norm_label": "driveexplorer()"
     },
     {
-      "label": "drive/DriveFileCard.tsx",
+      "label": "DriveFileCard.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveFileCard.tsx",
       "source_location": "L1",
@@ -15555,7 +15555,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivefilecard",
       "community": 23,
       "community_name": "DriveExplorer.tsx",
-      "norm_label": "drive/drivefilecard.tsx"
+      "norm_label": "drivefilecard.tsx"
     },
     {
       "label": "Props",
@@ -15591,7 +15591,7 @@
       "norm_label": "drivefilecard"
     },
     {
-      "label": "drive/DriveFileListItem.tsx",
+      "label": "DriveFileListItem.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveFileListItem.tsx",
       "source_location": "L1",
@@ -15599,7 +15599,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivefilelistitem",
       "community": 23,
       "community_name": "DriveExplorer.tsx",
-      "norm_label": "drive/drivefilelistitem.tsx"
+      "norm_label": "drivefilelistitem.tsx"
     },
     {
       "label": "Props",
@@ -15624,7 +15624,7 @@
       "norm_label": "drivefilelistitem()"
     },
     {
-      "label": "drive/DriveInputDialog.tsx",
+      "label": "DriveInputDialog.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveInputDialog.tsx",
       "source_location": "L1",
@@ -15632,7 +15632,7 @@
       "id": "autogram_app_frontend_src_components_drive_driveinputdialog",
       "community": 18,
       "community_name": "SpeedTest.tsx",
-      "norm_label": "drive/driveinputdialog.tsx"
+      "norm_label": "driveinputdialog.tsx"
     },
     {
       "label": "DriveInputKind",
@@ -15718,8 +15718,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "imageviewer.tsx"
     },
     {
@@ -15729,8 +15729,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer_imageviewerprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "imageviewerprops"
     },
     {
@@ -15740,8 +15740,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer_imageviewer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "imageviewer()"
     },
     {
@@ -15751,8 +15751,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 310,
+      "community_name": "MediaAudioPlayer.tsx",
       "norm_label": "mediaaudioplayer.tsx"
     },
     {
@@ -15762,8 +15762,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer_mediaaudioplayerprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 310,
+      "community_name": "MediaAudioPlayer.tsx",
       "norm_label": "mediaaudioplayerprops"
     },
     {
@@ -15773,8 +15773,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer_mediaaudioplayer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 310,
+      "community_name": "MediaAudioPlayer.tsx",
       "norm_label": "mediaaudioplayer()"
     },
     {
@@ -15784,8 +15784,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaheadertoolbar",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "mediaheadertoolbar.tsx"
     },
     {
@@ -15795,8 +15795,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaheadertoolbar_mediaheadertoolbarprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "mediaheadertoolbarprops"
     },
     {
@@ -15806,8 +15806,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaheadertoolbar_mediaheadertoolbar",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "mediaheadertoolbar()"
     },
     {
@@ -15817,8 +15817,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediavideoplayer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 311,
+      "community_name": "MediaVideoPlayer.tsx",
       "norm_label": "mediavideoplayer.tsx"
     },
     {
@@ -15828,8 +15828,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediavideoplayer_mediavideoplayerprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 311,
+      "community_name": "MediaVideoPlayer.tsx",
       "norm_label": "mediavideoplayerprops"
     },
     {
@@ -15839,8 +15839,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediavideoplayer_mediavideoplayer",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 311,
+      "community_name": "MediaVideoPlayer.tsx",
       "norm_label": "mediavideoplayer()"
     },
     {
@@ -15850,19 +15850,272 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
       "norm_label": "drivepreviewmodal/index.tsx"
+    },
+    {
+      "label": "Props",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L87",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_props",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "props"
+    },
+    {
+      "label": "PlayQuality",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L114",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_playquality",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "playquality"
+    },
+    {
+      "label": "RATES",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L129",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_rates",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "rates"
+    },
+    {
+      "label": "DEFAULT_VIDEO_QUALITIES",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L132",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_default_video_qualities",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "default_video_qualities"
+    },
+    {
+      "label": "readQualityPref()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L169",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_readqualitypref",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "readqualitypref()"
+    },
+    {
+      "label": "writeQualityPref()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L179",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_writequalitypref",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "writequalitypref()"
+    },
+    {
+      "label": "isProgressiveStreamPath()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L188",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isprogressivestreampath",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "isprogressivestreampath()"
+    },
+    {
+      "label": "isHttpStreamUrl()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L193",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ishttpstreamurl",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "ishttpstreamurl()"
+    },
+    {
+      "label": "isPlayableHttpUrl()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L197",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isplayablehttpurl",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "isplayablehttpurl()"
+    },
+    {
+      "label": "buildMediaSrc()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L206",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_buildmediasrc",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "buildmediasrc()"
+    },
+    {
+      "label": "resolvePreviewKind()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L254",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_resolvepreviewkind",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "resolvepreviewkind()"
+    },
+    {
+      "label": "formatQualitySize()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L294",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_formatqualitysize",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "formatqualitysize()"
+    },
+    {
+      "label": "sanitizeQualityLabel()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L300",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_sanitizequalitylabel",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "sanitizequalitylabel()"
+    },
+    {
+      "label": "normalizePlayQualities()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L324",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_normalizeplayqualities",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "normalizeplayqualities()"
+    },
+    {
+      "label": "clamp()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L331",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_clamp",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "clamp()"
+    },
+    {
+      "label": "pointerIdMatches()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L335",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_pointeridmatches",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "pointeridmatches()"
+    },
+    {
+      "label": "ZipErrorBoundaryProps",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L342",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundaryprops",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "ziperrorboundaryprops"
+    },
+    {
+      "label": "ZipErrorBoundaryState",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L347",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundarystate",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
+      "norm_label": "ziperrorboundarystate"
+    },
+    {
+      "label": "ZipErrorBoundary",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L352",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "community": 309,
+      "community_name": "ZipErrorBoundary",
+      "norm_label": "ziperrorboundary"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L353",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_constructor",
+      "community": 309,
+      "community_name": "ZipErrorBoundary",
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".getDerivedStateFromError()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L358",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_getderivedstatefromerror",
+      "community": 309,
+      "community_name": "ZipErrorBoundary",
+      "norm_label": ".getderivedstatefromerror()"
+    },
+    {
+      "label": ".componentDidCatch()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L365",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_componentdidcatch",
+      "community": 309,
+      "community_name": "ZipErrorBoundary",
+      "norm_label": ".componentdidcatch()"
+    },
+    {
+      "label": ".render()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L369",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_render",
+      "community": 309,
+      "community_name": "ZipErrorBoundary",
+      "norm_label": ".render()"
     },
     {
       "label": "DrivePreviewModal()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L16",
+      "source_location": "L404",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 306,
+      "community_name": "DeadCenterProgress",
       "norm_label": "drivepreviewmodal()"
     },
     {
@@ -15872,8 +16125,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "previewutils.ts"
     },
     {
@@ -15883,8 +16136,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_drivepreviewmodalprops",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "drivepreviewmodalprops"
     },
     {
@@ -15894,8 +16147,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_playquality",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "playquality"
     },
     {
@@ -15905,8 +16158,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_rates",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "rates"
     },
     {
@@ -15916,8 +16169,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_readqualitypref",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "readqualitypref()"
     },
     {
@@ -15927,8 +16180,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_writequalitypref",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "writequalitypref()"
     },
     {
@@ -15938,8 +16191,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_isprogressivestreampath",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "isprogressivestreampath()"
     },
     {
@@ -15949,8 +16202,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_ishttpstreamurl",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "ishttpstreamurl()"
     },
     {
@@ -15960,8 +16213,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_isplayablehttpurl",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "isplayablehttpurl()"
     },
     {
@@ -15971,8 +16224,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_buildmediasrc",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "buildmediasrc()"
     },
     {
@@ -15982,8 +16235,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_resolvepreviewkind",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "resolvepreviewkind()"
     },
     {
@@ -15993,8 +16246,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_formatqualitysize",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "formatqualitysize()"
     },
     {
@@ -16004,8 +16257,8 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_sanitizequalitylabel",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "sanitizequalitylabel()"
     },
     {
@@ -16015,8 +16268,8 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_normalizeplayqualities",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "normalizeplayqualities()"
     },
     {
@@ -16026,8 +16279,8 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_clamp",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "clamp()"
     },
     {
@@ -16037,8 +16290,8 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_pointeridmatches",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
+      "community": 73,
+      "community_name": "AutoGram App/src-tauri/capabilities/default.json",
       "norm_label": "pointeridmatches()"
     },
     {
@@ -16147,8 +16400,8 @@
       "source_location": "L244",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivesidebar_index_parsedropkey",
-      "community": 44,
-      "community_name": "DriveSidebar.tsx",
+      "community": 33,
+      "community_name": "DriveZipBrowser.tsx",
       "norm_label": "parsedropkey()"
     },
     {
@@ -16328,7 +16581,7 @@
       "norm_label": "droprow()"
     },
     {
-      "label": "drive/DriveSkeleton.tsx",
+      "label": "DriveSkeleton.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveSkeleton.tsx",
       "source_location": "L1",
@@ -16336,7 +16589,7 @@
       "id": "autogram_app_frontend_src_components_drive_driveskeleton",
       "community": 23,
       "community_name": "DriveExplorer.tsx",
-      "norm_label": "drive/driveskeleton.tsx"
+      "norm_label": "driveskeleton.tsx"
     },
     {
       "label": "useSmoothProgress()",
@@ -16581,7 +16834,7 @@
       "norm_label": "tool_groups"
     },
     {
-      "label": "drive/DriveTopBar.tsx",
+      "label": "DriveTopBar.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveTopBar.tsx",
       "source_location": "L1",
@@ -16589,7 +16842,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivetopbar",
       "community": 33,
       "community_name": "DriveZipBrowser.tsx",
-      "norm_label": "drive/drivetopbar.tsx"
+      "norm_label": "drivetopbar.tsx"
     },
     {
       "label": "DriveCrumbSeg",
@@ -16625,7 +16878,7 @@
       "norm_label": "drivetopbar()"
     },
     {
-      "label": "drive/DriveTransferDock.tsx",
+      "label": "DriveTransferDock.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveTransferDock.tsx",
       "source_location": "L1",
@@ -16633,10 +16886,10 @@
       "id": "autogram_app_frontend_src_components_drive_drivetransferdock",
       "community": 285,
       "community_name": "DriveTransferDock.tsx",
-      "norm_label": "drive/drivetransferdock.tsx"
+      "norm_label": "drivetransferdock.tsx"
     },
     {
-      "label": "drive/DriveTransferManager.tsx",
+      "label": "DriveTransferManager.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveTransferManager.tsx",
       "source_location": "L1",
@@ -16644,7 +16897,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivetransfermanager",
       "community": 103,
       "community_name": "DriveTransferManager.tsx",
-      "norm_label": "drive/drivetransfermanager.tsx"
+      "norm_label": "drivetransfermanager.tsx"
     },
     {
       "label": "Props",
@@ -16702,7 +16955,7 @@
       "norm_label": "drivetransfermanager()"
     },
     {
-      "label": "drive/DriveTransferSettings.tsx",
+      "label": "DriveTransferSettings.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveTransferSettings.tsx",
       "source_location": "L1",
@@ -16710,7 +16963,7 @@
       "id": "autogram_app_frontend_src_components_drive_drivetransfersettings",
       "community": 29,
       "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "drive/drivetransfersettings.tsx"
+      "norm_label": "drivetransfersettings.tsx"
     },
     {
       "label": "Tab",
@@ -16892,7 +17145,7 @@
       "label": "DriveZipBrowser()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx",
-      "source_location": "L14",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_index_drivezipbrowser",
       "community": 102,
@@ -16958,7 +17211,7 @@
       "label": "Category",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L44",
+      "source_location": "L46",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_category",
       "community": 102,
@@ -16969,7 +17222,7 @@
       "label": "parentPath()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L46",
+      "source_location": "L48",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_parentpath",
       "community": 102,
@@ -16980,7 +17233,7 @@
       "label": "joinPath()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L53",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_joinpath",
       "community": 102,
@@ -16991,7 +17244,7 @@
       "label": "matchesCategory()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L58",
+      "source_location": "L60",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_matchescategory",
       "community": 102,
@@ -17002,7 +17255,7 @@
       "label": "basenamesAt()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L75",
+      "source_location": "L77",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_basenamesat",
       "community": 102,
@@ -17013,7 +17266,7 @@
       "label": "entryLabel()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L139",
+      "source_location": "L141",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_entrylabel",
       "community": 102,
@@ -17024,7 +17277,7 @@
       "label": "clearZipBrowserCache()",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L149",
+      "source_location": "L151",
       "_origin": "ast",
       "id": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_clearzipbrowsercache",
       "community": 33,
@@ -17032,7 +17285,7 @@
       "norm_label": "clearzipbrowsercache()"
     },
     {
-      "label": "drive/FileTypeIcon.tsx",
+      "label": "FileTypeIcon.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/FileTypeIcon.tsx",
       "source_location": "L1",
@@ -17040,7 +17293,7 @@
       "id": "autogram_app_frontend_src_components_drive_filetypeicon",
       "community": 23,
       "community_name": "DriveExplorer.tsx",
-      "norm_label": "drive/filetypeicon.tsx"
+      "norm_label": "filetypeicon.tsx"
     },
     {
       "label": "Props",
@@ -17065,7 +17318,7 @@
       "norm_label": "filetypeicon()"
     },
     {
-      "label": "drive/MediaSelect.tsx",
+      "label": "MediaSelect.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/MediaSelect.tsx",
       "source_location": "L1",
@@ -17073,7 +17326,7 @@
       "id": "autogram_app_frontend_src_components_drive_mediaselect",
       "community": 29,
       "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "drive/mediaselect.tsx"
+      "norm_label": "mediaselect.tsx"
     },
     {
       "label": "MediaSelectOption",
@@ -17109,7 +17362,7 @@
       "norm_label": "mediaselect()"
     },
     {
-      "label": "drive/ReUploadBatchModal.tsx",
+      "label": "ReUploadBatchModal.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/ReUploadBatchModal.tsx",
       "source_location": "L1",
@@ -17117,7 +17370,7 @@
       "id": "autogram_app_frontend_src_components_drive_reuploadbatchmodal",
       "community": 104,
       "community_name": "ReUploadBatchModal.tsx",
-      "norm_label": "drive/reuploadbatchmodal.tsx"
+      "norm_label": "reuploadbatchmodal.tsx"
     },
     {
       "label": "GuardrailItem",
@@ -17175,7 +17428,7 @@
       "norm_label": "reuploadbatchmodal()"
     },
     {
-      "label": "drive/RemoteUploadModal.tsx",
+      "label": "RemoteUploadModal.tsx",
       "file_type": "code",
       "source_file": "AutoGram App/frontend/src/components/drive/RemoteUploadModal.tsx",
       "source_location": "L1",
@@ -17183,7 +17436,7 @@
       "id": "autogram_app_frontend_src_components_drive_remoteuploadmodal",
       "community": 18,
       "community_name": "SpeedTest.tsx",
-      "norm_label": "drive/remoteuploadmodal.tsx"
+      "norm_label": "remoteuploadmodal.tsx"
     },
     {
       "label": "DriveFolderOption",
@@ -17261,226 +17514,6 @@
       "community": 123,
       "community_name": "Sidebar.tsx",
       "norm_label": "sidebar()"
-    },
-    {
-      "label": "media-drive/DriveConfirmDialog.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveConfirmDialog.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_driveconfirmdialog",
-      "community": 29,
-      "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "media-drive/driveconfirmdialog.tsx"
-    },
-    {
-      "label": "media-drive/DriveContextMenu.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveContextMenu.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivecontextmenu",
-      "community": 18,
-      "community_name": "SpeedTest.tsx",
-      "norm_label": "media-drive/drivecontextmenu.tsx"
-    },
-    {
-      "label": "media-drive/DriveDestinationPicker.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveDestinationPicker.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivedestinationpicker",
-      "community": 248,
-      "community_name": "@tauri-apps/plugin-shell",
-      "norm_label": "media-drive/drivedestinationpicker.tsx"
-    },
-    {
-      "label": "media-drive/DriveExplorer.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveExplorer.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_driveexplorer",
-      "community": 23,
-      "community_name": "DriveExplorer.tsx",
-      "norm_label": "media-drive/driveexplorer.tsx"
-    },
-    {
-      "label": "media-drive/DriveFileCard.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveFileCard.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivefilecard",
-      "community": 23,
-      "community_name": "DriveExplorer.tsx",
-      "norm_label": "media-drive/drivefilecard.tsx"
-    },
-    {
-      "label": "media-drive/DriveFileListItem.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveFileListItem.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivefilelistitem",
-      "community": 23,
-      "community_name": "DriveExplorer.tsx",
-      "norm_label": "media-drive/drivefilelistitem.tsx"
-    },
-    {
-      "label": "media-drive/DriveInputDialog.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveInputDialog.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_driveinputdialog",
-      "community": 18,
-      "community_name": "SpeedTest.tsx",
-      "norm_label": "media-drive/driveinputdialog.tsx"
-    },
-    {
-      "label": "DrivePreviewModal.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DrivePreviewModal.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivepreviewmodal",
-      "community": 18,
-      "community_name": "SpeedTest.tsx",
-      "norm_label": "drivepreviewmodal.tsx"
-    },
-    {
-      "label": "DriveSidebar.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveSidebar.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivesidebar",
-      "community": 44,
-      "community_name": "DriveSidebar.tsx",
-      "norm_label": "drivesidebar.tsx"
-    },
-    {
-      "label": "media-drive/DriveSkeleton.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveSkeleton.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_driveskeleton",
-      "community": 23,
-      "community_name": "DriveExplorer.tsx",
-      "norm_label": "media-drive/driveskeleton.tsx"
-    },
-    {
-      "label": "DriveToolsPanel.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveToolsPanel.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivetoolspanel",
-      "community": 60,
-      "community_name": "DriveToolsPanel.tsx",
-      "norm_label": "drivetoolspanel.tsx"
-    },
-    {
-      "label": "media-drive/DriveTopBar.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTopBar.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivetopbar",
-      "community": 33,
-      "community_name": "DriveZipBrowser.tsx",
-      "norm_label": "media-drive/drivetopbar.tsx"
-    },
-    {
-      "label": "media-drive/DriveTransferDock.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferDock.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivetransferdock",
-      "community": 285,
-      "community_name": "DriveTransferDock.tsx",
-      "norm_label": "media-drive/drivetransferdock.tsx"
-    },
-    {
-      "label": "media-drive/DriveTransferManager.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferManager.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivetransfermanager",
-      "community": 103,
-      "community_name": "DriveTransferManager.tsx",
-      "norm_label": "media-drive/drivetransfermanager.tsx"
-    },
-    {
-      "label": "media-drive/DriveTransferSettings.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferSettings.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivetransfersettings",
-      "community": 29,
-      "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "media-drive/drivetransfersettings.tsx"
-    },
-    {
-      "label": "DriveZipBrowser.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveZipBrowser.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_drivezipbrowser",
-      "community": 102,
-      "community_name": "VSCodeCodeViewer.tsx",
-      "norm_label": "drivezipbrowser.tsx"
-    },
-    {
-      "label": "media-drive/FileTypeIcon.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/FileTypeIcon.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_filetypeicon",
-      "community": 23,
-      "community_name": "DriveExplorer.tsx",
-      "norm_label": "media-drive/filetypeicon.tsx"
-    },
-    {
-      "label": "media-drive/MediaSelect.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/MediaSelect.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_mediaselect",
-      "community": 29,
-      "community_name": "DriveConfirmDialog.tsx",
-      "norm_label": "media-drive/mediaselect.tsx"
-    },
-    {
-      "label": "media-drive/ReUploadBatchModal.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/ReUploadBatchModal.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_reuploadbatchmodal",
-      "community": 104,
-      "community_name": "ReUploadBatchModal.tsx",
-      "norm_label": "media-drive/reuploadbatchmodal.tsx"
-    },
-    {
-      "label": "media-drive/RemoteUploadModal.tsx",
-      "file_type": "code",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/RemoteUploadModal.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "autogram_app_frontend_src_components_media_drive_remoteuploadmodal",
-      "community": 18,
-      "community_name": "SpeedTest.tsx",
-      "norm_label": "media-drive/remoteuploadmodal.tsx"
     },
     {
       "label": "i18n.ts",
@@ -18020,6 +18053,39 @@
       "community": 33,
       "community_name": "DriveZipBrowser.tsx",
       "norm_label": "writesessionscache()"
+    },
+    {
+      "label": "useMediaStudioKeybindings.ts",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/useMediaStudioKeybindings.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings",
+      "community": 312,
+      "community_name": "useMediaStudioKeybindings.ts",
+      "norm_label": "usemediastudiokeybindings.ts"
+    },
+    {
+      "label": "KeybindingsOpts",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/useMediaStudioKeybindings.ts",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings_keybindingsopts",
+      "community": 312,
+      "community_name": "useMediaStudioKeybindings.ts",
+      "norm_label": "keybindingsopts"
+    },
+    {
+      "label": "useMediaStudioKeybindings()",
+      "file_type": "code",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/useMediaStudioKeybindings.ts",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings_usemediastudiokeybindings",
+      "community": 312,
+      "community_name": "useMediaStudioKeybindings.ts",
+      "norm_label": "usemediastudiokeybindings()"
     },
     {
       "label": "Profiles.tsx",
@@ -20591,8 +20657,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "remote_e2e_cdp_smoke_step",
-      "community": 243,
-      "community_name": "pdfjs-dist",
+      "community": 44,
+      "community_name": "DriveSidebar.tsx",
       "norm_label": "step()"
     },
     {
@@ -75716,6 +75782,18 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L42",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_common_vscodecodeviewer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipCodePreviewModal.tsx",
       "source_location": "L3",
       "weight": 1.0,
@@ -75770,6 +75848,18 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_common_vscodecodeviewer_vscodecodeviewer",
       "target": "autogram_app_frontend_src_components_common_vscodecodeviewer_highlightline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L42",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_common_vscodecodeviewer_vscodecodeviewer",
       "confidence_score": 1.0
     },
     {
@@ -75875,15 +75965,51 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveConfirmDialog.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L85",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_driveconfirmdialog",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
       "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L264",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
+      "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
+      "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L85",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog_driveconfirmstate",
       "confidence_score": 1.0
     },
     {
@@ -75909,6 +76035,18 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_pages_mediastudio_index_mediadrivedesktop",
       "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog_driveconfirmstate"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L85",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_driveconfirmdialog_driveconfirmdialog",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -75967,14 +76105,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveContextMenu.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivecontextmenu",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
       "target": "autogram_app_frontend_src_components_drive_drivecontextmenu",
       "confidence_score": 1.0
     },
@@ -76046,14 +76184,26 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveDestinationPicker.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L266",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivedestinationpicker",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
+      "target": "autogram_app_frontend_src_components_drive_drivedestinationpicker",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
       "target": "autogram_app_frontend_src_components_drive_drivedestinationpicker",
       "confidence_score": 1.0
     },
@@ -76224,14 +76374,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveExplorer.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L261",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_driveexplorer",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_driveexplorer",
       "confidence_score": 1.0
     },
@@ -76306,18 +76456,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveFileCard.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivefilecard",
-      "target": "autogram_app_frontend_src_components_drive_drivefilecard",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveFileListItem.tsx",
@@ -76361,18 +76499,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivefilelistitem",
       "target": "autogram_app_frontend_src_components_drive_filetypeicon_filetypeicon",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveFileListItem.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivefilelistitem",
-      "target": "autogram_app_frontend_src_components_drive_drivefilelistitem",
       "confidence_score": 1.0
     },
     {
@@ -76420,14 +76546,26 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveInputDialog.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L265",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_driveinputdialog",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
+      "target": "autogram_app_frontend_src_components_drive_driveinputdialog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
       "target": "autogram_app_frontend_src_components_drive_driveinputdialog",
       "confidence_score": 1.0
     },
@@ -76502,30 +76640,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L13",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_documentviewer",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L13",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_documentviewer_documentviewer",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/ImageViewer.tsx",
@@ -76572,18 +76686,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L12",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -76594,30 +76696,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer_imageviewer",
       "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_clamp"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L12",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_imageviewer_imageviewer",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L11",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer",
-      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -76639,30 +76717,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer",
       "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer_mediaaudioplayerprops",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L11",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaaudioplayer_mediaaudioplayer",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L9",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaheadertoolbar",
       "confidence_score": 1.0
     },
     {
@@ -76712,30 +76766,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L9",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediaheadertoolbar_mediaheadertoolbar",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediavideoplayer",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx",
@@ -76758,22 +76788,43 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
-      "context": "import",
+      "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L10",
+      "source_location": "L206",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_mediavideoplayer_mediavideoplayer",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_buildmediasrc",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L16",
+      "source_location": "L331",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L132",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_default_video_qualities",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L404",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
@@ -76781,15 +76832,191 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L294",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_formatqualitysize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L193",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ishttpstreamurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L197",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isplayablehttpurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L188",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isprogressivestreampath",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L324",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_normalizeplayqualities",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L114",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_playquality",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L335",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_pointeridmatches",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_props",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L129",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_rates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L169",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_readqualitypref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L254",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_resolvepreviewkind",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L300",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_sanitizequalitylabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_writequalitypref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L352",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L342",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundaryprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L347",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundarystate",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L2",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils",
+      "target": "autogram_app_frontend_src_components_drive_driveskeleton",
       "confidence_score": 1.0
     },
     {
@@ -76797,11 +77024,23 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L2",
+      "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_buildmediasrc",
+      "target": "autogram_app_frontend_src_components_drive_driveskeleton_deadcenterprogress",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L76",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
+      "target": "autogram_app_frontend_src_components_drive_drivezipbrowser_index",
       "confidence_score": 1.0
     },
     {
@@ -76809,58 +77048,22 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L2",
+      "source_location": "L76",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_drivepreviewmodalprops",
+      "target": "autogram_app_frontend_src_components_drive_drivezipbrowser_index_drivezipbrowser",
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
+      "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
       "source_location": "L2",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_readqualitypref",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_resolvepreviewkind",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_writequalitypref",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DrivePreviewModal.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivepreviewmodal",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
       "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index",
       "confidence_score": 1.0
     },
@@ -76868,49 +77071,201 @@
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L86",
+      "source_location": "L524",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_buildmediasrc"
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_readqualitypref",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L32",
+      "source_location": "L840",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_readqualitypref"
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_writequalitypref",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L85",
+      "source_location": "L220",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_resolvepreviewkind"
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_buildmediasrc",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isprogressivestreampath",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
       "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
-      "source_location": "L90",
+      "source_location": "L786",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
-      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_previewutils_writequalitypref"
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ishttpstreamurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L215",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_buildmediasrc",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_isplayablehttpurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L1771",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_buildmediasrc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L1750",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_resolvepreviewkind",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L2970",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_formatqualitysize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L745",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_sanitizequalitylabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L327",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_normalizeplayqualities",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_sanitizequalitylabel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L836",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_normalizeplayqualities",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L2231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L2329",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_drivepreviewmodal",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_pointeridmatches",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L365",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_componentdidcatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L353",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L358",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_getderivedstatefromerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx",
+      "source_location": "L369",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary",
+      "target": "autogram_app_frontend_src_components_drive_drivepreviewmodal_index_ziperrorboundary_render",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -77293,14 +77648,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveSidebar.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L259",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivesidebar",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivesidebar_index",
       "confidence_score": 1.0
     },
@@ -77363,6 +77718,18 @@
       "source": "autogram_app_frontend_src_components_drive_drivesidebar_index_drivesidebar",
       "target": "autogram_app_frontend_src_components_drive_drivesidebar_index_parsedropkey",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L5896",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index_mediadrivedesktop",
+      "target": "autogram_app_frontend_src_components_drive_drivesidebar_index_parsedropkey"
     },
     {
       "relation": "indirect_call",
@@ -77587,18 +77954,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveSkeleton.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_driveskeleton",
-      "target": "autogram_app_frontend_src_components_drive_driveskeleton",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -77710,6 +78065,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx",
+      "source_location": "L47",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
+      "target": "autogram_app_frontend_src_components_drive_filetypeicon",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -77719,6 +78086,18 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
       "target": "autogram_app_frontend_src_components_drive_filetypeicon_filetypeicon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
+      "target": "autogram_app_frontend_src_components_drive_mediaselect",
       "confidence_score": 1.0
     },
     {
@@ -77737,35 +78116,11 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx",
-      "source_location": "L47",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L198",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
-      "target": "autogram_app_frontend_src_components_media_drive_filetypeicon",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx",
-      "source_location": "L48",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
-      "target": "autogram_app_frontend_src_components_media_drive_mediaselect",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveToolsPanel.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivetoolspanel",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivetoolspanel_index",
       "confidence_score": 1.0
     },
@@ -77919,14 +78274,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTopBar.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L260",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivetopbar",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivetopbar",
       "confidence_score": 1.0
     },
@@ -77952,18 +78307,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivetopbar_drivetopbar",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferDock.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivetransferdock",
-      "target": "autogram_app_frontend_src_components_drive_drivetransferdock",
       "confidence_score": 1.0
     },
     {
@@ -78022,14 +78365,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferManager.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L262",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivetransfermanager",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivetransfermanager",
       "confidence_score": 1.0
     },
@@ -78112,18 +78455,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivetransfersettings",
       "target": "autogram_app_frontend_src_components_drive_mediaselect_mediaselect",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveTransferSettings.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivetransfersettings",
-      "target": "autogram_app_frontend_src_components_drive_drivetransfersettings",
       "confidence_score": 1.0
     },
     {
@@ -78410,7 +78741,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_index",
@@ -78418,11 +78749,11 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports_from",
-      "context": "import",
+      "relation": "re_exports",
+      "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx",
-      "source_location": "L2",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_index",
@@ -78454,6 +78785,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "re_exports",
+      "context": "re-export",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_index",
+      "target": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_clearzipbrowsercache",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -78478,14 +78821,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveZipBrowser.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
+      "source_location": "L217",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivezipbrowser",
+      "source": "autogram_app_frontend_src_pages_mediastudio_index",
       "target": "autogram_app_frontend_src_components_drive_drivezipbrowser_index",
       "confidence_score": 1.0
     },
@@ -78495,7 +78838,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx",
-      "source_location": "L64",
+      "source_location": "L66",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_index_drivezipbrowser",
@@ -78505,7 +78848,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L75",
+      "source_location": "L77",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78516,7 +78859,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78527,7 +78870,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L149",
+      "source_location": "L151",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78538,7 +78881,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L139",
+      "source_location": "L141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78560,7 +78903,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L53",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78571,7 +78914,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L58",
+      "source_location": "L60",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78582,7 +78925,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L46",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
@@ -78623,23 +78966,11 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/DriveZipBrowser.tsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_drivezipbrowser",
-      "target": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L91",
+      "source_location": "L93",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_basenamesat",
@@ -78651,7 +78982,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts",
-      "source_location": "L95",
+      "source_location": "L97",
       "weight": 1.0,
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_drivezipbrowser_ziputils_basenamesat",
@@ -78705,18 +79036,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/FileTypeIcon.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_filetypeicon",
-      "target": "autogram_app_frontend_src_components_drive_filetypeicon",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoGram App/frontend/src/components/drive/MediaSelect.tsx",
@@ -78747,18 +79066,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_mediaselect",
       "target": "autogram_app_frontend_src_components_drive_mediaselect_props",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/MediaSelect.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_mediaselect",
-      "target": "autogram_app_frontend_src_components_drive_mediaselect",
       "confidence_score": 1.0
     },
     {
@@ -78814,18 +79121,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_drive_reuploadbatchmodal",
       "target": "autogram_app_frontend_src_components_drive_reuploadbatchmodal_reuploadbatchmodal",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "re_exports",
-      "context": "export",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/ReUploadBatchModal.tsx",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_reuploadbatchmodal",
-      "target": "autogram_app_frontend_src_components_drive_reuploadbatchmodal",
       "confidence_score": 1.0
     },
     {
@@ -78886,14 +79181,14 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "re_exports",
-      "context": "export",
+      "relation": "imports_from",
+      "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/components/media-drive/RemoteUploadModal.tsx",
-      "source_location": "L1",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
+      "source_location": "L7",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "autogram_app_frontend_src_components_media_drive_remoteuploadmodal",
+      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
       "target": "autogram_app_frontend_src_components_drive_remoteuploadmodal",
       "confidence_score": 1.0
     },
@@ -78940,186 +79235,6 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_components_layout_sidebar",
       "target": "autogram_app_frontend_src_components_layout_sidebar_sidebarprops",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L264",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_driveconfirmdialog",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L4",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_driveconfirmdialog",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L3",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_drivecontextmenu",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L266",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivedestinationpicker",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_drivedestinationpicker",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L261",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_driveexplorer",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L265",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_driveinputdialog",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L5",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_driveinputdialog",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_drivepreviewmodal",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L259",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivesidebar",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L198",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivetoolspanel",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L260",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivetopbar",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L262",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivetransfermanager",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/index.tsx",
-      "source_location": "L217",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_index",
-      "target": "autogram_app_frontend_src_components_media_drive_drivezipbrowser",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx",
-      "source_location": "L7",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "autogram_app_frontend_src_pages_mediastudio_mediastudiomodalscontainer",
-      "target": "autogram_app_frontend_src_components_media_drive_remoteuploadmodal",
       "confidence_score": 1.0
     },
     {
@@ -79750,6 +79865,28 @@
       "_origin": "ast",
       "source": "autogram_app_frontend_src_pages_mediastudio_mediastudioutils",
       "target": "autogram_app_frontend_src_pages_mediastudio_mediastudioutils_writesessionscache",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/useMediaStudioKeybindings.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings",
+      "target": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings_keybindingsopts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoGram App/frontend/src/pages/MediaStudio/useMediaStudioKeybindings.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings",
+      "target": "autogram_app_frontend_src_pages_mediastudio_usemediastudiokeybindings_usemediastudiokeybindings",
       "confidence_score": 1.0
     },
     {
@@ -93759,5 +93896,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "adbfb85dcb4f46a6d038e57e4a0a1f64a0dbbda3"
+  "built_at_commit": "aab946eb4314c170e1344353964d3db361be3f92"
 }

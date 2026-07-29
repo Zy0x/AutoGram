@@ -1,3 +1,0 @@
-import { MediaStudio } from './MediaStudio/index';
-export { MediaStudio as SpeedTest };
-export default MediaStudio;
