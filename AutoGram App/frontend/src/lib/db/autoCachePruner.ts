@@ -1,8 +1,8 @@
-import { getPersistentThumbsSize, prunePersistentThumbsToSize } from '../thumbPersistentCache';
-import { clearThumbCache } from '../thumbBatcher';
-import { clearAvatarCache } from '../avatarBatcher';
-import { clearPreviewCache } from '../previewCache';
-import { cacheCalculateSize, cacheTrimDisk } from '../jobsApi';
+import { getPersistentThumbsSize, prunePersistentThumbsToSize } from '../media/thumbPersistentCache';
+import { clearThumbCache } from '../media/thumbBatcher';
+import { clearAvatarCache } from '../media/avatarBatcher';
+import { clearPreviewCache } from '../media/previewCache';
+import { cacheCalculateSize, cacheTrimDisk } from '../db/jobsApi';
 
 let isPruning = false;
 

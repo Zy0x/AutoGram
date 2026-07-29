@@ -3,8 +3,8 @@
  * Disk-backed on the Python side; here we only keep a memory cache.
  * peer_id 0 = self (Saved Messages).
  */
-import { driveAvatarsBatch, type DriveCredentials } from '../driveApi';
-import { getDrivePerfProfile } from '../devicePerformance';
+import { driveAvatarsBatch, type DriveCredentials } from '../telegram/driveApi';
+import { getDrivePerfProfile } from '../utils/devicePerformance';
 
 type Entry = { resolve: (url: string | null) => void };
 

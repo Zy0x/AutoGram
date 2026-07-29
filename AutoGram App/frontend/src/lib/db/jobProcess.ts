@@ -5,7 +5,7 @@
 
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { debugLog, ingestWorkerDebugLine, isDebugMode, redactArgsForLog } from '../debugMode';
+import { debugLog, ingestWorkerDebugLine, isDebugMode, redactArgsForLog } from '../utils/debugMode';
 
 export type JobChild = {
   jobId: number;

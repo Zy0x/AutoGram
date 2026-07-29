@@ -1,5 +1,5 @@
-import { ensureDriveSession, isDriveSessionReadyFor } from '../../driveSession';
-import { detectTauriRuntime } from '../../platform';
+import { ensureDriveSession, isDriveSessionReadyFor } from '../driveSession';
+import { detectTauriRuntime } from '../../tauri/platform';
 import {
   DriveCredentials,
   driveSessionCallFor
@@ -14,7 +14,7 @@ export async function drivePreview(
     throw new Error('Preview membutuhkan desktop Rust + Grammers.');
   }
   try {
-    const { tgPreviewStream } = await import('../../telegramBackend');
+    const { tgPreviewStream } = await import('../telegramBackend');
     const chatId = folderId == null ? 'me' : String(folderId);
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgPreviewStream({
@@ -69,7 +69,7 @@ export async function drivePreviewWarm(
 export async function driveStreamStatus(_creds: DriveCredentials, streamId: string) {
   if (detectTauriRuntime() && streamId) {
     try {
-      const { streamStatusLocal } = await import('../../rustBackend');
+      const { streamStatusLocal } = await import('../../tauri/rustBackend');
       const st = await streamStatusLocal(streamId);
       if (st) {
         return {
@@ -116,7 +116,7 @@ export async function driveStopStream(
   // Grammers progressive cancel (local)
   if (streamId && detectTauriRuntime() && !opts?.stopAll) {
     try {
-      const { tgStopStream } = await import('../../telegramBackend');
+      const { tgStopStream } = await import('../telegramBackend');
       const ok = await tgStopStream(streamId);
       return { status: ok ? 'stopped' : 'missing', backend: 'grammers' };
     } catch {
@@ -157,7 +157,7 @@ export async function driveStreamSeek(
   if (!streamId) return { status: 'missing' };
   if (detectTauriRuntime()) {
     try {
-      const { tgSeekStream } = await import('../../telegramBackend');
+      const { tgSeekStream } = await import('../telegramBackend');
       const target = await tgSeekStream(streamId, {
         timeS: opts.time_s,
         durationS: opts.duration_s,
@@ -233,7 +233,7 @@ export async function driveZipList(
   };
 
   try {
-    const { zipListSparse } = await import('../../rustBackend');
+    const { zipListSparse } = await import('../../tauri/rustBackend');
     const res = await zipListSparse(sparseOpts);
     return {
       status: 'success',
@@ -308,7 +308,7 @@ export async function driveZipReadEntry(
     };
 
     try {
-      const { zipPreviewEntrySparse } = await import('../../rustBackend');
+      const { zipPreviewEntrySparse } = await import('../../tauri/rustBackend');
       const res = await zipPreviewEntrySparse(sparseOpts, entry, password);
 
       if (res?.encrypted) {
@@ -397,7 +397,7 @@ export async function driveZipExtractEntry(
     messageId,
   };
 
-  const { zipExtractEntrySparse } = await import('../../rustBackend');
+  const { zipExtractEntrySparse } = await import('../../tauri/rustBackend');
   const bytesWritten = await zipExtractEntrySparse(sparseOpts, entryName, destPath, password);
   return { status: 'success', bytesWritten };
 }

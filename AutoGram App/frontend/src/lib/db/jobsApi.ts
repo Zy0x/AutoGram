@@ -3,7 +3,7 @@
  * Migration execute still may surface a clear "runner WIP" until full Grammers transfer lands.
  */
 import { invoke } from '@tauri-apps/api/core';
-import { detectTauriRuntime } from '../platform';
+import { detectTauriRuntime } from '../tauri/platform';
 
 export type JobRow = {
   id: number;

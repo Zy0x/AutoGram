@@ -3,17 +3,17 @@
  * High-end: multiple concurrent batches + aggressive flush.
  * Low-end: single flight, never one-shot Python spawn.
  */
-import { driveThumbnailsBatch, type DriveCredentials } from '../driveApi';
-import { debugLog } from '../debugMode';
-import type { DriveThumbQuality } from '../driveTypes';
-import { DEFAULT_THUMB_QUALITY } from '../driveTypes';
-import { getDrivePerfProfile } from '../devicePerformance';
-import { isDriveSessionReady } from '../driveSession';
+import { driveThumbnailsBatch, type DriveCredentials } from '../telegram/driveApi';
+import { debugLog } from '../utils/debugMode';
+import type { DriveThumbQuality } from '../telegram/driveTypes';
+import { DEFAULT_THUMB_QUALITY } from '../telegram/driveTypes';
+import { getDrivePerfProfile } from '../utils/devicePerformance';
+import { isDriveSessionReady } from '../telegram/driveSession';
 import {
   loadPersistentThumb,
   loadPersistentThumbs,
   savePersistentThumb,
-} from '../thumbPersistentCache';
+} from './thumbPersistentCache';
 
 export type ThumbPriority = 'visible' | 'near' | 'prefetch';
 type Waiter = { resolve: (url: string | null) => void; signal?: AbortSignal };

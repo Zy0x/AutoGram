@@ -3,7 +3,7 @@
  * Telegram network work still goes through driveApi / Python worker.
  */
 import { invoke } from '@tauri-apps/api/core';
-import { detectTauriRuntime } from '../platform';
+import { detectTauriRuntime } from './platform';
 
 export type BackendOwner = 'rust' | 'python' | 'hybrid';
 

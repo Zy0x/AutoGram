@@ -469,51 +469,6 @@
     "ast_hash": "5824db6c5f8445a782478cbdb41c2ae6",
     "semantic_hash": ""
   },
-  "AutoGram App/frontend/src/pages/Accounts.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "e692c44955e4df10d0595b5edd920a26",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Automation.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "d331205e7ca15b10b60a590769e1a5df",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Dashboard.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "91a1306a9f6c9887efeb0d5c75a1607f",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Jobs.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "032cfec1f637673b6a3bb01604742db7",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Profiles.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "55df52298c766ac4b31fd7bc472fc649",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Settings.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "e4ac288ab94122e286034a0cdc2d4738",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/SpeedTest.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "9b33ddd3e6ded43450708ec8f496f3f3",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Statistics.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "17bad780064aac145e9391c75499834d",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/Sync.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "930d3ed2e58aa14ba8f0a94eb9ba5383",
-    "semantic_hash": ""
-  },
   "AutoGram App/frontend/src/vite-env.d.ts": {
     "mtime": 1783960356.0,
     "ast_hash": "6d0f41264b0f342896dc8ad344bef27b",
@@ -2252,11 +2207,6 @@
   "AutoGram App/frontend/src/pages/Jobs/index.tsx": {
     "mtime": 1785344710.0,
     "ast_hash": "11c96d623b9ef831db21269769d2c51e",
-    "semantic_hash": ""
-  },
-  "AutoGram App/frontend/src/pages/MediaStudio.tsx": {
-    "mtime": 1785344892.0,
-    "ast_hash": "da186cac686874627b41aedd7e30a907",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioGrid.tsx": {

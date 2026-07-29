@@ -2,8 +2,8 @@
  * In-memory preview result cache + in-flight dedupe + neighbor prefetch.
  * Makes next/prev feel instant when media was already opened or prefetched.
  */
-import type { DriveCredentials } from '../driveApi';
-import { drivePreview, drivePreviewWarm } from '../driveApi';
+import type { DriveCredentials } from '../telegram/driveApi';
+import { drivePreview, drivePreviewWarm } from '../telegram/driveApi';
 
 export type CachedPreview = {
   data_url?: string | null;

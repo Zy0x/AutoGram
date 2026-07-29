@@ -1,7 +1,7 @@
-import { spawnDaemonJob, killWorkerJob, parseEventLine, type JobChild } from '../../jobProcess';
+import { spawnDaemonJob, killWorkerJob, parseEventLine, type JobChild } from '../../db/jobProcess';
 import { invoke } from '@tauri-apps/api/core';
-import { ensureDriveSession, isDriveSessionReady, stopDriveSession, isGhostSessionReady } from '../../driveSession';
-import { detectTauriRuntime } from '../../platform';
+import { ensureDriveSession, isDriveSessionReady, stopDriveSession, isGhostSessionReady } from '../driveSession';
+import { detectTauriRuntime } from '../../tauri/platform';
 import {
   DRIVE_JOB_ID,
   DRIVE_OPEN_JOB_ID,
@@ -65,7 +65,7 @@ export async function driveDownloadOpenSpawn(
     // Grammers-only download (no Telethon daemon).
     if (detectTauriRuntime()) {
       try {
-        const { tgDownloadFile } = await import('../../telegramBackend');
+        const { tgDownloadFile } = await import('../telegramBackend');
         const chatId = folderId == null ? 'me' : String(folderId);
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgDownloadFile({

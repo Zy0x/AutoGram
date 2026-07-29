@@ -7,8 +7,8 @@ import type {
   TransferItem,
   TransferItemStatus,
   TransferSession,
-} from '../driveTypes';
-import { EMPTY_TRANSFER_SESSION } from '../driveTypes';
+} from '../telegram/driveTypes';
+import { EMPTY_TRANSFER_SESSION } from '../telegram/driveTypes';
 
 export type ProgressEvent = {
   type?: string;

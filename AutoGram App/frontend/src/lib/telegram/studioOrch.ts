@@ -136,7 +136,7 @@ export async function studioRunOrchestrated(
   if (!detectTauriRuntime()) {
     throw new Error('Studio upload membutuhkan aplikasi desktop (Rust + Grammers).');
   }
-  const { debugLogLayer } = await import('../debugMode');
+  const { debugLogLayer } = await import('../utils/debugMode');
   debugLogLayer('rust', 'studioOrch', 'run_start', {
     files: request.files?.length,
     chatId: request.chatId,

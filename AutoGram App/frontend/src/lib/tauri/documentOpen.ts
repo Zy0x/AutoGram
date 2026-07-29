@@ -9,8 +9,8 @@ import {
   driveDownloadOpenSpawn,
   parseJsonOutput,
   type DriveCredentials,
-} from '../driveApi';
-import type { DriveFile } from '../driveTypes';
+} from '../telegram/driveApi';
+import type { DriveFile } from '../telegram/driveTypes';
 
 /** Lazy plugin-opener — avoids pageerror when plugins map is briefly undefined. */
 async function openerPlugin(): Promise<{

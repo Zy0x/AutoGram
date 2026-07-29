@@ -1,4 +1,4 @@
-import type { DriveFile } from '../driveTypes';
+import type { DriveFile } from '../telegram/driveTypes';
 
 export interface MediaRecord extends DriveFile {
   folderId: number;      // composite folder/chat id

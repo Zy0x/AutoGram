@@ -2,7 +2,7 @@
  * Feature capability matrix by runtime (desktop vs web).
  * Single source of truth for UI gates — do not scatter ad-hoc isTauri checks for features.
  */
-import { getRuntime, type Runtime } from '../platform';
+import { getRuntime, type Runtime } from './platform';
 
 export type FeatureId =
   | 'media_studio.upload'

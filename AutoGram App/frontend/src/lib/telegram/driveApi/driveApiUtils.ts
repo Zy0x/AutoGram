@@ -1,6 +1,6 @@
-import { runDaemonOnce } from '../../jobProcess';
-import { driveSessionCallFor as rawDriveSessionCallFor, ensureDriveSession, isDriveSessionReady, stopDriveSession } from '../../driveSession';
-import { detectTauriRuntime } from '../../platform';
+import { runDaemonOnce } from '../../db/jobProcess';
+import { driveSessionCallFor as rawDriveSessionCallFor, ensureDriveSession, isDriveSessionReady, stopDriveSession } from '../driveSession';
+import { detectTauriRuntime } from '../../tauri/platform';
 import { driveSessionLeaseKey, isSessionTransferLeased } from './driveTransfersApi';
 
 export const DRIVE_JOB_ID = 991002;
@@ -324,7 +324,7 @@ export async function resolveGrammersIdentity(creds: DriveCredentials) {
     return base;
   }
   try {
-    const { getApiCredentials } = await import('../../secureCredentials');
+    const { getApiCredentials } = await import('../../tauri/secureCredentials');
     const secure = await getApiCredentials();
     const apiId = base.apiId > 0 ? base.apiId : (Number(secure?.apiId) || 0);
     const apiHash = base.apiHash || secure?.apiHash || '';

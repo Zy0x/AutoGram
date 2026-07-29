@@ -1,5 +1,5 @@
-import { ensureDriveSession } from '../../driveSession';
-import { detectTauriRuntime } from '../../platform';
+import { ensureDriveSession } from '../driveSession';
+import { detectTauriRuntime } from '../../tauri/platform';
 import {
   DEFAULT_FILE_PAGE,
   DEFAULT_CHAT_PAGE,
@@ -15,7 +15,7 @@ export async function driveScanFolders(creds: DriveCredentials) {
     throw new Error('Drive membutuhkan aplikasi desktop (Rust + Grammers).');
   }
   try {
-    const { tgScanFolders } = await import('../../telegramBackend');
+    const { tgScanFolders } = await import('../telegramBackend');
     const result = await tgScanFolders({
       session: creds.session,
       apiId: Number(creds.apiId) || 0,
@@ -34,7 +34,7 @@ export async function driveScanFolders(creds: DriveCredentials) {
       return { status: 'success', folders, backend: 'grammers' };
     }
     // Fallback: dialog title filter without parent= (older native path)
-    const { tgListDialogs } = await import('../../telegramBackend');
+    const { tgListDialogs } = await import('../telegramBackend');
     const dialogs = await tgListDialogs({
       session: creds.session,
       apiId: Number(creds.apiId),
@@ -138,7 +138,7 @@ export async function driveListChats(
     !opts?.chatFolderId;
   if (firstPage && detectTauriRuntime()) {
     try {
-      const { tgListDialogs } = await import('../../telegramBackend');
+      const { tgListDialogs } = await import('../telegramBackend');
       {
         const apiId = Number(creds.apiId) || 0;
         const gr = await tgListDialogs({
@@ -169,7 +169,7 @@ export async function driveListChats(
 
   // Pagination beyond first page: still Grammers (no Telethon).
   try {
-    const { tgListDialogs } = await import('../../telegramBackend');
+    const { tgListDialogs } = await import('../telegramBackend');
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgListDialogs({
       session: creds.session,
@@ -200,7 +200,7 @@ export async function driveListChatFolders(
 ) {
   if (detectTauriRuntime()) {
     try {
-      const { tgListDialogFilters } = await import('../../telegramBackend');
+      const { tgListDialogFilters } = await import('../telegramBackend');
       const result = await tgListDialogFilters({
         session: creds.session,
         apiId: Number(creds.apiId),
@@ -237,7 +237,7 @@ export async function driveDeleteFolder(
     throw new Error('Pilih cascade atau lepas anak, bukan keduanya.');
   }
   const id = requireGrammersIdentity(creds);
-  const { tgDeleteFolder } = await import('../../telegramBackend');
+  const { tgDeleteFolder } = await import('../telegramBackend');
   const gr = await tgDeleteFolder({ ...id, folderId: fid });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus folder Grammers gagal.');
@@ -259,7 +259,7 @@ export async function driveRenameFolder(
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama folder wajib diisi');
   const id = requireGrammersIdentity(creds);
-  const { tgRenameFolder } = await import('../../telegramBackend');
+  const { tgRenameFolder } = await import('../telegramBackend');
   const gr = await tgRenameFolder({ ...id, folderId: fid, name: clean });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Rename folder Grammers gagal.');
@@ -287,7 +287,7 @@ export async function driveSetFolderParent(
     throw new Error('Folder tidak bisa menjadi induk dirinya sendiri.');
   }
   const id = requireGrammersIdentity(creds);
-  const { tgSetFolderParent } = await import('../../telegramBackend');
+  const { tgSetFolderParent } = await import('../telegramBackend');
   const gr = await tgSetFolderParent({ ...id, folderId: fid, parentId: pid });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Reparent folder Grammers gagal.');
@@ -308,7 +308,7 @@ export async function driveCreateFolder(
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama folder wajib diisi');
   const id = requireGrammersIdentity(creds);
-  const { tgCreateFolder } = await import('../../telegramBackend');
+  const { tgCreateFolder } = await import('../telegramBackend');
   const gr = await tgCreateFolder({ ...id, name: clean, parentId });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Buat folder Grammers gagal.');
@@ -336,7 +336,7 @@ export async function driveListTopics(creds: DriveCredentials, chatId: number) {
     throw new Error('Daftar topik membutuhkan desktop Rust + Grammers.');
   }
   try {
-    const { tgListTopics } = await import('../../telegramBackend');
+    const { tgListTopics } = await import('../telegramBackend');
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgListTopics({
       session: creds.session,
@@ -369,7 +369,7 @@ export async function driveCreateTopic(creds: DriveCredentials, chatId: number, 
   const clean = String(title || '').trim();
   if (!clean) throw new Error('Nama topik wajib diisi');
   const id = requireGrammersIdentity(creds);
-  const { tgCreateTopic } = await import('../../telegramBackend');
+  const { tgCreateTopic } = await import('../telegramBackend');
   const gr = await tgCreateTopic({ ...id, chatId, title: clean });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Buat topik Grammers gagal.');
@@ -384,7 +384,7 @@ export async function driveCreateTopic(creds: DriveCredentials, chatId: number, 
 
 export async function driveDeleteTopic(creds: DriveCredentials, chatId: number, topicId: number) {
   const id = requireGrammersIdentity(creds);
-  const { tgDeleteTopic } = await import('../../telegramBackend');
+  const { tgDeleteTopic } = await import('../telegramBackend');
   const gr = await tgDeleteTopic({ ...id, chatId, topicId });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Hapus topik Grammers gagal.');
@@ -401,11 +401,11 @@ export async function driveRenameTopic(
   const clean = String(name || '').trim();
   if (!clean) throw new Error('Nama topik wajib diisi');
   const id = requireGrammersIdentity(creds);
-  const { tgRenameTopic } = await import('../../telegramBackend');
+  const { tgRenameTopic } = await import('../telegramBackend');
   const gr = await tgRenameTopic({ ...id, chatId, topicId, title: clean });
   if (!gr?.ok) {
     throw new Error(gr?.userMessage || gr?.error?.message || 'Rename topik Grammers gagal.');
   }
   return { status: 'success', topic_id: topicId, title: clean, backend: 'grammers' };
 }
-export { addDriveEventListener } from '../../driveSession';
+export { addDriveEventListener } from '../driveSession';

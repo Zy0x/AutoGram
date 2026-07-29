@@ -3,8 +3,8 @@
  * Migrates legacy localStorage API_ID / API_HASH once, then removes them.
  */
 import { invoke } from '@tauri-apps/api/core';
-import { detectTauriRuntime } from '../platform';
-import type { DriveTransferSettings } from '../driveTypes';
+import { detectTauriRuntime } from './platform';
+import type { DriveTransferSettings } from '../telegram/driveTypes';
 
 const LS_ID = 'API_ID';
 const LS_HASH = 'API_HASH';
