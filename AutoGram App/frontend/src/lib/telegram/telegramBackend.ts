@@ -4,8 +4,8 @@
  * All calls are no-op / soft-fail outside Tauri or when commands missing.
  */
 import { invoke } from '@tauri-apps/api/core';
-import { detectTauriRuntime } from '../platform';
-import { debugLogLayer } from '../debugMode';
+import { detectTauriRuntime } from '../tauri/platform';
+import { debugLogLayer } from '../utils/debugMode';
 
 export type TgBackendStatus = {
   active: string;

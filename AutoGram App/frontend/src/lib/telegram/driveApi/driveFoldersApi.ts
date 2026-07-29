@@ -22,7 +22,7 @@ export async function driveScanFolders(creds: DriveCredentials) {
       apiHash: creds.apiHash,
     });
     if (result?.ok && result.data?.folders) {
-      const folders = result.data.folders.map((f) => ({
+      const folders = result.data.folders.map((f: any) => ({
         id: Number(f.id),
         name: String(f.name || f.titleRaw || f.id),
         title_raw: String(f.titleRaw || f.name || f.id),
@@ -43,8 +43,8 @@ export async function driveScanFolders(creds: DriveCredentials) {
     });
     if (dialogs?.ok && Array.isArray(dialogs.data)) {
       const folders = dialogs.data
-        .filter((dialog) => /\[TD\]/i.test(String(dialog.title || '')))
-        .map((dialog) => ({
+        .filter((dialog: any) => /\[TD\]/i.test(String(dialog.title || '')))
+        .map((dialog: any) => ({
           id: Number(dialog.id),
           name: String(dialog.title || dialog.id).replace(/\s*\[TD\]\s*$/i, '').trim(),
           title_raw: String(dialog.title || dialog.id),
@@ -148,7 +148,7 @@ export async function driveListChats(
           limit,
         });
         if (gr?.ok && Array.isArray(gr.data)) {
-          const chats = gr.data.map((d) => mapDialogToChat(d));
+          const chats = gr.data.map((d: any) => mapDialogToChat(d));
           return {
             status: 'success',
             chats,
@@ -178,7 +178,7 @@ export async function driveListChats(
       limit: Math.min(limit + offset, 200),
     });
     if (gr?.ok && Array.isArray(gr.data)) {
-      const all = gr.data.map((d) => mapDialogToChat(d));
+      const all = gr.data.map((d: any) => mapDialogToChat(d));
       const chats = all.slice(offset, offset + limit);
       return {
         status: 'success',
@@ -345,7 +345,7 @@ export async function driveListTopics(creds: DriveCredentials, chatId: number) {
       chatId,
     });
     if (gr?.ok && gr.data) {
-      const topics = (gr.data.topics || []).map((t) => ({
+      const topics = (gr.data.topics || []).map((t: any) => ({
         id: Number(t.id),
         title: t.title,
         top_message: t.topMessage ?? null,

@@ -1,5 +1,5 @@
-import { DriveCredentials } from '../../../lib/driveApi';
-import { DriveFolder, DriveChat } from '../../../lib/driveTypes';
+import { DriveCredentials } from '../../../lib/telegram/driveApi';
+import { DriveFolder, DriveChat } from '../../../lib/telegram/driveTypes';
 
 export type TargetDestination = {
   kind: 'drive' | 'saved' | 'chat';

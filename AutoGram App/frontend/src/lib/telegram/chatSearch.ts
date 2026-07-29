@@ -3,7 +3,7 @@
  * Precomputes a single haystack string per chat so search is one includes() per row.
  * Universal location search (Google Drive–style) also filters Drive folders + Saved.
  */
-import type { DriveChat, DriveFolder } from '../driveTypes';
+import type { DriveChat, DriveFolder } from './driveTypes';
 
 export type ChatSearchEntry = {
   chat: DriveChat;
@@ -47,7 +47,7 @@ function hayMatchesTokens(hay: string, tokens: string[]): boolean {
 export function filterChatsFast(index: ChatSearchEntry[], query: string): DriveChat[] {
   const tokens = queryTokens(query);
   if (!tokens.length) {
-    return index.map((e) => e.chat);
+    return index.map((e: any) => e.chat);
   }
 
   const out: DriveChat[] = [];

@@ -2,7 +2,7 @@
  * Recent Drive locations + pinned favorites (Google Drive–style quick jump).
  * ALWAYS session-scoped — never share Terbaru/pins across Telegram accounts.
  */
-import { truncateMiddle } from '../drivePower';
+import { truncateMiddle } from './drivePower';
 
 export type DriveRecentKind = 'saved' | 'drive' | 'chat';
 

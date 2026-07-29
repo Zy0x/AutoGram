@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play } from 'lucide-react';
-import type { DriveCredentials } from '../../lib/driveApi';
+import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import {
   canShowDriveThumb,
   driveFileDisplayName,
@@ -10,14 +10,14 @@ import {
   formatDriveKindLabel,
   isVideoDriveFile,
   type DriveFile,
-} from '../../lib/driveTypes';
-import { usePointerDragPrime } from '../../lib/pointerDragPrime';
+} from '../../lib/telegram/driveTypes';
+import { usePointerDragPrime } from '../../lib/telegram/pointerDragPrime';
 import {
   getCachedThumb,
   getCachedSaverThumb,
   invalidateThumb,
   requestThumb,
-} from '../../lib/thumbBatcher';
+} from '../../lib/media/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
@@ -254,7 +254,7 @@ function DriveFileCardInner({
         void requestThumb(creds, folderId, file.id, {
           priority: 'visible',
           bypassCache: detail?.forceRefetch === true && detail?.quality !== 'saver',
-        }).then((url) => {
+        }).then((url: any) => {
           if (url) {
             setThumb(url);
             setIsPlaceholderImg(false);
@@ -297,7 +297,7 @@ function DriveFileCardInner({
       priority: 'visible',
       signal: controller.signal,
     })
-      .then((url) => {
+      .then((url: any) => {
         if (cancelled) return;
         if (url) {
           setThumb(url);
@@ -460,7 +460,7 @@ function DriveFileCardInner({
                   void requestThumb(creds, folderId, file.id, {
                     priority: 'visible',
                     bypassCache: true,
-                  }).then((url) => {
+                  }).then((url: any) => {
                     if (url) {
                       setThumb(url);
                       setImgError(false);

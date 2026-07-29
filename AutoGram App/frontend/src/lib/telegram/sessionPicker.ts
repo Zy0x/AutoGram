@@ -3,8 +3,8 @@
  * Accounts shows all sessions; pickers need selectable names without
  * false-empty when API store is mid-migrate or ACTIVE_SESSIONS is empty.
  */
-import { bootstrapSecureCredentials, getApiCredentials } from '../secureCredentials';
-import { tgAuthStatus, tgListSessions } from '../telegramBackend';
+import { bootstrapSecureCredentials, getApiCredentials } from '../tauri/secureCredentials';
+import { tgAuthStatus, tgListSessions } from './telegramBackend';
 
 export type SessionOption = {
   name: string;
@@ -89,12 +89,12 @@ export async function loadSelectableSessions(opts?: {
   const { apiId, apiHash } = await getApiCredentials();
 
   let all: SessionOption[] = raw
-    .map((s) => ({
+    .map((s: any) => ({
       name: String(s?.name || '').trim(),
       status: String(s?.status || 'checking'),
       source: s?.source ? String(s.source) : undefined,
     }))
-    .filter((s) => s.name);
+    .filter((s: any) => s.name);
 
   if (verify && apiId && apiHash) {
     const checked = await Promise.all(
@@ -113,17 +113,17 @@ export async function loadSelectableSessions(opts?: {
     all = checked;
   }
 
-  const usable = all.filter((s) => isUsableStatus(s.status));
+  const usable = all.filter((s: any) => isUsableStatus(s.status));
   let targets = readActiveTargets();
 
   // No Active Target toggled yet → seed all usable (multi-account switch ready)
   if (!targets.length && usable.length && autoSeed) {
-    targets = usable.map((s) => s.name).slice(0, MAX_ACTIVE_SESSIONS);
+    targets = usable.map((s: any) => s.name).slice(0, MAX_ACTIVE_SESSIONS);
     setActiveSessionTargets(targets);
   }
 
-  const preferred = usable.filter((s) => targets.includes(s.name));
-  const nonPreferred = usable.filter((s) => !targets.includes(s.name));
+  const preferred = usable.filter((s: any) => targets.includes(s.name));
+  const nonPreferred = usable.filter((s: any) => !targets.includes(s.name));
   // Place preferred active session first, then remaining usable sessions
   const result = preferred.length ? [...preferred, ...nonPreferred] : usable;
   sessionsMemCache = { at: Date.now(), verify, list: result };
@@ -140,5 +140,5 @@ export async function loadSelectableSessionNames(opts?: {
   force?: boolean;
 }): Promise<string[]> {
   const list = await loadSelectableSessions(opts);
-  return list.map((s) => s.name);
+  return list.map((s: any) => s.name);
 }

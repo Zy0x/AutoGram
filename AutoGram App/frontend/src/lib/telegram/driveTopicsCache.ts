@@ -1,4 +1,4 @@
-import type { DriveTopic } from '../driveTypes';
+import type { DriveTopic } from './driveTypes';
 
 const PREFIX = 'autogram_drive_topics_v1_';
 export const DRIVE_TOPICS_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;

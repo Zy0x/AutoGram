@@ -10,7 +10,7 @@ import {
   Download,
 } from 'lucide-react';
 import { ZipEntry, entryLabel } from './zipUtils';
-import { formatDriveBytes } from '../../../lib/driveTypes';
+import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
 
 type ZipEntryTableProps = {
   dirs: string[];
@@ -97,7 +97,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50 text-xs font-mono">
-            {dirs.map((d) => (
+            {dirs.map((d: any) => (
               <tr
                 key={d}
                 onDoubleClick={() => onNavigateDir(d)}

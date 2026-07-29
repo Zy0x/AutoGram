@@ -1,5 +1,5 @@
-import { DriveFile, DriveFolder, DriveChat } from '../../../lib/driveTypes';
-import { DriveCredentials } from '../../../lib/driveApi';
+import { DriveFile, DriveFolder, DriveChat } from '../../../lib/telegram/driveTypes';
+import { DriveCredentials } from '../../../lib/telegram/driveApi';
 
 export type DrivePreviewModalProps = {
   file: DriveFile;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, FolderInput, HardDrive, Folder } from 'lucide-react';
-import { DriveFolder } from '../../../lib/driveTypes';
+import { DriveFolder } from '../../../lib/telegram/driveTypes';
 
 type ZipExtractModalProps = {
   isOpen: boolean;
@@ -49,7 +49,7 @@ export const ZipExtractModal: React.FC<ZipExtractModalProps> = ({
             <span>Saved Messages (Drive Root)</span>
           </button>
 
-          {folders.map((f) => (
+          {folders.map((f: any) => (
             <button
               key={f.id}
               onClick={() => setTargetFolderId(f.id)}

@@ -5,10 +5,10 @@ import {
   Bot,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import type { DriveCredentials } from '../../../lib/driveApi';
-import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/driveTypes';
-import type { DriveDropTarget } from '../../../lib/driveDrag';
-import type { DriveRecent } from '../../../lib/driveRecents';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
+import type { DriveDropTarget } from '../../../lib/telegram/driveDrag';
+import type { DriveRecent } from '../../../lib/telegram/driveRecents';
 import {
   applyDropEffect,
   beginFolderDrag,
@@ -19,8 +19,8 @@ import {
   isInternalMediaDragActive,
   isPointerDriveDragActive,
   shouldBlockDriveDrop,
-} from '../../../lib/driveDrag';
-import { getCachedAvatar, requestAvatar } from '../../../lib/avatarBatcher';
+} from '../../../lib/telegram/driveDrag';
+import { getCachedAvatar, requestAvatar } from '../../../lib/media/avatarBatcher';
 
 export const LS_SEC_FOLDERS = 'td_sec_folders_open';
 export const LS_SEC_CHATS = 'td_sec_chats_open';

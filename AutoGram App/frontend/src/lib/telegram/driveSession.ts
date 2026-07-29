@@ -8,10 +8,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { spawnDaemonJob, killWorkerJob, type JobChild } from '../jobProcess';
-import type { DriveCredentials } from '../driveApi';
-import { detectTauriRuntime } from '../platform';
-import { isDebugMode } from '../debugMode';
+import { spawnDaemonJob, killWorkerJob, type JobChild } from '../db/jobProcess';
+import type { DriveCredentials } from './driveApi';
+import { detectTauriRuntime } from '../tauri/platform';
+import { isDebugMode } from '../utils/debugMode';
 
 /** Hard cutover: never start Telethon drive-serve on desktop. */
 export const FORCE_RUST_DRIVE = true;
@@ -456,17 +456,17 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
         ],
         pipeStdin: true,
         allowShellFallback: false,
-        onStdoutLine: (line) => {
+        onStdoutLine: (line: any) => {
           settleCurrentLine(line);
           if (ready && processAssigned) {
             cleanStartupTimers();
             resolve();
           }
         },
-        onStderrLine: (line) => console.warn('[drive-serve-ghost]', line),
+        onStderrLine: (line: any) => console.warn('[drive-serve-ghost]', line),
         onClose: () => undefined,
       })
-        .then((c) => {
+        .then((c: any) => {
           child = {
             ...c,
             dispose: () => {
@@ -486,7 +486,7 @@ async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
             resolve();
           }
         })
-        .catch((e) => {
+        .catch((e: any) => {
           if (onReadyCheck) clearInterval(onReadyCheck);
           if (t) clearTimeout(t);
           reject(e);
@@ -528,8 +528,8 @@ async function spawnApiServer(creds: DriveCredentials): Promise<void> {
         String(creds.apiHash),
       ],
       allowShellFallback: false,
-      onStdoutLine: (line) => console.log('[API-SERVER stdout]', line),
-      onStderrLine: (line) => console.warn('[API-SERVER stderr]', line),
+      onStdoutLine: (line: any) => console.log('[API-SERVER stdout]', line),
+      onStderrLine: (line: any) => console.warn('[API-SERVER stderr]', line),
       onClose: () => {
         apiChild = null;
         console.log('[API-SERVER] FastAPI server stopped.');
@@ -693,17 +693,17 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
         ],
         pipeStdin: true,
         allowShellFallback: false,
-        onStdoutLine: (line) => {
+        onStdoutLine: (line: any) => {
           settleCurrentLine(line);
           if (ready && processAssigned) {
             cleanStartupTimers();
             resolve();
           }
         },
-        onStderrLine: (line) => console.warn('[drive-serve]', line),
+        onStderrLine: (line: any) => console.warn('[drive-serve]', line),
         onClose: () => undefined,
       })
-        .then((c) => {
+        .then((c: any) => {
           child = {
             ...c,
             dispose: () => {
@@ -723,7 +723,7 @@ async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
             resolve();
           }
         })
-        .catch((e) => {
+        .catch((e: any) => {
           if (onReadyCheck) clearInterval(onReadyCheck);
           if (t) clearTimeout(t);
           reject(e);
@@ -1064,7 +1064,7 @@ export async function driveSessionCall(
       reject(new Error('Drive session ownership changed before write'));
       return;
     }
-    writeStdin(line).catch((e) => {
+    writeStdin(line).catch((e: any) => {
       pending.delete(id);
       clearTimeout(timer);
       ready = false;

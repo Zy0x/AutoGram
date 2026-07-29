@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { runDaemonOnce } from '../../lib/workerBridge';
+import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { Bookmark, Trash2, Edit3, Save } from 'lucide-react';
 
 interface Profile {

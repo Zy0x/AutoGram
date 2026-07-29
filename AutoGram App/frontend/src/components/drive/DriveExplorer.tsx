@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
 import { CenteredGlassmorphicProgress, DriveGridSkeleton, DriveListSkeleton } from './DriveSkeleton';
-import type { DriveCredentials } from '../../lib/driveApi';
+import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
   canShowDriveThumb,
@@ -13,13 +13,13 @@ import {
   type DriveMediaFilter,
   type DriveSortMode,
   type DriveViewMode,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import {
   filterAndSortDriveFilesPower,
   type DriveAdvFilter,
-} from '../../lib/drivePower';
-import { getDrivePerfProfile } from '../../lib/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused } from '../../lib/thumbBatcher';
+} from '../../lib/telegram/drivePower';
+import { getDrivePerfProfile } from '../../lib/utils/devicePerformance';
+import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused } from '../../lib/media/thumbBatcher';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -28,7 +28,7 @@ import {
   marqueeModeFromKeys,
   normalizeContentRect,
   type MarqueeMode,
-} from '../../lib/driveSelection';
+} from '../../lib/telegram/driveSelection';
 import { DriveFileCard } from './DriveFileCard';
 import { DriveFileListItem } from './DriveFileListItem';
 
@@ -245,7 +245,7 @@ export function DriveExplorer({
     });
   }, [files, query, mediaFilter, sortMode, advFilter]);
 
-  const displayedIds = useMemo(() => displayed.map((f) => f.id), [displayed]);
+  const displayedIds = useMemo(() => displayed.map((f: any) => f.id), [displayed]);
 
   useEffect(() => {
     onDisplayedIdsChange?.(displayedIds);
@@ -910,7 +910,7 @@ export function DriveExplorer({
                   maxWidth: '100%',
                 }}
               >
-                {rowFiles.map((f) => (
+                {rowFiles.map((f: any) => (
                   <DriveFileCard
                     key={f.id}
                     file={f}

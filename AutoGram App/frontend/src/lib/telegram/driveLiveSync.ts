@@ -1,5 +1,5 @@
-import type { PerfTier } from '../devicePerformance';
-import type { DriveFile } from '../driveTypes';
+import type { PerfTier } from '../utils/devicePerformance';
+import type { DriveFile } from './driveTypes';
 
 export type DriveLiveSyncPlan = {
   intervalMs: number;

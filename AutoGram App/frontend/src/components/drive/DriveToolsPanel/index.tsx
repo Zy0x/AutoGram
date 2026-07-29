@@ -22,8 +22,8 @@ import {
   Download,
   RotateCcw,
 } from 'lucide-react';
-import type { DriveCredentials } from '../../../lib/driveApi';
-import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, QualityMode } from '../../../lib/driveTypes';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, QualityMode } from '../../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   QUALITY_MODE_OPTIONS,
@@ -33,8 +33,8 @@ import {
   formatDriveBytes,
   driveItemKind,
   isVideoDriveFile,
-} from '../../../lib/driveTypes';
-import { getCachedThumb, requestThumb } from '../../../lib/thumbBatcher';
+} from '../../../lib/telegram/driveTypes';
+import { getCachedThumb, requestThumb } from '../../../lib/media/thumbBatcher';
 import {
   applyBulkRenamePattern,
   computeSpaceUsage,
@@ -43,7 +43,7 @@ import {
   type DupGroup,
   EMPTY_ADV_FILTER,
   isAdvFilterActive,
-} from '../../../lib/drivePower';
+} from '../../../lib/telegram/drivePower';
 import { FileTypeIcon } from '../../media-drive/FileTypeIcon';
 import { MediaSelect } from '../../media-drive/MediaSelect';
 
@@ -193,7 +193,7 @@ export function DriveToolsPanel({
   }, [open, transferSettings]);
 
   const patchXfer = (partial: Partial<DriveTransferSettings>) => {
-    setXferDraft((d) => ({ ...d, ...partial }));
+    setXferDraft((d: any) => ({ ...d, ...partial }));
   };
 
   const applyXferSettings = () => {
@@ -266,7 +266,7 @@ export function DriveToolsPanel({
 
   if (!open) return null;
 
-  const wasteTotal = groups.reduce((s, g) => s + g.wasteBytes, 0);
+  const wasteTotal = groups.reduce((s: any, g: any) => s + g.wasteBytes, 0);
 
   const node = (
     <div
@@ -389,7 +389,7 @@ export function DriveToolsPanel({
                       : 'Belum ada data. Tunggu hitung selesai atau muat grid.'}
                   </p>
                 )}
-                {typeRows.map((row) => {
+                {typeRows.map((row: any) => {
                   const denom = displayBytes > 0 ? displayBytes : space.totalBytes;
                   const pct = denom > 0 ? Math.max(2, (row.bytes / denom) * 100) : 0;
                   return (
@@ -416,7 +416,7 @@ export function DriveToolsPanel({
                 <>
                   <h4 className="td-tools-h">File Terbesar</h4>
                   <ul className="td-tools-largest-list">
-                    {space.largest.map((f) => (
+                    {space.largest.map((f: any) => (
                       <li key={f.id} className="td-tools-largest-item">
                         <FileTypeIcon file={f} size="sm" />
                         {onPreviewFile ? (
@@ -491,7 +491,7 @@ export function DriveToolsPanel({
                   <p className="td-tools-empty">Tidak ada perubahan / file kosong</p>
                 ) : (
                   <ul className="td-tools-preview-list mono">
-                    {renamePreview.map((r) => (
+                    {renamePreview.map((r: any) => (
                       <li key={r.id} className="td-tools-preview-row">
                         <span className="td-tools-oldname" title={r.oldName}>{r.oldName}</span>
                         <span className="td-tools-arrow" aria-hidden>→</span>
@@ -509,7 +509,7 @@ export function DriveToolsPanel({
                   disabled={busy || renamePreview.length === 0}
                   onClick={() =>
                     onBulkRename(
-                      applyBulkRenamePattern(renameScope, pattern, startAt).map((r) => ({
+                      applyBulkRenamePattern(renameScope, pattern, startAt).map((r: any) => ({
                         id: r.id,
                         newName: r.newName,
                       }))
@@ -571,7 +571,7 @@ export function DriveToolsPanel({
                   }
                   onClick={() => {
                     const pool = copyScope === 'selected' ? selectedFiles : files;
-                    const ids = pool.map((f) => f.id);
+                    const ids = pool.map((f: any) => f.id);
                     let toFolderId: number | null = null;
                     let targetLabel = 'Saved Messages';
                     if (copyDest === 'me') {
@@ -583,7 +583,7 @@ export function DriveToolsPanel({
                     } else {
                       toFolderId = Number(copyDest);
                       targetLabel =
-                        folders.find((f) => f.id === toFolderId)?.name || `Folder ${toFolderId}`;
+                        folders.find((f: any) => f.id === toFolderId)?.name || `Folder ${toFolderId}`;
                     }
                     onSmartCopy({
                       messageIds: ids,
@@ -787,7 +787,7 @@ function TransferTabContent({
               Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
             </p>
             <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
-              {QUALITY_MODE_OPTIONS.map((opt) => (
+              {QUALITY_MODE_OPTIONS.map((opt: any) => (
                 <label
                   key={opt.id}
                   className={`td-xfer-radio ${draft.qualityMode === opt.id ? 'is-on' : ''}`}
@@ -1055,7 +1055,7 @@ function DupFileThumb({
     setThumb(null);
     setLoading(true);
     requestThumb(creds, folderId, file.id, { priority: 'visible' })
-      .then((url) => {
+      .then((url: any) => {
         if (!cancelled) {
           setThumb(url);
           setLoading(false);
@@ -1132,7 +1132,7 @@ function DupTab({
   const [markedDelete, setMarkedDelete] = useState<Set<number>>(() => new Set());
   /** Fingerprint of last smart-apply so we re-seed when groups/mode change. */
   const smartKey = useMemo(() => {
-    const parts = groups.map((g) => `${g.key}:${g.files.map((f) => f.id).join(',')}`);
+    const parts = groups.map((g) => `${g.key}:${g.files.map((f: any) => f.id).join(',')}`);
     return `${dupMode}|${keepNewest ? 'n' : 'o'}|${parts.join(';')}`;
   }, [groups, dupMode, keepNewest]);
 
@@ -1172,7 +1172,7 @@ function DupTab({
 
   const groupsWithAllMarked = useMemo(() => {
     return groups.filter(
-      (g) => g.files.length > 0 && g.files.every((f) => markedDelete.has(f.id))
+      (g) => g.files.length > 0 && g.files.every((f: any) => markedDelete.has(f.id))
     ).length;
   }, [groups, markedDelete]);
 
@@ -1304,7 +1304,7 @@ function DupTab({
       <ul className="td-tools-dup-groups">
         {groups.slice(0, 40).map((g) => {
           const keepId = preferredKeepId(g, keepNewest);
-          const markedInGroup = g.files.filter((f) => markedDelete.has(f.id)).length;
+          const markedInGroup = g.files.filter((f: any) => markedDelete.has(f.id)).length;
           const keepInGroup = g.files.length - markedInGroup;
           return (
             <li key={g.key} className="td-tools-dup-group">
@@ -1336,7 +1336,7 @@ function DupTab({
                 </span>
               </div>
               <ul className="td-tools-dup-files">
-                {g.files.map((f) => {
+                {g.files.map((f: any) => {
                   const canPreview = Boolean(onPreviewFile);
                   const marked = markedDelete.has(f.id);
                   const isPreferredKeep = f.id === keepId;

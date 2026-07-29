@@ -20,16 +20,16 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import type { DriveCredentials } from '../../../lib/driveApi';
-import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/driveTypes';
-import type { DriveDropTarget } from '../../../lib/driveDrag';
-import type { DriveRecent } from '../../../lib/driveRecents';
-import { recentDisplayLabel } from '../../../lib/driveRecents';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
+import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
+import type { DriveDropTarget } from '../../../lib/telegram/driveDrag';
+import type { DriveRecent } from '../../../lib/telegram/driveRecents';
+import { recentDisplayLabel } from '../../../lib/telegram/driveRecents';
 import {
   isDriveSessionCircuitTripped,
   getDriveSessionError,
   resetDriveSessionCircuit,
-} from '../../../lib/driveSession';
+} from '../../../lib/telegram/driveSession';
 import {
   applyDropEffect,
   beginFolderDrag,
@@ -55,13 +55,13 @@ import {
   pickDropKeyAtPoint,
   setLastHoverDropKey,
   subscribeDriveDragUi,
-} from '../../../lib/driveDrag';
-import { DRIVE_FOLDER_SOFT_LIMIT, driveItemKind } from '../../../lib/driveTypes';
+} from '../../../lib/telegram/driveDrag';
+import { DRIVE_FOLDER_SOFT_LIMIT, driveItemKind } from '../../../lib/telegram/driveTypes';
 import {
   getCachedAvatar,
   prefetchAvatars,
   requestAvatar,
-} from '../../../lib/avatarBatcher';
+} from '../../../lib/media/avatarBatcher';
 import {
   buildChatSearchIndex,
   buildFolderTreeRows,
@@ -70,7 +70,7 @@ import {
   folderAncestorIds,
   matchesSavedMessagesQuery,
   wouldCreateFolderCycle,
-} from '../../../lib/chatSearch';
+} from '../../../lib/telegram/chatSearch';
 import { MediaSelect } from '../MediaSelect';
 
 const LS_SEC_FOLDERS = 'td_sec_folders_open';
@@ -554,7 +554,7 @@ export function DriveSidebar({
   const treeSeededRef = useRef(false);
   useEffect(() => {
     if (treeSeededRef.current || !folders.length) return;
-    const idSet = new Set(folders.map((f) => f.id));
+    const idSet = new Set(folders.map((f: any) => f.id));
     const parents = new Set<number>();
     for (const f of folders) {
       if (f.parent_id != null && idSet.has(f.parent_id) && f.parent_id !== f.id) {
@@ -611,7 +611,7 @@ export function DriveSidebar({
   const activeDriveFolder = useMemo(
     () =>
       locationKind === 'drive' && activePeerId != null
-        ? folders.find((f) => f.id === activePeerId) || null
+        ? folders.find((f: any) => f.id === activePeerId) || null
         : null,
     [locationKind, activePeerId, folders]
   );
@@ -1671,7 +1671,7 @@ export function DriveSidebar({
               Disematkan
             </div>
             <div className="td-recents-list">
-              {pins.slice(0, 8).map((r) => {
+              {pins.slice(0, 8).map((r: any) => {
                 const key =
                   r.kind === 'saved' ? dropKey('saved', null) : dropKey(r.kind, r.id as number);
                 registerLabel(key, r.label);
@@ -1752,7 +1752,7 @@ export function DriveSidebar({
             </button>
             {recentsExpanded && (
               <div className="td-recents-list">
-                {recents.slice(0, 6).map((r) => {
+                {recents.slice(0, 6).map((r: any) => {
                   const key =
                     r.kind === 'saved'
                       ? dropKey('saved', null)

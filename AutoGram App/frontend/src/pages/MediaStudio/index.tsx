@@ -1,7 +1,7 @@
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
-import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/driveSession';
+import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram/driveSession';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -18,26 +18,26 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { HardDrive, Upload } from 'lucide-react';
-import { canUseLocalTelegramWorker } from '../../lib/platform';
+import { canUseLocalTelegramWorker } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
   closeDriveMoveConfirm,
   subscribeDriveMoveConfirmStore,
   getDriveMoveConfirmSnapshot,
   getDriveMoveConfirmVersion,
-} from '../../lib/driveMoveUi';
+} from '../../lib/telegram/driveMoveUi';
 import {
   bootstrapSecureCredentials,
   getApiHashSync,
   getApiIdSync,
   getSecureTransferSettings,
   setSecureTransferSettings,
-} from '../../lib/secureCredentials';
+} from '../../lib/tauri/secureCredentials';
 import {
   loadSelectableSessionNames,
   getActiveSessionTargets,
   setActiveSessionTargets,
-} from '../../lib/sessionPicker';
+} from '../../lib/telegram/sessionPicker';
 import {
   driveBootstrap,
   driveListChatFolders,
@@ -70,13 +70,13 @@ import {
   type ChatListCursor,
   driveIndexFolder,
   addDriveEventListener,
-} from '../../lib/driveApi';
+} from '../../lib/telegram/driveApi';
 import {
   isStudioOrchEligible,
   studioChatIdFromFolder,
   studioRunUploadDefault,
   mapOrchItemStatus,
-} from '../../lib/studioOrch';
+} from '../../lib/telegram/studioOrch';
 import {
   saveCheckpoint,
   getCheckpoint,
@@ -89,47 +89,47 @@ import {
   getPendingActions,
   updateActionStatus,
   deleteAction,
-} from '../../lib/mediaStudioDb';
+} from '../../lib/db/mediaStudioDb';
 import {
   cancelScheduledDriveSessionStop,
   ensureDriveSession,
   isDriveSessionReady,
   scheduleDriveSessionStop,
   stopDriveSession,
-} from '../../lib/driveSession';
+} from '../../lib/telegram/driveSession';
 
 import {
   loadDriveLocationSnapshot,
   saveDriveLocationSnapshot,
   removeFilesFromDriveLocationSnapshot,
-} from '../../lib/driveLocationCache';
+} from '../../lib/telegram/driveLocationCache';
 import {
   loadDriveSidebarSnapshot,
   saveDriveSidebarSnapshot,
-} from '../../lib/driveSidebarCache';
+} from '../../lib/telegram/driveSidebarCache';
 import {
   loadDriveTopicsSnapshot,
   saveDriveTopicsSnapshot,
-} from '../../lib/driveTopicsCache';
+} from '../../lib/telegram/driveTopicsCache';
 import {
   driveSyncBackoffMs,
   getDriveLiveSyncPlan,
   reconcileDriveLiveHead,
   dedupeByMsgId,
   purgeDeletedMsgIds,
-} from '../../lib/driveLiveSync';
+} from '../../lib/telegram/driveLiveSync';
 import {
   driveScrollLocationKey,
   loadDriveScrollPosition,
   saveDriveScrollPosition,
-} from '../../lib/driveScrollMemory';
-import { getDrivePerfProfile, perfStatusHint } from '../../lib/devicePerformance';
+} from '../../lib/telegram/driveScrollMemory';
+import { getDrivePerfProfile, perfStatusHint } from '../../lib/utils/devicePerformance';
 import {
   clampMediaBytes,
   clampMediaTotal,
   loadedMediaBytes,
   loadedUniqueMediaCount,
-} from '../../lib/driveMediaTotals';
+} from '../../lib/telegram/driveMediaTotals';
 import type {
   DriveChat,
   DriveChatFolder,
@@ -143,7 +143,7 @@ import type {
   DriveTopicFilter,
   DriveViewMode,
   TransferSession,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   DEFAULT_DRIVE_SORT,
@@ -162,7 +162,7 @@ import {
   saveTransferSettings,
   type DriveTransferSettings as TransferSettingsState,
   type TransferItem,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import {
   applyTransferEvent,
   clearFinishedItems,
@@ -170,15 +170,15 @@ import {
   seedTransferSession,
   setSessionPaused,
   transferBadge,
-} from '../../lib/transferProgress';
-import { debugLog } from '../../lib/debugMode';
+} from '../../lib/media/transferProgress';
+import { debugLog } from '../../lib/utils/debugMode';
 import {
   applyClickSelection,
   invertSelectionOnDisplayed,
   pruneSelectionToDisplayed,
   selectAllDisplayed,
   type MarqueeMode,
-} from '../../lib/driveSelection';
+} from '../../lib/telegram/driveSelection';
 import {
   computeSpaceUsage,
   createNavHistory,
@@ -194,7 +194,7 @@ import {
   setDriveClipboard,
   type DriveAdvFilter,
   type DriveNavHistory,
-} from '../../lib/drivePower';
+} from '../../lib/telegram/drivePower';
 import {
   DriveToolsPanel,
   type DriveToolsTab,
@@ -211,9 +211,9 @@ import {
   setThumbQuality,
   setThumbsPaused,
   refreshVisibleThumbsForQuality,
-} from '../../lib/thumbBatcher';
-import { clearAvatarCache, invalidateAvatarFailures } from '../../lib/avatarBatcher';
-import { clearPreviewCache } from '../../lib/previewCache';
+} from '../../lib/media/thumbBatcher';
+import { clearAvatarCache, invalidateAvatarFailures } from '../../lib/media/avatarBatcher';
+import { clearPreviewCache } from '../../lib/media/previewCache';
 import { clearZipBrowserCache } from '../../components/media-drive/DriveZipBrowser';
 import {
   CHAT_SOFT_PREFETCH_DELAY_MS,
@@ -221,7 +221,7 @@ import {
   progressiveSettleDelayMs,
   stagedInitialPageSize,
   stagedLoadMorePageSize,
-} from '../../lib/driveLoadStaging';
+} from '../../lib/telegram/driveLoadStaging';
 import {
   beginDriveDrag,
   clearLastOsPaths,
@@ -249,13 +249,13 @@ import {
   shouldBlockDriveDrop,
   waitForOsPaths,
   type DriveDropTarget,
-} from '../../lib/driveDrag';
+} from '../../lib/telegram/driveDrag';
 import {
   buildDriveBreadcrumbSegments,
   folderDirectChildIds,
   wouldCreateFolderCycle,
   withFolderOrphanFlags,
-} from '../../lib/chatSearch';
+} from '../../lib/telegram/chatSearch';
 import { DriveSidebar } from '../../components/media-drive/DriveSidebar';
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/media-drive/DriveTopBar';
 import { DriveExplorer } from '../../components/media-drive/DriveExplorer';
@@ -264,8 +264,8 @@ import { DriveTransferManager } from '../../components/media-drive/DriveTransfer
 import { type DriveConfirmState } from '../../components/media-drive/DriveConfirmDialog';
 import { type DriveInputState } from '../../components/media-drive/DriveInputDialog';
 import { type DriveDestChoice, type DriveDestPickerState } from '../../components/media-drive/DriveDestinationPicker';
-import type { JobChild } from '../../lib/jobProcess';
-import { tgDownloadFile } from '../../lib/telegramBackend';
+import type { JobChild } from '../../lib/db/jobProcess';
+import { tgDownloadFile } from '../../lib/telegram/telegramBackend';
 import {
   clearDriveSessionEphemeralCaches,
   isDrivePinned,
@@ -277,7 +277,7 @@ import {
   shouldRecordDriveRecent,
   toggleDrivePin,
   type DriveRecent,
-} from '../../lib/driveRecents';
+} from '../../lib/telegram/driveRecents';
 
 const LS_VIEW = 'autogram_drive_view';
 const LS_COLLAPSE = 'autogram_drive_rail';
@@ -812,7 +812,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     if (!creds) return;
     let cancelled = false;
     const timer = window.setTimeout(() => void driveListChatFolders(creds)
-      .then((res) => {
+      .then((res: any) => {
         if (cancelled) return;
         const incoming = (res?.folders || []) as DriveChatFolder[];
         const list = incoming.length
@@ -1005,13 +1005,13 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     // are separate live clients — only same-session dual-open is unsafe).
     // Release studio lease for the account we leave.
     if (prevSession) {
-      void import('../../lib/sessionGuard')
+      void import('../../lib/telegram/sessionGuard')
         .then((m) => m.sessionGuardRelease(prevSession, `studio-${prevSession}`))
         .catch(() => undefined);
     }
 
     // Purge passive MTProto live clients from Rust memory so they don't clog Tokio runtime threads.
-    void import('../../lib/telegramBackend')
+    void import('../../lib/telegram/telegramBackend')
       .then((m) => m.tgPurgeInactiveSessions(next))
       .catch(() => undefined);
 
@@ -1117,7 +1117,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     setDriveReady(false);
     nativeDriveReadyRef.current = false;
     setSession(next);
-    void import('../../lib/sessionGuard')
+    void import('../../lib/telegram/sessionGuard')
       .then((m) => m.sessionGuardAcquire(next, `studio-${next}`, 'studio'))
       .catch(() => undefined);
   }, [session, invalidateDriveGenerations]);
@@ -1703,7 +1703,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           quickStats: false,
         })
           .then(applyFiles)
-          .catch(async (e) => {
+          .catch(async (e: any) => {
             if (gen !== peerGen.current) return;
             if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
               sessionLockRetriesRef.current += 1;
@@ -1727,7 +1727,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
 
         // Run dialog list and file list in parallel over warm daemon session
         const chatsP = driveListChats(creds, { limit: perf.chatPage })
-          .then((cr) => {
+          .then((cr: any) => {
             if (gen !== peerGen.current) return;
             const list = cr.chats || [];
             nChats = list.length;
@@ -1805,7 +1805,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               } catch {}
             }
           })
-          .catch((e) => {
+          .catch((e: any) => {
             if (gen === peerGen.current) setError(friendlyDriveError(e));
           })
           .finally(() => {
@@ -2083,7 +2083,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     const sessionAtStart = creds.session;
     // Pause avatar flood while paging dialogs (reduces force-close risk)
     try {
-      const { setAvatarsPaused } = await import('../../lib/avatarBatcher');
+      const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
       setAvatarsPaused(true);
     } catch {
       /* ignore */
@@ -2144,7 +2144,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       setChatsLoadingMore(false);
       chatBulkLock.current = false;
       try {
-        const { setAvatarsPaused } = await import('../../lib/avatarBatcher');
+        const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
         setAvatarsPaused(false);
       } catch {
         /* ignore */
@@ -2511,7 +2511,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   // Real-time updates event listener
   useEffect(() => {
     if (!creds) return;
-    const unsub = addDriveEventListener(async (evt) => {
+    const unsub = addDriveEventListener(async (evt: any) => {
       if (evt.type === 'index_progress') {
         const folderKey = evt.folderId || 0;
         if (Array.isArray(evt.items)) {
@@ -3110,12 +3110,12 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         if (chats.length === 0) setLoadingChats(true);
         if (files.length === 0) setLoadingFiles(true);
         try {
-          const { setAvatarsPaused } = await import('../../lib/avatarBatcher');
+          const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
           setAvatarsPaused(true);
         } catch {
           /* ignore */
         }
-        const { tgAuthStatus } = await import('../../lib/telegramBackend');
+        const { tgAuthStatus } = await import('../../lib/telegram/telegramBackend');
         const authStartedAt = performance.now();
         const native = await tgAuthStatus({
           session: creds.session,
@@ -3185,7 +3185,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             invalidateThumbFailures();
           }, resumeMs);
           try {
-            const { setAvatarsPaused } = await import('../../lib/avatarBatcher');
+            const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
             window.setTimeout(() => {
               if (!cancelled) setAvatarsPaused(false);
             }, resumeMs + (perf.tier === 'high' ? 40 : 200));
@@ -3202,7 +3202,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           setDriveReady(false);
           setStatusText('Siap');
           try {
-            const { setAvatarsPaused } = await import('../../lib/avatarBatcher');
+            const { setAvatarsPaused } = await import('../../lib/media/avatarBatcher');
             setAvatarsPaused(false);
           } catch {
             /* ignore */
@@ -4907,7 +4907,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     if (!creds) return setError('Pilih session dan API credentials dulu.');
     try {
       setStatusText(`Membuka ${file.name}…`);
-      const { openDriveFileInSystem } = await import('../../lib/documentOpen');
+      const { openDriveFileInSystem } = await import('../../lib/tauri/documentOpen');
       await openDriveFileInSystem(creds, file, peerId);
       setStatusText(`Dibuka: ${file.name}`);
     } catch (e: any) {
@@ -4920,7 +4920,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     if (!creds) return setError('Pilih session dan API credentials dulu.');
     try {
       setStatusText(`Buka dengan… ${file.name}`);
-      const { openDriveFileWithApp } = await import('../../lib/documentOpen');
+      const { openDriveFileWithApp } = await import('../../lib/tauri/documentOpen');
       await openDriveFileWithApp(creds, file, peerId, null, (p) => {
         setStatusText(p.message);
       });
@@ -4935,7 +4935,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   const revealOne = async (file: DriveFile) => {
     if (!creds) return setError('Pilih session dan API credentials dulu.');
     try {
-      const { ensureLocalDocument, revealInFolder } = await import('../../lib/documentOpen');
+      const { ensureLocalDocument, revealInFolder } = await import('../../lib/tauri/documentOpen');
       const path = await ensureLocalDocument(creds, file, peerId);
       await revealInFolder(path);
     } catch (e: any) {
@@ -4976,7 +4976,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
 
           // 2. Synchronize local IndexedDB store in background
           if (peerId) {
-            void deleteMediaRecordsBatch(peerId, deletedIds).catch((e) =>
+            void deleteMediaRecordsBatch(peerId, deletedIds).catch((e: any) =>
               console.warn('deleteMediaRecordsBatch sync warning:', e)
             );
           }
@@ -6937,7 +6937,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       className={`main-content main-content-fill main-content-flush td-page${
         mediaDragActive ? ' is-internal-dnd' : ''
       }`}
-      onDragEnter={(e) => {
+      onDragEnter={(e: any) => {
         // Pointer internal drag has no HTML5 DataTransfer cycle — ignore
         if (isPointerDriveDragActive() || mediaDragActive) {
           setDragActive(false);
@@ -6951,10 +6951,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           setDragActive(false);
         }
       }}
-      onDragLeave={(e) => {
+      onDragLeave={(e: any) => {
         if (e.currentTarget === e.target) setDragActive(false);
       }}
-      onDragOver={(e) => {
+      onDragOver={(e: any) => {
         if (isPointerDriveDragActive() || mediaDragActive) {
           setDragActive(false);
           return;
@@ -7579,7 +7579,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                   selectionAnchorRef.current = f.id;
                 }
               }}
-              onCanvasContextMenu={(e) => {
+              onCanvasContextMenu={(e: any) => {
                 e.preventDefault();
                 setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
               }}

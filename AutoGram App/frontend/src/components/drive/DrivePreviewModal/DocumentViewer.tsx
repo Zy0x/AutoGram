@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, FileCode, AlertCircle, Download, ExternalLink } from 'lucide-react';
-import { DriveFile } from '../../../lib/driveTypes';
-import { DriveCredentials } from '../../../lib/driveApi';
+import { DriveFile } from '../../../lib/telegram/driveTypes';
+import { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { DriveZipBrowser } from '../DriveZipBrowser';
 
 type DocumentViewerProps = {

@@ -225,7 +225,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { loadSelectableSessions } = await import('../../../lib/sessionPicker');
+        const { loadSelectableSessions } = await import('../../../lib/telegram/sessionPicker');
         const activeSess = await loadSelectableSessions({ autoSeedActive: true });
         setSessions(activeSess.map((s) => ({ name: s.name, status: s.status })));
         if (activeSess.length > 0) {
@@ -274,7 +274,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setIsLoadingDialogs(true);
     
     try {
-      const { bootstrapSecureCredentials } = await import('../../../lib/secureCredentials');
+      const { bootstrapSecureCredentials } = await import('../../../lib/tauri/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
       if (!apiId || !apiHash) {
         alert(
@@ -295,7 +295,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       // Fetch Telegram chat folders if not loaded yet
       if (chatFolders.length <= 1) {
         try {
-          const { driveListChatFolders } = await import('../../../lib/driveApi');
+          const { driveListChatFolders } = await import('../../../lib/telegram/driveApi');
           const foldersRes = await driveListChatFolders(creds);
           if (foldersRes && foldersRes.folders) {
             setChatFolders(foldersRes.folders);
@@ -306,7 +306,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       }
 
       // Grammers dialogs (no Python list-dialogs)
-      const { tgListDialogs } = await import('../../../lib/telegramBackend');
+      const { tgListDialogs } = await import('../../../lib/telegram/telegramBackend');
       const gr = await tgListDialogs({
         session,
         apiId: Number(apiId) || 0,
@@ -346,7 +346,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
     setSelectedDialogId(chatId);
     
     try {
-      const { bootstrapSecureCredentials } = await import('../../../lib/secureCredentials');
+      const { bootstrapSecureCredentials } = await import('../../../lib/tauri/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
       const session = selectedSession || 'Lavender';
       if (!apiId || !apiHash) {
@@ -357,7 +357,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         setIsLoadingDialogs(false);
         return;
       }
-      const { tgListTopics } = await import('../../../lib/telegramBackend');
+      const { tgListTopics } = await import('../../../lib/telegram/telegramBackend');
       const gr = await tgListTopics({
         session,
         apiId: Number(apiId) || 0,

@@ -7,9 +7,9 @@ import { createPortal } from 'react-dom';
 import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { getApiCredentials } from '../../lib/secureCredentials';
-import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegramBackend';
-import { invalidateSessionListCache } from '../../lib/sessionPicker';
+import { getApiCredentials } from '../../lib/tauri/secureCredentials';
+import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegram/telegramBackend';
+import { invalidateSessionListCache } from '../../lib/telegram/sessionPicker';
 
 const safeGetCallingCode = (val: string) => {
   if (!val) return '';
@@ -196,7 +196,7 @@ export function Accounts() {
     setErrorMsg('');
     try {
       // Ensure API credentials recovered (secure store / worker .env) before list
-      const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
+      const { bootstrapSecureCredentials } = await import('../../lib/tauri/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
 
       const list = await tgListSessions();

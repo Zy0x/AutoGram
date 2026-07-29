@@ -11,7 +11,7 @@ import {
   File,
   Link as LinkIcon,
 } from 'lucide-react';
-import { DriveMediaFilter, DriveViewMode, DriveSortMode } from '../../lib/driveTypes';
+import { DriveMediaFilter, DriveViewMode, DriveSortMode } from '../../lib/telegram/driveTypes';
 
 type MediaStudioToolbarProps = {
   searchQuery: string;

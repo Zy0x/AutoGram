@@ -14,7 +14,7 @@ import {
   Sliders,
 } from 'lucide-react';
 
-import { detectTauriRuntime } from '../../lib/platform';
+import { detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   networkApplyAll,
   networkDetectVpn,
@@ -23,25 +23,25 @@ import {
   networkTestProxy,
   type NetworkConfigSnapshot,
   type ProxyStatus,
-} from '../../lib/rustBackend';
+} from '../../lib/tauri/rustBackend';
 import { useTranslation } from 'react-i18next';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { runDaemonOnce } from '../../lib/workerBridge';
-import { clearThumbCache } from '../../lib/thumbBatcher';
-import { clearAvatarCache } from '../../lib/avatarBatcher';
-import { clearPreviewCache } from '../../lib/previewCache';
+import { runDaemonOnce } from '../../lib/tauri/workerBridge';
+import { clearThumbCache } from '../../lib/media/thumbBatcher';
+import { clearAvatarCache } from '../../lib/media/avatarBatcher';
+import { clearPreviewCache } from '../../lib/media/previewCache';
 import {
   clearPersistentThumbs,
   getPersistentThumbsSize,
-} from '../../lib/thumbPersistentCache';
+} from '../../lib/media/thumbPersistentCache';
 import {
   bootstrapSecureCredentials,
   setApiCredentials,
-} from '../../lib/secureCredentials';
+} from '../../lib/tauri/secureCredentials';
 import {
   tgBackendStatus,
   type TgBackendStatus,
-} from '../../lib/telegramBackend';
+} from '../../lib/telegram/telegramBackend';
 
 
 import { PerfSection } from './PerfSection';
@@ -97,13 +97,13 @@ export function Settings() {
     setIsTrimming(true);
     try {
       const limitBytes = targetMb * 1024 * 1024;
-      const { prunePersistentThumbsToSize } = await import('../../lib/thumbPersistentCache');
+      const { prunePersistentThumbsToSize } = await import('../../lib/media/thumbPersistentCache');
       await prunePersistentThumbsToSize(limitBytes);
       clearThumbCache();
       clearAvatarCache();
       clearPreviewCache();
       try {
-        const { cacheTrimDisk } = await import('../../lib/jobsApi');
+        const { cacheTrimDisk } = await import('../../lib/db/jobsApi');
         await cacheTrimDisk(limitBytes);
       } catch { /* best effort */ }
       await calculateCacheSize();
@@ -173,7 +173,7 @@ export function Settings() {
       // 3. Disk Cache Backend (Rust FS)
       let diskSize = 0;
       try {
-        const { cacheCalculateSize } = await import('../../lib/jobsApi');
+        const { cacheCalculateSize } = await import('../../lib/db/jobsApi');
         const out = await cacheCalculateSize();
         diskSize = Number(out?.bytes || 0);
       } catch (e) {
@@ -229,7 +229,7 @@ export function Settings() {
 
       // 4. Disk Cache Backend (Rust)
       try {
-        const { cacheClearDisk } = await import('../../lib/jobsApi');
+        const { cacheClearDisk } = await import('../../lib/db/jobsApi');
         await cacheClearDisk();
       } catch (e) {
         console.error('Failed to clear disk cache', e);

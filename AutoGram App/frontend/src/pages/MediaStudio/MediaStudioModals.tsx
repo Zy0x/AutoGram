@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FolderPlus, Trash2, Edit3, FolderInput, X } from 'lucide-react';
-import { DriveFolder, DriveFile } from '../../lib/driveTypes';
+import { DriveFolder, DriveFile } from '../../lib/telegram/driveTypes';
 
 type MediaStudioModalsProps = {
   // New Folder Modal

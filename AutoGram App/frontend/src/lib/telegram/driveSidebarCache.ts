@@ -1,4 +1,4 @@
-import type { DriveChat, DriveFolder } from '../driveTypes';
+import type { DriveChat, DriveFolder } from './driveTypes';
 
 const PREFIX = 'autogram_drive_sidebar_v1_';
 export const DRIVE_SIDEBAR_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;

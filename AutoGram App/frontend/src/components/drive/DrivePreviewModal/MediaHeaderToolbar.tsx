@@ -12,7 +12,7 @@ import {
   Sliders,
   Check,
 } from 'lucide-react';
-import { DriveFile, formatDriveBytes } from '../../../lib/driveTypes';
+import { DriveFile, formatDriveBytes } from '../../../lib/telegram/driveTypes';
 import { PlayQuality } from './previewUtils';
 
 type MediaHeaderToolbarProps = {

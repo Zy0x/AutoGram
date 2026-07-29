@@ -1,4 +1,4 @@
-import type { DriveFile } from '../driveTypes';
+import type { DriveFile } from './driveTypes';
 
 const CACHE_PREFIX = 'autogram_drive_locations_v1_';
 // Dinaikkan ke 20 lokasi × 200 file ≈ ~2MB localStorage (wajar)

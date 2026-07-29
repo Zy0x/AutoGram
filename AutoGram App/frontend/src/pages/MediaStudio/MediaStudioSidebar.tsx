@@ -9,7 +9,7 @@ import {
   Hash,
   RefreshCw,
 } from 'lucide-react';
-import { DriveFolder, DriveChat, DriveTopic } from '../../lib/driveTypes';
+import { DriveFolder, DriveChat, DriveTopic } from '../../lib/telegram/driveTypes';
 
 type MediaStudioSidebarProps = {
   sessions: string[];

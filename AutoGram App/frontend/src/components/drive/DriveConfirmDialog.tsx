@@ -13,7 +13,7 @@ import {
   X,
   Copy,
 } from 'lucide-react';
-import type { DriveTopic } from '../../lib/driveTypes';
+import type { DriveTopic } from '../../lib/telegram/driveTypes';
 import { MediaSelect } from './MediaSelect';
 
 export type DriveConfirmKind = 'delete' | 'download' | 'move';

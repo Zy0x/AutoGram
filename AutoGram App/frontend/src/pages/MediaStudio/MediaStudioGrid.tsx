@@ -12,7 +12,7 @@ import {
   Trash2,
   Edit2,
 } from 'lucide-react';
-import { DriveFile, DriveFolder, DriveViewMode, formatDriveBytes } from '../../lib/driveTypes';
+import { DriveFile, DriveFolder, DriveViewMode, formatDriveBytes } from '../../lib/telegram/driveTypes';
 
 type MediaStudioGridProps = {
   folders: DriveFolder[];

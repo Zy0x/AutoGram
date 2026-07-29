@@ -11,7 +11,7 @@ import { MediaVideoPlayer } from './MediaVideoPlayer';
 import { MediaAudioPlayer } from './MediaAudioPlayer';
 import { ImageViewer } from './ImageViewer';
 import { DocumentViewer } from './DocumentViewer';
-import { openInSystem } from '../../../lib/documentOpen';
+import { openInSystem } from '../../../lib/tauri/documentOpen';
 
 export const DrivePreviewModal: React.FC<DrivePreviewModalProps> = (props) => {
   const {
@@ -145,7 +145,7 @@ export const DrivePreviewModal: React.FC<DrivePreviewModalProps> = (props) => {
         onZoomIn={() => setZoom((z) => Math.min(z + 0.25, 6))}
         onZoomOut={() => setZoom((z) => Math.max(z - 0.25, 0.25))}
         onResetZoom={() => setZoom(1)}
-        onRotate={() => setRotation((r) => (r + 90) % 360)}
+        onRotate={() => setRotation((r: any) => (r + 90) % 360)}
         onDownload={handleDownload}
         onOpenSystem={handleOpenSystem}
         onPrintPdf={kind === 'pdf' ? handlePrintPdf : undefined}

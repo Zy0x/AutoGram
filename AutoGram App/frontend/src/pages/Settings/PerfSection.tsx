@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Sliders } from 'lucide-react';
-import { getDrivePerfProfile, setPerfTierOverride, type PerfTier } from '../../lib/devicePerformance';
+import { getDrivePerfProfile, setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
 
 export const PerfSection = memo(function PerfSection() {
   const [tier, setTier] = useState<PerfTier>(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import './App.css';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar } from './components/layout/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { Accounts } from './pages/Accounts';
@@ -9,10 +9,10 @@ import { Sync } from './pages/Sync';
 import { Statistics } from './pages/Statistics';
 import { Profiles } from './pages/Profiles';
 import { Automation } from './pages/Automation';
-import { isMediaStudioAvailable } from './lib/capabilities';
-import { bootstrapSecureCredentials } from './lib/secureCredentials';
-import { bootstrapDebugMode, debugLog } from './lib/debugMode';
-import { checkAndAutoPruneCache } from './lib/autoCachePruner';
+import { isMediaStudioAvailable } from './lib/tauri/capabilities';
+import { bootstrapSecureCredentials } from './lib/tauri/secureCredentials';
+import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
+import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 
 /** Code-split Media Studio — keeps main shell light until tab opens */
 const MediaStudio = lazy(() =>

@@ -7,7 +7,7 @@ import {
   jobDisplayStatus,
   getPrimaryActions,
   startArgsForAction,
-} from '../../lib/jobStatus';
+} from '../../lib/db/jobStatus';
 
 interface JobsListProps {
   jobs: any[];
@@ -246,7 +246,7 @@ export function JobsList({
                 </div>
 
                 <div className="job-card-actions">
-                  {primaryActions.map((a) => renderPrimary(a))}
+                  {primaryActions.map((a: any) => renderPrimary(a))}
                   <button
                     type="button"
                     className="btn btn-secondary btn-icon"

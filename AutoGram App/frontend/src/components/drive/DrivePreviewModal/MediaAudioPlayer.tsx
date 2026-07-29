@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Music } from 'lucide-react';
-import { formatDriveDuration } from '../../../lib/driveTypes';
+import { formatDriveDuration } from '../../../lib/telegram/driveTypes';
 
 type MediaAudioPlayerProps = {
   src: string;

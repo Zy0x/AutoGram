@@ -1,8 +1,8 @@
 import { Play, Pause, Terminal, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, Info, Download, Trash2, Edit3, Zap, Clock } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
-import { runDaemonOnce } from '../../lib/workerBridge';
+import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 
-import { isDesktop } from '../../lib/platform';
+import { isDesktop } from '../../lib/tauri/platform';
 import { RerunModal } from './RerunModal';
 import { FreshStartModal } from './FreshStartModal';
 import { JobDetailsModal } from './JobDetailsModal';

@@ -2,8 +2,8 @@
  * Pure helpers for Drive power features:
  * advanced filters, duplicates, bulk rename, space usage, clipboard, nav history.
  */
-import type { DriveFile, DriveMediaFilter, DriveSortMode } from '../driveTypes';
-import { filterAndSortDriveFiles } from '../driveTypes';
+import type { DriveFile, DriveMediaFilter, DriveSortMode } from './driveTypes';
+import { filterAndSortDriveFiles } from './driveTypes';
 
 // ─── Advanced filters ───────────────────────────────────────────────────────
 

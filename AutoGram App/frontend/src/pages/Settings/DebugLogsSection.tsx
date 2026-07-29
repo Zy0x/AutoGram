@@ -9,7 +9,7 @@ import {
   debugLogFileHint,
   debugLog,
   copyTextWithFallback,
-} from '../../lib/debugMode';
+} from '../../lib/utils/debugMode';
 
 export const DebugSection = memo(function DebugSection() {
   const [debugOn, setDebugOn] = useState(() => isDebugMode());

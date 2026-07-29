@@ -7,8 +7,8 @@ import {
   Zap,
   MonitorSmartphone,
 } from 'lucide-react';
-import { isDesktop, canUseLocalTelegramWorker } from '../../lib/platform';
-import { isMediaStudioAvailable } from '../../lib/capabilities';
+import { isDesktop, canUseLocalTelegramWorker } from '../../lib/tauri/platform';
+import { isMediaStudioAvailable } from '../../lib/tauri/capabilities';
 
 type Props = {
   onNavigate?: (tab: string) => void;

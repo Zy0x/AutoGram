@@ -1,4 +1,4 @@
-import type { PerfTier } from '../devicePerformance';
+import type { PerfTier } from '../utils/devicePerformance';
 
 /** History-wide work starts only after the interactive surface is stable. */
 export const INITIAL_STATS_DELAY_MS = 20_000;

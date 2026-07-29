@@ -9,7 +9,7 @@ import { ZipHeaderToolbar } from './ZipHeaderToolbar';
 import { ZipEntryTable } from './ZipEntryTable';
 import { ZipCodePreviewModal } from './ZipCodePreviewModal';
 import { ZipExtractModal } from './ZipExtractModal';
-import { driveZipList, driveZipReadEntry } from '../../../lib/driveApi';
+import { driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 
 export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
   const {
@@ -80,7 +80,7 @@ export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
     if (selectedEntries.size === files.length && files.length > 0) {
       setSelectedEntries(new Set());
     } else {
-      setSelectedEntries(new Set(files.map((f) => f.name)));
+      setSelectedEntries(new Set(files.map((f: any) => f.name)));
     }
   };
 

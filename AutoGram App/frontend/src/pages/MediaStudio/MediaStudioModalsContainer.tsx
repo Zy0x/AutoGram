@@ -5,8 +5,8 @@ import { DriveConfirmDialog } from '../../components/media-drive/DriveConfirmDia
 import { DriveInputDialog } from '../../components/media-drive/DriveInputDialog';
 import { DriveDestinationPicker } from '../../components/media-drive/DriveDestinationPicker';
 import { RemoteUploadModal } from '../../components/media-drive/RemoteUploadModal';
-import type { DriveCredentials } from '../../lib/driveApi';
-import type { DriveChat, DriveFile, DriveFolder } from '../../lib/driveTypes';
+import type { DriveCredentials } from '../../lib/telegram/driveApi';
+import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
 
 export interface MediaStudioModalsContainerProps {
   previewFile: DriveFile | null;

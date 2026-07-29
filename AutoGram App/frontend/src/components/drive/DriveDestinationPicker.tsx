@@ -117,10 +117,10 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                setSelectedIdx((i) => Math.min(filtered.length - 1, i + 1));
+                setSelectedIdx((i: any) => Math.min(filtered.length - 1, i + 1));
               } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                setSelectedIdx((i) => Math.max(0, i - 1));
+                setSelectedIdx((i: any) => Math.max(0, i - 1));
               } else if (e.key === 'Enter') {
                 e.preventDefault();
                 confirmSelected();

@@ -4,8 +4,8 @@ import {
   isWorkerFailure,
   isDesktopWorkerUnavailable,
   workerErrorMessage,
-} from '../../lib/workerBridge';
-import { isDesktop } from '../../lib/platform';
+} from '../../lib/tauri/workerBridge';
+import { isDesktop } from '../../lib/tauri/platform';
 import { Activity, HardDrive, CheckCircle, XCircle, BarChart3, RefreshCw } from 'lucide-react';
 
 export function Statistics() {

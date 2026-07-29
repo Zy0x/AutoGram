@@ -5,7 +5,7 @@
  */
 import { useMemo, useState } from 'react';
 import { Check, Copy, WrapText, Code2, Sparkles } from 'lucide-react';
-import { formatDriveBytes } from '../../lib/driveTypes';
+import { formatDriveBytes } from '../../lib/telegram/driveTypes';
 
 export interface VSCodeCodeViewerProps {
   text: string;

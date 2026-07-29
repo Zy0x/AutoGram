@@ -1,4 +1,4 @@
-import type { DriveViewMode } from '../driveTypes';
+import type { DriveViewMode } from './driveTypes';
 
 const PREFIX = 'autogram_drive_scroll_v1_';
 const MAX_ENTRIES = 80;

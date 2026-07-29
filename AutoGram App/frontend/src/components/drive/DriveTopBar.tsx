@@ -34,16 +34,16 @@ import type {
   DriveTopic,
   DriveTopicFilter,
   DriveViewMode,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import { MediaSelect } from './MediaSelect';
-import { copyTextWithFallback } from '../../lib/debugMode';
+import { copyTextWithFallback } from '../../lib/utils/debugMode';
 import {
   DRIVE_GRID_ZOOM_LEVELS,
   DRIVE_SORT_OPTIONS,
   DRIVE_THUMB_QUALITY_OPTIONS,
   MAX_GRID_ZOOM,
   MIN_GRID_ZOOM,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 
 export type DriveCrumbSeg = {
   id: number | null;
@@ -710,7 +710,7 @@ export function DriveTopBar({
                 ariaLabel="Urutkan media"
                 compact
                 className="td-sort"
-                options={DRIVE_SORT_OPTIONS.map((opt) => ({
+                options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
                   value: opt.id,
                   label: opt.label,
                   description: opt.description,
@@ -729,7 +729,7 @@ export function DriveTopBar({
               Thumb
             </span>
             <div className="td-thumb-quality-pills">
-              {DRIVE_THUMB_QUALITY_OPTIONS.map((opt) => (
+              {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => (
                 <button
                   key={opt.id}
                   type="button"
@@ -795,7 +795,7 @@ export function DriveTopBar({
                       ? '/' + [...parentSegments, String(topicId)].join('/')
                       : `/${topicId}`;
 
-                  void copyTextWithFallback(topicPath).then((ok) => {
+                  void copyTextWithFallback(topicPath).then((ok: any) => {
                     if (ok) {
                       onCopyTopicId?.(topicId, topicPath);
                     }

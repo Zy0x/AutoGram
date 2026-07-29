@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
-import { formatDriveDuration } from '../../../lib/driveTypes';
+import { formatDriveDuration } from '../../../lib/telegram/driveTypes';
 
 type MediaVideoPlayerProps = {
   src: string;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { runDaemonOnce } from '../../lib/workerBridge';
+import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { Play, Pause, Trash2, Calendar, Clock, Plus, RefreshCw } from 'lucide-react';
 
 export function Automation() {
@@ -64,7 +64,7 @@ export function Automation() {
 
       const result = await runDaemonOnce(args);
       if (result.code !== 0) {
-        const { workerErrorMessage } = await import('../../lib/workerBridge');
+        const { workerErrorMessage } = await import('../../lib/tauri/workerBridge');
         alert(workerErrorMessage(result, 'Error adding automation.'));
         return;
       }
@@ -88,7 +88,7 @@ export function Automation() {
         '--job-id', String(id),
       ]);
       if (result.code !== 0) {
-        const { workerErrorMessage } = await import('../../lib/workerBridge');
+        const { workerErrorMessage } = await import('../../lib/tauri/workerBridge');
         alert(workerErrorMessage(result, 'Delete failed'));
         return;
       }
@@ -107,7 +107,7 @@ export function Automation() {
         '--status', newStatus,
       ]);
       if (result.code !== 0) {
-        const { workerErrorMessage } = await import('../../lib/workerBridge');
+        const { workerErrorMessage } = await import('../../lib/tauri/workerBridge');
         alert(workerErrorMessage(result, 'Status update failed'));
         return;
       }

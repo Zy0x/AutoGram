@@ -1,6 +1,6 @@
 import { Rocket, LayoutDashboard, Settings, Users, ArrowRightLeft, RefreshCw, BarChart3, Bookmark, CalendarClock, HardDrive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { isMediaStudioAvailable } from '../../lib/capabilities';
+import { isMediaStudioAvailable } from '../../lib/tauri/capabilities';
 
 interface SidebarProps {
   activeTab: string;

@@ -292,7 +292,7 @@ async function spawnExclusiveTransfer(
         args,
         onStdoutLine: handlers.onStdoutLine,
         onStderrLine: handlers.onStderrLine,
-        onClose: (code) => {
+        onClose: (code: any) => {
           void (async () => {
             transferJobActive = false;
             await releaseTransferLease();

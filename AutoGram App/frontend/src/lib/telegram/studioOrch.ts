@@ -4,9 +4,9 @@
  * falls back to legacy media-studio when orch is unavailable or ineligible.
  */
 import { invoke } from '@tauri-apps/api/core';
-import { detectTauriRuntime } from '../platform';
-import type { DriveCredentials } from '../driveApi';
-import { withExclusiveTransferSession } from '../driveApi';
+import { detectTauriRuntime } from '../tauri/platform';
+import type { DriveCredentials } from './driveApi';
+import { withExclusiveTransferSession } from './driveApi';
 
 export type QueueItemState =
   | 'pending'

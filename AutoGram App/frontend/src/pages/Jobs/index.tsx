@@ -8,7 +8,7 @@ import {
   requestJobPause,
   parseEventLine,
   type JobChild,
-} from '../../lib/jobProcess';
+} from '../../lib/db/jobProcess';
 import {
   jobsList,
   jobsCreate,
@@ -18,8 +18,8 @@ import {
   jobsFreshStart,
   jobsExportJson,
   jobsImportJson,
-} from '../../lib/jobsApi';
-import { detectTauriRuntime } from '../../lib/platform';
+} from '../../lib/db/jobsApi';
+import { detectTauriRuntime } from '../../lib/tauri/platform';
 
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
@@ -117,7 +117,7 @@ export function Jobs() {
     runningRef.current.add(job.id);
 
     try {
-      const { bootstrapSecureCredentials } = await import('../../lib/secureCredentials');
+      const { bootstrapSecureCredentials } = await import('../../lib/tauri/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
 
       setJobLogs((prev) => ({ ...prev, [job.id]: [] }));

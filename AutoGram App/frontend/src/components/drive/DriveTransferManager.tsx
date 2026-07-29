@@ -23,18 +23,18 @@ import {
   RotateCcw,
   SkipForward,
 } from 'lucide-react';
-import type { TransferSession } from '../../lib/driveTypes';
+import type { TransferSession } from '../../lib/telegram/driveTypes';
 import {
   formatDriveBytes,
   formatTransferEta,
   formatTransferSpeed,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import {
   activeItemName,
   countByStatus,
   sessionVisible,
-} from '../../lib/transferProgress';
-import { copyTextWithFallback } from '../../lib/debugMode';
+} from '../../lib/media/transferProgress';
+import { copyTextWithFallback } from '../../lib/utils/debugMode';
 
 type Props = {
   session: TransferSession;
@@ -147,9 +147,9 @@ export function DriveTransferManager({
   const isUpload = session.direction === 'upload';
   const isMove = session.direction === 'move';
   const DirIcon = isMove ? FolderInput : isUpload ? Upload : Download;
-  const isPreparing = session.items.some((i) => i.status === 'preparing');
+  const isPreparing = session.items.some((i: any) => i.status === 'preparing');
   const encodeItem = session.items.find(
-    (item) => item.phase === 'reencode' && item.status === 'preparing'
+    (item: any) => item.phase === 'reencode' && item.status === 'preparing'
   );
   const displayPercent = encodeItem ? encodeItem.percent : session.overallPercent;
   const phaseLabel = isPreparing
@@ -167,7 +167,7 @@ export function DriveTransferManager({
   // Soft-pause only holds *next* files. With a single file already running there is
   // nothing left to hold — mid-file pause is not supported by Telegram/Telethon.
   const remainingAfterActive = session.items.filter(
-    (i) => i.status === 'queued' || i.status === 'paused'
+    (i: any) => i.status === 'queued' || i.status === 'paused'
   ).length;
   const pauseUseful =
     session.active && (remainingAfterActive > 0 || session.items.length > 1);
@@ -190,7 +190,7 @@ export function DriveTransferManager({
 
   useEffect(() => {
     // Auto-open log panel when debug lines arrive (Debug Mode / FALLBACK)
-    if (debugLogs.length > 0 && debugLogs.some((l) => /FALLBACK|ERROR|FAILED/i.test(l))) {
+    if (debugLogs.length > 0 && debugLogs.some((l: any) => /FALLBACK|ERROR|FAILED/i.test(l))) {
       setShowLogs(true);
     }
   }, [debugLogs.length]);
@@ -524,7 +524,7 @@ export function DriveTransferManager({
           )}
 
           <ul className="tm-list" aria-label="Daftar file transfer">
-            {session.items.map((it) => (
+            {session.items.map((it: any) => (
               <li key={it.id} className={`tm-row status-${it.status}`}>
                 <StatusIcon status={it.status} />
                 <div className="tm-row-body">
@@ -632,7 +632,7 @@ export function DriveTransferManager({
                     debugLogs.join('\n') ||
                     session.banner ||
                     '(log kosong — aktifkan Debug Mode di Settings untuk log penuh)';
-                  void copyTextWithFallback(text).then((ok) => {
+                  void copyTextWithFallback(text).then((ok: any) => {
                     setCopyMsg(ok ? 'Tersalin' : 'Gagal salin — pilih teks manual');
                     window.setTimeout(() => setCopyMsg(null), 2000);
                   });

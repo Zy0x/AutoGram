@@ -1,5 +1,5 @@
 import { Copy, HardDrive, Layers, Type, Filter, Settings2 } from 'lucide-react';
-import type { DupGroup } from '../../../lib/drivePower';
+import type { DupGroup } from '../../../lib/telegram/drivePower';
 
 export type DriveToolsTab = 'dups' | 'space' | 'rename' | 'copy' | 'filter' | 'transfer';
 

@@ -157,7 +157,7 @@ export async function driveListFiles(
       topicId: topicId != null && topicId > 0 ? topicId : null,
     });
     if (gr?.ok && gr.data?.files) {
-      let files = gr.data.files.map((f) => ({
+      let files = gr.data.files.map((f: any) => ({
         id: Number(f.id),
         folder_id: f.folderId ?? folderId,
         name: f.name,

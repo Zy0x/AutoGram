@@ -7,8 +7,8 @@
  *  2) also listen document-level pointermove until primed or released
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { DRAG_THRESHOLD_PX } from '../driveDrag';
-import type { DriveFile } from '../driveTypes';
+import { DRAG_THRESHOLD_PX } from './driveDrag';
+import type { DriveFile } from './driveTypes';
 
 type PrimeFn = (file: DriveFile, e: React.PointerEvent) => void;
 

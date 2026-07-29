@@ -13,12 +13,12 @@ import {
   RotateCcw,
   Info,
 } from 'lucide-react';
-import type { DriveTransferSettings, QualityMode } from '../../lib/driveTypes';
+import type { DriveTransferSettings, QualityMode } from '../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   QUALITY_MODE_OPTIONS,
   clampConcurrency,
-} from '../../lib/driveTypes';
+} from '../../lib/telegram/driveTypes';
 import { MediaSelect } from './MediaSelect';
 
 type Tab = 'upload' | 'download';
@@ -71,7 +71,7 @@ export function DriveTransferSettings({
   if (!open) return null;
 
   const patch = (partial: Partial<DriveTransferSettings>) => {
-    setDraft((d) => ({ ...d, ...partial }));
+    setDraft((d: any) => ({ ...d, ...partial }));
   };
 
   const apply = () => {
@@ -159,7 +159,7 @@ export function DriveTransferSettings({
                 Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
               </p>
               <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
-                {QUALITY_MODE_OPTIONS.map((opt) => (
+                {QUALITY_MODE_OPTIONS.map((opt: any) => (
                   <label
                     key={opt.id}
                     className={`td-xfer-radio ${draft.qualityMode === opt.id ? 'is-on' : ''}`}

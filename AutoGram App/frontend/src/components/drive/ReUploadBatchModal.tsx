@@ -66,12 +66,12 @@ export function ReUploadBatchModal({
   onClose,
 }: Props) {
   const titleId = useId();
-  const [selected, setSelected] = useState<Set<number>>(() => new Set(items.map((i) => i.index)));
+  const [selected, setSelected] = useState<Set<number>>(() => new Set(items.map((i: any) => i.index)));
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setSelected(new Set(items.map((i) => i.index)));
+      setSelected(new Set(items.map((i: any) => i.index)));
     }
   }, [open, items]);
 
@@ -100,7 +100,7 @@ export function ReUploadBatchModal({
 
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(items.map((i) => i.index)));
+    else setSelected(new Set(items.map((i: any) => i.index)));
   };
 
   const handleConfirm = () => {
@@ -156,7 +156,7 @@ export function ReUploadBatchModal({
           </label>
 
           <ul className="rub-list">
-            {displayItems.map((item) => {
+            {displayItems.map((item: any) => {
               const deletedStr = formatTimestamp(item.deletedAt);
               const sizeStr = formatBytes(item.size);
               return (
