@@ -1,0 +1,484 @@
+//! Submodule extracted from grammers_ops.rs
+
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, OnceLock, RwLock};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+use grammers_client::message::InputMessage;
+use grammers_client::client::PasswordToken;
+use grammers_client::{Client, SignInError};
+use grammers_mtsender::SenderPool;
+use grammers_session::storages::MemorySession;
+use grammers_session::SessionData;
+use parking_lot::Mutex;
+use serde::{Deserialize, Serialize};
+use tokio::runtime::Runtime;
+
+use crate::core::path_policy;
+use crate::core::session_rate;
+use crate::core::session_guard;
+use crate::core::telethon_session_import::{
+    grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
+    read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
+};
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
+use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
+use crate::core::tg_log;
+
+use super::client_pool::*;
+use super::media_transfer::*;
+use super::peer_resolver::*;
+use super::session_auth::*;
+
+/// Drive-compatible media row (subset of frontend DriveFile).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaFileRow {
+    pub id: i64,
+    pub folder_id: Option<i64>,
+    pub name: String,
+    pub size: u64,
+    pub mime_type: Option<String>,
+    pub icon_type: String,
+    pub created_at: Option<String>,
+    pub has_thumb: bool,
+    pub as_document: bool,
+    pub backend: String,
+    /// Inline stripped thumb (data:image/…) — paints grid without a second RPC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thumb_data_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListMediaResult {
+    pub status: String,
+    pub folder_id: Option<i64>,
+    pub files: Vec<MediaFileRow>,
+    pub total: usize,
+    pub page_size: usize,
+    pub has_more: bool,
+    pub next_offset_id: Option<i64>,
+    pub backend: String,
+    pub cached: bool,
+}
+
+pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
+    use grammers_client::media::Media;
+    let id = msg.id() as i64;
+    let created = Some(msg.date().to_rfc3339());
+    let caption = msg.text().trim();
+    let maybe_media = msg.media();
+
+    if let Some(media) = maybe_media {
+        let size = media.size().unwrap_or(0) as u64;
+        let thumb_data_url = crate::core::grammers_media::stripped_thumb_data_url(&media);
+        let has_thumb = thumb_data_url.is_some()
+            || match &media {
+                Media::Photo(_) => true,
+                Media::Document(d) => {
+                    let mime = d.mime_type().unwrap_or("").to_lowercase();
+                    let name = d.name().unwrap_or("").to_lowercase();
+                    let is_video = mime.starts_with("video/")
+                        || name.ends_with(".mp4")
+                        || name.ends_with(".mov")
+                        || name.ends_with(".mkv")
+                        || name.ends_with(".webm")
+                        || name.ends_with(".avi")
+                        || name.ends_with(".m4v")
+                        || name.ends_with(".3gp");
+                    !d.thumbs().is_empty() || is_video
+                }
+                Media::Sticker(s) => !s.document.thumbs().is_empty(),
+                _ => false,
+            };
+        match media {
+            Media::Photo(_p) => {
+                let name = if !caption.is_empty() {
+                    format!("{caption}.jpg")
+                } else {
+                    format!("photo_{id}.jpg")
+                };
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name,
+                    size,
+                    mime_type: Some("image/jpeg".into()),
+                    icon_type: "image".into(),
+                    created_at: created,
+                    has_thumb,
+                    as_document: false,
+                    backend: BACKEND.into(),
+                    thumb_data_url,
+                })
+            }
+            Media::Document(doc) => {
+                let n = doc
+                    .name()
+                    .map(|s| s.to_string())
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| {
+                        if !caption.is_empty() {
+                            Some(caption.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| format!("file_{id}"));
+                let mime = doc.mime_type().map(|s| s.to_string());
+                let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
+                let name_l = n.to_ascii_lowercase();
+
+                let is_video_file = mime_l.starts_with("video/")
+                    || name_l.ends_with(".mp4")
+                    || name_l.ends_with(".mov")
+                    || name_l.ends_with(".mkv")
+                    || name_l.ends_with(".webm")
+                    || name_l.ends_with(".avi")
+                    || name_l.ends_with(".m4v")
+                    || name_l.ends_with(".3gp")
+                    || name_l.ends_with(".flv")
+                    || name_l.ends_with(".wmv")
+                    || name_l.ends_with(".ts")
+                    || name_l.ends_with(".m2ts")
+                    || name_l.ends_with(".vob")
+                    || name_l.ends_with(".ogv");
+
+                let is_image_file = mime_l.starts_with("image/")
+                    || name_l.ends_with(".jpg")
+                    || name_l.ends_with(".jpeg")
+                    || name_l.ends_with(".png")
+                    || name_l.ends_with(".webp")
+                    || name_l.ends_with(".gif")
+                    || name_l.ends_with(".bmp")
+                    || name_l.ends_with(".tiff");
+
+                let is_audio_file = mime_l.starts_with("audio/")
+                    || name_l.ends_with(".mp3")
+                    || name_l.ends_with(".wav")
+                    || name_l.ends_with(".flac")
+                    || name_l.ends_with(".m4a")
+                    || name_l.ends_with(".aac")
+                    || name_l.ends_with(".ogg")
+                    || name_l.ends_with(".opus");
+
+                let icon = if is_video_file {
+                    "video"
+                } else if is_audio_file {
+                    "audio"
+                } else if is_image_file {
+                    "image"
+                } else {
+                    "document"
+                };
+
+                let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
+                    if is_video_file {
+                        Some("video/mp4".to_string())
+                    } else if is_image_file {
+                        Some("image/jpeg".to_string())
+                    } else if is_audio_file {
+                        Some("audio/mpeg".to_string())
+                    } else {
+                        mime
+                    }
+                } else {
+                    mime
+                };
+
+                let is_pdf = mime_l == "application/pdf" || mime_l.contains("pdf") || name_l.ends_with(".pdf");
+
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name: n,
+                    size,
+                    mime_type: final_mime,
+                    icon_type: icon.into(),
+                    created_at: created,
+                    has_thumb: has_thumb || is_video_file || is_image_file || is_audio_file || is_pdf || !doc.thumbs().is_empty(),
+                    as_document: true,
+                    backend: BACKEND.into(),
+                    thumb_data_url,
+                })
+            }
+            Media::Sticker(_) => Some(MediaFileRow {
+                id,
+                folder_id,
+                name: format!("sticker_{id}.webp"),
+                size,
+                mime_type: Some("image/webp".into()),
+                icon_type: "image".into(),
+                created_at: created,
+                has_thumb,
+                as_document: true,
+                backend: BACKEND.into(),
+                thumb_data_url,
+            }),
+            Media::WebPage(wp) => {
+                let webpage_has_thumb = match &wp.raw.webpage {
+                    grammers_client::tl::enums::WebPage::Page(page) => {
+                        page.photo.is_some() || page.document.is_some()
+                    }
+                    _ => false,
+                };
+                let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+                let clean_title = caption.lines().next().unwrap_or(caption).trim();
+                let display_name = if !clean_title.is_empty() {
+                    if clean_title.chars().count() > 50 {
+                        format!("{}...", clean_title.chars().take(47).collect::<String>())
+                    } else {
+                        clean_title.to_string()
+                    }
+                } else {
+                    format!("link_{id}")
+                };
+                let file_name = if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") };
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name: file_name,
+                    size: caption.len() as u64,
+                    mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
+                    icon_type: if is_link { "link".into() } else { "document".into() },
+                    created_at: created,
+                    has_thumb: webpage_has_thumb,
+                    as_document: false,
+                    backend: BACKEND.into(),
+                    thumb_data_url,
+                })
+            }
+            _ => None,
+        }
+    } else if !caption.is_empty() {
+        let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
+        let clean_title = caption.lines().next().unwrap_or(caption).trim();
+        let display_name = if clean_title.chars().count() > 50 {
+            format!("{}...", clean_title.chars().take(47).collect::<String>())
+        } else {
+            clean_title.to_string()
+        };
+        let file_name = if is_link {
+            if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") }
+        } else {
+            if display_name.ends_with(".txt") { display_name } else { format!("{display_name}.txt") }
+        };
+        Some(MediaFileRow {
+            id,
+            folder_id,
+            name: file_name,
+            size: caption.len() as u64,
+            mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
+            icon_type: if is_link { "link".into() } else { "document".into() },
+            created_at: created,
+            has_thumb: false,
+            as_document: false,
+            backend: BACKEND.into(),
+            thumb_data_url: None,
+        })
+    } else {
+        None
+    }
+}
+
+/// Forward messages source → dest (no delete). Returns count forwarded.
+pub fn forward_messages_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    source_chat: &str,
+    dest_chat: &str,
+    message_ids: &[i64],
+) -> Result<usize, TgError> {
+    let rt = runtime()?;
+    let src = source_chat.to_string();
+    let dst = dest_chat.to_string();
+    let ids: Vec<i32> = message_ids
+        .iter()
+        .filter(|&&id| id > 0)
+        .map(|&id| id as i32)
+        .take(100)
+        .collect();
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    rt.block_on(async {
+        with_client(sessions_dir, identity, true, |client| {
+            Box::pin(async move {
+                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                }
+                let source = resolve_peer(client, &src).await?;
+                let dest = resolve_peer(client, &dst).await?;
+                let forwarded = client
+                    .forward_messages(dest, &ids, source)
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
+                Ok(forwarded.iter().filter(|m| m.is_some()).count())
+            })
+        })
+        .await
+    })
+}
+
+pub fn message_topic_id(msg: &grammers_client::message::Message) -> Option<i64> {
+    use grammers_client::tl::enums::MessageReplyHeader as H;
+    match msg.reply_header()? {
+        H::Header(h) => {
+            if let Some(top) = h.reply_to_top_id {
+                return Some(top as i64);
+            }
+            // Topic root posts often only set reply_to_msg_id == topic id
+            if h.forum_topic {
+                if let Some(mid) = h.reply_to_msg_id {
+                    return Some(mid as i64);
+                }
+            }
+            h.reply_to_msg_id.map(|m| m as i64)
+        }
+        _ => None,
+    }
+}
+
+/// List media messages in a chat (newest first). Optional forum `topic_id` filter.
+pub fn list_media_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    list_media_blocking_topic(sessions_dir, identity, chat_id, limit, offset_id, None)
+}
+
+pub fn list_media_blocking_topic(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+) -> Result<ListMediaResult, TgError> {
+    let rt = runtime()?;
+    let limit = limit.clamp(1, 150);
+    let chat = chat_id.to_string();
+    let folder_id: Option<i64> = if chat.eq_ignore_ascii_case("me") || chat == "0" {
+        None
+    } else {
+        chat.parse().ok()
+    };
+    let topic_filter = topic_id.filter(|t| *t > 0);
+    // Over-fetch when filtering by topic so a page still fills even for older topics
+    let scan_limit = if topic_filter.is_some() {
+        (limit * 100).clamp(1000, 10000)
+    } else {
+        (limit * 5).clamp(150, 500)
+    };
+    let session_name = identity.session.clone();
+
+    rt.block_on(async {
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            let session_name = session_name.clone();
+            with_client(sessions_dir, identity, true, |client| {
+                Box::pin(async move {
+                    ensure_authorized(client, &session_name).await?;
+                    let mut peer_res = resolve_peer(client, &chat).await;
+                    if let Err(ref e) = peer_res {
+                        let err_str = e.to_string();
+                        if err_str.contains("CHANNEL_INVALID")
+                            || err_str.contains("CHANNEL_PRIVATE")
+                            || err_str.contains("PEER_ID_INVALID")
+                        {
+                            clear_peer_cache_for_all(&chat);
+                            peer_res = resolve_peer(client, &chat).await;
+                        }
+                    }
+                    let peer = peer_res?;
+                    let mut iter = client.iter_messages(peer).limit(scan_limit);
+                    if let Some(oid) = offset_id {
+                        if oid > 0 {
+                            iter = iter.offset_id(oid as i32);
+                        }
+                    }
+                    let mut files = Vec::new();
+                    let mut last_id: Option<i64> = None;
+                    let mut scanned = 0usize;
+
+                    let mut first_item = iter.next().await;
+                    if let Err(ref e) = first_item {
+                        let err_str = e.to_string();
+                        if err_str.contains("CHANNEL_INVALID")
+                            || err_str.contains("CHANNEL_PRIVATE")
+                            || err_str.contains("PEER_ID_INVALID")
+                        {
+                            clear_peer_cache_for_all(&chat);
+                            let fresh_peer = resolve_peer(client, &chat).await?;
+                            let mut fresh_iter = client.iter_messages(fresh_peer).limit(scan_limit);
+                            if let Some(oid) = offset_id {
+                                if oid > 0 {
+                                    fresh_iter = fresh_iter.offset_id(oid as i32);
+                                }
+                            }
+                            iter = fresh_iter;
+                            first_item = iter.next().await;
+                        }
+                    }
+
+                    while let Ok(Some(msg)) = first_item {
+                        last_id = Some(msg.id() as i64);
+                        scanned += 1;
+                        if let Some(want) = topic_filter {
+                            let tid = message_topic_id(&msg);
+                            let mid = msg.id() as i64;
+                            if tid != Some(want) && mid != want {
+                                first_item = iter.next().await;
+                                continue;
+                            }
+                        }
+                        if let Some(row) = media_to_row(&msg, folder_id) {
+                            files.push(row);
+                            if files.len() >= limit {
+                                break;
+                            }
+                        }
+                        first_item = iter.next().await;
+                    }
+                    let has_more = files.len() >= limit || scanned >= scan_limit;
+                    let next_offset_id = if has_more {
+                        files.last().map(|f| f.id).or(last_id)
+                    } else {
+                        None
+                    };
+                    tg_log::info(
+                        BACKEND,
+                        "list_media",
+                        format!(
+                            "chat={} n={} has_more={} topic={:?}",
+                            chat,
+                            files.len(),
+                            has_more,
+                            topic_filter
+                        ),
+                    );
+                    Ok(ListMediaResult {
+                        status: "success".into(),
+                        folder_id,
+                        total: files.len(),
+                        page_size: limit,
+                        has_more,
+                        next_offset_id,
+                        files,
+                        backend: BACKEND.into(),
+                        cached: false,
+                    })
+                })
+            })
+        })
+        .await
+    })
+}
