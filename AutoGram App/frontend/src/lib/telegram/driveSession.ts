@@ -1,0 +1,1101 @@
+/**
+ * Drive session boundary.
+ *
+ * FORCE RUST: interactive Drive no longer spawns Python Telethon `drive-serve`.
+ * Grammers (Tauri `tg_*`) owns all MTProto. This module still exposes readiness
+ * helpers so UI boot paths stay stable, and can kill leftover Python workers.
+ */
+import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { spawnDaemonJob, killWorkerJob, type JobChild } from '../jobProcess';
+import type { DriveCredentials } from '../driveApi';
+import { detectTauriRuntime } from '../platform';
+import { isDebugMode } from '../debugMode';
+
+/** Hard cutover: never start Telethon drive-serve on desktop. */
+export const FORCE_RUST_DRIVE = true;
+
+export const DRIVE_SERVE_JOB_ID_BASE = 992000;
+export const DRIVE_SERVE_JOB_ID = 991003;
+export const API_SERVER_JOB_ID = 991005;
+
+export const CIRCUIT_BREAKER_THRESHOLD = 3;
+export const CIRCUIT_BREAKER_COOLDOWN_MS = 30000; // 30s
+export const BACKOFF_DELAYS = [5000, 10000, 20000]; // 5s, 10s, 20s
+export const GRACEFUL_SHUTDOWN_MS = 200; // 200ms fast shutdown for instant session switching
+
+// Session key -> consecutive failures
+const consecutiveFailures: Record<string, number> = {};
+// Session key -> is circuit breaker tripped
+const isTripped: Record<string, boolean> = {};
+// Session key -> error message (classified permanent/fatal)
+const sessionErrors: Record<string, string> = {};
+// Session key -> last failure timestamp
+const lastFailureTime: Record<string, number> = {};
+
+let activeJobId = DRIVE_SERVE_JOB_ID;
+
+function handleStderrLine(creds: DriveCredentials, line: string) {
+  const text = String(line || '').trim();
+  if (!text) return;
+  const lower = text.toLowerCase();
+  const key = credKey(creds);
+  
+  const isPermanent =
+    lower.includes('session not authorized') ||
+    lower.includes('unauthorized') ||
+    lower.includes('api_id/api_hash required') ||
+    lower.includes('api_id required') ||
+    lower.includes('api_hash required') ||
+    lower.includes('invalid api_id') ||
+    lower.includes('sessionpasswordneedederror') ||
+    lower.includes('authkeyunregisterederror') ||
+    lower.includes('passwordrequired') ||
+    lower.includes('authkeyerror');
+    
+  if (isPermanent) {
+    console.error('[drive-serve] Permanent failure detected in stderr:', text);
+    sessionErrors[key] = text;
+    isTripped[key] = true;
+    lastFailureTime[key] = Date.now();
+    consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD;
+  }
+}
+
+function handleSpawnFailure(creds: DriveCredentials, code: number) {
+  const key = credKey(creds);
+  if (isTripped[key] && sessionErrors[key] && !sessionErrors[key].includes('Attempt')) {
+    // If it's already tripped with a permanent failure, don't overwrite it
+    return;
+  }
+  
+  consecutiveFailures[key] = (consecutiveFailures[key] || 0) + 1;
+  lastFailureTime[key] = Date.now();
+  
+  if (consecutiveFailures[key] >= CIRCUIT_BREAKER_THRESHOLD) {
+    isTripped[key] = true;
+    sessionErrors[key] = `Drive session failed to start after 3 attempts (Exit Code: ${code})`;
+    console.error(`[drive-serve] Circuit breaker tripped for ${key}: ${sessionErrors[key]}`);
+  } else {
+    sessionErrors[key] = `Drive session exited with code ${code} (Attempt ${consecutiveFailures[key]}/3)`;
+    console.warn(`[drive-serve] Spawn attempt failed (${consecutiveFailures[key]}/3) for ${key}`);
+  }
+}
+
+type Pending = {
+  resolve: (v: any) => void;
+  reject: (e: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+let child: JobChild | null = null;
+let apiChild: JobChild | null = null;
+let ready = false;
+let starting: Promise<void> | null = null;
+let unsub: UnlistenFn | null = null;
+let unsubExit: UnlistenFn | null = null;
+let reqSeq = 0;
+const pending = new Map<string, Pending>();
+let activeCredsKey = '';
+let scheduledStop: ReturnType<typeof setTimeout> | null = null;
+let sessionGeneration = 0;
+let bootstrapLock: Promise<boolean> = Promise.resolve(true);
+
+
+// GHOST SESSION STATES
+let mode: 'main' | 'ghost' | 'ghost-starting' = 'main';
+let activePreviews = 0;
+let ghostReady = false;
+let ghostTimer: ReturnType<typeof setTimeout> | null = null;
+const GHOST_GRACE_MS = 30000;
+
+function credKey(c: DriveCredentials) {
+  return `${c.session}|${c.apiId}`;
+}
+
+/**
+ * Mirror the non-secret lease key used by driveApi/Rust without importing the
+ * runtime driveApi module (driveApi already imports this module). Keeping this
+ * guard at the session boundary also protects direct ensureDriveSession callers.
+ */
+function sessionLeaseKey(creds: DriveCredentials): string {
+  const input = `${creds.session}|${creds.apiId}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ (c + i), 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
+async function hasTransferLease(creds: DriveCredentials): Promise<boolean> {
+  if (!detectTauriRuntime()) return false;
+  try {
+    return !!(await invoke('get_worker_session_lease', {
+      sessionKeyHash: sessionLeaseKey(creds),
+    }));
+  } catch {
+    // Older/non-Tauri runtimes do not expose the lease command.
+    return false;
+  }
+}
+
+/**
+ * A ready worker is only useful when it belongs to the requested Telegram
+ * session.  Treating a worker from another session as ready can leak dialog
+ * folders, peers, and Saved Messages between accounts during a rapid switch.
+ */
+export function isDriveSessionReadyFor(creds: DriveCredentials | null | undefined) {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    // Virtual ready: Grammers has no long-lived Python worker to warm.
+    return !!creds && (!activeCredsKey || activeCredsKey === credKey(creds));
+  }
+  return !!creds && ready && activeCredsKey === credKey(creds);
+}
+
+type DriveEventListener = (event: { type: string; [k: string]: any }) => void;
+const listeners = new Set<DriveEventListener>();
+
+// Worker logging buffer for diagnostics (circular)
+const workerLog: string[] = [];
+let workerLogFlushTimer: number | null = null;
+function pushWorkerLog(line: string) {
+  if (!isDebugMode()) {
+    if (workerLog.length > 0) {
+      workerLog.length = 0;
+    }
+    return;
+  }
+  try {
+    const ts = new Date().toISOString();
+    workerLog.push(`${ts} ${String(line || '')}`);
+    if (workerLog.length > 5000) workerLog.shift();
+    if (workerLogFlushTimer == null) {
+      workerLogFlushTimer = window.setTimeout(flushWorkerLogToFile, 10000); // 10s throttle in debug mode
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function flushWorkerLogToFile() {
+  try {
+    if (workerLogFlushTimer != null) {
+      clearTimeout(workerLogFlushTimer);
+      workerLogFlushTimer = null;
+    }
+    if (!isDebugMode()) {
+      workerLog.length = 0;
+      return;
+    }
+    if (!workerLog.length) return;
+    const contents = workerLog.join('\n') + '\n';
+    // Attempt to write to AppLocalData/AutoGram/drive-worker.log
+    try {
+      await writeTextFile('AutoGram/drive-worker.log', contents, {
+        baseDir: BaseDirectory.AppLocalData,
+      });
+    } catch (e) {
+      // best-effort: ignore write failures
+      console.warn('[drive-serve] failed to write worker log:', e);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function addDriveEventListener(l: DriveEventListener) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+function settleLine(line: string) {
+  const text = String(line || '').trim();
+  if (!text.startsWith('{')) return;
+  try {
+    const msg = JSON.parse(text);
+    if (msg.type === 'ready') {
+      ready = true;
+      return;
+    }
+    if (
+      msg.type === 'index_progress' ||
+      msg.type === 'index_complete' ||
+      msg.type === 'update' ||
+      msg.type === 'pts_update'
+    ) {
+      listeners.forEach((l) => l(msg));
+      return;
+    }
+    const id = msg.id != null ? String(msg.id) : '';
+    if (!id || !pending.has(id)) return;
+    const p = pending.get(id)!;
+    pending.delete(id);
+    clearTimeout(p.timer);
+    if (msg.ok === false) {
+      p.reject(new Error(msg.error || 'Drive serve error'));
+    } else {
+      p.resolve(msg.result);
+    }
+  } catch {
+    /* ignore non-json */
+  }
+}
+
+async function writeStdin(line: string) {
+  if (!detectTauriRuntime()) throw new Error('drive-serve requires desktop app');
+  await invoke('write_worker_stdin', { jobId: activeJobId, line });
+}
+
+export function isDriveSessionReady() {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) return true;
+  return ready;
+}
+
+// GHOST SESSION LIFECYCLE MANAGEMENT
+
+export function registerPreviewOpen(creds: DriveCredentials): void {
+  const key = credKey(creds);
+  if (activeCredsKey !== key) return;
+  activePreviews++;
+  cancelGhostTransition();
+}
+
+export function registerPreviewClose(creds: DriveCredentials): void {
+  const key = credKey(creds);
+  if (activeCredsKey !== key) return;
+  activePreviews = Math.max(0, activePreviews - 1);
+  if (activePreviews === 0 && mode === 'ghost') {
+    scheduleGhostToMainTransition(creds);
+  }
+}
+
+export function isGhostSessionReady(creds: DriveCredentials): boolean {
+  const key = credKey(creds);
+  return activeCredsKey === key && mode === 'ghost' && ghostReady;
+}
+
+export function isPreviewActive(): boolean {
+  return mode === 'ghost' || mode === 'ghost-starting' || activePreviews > 0;
+}
+
+function scheduleGhostToMainTransition(creds: DriveCredentials): void {
+  cancelGhostTransition();
+  ghostTimer = setTimeout(async () => {
+    if (activePreviews > 0 || mode !== 'ghost') return;
+    try {
+      await invoke('cleanup_ghost_session', { sessionName: creds.session });
+    } catch (e) {
+      console.warn('[GhostSession] Cleanup failed:', e);
+    }
+    // Re-spawn main session via serialized queue
+    await ensureDriveSession(creds, false);
+  }, GHOST_GRACE_MS);
+}
+
+function cancelGhostTransition(): void {
+  if (ghostTimer) {
+    clearTimeout(ghostTimer);
+    ghostTimer = null;
+  }
+}
+
+async function spawnGhostSession(creds: DriveCredentials): Promise<boolean> {
+  if (!detectTauriRuntime()) return false;
+  const key = credKey(creds);
+  try {
+    mode = 'ghost-starting';
+    ghostReady = false;
+    activeJobId = DRIVE_SERVE_JOB_ID;
+
+    // 1. Clone session via Rust (with automatic pause flag)
+    await invoke('ensure_ghost_session', { sessionName: creds.session });
+
+    // 2. Stop main session
+    await stopDriveSession();
+    await new Promise<void>((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
+
+    // 3. Spawn drive-serve with ghost session (_preview)
+    const generation = ++sessionGeneration;
+    activeCredsKey = key;
+    ready = false;
+    const settleCurrentLine = (line: string) => {
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
+    };
+
+    const unsubs: UnlistenFn[] = [];
+    let processAssigned = false;
+    let startupReject: ((err: Error) => void) | null = null;
+    let onReadyCheck: ReturnType<typeof setInterval> | null = null;
+    let t: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanStartupTimers = () => {
+      if (onReadyCheck) {
+        clearInterval(onReadyCheck);
+        onReadyCheck = null;
+      }
+      if (t) {
+        clearTimeout(t);
+        t = null;
+      }
+    };
+
+    unsub = await listen<{ jobId: number; line: string; stream: string }>('worker-line', (ev) => {
+      const p = ev.payload as any;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[ghost ${String(p.stream || '')}] ${String(p.line || '')}`);
+      } catch {
+        /* ignore */
+      }
+      if (p.stream === 'stderr') {
+        console.warn('[drive-serve-ghost]', p.line);
+        handleStderrLine(creds, p.line);
+      } else {
+        settleCurrentLine(p.line);
+      }
+    });
+    unsubs.push(unsub);
+
+    const uStderr = await listen<string>('worker-stderr', (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
+
+    unsubExit = await listen<{ jobId: number; code: number }>('worker-exit', (ev) => {
+      const p = ev.payload as any;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== DRIVE_SERVE_JOB_ID) return;
+      if (generation !== sessionGeneration) return;
+      if (!processAssigned) return;
+
+      const wasReady = ready;
+      ready = false; // Mark not ready immediately to prevent any new writeStdin/RPC calls
+
+      const markEnded = () => {
+        if (generation !== sessionGeneration) return;
+        ready = false;
+        child = null;
+        for (const [, pend] of pending) {
+          clearTimeout(pend.timer);
+          const err = new Error('Drive session ended');
+          (err as any).code = 'DRIVE_SESSION_ENDED';
+          pend.reject(err);
+        }
+        pending.clear();
+      };
+
+      if (!wasReady) {
+        cleanStartupTimers();
+        if (startupReject) {
+          startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
+        }
+        handleSpawnFailure(creds, p.code);
+        return;
+      }
+
+      // Log abnormal exits for diagnostics
+      if (p.code !== 0) {
+        console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+        handleSpawnFailure(creds, p.code);
+      } else {
+        console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
+      }
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+        /* ignore */
+      }
+      markEnded();
+    });
+    unsubs.push(unsubExit);
+
+    await new Promise<void>((resolve, reject) => {
+      startupReject = reject;
+      t = setTimeout(() => {
+        cleanStartupTimers();
+        reject(new Error('Ghost drive session start timeout'));
+      }, 20000);
+      // Soft poll only — settleLine already flips `ready`; avoid 40ms busy interval.
+      onReadyCheck = setInterval(() => {
+        if (ready && processAssigned) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }, 120);
+
+      spawnDaemonJob({
+        jobId: DRIVE_SERVE_JOB_ID,
+        args: [
+          '--action',
+          'drive-serve',
+          '--session',
+          `${creds.session}_preview`,
+          '--api-id',
+          String(creds.apiId),
+          '--api-hash',
+          String(creds.apiHash),
+        ],
+        pipeStdin: true,
+        allowShellFallback: false,
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
+        onStderrLine: (line) => console.warn('[drive-serve-ghost]', line),
+        onClose: () => undefined,
+      })
+        .then((c) => {
+          child = {
+            ...c,
+            dispose: () => {
+              unsubs.forEach((u) => {
+                try {
+                  u();
+                } catch {
+                  /* ignore */
+                }
+              });
+              c.dispose?.();
+            },
+          };
+          processAssigned = true;
+          if (ready) {
+            cleanStartupTimers();
+            resolve();
+          }
+        })
+        .catch((e) => {
+          if (onReadyCheck) clearInterval(onReadyCheck);
+          if (t) clearTimeout(t);
+          reject(e);
+        });
+    });
+
+    mode = 'ghost';
+    ghostReady = true;
+    return true;
+  } catch (err) {
+    console.error('[GhostSession] Failed to spawn ghost:', err);
+    mode = 'main';
+    ghostReady = false;
+    return await spawnMainSession(creds);
+  }
+}
+
+async function spawnApiServer(creds: DriveCredentials): Promise<void> {
+  if (!detectTauriRuntime()) return;
+  try {
+    await killWorkerJob(API_SERVER_JOB_ID);
+  } catch {
+    /* ignore */
+  }
+  console.log('[API-SERVER] Spawning FastAPI server on port 8550...');
+  try {
+    const c = await spawnDaemonJob({
+      jobId: API_SERVER_JOB_ID,
+      args: [
+        '--action',
+        'api-server',
+        '--port',
+        '8550',
+        '--session',
+        creds.session,
+        '--api-id',
+        String(creds.apiId),
+        '--api-hash',
+        String(creds.apiHash),
+      ],
+      allowShellFallback: false,
+      onStdoutLine: (line) => console.log('[API-SERVER stdout]', line),
+      onStderrLine: (line) => console.warn('[API-SERVER stderr]', line),
+      onClose: () => {
+        apiChild = null;
+        console.log('[API-SERVER] FastAPI server stopped.');
+      },
+    });
+    apiChild = c;
+  } catch (err) {
+    console.error('[API-SERVER] Failed to spawn FastAPI server:', err);
+  }
+}
+
+async function spawnMainSession(creds: DriveCredentials): Promise<boolean> {
+  if (!detectTauriRuntime()) return false;
+  const key = credKey(creds);
+  try {
+    mode = 'main';
+    ghostReady = false;
+
+    await stopDriveSession();
+    await new Promise<void>((resolve) => setTimeout(resolve, GRACEFUL_SHUTDOWN_MS));
+    try {
+      await invoke('cleanup_ghost_session', { sessionName: creds.session });
+    } catch (e) {
+      console.warn('[drive-serve] cleanup_ghost_session failed:', e);
+    }
+
+    const generation = ++sessionGeneration;
+    activeJobId = DRIVE_SERVE_JOB_ID_BASE + (generation % 1000);
+    const currentActiveJobId = activeJobId;
+    activeCredsKey = key;
+    ready = false;
+    const settleCurrentLine = (line: string) => {
+      if (generation === sessionGeneration) {
+        settleLine(line);
+        if (ready) {
+          const k = credKey(creds);
+          consecutiveFailures[k] = 0;
+          delete sessionErrors[k];
+        }
+      }
+    };
+
+    const unsubs: UnlistenFn[] = [];
+    let processAssigned = false;
+    let startupReject: ((err: Error) => void) | null = null;
+    let onReadyCheck: ReturnType<typeof setInterval> | null = null;
+    let t: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanStartupTimers = () => {
+      if (onReadyCheck) {
+        clearInterval(onReadyCheck);
+        onReadyCheck = null;
+      }
+      if (t) {
+        clearTimeout(t);
+        t = null;
+      }
+    };
+
+    unsub = await listen<{ jobId: number; line: string; stream: string }>('worker-line', (ev) => {
+      const p = ev.payload as any;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== currentActiveJobId) return;
+      if (generation !== sessionGeneration) return;
+      try {
+        pushWorkerLog(`[main ${String(p.stream || '')}] ${String(p.line || '')}`);
+      } catch {
+        /* ignore */
+      }
+      if (p.stream === 'stderr') {
+        console.warn('[drive-serve]', p.line);
+        handleStderrLine(creds, p.line);
+      } else {
+        settleCurrentLine(p.line);
+      }
+    });
+    unsubs.push(unsub);
+
+    const uStderr = await listen<string>('worker-stderr', (ev) => {
+      if (generation !== sessionGeneration) return;
+      handleStderrLine(creds, ev.payload);
+    });
+    unsubs.push(uStderr);
+
+    unsubExit = await listen<{ jobId: number; code: number }>('worker-exit', (ev) => {
+      const p = ev.payload as any;
+      const jid = p?.jobId ?? p?.job_id;
+      if (Number(jid) !== currentActiveJobId) return;
+      if (generation !== sessionGeneration) return;
+      if (!processAssigned) return;
+
+      const wasReady = ready;
+      ready = false; // Mark not ready immediately to prevent any new writeStdin/RPC calls
+
+      const markEnded = () => {
+        if (generation !== sessionGeneration) return;
+        ready = false;
+        child = null;
+        for (const [, pend] of pending) {
+          clearTimeout(pend.timer);
+          const err = new Error('Drive session ended');
+          (err as any).code = 'DRIVE_SESSION_ENDED';
+          pend.reject(err);
+        }
+        pending.clear();
+      };
+
+      if (!wasReady) {
+        cleanStartupTimers();
+        if (startupReject) {
+          startupReject(new Error(`Drive session process exited during startup with code ${p.code}`));
+        }
+        handleSpawnFailure(creds, p.code);
+        return;
+      }
+
+      // Log abnormal exits for diagnostics
+      if (p.code !== 0) {
+        console.error('[drive-serve] Worker exited with code', p.code, 'generation', generation, 'activeCredsKey', activeCredsKey);
+        handleSpawnFailure(creds, p.code);
+      } else {
+        console.warn('[drive-serve] Worker exited gracefully (code 0) post-startup', { code: p.code, generation, activeCredsKey });
+        const k = credKey(creds);
+        consecutiveFailures[k] = 0;
+      }
+      try {
+        pushWorkerLog(`[worker-exit] code=${p.code} generation=${generation} activeCreds=${activeCredsKey}`);
+        void flushWorkerLogToFile();
+      } catch {
+        /* ignore */
+      }
+      markEnded();
+    });
+    unsubs.push(unsubExit);
+
+    await new Promise<void>((resolve, reject) => {
+      startupReject = reject;
+      t = setTimeout(() => {
+        cleanStartupTimers();
+        reject(new Error('Drive session start timeout'));
+      }, 20000);
+      // Event-driven settle preferred; 120ms poll is only a safety net.
+      onReadyCheck = setInterval(() => {
+        if (ready && processAssigned) {
+          cleanStartupTimers();
+          resolve();
+        }
+      }, 120);
+
+      spawnDaemonJob({
+        jobId: currentActiveJobId,
+        args: [
+          '--action',
+          'drive-serve',
+          '--session',
+          creds.session,
+          '--api-id',
+          String(creds.apiId),
+          '--api-hash',
+          String(creds.apiHash),
+        ],
+        pipeStdin: true,
+        allowShellFallback: false,
+        onStdoutLine: (line) => {
+          settleCurrentLine(line);
+          if (ready && processAssigned) {
+            cleanStartupTimers();
+            resolve();
+          }
+        },
+        onStderrLine: (line) => console.warn('[drive-serve]', line),
+        onClose: () => undefined,
+      })
+        .then((c) => {
+          child = {
+            ...c,
+            dispose: () => {
+              unsubs.forEach((u) => {
+                try {
+                  u();
+                } catch {
+                  /* ignore */
+                }
+              });
+              c.dispose?.();
+            },
+          };
+          processAssigned = true;
+          if (ready) {
+            cleanStartupTimers();
+            resolve();
+          }
+        })
+        .catch((e) => {
+          if (onReadyCheck) clearInterval(onReadyCheck);
+          if (t) clearTimeout(t);
+          reject(e);
+        });
+    });
+
+    // Spawn FastAPI api-server alongside main session
+    void spawnApiServer(creds);
+
+    return true;
+  } catch (e) {
+    console.warn('[drive-serve] spawn main failed', e);
+    if (activeCredsKey === key) {
+      ready = false;
+      child = null;
+    }
+    return false;
+  }
+}
+
+/**
+ * Start warm drive-serve if possible.
+ *
+ * needPreview=true means the caller can tolerate (and may need) a ghost
+ * `_preview` session when Media Studio holds an exclusive transfer lease.
+ * When no transfer is active we always prefer the main session — spawning
+ * ghost unconditionally races with list/bootstrap and causes "session in use"
+ * / SQLite lock conflicts.
+ */
+export async function ensureDriveSession(
+  creds: DriveCredentials,
+  needPreview: boolean = false
+): Promise<boolean> {
+  // FORCE RUST: mark virtual session ready; kill any leftover Python drive-serve.
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    cancelScheduledDriveSessionStop();
+    const key = credKey(creds);
+    if (child || apiChild || (ready && activeCredsKey && activeCredsKey !== key)) {
+      try {
+        await stopDriveSession();
+      } catch {
+        /* ignore */
+      }
+    }
+    activeCredsKey = key;
+    ready = true;
+    mode = 'main';
+    ghostReady = false;
+    return true;
+  }
+
+  const run = async () => {
+    cancelScheduledDriveSessionStop();
+
+    const key = credKey(creds);
+
+    // 1. Check Circuit Breaker
+    if (isDriveSessionCircuitTripped(creds)) {
+      console.warn(`[drive-serve] Spawn blocked: Circuit breaker tripped for ${key}`);
+      return false;
+    }
+
+    // 2. Check backoff cooldown
+    const failures = consecutiveFailures[key] || 0;
+    if (failures > 0) {
+      const delay = BACKOFF_DELAYS[Math.min(failures - 1, BACKOFF_DELAYS.length - 1)];
+      const elapsed = Date.now() - (lastFailureTime[key] || 0);
+      if (elapsed < delay) {
+        const remaining = delay - elapsed;
+        console.log(`[drive-serve] Backoff active for ${key}. Waiting ${remaining}ms before spawning...`);
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+    }
+
+    const transferLease = await hasTransferLease(creds);
+
+    if (!needPreview) {
+      // Normal mode: exclusive transfer owns the session
+      if (transferLease) return false;
+      if (mode === 'main' && isDriveSessionReadyFor(creds)) return true;
+    } else {
+      // Preview mode:
+      // 1. Prefer a warm main session (no clone thrash)
+      if (mode === 'main' && isDriveSessionReadyFor(creds) && ready) {
+        return true;
+      }
+      // 2. Ghost already serving preview during transfer
+      if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
+        cancelGhostTransition();
+        return true;
+      }
+      // 3. Transfer owns main — only ghost can open without clobbering it
+      // (spawn happens below). If no lease, fall through to main spawn.
+    }
+
+    // Wait for any in-flight startup to settle
+    while (starting) {
+      const inFlight = starting;
+      try {
+        await inFlight;
+      } catch {
+        // ignore
+      }
+      if (!needPreview && mode === 'main' && isDriveSessionReadyFor(creds)) return true;
+      if (needPreview) {
+        if (mode === 'main' && isDriveSessionReadyFor(creds) && ready) return true;
+        if (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) {
+          cancelGhostTransition();
+          return true;
+        }
+      }
+      if (starting === inFlight) break;
+    }
+
+    if (!detectTauriRuntime()) return false;
+
+    // Re-check lease after wait — transfer may have started/finished
+    const leaseNow = await hasTransferLease(creds);
+
+    const startPromise = (async () => {
+      if (needPreview && leaseNow) {
+        // Media Studio holds main .session — use isolated ghost for preview/stream
+        await spawnGhostSession(creds);
+      } else if (leaseNow) {
+        // Non-preview caller during transfer: do not fight for the session
+        return;
+      } else {
+        // No exclusive transfer: always use main (even for preview open)
+        await spawnMainSession(creds);
+      }
+    })();
+    starting = startPromise;
+
+    try {
+      await startPromise;
+      if (needPreview) {
+        return (
+          (mode === 'ghost' && isDriveSessionReadyFor(creds) && ghostReady) ||
+          (mode === 'main' && isDriveSessionReadyFor(creds) && ready)
+        );
+      }
+      return mode === 'main' && isDriveSessionReadyFor(creds);
+    } catch (e) {
+      console.warn('[drive-serve] ensureDriveSession failed', e);
+      return false;
+    } finally {
+      if (starting === startPromise) {
+        starting = null;
+      }
+    }
+  };
+
+  const next = bootstrapLock.then(run, run);
+  bootstrapLock = next;
+  return next;
+}
+
+export function scheduleDriveSessionStop(delayMs = 750): void {
+  cancelScheduledDriveSessionStop();
+  scheduledStop = setTimeout(() => {
+    scheduledStop = null;
+    void stopDriveSession();
+  }, Math.max(0, delayMs));
+}
+
+export function cancelScheduledDriveSessionStop(): void {
+  if (scheduledStop == null) return;
+  clearTimeout(scheduledStop);
+  scheduledStop = null;
+}
+
+export async function stopDriveSession(): Promise<void> {
+  cancelScheduledDriveSessionStop();
+  cancelGhostTransition();
+  sessionGeneration += 1;
+  let quitRequested = false;
+  try {
+    if (ready) {
+      try {
+        await writeStdin(JSON.stringify({ id: 'quit', cmd: 'quit' }));
+        quitRequested = true;
+      } catch {
+        /* ignore */
+      }
+    }
+  } finally {
+    ready = false;
+    mode = 'main';
+    ghostReady = false;
+    activePreviews = 0;
+    for (const [, p] of pending) {
+      clearTimeout(p.timer);
+      const err = new Error('Drive session stopped');
+      (err as any).code = 'DRIVE_SESSION_STOPPED';
+      p.reject(err);
+    }
+    pending.clear();
+    if (quitRequested) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 320));
+    }
+    try {
+      await killWorkerJob(DRIVE_SERVE_JOB_ID);
+      await killWorkerJob(activeJobId);
+      if (child?.jobId) {
+        await killWorkerJob(child.jobId);
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      await killWorkerJob(API_SERVER_JOB_ID);
+    } catch {
+      /* ignore */
+    }
+    try {
+      child?.dispose?.();
+    } catch {
+      /* ignore */
+    }
+    try {
+      apiChild?.dispose?.();
+    } catch {
+      /* ignore */
+    }
+    child = null;
+    apiChild = null;
+    activeCredsKey = '';
+    unsub = null;
+    unsubExit = null;
+  }
+}
+
+export async function driveSessionCallFor(
+  creds: DriveCredentials,
+  cmd: string,
+  params: Record<string, any> = {},
+  timeoutMs = 120000
+): Promise<any> {
+  if (FORCE_RUST_DRIVE && detectTauriRuntime()) {
+    const err = new Error(
+      `Telethon drive-serve dinonaktifkan (cmd=${cmd}). Gunakan Rust + Grammers.`
+    );
+    (err as any).code = 'TELETHON_DISABLED';
+    throw err;
+  }
+  const expected = credKey(creds);
+  // Preview/stream RPCs may need ghost during transfer; list/bootstrap stay on main.
+  const previewCmds = new Set([
+    'preview',
+    'preview_stream',
+    'stream_preview',
+    'preview_warm',
+    'warm_preview',
+    'stream_status',
+    'preview_status',
+    'stop_stream',
+    'stream_stop',
+    'stream_seek',
+    'seek_stream',
+    'preview_seek',
+  ]);
+  const needPreview = mode === 'ghost' || previewCmds.has(String(cmd || '').toLowerCase()) || activePreviews > 0;
+  const maxAttempts = 3;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Ensure session is warm and owned
+    if (!isDriveSessionReadyFor(creds)) {
+      const ok = await ensureDriveSession(creds, needPreview);
+      if (!ok || !isDriveSessionReadyFor(creds)) {
+        lastErr = new Error('Drive session is not ready for the selected account');
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+          continue;
+        }
+        throw lastErr;
+      }
+    }
+    if (!ready || activeCredsKey !== expected) {
+      lastErr = new Error('Drive session changed before request could start');
+      if (attempt < maxAttempts - 1) {
+        await new Promise((r) => setTimeout(r, 300 + attempt * 200));
+        continue;
+      }
+      throw lastErr;
+    }
+
+    try {
+      return await driveSessionCall(cmd, { ...params, __session_owner: expected }, timeoutMs, expected);
+    } catch (e: any) {
+      lastErr = e;
+      const msg = String(e?.message || '').toLowerCase();
+      const code = e?.code || '';
+      const isSessionErr =
+        code === 'DRIVE_SESSION_STOPPED' ||
+        code === 'DRIVE_SESSION_ENDED' ||
+        /drive session stopped|drive session ended|drive session not ready|session not ready|drive session changed|no stdin for job|is drive-serve running/i.test(msg);
+
+      if (isSessionErr && attempt < maxAttempts - 1) {
+        try {
+          // Try to re-bootstrap the drive session before retrying
+          await ensureDriveSession(creds, needPreview);
+        } catch {
+          /* ignore */
+        }
+        await new Promise((r) => setTimeout(r, 400 + attempt * 250));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+export async function driveSessionCall(
+  cmd: string,
+  params: Record<string, any> = {},
+  timeoutMs = 120000,
+  expectedCredsKey = ''
+): Promise<any> {
+  if (!ready) {
+    throw new Error('Drive session not ready');
+  }
+  if (expectedCredsKey && activeCredsKey !== expectedCredsKey) {
+    throw new Error('Drive session ownership changed');
+  }
+  const id = String(++reqSeq);
+  const { __session_owner: _sessionOwner, ...safeParams } = params;
+  const line = JSON.stringify({ id, cmd, ...safeParams });
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error(`Drive RPC timeout: ${cmd}`));
+    }, timeoutMs);
+    pending.set(id, { resolve, reject, timer });
+    if (expectedCredsKey && activeCredsKey !== expectedCredsKey) {
+      pending.delete(id);
+      clearTimeout(timer);
+      reject(new Error('Drive session ownership changed before write'));
+      return;
+    }
+    writeStdin(line).catch((e) => {
+      pending.delete(id);
+      clearTimeout(timer);
+      ready = false;
+      reject(e);
+    });
+  });
+}
+
+export function getDriveSessionError(creds: DriveCredentials): string | null {
+  const key = credKey(creds);
+  return sessionErrors[key] || null;
+}
+
+export function isDriveSessionCircuitTripped(creds: DriveCredentials): boolean {
+  const key = credKey(creds);
+  if (isTripped[key]) {
+    const timeSinceLastFailure = Date.now() - (lastFailureTime[key] || 0);
+    if (timeSinceLastFailure > CIRCUIT_BREAKER_COOLDOWN_MS) {
+      isTripped[key] = false;
+      consecutiveFailures[key] = CIRCUIT_BREAKER_THRESHOLD - 1;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+export function resetDriveSessionCircuit(creds: DriveCredentials): void {
+  const key = credKey(creds);
+  consecutiveFailures[key] = 0;
+  isTripped[key] = false;
+  delete sessionErrors[key];
+  delete lastFailureTime[key];
+}

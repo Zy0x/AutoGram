@@ -1,0 +1,176 @@
+/**
+ * Jobs CRUD via Rust SQLite (no Python daemon).
+ * Migration execute still may surface a clear "runner WIP" until full Grammers transfer lands.
+ */
+import { invoke } from '@tauri-apps/api/core';
+import { detectTauriRuntime } from '../platform';
+
+export type JobRow = {
+  id: number;
+  jobName?: string | null;
+  profileName?: string | null;
+  sourceEntityId?: string | null;
+  targetEntityId?: string | null;
+  transferMode?: string | null;
+  configJson?: string | null;
+  createdAt?: string | null;
+  status?: string | null;
+  processedMessages?: number | null;
+  totalMessages?: number | null;
+  lastProcessedId?: number | null;
+  lastExecutionId?: number | null;
+  // snake_case aliases from older payloads
+  job_name?: string | null;
+  profile_name?: string | null;
+  source_entity_id?: string | null;
+  target_entity_id?: string | null;
+  transfer_mode?: string | null;
+  config_json?: string | null;
+  created_at?: string | null;
+  processed_messages?: number | null;
+  total_messages?: number | null;
+  last_processed_id?: number | null;
+  last_execution_id?: number | null;
+};
+
+function normalizeJob(j: JobRow): any {
+  return {
+    id: j.id,
+    job_name: j.jobName ?? j.job_name ?? null,
+    profile_name: j.profileName ?? j.profile_name ?? null,
+    source_entity_id: j.sourceEntityId ?? j.source_entity_id ?? null,
+    target_entity_id: j.targetEntityId ?? j.target_entity_id ?? null,
+    transfer_mode: j.transferMode ?? j.transfer_mode ?? null,
+    config_json: j.configJson ?? j.config_json ?? null,
+    created_at: j.createdAt ?? j.created_at ?? null,
+    status: j.status ?? null,
+    processed_messages: j.processedMessages ?? j.processed_messages ?? null,
+    total_messages: j.totalMessages ?? j.total_messages ?? null,
+    last_processed_id: j.lastProcessedId ?? j.last_processed_id ?? null,
+    last_execution_id: j.lastExecutionId ?? j.last_execution_id ?? null,
+  };
+}
+
+export async function jobsList(): Promise<any[]> {
+  if (!detectTauriRuntime()) return [];
+  const rows = await invoke<JobRow[]>('jobs_list');
+  return (rows || []).map(normalizeJob);
+}
+
+export async function jobsCreate(config: {
+  source?: string;
+  destination?: string;
+  session?: string;
+  mode?: string;
+  jobName?: string;
+  [k: string]: unknown;
+}): Promise<number> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  const id = await invoke<number>('jobs_create', {
+    request: {
+      source: String(config.source || '0'),
+      destination: String(config.destination || '0'),
+      session: String(config.session || 'Lavender'),
+      mode: String(config.mode || 'Clean Copy'),
+      configJson: JSON.stringify(config),
+      jobName: config.jobName ? String(config.jobName) : null,
+    },
+  });
+  return Number(id);
+}
+
+export async function jobsEdit(
+  jobId: number,
+  config: {
+    source?: string;
+    destination?: string;
+    session?: string;
+    mode?: string;
+    jobName?: string;
+    [k: string]: unknown;
+  }
+): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  await invoke('jobs_edit', {
+    request: {
+      jobId,
+      source: String(config.source || '0'),
+      destination: String(config.destination || '0'),
+      session: String(config.session || 'Lavender'),
+      mode: String(config.mode || 'Clean Copy'),
+      configJson: JSON.stringify(config),
+      jobName: config.jobName ? String(config.jobName) : null,
+    },
+  });
+}
+
+export async function jobsDelete(jobId: number): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  await invoke('jobs_delete', { jobId });
+}
+
+export async function jobsStartExecution(jobId: number): Promise<number> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  return Number(await invoke<number>('jobs_start_execution', { jobId }));
+}
+
+export async function jobsRunMigration(args: {
+  jobId: number;
+  apiId: number;
+  apiHash: string;
+  maxMessages?: number;
+}): Promise<{
+  status: string;
+  jobId: number;
+  executionId: number;
+  forwarded: number;
+  message: string;
+}> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  return invoke('jobs_run_migration', {
+    jobId: args.jobId,
+    apiId: args.apiId,
+    apiHash: args.apiHash,
+    maxMessages: args.maxMessages ?? 100,
+  });
+}
+
+export async function cacheCalculateSize(): Promise<{ bytes: number }> {
+  if (!detectTauriRuntime()) return { bytes: 0 };
+  const r = await invoke<{ bytes?: number }>('cache_calculate_size');
+  return { bytes: Number(r?.bytes || 0) };
+}
+
+export async function cacheClearDisk(): Promise<void> {
+  if (!detectTauriRuntime()) return;
+  await invoke('cache_clear_disk');
+}
+
+export async function cacheTrimDisk(targetBytes: number): Promise<{ removed_files: number; freed_bytes: number }> {
+  if (!detectTauriRuntime()) return { removed_files: 0, freed_bytes: 0 };
+  const r = await invoke<{ removed_files?: number; freed_bytes?: number }>('cache_trim_disk', { targetBytes });
+  return {
+    removed_files: Number(r?.removed_files || 0),
+    freed_bytes: Number(r?.freed_bytes || 0),
+  };
+}
+
+export async function jobsFreshStart(jobId: number): Promise<void> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  await invoke('jobs_fresh_start', { jobId });
+}
+
+export async function jobsExportJson(): Promise<string> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  return invoke<string>('jobs_export_json');
+}
+
+export async function jobsImportJson(json: string): Promise<number> {
+  if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
+  return Number(await invoke<number>('jobs_import_json', { json }));
+}
+
+/** Normalize job row for UI (camel + snake). */
+export function jobDisplayName(job: any): string {
+  return String(job?.job_name || job?.jobName || job?.name || `Job #${job?.id || '?'}`);
+}
