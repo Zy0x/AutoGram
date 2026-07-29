@@ -816,7 +816,7 @@ input:checked + .toggle-slider:before {
   display: flex !important;
   justify-content: center !important;
   align-items: flex-end;
-  z-index: 1000;
+  z-index: 14000 !important;
   padding: 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box !important;

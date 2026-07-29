@@ -2,7 +2,7 @@
  * External store for move-confirm dialog.
  * Snapshot is a version number so React always sees a changed primitive.
  */
-import type { DriveConfirmState } from '../../components/media-drive/DriveConfirmDialog';
+import type { DriveConfirmState } from '../../components/drive/DriveConfirmDialog';
 
 type Bridge = {
   state: DriveConfirmState | null;

@@ -44,8 +44,8 @@ import {
   EMPTY_ADV_FILTER,
   isAdvFilterActive,
 } from '../../../lib/telegram/drivePower';
-import { FileTypeIcon } from '../../media-drive/FileTypeIcon';
-import { MediaSelect } from '../../media-drive/MediaSelect';
+import { FileTypeIcon } from '../../drive/FileTypeIcon';
+import { MediaSelect } from '../../drive/MediaSelect';
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
 function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {

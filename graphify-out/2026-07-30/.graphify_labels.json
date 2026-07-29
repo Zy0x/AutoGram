@@ -296,16 +296,7 @@
   "294": "v2.3.78 Multi-Decoder CPU Software Fallback (`libdav1d` / `av1`) & Head Rescue Loop",
   "295": "create_execution",
   "296": "pdfjs-dist",
-  "297": "MediaStudioToolbar.tsx",
   "298": "capability.rs",
   "299": "v2.3.75 Full Uncorrupted Faststart MP4 Reconstruction & Fault-Tolerant FFmpeg Extraction",
-  "300": "@tauri-apps/plugin-dialog",
-  "301": "Sync.tsx",
-  "302": "i18next-browser-languagedetector",
-  "303": "react-phone-number-input",
-  "304": "@tauri-apps/plugin-opener",
-  "305": "@types/qrcode",
-  "306": "DeadCenterProgress",
-  "307": "MicroProgressBar",
-  "308": "ModernProgressBar"
+  "300": "@tauri-apps/plugin-dialog"
 }

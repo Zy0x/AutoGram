@@ -11,6 +11,8 @@ import { ZipCodePreviewModal } from './ZipCodePreviewModal';
 import { ZipExtractModal } from './ZipExtractModal';
 import { driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
 
+export { clearZipBrowserCache } from './zipUtils';
+
 export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
   const {
     creds,

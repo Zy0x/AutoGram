@@ -198,7 +198,7 @@ import {
 import {
   DriveToolsPanel,
   type DriveToolsTab,
-} from '../../components/media-drive/DriveToolsPanel';
+} from '../../components/drive/DriveToolsPanel';
 import {
   clearThumbCache,
   primeThumbsFromFileList,
@@ -214,7 +214,7 @@ import {
 } from '../../lib/media/thumbBatcher';
 import { clearAvatarCache, invalidateAvatarFailures } from '../../lib/media/avatarBatcher';
 import { clearPreviewCache } from '../../lib/media/previewCache';
-import { clearZipBrowserCache } from '../../components/media-drive/DriveZipBrowser';
+import { clearZipBrowserCache } from '../../components/drive/DriveZipBrowser';
 import {
   CHAT_SOFT_PREFETCH_DELAY_MS,
   INITIAL_STATS_DELAY_MS,
@@ -256,14 +256,14 @@ import {
   wouldCreateFolderCycle,
   withFolderOrphanFlags,
 } from '../../lib/telegram/chatSearch';
-import { DriveSidebar } from '../../components/media-drive/DriveSidebar';
-import { DriveTopBar, type DriveCrumbSeg } from '../../components/media-drive/DriveTopBar';
-import { DriveExplorer } from '../../components/media-drive/DriveExplorer';
-import { DriveTransferManager } from '../../components/media-drive/DriveTransferManager';
+import { DriveSidebar } from '../../components/drive/DriveSidebar';
+import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/DriveTopBar';
+import { DriveExplorer } from '../../components/drive/DriveExplorer';
+import { DriveTransferManager } from '../../components/drive/DriveTransferManager';
 
-import { type DriveConfirmState } from '../../components/media-drive/DriveConfirmDialog';
-import { type DriveInputState } from '../../components/media-drive/DriveInputDialog';
-import { type DriveDestChoice, type DriveDestPickerState } from '../../components/media-drive/DriveDestinationPicker';
+import { type DriveConfirmState } from '../../components/drive/DriveConfirmDialog';
+import { type DriveInputState } from '../../components/drive/DriveInputDialog';
+import { type DriveDestChoice, type DriveDestPickerState } from '../../components/drive/DriveDestinationPicker';
 import type { JobChild } from '../../lib/db/jobProcess';
 import { tgDownloadFile } from '../../lib/telegram/telegramBackend';
 import {

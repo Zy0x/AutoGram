@@ -1,10 +1,10 @@
 import React from 'react';
-import { DrivePreviewModal } from '../../components/media-drive/DrivePreviewModal';
-import { DriveContextMenu } from '../../components/media-drive/DriveContextMenu';
-import { DriveConfirmDialog } from '../../components/media-drive/DriveConfirmDialog';
-import { DriveInputDialog } from '../../components/media-drive/DriveInputDialog';
-import { DriveDestinationPicker } from '../../components/media-drive/DriveDestinationPicker';
-import { RemoteUploadModal } from '../../components/media-drive/RemoteUploadModal';
+import { DrivePreviewModal } from '../../components/drive/DrivePreviewModal';
+import { DriveContextMenu } from '../../components/drive/DriveContextMenu';
+import { DriveConfirmDialog } from '../../components/drive/DriveConfirmDialog';
+import { DriveInputDialog } from '../../components/drive/DriveInputDialog';
+import { DriveDestinationPicker } from '../../components/drive/DriveDestinationPicker';
+import { RemoteUploadModal } from '../../components/drive/RemoteUploadModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
 
