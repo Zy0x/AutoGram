@@ -48,7 +48,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
     <>
       {/* 1. New Folder Modal */}
       {showNewFolderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[14000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm flex items-center gap-2">
@@ -92,7 +92,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
 
       {/* 2. Rename File Modal */}
       {renameTargetFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[14000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm flex items-center gap-2">
@@ -134,7 +134,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
 
       {/* 3. Delete Confirmation Modal */}
       {deleteTargetFiles.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[14000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm flex items-center gap-2 text-red-400">
@@ -168,7 +168,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
 
       {/* 4. Move Target Folder Selector Modal */}
       {moveTargetFiles.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[14000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm flex items-center gap-2">

@@ -124,7 +124,7 @@ export const DrivePreviewModal: React.FC<DrivePreviewModalProps> = (props) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/95 backdrop-blur-xl text-slate-100 select-none overflow-hidden animate-fadeIn">
+    <div className="drive-preview-overlay fixed inset-0 z-[13500] flex flex-col bg-slate-950/95 backdrop-blur-xl text-slate-100 select-none overflow-hidden animate-fadeIn">
       <MediaHeaderToolbar
         file={file}
         kind={kind}

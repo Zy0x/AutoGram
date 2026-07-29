@@ -72,7 +72,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      className={`w-full h-full flex items-center justify-between p-4 overflow-hidden select-none ${
+      className={`w-full h-full flex items-center justify-center p-4 overflow-hidden select-none ${
         zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
       }`}
     >
