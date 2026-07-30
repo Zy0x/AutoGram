@@ -1,0 +1,19 @@
+{
+  "title": "Settings",
+  "subtitle": "Configure your AutoGram application.",
+  "general": "General Settings",
+  "api_config": "API Configuration",
+  "language": "Language / Bahasa",
+  "language_desc": "Select your preferred language for the interface.",
+  "api_id": "API ID",
+  "api_id_placeholder": "Enter your Telegram API ID",
+  "api_hash": "API Hash",
+  "api_hash_placeholder": "Enter your Telegram API Hash",
+  "theme": "Theme",
+  "theme_desc": "Choose between dark and light mode.",
+  "theme_dark": "Dark Mode",
+  "theme_light": "Light Mode",
+  "theme_system": "System Default",
+  "save_btn": "Save Settings",
+  "save_success": "Settings saved successfully!"
+}

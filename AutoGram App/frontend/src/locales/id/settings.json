@@ -1,0 +1,19 @@
+{
+  "title": "Pengaturan",
+  "subtitle": "Konfigurasikan aplikasi AutoGram Anda.",
+  "general": "Pengaturan Umum",
+  "api_config": "Konfigurasi API",
+  "language": "Language / Bahasa",
+  "language_desc": "Pilih bahasa antarmuka yang Anda inginkan.",
+  "api_id": "API ID",
+  "api_id_placeholder": "Masukkan API ID Telegram Anda",
+  "api_hash": "API Hash",
+  "api_hash_placeholder": "Masukkan API Hash Telegram Anda",
+  "theme": "Tema",
+  "theme_desc": "Pilih antara mode gelap dan terang.",
+  "theme_dark": "Mode Gelap",
+  "theme_light": "Mode Terang",
+  "theme_system": "Bawaan Sistem",
+  "save_btn": "Simpan Pengaturan",
+  "save_success": "Pengaturan berhasil disimpan!"
+}

@@ -1,0 +1,10 @@
+{
+  "dashboard": "Home",
+  "accounts": "Accounts",
+  "settings": "Settings",
+  "speedtest": "Drives",
+  "forwarder": "Forwarder",
+  "drives": "Drives",
+  "collapse": "Collapse",
+  "expand": "Expand"
+}
