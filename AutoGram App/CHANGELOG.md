@@ -1,3 +1,9 @@
+## v2.3.85 Eliminate All-Media Topic Leakage & Enforce Topic-Scoped Local Cache
+
+### Eliminasi Kebocoran "Semua Media" Saat berpindah Topik (`driveFilesApi.ts`, `MediaStudio/index.tsx`)
+- **Strict Topic-Scoped IndexedDB Filtering (`driveFilesApi.ts`)**: Memasang penyaring presisi `topic_id` pada pembacaan cache IndexedDB local (`getMediaRecords`). Mengeliminasi total pengembalian berkas "Semua Media" ketika pengguna memilih topik tertentu (seperti `General`, `AI`, `Anime 3D`).
+- **Dynamic Network Fallback (`tgListMedia`)**: Apabila cache IndexedDB lokal belum memiliki record khusus topik tersebut, `driveListFiles` secara otomatis jatuh (fallback) ke MTProto server search (`messages.search` `top_msg_id`), menjamin kartu yang tampil 100% akurat sesuai topik tanpa ada data dari topik lain atau "Semua Media" yang bocor.
+
 ## v2.3.84 MTProto Topic Media Fast Search & Card Restoration
 
 ### Perbaikan Tampilan Kartu Berkas Saat berpindah Topik (`media_list.rs`)

@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.84
+AutoGram Version: v2.3.85
 
 Current State:
-v2.3.84 MTProto Topic Media Fast Search & Card Restoration — Memperbaiki pengisian kartu file pada `DriveExplorer` saat berpindah topik dengan mengganti pembacaan `iter_messages` sequential dengan server-side MTProto topic search (`messages.search` `top_msg_id`) di Rust engine (`media_list.rs`). Seluruh kartu file, thumbnails, seleksi, context menu, dan drag-and-drop berfungsi 100% saat berpindah topik.
+v2.3.85 Eliminate All-Media Topic Leakage & Enforce Topic-Scoped Local Cache — Memperbaiki kebocoran data "Semua Media" ke topik-topik spesifik (General, AI, Anime 3D) dengan mewajibkan filter `topic_id` pada pembacaan cache IndexedDB di `driveFilesApi.ts` & `MediaStudio/index.tsx`. Apabila cache topik lokal belum terisi, sistem secara otomatis melakukan fallback ke MTProto server-side topic search `tgListMedia` untuk mengambil media khusus topik tersebut.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.

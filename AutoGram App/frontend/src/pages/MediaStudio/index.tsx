@@ -2306,8 +2306,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         .then((dbRecords: MediaRecord[]) => {
           if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && dbRecords && dbRecords.length > 0) {
             let filtered = dbRecords;
-            if (tid != null) {
-              filtered = dbRecords.filter((r: MediaRecord) => r.topic_id === tid);
+            if (tid != null && tid > 0) {
+              filtered = dbRecords.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(tid));
             }
             if (filtered.length > 0) {
               const deduped = dedupeByMsgId(filtered);
