@@ -699,7 +699,7 @@ export function DriveExplorer({
         <div className="ag-loading-overlay">
           <CenteredGlassmorphicProgress
             isLoading={loading}
-            label="Membaca katalog media Telegram MTProto..."
+            label={t("speedtest.reading_catalog")}
           />
         </div>
       </div>

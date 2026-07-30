@@ -230,7 +230,7 @@ export function DriveTopBar({
         <span className="td-selection-count" title={`${selectedCount} file terpilih`}>
           <MousePointerClick size={14} strokeWidth={2} aria-hidden />
           <strong>{selectedCount}</strong>
-          <span className="td-selection-count-label">dipilih</span>
+          <span className="td-selection-count-label">{t('speedtest.topbar_selected')}</span>
         </span>
         {onSelectAll && (
           <button
@@ -240,14 +240,14 @@ export function DriveTopBar({
             title={t('speedtest.select_visible_all')}
           >
             <ListChecks size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">Semua</span>
+            <span className="td-chip-label">{t('speedtest.topbar_select_all')}</span>
           </button>
         )}
         <button
           type="button"
           className="td-chip-btn"
           onClick={onClearSelection}
-          title="Batalkan semua pilihan (Esc)"
+          title={t("speedtest.topbar_deselect_all_tooltip")}
         >
           <SquareX size={15} strokeWidth={2} aria-hidden />
           <span className="td-chip-label">Batal</span>
@@ -257,10 +257,10 @@ export function DriveTopBar({
             type="button"
             className="td-chip-btn"
             onClick={onInvertSelection}
-            title="Balik seleksi (hanya item terlihat)"
+            title={t("speedtest.topbar_invert_tooltip")}
           >
             <ArrowLeftRight size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">Balik</span>
+            <span className="td-chip-label">{t('speedtest.topbar_invert')}</span>
           </button>
         )}
       </div>
@@ -278,7 +278,7 @@ export function DriveTopBar({
             }
           >
             <SendHorizontal size={15} strokeWidth={2} aria-hidden />
-            <span className="td-chip-label">Pindah</span>
+            <span className="td-chip-label">{t('speedtest.topbar_move')}</span>
           </button>
         )}
         <button
@@ -289,7 +289,7 @@ export function DriveTopBar({
           title={actionsDisabled ? 'Tunggu transfer selesai' : 'Unduh terpilih'}
         >
           <Download size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">Unduh</span>
+          <span className="td-chip-label">{t('speedtest.topbar_download')}</span>
         </button>
         <button
           type="button"
@@ -299,7 +299,7 @@ export function DriveTopBar({
           title={actionsDisabled ? 'Tunggu transfer selesai' : 'Hapus terpilih'}
         >
           <Trash2 size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">Hapus</span>
+          <span className="td-chip-label">{t('speedtest.topbar_delete')}</span>
         </button>
       </div>
     </div>

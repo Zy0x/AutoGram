@@ -44,7 +44,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
     { id: 'image', label: t('speedtest.filter_images'), icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
     { id: 'video', label: t('speedtest.filter_videos'), icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
     { id: 'document', label: t('speedtest.filter_docs'), icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
-    { id: 'link', label: 'Links', icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
+    { id: 'link', label: t('speedtest.view_links'), icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
   ];
 
   return (
@@ -84,12 +84,12 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
             onChange={(e) => onSortModeChange(e.target.value as DriveSortMode)}
             className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 transition-all appearance-none pr-8 cursor-pointer font-mono"
           >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="name_asc">Name (A-Z)</option>
-            <option value="name_desc">Name (Z-A)</option>
-            <option value="size_desc">Size (Largest)</option>
-            <option value="size_asc">Size (Smallest)</option>
+            <option value="newest">{t('speedtest.sort_newest_first')}</option>
+            <option value="oldest">{t('speedtest.sort_oldest_first')}</option>
+            <option value="name_asc">{t('speedtest.sort_name_asc')}</option>
+            <option value="name_desc">{t('speedtest.sort_name_desc')}</option>
+            <option value="size_desc">{t('speedtest.sort_size_desc')}</option>
+            <option value="size_asc">{t('speedtest.sort_size_asc')}</option>
           </select>
           <ArrowUpDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
         </div>
@@ -100,7 +100,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-all ${
               viewMode === 'grid' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
-            title="Grid View"
+            title={t("speedtest.grid_view_tooltip")}
           >
             <Grid className="w-4 h-4" />
           </button>
@@ -109,7 +109,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-all ${
               viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
-            title="List View"
+            title={t("speedtest.list_view_tooltip")}
           >
             <List className="w-4 h-4" />
           </button>
@@ -120,7 +120,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
           className="flex items-center gap-2 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
         >
           <Upload className="w-4 h-4" />
-          <span className="hidden sm:inline">Upload</span>
+          <span className="hidden sm:inline">{t('speedtest.btn_upload')}</span>
         </button>
       </div>
     </header>

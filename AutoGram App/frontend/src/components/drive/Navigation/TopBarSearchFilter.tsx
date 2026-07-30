@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, X } from 'lucide-react';
 
 export interface TopBarSearchFilterProps {
@@ -16,6 +17,7 @@ export const TopBarSearchFilter: React.FC<TopBarSearchFilterProps> = ({
   onSelectCategory,
   categories,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
       {/* Search Input */}
@@ -25,7 +27,7 @@ export const TopBarSearchFilter: React.FC<TopBarSearchFilterProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Cari file di lokasi ini... (Ctrl+F)"
+          placeholder={t('speedtest.topbar_search_files_ph')}
           className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:ring-1 focus:ring-indigo-500"
         />
         {searchQuery && (
