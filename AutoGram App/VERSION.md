@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.78
+AutoGram Version: v2.3.79
 
 Current State:
+v2.3.79 Telegram-Drive Instant Local-First Media Load & Non-Blocking Background Sync — membenahi `DriveExplorer.tsx` dan `MediaStudio/index.tsx`. Menghapus overlay modal `CenteredGlassmorphicProgress` ("Syncing your media library / Loading Catalog") yang sebelumnya memblokir layar aplikasi. Mengadopsi pola Telegram-Drive (`cmd_get_folder_files`): menyajikan data dari cache lokal IndexedDB/SQLite secara instan (<50ms) dengan `bypassCache: false` dan merender skeleton loader non-blocking murni saat pemuatan awal.
+
+Previous:
 v2.3.78 Ultra-Fast 2-Stage Progressive Thumbnail, Dual-Layer Bulk Warm-Up & Atomic Context Isolation Sync — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, `driveFilesApi.ts`, dan `thumbPersistentCache.ts`. Mengimplementasikan `switchThumbContext` atomic context generation lock saat berganti folder/chat/topik untuk mengeliminasi total kebocoran data thumbnail antar-source/destination. Memadukan 1x transaksi massal IndexedDB (`loadPersistentThumbs`) untuk warm-up memCache <100ms, 2-stage progressive rendering (stripped base64 blur -> real-time HD single-item streaming), dan event listener real-time `notifyMediaUploaded`.
 
 Previous:

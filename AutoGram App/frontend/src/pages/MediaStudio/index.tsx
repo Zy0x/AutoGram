@@ -2329,7 +2329,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         quickStats: false,
         sortMode: sortMode,
         localOffset: 0,
-        bypassCache: true,
+        bypassCache: false,
       });
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       if (res?.invalid_topic && tid != null) {
@@ -2349,7 +2349,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           quickStats: false,
           sortMode: sortMode,
           localOffset: 0,
-          bypassCache: true,
+          bypassCache: false,
         });
         if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
         if (peerId != null) void loadTopicsForPeer(peerId);

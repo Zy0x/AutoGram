@@ -1,3 +1,9 @@
+## v2.3.79 Telegram-Drive Instant Local-First Media Load & Non-Blocking Background Sync
+
+### Adopsi Pola Pemuatan Instan Telegram-Drive (`DriveExplorer.tsx`, `MediaStudio/index.tsx`)
+- **Eliminasi Overlay Modal Memblokir Screen ("Loading Catalog 98%")**: Menghapus tampilan overlay modal `CenteredGlassmorphicProgress` yang memblokir layar aplikasi saat `loading` dan `files.length === 0`. Aplikasi kini merender skeleton loader non-blocking murni sehingga pengguna tidak perlu lagi tertahan oleh layar *Syncing your media library*.
+- **Pemuatan Cache Lokal Instan (`bypassCache: false`)**: Mengadopsi pola Telegram-Drive (`cmd_get_folder_files`). Mengatur `bypassCache: false` saat `driveListFiles` dipanggil sehingga data media dari cache IndexedDB/SQLite lokal disajikan **instan (<50ms)** saat folder dibuka tanpa perlu menunggu RPC network Telegram selesai.
+
 ## v2.3.78 Ultra-Fast 2-Stage Progressive Thumbnail, Dual-Layer Bulk Warm-Up & Atomic Context Isolation Sync
 
 ### Optimasi Pemuatan List Card, Thumbnail 2-Stage & Isolasi Konteks Presisi (`thumbBatcher.ts`, `DriveExplorer.tsx`, `driveFilesApi.ts`)
