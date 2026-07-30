@@ -467,7 +467,7 @@ export function DriveToolsPanel({
 
               <div className="td-tools-rename-grid">
                 <label className="td-tools-field td-flex-grow">
-                  Pola Rename
+                  {t('speedtest.rename_pattern_label')}
                   <input
                     value={pattern}
                     onChange={(e) => setPattern(e.target.value)}
@@ -476,7 +476,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field td-w-sm">
-                  Mulai Dari
+                  {t('speedtest.start_from_label')}
                   <input
                     type="number"
                     min={0}
@@ -518,7 +518,7 @@ export function DriveToolsPanel({
                     )
                   }
                 >
-                  <Check size={15} /> Terapkan Rename
+                  <Check size={15} /> {t('speedtest.btn_apply_rename')}
                 </button>
               </div>
             </div>
@@ -611,7 +611,7 @@ export function DriveToolsPanel({
               </p>
               <div className="td-tools-grid2">
                 <label className="td-tools-field">
-                  Ukuran min (byte)
+                  {t('speedtest.filter_min_bytes')}
                   <input
                     type="number"
                     min={0}
@@ -627,7 +627,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Ukuran max (byte)
+                  {t('speedtest.filter_max_bytes')}
                   <input
                     type="number"
                     min={0}
@@ -643,7 +643,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Dari tanggal
+                  {t('speedtest.filter_from_date')}
                   <input
                     type="date"
                     className="td-tools-input td-tools-date"
@@ -654,7 +654,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Sampai tanggal
+                  {t('speedtest.filter_to_date')}
                   <input
                     type="date"
                     className="td-tools-input td-tools-date"
@@ -665,7 +665,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Ekstensi
+                  {t('speedtest.filter_extension')}
                   <input
                     className="td-tools-input"
                     value={advFilter.ext ?? ''}
@@ -680,7 +680,7 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Message ID
+                  {t('speedtest.filter_message_id')}
                   <input
                     type="number"
                     min={0}
@@ -692,7 +692,7 @@ export function DriveToolsPanel({
                         messageId: e.target.value === '' ? null : Number(e.target.value),
                       })
                     }
-                    placeholder="Contoh: 42712"
+                    placeholder={t("speedtest.msg_id_ph")}
                   />
                 </label>
               </div>
@@ -709,10 +709,10 @@ export function DriveToolsPanel({
                   className="btn btn-ghost td-tools-btn-reset"
                   onClick={() => onAdvFilter({ ...EMPTY_ADV_FILTER })}
                 >
-                  <RotateCcw size={14} /> Reset Filter
+                  <RotateCcw size={14} /> {t('speedtest.btn_reset_filter')}
                 </button>
                 <button type="button" className="btn btn-primary td-tools-btn-submit" onClick={onClose}>
-                  <Check size={15} /> Terapkan Filter
+                  <Check size={15} /> {t('speedtest.btn_apply_filter')}
                 </button>
               </div>
             </div>
@@ -1216,14 +1216,14 @@ function DupTab({
     <div className="td-tools-section">
       <p className="td-tools-lead">
         {groups.length === 0 ? (
-          'Tidak ada duplikat terdeteksi di file yang dimuat.'
+          t('speedtest.dup_none_detected')
         ) : (
           <>
             <strong>{groups.length}</strong> grup · hemat potensial max{' '}
             <strong>{formatDriveBytes(wasteTotal)}</strong>
             <br />
             <span className="td-tools-dup-lead-hint">
-              Centang = salinan yang dihapus. Biarkan kosong = disimpan. Boleh simpan 2 dari 3.
+              {t('speedtest.dup_lead_hint')}
             </span>
           </>
         )}
@@ -1235,14 +1235,14 @@ function DupTab({
             className={`td-segmented-item ${dupMode === 'name_size' ? 'active' : ''}`}
             onClick={() => onDupMode('name_size')}
           >
-            Nama + ukuran
+            {t('speedtest.dup_mode_name_size_label')}
           </button>
           <button
             type="button"
             className={`td-segmented-item ${dupMode === 'both' ? 'active' : ''}`}
             onClick={() => onDupMode('both')}
           >
-            + ukuran sama (soft)
+            {t('speedtest.dup_mode_both_label')}
           </button>
         </div>
         <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")}>
@@ -1251,7 +1251,7 @@ function DupTab({
             checked={keepNewest}
             onChange={(e) => setKeepNewest(e.target.checked)}
           />
-          <span>{t('speedtest.default_keep_newest') || "Default: keep newest"}</span>
+          <span>{t('speedtest.default_keep_newest')}</span>
         </label>
       </div>
 
@@ -1264,7 +1264,7 @@ function DupTab({
             onClick={applySmartAll}
             title={t('speedtest.per_group_keep_one') || "Per group: keep 1"}
           >
-            <Check size={14} /> Pilihan cerdas
+            <Check size={14} /> {t('speedtest.smart_selection_btn')}
           </button>
           <button
             type="button"
@@ -1276,7 +1276,7 @@ function DupTab({
             Simpan semua
           </button>
           <span className="td-tools-dup-summary">
-            Simpan <strong>{keepCount}</strong> · {t('speedtest.delete_action') || "delete"} <strong>{idsToDelete.length}</strong>
+            {t('speedtest.dup_stats_summary', { keep: keepCount, delete: idsToDelete.length })}
             {selectedWaste > 0 ? (
               <>
                 {' '}
@@ -1301,7 +1301,7 @@ function DupTab({
           disabled={busy || !idsToDelete.length}
           onClick={() => onDeleteIds(idsToDelete)}
         >
-          <Trash2 size={14} /> Hapus {idsToDelete.length} tercentang
+          <Trash2 size={14} /> {t('speedtest.delete_checked_btn', { count: idsToDelete.length })}
         </button>
       )}
 
@@ -1383,7 +1383,7 @@ function DupTab({
                             <span
                               className={`td-tools-dup-badge${marked ? ' is-del' : ' is-keep'}`}
                             >
-                              {marked ? 'Hapus' : isPreferredKeep ? 'Simpan (default)' : 'Simpan'}
+                              {marked ? t('speedtest.badge_tag_delete') : isPreferredKeep ? t('speedtest.badge_tag_keep_default') : t('speedtest.badge_tag_keep')}
                             </span>
                           </span>
                         </div>
