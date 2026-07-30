@@ -96,8 +96,8 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             <Link2 size={20} strokeWidth={2} />
           </span>
           <div className="td-confirm-head-text">
-            <h2>Remote Upload (URL)</h2>
-            <p className="td-confirm-desc">Unggah file langsung dari URL publik ke Telegram Cloud</p>
+            <h2>{t("speedtest.remote_upload_url_title")}</h2>
+            <p className="td-confirm-desc">{t("speedtest.remote_upload_url_subtitle")}</p>
           </div>
           <button 
             type="button" 
@@ -118,7 +118,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
           )}
 
           <label className="td-input-label" htmlFor="td-remote-url">
-            URL File Sumber
+            {t("speedtest.source_url_label")}
           </label>
           <input
             id="td-remote-url"
@@ -137,7 +137,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
           />
 
           <label className="td-input-label" htmlFor="td-remote-folder" style={{ marginTop: '6px' }}>
-            Folder / Channel Tujuan
+            {t("speedtest.destination_folder_label")}
           </label>
           <select
             id="td-remote-folder"
@@ -147,7 +147,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             disabled={submitting}
             style={{ cursor: 'pointer', appearance: 'auto' }}
           >
-            <option value="">Pesan Tersimpan (Saved Messages)</option>
+            <option value="">{t("speedtest.saved_messages")}</option>
             {folders.map((folder) => (
               <option key={folder.id} value={folder.id}>
                 {folder.name}
@@ -173,12 +173,12 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Mengunggah...</span>
+                <span>{t("speedtest.uploading_status")}</span>
               </>
             ) : (
               <>
                 <Link2 size={15} strokeWidth={2.25} />
-                <span>{t('speedtest.start_upload')}</span>
+                <span>{t("speedtest.btn_start_upload")}</span>
               </>
             )}
           </button>

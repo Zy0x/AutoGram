@@ -2522,7 +2522,7 @@ export function DrivePreviewModal({
             ].filter(Boolean).join(' · ')}>
               {formatDriveBytes(file.size)}
               {durationLabel ? ` · ${durationLabel}` : ''}
-              {isVideo ? (file.as_document ? ' · Dokumen File' : ' · Media Video') : kindLabel ? ` · ${kindLabel}` : ''}
+              {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
               {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
               {fromCache && !loading ? ' · cache' : ''}
             </span>
@@ -2769,7 +2769,7 @@ export function DrivePreviewModal({
 
             {(isVideo || isAudio) && (
               <div className="drive-tool-group" role="group" aria-label="Pemutaran media">
-                <span className="drive-tool-group-label">{isVideo ? 'Video' : 'Audio'}</span>
+                <span className="drive-tool-group-label">{isVideo ? t('speedtest.label_video') : t('speedtest.label_audio')}</span>
                 {isVideo && (
                   <div className="drive-quality-wrap">
                     <button
@@ -2864,7 +2864,7 @@ export function DrivePreviewModal({
             )}
 
             {(isPdf || isText || isDocOther) && isDesktop() && (
-              <div className="drive-tool-group" role="group" aria-label="Buka dokumen">
+              <div className="drive-tool-group" role="group" aria-label={t('speedtest.label_open_doc')}>
                 <span className="drive-tool-group-label">{t("speedtest.label_open")}</span>
                 <button
                   type="button"
@@ -4051,7 +4051,7 @@ export function DrivePreviewModal({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="drive-preview-info-head">
-                <strong className="drive-preview-info-title">Detail file</strong>
+                <strong className="drive-preview-info-title">{t("speedtest.file_detail_title")}</strong>
                 <button
                   type="button"
                   className="td-icon-btn drive-preview-info-close"
@@ -4067,49 +4067,49 @@ export function DrivePreviewModal({
               </div>
               {file.original_name && file.original_name !== displayName && (
                 <div title={file.original_name}>
-                  <strong>Nama asli</strong> {file.original_name}
+                  <strong>{t("speedtest.original_name_label")}</strong> {file.original_name}
                 </div>
               )}
               {mediaWidth && mediaHeight && (
                 <div>
-                  <strong>Dimensi</strong> {mediaWidth} × {mediaHeight} px
+                  <strong>{t("speedtest.dimensions_label")}</strong> {mediaWidth} × {mediaHeight} px
                 </div>
               )}
               <div>
-                <strong>{t('speedtest.media_size')}</strong> {formatDriveBytes(file.size)}
+                <strong>{t("speedtest.size_label")}</strong> {formatDriveBytes(file.size)}
               </div>
               {durationLabel && (
                 <div>
-                  <strong>Durasi</strong> {durationLabel}
+                  <strong>{t("speedtest.duration_label")}</strong> {durationLabel}
                 </div>
               )}
               <div>
-                <strong>Tipe</strong> {kindLabel || file.icon_type}
+                <strong>{t("speedtest.type_label")}</strong> {kindLabel || file.icon_type}
               </div>
               {mime && (
                 <div>
-                  <strong>MIME</strong> {mime}
+                  <strong>{t("speedtest.mime_label")}</strong> {mime}
                 </div>
               )}
               {file.created_at && (
                 <div>
-                  <strong>Tanggal</strong> {new Date(file.created_at).toLocaleString('id-ID', {
+                  <strong>{t("speedtest.date_label")}</strong> {new Date(file.created_at).toLocaleString('id-ID', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}
                 </div>
               )}
               <div>
-                <strong>Pengiriman</strong> {file.as_document ? 'Dokumen/File (Asli)' : 'Media Video (Kompresi)'}
+                <strong>{t('speedtest.delivery_label')}</strong> {file.as_document ? t('speedtest.deliv_doc_orig') : t('speedtest.deliv_video_comp')}
               </div>
               {isVideo && (
                 <div>
-                  <strong>Kualitas</strong> {activeQuality?.label || quality}
+                  <strong>{t("speedtest.quality_label")}</strong> {activeQuality?.label || quality}
                 </div>
               )}
               {(isImage || isVideo) && (
                 <div>
-                  <strong>Zoom</strong> {Math.round(zoom * 100)}%
+                  <strong>{t("speedtest.zoom_label")}</strong> {Math.round(zoom * 100)}%
                   {rotation ? ` · putar ${rotation}°` : ''}
                   {flipH ? ' · cermin' : ''}
                   {flipV ? ' · balik' : ''}
@@ -4117,16 +4117,16 @@ export function DrivePreviewModal({
               )}
               {streamUrl && (
                 <div>
-                  <strong>Mode</strong> progressive stream
+                  <strong>{t("speedtest.mode_label")}</strong> progressive stream
                 </div>
               )}
               {path && (
                 <div title={path}>
-                  <strong>Cache</strong> {path.split(/[/\\]/).pop()}
+                  <strong>{t("speedtest.cache_label")}</strong> {path.split(/[/\\]/).pop()}
                 </div>
               )}
               <div>
-                <strong>ID</strong> {file.id}
+                <strong>{t("speedtest.id_label")}</strong> {file.id}
               </div>
             </div>
           )}
