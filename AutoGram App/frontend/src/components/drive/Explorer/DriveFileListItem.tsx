@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../../lib/telegram/driveTypes';
 import { usePointerDragPrime } from '../../../lib/telegram';
 import { FileTypeIcon } from './FileTypeIcon';
@@ -18,7 +18,7 @@ type Props = {
   onWarmPreview?: () => void;
 };
 
-export function DriveFileListItem({
+function DriveFileListItemInner({
   file,
   selected,
   isDragSource,
@@ -133,3 +133,14 @@ export function DriveFileListItem({
     </div>
   );
 }
+
+export const DriveFileListItem = memo(DriveFileListItemInner, (prev, next) => {
+  return (
+    prev.file.id === next.file.id &&
+    prev.file.size === next.file.size &&
+    prev.file.name === next.file.name &&
+    prev.file.icon_type === next.file.icon_type &&
+    prev.selected === next.selected &&
+    prev.isDragSource === next.isDragSource
+  );
+});

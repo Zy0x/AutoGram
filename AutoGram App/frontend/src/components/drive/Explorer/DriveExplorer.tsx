@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
 import { DriveGridSkeleton, DriveListSkeleton } from './DriveSkeleton';
@@ -936,29 +936,25 @@ export function DriveExplorer({
                   maxWidth: '100%',
                 }}
               >
-                {rowFiles.map((f: any) => (
-                  <DriveFileCard
-                    key={f.id}
-                    file={f}
-                    selected={selectedSet.has(f.id)}
-                    isDragSource={draggingSet.has(f.id)}
-                    visible
-                    onClick={(e) => onSelect(e, f.id)}
-                    onDoubleClick={() => onOpen(f)}
-                    onContextMenu={(e) => onContextMenu(e, f)}
-                    onToggleSelection={() => onToggleSelection(f.id)}
-                    onPreview={() => onPreview(f)}
-                    onDownload={() => onDownload(f)}
-                    onDelete={() => onDelete(f)}
-                    onDragStartFile={onDragStartFile}
-                    onDragEndFile={onDragEndFile}
-                    onWarmPreview={() => warmFile(f)}
-                    onMediaDragPrime={onMediaDragPrime}
-                    creds={creds}
-                    folderId={folderId}
-                    thumbQuality={thumbQuality}
-                  />
-                ))}
+                <DriveGridRow
+                  rowFiles={rowFiles}
+                  selectedSet={selectedSet}
+                  draggingSet={draggingSet}
+                  creds={creds}
+                  folderId={folderId}
+                  thumbQuality={thumbQuality}
+                  onSelect={onSelect}
+                  onOpen={onOpen}
+                  onContextMenu={onContextMenu}
+                  onToggleSelection={onToggleSelection}
+                  onPreview={onPreview}
+                  onDownload={onDownload}
+                  onDelete={onDelete}
+                  onDragStartFile={onDragStartFile}
+                  onDragEndFile={onDragEndFile}
+                  onWarmPreview={warmFile}
+                  onMediaDragPrime={onMediaDragPrime}
+                />
               </div>
             );
           })}
@@ -967,3 +963,83 @@ export function DriveExplorer({
     </div>
   );
 }
+
+type DriveGridRowProps = {
+  rowFiles: DriveFile[];
+  selectedSet: Set<number>;
+  draggingSet: Set<number>;
+  creds: DriveCredentials | null;
+  folderId: number | null;
+  thumbQuality?: string;
+  onSelect: (e: React.MouseEvent, id: number) => void;
+  onOpen: (file: DriveFile) => void;
+  onContextMenu: (e: React.MouseEvent, file: DriveFile) => void;
+  onToggleSelection: (id: number) => void;
+  onPreview: (file: DriveFile) => void;
+  onDownload: (file: DriveFile) => void;
+  onDelete: (file: DriveFile) => void;
+  onDragStartFile?: (e: React.DragEvent, file: DriveFile) => void;
+  onDragEndFile?: (e: React.DragEvent) => void;
+  onWarmPreview: (file: DriveFile) => void;
+  onMediaDragPrime?: (file: DriveFile, e: React.PointerEvent) => void;
+};
+
+const DriveGridRow = memo(function DriveGridRow({
+  rowFiles,
+  selectedSet,
+  draggingSet,
+  creds,
+  folderId,
+  thumbQuality,
+  onSelect,
+  onOpen,
+  onContextMenu,
+  onToggleSelection,
+  onPreview,
+  onDownload,
+  onDelete,
+  onDragStartFile,
+  onDragEndFile,
+  onWarmPreview,
+  onMediaDragPrime,
+}: DriveGridRowProps) {
+  return (
+    <>
+      {rowFiles.map((f: any) => (
+        <DriveFileCard
+          key={f.id}
+          file={f}
+          selected={selectedSet.has(f.id)}
+          isDragSource={draggingSet.has(f.id)}
+          visible
+          onClick={(e) => onSelect(e, f.id)}
+          onDoubleClick={() => onOpen(f)}
+          onContextMenu={(e) => onContextMenu(e, f)}
+          onToggleSelection={() => onToggleSelection(f.id)}
+          onPreview={() => onPreview(f)}
+          onDownload={() => onDownload(f)}
+          onDelete={() => onDelete(f)}
+          onDragStartFile={onDragStartFile}
+          onDragEndFile={onDragEndFile}
+          onWarmPreview={() => onWarmPreview(f)}
+          onMediaDragPrime={onMediaDragPrime}
+          creds={creds}
+          folderId={folderId}
+          thumbQuality={thumbQuality}
+        />
+      ))}
+    </>
+  );
+}, (prev: DriveGridRowProps, next: DriveGridRowProps) => {
+  if (prev.rowFiles.length !== next.rowFiles.length) return false;
+  if (prev.folderId !== next.folderId || prev.thumbQuality !== next.thumbQuality) return false;
+  if (prev.creds?.session !== next.creds?.session) return false;
+  for (let i = 0; i < prev.rowFiles.length; i++) {
+    const pf = prev.rowFiles[i];
+    const nf = next.rowFiles[i];
+    if (pf.id !== nf.id) return false;
+    if (prev.selectedSet.has(pf.id) !== next.selectedSet.has(nf.id)) return false;
+    if (prev.draggingSet.has(pf.id) !== next.draggingSet.has(nf.id)) return false;
+  }
+  return true;
+});

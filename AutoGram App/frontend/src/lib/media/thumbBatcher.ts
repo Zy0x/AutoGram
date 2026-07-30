@@ -11,7 +11,6 @@ import { getDrivePerfProfile } from '../utils/devicePerformance';
 import { isDriveSessionReady } from '../telegram';
 import {
   loadPersistentThumb,
-  loadPersistentThumbs,
   savePersistentThumb,
 } from './thumbPersistentCache';
 
@@ -42,25 +41,8 @@ export type ThumbSchedulerMetrics = {
 
 
 function toOptimizedBlobUrl(url: string): string {
-  if (!url || !url.startsWith('data:image/') || typeof window === 'undefined') return url;
-  try {
-    const commaIdx = url.indexOf(',');
-    if (commaIdx === -1) return url;
-    const header = url.substring(0, commaIdx);
-    const mimeMatch = header.match(/:(.*?);/);
-    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-    const base64Str = url.substring(commaIdx + 1);
-    const binaryStr = window.atob(base64Str);
-    const len = binaryStr.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: mime });
-    return URL.createObjectURL(blob);
-  } catch {
-    return url;
-  }
+  // Pass URLs directly to avoid CPU-heavy atob array allocation during scroll frames
+  return url;
 }
 
 class LRUThumbnailCache {
@@ -399,25 +381,16 @@ export function requestVisibleThumbs(
   const missing = ids.filter((mid) => !memCache.has(cacheKey(folderId, mid, activeQuality, creds.session)));
   if (!missing.length) return;
 
-  const missingKeys = missing.map((mid) => cacheKey(folderId, mid, activeQuality, creds.session));
-  void loadPersistentThumbs(missingKeys).then((persisted) => {
-    for (const [key, url] of persisted) {
-      memCache.set(key, url);
-      softFailAt.delete(key);
-      errorFailAt.delete(key);
-      notifyThumbReady(key, url, false);
-    }
-    for (const mid of missing) {
-      const k = cacheKey(folderId, mid, activeQuality, creds.session);
-      if (memCache.has(k)) continue;
-      void requestThumb(creds, folderId, mid, {
-        priority: 'visible',
-        contextKey: activeContextKey,
-      });
-    }
-    const n = maxConcurrent();
-    for (let i = 0; i < n; i++) scheduleFlush(true);
-  });
+  for (const mid of missing) {
+    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    if (memCache.has(k) || queue.has(k)) continue;
+    void requestThumb(creds, folderId, mid, {
+      priority: 'visible',
+      contextKey: activeContextKey,
+    });
+  }
+  const n = maxConcurrent();
+  for (let i = 0; i < n; i++) scheduleFlush(true);
 }
 
 export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {
@@ -910,18 +883,15 @@ export function prefetchThumbs(
 ): void {
   if (thumbsPaused || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))];
-  const keys = ids.map((mid) => cacheKey(folderId, mid, activeQuality, creds.session));
-  void loadPersistentThumbs(keys).then((persisted) => {
-    for (const [key, url] of persisted) memCache.set(key, url);
-    const cap = Math.min(queueMax(), getDrivePerfProfile().thumbBatch * maxConcurrent() * 2);
-    for (const mid of ids) {
-      if (queue.size >= cap) break;
-      const key = cacheKey(folderId, mid, activeQuality, creds.session);
-      if (memCache.has(key) || queue.has(key)) continue;
-      void requestThumb(creds, folderId, mid, {
-        priority: 'prefetch',
-        contextKey: activeContextKey,
-      });
-    }
-  });
+  const cap = Math.min(queueMax(), getDrivePerfProfile().thumbBatch * maxConcurrent() * 2);
+
+  for (const mid of ids) {
+    if (queue.size >= cap) break;
+    const key = cacheKey(folderId, mid, activeQuality, creds.session);
+    if (memCache.has(key) || queue.has(key)) continue;
+    void requestThumb(creds, folderId, mid, {
+      priority: 'prefetch',
+      contextKey: activeContextKey,
+    });
+  }
 }
