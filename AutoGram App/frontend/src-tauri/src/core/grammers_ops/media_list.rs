@@ -399,54 +399,95 @@ pub fn list_media_blocking_topic(
                         }
                     }
                     let peer = peer_res?;
-                    let mut iter = client.iter_messages(peer).limit(scan_limit);
-                    if let Some(oid) = offset_id {
-                        if oid > 0 {
-                            iter = iter.offset_id(oid as i32);
-                        }
-                    }
                     let mut files = Vec::new();
                     let mut last_id: Option<i64> = None;
                     let mut scanned = 0usize;
 
-                    let mut first_item = iter.next().await;
-                    if let Err(ref e) = first_item {
-                        let err_str = e.to_string();
-                        if err_str.contains("CHANNEL_INVALID")
-                            || err_str.contains("CHANNEL_PRIVATE")
-                            || err_str.contains("PEER_ID_INVALID")
-                        {
-                            clear_peer_cache_for_all(&chat);
-                            let fresh_peer = resolve_peer(client, &chat).await?;
-                            let mut fresh_iter = client.iter_messages(fresh_peer).limit(scan_limit);
-                            if let Some(oid) = offset_id {
-                                if oid > 0 {
-                                    fresh_iter = fresh_iter.offset_id(oid as i32);
+                    if let Some(want) = topic_filter {
+                        let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
+                        let offset_id_val = offset_id.unwrap_or(0) as i32;
+                        let req = grammers_client::tl::functions::messages::Search {
+                            peer: input_peer,
+                            q: String::new(),
+                            from_id: None,
+                            saved_peer_id: None,
+                            saved_reaction: None,
+                            top_msg_id: Some(want as i32),
+                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                            min_date: 0,
+                            max_date: 0,
+                            offset_id: offset_id_val,
+                            add_offset: 0,
+                            limit: limit.clamp(1, 100) as i32,
+                            max_id: 0,
+                            min_id: 0,
+                            hash: 0,
+                        };
+
+                        if let Ok(res) = client.invoke(&req).await {
+                            let raw_msgs = match res {
+                                grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::Slice(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
+                            };
+
+                            for tl_msg in raw_msgs {
+                                let msg = grammers_client::message::Message::from_raw(
+                                    client,
+                                    tl_msg,
+                                    None,
+                                    &grammers_client::types::PeerMap::empty(),
+                                );
+                                last_id = Some(msg.id() as i64);
+                                scanned += 1;
+                                if let Some(row) = media_to_row(&msg, folder_id) {
+                                    files.push(row);
+                                    if files.len() >= limit {
+                                        break;
+                                    }
                                 }
                             }
-                            iter = fresh_iter;
+                        }
+                    } else {
+                        let mut iter = client.iter_messages(peer).limit(scan_limit);
+                        if let Some(oid) = offset_id {
+                            if oid > 0 {
+                                iter = iter.offset_id(oid as i32);
+                            }
+                        }
+
+                        let mut first_item = iter.next().await;
+                        if let Err(ref e) = first_item {
+                            let err_str = e.to_string();
+                            if err_str.contains("CHANNEL_INVALID")
+                                || err_str.contains("CHANNEL_PRIVATE")
+                                || err_str.contains("PEER_ID_INVALID")
+                            {
+                                clear_peer_cache_for_all(&chat);
+                                let fresh_peer = resolve_peer(client, &chat).await?;
+                                let mut fresh_iter = client.iter_messages(fresh_peer).limit(scan_limit);
+                                if let Some(oid) = offset_id {
+                                    if oid > 0 {
+                                        fresh_iter = fresh_iter.offset_id(oid as i32);
+                                    }
+                                }
+                                iter = fresh_iter;
+                                first_item = iter.next().await;
+                            }
+                        }
+
+                        while let Ok(Some(msg)) = first_item {
+                            last_id = Some(msg.id() as i64);
+                            scanned += 1;
+                            if let Some(row) = media_to_row(&msg, folder_id) {
+                                files.push(row);
+                                if files.len() >= limit {
+                                    break;
+                                }
+                            }
                             first_item = iter.next().await;
                         }
-                    }
-
-                    while let Ok(Some(msg)) = first_item {
-                        last_id = Some(msg.id() as i64);
-                        scanned += 1;
-                        if let Some(want) = topic_filter {
-                            let tid = message_topic_id(&msg);
-                            let mid = msg.id() as i64;
-                            if tid != Some(want) && mid != want {
-                                first_item = iter.next().await;
-                                continue;
-                            }
-                        }
-                        if let Some(row) = media_to_row(&msg, folder_id) {
-                            files.push(row);
-                            if files.len() >= limit {
-                                break;
-                            }
-                        }
-                        first_item = iter.next().await;
                     }
                     let has_more = files.len() >= limit || scanned >= scan_limit;
                     let next_offset_id = if has_more {

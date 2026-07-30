@@ -4,7 +4,6 @@ import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
-import { TopicMediaGrid } from '../../features/topic-media';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -7579,19 +7578,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                 Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
               </div>
             )}
-            {topicFilter != null && Number(topicFilter) > 0 ? (
-              <TopicMediaGrid
-                context={{
-                  accountId: session || '',
-                  peerId: String(activePeerId || 0),
-                  topicId: Number(topicFilter),
-                }}
-                session={session}
-                apiId={Number(getApiIdSync() || 0)}
-                apiHash={getApiHashSync()}
-              />
-            ) : (
-              <DriveExplorer
+            <DriveExplorer
               files={files}
               loading={loadingFiles}
               loadingMore={loadingMoreFiles}
@@ -7683,7 +7670,6 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                 setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
               }}
             />
-          )}
           </div>
         </div>
       </div>

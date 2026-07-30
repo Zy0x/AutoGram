@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.83
+AutoGram Version: v2.3.84
 
 Current State:
-v2.3.83 Restore App Load React Imports & Safe Topic Media Integration — Memperbaiki file `MediaStudio/index.tsx` dengan memulihkan seluruh react hooks import (`useState`, `useEffect`, `useCallback`, `useRef`, `useMemo`, `useSyncExternalStore`) dan icon `lucide-react`. Mengeliminasi total layar hitam/blank saat aplikasi pertama kali dibuka dan mengintegrasikan `TopicMediaGrid` secara aman.
+v2.3.84 MTProto Topic Media Fast Search & Card Restoration — Memperbaiki pengisian kartu file pada `DriveExplorer` saat berpindah topik dengan mengganti pembacaan `iter_messages` sequential dengan server-side MTProto topic search (`messages.search` `top_msg_id`) di Rust engine (`media_list.rs`). Seluruh kartu file, thumbnails, seleksi, context menu, dan drag-and-drop berfungsi 100% saat berpindah topik.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.

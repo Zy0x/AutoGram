@@ -1,3 +1,9 @@
+## v2.3.84 MTProto Topic Media Fast Search & Card Restoration
+
+### Perbaikan Tampilan Kartu Berkas Saat berpindah Topik (`media_list.rs`)
+- **Server-Side MTProto Topic Search (`media_list.rs`)**: Mengganti pemindaian pesan sekensial `iter_messages` pada `list_media_blocking_topic` di Rust engine dengan request MTProto server-side `messages.search` berparameter `top_msg_id`.
+- **Restorasi Tampilan Kartu & Fitur Komplet (`DriveExplorer`)**: Memastikan seluruh kartu file disajikan di `DriveExplorer` saat berpindah topik dengan thumbnail, seleksi marquee, drag-and-drop, serta context menu 100% utuh dan responsif.
+
 ## v2.3.83 Restore App Load React Imports & Safe Topic Media Integration
 
 ### Pemulihan Pemuatan Aplikasi & Integrasi Topik Media (`MediaStudio/index.tsx`)
