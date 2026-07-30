@@ -453,7 +453,7 @@ export function DriveToolsPanel({
             <div className="td-tools-section">
               <div className="td-tools-lead-box">
                 <p className="td-tools-lead">
-                  Scope: <strong>{selectedFiles.length ? `${selectedFiles.length} terpilih` : `hingga 50 file di view`}</strong>.
+                  <strong>{selectedFiles.length ? t('speedtest.rename_scope_selected', { count: selectedFiles.length }) : t('speedtest.rename_scope_view', { count: 50 })}</strong>.
                 </p>
                 <div className="td-tools-tokens">
                   <span className="td-tools-token-label">{t('speedtest.token_label')}</span>

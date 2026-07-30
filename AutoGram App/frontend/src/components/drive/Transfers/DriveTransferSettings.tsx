@@ -123,7 +123,7 @@ export function DriveTransferSettings({
             type="button"
             className="td-icon-btn"
             onClick={onClose}
-            title="Tutup (Esc)"
+            title={t("speedtest.close_esc")}
             aria-label="Tutup"
           >
             <X size={18} />
@@ -155,10 +155,10 @@ export function DriveTransferSettings({
 
         <div className="td-xfer-settings-body">
           {tab === 'upload' && (
-            <section className="td-xfer-section" aria-label="Pengaturan upload">
+            <section className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
               <h3>{t('speedtest.upload_quality') || "Upload quality"}</h3>
               <p className="td-xfer-hint">
-                Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
+                {t("speedtest.upload_quality_hint")}
               </p>
               <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
                 {QUALITY_MODE_OPTIONS.map((opt: any) => (
@@ -199,10 +199,10 @@ export function DriveTransferSettings({
                   ariaLabel="Hardware re-encode"
                   options={[
                     { value: 'auto', label: t('speedtest.gpu_auto_label'), description: t('speedtest.gpu_auto_desc') },
-                    { value: 'nvidia', label: 'NVIDIA NVENC', description: 'CUDA/NVDEC dengan fallback aman' },
-                    { value: 'amd', label: 'AMD AMF', description: 'AMF hardware encoder' },
-                    { value: 'intel', label: 'Intel Quick Sync', description: 'QSV hardware encoder' },
-                    { value: 'cpu', label: 'CPU x264', description: 'Fallback kompatibilitas' },
+                    { value: 'nvidia', label: 'NVIDIA NVENC', description: t('speedtest.gpu_nvidia_desc') },
+                    { value: 'amd', label: 'AMD AMF', description: t('speedtest.gpu_amd_desc') },
+                    { value: 'intel', label: 'Intel Quick Sync', description: t('speedtest.gpu_intel_desc') },
+                    { value: 'cpu', label: 'CPU x264', description: t('speedtest.gpu_cpu_desc') },
                   ]}
                 />
               </label>
@@ -278,7 +278,7 @@ export function DriveTransferSettings({
                   />
                   <span>
                     <strong>{t("speedtest.send_spoiler")}</strong>
-                    <small>Tandai media sebagai spoiler (blur sampai diklik).</small>
+                    <small>{t("speedtest.send_spoiler_desc")}</small>
                   </span>
                 </label>
                 <label className="td-xfer-check">
@@ -295,8 +295,8 @@ export function DriveTransferSettings({
                     }}
                   />
                   <span>
-                    <strong>Paksa dokumen (ORIGINAL)</strong>
-                    <small>Samakan dengan mode ORIGINAL — file utuh tanpa kompresi foto Telegram.</small>
+                    <strong>{t("speedtest.force_document_title")}</strong>
+                    <small>{t("speedtest.force_document_desc")}</small>
                   </span>
                 </label>
                 <label className="td-xfer-check">
@@ -308,7 +308,7 @@ export function DriveTransferSettings({
                   />
                   <span>
                     <strong>{t('speedtest.refresh_after_upload')}</strong>
-                    <small>Muat ulang grid di folder tujuan agar file baru langsung terlihat.</small>
+                    <small>{t("speedtest.refresh_after_upload_desc")}</small>
                   </span>
                 </label>
                 <label className="td-xfer-check">
@@ -319,22 +319,22 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
                   />
                   <span>
-                    <strong>{t('speedtest.skip_uploaded_files') || "Skip uploaded files"}</strong>
-                    <small>{t('speedtest.skip_uploaded_desc') || "Automatically detect Telegram history"}</small>
+                    <strong>{t('speedtest.skip_uploaded_files')}</strong>
+                    <small>{t('speedtest.skip_uploaded_desc')}</small>
                   </span>
                 </label>
 
                 {draft.duplicatePolicy === 'SKIP' && (
                   <div className="td-xfer-subsection">
-                    <h4 className="td-xfer-sub-title">Mode Pemindaian Destination</h4>
+                    <h4 className="td-xfer-sub-title">{t("speedtest.scan_mode_title")}</h4>
                     <p className="td-xfer-hint">
-                      Mengontrol seberapa dalam aplikasi memindai riwayat pesan tujuan sebelum transfer dimulai.
+                      {t("speedtest.scan_mode_desc")}
                     </p>
                     <div className="td-xfer-radio-group">
                       {([
-                        { id: 'normal',   label: 'Normal',   desc: '1.000 pesan terakhir — cepat.' },
-                        { id: 'smart',    label: 'Smart',    desc: '1.000 pesan terbaru + sampling adaptif — direkomendasikan.' },
-                        { id: 'forensic', label: 'Forensik', desc: 'Semua pesan tanpa batas — sangat akurat, lambat untuk grup besar.' },
+                        { id: 'normal',   label: t('speedtest.scan_normal'),   desc: t('speedtest.scan_normal_desc') },
+                        { id: 'smart',    label: t('speedtest.scan_smart'),    desc: t('speedtest.scan_smart_desc') },
+                        { id: 'forensic', label: t('speedtest.scan_forensic'), desc: t('speedtest.scan_forensic_desc') },
                       ] as const).map(({ id, label, desc }) => (
                         <label key={id} className={`td-xfer-radio ${draft.scanMode === id ? 'is-on' : ''}`}>
                           <input
@@ -353,20 +353,20 @@ export function DriveTransferSettings({
                       ))}
                     </div>
 
-                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Cakupan Topik (Forum)</h4>
+                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>{t("speedtest.topic_scope_title")}</h4>
                     <MediaSelect
                       value={draft.topicScope}
                       disabled={!!transferActive}
                       onChange={(val) => patch({ topicScope: val as any })}
                       ariaLabel="Cakupan topik"
                       options={[
-                        { value: 'selected_only', label: 'Topik terpilih saja', description: 'Hanya memindai di topik forum yang sedang Anda buka' },
-                        { value: 'selected_plus_general', label: 'Topik terpilih + General', description: 'Memindai topik terpilih serta topik utama (General)' },
-                        { value: 'all_topics', label: 'Semua topik', description: 'Memindai semua topik dalam forum secara menyeluruh' },
+                        { value: 'selected_only', label: t('speedtest.topic_scope_selected'), description: t('speedtest.topic_scope_selected_desc') },
+                        { value: 'selected_plus_general', label: t('speedtest.topic_scope_plus_gen'), description: t('speedtest.topic_scope_plus_gen_desc') },
+                        { value: 'all_topics', label: t('speedtest.topic_scope_all'), description: t('speedtest.topic_scope_all_desc') },
                       ]}
                     />
 
-                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>Guardrail Re-upload</h4>
+                    <h4 className="td-xfer-sub-title" style={{ marginTop: '0.75rem' }}>{t("speedtest.guardrail_title")}</h4>
                     <label className="td-xfer-check" style={{ marginBottom: '0.5rem' }}>
                       <input
                         type="checkbox"
@@ -375,14 +375,14 @@ export function DriveTransferSettings({
                         onChange={(e) => patch({ guardrailEnabled: e.target.checked })}
                       />
                       <span>
-                        <strong>Konfirmasi sebelum re-upload file yang dihapus baru-baru ini</strong>
-                        <small>Mencegah re-upload massal tanpa sengaja saat file baru dihapus dari tujuan.</small>
+                        <strong>{t("speedtest.guardrail_check_title")}</strong>
+                        <small>{t("speedtest.guardrail_check_desc")}</small>
                       </span>
                     </label>
                     {draft.guardrailEnabled && (
                       <>
                         <p className="td-xfer-hint">
-                          Minta konfirmasi untuk file yang dihapus dalam kurun waktu:
+                          {t("speedtest.guardrail_time_hint")}
                         </p>
                         <label className="td-xfer-range-row">
                           <input
@@ -394,7 +394,7 @@ export function DriveTransferSettings({
                             onChange={(e) => patch({ guardrailThresholdDays: Number(e.target.value) })}
                             aria-label="Batas hari guardrail"
                           />
-                          <span className="td-xfer-range-val">{draft.guardrailThresholdDays} hari</span>
+                          <span className="td-xfer-range-val">{draft.guardrailThresholdDays} {t("speedtest.days_unit")}</span>
                         </label>
                       </>
                     )}
@@ -403,7 +403,7 @@ export function DriveTransferSettings({
 
               </div>{/* /.td-xfer-checks */}
 
-              <h3>Caption default</h3>
+              <h3>{t("speedtest.default_caption_title")}</h3>
               <p className="td-xfer-hint">
                 Teks yang dilampirkan ke setiap unggahan (bisa diganti per-file di masa depan). Kosongkan
                 untuk memakai nama file saja.
@@ -412,7 +412,7 @@ export function DriveTransferSettings({
                 className="td-xfer-textarea"
                 rows={3}
                 maxLength={1024}
-                placeholder="Caption opsional…"
+                placeholder={t("speedtest.optional_caption_ph")}
                 value={draft.globalCaption}
                 disabled={!!transferActive}
                 onChange={(e) => patch({ globalCaption: e.target.value })}
@@ -430,7 +430,7 @@ export function DriveTransferSettings({
           )}
 
           {tab === 'download' && (
-            <section className="td-xfer-section" aria-label="Pengaturan download">
+            <section className="td-xfer-section" aria-label={t("speedtest.download_settings_aria")}>
               <h3>{t('speedtest.download_parallel') || "Parallel download"}</h3>
               <p className="td-xfer-hint">
                 Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch). Tiap file besar juga
@@ -474,13 +474,13 @@ export function DriveTransferSettings({
                 </span>
               </div>
 
-              <h3>Yang didukung</h3>
+              <h3>{t("speedtest.supported_features_title")}</h3>
               <ul className="td-xfer-list">
                 <li>{t('speedtest.download_multi_folder')}</li>
                 <li>{t('speedtest.download_single_file')}</li>
-                <li>Progress % / MB/s / puncak di dock transfer</li>
+                <li>{t("speedtest.dock_progress_feature")}</li>
                 <li>{t('speedtest.cancel_active_download')}</li>
-                <li>Multi-part paralel untuk file besar (worker)</li>
+                <li>{t("speedtest.multipart_feature")}</li>
               </ul>
             </section>
           )}
@@ -488,7 +488,7 @@ export function DriveTransferSettings({
 
         <footer className="td-xfer-settings-foot">
           <button type="button" className="td-chip-btn" onClick={reset} disabled={!!transferActive}>
-            <RotateCcw size={13} /> Reset default
+            <RotateCcw size={13} /> {t("speedtest.btn_reset_default")}
           </button>
           <div className="td-xfer-settings-foot-right">
             <button type="button" className="td-chip-btn" onClick={onClose}>
