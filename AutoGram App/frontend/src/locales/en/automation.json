@@ -1,1 +1,9 @@
-{}
+{
+  "title": "Automation & Scheduling",
+  "subtitle": "Set automated execution schedules and Telegram chat monitor daemons.",
+  "new_schedule": "New Schedule",
+  "cron_expression": "Cron Expression",
+  "next_run": "Next Execution",
+  "status_active": "Active",
+  "status_disabled": "Disabled"
+}

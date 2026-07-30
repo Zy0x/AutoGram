@@ -1,16 +1,16 @@
 # Graph Report - AutoGram  (2026-07-30)
 
 ## Corpus Check
-- 434 files · ~501,118 words
+- 440 files · ~502,132 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2626 nodes · 5420 edges · 297 communities (144 shown, 153 thin omitted)
+- 2645 nodes · 5433 edges · 304 communities (145 shown, 159 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 194 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `501f6df3`
+- Built from commit: `1bd10329`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -270,6 +270,13 @@
 - MicroProgressBar
 - create_execution
 - ModernProgressBar
+- remote/e2e-cdp-smoke.mjs
+- MediaStudioFilterTabs.tsx
+- SidebarCategoryList.tsx
+- SidebarQuickLinks.tsx
+- SidebarStorageGauge.tsx
+- MediaStudioBatchActionBar.tsx
+- MediaStudioHeader.tsx
 - README.md
 - probe_thumb_files.mjs
 - probe_thumbs_diag.mjs
@@ -319,15 +326,15 @@
   AutoGram App/frontend/src-tauri/src/core/automations_db.rs → AutoGram App/frontend/src-tauri/src/core/grammers_ops/session_auth.rs
 - `input_channel_from_peer()` --calls--> `resolve_peer()`  [INFERRED]
   AutoGram App/frontend/src-tauri/src/core/drive_rpc.rs → AutoGram App/frontend/src-tauri/src/core/grammers_ops/peer_resolver.rs
-- `delete_messages_blocking()` --calls--> `with_client()`  [INFERRED]
-  AutoGram App/frontend/src-tauri/src/core/drive_rpc.rs → AutoGram App/frontend/src-tauri/src/core/grammers_ops/client_pool.rs
 - `delete_messages_blocking()` --calls--> `resolve_peer()`  [INFERRED]
+  AutoGram App/frontend/src-tauri/src/core/drive_rpc.rs → AutoGram App/frontend/src-tauri/src/core/grammers_ops/peer_resolver.rs
+- `delete_folder_blocking()` --calls--> `resolve_peer()`  [INFERRED]
   AutoGram App/frontend/src-tauri/src/core/drive_rpc.rs → AutoGram App/frontend/src-tauri/src/core/grammers_ops/peer_resolver.rs
 
 ## Import Cycles
 - None detected.
 
-## Communities (297 total, 153 thin omitted)
+## Communities (304 total, 159 thin omitted)
 
 ### Community 0 - "frontend/src-tauri/src/lib.rs"
 Cohesion: 0.05
@@ -354,8 +361,8 @@ Cohesion: 0.03
 Nodes (69): v2.1.0 Foundation & Merged Repository, v2.1.10 Perbaikan Akurasi Pengurutan Terlama & Sinkronisasi State Filter, v2.1.11 Perbaikan Galat Indeks Pengindeksan Media & Kestabilan Indikator Koneksi, v2.1.12 Optimasi Dinamis Buffering & Kecepatan Streaming Berkas Besar (>1GB), v2.1.13 Perbaikan Error 'MTProtoSender' Object Is Not Callable untuk Pratinjau Berkas Lintas DC (>2GB), v2.1.14 Pembersihan Placeholder Tampilan Awal Memuat Pratinjau Media (Video & Gambar), v2.1.15 Pembersihan Sesi Bayangan (_preview) dari Daftar Pilihan Antarmuka, v2.1.16 Paralelisasi Bootstrapping & Optimasi Batas Muat Awal Media (+61 more)
 
 ### Community 6 - "grammers_ops.rs"
-Cohesion: 0.11
-Nodes (40): RwLock, session_operation_lock(), cancel_qr_login(), delete_grammers_session_files(), ensure_grammers_session(), fresh_login_does_not_persist_session_before_auth_key(), grammers_file_has_auth_key(), grammers_qr_login() (+32 more)
+Cohesion: 0.10
+Nodes (47): disconnect_cached_session(), RwLock, session_operation_lock(), user_profile_from(), auth_status_blocking(), cancel_qr_login(), clear_cached_user_profile(), delete_grammers_session_files() (+39 more)
 
 ### Community 7 - "job_queue.rs"
 Cohesion: 0.08
@@ -370,28 +377,28 @@ Cohesion: 0.07
 Nodes (41): AsRef, cleanup_paths(), CleanupResult, clear_download_registry(), get_registry_path(), list_active_download_paths(), load_unlocked(), register_download_path() (+33 more)
 
 ### Community 10 - "path_policy.rs"
-Cohesion: 0.12
-Nodes (31): FileHashResult, hashes_small_file(), quick_fingerprint(), Result, String, sha256_file(), cleanup_temp(), download_remote_url() (+23 more)
+Cohesion: 0.09
+Nodes (41): ext_of(), extract_office_zip(), extract_rtf_plain(), guess_mime(), is_text_ext(), LocalDocPreview, looks_binary(), pretty_json() (+33 more)
 
 ### Community 11 - "session_rate.rs"
-Cohesion: 0.08
-Nodes (37): AtomicU32, AtomicU64, acquire_media_slot(), begin_preview_flight(), end_preview_flight(), ensure_not_flooded(), flood_remaining_secs(), non_flood_errors_do_not_trigger_flood_wait() (+29 more)
+Cohesion: 0.13
+Nodes (31): acquire_media_slot(), begin_preview_flight(), end_preview_flight(), ensure_not_flooded(), flood_remaining_secs(), non_flood_errors_do_not_trigger_flood_wait(), note_error(), note_flood_wait() (+23 more)
 
 ### Community 12 - "stream_server.rs"
 Cohesion: 0.13
 Nodes (41): contiguous_end_from(), contiguous_from_zero(), cors_headers(), ensure_started(), filled_bytes(), get_entry(), handle(), handle_register() (+33 more)
 
 ### Community 13 - "TgError"
-Cohesion: 0.13
-Nodes (29): download_file_blocking(), DownloadFileResult, Option, Path, Result, String, Vec, upload_album_blocking() (+21 more)
+Cohesion: 0.14
+Nodes (28): download_file_blocking(), DownloadFileResult, Option, Path, Result, String, Vec, upload_album_blocking() (+20 more)
 
 ### Community 14 - "secrets.rs"
 Cohesion: 0.24
 Nodes (35): decode_key_b64(), decrypt_map(), decrypt_map_or_recover(), delete_credential(), delete_worker_temp_file(), encrypt_map(), ensure_secure_dirs(), get_credential() (+27 more)
 
 ### Community 15 - "jobs_db.rs"
-Cohesion: 0.12
-Nodes (47): resolve_sessions_dir(), sessions_dir_nonempty(), calculate_cache_size(), cancel_execution(), clear_disk_cache(), create_job(), CreateJobRequest, delete_job() (+39 more)
+Cohesion: 0.19
+Nodes (32): calculate_cache_size(), cancel_execution(), clear_disk_cache(), create_job(), CreateJobRequest, delete_job(), edit_job(), EditJobRequest (+24 more)
 
 ### Community 16 - "allow"
 Cohesion: 0.06
@@ -410,8 +417,8 @@ Cohesion: 0.16
 Nodes (27): apply_all(), apply_proxy(), apply_vpn(), clamp_vpn(), clamp_vpn_bounds(), connect_timeout_secs(), init_config_path(), is_network_available() (+19 more)
 
 ### Community 20 - "drive_rpc.rs"
-Cohesion: 0.14
-Nodes (47): avatars_batch_blocking(), AvatarsBatchResult, channel_peer_id_from_bare(), chats_from_updates(), compose_folder_about(), create_folder_blocking(), create_topic_blocking(), delete_folder_blocking() (+39 more)
+Cohesion: 0.15
+Nodes (48): avatars_batch_blocking(), AvatarsBatchResult, channel_peer_id_from_bare(), chats_from_updates(), compose_folder_about(), create_folder_blocking(), create_topic_blocking(), delete_folder_blocking() (+40 more)
 
 ### Community 21 - "compilerOptions"
 Cohesion: 0.09
@@ -426,12 +433,12 @@ Cohesion: 0.11
 Nodes (14): DriveConfirmDialog(), DriveConfirmKind, DriveFolderDeleteChoice, DriveMoveChoice, Props, DriveCrumbSeg, DriveTopBar(), Props (+6 more)
 
 ### Community 25 - "get_connection"
-Cohesion: 0.28
-Nodes (16): ext_of(), extract_office_zip(), extract_rtf_plain(), guess_mime(), is_text_ext(), LocalDocPreview, looks_binary(), pretty_json() (+8 more)
+Cohesion: 0.12
+Nodes (25): AtomicU32, AtomicU64, FileHashResult, hashes_small_file(), quick_fingerprint(), Result, String, sha256_file() (+17 more)
 
 ### Community 26 - "DrivePreviewModal.tsx"
-Cohesion: 0.15
-Nodes (30): CachedLiveClient, connect_client(), disconnect_cached_session(), ensure_authorized(), get_cached_user_profile(), is_fatal_auth_error(), is_pool_or_transport_error(), live_clients() (+22 more)
+Cohesion: 0.16
+Nodes (25): CachedLiveClient, connect_client(), ensure_authorized(), get_cached_user_profile(), is_fatal_auth_error(), is_pool_or_transport_error(), live_clients(), obtain_download_clients() (+17 more)
 
 ### Community 27 - "path_is_allowed"
 Cohesion: 0.42
@@ -498,8 +505,8 @@ Cohesion: 0.26
 Nodes (14): bug(), bugs, cdpSession(), evalJSON(), httpGet(), log(), main(), require (+6 more)
 
 ### Community 44 - "DriveSidebar.tsx"
-Cohesion: 0.10
-Nodes (17): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+9 more)
+Cohesion: 0.19
+Nodes (10): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+2 more)
 
 ### Community 45 - "Bug Investigation"
 Cohesion: 0.15
@@ -841,6 +848,10 @@ Nodes (7): drivesBtn, gudang, page, photo, report, samples, t0
 Cohesion: 0.36
 Nodes (6): detectLanguage(), escapeHtml(), highlightLine(), VSCodeCodeViewer(), VSCodeCodeViewerProps, DocumentViewerProps
 
+### Community 259 - "remote/e2e-cdp-smoke.mjs"
+Cohesion: 0.22
+Nodes (7): candidates, card, errors, pages, results, sessionSelect, tDrive
+
 ### Community 291 - "stats_db.rs"
 Cohesion: 0.42
 Nodes (9): export_stats_csv(), get_statistics(), open_db(), resolve_migrator_db(), Connection, PathBuf, Result, String (+1 more)
@@ -854,21 +865,21 @@ Cohesion: 0.16
 Nodes (20): buildMediaSrc(), clamp(), DEFAULT_VIDEO_QUALITIES, DrivePreviewModal(), formatQualitySize(), isHttpStreamUrl(), isPlayableHttpUrl(), isProgressiveStreamPath() (+12 more)
 
 ## Knowledge Gaps
-- **680 isolated node(s):** `fs`, `command`, `name`, `private`, `version` (+675 more)
+- **687 isolated node(s):** `fs`, `command`, `name`, `private`, `version` (+682 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **153 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **159 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TelegramIdentity` connect `drive_rpc.rs` to `frontend/src-tauri/src/lib.rs`, `grammers_media.rs`, `telegram_ops.rs`, `TgError`, `AutoGram App/src-tauri/tauri.conf.json`, `db.py`, `DrivePreviewModal.tsx`, `frontend/e2e-cdp-smoke.mjs`?**
+- **Why does `TelegramIdentity` connect `drive_rpc.rs` to `frontend/src-tauri/src/lib.rs`, `grammers_media.rs`, `telegram_ops.rs`, `grammers_ops.rs`, `TgError`, `AutoGram App/src-tauri/tauri.conf.json`, `db.py`, `DrivePreviewModal.tsx`, `frontend/e2e-cdp-smoke.mjs`?**
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **Why does `TgError` connect `tg_error.rs` to `grammers_media.rs`, `telegram_ops.rs`, `grammers_ops.rs`, `job_queue.rs`, `session_rate.rs`, `TgError`, `jobs_db.rs`, `telethon_session_import.rs`, `drive_rpc.rs`, `AutoGram App/src-tauri/tauri.conf.json`, `db.py`, `DrivePreviewModal.tsx`, `frontend/e2e-cdp-smoke.mjs`, `stats_db.rs`?**
+- **Why does `TgError` connect `tg_error.rs` to `grammers_media.rs`, `telegram_ops.rs`, `grammers_ops.rs`, `job_queue.rs`, `session_rate.rs`, `TgError`, `telethon_session_import.rs`, `drive_rpc.rs`, `AutoGram App/src-tauri/tauri.conf.json`, `db.py`, `get_connection`, `DrivePreviewModal.tsx`, `frontend/e2e-cdp-smoke.mjs`, `stats_db.rs`?**
   _High betweenness centrality (0.015) - this node is a cross-community bridge._
-- **Why does `resolve_sessions_dir()` connect `jobs_db.rs` to `stats_db.rs`, `grammers_ops.rs`, `job_queue.rs`, `automations_db.rs`, `profiles_db.rs`?**
+- **Why does `resolve_sessions_dir()` connect `grammers_ops.rs` to `stats_db.rs`, `job_queue.rs`, `automations_db.rs`, `profiles_db.rs`, `jobs_db.rs`, `get_connection`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **What connects `fs`, `command`, `name` to the rest of the system?**
-  _680 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _687 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `frontend/src-tauri/src/lib.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.05378652355396541 - nodes in this community are weakly interconnected._
 - **Should `app_db.rs` be split into smaller, more focused modules?**

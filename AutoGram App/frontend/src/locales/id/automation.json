@@ -1,1 +1,9 @@
-{}
+{
+  "title": "Otomatisasi & Penjadwalan",
+  "subtitle": "Atur jadwal eksekusi otomatis dan daemon pemantau obrolan Telegram.",
+  "new_schedule": "Jadwal Baru",
+  "cron_expression": "Ekspresi Cron",
+  "next_run": "Eksekusi Berikutnya",
+  "status_active": "Aktif",
+  "status_disabled": "Nonaktif"
+}

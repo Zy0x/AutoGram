@@ -1,4 +1,23 @@
 {
   "title": "Drives",
-  "subtitle": "Browse Telegram media, instant preview, upload & download — parallel with Forwarder."
+  "subtitle": "Explore Telegram media, quick preview, upload & download — in parallel with Forwarder.",
+  "root_drive": "Root Drive",
+  "saved_messages": "Saved Messages",
+  "recents": "Recents",
+  "trash": "Trash",
+  "active_transfers": "Active Transfers",
+  "search_placeholder": "Search files in this location...",
+  "filter_all": "All",
+  "filter_images": "Photos",
+  "filter_videos": "Videos",
+  "filter_audio": "Audio",
+  "filter_docs": "Documents",
+  "filter_archives": "Archives",
+  "filter_apks": "APK Apps",
+  "select_all": "Select All",
+  "clear_selection": "Clear Selection",
+  "download_batch": "Download Selected",
+  "delete_batch": "Delete Selected",
+  "cloud_storage": "Telegram Cloud Storage",
+  "unlimited_cloud": "Unlimited Cloud"
 }

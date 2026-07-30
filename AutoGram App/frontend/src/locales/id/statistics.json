@@ -1,1 +1,7 @@
-{}
+{
+  "title": "Statistik & Performa",
+  "subtitle": "Lihat ringkasan performa kecepatan transfer dan total media yang telah diproses.",
+  "total_transferred": "Total Terkirim",
+  "transfer_speed": "Kecepatan Rata-Rata",
+  "success_rate": "Tingkat Keberhasilan"
+}

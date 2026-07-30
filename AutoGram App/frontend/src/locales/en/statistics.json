@@ -1,1 +1,7 @@
-{}
+{
+  "title": "Statistics & Performance",
+  "subtitle": "View performance summary of transfer speeds and total processed media.",
+  "total_transferred": "Total Transferred",
+  "transfer_speed": "Average Speed",
+  "success_rate": "Success Rate"
+}

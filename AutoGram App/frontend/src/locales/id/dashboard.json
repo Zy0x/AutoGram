@@ -21,8 +21,8 @@
   "caption_rule": "Aturan Keterangan",
   "media_filter": "Filter Media",
   "auto_fallback": "Auto-Fallback (Terlarang)",
-  "tooltip_auto_fallback": "⚠️ BAHAYA: Jika aktif, obrolan yang melarang Forward akan di-Download & di-Upload secara manual menggunakan koneksi Anda. Sangat lambat dan memakan kuota besar! Juga berisiko tinggi memicu Anti-Spam/Banned.",
-  "tooltip_throttle": "⚠️ PERINGATAN: Mematikan Safe Mode Throttle akan menghilangkan batas kecepatan pengiriman. Akun Anda berisiko terkena FloodWait atau Banned sementara oleh sistem Telegram.",
+  "tooltip_auto_fallback": "⚠️ BAHAYA: Jika aktif, obrolan yang melarang Forward akan di-Download & di-Upload secara manual.",
+  "tooltip_throttle": "⚠️ PERINGATAN: Mematikan Safe Mode Throttle akan menghilangkan batas kecepatan pengiriman.",
   "size_filter": "Filter Ukuran (MB)",
   "min_placeholder": "Min (MB)",
   "max_placeholder": "Maks (MB)",
@@ -63,16 +63,5 @@
   "filter_doc": "Dokumen",
   "filter_audio": "Audio",
   "filter_voice": "Pesan Suara",
-  "filter_gif": "GIF",
-  "tooltip_session": "Pilih akun Telegram yang akan digunakan sebagai eksekutor (bot/pengirim) untuk mentransfer data.",
-  "tooltip_source": "Target sumber pesan. Masukkan ID, username (@channel), atau klik tombol Cari untuk mencari dari daftar obrolan akun Anda.",
-  "tooltip_dest": "Tujuan kemana pesan akan dikirim. Masukkan ID, username (@grup), atau cari langsung dari akun Anda.",
-  "tooltip_disable_dup": "⚠️ PERINGATAN: Mematikan proteksi duplikat berisiko tinggi memicu filter Spam Telegram dan mengirim file ganda tiada henti.",
-  "tooltip_disable_limit": "⚠️ PERINGATAN: Mematikan batas pesan akan membuat mesin bekerja tanpa henti. Berisiko tinggi memicu FloodWait.",
-  "tooltip_transfer_mode": "Pilih metode pengiriman:\n\n1. ⏩ Fast Forward: Cepat, gratis kuota, tapi label 'Forwarded from' tetap ada.\n\n2. 🚀 Instant Clone: Instan, tanpa label forward (seperti upload baru). ⚠️ Peringatan: Jangan berlebihan agar aman dari Spam!\n\n3. ✨ Clean Copy: ⚠️ PERINGATAN! Mengunduh file fisik dan mengunggah ulang. Menguras KUOTA internet besar dan SANGAT LAMBAT. 100% bersih tanpa jejak.",
-  "tooltip_dup_action": "Tindakan saat mendeteksi file ganda di tujuan. ⚠️ PERINGATAN: Memilih 'Kirim Paksa' mematikan perlindungan duplikat dan berisiko dianggap spamming.",
-  "tooltip_msg_limit": "Batas jumlah pesan maksimal yang akan dipindai/ditransfer dalam satu sesi eksekusi.",
-  "tooltip_caption_rule": "Aturan untuk teks/deskripsi (caption) pada media. Anda bisa membiarkan aslinya, menghapus semua teks, menghapus tautan iklan (link), atau mengganti semuanya dengan kata-kata buatan sendiri.",
-  "tooltip_media_filter": "Pilih jenis file yang ingin ditransfer. Jika pilih Video, maka Foto atau Dokumen akan diabaikan.",
-  "tooltip_size_filter": "Filter berdasarkan ukuran file (MB). Biarkan kosong atau 0 jika tidak ada batasan ukuran."
+  "filter_gif": "GIF"
 }

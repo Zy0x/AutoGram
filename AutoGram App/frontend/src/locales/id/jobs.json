@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Daftar Pekerjaan",
+  "subtitle": "Pantau dan kelola riwayat pekerjaan transfer media yang berjalan.",
+  "new_job": "Buat Pekerjaan Baru",
+  "job_id": "ID Pekerjaan",
+  "status_running": "Berjalan",
+  "status_completed": "Selesai",
+  "status_failed": "Gagal",
+  "status_paused": "Jeda",
+  "progress": "Kemajuan",
+  "total_files": "Total File",
+  "transferred": "Terkirim",
+  "failed": "Gagal",
+  "rerun": "Jalankan Ulang",
+  "fresh_start": "Mulai Dari Awal",
+  "view_details": "Lihat Detail"
+}

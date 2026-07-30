@@ -1,4 +1,23 @@
 {
   "title": "Drives",
-  "subtitle": "Jelajah media Telegram, preview cepat, upload & download — parallel dengan Forwarder."
+  "subtitle": "Jelajah media Telegram, preview cepat, upload & download — parallel dengan Forwarder.",
+  "root_drive": "Drive Utama",
+  "saved_messages": "Saved Messages",
+  "recents": "Baru Dilihat",
+  "trash": "Tong Sampah",
+  "active_transfers": "Transfer Aktif",
+  "search_placeholder": "Cari file di lokasi ini...",
+  "filter_all": "Semua",
+  "filter_images": "Foto",
+  "filter_videos": "Video",
+  "filter_audio": "Audio",
+  "filter_docs": "Dokumen",
+  "filter_archives": "Arsip",
+  "filter_apks": "Aplikasi APK",
+  "select_all": "Pilih Semua",
+  "clear_selection": "Batalkan Pilihan",
+  "download_batch": "Download Terpilih",
+  "delete_batch": "Hapus Terpilih",
+  "cloud_storage": "Telegram Cloud Storage",
+  "unlimited_cloud": "Awan Tanpa Batas"
 }

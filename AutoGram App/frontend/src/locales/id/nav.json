@@ -1,10 +1,13 @@
 {
-  "dashboard": "Beranda",
-  "accounts": "Akun",
+  "dashboard": "Dasbor",
+  "accounts": "Akun Telegram",
   "settings": "Pengaturan",
   "speedtest": "Drives",
   "forwarder": "Forwarder",
   "drives": "Drives",
   "collapse": "Sembunyikan",
-  "expand": "Tampilkan"
+  "expand": "Tampilkan",
+  "jobs": "Pekerjaan",
+  "automation": "Otomatisasi",
+  "statistics": "Statistik"
 }

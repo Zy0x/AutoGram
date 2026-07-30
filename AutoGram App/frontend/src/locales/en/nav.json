@@ -1,10 +1,13 @@
 {
-  "dashboard": "Home",
-  "accounts": "Accounts",
+  "dashboard": "Dashboard",
+  "accounts": "Telegram Accounts",
   "settings": "Settings",
   "speedtest": "Drives",
   "forwarder": "Forwarder",
   "drives": "Drives",
   "collapse": "Collapse",
-  "expand": "Expand"
+  "expand": "Expand",
+  "jobs": "Jobs",
+  "automation": "Automation",
+  "statistics": "Statistics"
 }

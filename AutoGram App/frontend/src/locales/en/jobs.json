@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Jobs List",
+  "subtitle": "Monitor and manage running media transfer jobs history.",
+  "new_job": "Create New Job",
+  "job_id": "Job ID",
+  "status_running": "Running",
+  "status_completed": "Completed",
+  "status_failed": "Failed",
+  "status_paused": "Paused",
+  "progress": "Progress",
+  "total_files": "Total Files",
+  "transferred": "Transferred",
+  "failed": "Failed",
+  "rerun": "Re-run Job",
+  "fresh_start": "Fresh Start",
+  "view_details": "View Details"
+}
