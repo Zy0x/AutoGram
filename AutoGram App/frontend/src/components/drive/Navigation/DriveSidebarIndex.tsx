@@ -1510,7 +1510,7 @@ export function DriveSidebar({
         <button
           type="button"
           className="td-rail-btn td-rail-tool"
-          title="Muat ulang Drives, folder & chat"
+          title={t("speedtest.sidebar_refresh_all")}
           aria-label={t("speedtest.sidebar_refresh_tooltip")}
           onClick={onRefresh}
           disabled={busy}
@@ -1834,7 +1834,7 @@ export function DriveSidebar({
               aria-hidden
             />
             <span className="td-section-toggle-label">Drives [TD]</span>
-            <span className="td-chat-count" title="Jumlah Drive & folder [TD]">
+            <span className="td-chat-count" title={t("speedtest.sidebar_td_count")}>
               {hasLocationQuery ? `${folderRows.length}/${folders.length}` : folders.length}
             </span>
           </button>
@@ -1904,7 +1904,7 @@ export function DriveSidebar({
                         className="td-folder-tree-toggle"
                         aria-label={isOpen ? 'Ciutkan folder' : 'Perluas folder'}
                         aria-expanded={isOpen}
-                        title={isOpen ? 'Ciutkan subfolder' : 'Perluas subfolder'}
+                        title={isOpen ? t('speedtest.sidebar_collapse_subfolder') : t('speedtest.sidebar_expand_subfolder')}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -1939,12 +1939,12 @@ export function DriveSidebar({
                   <span className="td-folder-label">{f.name}</span>
                   {/* Badges only on roots / orphan — nested keeps full name visible */}
                   {itemKind === 'drive' && !f.is_orphan && depth === 0 && (
-                    <span className="td-badge-drive td-only-expanded" title="Drive (root [TD])">
+                    <span className="td-badge-drive td-only-expanded" title={t("speedtest.sidebar_drive_root")}>
                       Drive
                     </span>
                   )}
                   {f.is_orphan && (
-                    <span className="td-folder-orphan-badge td-only-expanded" title="Parent tidak ditemukan">
+                    <span className="td-folder-orphan-badge td-only-expanded" title={t("speedtest.sidebar_orphan_parent")}>
                       Yatim
                     </span>
                   )}

@@ -103,7 +103,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             type="button"
             onClick={onPrintPdf}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title="Cetak PDF"
+            title={t("speedtest.print_pdf_tooltip")}
           >
             <Printer size={16} />
           </button>
@@ -137,7 +137,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             type="button"
             onClick={onToggleFullscreen}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh'}
+            title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
           >
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>

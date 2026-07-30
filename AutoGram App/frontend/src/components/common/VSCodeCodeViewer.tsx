@@ -252,7 +252,7 @@ export function VSCodeCodeViewer({
             type="button"
             className={`vscode-action-btn ${wordWrap ? 'is-active' : ''}`}
             onClick={() => setWordWrap(!wordWrap)}
-            title="Potong baris panjang (Word Wrap)"
+            title={t("speedtest.word_wrap_tooltip")}
           >
             <WrapText size={13} />
             <span>Wrap</span>

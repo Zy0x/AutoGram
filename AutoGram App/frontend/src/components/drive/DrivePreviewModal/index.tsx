@@ -2557,7 +2557,7 @@ export function DrivePreviewModal({
                 onPrev?.();
               }}
               aria-label="Previous"
-              title={hasPrev ? 'Sebelumnya (←)' : 'Tidak ada file sebelumnya'}
+              title={hasPrev ? t('speedtest.preview_prev_file') : t('speedtest.preview_no_prev')}
             >
               <ChevronLeft size={18} />
             </button>
@@ -2570,7 +2570,7 @@ export function DrivePreviewModal({
                 onNext?.();
               }}
               aria-label="Next"
-              title={hasNext ? 'Berikutnya (→)' : 'Tidak ada file berikutnya'}
+              title={hasNext ? t('speedtest.preview_next_file') : t('speedtest.preview_no_next')}
             >
               <ChevronRight size={18} />
             </button>
@@ -2641,7 +2641,7 @@ export function DrivePreviewModal({
                 e.stopPropagation();
                 void toggleFullscreen();
               }}
-              title={isFullscreen ? 'Keluar fullscreen (F)' : 'Fullscreen (F)'}
+              title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
               aria-label="Fullscreen"
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -2830,7 +2830,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className={`drive-tool-btn${muted ? ' is-on' : ''}`}
-                  title={muted ? 'Nyalakan suara (M)' : 'Bisukan suara (M)'}
+                  title={muted ? t('speedtest.preview_unmute_hint') : t('speedtest.preview_mute_hint')}
                   onClick={() => setMuted((m) => !m)}
                 >
                   {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
@@ -2854,7 +2854,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title="Jendela mini (Picture-in-Picture)"
+                  title={t('speedtest.preview_pip_hint')}
                   onClick={() => void togglePip()}
                 >
                   <PictureInPicture2 size={15} />

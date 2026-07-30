@@ -16,5 +16,17 @@
   "status_running": "Running",
   "status_completed": "Completed",
   "status_paused": "Paused",
-  "status_failed": "Failed"
+  "status_failed": "Failed",
+  "jobs_delete_profile": "Delete profile \"{{name}}\"",
+  "jobs_pause_exec": "Pause execution",
+  "jobs_resume_exec": "Run migration",
+  "jobs_retry_failed_title": "Retry only failed messages (retry-execution RESUME)",
+  "jobs_no_prev_execution": "No previous execution available to retry",
+  "jobs_rerun_modes_title": "Re-run with mode selection (RESUME / OVERWRITE / SMART_SYNC)",
+  "jobs_view_config": "View Config Details",
+  "jobs_edit_config": "Edit Configuration",
+  "jobs_export_audit": "Export Audit Logs",
+  "jobs_import_title": "Import Migration Jobs",
+  "jobs_export_title": "Export Migration Jobs",
+  "jobs_delete_title": "Delete Migration Job"
 }

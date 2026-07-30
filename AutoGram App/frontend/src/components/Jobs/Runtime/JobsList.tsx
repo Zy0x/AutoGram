@@ -55,10 +55,10 @@ export function JobsList({
           </p>
         </div>
         <div className="page-toolbar-actions">
-          <button type="button" className="btn btn-secondary" onClick={importJobs} title="Import Jobs">
+          <button type="button" className="btn btn-secondary" onClick={importJobs} title={t("jobs.jobs_import_title")}>
             <Download size={16} /> <span>Import</span>
           </button>
-          <button type="button" className="btn btn-secondary" onClick={exportJobs} title="Export Jobs">
+          <button type="button" className="btn btn-secondary" onClick={exportJobs} title={t("jobs.jobs_export_title")}>
             <Upload size={16} /> <span>Export</span>
           </button>
           <button type="button" className="btn btn-secondary" onClick={fetchJobs} disabled={isLoading} title="Refresh">
@@ -162,7 +162,7 @@ export function JobsList({
                     className="btn btn-primary"
                     onClick={() => startJob(job, args.isRetry, args.isDryRun, args.rerunMode)}
                     disabled={busy}
-                    title="Jalankan migrasi baru"
+                    title={t("jobs.jobs_resume_exec")}
                   >
                     <Play size={18} /> {action.label}
                   </button>
@@ -195,7 +195,7 @@ export function JobsList({
                   className="btn btn-secondary btn-primary-outline"
                   onClick={() => setSelectedJobForRerun(job)}
                   disabled={busy}
-                  title="Re-run dengan pilihan mode (RESUME / OVERWRITE / SMART_SYNC)"
+                  title={t("jobs.jobs_rerun_modes_title")}
                 >
                   <Play size={18} /> {action.label}
                 </button>
@@ -253,7 +253,7 @@ export function JobsList({
                     type="button"
                     className="btn btn-secondary btn-icon"
                     onClick={() => onViewRuntime(job)}
-                    title="View Job Details & Logs"
+                    title={t("jobs.jobs_view_config")}
                   >
                     <Eye size={18} />
                   </button>
@@ -263,7 +263,7 @@ export function JobsList({
                         type="button"
                         className="btn btn-secondary btn-icon"
                         onClick={() => onEditJob(job)}
-                        title="Edit Configuration"
+                        title={t("jobs.jobs_edit_config")}
                       >
                         <Edit3 size={18} />
                       </button>
@@ -271,7 +271,7 @@ export function JobsList({
                         type="button"
                         className="btn btn-secondary btn-icon btn-danger-soft"
                         onClick={() => deleteJob(job.id)}
-                        title="Delete Job"
+                        title={t("jobs.jobs_delete_title")}
                       >
                         <Trash2 size={18} />
                       </button>

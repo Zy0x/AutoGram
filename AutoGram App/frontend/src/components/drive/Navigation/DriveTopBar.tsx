@@ -227,7 +227,7 @@ export function DriveTopBar({
   const selectionToolbar = (
     <div className="td-selection-strip is-beside-search" role="toolbar" aria-label="Aksi seleksi">
       <div className="td-selection-strip-left">
-        <span className="td-selection-count" title={`${selectedCount} file terpilih`}>
+        <span className="td-selection-count" title={t("speedtest.topbar_selected_count_tooltip", { count: selectedCount })}>
           <MousePointerClick size={14} strokeWidth={2} aria-hidden />
           <strong>{selectedCount}</strong>
           <span className="td-selection-count-label">{t('speedtest.topbar_selected')}</span>
@@ -286,7 +286,7 @@ export function DriveTopBar({
           className="td-chip-btn"
           onClick={onDownload}
           disabled={!!actionsDisabled}
-          title={actionsDisabled ? 'Tunggu transfer selesai' : 'Unduh terpilih'}
+          title={actionsDisabled ? t('speedtest.topbar_wait_transfer') : t('speedtest.topbar_download_sel')}
         >
           <Download size={15} strokeWidth={2} aria-hidden />
           <span className="td-chip-label">{t('speedtest.topbar_download')}</span>
@@ -296,7 +296,7 @@ export function DriveTopBar({
           className="td-chip-btn danger"
           onClick={onDelete}
           disabled={!!actionsDisabled}
-          title={actionsDisabled ? 'Tunggu transfer selesai' : 'Hapus terpilih'}
+          title={actionsDisabled ? t('speedtest.topbar_wait_transfer') : t('speedtest.topbar_delete_sel')}
         >
           <Trash2 size={15} strokeWidth={2} aria-hidden />
           <span className="td-chip-label">{t('speedtest.topbar_delete')}</span>
@@ -326,7 +326,7 @@ export function DriveTopBar({
               type="button"
               className={`td-icon-btn ${isPinned ? 'active' : ''}`}
               onClick={onTogglePin}
-              title={isPinned ? 'Lepas pin lokasi' : 'Pin lokasi ini'}
+              title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
               aria-label={isPinned ? 'Lepas pin' : 'Pin lokasi'}
             >
               {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
@@ -383,7 +383,7 @@ export function DriveTopBar({
                               <span className="td-crumb-sep">/</span>
                               <span
                                 className="td-crumb-muted td-crumb-ellipsis"
-                                title={`Path lengkap: ${fullPathString}`}
+                                title={t("speedtest.topbar_full_path", { path: fullPathString })}
                               >
                                 …
                               </span>
@@ -405,7 +405,7 @@ export function DriveTopBar({
               </>
             )}
             {isForum && (
-              <span className="td-forum-badge" title="Grup dengan topik (forum)">
+              <span className="td-forum-badge" title={t("speedtest.topbar_forum_group")}>
                 <MessagesSquare size={12} />
                 Topik
               </span>
@@ -475,7 +475,7 @@ export function DriveTopBar({
                 className="td-icon-btn"
                 disabled={!canZoomOut}
                 onClick={() => onGridZoom((gridZoom - 1) as DriveGridZoom)}
-                title="Perkecil thumbnail (Ctrl + scroll turun)"
+                title={t("speedtest.topbar_zoom_out")}
                 aria-label="Zoom out"
               >
                 <ZoomOut size={16} />
@@ -493,7 +493,7 @@ export function DriveTopBar({
                 className="td-icon-btn"
                 disabled={!canZoomIn}
                 onClick={() => onGridZoom((gridZoom + 1) as DriveGridZoom)}
-                title="Perbesar thumbnail (Ctrl + scroll naik)"
+                title={t("speedtest.topbar_zoom_in")}
                 aria-label="Zoom in"
               >
                 <ZoomIn size={16} />
@@ -506,7 +506,7 @@ export function DriveTopBar({
             className="td-icon-btn"
             onClick={onRefresh}
             disabled={loading}
-            title="Muat ulang folder & chat"
+            title={t("speedtest.topbar_refresh_all")}
             aria-label="Refresh"
           >
             <RefreshCw size={16} className={loading ? 'spin' : undefined} />
@@ -552,7 +552,7 @@ export function DriveTopBar({
               className="td-icon-btn text-[var(--primary,#e2a532)]"
               onClick={onDownloadAllClick}
               disabled={!!actionsDisabled}
-              title="Download Semua (ZIP)"
+              title={t("speedtest.topbar_download_zip")}
               aria-label="Download semua file sebagai ZIP"
             >
               <FolderArchive size={16} />
@@ -564,7 +564,7 @@ export function DriveTopBar({
               className="td-btn-secondary"
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
-              title="Remote Upload (URL)"
+              title={t("speedtest.remote_upload_url_title")}
               aria-label="Remote upload file dari URL"
             >
               <Globe size={15} />
@@ -672,7 +672,7 @@ export function DriveTopBar({
       <div className="td-topbar-row td-topbar-row-tools">
         <div className="td-topbar-tools" role="toolbar" aria-label="Filter, urutan, dan thumbnail">
           <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
-            <span id="td-label-filter" className="td-tool-label" title="Filter tipe media">
+            <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
               Filter
             </span>
             <div className="td-filter-pills">
@@ -700,8 +700,8 @@ export function DriveTopBar({
             </div>
           </div>
 
-          <div className="td-tool-group" title="Urutan tampilan media">
-            <span className="td-tool-label" id="td-label-sort" title="Urutkan daftar media">
+          <div className="td-tool-group" title={t("speedtest.topbar_sort_order")}>
+            <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
               Urutkan
             </span>
             <div className="td-sort-group">
@@ -725,9 +725,9 @@ export function DriveTopBar({
             className="td-tool-group td-thumb-quality"
             role="group"
             aria-labelledby="td-label-thumb"
-            title="Kualitas thumbnail di grid"
+            title={t("speedtest.topbar_thumb_quality")}
           >
-            <span id="td-label-thumb" className="td-tool-label" title="Kualitas gambar pratinjau">
+            <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
               Thumb
             </span>
             <div className="td-thumb-quality-pills">

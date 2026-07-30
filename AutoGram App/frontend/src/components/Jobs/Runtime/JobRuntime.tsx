@@ -343,7 +343,7 @@ export function JobRuntime({
           <div className="runtime-action-group action-group">
             <div className="primary-actions">
               {statusClass === 'running' && (
-                <button type="button" className="btn btn-secondary btn-warning-soft" onClick={() => pauseJob(job.id)} title="Jeda eksekusi">
+                <button type="button" className="btn btn-secondary btn-warning-soft" onClick={() => pauseJob(job.id)} title={t("jobs.jobs_pause_exec")}>
                   <Pause size={18} /> Pause
                 </button>
               )}
@@ -363,7 +363,7 @@ export function JobRuntime({
                   type="button"
                   className="btn btn-primary"
                   onClick={() => startJob(job, false, false)}
-                  title="Jalankan migrasi"
+                  title={t("jobs.jobs_resume_exec")}
                 >
                   <Play size={18} /> Run
                 </button>
@@ -387,7 +387,7 @@ export function JobRuntime({
                   type="button"
                   className={`btn ${failedCount > 0 && statusClass === 'completed' ? 'btn-secondary btn-primary-outline' : statusClass === 'failed' ? 'btn-secondary btn-primary-outline' : 'btn-primary'}`}
                   onClick={() => setShowRerunModal(true)}
-                  title="Re-run: RESUME / OVERWRITE / SMART_SYNC"
+                  title={t("jobs.jobs_rerun_modes_title")}
                 >
                   <Play size={18} /> Re-run
                 </button>
@@ -402,13 +402,13 @@ export function JobRuntime({
             )}
           </div>
           <div className="runtime-secondary-actions">
-            <button type="button" className="btn-tertiary" onClick={() => setShowDetailsModal(true)} title="View Config Details">
+            <button type="button" className="btn-tertiary" onClick={() => setShowDetailsModal(true)} title={t("jobs.jobs_view_config")}>
               <Info size={14} /> Config Details
             </button>
-            <button type="button" className="btn-tertiary" onClick={() => onEditJob(job)} title="Edit Configuration">
+            <button type="button" className="btn-tertiary" onClick={() => onEditJob(job)} title={t("jobs.jobs_edit_config")}>
               <Edit3 size={14} /> Edit Config
             </button>
-            <button type="button" className="btn-tertiary" onClick={handleExportLogs} title="Export Audit Logs">
+            <button type="button" className="btn-tertiary" onClick={handleExportLogs} title={t("jobs.jobs_export_audit")}>
               <Download size={14} /> Export Logs
             </button>
           </div>

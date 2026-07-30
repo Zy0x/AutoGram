@@ -322,7 +322,7 @@ export function DriveTransferManager({
             type="button"
             className="tm-icon-btn"
             onClick={onToggleMinimize}
-            title="Minimize ke pojok (panel tetap bisa dibuka lagi)"
+            title={t("speedtest.tm_minimize")}
             aria-label="Minimize"
           >
             <Minimize2 size={15} />
@@ -360,17 +360,17 @@ export function DriveTransferManager({
                   <span>
                     {counts.done}/{counts.total} commit
                     {counts.skipped > 0 && (
-                      <span className="tm-skip-badge" title="File dilewati karena sudah ada di tujuan">
+                      <span className="tm-skip-badge" title={t("speedtest.tm_skipped_hint")}>
                         &nbsp;·&nbsp;{counts.skipped} dilewati
                       </span>
                     )}
                     {(session as any).reuploadedCount > 0 && (
-                      <span className="tm-reupload-badge" title="File dihapus dari tujuan lalu diunggah ulang otomatis">
+                      <span className="tm-reupload-badge" title={t("speedtest.tm_reupload_hint")}>
                         &nbsp;·&nbsp;<RotateCcw size={11} style={{display:'inline',verticalAlign:'middle'}} />&nbsp;{(session as any).reuploadedCount} re-upload
                       </span>
                     )}
                     {counts.needsVerification > 0 && (
-                      <span className="tm-skip-badge" title="Commit ambigu; AutoGram tidak mengunggah ulang byte">
+                      <span className="tm-skip-badge" title={t("speedtest.tm_verify_hint")}>
                         &nbsp;·&nbsp;{counts.needsVerification} perlu verifikasi
                       </span>
                     )}
@@ -472,7 +472,7 @@ export function DriveTransferManager({
                 type="button"
                 className="tm-btn ghost"
                 onClick={onToggleMinimize}
-                title="Minimize ke pojok"
+                title={t("speedtest.tm_minimize")}
               >
                 <Maximize2 size={13} style={{ transform: 'scaleX(-1)' }} />
                 Sembunyikan
@@ -538,7 +538,7 @@ export function DriveTransferManager({
                       {it.name}
                     </div>
                     {it.destination && (
-                      <span className="tm-row-dest" title={`Tujuan: ${it.destination}`}>
+                      <span className="tm-row-dest" title={t("speedtest.tm_dest_tooltip", { dest: it.destination })}>
                         {it.destination}
                       </span>
                     )}

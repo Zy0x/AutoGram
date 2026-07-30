@@ -16,5 +16,17 @@
   "status_running": "Sedang Berjalan",
   "status_completed": "Selesai",
   "status_paused": "Dijeda",
-  "status_failed": "Gagal"
+  "status_failed": "Gagal",
+  "jobs_delete_profile": "Hapus profil \"{{name}}\"",
+  "jobs_pause_exec": "Jeda eksekusi",
+  "jobs_resume_exec": "Jalankan migrasi",
+  "jobs_retry_failed_title": "Ulangi hanya pesan yang gagal (retry-execution RESUME)",
+  "jobs_no_prev_execution": "Tidak ada execution sebelumnya untuk retry",
+  "jobs_rerun_modes_title": "Re-run dengan pilihan mode (RESUME / OVERWRITE / SMART_SYNC)",
+  "jobs_view_config": "Lihat Rincian Konfigurasi",
+  "jobs_edit_config": "Ubah Konfigurasi",
+  "jobs_export_audit": "Ekspor Log Audit",
+  "jobs_import_title": "Impor Tugas Migrasi",
+  "jobs_export_title": "Ekspor Tugas Migrasi",
+  "jobs_delete_title": "Hapus Tugas Migrasi"
 }
