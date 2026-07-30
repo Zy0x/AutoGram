@@ -1599,7 +1599,7 @@ export function DriveSidebar({
               spellCheck={false}
               value={locationQuery}
               onChange={(e) => onChatQuery(e.target.value)}
-              placeholder={t("speedtest.sidebar_search_ph")}
+              placeholder={t("speedtest.sidebar_search_location_ph")}
               aria-label={t("speedtest.sidebar_search_aria")}
               title={t("speedtest.sidebar_search_title")}
               onDragOver={(e) => e.stopPropagation()}
@@ -1669,7 +1669,7 @@ export function DriveSidebar({
                     fallback={<Home size={16} />}
                   />
                 </span>
-                <span className="td-folder-label">Saved Messages</span>
+                <span className="td-folder-label">{t("speedtest.saved_messages")}</span>
               </DropRow>
             );
           })()}
@@ -1756,7 +1756,7 @@ export function DriveSidebar({
                 aria-hidden
               />
               <Clock size={12} className="td-recents-toggle-ico" aria-hidden />
-              <span className="td-section-toggle-label">Terbaru</span>
+              <span className="td-section-toggle-label">{t("speedtest.sidebar_recents_header")}</span>
               <span className="td-chat-count" title={t("speedtest.sidebar_recents_tooltip")}>
                 {recents.length}
               </span>

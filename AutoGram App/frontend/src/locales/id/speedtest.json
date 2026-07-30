@@ -349,5 +349,18 @@
   "zoom_m": "Sedang",
   "zoom_l": "Besar",
   "zoom_xl": "Sangat Besar",
-  "zoom_xxl": "Maksimal"
+  "zoom_xxl": "Maksimal",
+  "tm_title": "Pengelola Transfer",
+  "tm_no_transfers": "Belum ada transfer",
+  "tm_empty_title": "Belum ada unduhan/unggahan.",
+  "tm_empty_hint": "Mulai unduh atau unggah — kemajuan akan tampil di sini. Panel tidak hilang saat klik di luar area drive.",
+  "tm_status_paused": "Dijeda",
+  "tm_status_error": "Selesai dengan error",
+  "tm_status_need_verify": "{{count}} perlu verifikasi",
+  "tm_status_skipped": "{{count}} dilewati",
+  "tm_status_done_skipped": "Selesai · {{count}} dilewati",
+  "tm_status_done": "Selesai",
+  "tm_status_ready": "Siap",
+  "tm_log_debug": "Log debug ({{count}})",
+  "sidebar_search_location_ph": "Cari lokasi… (Ctrl+K)"
 }

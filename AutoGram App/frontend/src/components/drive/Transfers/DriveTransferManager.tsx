@@ -219,7 +219,7 @@ export function DriveTransferManager({
         ? 'Gagal'
         : counts.needsVerification
           ? 'Perlu verifikasi'
-        : 'Selesai';
+        : t("speedtest.tm_status_done");
     const tip = [
       `${statusLine} ${pct.toFixed(0)}%`,
       activeName,
@@ -294,25 +294,25 @@ export function DriveTransferManager({
             <DirIcon size={14} />
           </span>
           <div className="tm-head-text">
-            <strong>Transfer Manager</strong>
+            <strong>{t("speedtest.tm_title")}</strong>
             <span className="tm-head-sub">
               {isEmptyShell
-                ? 'Belum ada transfer'
+                ? t("speedtest.tm_no_transfers")
                 : session.active
                   ? session.paused
-                    ? 'Dijeda'
+                    ? t("speedtest.tm_status_paused")
                     : phaseLabel
                   : counts.failed
-                    ? 'Selesai dengan error'
+                    ? t("speedtest.tm_status_error")
                     : counts.needsVerification
-                      ? `${counts.needsVerification} perlu verifikasi`
+                      ? t("speedtest.tm_status_need_verify", { count: counts.needsVerification })
                     : counts.skipped > 0 && counts.done === 0
-                      ? `${counts.skipped} dilewati`
+                      ? t("speedtest.tm_status_skipped", { count: counts.skipped })
                       : counts.skipped > 0
-                        ? `Selesai · ${counts.skipped} dilewati`
+                        ? t("speedtest.tm_status_done_skipped", { count: counts.skipped })
                         : counts.done
                           ? 'Selesai'
-                          : 'Siap'}
+                          : t("speedtest.tm_status_ready")}
               {!isEmptyShell && session.label ? ` · ${session.label}` : ''}
             </span>
           </div>
@@ -344,7 +344,7 @@ export function DriveTransferManager({
 
       {isEmptyShell ? (
         <div className="tm-empty">
-          <p>Belum ada unduhan/unggahan.</p>
+          <p>{t("speedtest.tm_empty_title")}</p>
           <p className="tm-hint">
             Mulai unduh atau unggah — progress akan tampil di sini. Panel tidak hilang saat
             klik di luar area drive.
@@ -620,7 +620,7 @@ export function DriveTransferManager({
           aria-expanded={showLogs}
         >
           {showLogs ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          Log debug ({debugLogs.length})
+          {t("speedtest.tm_log_debug", { count: debugLogs.length })}
         </button>
         {showLogs && (
           <div className="tm-debug-body">

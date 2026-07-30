@@ -349,5 +349,18 @@
   "zoom_m": "Medium",
   "zoom_l": "Large",
   "zoom_xl": "Extra Large",
-  "zoom_xxl": "Maximum"
+  "zoom_xxl": "Maximum",
+  "tm_title": "Transfer Manager",
+  "tm_no_transfers": "No active transfers",
+  "tm_empty_title": "No downloads or uploads yet.",
+  "tm_empty_hint": "Start downloading or uploading — progress will appear here. The panel will not close when clicking outside the drive area.",
+  "tm_status_paused": "Paused",
+  "tm_status_error": "Completed with errors",
+  "tm_status_need_verify": "{{count}} need verification",
+  "tm_status_skipped": "{{count}} skipped",
+  "tm_status_done_skipped": "Completed · {{count}} skipped",
+  "tm_status_done": "Completed",
+  "tm_status_ready": "Ready",
+  "tm_log_debug": "Debug log ({{count}})",
+  "sidebar_search_location_ph": "Search location… (Ctrl+K)"
 }
