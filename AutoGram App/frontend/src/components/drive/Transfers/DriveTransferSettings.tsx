@@ -160,7 +160,7 @@ export function DriveTransferSettings({
               <p className="td-xfer-hint">
                 {t("speedtest.upload_quality_hint")}
               </p>
-              <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
+              <div className="td-xfer-radio-list" role="radiogroup" aria-label={t("speedtest.upload_quality")}>
                 {QUALITY_MODE_OPTIONS.map((opt: any) => (
                   <label
                     key={opt.id}
@@ -196,7 +196,7 @@ export function DriveTransferSettings({
                   value={draft.reencodeHardware}
                   disabled={!!transferActive}
                   onChange={(value) => patch({ reencodeHardware: value as any })}
-                  ariaLabel="Hardware re-encode"
+                  ariaLabel={t("speedtest.hardware_reencode_header")}
                   options={[
                     { value: 'auto', label: t('speedtest.gpu_auto_label'), description: t('speedtest.gpu_auto_desc') },
                     { value: 'nvidia', label: 'NVIDIA NVENC', description: t('speedtest.gpu_nvidia_desc') },
@@ -216,7 +216,7 @@ export function DriveTransferSettings({
                   value={draft.reencodePreset}
                   disabled={!!transferActive}
                   onChange={(value) => patch({ reencodePreset: value as any })}
-                  ariaLabel="Mode re-encode"
+                  ariaLabel={t("speedtest.reencode_mode_header")}
                   options={[
                     { value: 'speed', label: t('speedtest.preset_speed_label'), description: t('speedtest.preset_speed_desc') },
                     { value: 'balanced', label: t('speedtest.preset_balanced_label'), description: t('speedtest.preset_balanced_desc') },
@@ -238,7 +238,7 @@ export function DriveTransferSettings({
                   value={draft.uploadConcurrency}
                   disabled={!!transferActive}
                   onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
-                  aria-label="Paralel upload"
+                  aria-label={t("speedtest.upload_parallelism_header")}
                 />
                 <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
               </label>
@@ -358,7 +358,7 @@ export function DriveTransferSettings({
                       value={draft.topicScope}
                       disabled={!!transferActive}
                       onChange={(val) => patch({ topicScope: val as any })}
-                      ariaLabel="Cakupan topik"
+                      ariaLabel={t("speedtest.topic_scope_title")}
                       options={[
                         { value: 'selected_only', label: t('speedtest.topic_scope_selected'), description: t('speedtest.topic_scope_selected_desc') },
                         { value: 'selected_plus_general', label: t('speedtest.topic_scope_plus_gen'), description: t('speedtest.topic_scope_plus_gen_desc') },
@@ -392,7 +392,7 @@ export function DriveTransferSettings({
                             value={draft.guardrailThresholdDays}
                             disabled={!!transferActive}
                             onChange={(e) => patch({ guardrailThresholdDays: Number(e.target.value) })}
-                            aria-label="Batas hari guardrail"
+                            aria-label={t("speedtest.guardrail_title")}
                           />
                           <span className="td-xfer-range-val">{draft.guardrailThresholdDays} {t("speedtest.days_unit")}</span>
                         </label>
@@ -444,7 +444,7 @@ export function DriveTransferSettings({
                   value={draft.downloadConcurrency}
                   disabled={!!transferActive}
                   onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
-                  aria-label="Paralel download"
+                  aria-label={t("speedtest.download_parallel")}
                 />
                 <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
               </label>
