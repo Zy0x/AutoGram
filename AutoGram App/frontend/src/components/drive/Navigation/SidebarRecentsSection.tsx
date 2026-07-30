@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, Home, Folder, MessageSquare } from 'lucide-react';
-import type { DriveRecent } from '../../../lib/telegram/driveRecents';
-import { recentDisplayLabel } from '../../../lib/telegram/driveRecents';
+import type { DriveRecent } from '../../../lib/telegram';
+import { recentDisplayLabel } from '../../../lib/telegram';
 
 
 export interface SidebarRecentsSectionProps {

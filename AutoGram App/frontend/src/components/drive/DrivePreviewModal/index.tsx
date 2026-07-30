@@ -36,7 +36,7 @@ import {
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../lib/tauri/platform';
-import { registerPreviewOpen, registerPreviewClose } from '../../../lib/telegram/driveSession';
+import { registerPreviewOpen, registerPreviewClose } from '../../../lib/telegram';
 
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { VSCodeCodeViewer } from '../../common/VSCodeCodeViewer';
@@ -47,7 +47,7 @@ import {
   driveStreamSeek,
   driveStreamStatus,
 } from '../../../lib/telegram/driveApi';
-import { tgDownloadFile } from '../../../lib/telegram/telegramBackend';
+import { tgDownloadFile } from '../../../lib/telegram';
 import { cacheCapturedThumb, getCachedThumb, setThumbsPaused } from '../../../lib/media/thumbBatcher';
 import {
   getCachedPreview,
@@ -495,7 +495,7 @@ export function DrivePreviewModal({
           void (async () => {
             try {
               const { stopDriveSession, ensureDriveSession } = await import(
-                '../../../lib/telegram/driveSession'
+                '../../../lib/telegram'
               );
               await stopDriveSession();
               if (credsRef.current) await ensureDriveSession(credsRef.current, true);
@@ -3096,7 +3096,7 @@ export function DrivePreviewModal({
                   void (async () => {
                     try {
                       const { stopDriveSession, ensureDriveSession } = await import(
-                        '../../../lib/telegram/driveSession'
+                        '../../../lib/telegram'
                       );
                       await stopDriveSession();
                       if (creds) await ensureDriveSession(creds, true);

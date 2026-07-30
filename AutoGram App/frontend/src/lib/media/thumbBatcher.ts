@@ -8,7 +8,7 @@ import { debugLog } from '../utils/debugMode';
 import type { DriveThumbQuality } from '../telegram/driveTypes';
 import { DEFAULT_THUMB_QUALITY } from '../telegram/driveTypes';
 import { getDrivePerfProfile } from '../utils/devicePerformance';
-import { isDriveSessionReady } from '../telegram/driveSession';
+import { isDriveSessionReady } from '../telegram';
 import {
   loadPersistentThumb,
   loadPersistentThumbs,

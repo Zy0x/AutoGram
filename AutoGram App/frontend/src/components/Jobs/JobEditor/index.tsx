@@ -225,7 +225,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { loadSelectableSessions } = await import('../../../lib/telegram/sessionPicker');
+        const { loadSelectableSessions } = await import('../../../lib/telegram');
         const activeSess = await loadSelectableSessions({ autoSeedActive: true });
         setSessions(activeSess.map((s) => ({ name: s.name, status: s.status })));
         if (activeSess.length > 0) {
@@ -306,7 +306,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
       }
 
       // Grammers dialogs (no Python list-dialogs)
-      const { tgListDialogs } = await import('../../../lib/telegram/telegramBackend');
+      const { tgListDialogs } = await import('../../../lib/telegram');
       const gr = await tgListDialogs({
         session,
         apiId: Number(apiId) || 0,
@@ -357,7 +357,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
         setIsLoadingDialogs(false);
         return;
       }
-      const { tgListTopics } = await import('../../../lib/telegram/telegramBackend');
+      const { tgListTopics } = await import('../../../lib/telegram');
       const gr = await tgListTopics({
         session,
         apiId: Number(apiId) || 0,

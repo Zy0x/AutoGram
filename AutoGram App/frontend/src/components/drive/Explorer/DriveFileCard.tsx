@@ -11,7 +11,7 @@ import {
   isVideoDriveFile,
   type DriveFile,
 } from '../../../lib/telegram/driveTypes';
-import { usePointerDragPrime } from '../../../lib/telegram/pointerDragPrime';
+import { usePointerDragPrime } from '../../../lib/telegram';
 import {
   getCachedThumb,
   getCachedSaverThumb,

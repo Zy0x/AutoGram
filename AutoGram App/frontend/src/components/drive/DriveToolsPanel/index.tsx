@@ -43,7 +43,7 @@ import {
   type DupGroup,
   EMPTY_ADV_FILTER,
   isAdvFilterActive,
-} from '../../../lib/telegram/drivePower';
+} from '../../../lib/telegram';
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 

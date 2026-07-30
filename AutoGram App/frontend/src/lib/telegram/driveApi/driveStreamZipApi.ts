@@ -1,4 +1,4 @@
-import { ensureDriveSession, isDriveSessionReadyFor } from '../driveSession';
+import { ensureDriveSession, isDriveSessionReadyFor } from '../core/driveSession';
 import { detectTauriRuntime } from '../../tauri/platform';
 import {
   DriveCredentials,
@@ -14,7 +14,7 @@ export async function drivePreview(
     throw new Error('Preview membutuhkan desktop Rust + Grammers.');
   }
   try {
-    const { tgPreviewStream } = await import('../telegramBackend');
+    const { tgPreviewStream } = await import('../core/telegramBackend');
     const chatId = folderId == null ? 'me' : String(folderId);
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgPreviewStream({
@@ -116,7 +116,7 @@ export async function driveStopStream(
   // Grammers progressive cancel (local)
   if (streamId && detectTauriRuntime() && !opts?.stopAll) {
     try {
-      const { tgStopStream } = await import('../telegramBackend');
+      const { tgStopStream } = await import('../core/telegramBackend');
       const ok = await tgStopStream(streamId);
       return { status: ok ? 'stopped' : 'missing', backend: 'grammers' };
     } catch {
@@ -157,7 +157,7 @@ export async function driveStreamSeek(
   if (!streamId) return { status: 'missing' };
   if (detectTauriRuntime()) {
     try {
-      const { tgSeekStream } = await import('../telegramBackend');
+      const { tgSeekStream } = await import('../core/telegramBackend');
       const target = await tgSeekStream(streamId, {
         timeS: opts.time_s,
         durationS: opts.duration_s,

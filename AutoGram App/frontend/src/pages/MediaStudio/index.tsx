@@ -1,7 +1,7 @@
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
-import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram/driveSession';
+import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -25,7 +25,7 @@ import {
   subscribeDriveMoveConfirmStore,
   getDriveMoveConfirmSnapshot,
   getDriveMoveConfirmVersion,
-} from '../../lib/telegram/driveMoveUi';
+} from '../../lib/telegram';
 import {
   bootstrapSecureCredentials,
   getApiHashSync,
@@ -37,7 +37,7 @@ import {
   loadSelectableSessionNames,
   getActiveSessionTargets,
   setActiveSessionTargets,
-} from '../../lib/telegram/sessionPicker';
+} from '../../lib/telegram';
 import {
   driveBootstrap,
   driveListChatFolders,
@@ -76,7 +76,7 @@ import {
   studioChatIdFromFolder,
   studioRunUploadDefault,
   mapOrchItemStatus,
-} from '../../lib/telegram/studioOrch';
+} from '../../lib/telegram';
 import {
   saveCheckpoint,
   getCheckpoint,
@@ -96,40 +96,40 @@ import {
   isDriveSessionReady,
   scheduleDriveSessionStop,
   stopDriveSession,
-} from '../../lib/telegram/driveSession';
+} from '../../lib/telegram';
 
 import {
   loadDriveLocationSnapshot,
   saveDriveLocationSnapshot,
   removeFilesFromDriveLocationSnapshot,
-} from '../../lib/telegram/driveLocationCache';
+} from '../../lib/telegram';
 import {
   loadDriveSidebarSnapshot,
   saveDriveSidebarSnapshot,
-} from '../../lib/telegram/driveSidebarCache';
+} from '../../lib/telegram';
 import {
   loadDriveTopicsSnapshot,
   saveDriveTopicsSnapshot,
-} from '../../lib/telegram/driveTopicsCache';
+} from '../../lib/telegram';
 import {
   driveSyncBackoffMs,
   getDriveLiveSyncPlan,
   reconcileDriveLiveHead,
   dedupeByMsgId,
   purgeDeletedMsgIds,
-} from '../../lib/telegram/driveLiveSync';
+} from '../../lib/telegram';
 import {
   driveScrollLocationKey,
   loadDriveScrollPosition,
   saveDriveScrollPosition,
-} from '../../lib/telegram/driveScrollMemory';
+} from '../../lib/telegram';
 import { getDrivePerfProfile, perfStatusHint } from '../../lib/utils/devicePerformance';
 import {
   clampMediaBytes,
   clampMediaTotal,
   loadedMediaBytes,
   loadedUniqueMediaCount,
-} from '../../lib/telegram/driveMediaTotals';
+} from '../../lib/telegram';
 import type {
   DriveChat,
   DriveChatFolder,
@@ -178,7 +178,7 @@ import {
   pruneSelectionToDisplayed,
   selectAllDisplayed,
   type MarqueeMode,
-} from '../../lib/telegram/driveSelection';
+} from '../../lib/telegram';
 import {
   computeSpaceUsage,
   createNavHistory,
@@ -194,7 +194,7 @@ import {
   setDriveClipboard,
   type DriveAdvFilter,
   type DriveNavHistory,
-} from '../../lib/telegram/drivePower';
+} from '../../lib/telegram';
 import {
   DriveToolsPanel,
   type DriveToolsTab,
@@ -221,7 +221,7 @@ import {
   progressiveSettleDelayMs,
   stagedInitialPageSize,
   stagedLoadMorePageSize,
-} from '../../lib/telegram/driveLoadStaging';
+} from '../../lib/telegram';
 import {
   beginDriveDrag,
   clearLastOsPaths,
@@ -249,13 +249,13 @@ import {
   shouldBlockDriveDrop,
   waitForOsPaths,
   type DriveDropTarget,
-} from '../../lib/telegram/driveDrag';
+} from '../../lib/telegram';
 import {
   buildDriveBreadcrumbSegments,
   folderDirectChildIds,
   wouldCreateFolderCycle,
   withFolderOrphanFlags,
-} from '../../lib/telegram/chatSearch';
+} from '../../lib/telegram';
 import { DriveSidebar } from '../../components/drive/Navigation/DriveSidebarIndex';
 import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigation/DriveTopBar';
 import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
@@ -265,7 +265,7 @@ import { type DriveConfirmState } from '../../components/drive/Modals/DriveConfi
 import { type DriveInputState } from '../../components/drive/Modals/DriveInputDialog';
 import { type DriveDestChoice, type DriveDestPickerState } from '../../components/drive/Modals/DriveDestinationPicker';
 import type { JobChild } from '../../lib/db/jobProcess';
-import { tgDownloadFile } from '../../lib/telegram/telegramBackend';
+import { tgDownloadFile } from '../../lib/telegram';
 import {
   clearDriveSessionEphemeralCaches,
   isDrivePinned,
@@ -277,7 +277,7 @@ import {
   shouldRecordDriveRecent,
   toggleDrivePin,
   type DriveRecent,
-} from '../../lib/telegram/driveRecents';
+} from '../../lib/telegram';
 
 const LS_VIEW = 'autogram_drive_view';
 const LS_COLLAPSE = 'autogram_drive_rail';
@@ -1005,13 +1005,13 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     // are separate live clients — only same-session dual-open is unsafe).
     // Release studio lease for the account we leave.
     if (prevSession) {
-      void import('../../lib/telegram/sessionGuard')
+      void import('../../lib/telegram')
         .then((m) => m.sessionGuardRelease(prevSession, `studio-${prevSession}`))
         .catch(() => undefined);
     }
 
     // Purge passive MTProto live clients from Rust memory so they don't clog Tokio runtime threads.
-    void import('../../lib/telegram/telegramBackend')
+    void import('../../lib/telegram')
       .then((m) => m.tgPurgeInactiveSessions(next))
       .catch(() => undefined);
 
@@ -1117,7 +1117,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     setDriveReady(false);
     nativeDriveReadyRef.current = false;
     setSession(next);
-    void import('../../lib/telegram/sessionGuard')
+    void import('../../lib/telegram')
       .then((m) => m.sessionGuardAcquire(next, `studio-${next}`, 'studio'))
       .catch(() => undefined);
   }, [session, invalidateDriveGenerations]);
@@ -3115,7 +3115,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         } catch {
           /* ignore */
         }
-        const { tgAuthStatus } = await import('../../lib/telegram/telegramBackend');
+        const { tgAuthStatus } = await import('../../lib/telegram');
         const authStartedAt = performance.now();
         const native = await tgAuthStatus({
           session: creds.session,

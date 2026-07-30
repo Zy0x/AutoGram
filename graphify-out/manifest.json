@@ -2328,5 +2328,35 @@
     "mtime": 1785382576.0,
     "ast_hash": "1dfb64897c17d3a561ba44f6630dc43d",
     "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Navigation/SidebarCategoryList.tsx": {
+    "mtime": 1785383626.0,
+    "ast_hash": "3f90f57555d45e7cec011bbb0f543a64",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Navigation/SidebarQuickLinks.tsx": {
+    "mtime": 1785383626.0,
+    "ast_hash": "55c7388c3b51402a0845fa3a597ad1ff",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Navigation/SidebarStorageGauge.tsx": {
+    "mtime": 1785383640.0,
+    "ast_hash": "dea7b106ea79e5d622287e6694a0d824",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioBatchActionBar.tsx": {
+    "mtime": 1785383640.0,
+    "ast_hash": "cc00ff3e3b9fc96db1fec766ef7941f7",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioFilterTabs.tsx": {
+    "mtime": 1785383626.0,
+    "ast_hash": "9049ae4d98baa62c2a5f6d162dc784eb",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioHeader.tsx": {
+    "mtime": 1785383640.0,
+    "ast_hash": "4df6662e975973525dc07ed8e269b7a5",
+    "semantic_hash": ""
   }
 }

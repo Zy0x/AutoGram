@@ -41,7 +41,7 @@ import {
 import {
   tgBackendStatus,
   type TgBackendStatus,
-} from '../../lib/telegram/telegramBackend';
+} from '../../lib/telegram';
 
 
 import { PerfSection } from './PerfSection';

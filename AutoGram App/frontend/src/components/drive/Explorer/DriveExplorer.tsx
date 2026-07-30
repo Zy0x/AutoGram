@@ -17,7 +17,7 @@ import {
 import {
   filterAndSortDriveFilesPower,
   type DriveAdvFilter,
-} from '../../../lib/telegram/drivePower';
+} from '../../../lib/telegram';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
 import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused } from '../../../lib/media/thumbBatcher';
 import {
@@ -28,7 +28,7 @@ import {
   marqueeModeFromKeys,
   normalizeContentRect,
   type MarqueeMode,
-} from '../../../lib/telegram/driveSelection';
+} from '../../../lib/telegram';
 import { DriveFileCard } from './DriveFileCard';
 import { DriveFileListItem } from './DriveFileListItem';
 

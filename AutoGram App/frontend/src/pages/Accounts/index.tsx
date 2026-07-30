@@ -8,8 +8,8 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegram/telegramBackend';
-import { invalidateSessionListCache } from '../../lib/telegram/sessionPicker';
+import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegram';
+import { invalidateSessionListCache } from '../../lib/telegram';
 
 const safeGetCallingCode = (val: string) => {
   if (!val) return '';

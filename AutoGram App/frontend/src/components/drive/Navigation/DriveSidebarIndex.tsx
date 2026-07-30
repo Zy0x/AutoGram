@@ -22,14 +22,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
-import type { DriveDropTarget } from '../../../lib/telegram/driveDrag';
-import type { DriveRecent } from '../../../lib/telegram/driveRecents';
-import { recentDisplayLabel } from '../../../lib/telegram/driveRecents';
+import type { DriveDropTarget } from '../../../lib/telegram';
+import type { DriveRecent } from '../../../lib/telegram';
+import { recentDisplayLabel } from '../../../lib/telegram';
 import {
   isDriveSessionCircuitTripped,
   getDriveSessionError,
   resetDriveSessionCircuit,
-} from '../../../lib/telegram/driveSession';
+} from '../../../lib/telegram';
 import {
   applyDropEffect,
   beginFolderDrag,
@@ -55,7 +55,7 @@ import {
   pickDropKeyAtPoint,
   setLastHoverDropKey,
   subscribeDriveDragUi,
-} from '../../../lib/telegram/driveDrag';
+} from '../../../lib/telegram';
 import { DRIVE_FOLDER_SOFT_LIMIT, driveItemKind } from '../../../lib/telegram/driveTypes';
 import {
   getCachedAvatar,
@@ -70,7 +70,7 @@ import {
   folderAncestorIds,
   matchesSavedMessagesQuery,
   wouldCreateFolderCycle,
-} from '../../../lib/telegram/chatSearch';
+} from '../../../lib/telegram';
 import { MediaSelect } from './MediaSelect';
 
 const LS_SEC_FOLDERS = 'td_sec_folders_open';

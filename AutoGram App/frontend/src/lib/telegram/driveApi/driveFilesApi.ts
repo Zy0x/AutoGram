@@ -23,7 +23,7 @@ export async function driveThumbnailsBatch(
     return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
   }
   try {
-    const { tgThumbsBatch } = await import('../telegramBackend');
+    const { tgThumbsBatch } = await import('../core/telegramBackend');
     const chatId = folderId == null ? 'me' : String(folderId);
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgThumbsBatch({
@@ -67,7 +67,7 @@ export async function driveAvatarsBatch(
     return { status: 'success', avatars: {} as Record<string, string | null>, deferred: true };
   }
   try {
-    const { tgAvatarsBatch } = await import('../telegramBackend');
+    const { tgAvatarsBatch } = await import('../core/telegramBackend');
     const gr = await tgAvatarsBatch({
       session: creds.session,
       apiId: Number(creds.apiId) || 0,
@@ -144,7 +144,7 @@ export async function driveListFiles(
     throw new Error('Daftar media membutuhkan desktop Rust + Grammers.');
   }
   try {
-    const { tgListMedia } = await import('../telegramBackend');
+    const { tgListMedia } = await import('../core/telegramBackend');
     const chatId = folderId == null ? 'me' : String(folderId);
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgListMedia({
@@ -255,7 +255,7 @@ export async function driveDelete(
   folderId: number | null
 ) {
   const id = await resolveGrammersIdentity(creds);
-  const { tgDeleteMessages } = await import('../telegramBackend');
+  const { tgDeleteMessages } = await import('../core/telegramBackend');
   const chatId = folderId == null ? 'me' : String(folderId);
   const gr = await tgDeleteMessages({
     ...id,
@@ -295,7 +295,7 @@ export async function driveDeleteBatch(
   }
 
   const id = await resolveGrammersIdentity(creds);
-  const { tgDeleteMessages } = await import('../telegramBackend');
+  const { tgDeleteMessages } = await import('../core/telegramBackend');
 
   const allDeleted: number[] = [];
   const allFailed: Array<{ id: number; error: string }> = [];
@@ -378,7 +378,7 @@ export async function driveMove(
 ) {
   const deleteSource = opts?.deleteSource !== false;
   const id = await resolveGrammersIdentity(creds);
-  const { tgMoveMessages } = await import('../telegramBackend');
+  const { tgMoveMessages } = await import('../core/telegramBackend');
   const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
   const destChat =
     toFolderId === null || toFolderId === undefined ? 'me' : String(toFolderId);

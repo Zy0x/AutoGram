@@ -7,8 +7,8 @@ import {
 import React, { useEffect, useState } from 'react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
-import type { DriveDropTarget } from '../../../lib/telegram/driveDrag';
-import type { DriveRecent } from '../../../lib/telegram/driveRecents';
+import type { DriveDropTarget } from '../../../lib/telegram';
+import type { DriveRecent } from '../../../lib/telegram';
 import {
   applyDropEffect,
   beginFolderDrag,
@@ -19,7 +19,7 @@ import {
   isInternalMediaDragActive,
   isPointerDriveDragActive,
   shouldBlockDriveDrop,
-} from '../../../lib/telegram/driveDrag';
+} from '../../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../../lib/media/avatarBatcher';
 
 export const LS_SEC_FOLDERS = 'td_sec_folders_open';

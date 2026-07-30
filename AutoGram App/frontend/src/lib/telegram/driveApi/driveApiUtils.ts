@@ -1,5 +1,5 @@
 import { runDaemonOnce } from '../../db/jobProcess';
-import { driveSessionCallFor as rawDriveSessionCallFor, ensureDriveSession, isDriveSessionReady, stopDriveSession } from '../driveSession';
+import { driveSessionCallFor as rawDriveSessionCallFor, ensureDriveSession, isDriveSessionReady, stopDriveSession } from '../core/driveSession';
 import { detectTauriRuntime } from '../../tauri/platform';
 import { driveSessionLeaseKey, isSessionTransferLeased } from './driveTransfersApi';
 

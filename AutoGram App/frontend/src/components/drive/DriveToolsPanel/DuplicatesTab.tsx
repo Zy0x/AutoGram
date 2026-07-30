@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trash2, Copy, AlertTriangle } from 'lucide-react';
 
-import type { DupGroup } from '../../../lib/telegram/drivePower';
+import type { DupGroup } from '../../../lib/telegram';
 import { formatDriveBytes, driveFileDisplayName } from '../../../lib/telegram/driveTypes';
 
 export interface DuplicatesTabProps {
