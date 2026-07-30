@@ -1,3 +1,10 @@
+## v2.3.87 Proactive Infinite Scroll & Fast Streaming Pagination
+
+### Optimalisasi Kecepatan Infinite Scroll & Pagination (`DriveExplorer.tsx`, `driveLoadStaging.ts`, `MediaStudio/index.tsx`)
+- **Peningkatan Kapasitas Per Halaman (`driveLoadStaging.ts`)**: Memperbesar kapasitas muat berkas awal (`stagedInitialPageSize`: low 40, mid 60, high 100) dan pagination (`stagedLoadMorePageSize`: low 60, mid 100, high 150 item). Setiap scroll kini menyajikan 3x-4x lebih banyak berkas tanpa hambatan.
+- **Aggressive Proactive Prefetch (`DriveExplorer.tsx`)**: Mengubah pemicu ambang batas scroll pada grid `DriveExplorer` dari 2-4 baris (15% dasar grid) menjadi 8-25 baris (40% sebelum dasar grid). Halaman berikutnya langsung di-fetch di latar belakang saat pengguna baru melakukan scroll pertengahan.
+- **Eliminasi Delay Cooldown & Auto-Prefetch Topik (`MediaStudio/index.tsx`)**: Menghapus jeda penundaan 120ms pada `loadMoreLock` dan mengaktifkan efek auto-prefetch latar belakang untuk topik media sehingga pengguna tidak perlu menunggu lama atau menemui spinner "Scroll to load more...".
+
 ## v2.3.86 Fix Rust TL Message Mapping & Clean Cargo Build
 
 ### Perbaikan Pemetaan Pesan TL Rust (`media_list.rs`)

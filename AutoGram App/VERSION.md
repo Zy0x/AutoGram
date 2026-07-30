@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.86
+AutoGram Version: v2.3.87
 
 Current State:
-v2.3.86 Fix Rust TL Message Mapping & Clean Cargo Build — Memperbaiki fungsi `tl_message_to_row` di Rust engine (`media_list.rs`) untuk melakukan pemetaan langsung objek `tl::enums::Message` tanpa dependensi `PeerMap` serta menangani `Option<Vec<PhotoSize>>` pada `thumbs` secara aman. Memastikan kompilasi Rust (`cargo check`) dan TypeScript (`tsc`) lulus 100% dengan 0 error.
+v2.3.87 Proactive Infinite Scroll & Fast Streaming Pagination — Mengoptimalkan kecepatan `scroll to load more` dengan menaikkan kapasitas per halaman (`stagedInitialPageSize` 28 → 60, `stagedLoadMorePageSize` 60 → 100-150 item), menaikkan pemicu ambang batas prefetch di `DriveExplorer` (40% sebelum dasar grid), menghapus penundaan buatan 120ms lock cooldown, serta mengaktifkan auto-prefetch latar belakang untuk topik media.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.

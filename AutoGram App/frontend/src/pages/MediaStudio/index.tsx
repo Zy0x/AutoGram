@@ -2846,10 +2846,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       }
     } finally {
       if (pauseThumbsForPaging) setThumbsPaused(false);
-      // Short cooldown — was 400ms, felt stuck on "Scroll for more…"
-      setTimeout(() => {
-        loadMoreLock.current = false;
-      }, 120);
+      // Immediate lock release so next pagination page loads seamlessly
+      loadMoreLock.current = false;
       setLoadingMoreFiles(false);
     }
   }, [
@@ -2864,20 +2862,14 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     files,
   ]);
 
-  // Cheap exact path for bounded locations. This fetches metadata only and is
-  // device-tier capped, so low-end devices never render an unbounded library.
+  // Proactive background streaming: pre-fetches next pages when hasMore is true
   useEffect(() => {
-    if (!creds || !filesHasMore || loadingFiles || loadingMoreFiles) return;
-    if (nextOffsetId == null || totalFileCount == null) return;
+    if (!creds || !filesHasMore || loadingFiles || loadingMoreFiles || loadMoreLock.current) return;
+    if (nextOffsetId == null) return;
     const tier = getDrivePerfProfile().tier;
-    // Even the low tier already virtualizes/renders about 64 visible metadata
-    // rows during live sync; completing up to 80 avoids a costly full scan
-    // without materially increasing memory pressure.
-    const cap = tier === 'high' ? 200 : tier === 'mid' ? 120 : 80;
-    if (totalFileCount > cap || files.length >= totalFileCount) return;
     const timer = window.setTimeout(() => {
       void loadMoreFiles();
-    }, tier === 'high' ? 350 : tier === 'mid' ? 750 : 1_500);
+    }, tier === 'high' ? 50 : tier === 'mid' ? 150 : 300);
     return () => window.clearTimeout(timer);
   }, [
     creds,
@@ -2885,8 +2877,6 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     loadingFiles,
     loadingMoreFiles,
     nextOffsetId,
-    totalFileCount,
-    files.length,
     loadMoreFiles,
   ]);
 

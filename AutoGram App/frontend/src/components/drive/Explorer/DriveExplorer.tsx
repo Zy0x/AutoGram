@@ -445,18 +445,13 @@ export function DriveExplorer({
     if (!items.length) return;
     const last = items[items.length - 1];
     const total = viewMode === 'grid' ? rowCount : displayed.length;
-    // High-end: prefetch next page earlier so scroll never waits on empty rows
+    // Aggressive proactive prefetch: trigger when 40% near bottom (8-25 rows remaining)
     const threshold =
       viewMode === 'grid'
-        ? Math.max(
-            perf.prefetchNextPage ? 4 : 2,
-            Math.min(perf.prefetchNextPage ? 10 : 5, Math.ceil(total * (perf.prefetchNextPage ? 0.28 : 0.15)))
-          )
-        : perf.prefetchNextPage
-          ? 14
-          : 8;
+        ? Math.max(8, Math.min(25, Math.ceil(total * 0.4)))
+        : 25;
     if (last.index < Math.max(0, total - threshold)) return;
-    const t = window.setTimeout(() => onLoadMore(), perf.tier === 'high' ? 40 : 80);
+    const t = window.setTimeout(() => onLoadMore(), 10);
     return () => window.clearTimeout(t);
   }, [
     hasMore,
