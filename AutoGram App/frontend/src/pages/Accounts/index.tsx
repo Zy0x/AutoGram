@@ -581,11 +581,10 @@ export function Accounts() {
           <div className="card-body">
             {!isLoading && sessions.length > 0 && (
               <p style={{ color: 'var(--text-muted)', margin: '0 0 12px', fontSize: '0.85rem', lineHeight: 1.45 }}>
-                Aktifkan beberapa akun sekaligus (hingga 12). Media Studio dan Migration Jobs bisa
-                beralih cepat antar akun aktif — akun pertama dalam daftar menjadi default saat boot.
+                {t('accounts.multi_account_hint')}
                 {activeSessions.length > 0
-                  ? ` · ${activeSessions.length} aktif`
-                  : ' · belum ada target aktif'}
+                  ? ` · ${activeSessions.length} ${t('accounts.active_count_suffix')}`
+                  : ` · ${t('accounts.no_active_targets')}`}
               </p>
             )}
             {isLoading ? (
@@ -607,9 +606,9 @@ export function Accounts() {
                       </h4>
                       <span className={`session-status status-${s.status || 'ok'}`}>
                         {s.status === 'connected'
-                          ? `Terkoneksi${s.userLabel ? ` · ${s.userLabel}` : ''}${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ''}`
+                          ? `${t('accounts.status_connected')}${s.userLabel ? ` · ${s.userLabel}` : ''}${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ''}`
                           : s.status === 'checking' || s.status === 'migration_required'
-                            ? 'Memverifikasi koneksi…'
+                            ? t('accounts.status_checking')
                             : s.status === 'expired'
                               ? t('accounts.status_expired')
                               : t('accounts.status_error')}

@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   Globe,
   Trash2,
-  AlertTriangle,
   Terminal,
   Network,
   Zap,
@@ -520,11 +519,10 @@ export function Settings() {
           <div className="glass-panel card">
             <div className="card-header">
               <Network size={20} color="var(--primary)" />
-              <h3>Proxy &amp; VPN Optimizer</h3>
+              <h3>{t('settings.proxy_title')}</h3>
             </div>
             <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
-              Diambil dari fitur Telegram-Drive: routing SOCKS5/HTTP/MTProto + penyesuaian timeout/retry
-              untuk jaringan lambat/VPN. Disimpan di Rust; worker Python (Telethon) memakainya lewat env.
+              {t('settings.proxy_subtitle')}
             </p>
 
             <div className="page-stack" style={{ gap: '1rem' }}>
@@ -539,7 +537,7 @@ export function Settings() {
                     })
                   }
                 />
-                Enable Proxy
+                {t('settings.enable_proxy')}
               </label>
 
               {netCfg.proxy.enabled && (
@@ -594,7 +592,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Username (opsional)</label>
+                    <label className="input-label">Username</label>
                     <input
                       className="input-field"
                       value={netCfg.proxy.username}
@@ -607,7 +605,7 @@ export function Settings() {
                     />
                   </div>
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Password (opsional)</label>
+                    <label className="input-label">Password</label>
                     <input
                       className="input-field"
                       type="password"
@@ -652,83 +650,8 @@ export function Settings() {
                     })
                   }
                 />
-                <Zap size={16} /> VPN Optimizer (timeout &amp; retry agresif)
+                <Zap size={16} /> {t('settings.vpn_optimizer')}
               </label>
-
-              {netCfg.vpn.enabled && (
-                <>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Timeout multiplier (1–8)</label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      min={1}
-                      max={8}
-                      value={netCfg.vpn.timeoutMultiplier}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          vpn: {
-                            ...netCfg.vpn,
-                            timeoutMultiplier: Math.max(1, Math.min(8, Number(e.target.value) || 3)),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Connection retries</label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      min={3}
-                      max={30}
-                      value={netCfg.vpn.connectionRetries}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          vpn: {
-                            ...netCfg.vpn,
-                            connectionRetries: Math.max(3, Math.min(30, Number(e.target.value) || 15)),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Keep-alive (detik, 0=off)</label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      min={0}
-                      max={180}
-                      value={netCfg.vpn.keepAliveIntervalSec}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          vpn: {
-                            ...netCfg.vpn,
-                            keepAliveIntervalSec: Math.max(0, Math.min(180, Number(e.target.value) || 0)),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={netCfg.vpn.floodWaitRespect}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          vpn: { ...netCfg.vpn, floodWaitRespect: e.target.checked },
-                        })
-                      }
-                    />
-                    Hormati FloodWait panjang
-                  </label>
-                </>
-              )}
 
               <div className="page-header-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
                 <button
@@ -738,7 +661,7 @@ export function Settings() {
                   onClick={() => void saveNetwork()}
                 >
                   {netBusy ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                  Simpan Network
+                  {t('settings.save_network')}
                 </button>
                 <button
                   type="button"
@@ -746,7 +669,7 @@ export function Settings() {
                   disabled={netBusy}
                   onClick={() => void testProxy()}
                 >
-                  <Wifi size={16} /> Test proxy / DC
+                  <Wifi size={16} /> {t('settings.test_proxy')}
                 </button>
               </div>
 
@@ -755,19 +678,19 @@ export function Settings() {
                 <p className="field-hint">
                   Proxy TCP:{' '}
                   <strong style={{ color: proxyStatus.reachable ? 'var(--success)' : 'var(--danger)' }}>
-                    {proxyStatus.reachable ? 'OK' : 'Gagal'}
+                    {proxyStatus.reachable ? 'OK' : 'Failed'}
                   </strong>
                   {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
                 </p>
               )}
               {netAvail != null && (
                 <p className="field-hint">
-                  Telegram DC / proxy reachability: <strong>{netAvail ? 'tersedia' : 'tidak tersedia'}</strong>
+                  {t('settings.proxy_reachability')} <strong>{netAvail ? t('settings.proxy_available') : t('settings.proxy_unavailable')}</strong>
                 </p>
               )}
               {vpnHint != null && vpnHint && (
                 <p className="field-hint">
-                  Hint: DC Telegram lambat/gagal — pertimbangkan aktifkan VPN Optimizer atau Proxy.
+                  Hint: Telegram DC slow/unreachable — consider enabling VPN Optimizer or Proxy.
                 </p>
               )}
             </div>
@@ -779,11 +702,11 @@ export function Settings() {
         <div className="glass-panel card">
           <div className="card-header">
             <Trash2 size={20} color="var(--primary)" />
-            <h3>Manajemen Cache &amp; Penyimpanan</h3>
+            <h3>{t('settings.cache_management')}</h3>
           </div>
           
           <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            Aplikasi menyimpan data sementara secara lokal (thumbnail, data pratinjau, riwayat folder/sidebar, dan log transient) untuk mempercepat performa navigasi. Hapus cache jika Anda ingin membebaskan ruang penyimpanan atau memuat ulang data segar dari Telegram.
+            {t('settings.cache_management_desc')}
           </p>
 
           <div className="page-stack" style={{ gap: '1.25rem' }}>
@@ -797,12 +720,12 @@ export function Settings() {
               border: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
               <div>
-                <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>Ukuran Cache Terdeteksi:</span>
+                <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>{t('settings.cache_detected_size')}</span>
                 <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>IndexedDB + LocalStorage + Disk Cache Backend</p>
               </div>
               <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
                 <strong style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>
-                  {isCalculating ? 'Menghitung...' : formattedSize}
+                  {isCalculating ? '...' : formattedSize}
                 </strong>
               </div>
             </div>
@@ -821,15 +744,14 @@ export function Settings() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sliders size={16} color="var(--primary)" />
                   <span className="input-label" style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
-                    Batas Maksimum Ukuran Cache:
+                    {t('settings.cache_limit_label')}
                   </span>
                 </div>
                 <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
-                  {cacheLimitMB === 0 ? 'Tanpa Batas (Unlimited)' : formatBytes(cacheLimitMB * 1024 * 1024)}
+                  {cacheLimitMB === 0 ? 'Unlimited' : formatBytes(cacheLimitMB * 1024 * 1024)}
                 </strong>
               </div>
 
-              {/* Custom Slider Container with Exact Step Ticks and Pixel-Perfect Label Alignment */}
               <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
                 <input
                   type="range"
@@ -852,7 +774,6 @@ export function Settings() {
                   }}
                 />
 
-                {/* Text Labels aligned 100% precisely under each tick */}
                 <div style={{
                   position: 'relative',
                   width: '100%',
@@ -888,11 +809,10 @@ export function Settings() {
                 </div>
               </div>
 
-              {/* Cache Usage Progress Bar */}
               {cacheSize !== null && cacheLimitMB > 0 && (
                 <div style={{ marginTop: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Penggunaan dari Batas:</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.cache_usage_label')}</span>
                     <span style={{ color: cacheSize > cacheLimitMB * 1024 * 1024 ? '#ef4444' : 'var(--text-bright)', fontWeight: 600 }}>
                       {formattedSize} / {formatBytes(cacheLimitMB * 1024 * 1024)} ({Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100)}%)
                     </span>
@@ -910,40 +830,9 @@ export function Settings() {
                       transition: 'width 0.3s ease',
                     }} />
                   </div>
-
-                  {cacheSize > cacheLimitMB * 1024 * 1024 && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      borderRadius: '6px',
-                      color: '#f87171',
-                      fontSize: '0.78rem',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                        <span>Cache terdeteksi melebihi batas <strong>{formatBytes(cacheLimitMB * 1024 * 1024)}</strong>!</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '3px 10px', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444', whiteSpace: 'nowrap' }}
-                        onClick={() => void handleTrimCache()}
-                        disabled={isTrimming || isCalculating || isClearing}
-                      >
-                        {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
-              {/* Toggle Pemangkasan Otomatis (Auto-Prune) */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -955,10 +844,10 @@ export function Settings() {
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>
-                    Auto-Prune Latar Belakang
+                    {t('settings.auto_prune_title')}
                   </span>
                   <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                    Otomatis memangkas cache lama secara berkala saat melebihi batas (melindungi berkas aktif &amp; transfer).
+                    {t('settings.auto_prune_desc')}
                   </span>
                 </div>
                 <label className="toggle-switch" style={{ marginLeft: '12px', flexShrink: 0, cursor: 'pointer' }}>
@@ -979,19 +868,8 @@ export function Settings() {
                 onClick={calculateCacheSize} 
                 disabled={isCalculating || isClearing || isTrimming}
               >
-                Hitung Ukuran
+                {t('settings.calc_size_btn')}
               </button>
-              {cacheSize !== null && cacheLimitMB > 0 && cacheSize > cacheLimitMB * 1024 * 1024 && (
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)' }}
-                  onClick={() => void handleTrimCache()} 
-                  disabled={isCalculating || isClearing || isTrimming}
-                >
-                  {isTrimming ? 'Memangkas...' : 'Pangkas Ke Batas'}
-                </button>
-              )}
               <button 
                 type="button" 
                 className="btn btn-primary" 
@@ -999,16 +877,16 @@ export function Settings() {
                 onClick={handleClearCache} 
                 disabled={isCalculating || isClearing || isTrimming}
               >
-                {isClearing ? 'Membersihkan...' : 'Hapus Semua Cache'}
+                {isClearing ? '...' : t('settings.clear_cache_btn')}
               </button>
             </div>
 
             <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '0.5rem 0' }} />
 
             <div>
-              <span className="input-label" style={{ display: 'block', fontSize: '0.9rem' }}>Database Transfer &amp; De-duplikasi:</span>
+              <span className="input-label" style={{ display: 'block', fontSize: '0.9rem' }}>{t('settings.db_clear_title')}</span>
               <p className="field-hint" style={{ marginTop: '2px', marginBottom: '0.75rem', fontSize: '0.75rem', lineHeight: 1.4 }}>
-                Menghapus seluruh riwayat berkas terunggah, resume state, audit log, dan cache pemindaian lokal. Gunakan ini jika Anda ingin Transfer Manager melakukan pemindaian segar ulang via API Telegram untuk mendeteksi berkas yang hilang/dihapus di tujuan.
+                {t('settings.db_clear_desc')}
               </p>
               <button 
                 type="button" 
@@ -1017,33 +895,31 @@ export function Settings() {
                 onClick={handleClearDatabase} 
                 disabled={isCalculating || isClearing || isClearingDb}
               >
-                {isClearingDb ? 'Mengosongkan DB...' : 'Kosongkan Database Transfer'}
+                {isClearingDb ? '...' : t('settings.clear_db_btn')}
               </button>
+              {clearStatus === 'success' && (
+                <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
+                  ✓ Cache berhasil dibersihkan! Navigasi Anda akan dimuat ulang dari awal.
+                </span>
+              )}
+              {clearStatus === 'error' && (
+                <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
+                  Gagal membersihkan cache disk.
+                </span>
+              )}
+
+              {dbClearStatus === 'success' && (
+                <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
+                  ✓ Database transfer berhasil dikosongkan! Riwayat transfer kini bersih seperti baru.
+                </span>
+              )}
+              {dbClearStatus === 'error' && (
+                <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
+                  Gagal mengosongkan database transfer. Periksa log konsol untuk detailnya.
+                </span>
+              )}
             </div>
-
-            {clearStatus === 'success' && (
-              <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                ✓ Cache berhasil dibersihkan! Navigasi Anda akan dimuat ulang dari awal.
-              </span>
-            )}
-            {clearStatus === 'error' && (
-              <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                Gagal membersihkan cache disk.
-              </span>
-            )}
-
-            {dbClearStatus === 'success' && (
-              <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                ✓ Database transfer berhasil dikosongkan! Riwayat transfer kini bersih seperti baru.
-              </span>
-            )}
-            {dbClearStatus === 'error' && (
-              <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                Gagal mengosongkan database transfer. Periksa log konsol untuk detailnya.
-              </span>
-            )}
           </div>
-
         </div>
       </div>
     </main>

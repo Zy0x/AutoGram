@@ -1,6 +1,8 @@
 {
   "title": "Manajemen Akun Telegram",
   "subtitle": "Kelola sesi login Telegram Anda untuk digunakan pada migrasi dan drive.",
+  "saved_sessions": "Sesi Tersimpan",
+  "btn_add": "Tambah Akun",
   "add_account": "Tambah Akun Baru",
   "phone_placeholder": "Nomor HP (+62...)",
   "otp_placeholder": "Kode OTP Telegram",
@@ -12,5 +14,21 @@
   "actions": "Aksi",
   "logout": "Keluar",
   "active": "Aktif",
-  "disconnected": "Terputus"
+  "disconnected": "Terputus",
+  "active_target": "Target Aktif",
+  "inactive": "Nonaktif",
+  "status_connected": "Terkoneksi",
+  "status_checking": "Memverifikasi koneksi…",
+  "status_expired": "Sesi Kadaluarsa",
+  "status_error": "Koneksi Terputus",
+  "delete_title": "Hapus Sesi",
+  "loading_sessions": "Memuat Sesi...",
+  "no_accounts": "Belum ada akun tersimpan.",
+  "go_back": "Kembali",
+  "step_connect": "Hubungkan Akun Telegram",
+  "step_verify": "Verifikasi Kode OTP",
+  "step_2fa": "Masukkan Kata Sandi 2-FA",
+  "multi_account_hint": "Aktifkan beberapa akun sekaligus (hingga 12). Media Studio dan Migration Jobs bisa beralih cepat antar akun aktif — akun pertama dalam daftar menjadi default saat boot.",
+  "active_count_suffix": "aktif",
+  "no_active_targets": "belum ada target aktif"
 }

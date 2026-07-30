@@ -1,6 +1,8 @@
 {
   "title": "Telegram Accounts Management",
   "subtitle": "Manage your Telegram login sessions for migration and drive operations.",
+  "saved_sessions": "Saved Sessions",
+  "btn_add": "Add Account",
   "add_account": "Add New Account",
   "phone_placeholder": "Phone Number (+62...)",
   "otp_placeholder": "Telegram OTP Code",
@@ -12,5 +14,21 @@
   "actions": "Actions",
   "logout": "Log Out",
   "active": "Active",
-  "disconnected": "Disconnected"
+  "disconnected": "Disconnected",
+  "active_target": "Active Target",
+  "inactive": "Inactive",
+  "status_connected": "Connected",
+  "status_checking": "Verifying connection...",
+  "status_expired": "Session Expired",
+  "status_error": "Connection Error",
+  "delete_title": "Delete Session",
+  "loading_sessions": "Loading Sessions...",
+  "no_accounts": "No saved accounts yet.",
+  "go_back": "Back",
+  "step_connect": "Connect Telegram Account",
+  "step_verify": "Verify OTP Code",
+  "step_2fa": "Enter 2-FA Password",
+  "multi_account_hint": "Activate multiple accounts at once (up to 12). Media Studio and Migration Jobs can quickly switch between active accounts — the first account in the list is the default on boot.",
+  "active_count_suffix": "active",
+  "no_active_targets": "no active targets yet"
 }

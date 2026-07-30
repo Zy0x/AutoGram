@@ -7,6 +7,7 @@ import {
   Zap,
   MonitorSmartphone,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { isDesktop, canUseLocalTelegramWorker } from '../../lib/tauri/platform';
 import { isMediaStudioAvailable } from '../../lib/tauri/capabilities';
 
@@ -14,15 +15,8 @@ type Props = {
   onNavigate?: (tab: string) => void;
 };
 
-/**
- * Product hub — two clear parallel workspaces:
- * - Forwarder: migration / clean-copy jobs (Jobs workspace)
- * - Drives: Media Studio browse / preview / transfer
- *
- * Both may use the same Telegram session concurrently via Grammers
- * shared pool + session_guard (not exclusive dual-open).
- */
 export function Dashboard({ onNavigate }: Props) {
+  const { t } = useTranslation();
   const desktop = isDesktop() && canUseLocalTelegramWorker();
   const drivesOk = isMediaStudioAvailable();
   const go = (tab: string) => onNavigate?.(tab);
@@ -35,8 +29,7 @@ export function Dashboard({ onNavigate }: Props) {
           AutoGram
         </h2>
         <p className="subtitle">
-          Platform migrasi &amp; drive Telegram berbasis Rust. Dua jalur kerja jelas — bisa jalan
-          paralel tanpa saling merebut session.
+          {t('dashboard.subtitle')}
         </p>
       </header>
 
@@ -58,16 +51,14 @@ export function Dashboard({ onNavigate }: Props) {
           <div className="dash-pillar-icon" style={{ background: 'rgba(59,130,246,0.15)' }}>
             <ArrowRightLeft size={28} color="var(--primary)" aria-hidden />
           </div>
-          <h3 className="dash-pillar-title">Forwarder</h3>
+          <h3 className="dash-pillar-title">{t('dashboard.forwarder_card_title')}</h3>
           <p className="dash-pillar-desc">
-            Migrasi chat → chat: <strong>Forward</strong> cepat atau <strong>Clean Copy</strong>{' '}
-            (download + re-upload, dedupe 4 level, resume, FloodWait). Cocok untuk job panjang di
-            latar.
+            {t('dashboard.forwarder_card_desc')}
           </p>
           <ul className="dash-pillar-list">
-            <li>Pilih akun aktif di Accounts</li>
-            <li>Buat job sumber → tujuan</li>
-            <li>Jalankan &amp; pantau progres / resume</li>
+            <li>{t('dashboard.forwarder_step1')}</li>
+            <li>{t('dashboard.forwarder_step2')}</li>
+            <li>{t('dashboard.forwarder_step3')}</li>
           </ul>
           <button
             type="button"
@@ -75,7 +66,7 @@ export function Dashboard({ onNavigate }: Props) {
             onClick={() => go('jobs')}
             disabled={!desktop}
           >
-            Buka Forwarder
+            {t('dashboard.open_forwarder')}
           </button>
         </article>
 
@@ -83,15 +74,14 @@ export function Dashboard({ onNavigate }: Props) {
           <div className="dash-pillar-icon" style={{ background: 'rgba(16,185,129,0.15)' }}>
             <HardDrive size={28} color="#10b981" aria-hidden />
           </div>
-          <h3 className="dash-pillar-title">Drives</h3>
+          <h3 className="dash-pillar-title">{t('dashboard.drives_card_title')}</h3>
           <p className="dash-pillar-desc">
-            Media Studio: jelajah chat, folder [TD], preview video/foto/dokumen, upload &amp;
-            download. Dirancang cepat dan bisa ganti akun multi-active.
+            {t('dashboard.drives_card_desc')}
           </p>
           <ul className="dash-pillar-list">
-            <li>Browse &amp; cari media</li>
-            <li>Preview instan (stream progressive)</li>
-            <li>Transfer lokal / remote URL</li>
+            <li>{t('dashboard.drives_step1')}</li>
+            <li>{t('dashboard.drives_step2')}</li>
+            <li>{t('dashboard.drives_step3')}</li>
           </ul>
           <button
             type="button"
@@ -100,25 +90,25 @@ export function Dashboard({ onNavigate }: Props) {
             disabled={!drivesOk}
             title={!drivesOk ? 'Drives hanya di desktop AutoGram' : undefined}
           >
-            Buka Drives
+            {t('dashboard.open_drives')}
           </button>
         </article>
       </section>
 
       <section className="dash-steps glass-panel card" aria-label="Langkah cepat">
-        <h3 className="dash-section-title">Alur singkat (3 langkah)</h3>
+        <h3 className="dash-section-title">{t('dashboard.workflow_title')}</h3>
         <ol className="dash-steps-list">
           <li>
             <button type="button" className="dash-step-link" onClick={() => go('accounts')}>
-              <Users size={16} aria-hidden /> 1. Hubungkan akun
+              <Users size={16} aria-hidden /> {t('dashboard.workflow_step1').split(' — ')[0]}
             </button>
-            <span> — login Grammers, aktifkan 1+ akun untuk switch cepat.</span>
+            <span> — {t('dashboard.workflow_step1').split(' — ')[1]}</span>
           </li>
           <li>
             <button type="button" className="dash-step-link" onClick={() => go('jobs')}>
-              <ArrowRightLeft size={16} aria-hidden /> 2. Forwarder
+              <ArrowRightLeft size={16} aria-hidden /> {t('dashboard.workflow_step2').split(' — ')[0]}
             </button>
-            <span> — job migrasi (forward / clean copy) antar chat.</span>
+            <span> — {t('dashboard.workflow_step2').split(' — ')[1]}</span>
           </li>
           <li>
             <button
@@ -127,9 +117,9 @@ export function Dashboard({ onNavigate }: Props) {
               onClick={() => go('speedtest')}
               disabled={!drivesOk}
             >
-              <HardDrive size={16} aria-hidden /> 3. Drives
+              <HardDrive size={16} aria-hidden /> {t('dashboard.workflow_step3').split(' — ')[0]}
             </button>
-            <span> — kelola media, preview, upload/download.</span>
+            <span> — {t('dashboard.workflow_step3').split(' — ')[1]}</span>
           </li>
         </ol>
       </section>

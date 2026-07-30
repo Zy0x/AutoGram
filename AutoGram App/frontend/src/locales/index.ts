@@ -7,6 +7,7 @@ import accountsID from './id/accounts.json';
 import jobsID from './id/jobs.json';
 import automationID from './id/automation.json';
 import statisticsID from './id/statistics.json';
+import syncID from './id/sync.json';
 
 import navEN from './en/nav.json';
 import dashboardEN from './en/dashboard.json';
@@ -16,6 +17,7 @@ import accountsEN from './en/accounts.json';
 import jobsEN from './en/jobs.json';
 import automationEN from './en/automation.json';
 import statisticsEN from './en/statistics.json';
+import syncEN from './en/sync.json';
 
 export const resources = {
   id: {
@@ -28,6 +30,7 @@ export const resources = {
       jobs: jobsID,
       automation: automationID,
       statistics: statisticsID,
+      sync: syncID,
     },
   },
   en: {
@@ -40,6 +43,7 @@ export const resources = {
       jobs: jobsEN,
       automation: automationEN,
       statistics: statisticsEN,
+      sync: syncEN,
     },
   },
 };

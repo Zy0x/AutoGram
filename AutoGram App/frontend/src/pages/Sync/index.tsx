@@ -1,27 +1,30 @@
 import { RefreshCw, Play, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function Sync() {
+  const { t } = useTranslation();
+
   return (
     <main className="main-content page-stack">
       <header className="page-header">
         <h2 className="title title-with-icon">
           <RefreshCw size={28} color="var(--primary)" aria-hidden />
-          Real-Time Sync
+          {t('sync.title')}
         </h2>
         <p className="subtitle">
-          Mirror changes from source to destination in real-time (Messages, Edits, Deletions).
+          {t('sync.subtitle')}
         </p>
       </header>
 
       <div className="glass-panel card empty-state-panel">
         <AlertTriangle size={48} color="var(--warning)" style={{ marginBottom: '1.25rem', opacity: 0.8 }} />
-        <h3 style={{ fontSize: 'var(--fs-xl)', marginBottom: '1rem' }}>Fitur dalam Tahap Pengembangan</h3>
+        <h3 style={{ fontSize: 'var(--fs-xl)', marginBottom: '1rem' }}>{t('sync.dev_title')}</h3>
         <p>
-          Menu <strong>Real-Time Sync</strong> ini disiapkan sebagai wadah khusus untuk pengembangan fitur Mirroring di masa mendatang. Saat ini, sistem sepenuhnya berfokus pada fitur <strong>Forward Massal (Migration)</strong> melalui antrean Pekerjaan (Job Queue) untuk memastikan stabilitas.
+          {t('sync.dev_desc')}
         </p>
         <button type="button" className="btn btn-primary" disabled>
           <Play size={18} />
-          Start Sync Daemon (Coming Soon)
+          {t('sync.coming_soon_btn')}
         </button>
       </div>
     </main>

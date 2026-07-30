@@ -1,0 +1,7 @@
+{
+  "title": "Real-Time Sync",
+  "subtitle": "Mirror changes from source to destination in real-time (Messages, Edits, Deletions).",
+  "dev_title": "Fitur dalam Tahap Pengembangan",
+  "dev_desc": "Menu Real-Time Sync ini disiapkan sebagai wadah khusus untuk pengembangan fitur Mirroring di masa mendatang. Saat ini, sistem sepenuhnya berfokus pada fitur Forward Massal (Migration) melalui antrean Pekerjaan (Job Queue) untuk memastikan stabilitas.",
+  "coming_soon_btn": "Start Sync Daemon (Coming Soon)"
+}
