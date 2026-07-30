@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.93
+AutoGram Version: v2.3.94
 
 Current State:
-v2.3.93 100% Exhaustive 51-File Master Architecture & Workflow Specification — Memperluas dokumen master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` hingga mendokumentasikan seluruh 51 berkas frontend (26 modul UI/data) dan backend Rust (25 modul core/features), dilengkapi matriks fungsional lengkap (Fungsi, Input/State, Output/Side-Effects), 10 diagram sequence Mermaid utuh, 10 alur operasional nyata, dan skema database SQLite/IndexedDB terperinci.
+v2.3.94 Absolute Definitive Master Specification with Agent Standards & 16-Skill Pack Matrix — Menyempurnakan dokumen spesifikasi master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan menambahkan Bab Standar Tata Kelola Agent, Aturan Proyek, Matriks 16-Skill Pack Active, Standar UI/UX Mobile-First, Aturan 100% Zero Hardcoded Text i18n, Proteksi Kredensial, serta Sistem Otomasi Release Commit-Push.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.

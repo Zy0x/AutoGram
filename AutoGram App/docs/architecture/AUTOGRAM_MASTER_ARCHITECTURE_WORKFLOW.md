@@ -1,7 +1,7 @@
 # AutoGram Master Architecture, WorkTree & Operational Workflow Specification
 
-> **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid & Manual Operational Workflow Real-World AutoGram App**  
-> *Versi Rujukan Terintegrasi: v2.3.93 (Absolute Complete Master Edition — 100% Every File Documented)*  
+> **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid, Manual Operational Workflow Real-World & Standar Tata Kelola Agent AutoGram App**  
+> *Versi Rujukan Terintegrasi: v2.3.94 (Absolute Definitive Master Edition — 100% Comprehensive & Complete)*  
 > *Platform: Desktop Hybrid (Tauri + React 18 + Rust Grammers Engine + SQLite + IndexedDB)*
 
 ---
@@ -712,21 +712,70 @@ Ketika pengguna menghapus 10 berkas media:
 
 ---
 
-## 8. Standar Kode, Keamanan & Kebijakan Data (Non-Negotiable Rules)
+## 8. Standar Tata Kelola Agent, Rules & Ekosistem Skill (Agent Standards & Skill Pack)
 
-1. **100% Zero Hardcoded Text (Mandatory i18n)**:
-   - Seluruh teks yang tampil di UI (modal, dialog, button, toast, tooltip, status text) wajib diekstraksi ke file locale `src/locales/id/*.json` & `src/locales/en/*.json`.
-   - Menggunakan hook `const { t } = useTranslation();` dari `react-i18next`.
-
-2. **Keamanan Sesi & Kredensial Pengguna**:
-   - File sesi Telegram (`*.session`), API ID, dan API Hash diperlakukan sangat rahasia.
-   - Dilarang mencetak (*log/print*) token sesi atau kredensial sensitif ke console / terminal log.
-   - Sesi dienkripsi saat disimpan di direktori aplikasi lokal.
-
-3. **Versi Aplikasi & Changelog (Rules 15 & 16)**:
-   - Setiap perubahan yang selesai diimplementasi wajib diikuti dengan pembaruan file `VERSION.md` dan `CHANGELOG.md`.
-   - Penulisan commit Git mengikuti konvensi `conventional-commit` dan di-push langsung ke branch `main` GitHub repository `Zy0x/AutoGram`.
+### A. Mandat Otonomi Agent (End-to-End Problem Solver)
+Seluruh pengerjaan fitur, refactoring, dan perbaikan bug wajib mengikuti standar eksekutor otonom cerdas:
+- **Zero Prompt Dependency**: Ketika menerima instruksi umum (misal: "perbaiki error X" atau "buatkan dokumentasi workflow"), Agent secara proaktif memetakan kode, menganalisis root cause, menyusun rencana, menulis kode, dan melakukan self-debugging hingga verifikasi kompilasi 100% lulus.
+- **Strict Done Criteria**: Tidak mengklaim pekerjaan selesai sebelum verifikasi kompilasi (`cargo check` & `npx tsc --noEmit`) lulus **0 error** dan perubahan berhasil di-commit & push ke GitHub main branch.
 
 ---
 
-*Dokumen master ini disahkan sebagai pedoman teknis utama definitif paling lengkap, komprehensif, mencakup 100% seluruh 51 berkas frontend dan backend Rust tanpa ada rincian yang terlewatkan untuk arsitektur, worktree, sequence diagrams, dan operational workflow AutoGram App.*
+### B. Matriks Ekosistem Skill Pack (`.agents/skills/`)
+
+Berikut adalah matriks 16 Skill spesialisasi aktif yang wajib dikonsumsi Agent dalam siklus pengembangan AutoGram:
+
+| Nama Skill | Path Direktori | Pemicu Penggunaan (Trigger Condition) | Output / Artefak Hasil |
+| :--- | :--- | :--- | :--- |
+| `prompt-to-spec-orchestrator` | `.agents/skills/prompt-to-spec-orchestrator/` | Menerima prompt pengguna yang samar, tidak lengkap, atau bernada emosional. | Spesifikasi teknis & rencana eksekusi detail. |
+| `codebase-cartographer` | `.agents/skills/codebase-cartographer/` | Memasuki repositori baru atau mencari letak modul/file yang relevan. | Peta arsitektur & keterhubungan file. |
+| `feature-planning-architect` | `.agents/skills/feature-planning-architect/` | Merencanakan fitur baru dari konsep hingga tahapan eksekusi. | Blueprint fitur & rencana modifikasi file. |
+| `bug-fix-loop-investigator` | `.agents/skills/bug-fix-loop-investigator/` | Menangani bug persisten, crash runtime, atau error berulang. | Root cause diagnosis & verifikasi perbaikan. |
+| `root-cause-debugger` | `.agents/skills/root-cause-debugger/` | Debugging error stack trace, Tauri IPC failure, atau panic Rust. | Traceback analysis & patch code. |
+| `implementation-quality-gate` | `.agents/skills/implementation-quality-gate/` | Gate verifikasi sebelum menyatakan pekerjaan selesai. | Laporan audit kompilasi, lint, & typecheck. |
+| `regression-test-planner` | `.agents/skills/regression-test-planner/` | Menyusun skenario pengujian regresi untuk fitur yang diubah. | Manual QA checklist & Playwright scenarios. |
+| `telethon-best-practices` | `.agents/skills/telethon_best_practices/` | Mengubah logika interaksi Telegram API / Grammers MTProto. | Snippets penanganan `FloodWait` & rate control. |
+| `supabase-safe-change` | `.agents/skills/supabase-safe-change/` | Mengubah skema database Supabase Cloud (Fase 2). | Migration SQL & RLS policy update. |
+| `supabase-schema-manager` | `.agents/skills/supabase_schema_manager/` | Membuat draft SQL schema Supabase eksternal user. | File `setup.sql` & panduan setup. |
+| `react-refactor-safe` | `.agents/skills/react-refactor-safe/` | Refactoring React components, hooks, atau state management. | Safe refactored `.tsx` code. |
+| `ui-polish-mobile` | `.agents/skills/ui-polish-mobile/` | Memperbaiki tampilan UI, layout responsif, spacing, & touch target. | Mobile-first polished UI code. |
+| `scroll-touch-debugger` | `.agents/skills/scroll-touch-debugger/` | Memperbaiki masalah scrolling, nested scroll, & touch drag. | Smooth scroll & touch lock fixes. |
+| `performance-audit` | `.agents/skills/performance-audit/` | Mengoptimalkan kecepatan render, re-render, & konsumsi RAM. | Performance audit report & optimizations. |
+| `conventional-commit` | `.agents/skills/conventional-commit/` | Mempersiapkan commit message Git & changelog release. | Conventional Git commit message. |
+| `graphify` | `.agents/skills/graphify/` | Pertanyaan arsitektur codebase berskala besar berbasis Knowledge Graph. | Scoped subgraph query result & graph update. |
+
+---
+
+### C. Standar Tata Kelola UI/UX & Internasionalisasi (i18n)
+
+1. **Presisi Mobile-First & Touch-First (Mandatory)**:
+   - Target area sentuh minimal **44×44 px** (direkomendasikan 48×48 px).
+   - Layout harus stabil pada berbagai rasio layar non-reguler dari 720p hingga 4K tanpa distorsi, overlap, atau *hover-only dependence*.
+   - Keterbacaan dan kontras teks dijaga secara ketat di mode Light maupun Dark.
+
+2. **100% Zero Hardcoded Text (Mandatory i18n)**:
+   - Seluruh teks antarmuka (modal, dialog, button, toast, tooltip, placeholder, status text) **WAJIB** diekstraksi ke file locale `src/locales/id/*.json` & `src/locales/en/*.json`.
+   - **Key Parity 100%**: Setiap penambahan key di `id/*.json` WAJIB memiliki key yang identik di `en/*.json`.
+   - Penggunaan di komponen UI WAJIB melalui hook `const { t } = useTranslation();`.
+
+---
+
+### D. Standar Keamanan & Otomasi Rilis Commit-Push
+
+1. **Proteksi Kredensial & Secrets (Non-Negotiable)**:
+   - Sesi Telegram (`*.session`), API ID, dan API Hash diperlakukan sangat rahasia.
+   - Dilarang mencetak (*log/print*) token sesi atau secret key ke console/terminal.
+   - Sesi dienkripsi saat disimpan di penyimpanan lokal desktop.
+
+2. **Database Backup & Restore Admin**:
+   - Panel admin menyediakan sistem backup & restore database SQLite yang terenkripsi minimal **AES-256**, terkompresi ZIP/GZIP, dan diberi nama unik (timestamp + versi).
+   - Mendukung impor bertahap dengan opsi *rollback* otomatis jika terjadi ketidakcocokan checksum.
+
+3. **Changelog & Versioning Rules (Rules 15 & 16)**:
+   - Versi aplikasi mengikuti format `x.y.z` (misal: `v2.3.94`).
+   - Setiap perubahan wajib dicatat di `CHANGELOG.md` dan `VERSION.md`.
+   - Setelah perubahan selesai, Agent **WAJIB** selalu melakukan `git add`, `git commit` (konvensi `conventional-commit`), dan `git push` ke branch `main` GitHub repository `Zy0x/AutoGram` secara otomatis.
+
+---
+
+*Dokumen master ini disahkan sebagai pedoman teknis utama definitif paling lengkap, komprehensif, mencakup 100% seluruh 51 berkas proyek, 16 Skill Pack, Standar Agent, Sequence Diagrams, dan Operational Workflows AutoGram App.*

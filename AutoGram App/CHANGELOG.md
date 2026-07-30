@@ -1,3 +1,10 @@
+## v2.3.94 Absolute Definitive Master Specification with Agent Standards & 16-Skill Pack Matrix
+
+### Penambahan Bab Standar Tata Kelola Agent & Skill Pack (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
+- **Standar Tata Kelola & Otonomi Agent**: Mendokumentasikan mandat eksekutor otonom cerdas, kriteria penyelesaian tugas (done criteria), serta aturan evaluasi kualitas kode.
+- **Matriks 16 Skill Pack Aktif**: Mendokumentasikan 16 skill spesialisasi (`prompt-to-spec-orchestrator`, `codebase-cartographer`, `feature-planning-architect`, `bug-fix-loop-investigator`, `root-cause-debugger`, `implementation-quality-gate`, `regression-test-planner`, `telethon-best-practices`, `supabase-safe-change`, `supabase-schema-manager`, `react-refactor-safe`, `ui-polish-mobile`, `scroll-touch-debugger`, `performance-audit`, `conventional-commit`, `graphify`) beserta path direktori, pemicu penggunaan (trigger condition), dan artefak hasil.
+- **Standar UI/UX, Keamanan, & Otomasi Rilis**: Memasukkan aturan mobile-first & touch targets 44x44px, aturan 100% Zero Hardcoded Text i18n key parity, enkripsi sesi & backup DB admin, serta kebijakan otomasi Git commit-push.
+
 ## v2.3.93 100% Exhaustive 51-File Master Architecture & Workflow Specification
 
 ### Pendokumentasian Seluruh 51 Berkas Repository (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
