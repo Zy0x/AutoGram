@@ -485,17 +485,17 @@ export function DriveSidebar({
   const { t } = useTranslation();
 
   const getPingTooltip = () => {
-    if (pingState?.status === 'transferring') return 'Telegram: Sedang mentransfer data (Session terkunci eksklusif)';
-    if (!pingState) return connected ? 'Drive Terhubung' : 'Terhubung';
-    if (pingState.status === 'offline') return 'Internet Terputus (Device Offline)';
-    if (pingState.status === 'disconnected') return 'Telegram Terputus (Lost)';
+    if (pingState?.status === 'transferring') return t('speedtest.ping_transferring');
+    if (!pingState) return connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_connected');
+    if (pingState.status === 'offline') return t('speedtest.ping_offline');
+    if (pingState.status === 'disconnected') return t('speedtest.ping_disconnected');
     
     const msLabel = pingState.ms != null ? `${pingState.ms} ms` : '';
     let label = 'Koneksi';
-    if (pingState.status === 'excellent') label = 'Sangat Kuat';
-    if (pingState.status === 'good') label = 'Kuat';
-    if (pingState.status === 'fair') label = 'Sedang';
-    if (pingState.status === 'poor') label = 'Lemah';
+    if (pingState.status === 'excellent') label = t('speedtest.ping_excellent');
+    if (pingState.status === 'good') label = t('speedtest.ping_good');
+    if (pingState.status === 'fair') label = t('speedtest.ping_fair');
+    if (pingState.status === 'poor') label = t('speedtest.ping_poor');
 
     return `Telegram: ${label} ${msLabel ? `(${msLabel})` : ''}`;
   };
@@ -1481,7 +1481,7 @@ export function DriveSidebar({
       </div>
 
       <div className="td-sidebar-session td-only-expanded">
-        <label className="td-label">Session</label>
+        <label className="td-label">{t("speedtest.session_header")}</label>
         <MediaSelect
           value={session}
           onChange={onSessionChange}
@@ -1497,11 +1497,11 @@ export function DriveSidebar({
             {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
             {pingState?.status === 'disconnected' && 'Terputus'}
             {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
-            {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sangat Kuat`}
-            {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Kuat`}
-            {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Sedang`}
-            {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}Lemah`}
-            {!pingState && (connected ? 'Drive terhubung' : 'Belum terhubung')}
+            {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
+            {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
+            {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
+            {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
+            {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
           </span>
         </div>
       </div>
@@ -2029,7 +2029,7 @@ export function DriveSidebar({
             className={`td-section-chevron ${chatsExpanded ? 'is-open' : ''}`}
             aria-hidden
           />
-          <span className="td-section-toggle-label">Chats</span>
+          <span className="td-section-toggle-label">{t("speedtest.sidebar_chats_header")}</span>
           {chatIndex.length > 0 && (
             <span className="td-chat-count" title={t("speedtest.sidebar_chats_tooltip")}>
               {hasLocationQuery
@@ -2041,7 +2041,7 @@ export function DriveSidebar({
         </button>
         {chatsExpanded && chatFolders.length > 0 && (
           <div className="td-chat-folders-wrap td-only-expanded">
-            <span className="td-chat-folders-label">Folder Chat Telegram</span>
+            <span className="td-chat-folders-label">{t("speedtest.sidebar_chat_folders_header")}</span>
             <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
               {chatFolders.map((folder) => {
                 const active = folder.id === activeChatFolderId;
@@ -2054,7 +2054,7 @@ export function DriveSidebar({
                     tabIndex={active ? 0 : -1}
                     className={`td-chat-folder-chip${active ? ' active' : ''}`}
                     style={{ '--td-chat-folder-color': telegramFolderColor(folder.color) } as React.CSSProperties}
-                    title={`${folder.title}${folder.kind === 'shared' ? ' · folder bersama Telegram' : ''}`}
+                    title={`${folder.id === 0 ? t("speedtest.all_chats") : folder.title}${folder.kind === 'shared' ? ' · folder bersama Telegram' : ''}`}
                     onClick={() => onSelectChatFolder?.(folder.id)}
                     onKeyDown={(event) => {
                       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
