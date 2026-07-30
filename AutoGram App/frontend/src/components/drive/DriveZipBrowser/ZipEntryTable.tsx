@@ -1,5 +1,5 @@
-import i18n from 'i18next';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Folder,
   File,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Eye,
   Download,
+  FolderOpen,
 } from 'lucide-react';
 import { ZipEntry, entryLabel } from './zipUtils';
 import { formatDriveBytes } from '../../../lib/telegram/driveTypes';
@@ -38,81 +39,199 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
   onPreviewCode,
   onExtractEntry,
 }) => {
+  const { t } = useTranslation();
   const pathParts = currentPath.split('/').filter(Boolean);
 
   const getFileIcon = (name: string) => {
     const lower = name.toLowerCase();
     if (/\.(jpg|jpeg|png|gif|webp|svg)$/.test(lower)) {
-      return <ImageIcon className="w-4 h-4 text-emerald-400" />;
+      return <ImageIcon size={18} style={{ color: '#34d399', flexShrink: 0 }} />;
     }
     if (/\.(mp4|mkv|avi|mov|webm|mp3|flac|wav)$/.test(lower)) {
-      return <Film className="w-4 h-4 text-indigo-400" />;
+      return <Film size={18} style={{ color: '#818cf8', flexShrink: 0 }} />;
     }
     if (/\.(txt|json|md|py|rs|ts|tsx|js|jsx|css|html|log|sh)$/.test(lower)) {
-      return <FileText className="w-4 h-4 text-amber-400" />;
+      return <FileText size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />;
     }
-    return <File className="w-4 h-4 text-slate-400" />;
+    return <File size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />;
   };
 
+  const isEmpty = dirs.length === 0 && files.length === 0;
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-950 text-slate-200 select-none">
-      <div className="flex items-center gap-1 px-4 py-2 bg-slate-900/60 border-b border-slate-800/80 text-xs font-mono text-slate-400 overflow-x-auto">
+    <div className="dzb-content">
+      {/* Breadcrumb Path Bar */}
+      <div className="dzb-breadcrumbs">
         <button
+          type="button"
           onClick={() => onNavigateDir('')}
-          className="hover:text-indigo-400 transition-colors"
+          className="dzb-crumb-btn"
         >
-          root
+          <FolderOpen size={14} style={{ color: '#fbbf24' }} />
+          <span>root</span>
         </button>
+
         {pathParts.map((part, idx) => {
           const subPath = pathParts.slice(0, idx + 1).join('/') + '/';
           return (
             <React.Fragment key={subPath}>
-              <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+              <span className="dzb-crumb-sep">
+                <ChevronRight size={14} />
+              </span>
               <button
+                type="button"
                 onClick={() => onNavigateDir(subPath)}
-                className="hover:text-indigo-400 transition-colors truncate max-w-[120px]"
+                className="dzb-crumb-btn"
               >
-                {part}
+                <span>{part}</span>
               </button>
             </React.Fragment>
           );
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-900/40 sticky top-0 backdrop-blur-md">
-              <th className="py-2.5 px-4 w-10 text-center">
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={onSelectAll}
-                  className="rounded border-slate-700 text-indigo-600 focus:ring-0"
-                />
-              </th>
-              <th className="py-2.5 px-4">Entry Name</th>
-              <th className="py-2.5 px-4 w-28 text-right">Size</th>
-              <th className="py-2.5 px-4 w-28 text-right">Compressed</th>
-              <th className="py-2.5 px-4 w-24 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/50 text-xs font-mono">
-            {dirs.map((d: any) => (
-              <tr
-                key={d}
-                onDoubleClick={() => onNavigateDir(d)}
-                className="hover:bg-slate-900/60 cursor-pointer transition-colors"
-              >
-                <td className="py-2 px-4 text-center text-slate-600">—</td>
-                <td className="py-2 px-4 font-sans font-medium text-amber-300 flex items-center gap-2 truncate">
-                  <Folder className="w-4 h-4 text-amber-400 shrink-0 fill-amber-400/20" />
-                  <span>{entryLabel(d, currentPath)}</span>
-                </td>
-                <td className="py-2 px-4 text-right text-slate-500">—</td>
-                <td className="py-2 px-4 text-right text-slate-500">—</td>
-                <td className="py-2 px-4 text-right" />
+      {isEmpty ? (
+        <div className="dzb-empty-box">
+          <File size={36} style={{ opacity: 0.3 }} />
+          <span>{t('speedtest.zip_empty_search', 'No matching entries found in this archive')}</span>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View (>= 640px) */}
+          <table className="dzb-table-container">
+            <thead className="dzb-table-head">
+              <tr>
+                <th style={{ width: '44px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={onSelectAll}
+                    className="dzb-checkbox"
+                  />
+                </th>
+                <th>{t('speedtest.zip_col_name', 'Entry Name')}</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>{t('speedtest.zip_col_size', 'Size')}</th>
+                <th style={{ width: '130px', textAlign: 'right' }}>{t('speedtest.zip_col_compressed', 'Compressed')}</th>
+                <th style={{ width: '110px', textAlign: 'right' }}>{t('speedtest.zip_col_actions', 'Actions')}</th>
               </tr>
+            </thead>
+            <tbody>
+              {dirs.map((d) => (
+                <tr
+                  key={d}
+                  onClick={() => onNavigateDir(d)}
+                  onDoubleClick={() => onNavigateDir(d)}
+                  className="dzb-table-row"
+                >
+                  <td className="dzb-table-cell" style={{ textAlign: 'center', color: '#64748b' }}>—</td>
+                  <td className="dzb-table-cell" style={{ fontWeight: 600, color: '#fbbf24' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Folder size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                      <span>{entryLabel(d, currentPath)}</span>
+                    </div>
+                  </td>
+                  <td className="dzb-table-cell" style={{ textAlign: 'right', color: '#64748b' }}>—</td>
+                  <td className="dzb-table-cell" style={{ textAlign: 'right', color: '#64748b' }}>—</td>
+                  <td className="dzb-table-cell" style={{ textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigateDir(d);
+                      }}
+                      className="dzb-action-icon-btn"
+                      title="Open folder"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {files.map((e) => {
+                const isSelected = selectedEntries.has(e.name);
+                const compSize = e.compressed_size || e.compressedSize || e.size;
+                const ratio = e.size > 0 ? Math.round(((e.size - compSize) / e.size) * 100) : 0;
+
+                return (
+                  <tr
+                    key={e.name}
+                    onClick={() => onToggleSelectEntry(e.name)}
+                    onDoubleClick={() => onPreviewCode(e)}
+                    className={`dzb-table-row ${isSelected ? 'selected' : ''}`}
+                  >
+                    <td className="dzb-table-cell" style={{ textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelectEntry(e.name)}
+                        onClick={(evt) => evt.stopPropagation()}
+                        className="dzb-checkbox"
+                      />
+                    </td>
+                    <td className="dzb-table-cell">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '380px', overflow: 'hidden' }}>
+                        {getFileIcon(e.name)}
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {entryLabel(e.name, currentPath)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="dzb-table-cell" style={{ textAlign: 'right', color: '#cbd5e1' }}>
+                      {formatDriveBytes(e.size)}
+                    </td>
+                    <td className="dzb-table-cell" style={{ textAlign: 'right', color: '#94a3b8' }}>
+                      {formatDriveBytes(compSize)}
+                      {ratio > 0 && <span className="dzb-ratio-badge" style={{ marginLeft: '6px' }}>(-{ratio}%)</span>}
+                    </td>
+                    <td className="dzb-table-cell" style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            onPreviewCode(e);
+                          }}
+                          className="dzb-action-icon-btn"
+                          title={t('speedtest.zip_preview_content', 'Preview Content')}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            onExtractEntry(e);
+                          }}
+                          className="dzb-action-icon-btn"
+                          title={t('speedtest.zip_extract_entry', 'Extract Entry')}
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Mobile Card List View (< 640px) */}
+          <div className="dzb-mobile-cards">
+            {dirs.map((d) => (
+              <div
+                key={d}
+                onClick={() => onNavigateDir(d)}
+                className="dzb-card"
+              >
+                <div className="dzb-card-header">
+                  <Folder size={20} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                  <span className="dzb-card-title" style={{ color: '#fbbf24', fontWeight: 600 }}>
+                    {entryLabel(d, currentPath)}
+                  </span>
+                  <ChevronRight size={18} style={{ color: '#64748b', flexShrink: 0 }} />
+                </div>
+              </div>
             ))}
 
             {files.map((e) => {
@@ -121,61 +240,61 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
               const ratio = e.size > 0 ? Math.round(((e.size - compSize) / e.size) * 100) : 0;
 
               return (
-                <tr
+                <div
                   key={e.name}
                   onClick={() => onToggleSelectEntry(e.name)}
-                  onDoubleClick={() => onPreviewCode(e)}
-                  className={`cursor-pointer transition-colors ${
-                    isSelected ? 'bg-indigo-950/40 text-indigo-200' : 'hover:bg-slate-900/60 text-slate-300'
-                  }`}
+                  className={`dzb-card ${isSelected ? 'selected' : ''}`}
                 >
-                  <td className="py-2 px-4 text-center">
+                  <div className="dzb-card-header">
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
-                      className="rounded border-slate-700 text-indigo-600 focus:ring-0"
+                      onChange={() => onToggleSelectEntry(e.name)}
+                      onClick={(evt) => evt.stopPropagation()}
+                      className="dzb-checkbox"
                     />
-                  </td>
-                  <td className="py-2 px-4 font-sans font-medium flex items-center gap-2 truncate max-w-sm">
                     {getFileIcon(e.name)}
-                    <span className="truncate">{entryLabel(e.name, currentPath)}</span>
-                  </td>
-                  <td className="py-2 px-4 text-right text-slate-300">{formatDriveBytes(e.size)}</td>
-                  <td className="py-2 px-4 text-right text-slate-400">
-                    {formatDriveBytes(compSize)}
-                    {ratio > 0 && <span className="text-[10px] text-emerald-400 ml-1">(-{ratio}%)</span>}
-                  </td>
-                  <td className="py-2 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={(evt) => {
-                          evt.stopPropagation();
-                          onPreviewCode(e);
-                        }}
-                        className="p-1 text-slate-400 hover:text-indigo-400 rounded transition-colors"
-                        title={i18n.t("speedtest.zip_preview_content")}
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={(evt) => {
-                          evt.stopPropagation();
-                          onExtractEntry(e);
-                        }}
-                        className="p-1 text-slate-400 hover:text-emerald-400 rounded transition-colors"
-                        title={i18n.t("speedtest.zip_extract_entry")}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
+                    <span className="dzb-card-title">{entryLabel(e.name, currentPath)}</span>
+                  </div>
+
+                  <div className="dzb-card-details">
+                    <span>{formatDriveBytes(e.size)}</span>
+                    <div>
+                      <span>{formatDriveBytes(compSize)}</span>
+                      {ratio > 0 && <span className="dzb-ratio-badge" style={{ marginLeft: '6px' }}>(-{ratio}%)</span>}
                     </div>
-                  </td>
-                </tr>
+                  </div>
+
+                  <div className="dzb-card-actions">
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        onPreviewCode(e);
+                      }}
+                      className="dzb-action-icon-btn"
+                      title={t('speedtest.zip_preview_content', 'Preview Content')}
+                    >
+                      <Eye size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        onExtractEntry(e);
+                      }}
+                      className="dzb-action-icon-btn"
+                      title={t('speedtest.zip_extract_entry', 'Extract Entry')}
+                    >
+                      <Download size={18} />
+                    </button>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

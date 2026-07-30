@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ZipBrowserProps,
   ZipEntry,
@@ -10,6 +11,7 @@ import { ZipEntryTable } from './ZipEntryTable';
 import { ZipCodePreviewModal } from './ZipCodePreviewModal';
 import { ZipExtractModal } from './ZipExtractModal';
 import { driveZipList, driveZipReadEntry } from '../../../lib/telegram/driveApi';
+import './DriveZipBrowser.css';
 
 export { clearZipBrowserCache } from './zipUtils';
 
@@ -26,6 +28,8 @@ export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
     onDownloadZip,
     folders = [],
   } = props;
+
+  const { t } = useTranslation();
 
   const [entries, setEntries] = useState<ZipEntry[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -109,7 +113,7 @@ export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+    <div className="dzb-container">
       <ZipHeaderToolbar
         archiveName={archiveName}
         searchQuery={searchQuery}
@@ -127,12 +131,12 @@ export const DriveZipBrowser: React.FC<ZipBrowserProps> = (props) => {
       />
 
       {isLoading ? (
-        <div className="flex-1 flex items-center justify-center text-slate-500 gap-2 font-mono text-xs">
-          <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span>Reading archive index...</span>
+        <div className="dzb-loading-box">
+          <div className="dzb-spinner" />
+          <span>{t('speedtest.zip_reading_index', 'Reading archive index…')}</span>
         </div>
       ) : error ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-red-400 gap-2 p-6 text-center text-xs">
+        <div className="dzb-error-box">
           <span>{error}</span>
         </div>
       ) : (

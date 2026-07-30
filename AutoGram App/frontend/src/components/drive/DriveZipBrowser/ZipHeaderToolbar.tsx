@@ -1,5 +1,5 @@
-import i18n from 'i18next';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search,
   Download,
@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderInput,
+  X,
 } from 'lucide-react';
 import { Category } from './zipUtils';
 
@@ -46,103 +47,124 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   onPrev,
   onNext,
 }) => {
+  const { t } = useTranslation();
+
   const categories: { id: Category; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: 'All Files', icon: <File className="w-3.5 h-3.5" /> },
-    { id: 'image', label: 'Images', icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
-    { id: 'media', label: 'Media', icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
-    { id: 'doc', label: 'Docs & Code', icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'all', label: t('speedtest.zip_cat_all', 'All Files'), icon: <File size={14} /> },
+    { id: 'image', label: t('speedtest.zip_cat_image', 'Images'), icon: <ImageIcon size={14} style={{ color: '#34d399' }} /> },
+    { id: 'media', label: t('speedtest.zip_cat_media', 'Media'), icon: <Film size={14} style={{ color: '#818cf8' }} /> },
+    { id: 'doc', label: t('speedtest.zip_cat_doc', 'Docs & Code'), icon: <FileText size={14} style={{ color: '#fbbf24' }} /> },
   ];
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 border-b border-slate-800 backdrop-blur-md select-none text-slate-100">
-      {/* Archive Name & Navigation */}
-      <div className="flex items-center gap-2 min-w-0">
-        {onPrev && (
-          <button
-            onClick={onPrev}
-            disabled={!hasPrev}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-30 transition-all"
-            title="Previous"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        )}
-        {onNext && (
-          <button
-            onClick={onNext}
-            disabled={!hasNext}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-30 transition-all"
-            title="Next"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+    <header className="dzb-toolbar">
+      {/* Top row: Archive name, status badge, prev/next buttons */}
+      <div className="dzb-toolbar-top">
+        <div className="dzb-title-group">
+          {(onPrev || onNext) && (
+            <div className="dzb-nav-group">
+              {onPrev && (
+                <button
+                  type="button"
+                  onClick={onPrev}
+                  disabled={!hasPrev}
+                  className="dzb-nav-btn"
+                  title="Previous Archive"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              {onNext && (
+                <button
+                  type="button"
+                  onClick={onNext}
+                  disabled={!hasNext}
+                  className="dzb-nav-btn"
+                  title="Next Archive"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              )}
+            </div>
+          )}
 
-        <div className="min-w-0">
-          <h4 className="font-semibold text-xs sm:text-sm text-slate-200 truncate flex items-center gap-2" title={archiveName}>
-            <span>{archiveName || 'Archive Explorer'}</span>
-            {isPasswordProtected ? (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-950/60 text-amber-300 border border-amber-800/40">
-                <Lock className="w-3 h-3" /> Protected
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">
-                <Unlock className="w-3 h-3" /> Unlocked
-              </span>
-            )}
+          <h4 className="dzb-archive-name" title={archiveName || 'Archive Explorer'}>
+            {archiveName || 'Archive Explorer'}
           </h4>
+
+          {isPasswordProtected ? (
+            <span className="dzb-badge-protected">
+              <Lock size={12} /> {t('speedtest.zip_protected', 'Protected')}
+            </span>
+          ) : (
+            <span className="dzb-badge-unlocked">
+              <Unlock size={12} /> {t('speedtest.zip_unlocked', 'Unlocked')}
+            </span>
+          )}
+        </div>
+
+        {/* Top actions for Mobile Extract / Download if needed */}
+        <div className="dzb-action-group">
+          {selectedCount > 0 && (
+            <button
+              type="button"
+              onClick={onExtractSelected}
+              className="dzb-btn-primary"
+            >
+              <FolderInput size={16} />
+              <span>{t('speedtest.zip_extract_count', { count: selectedCount, defaultValue: `Extract (${selectedCount})` })}</span>
+            </button>
+          )}
+
+          {onDownloadZip && (
+            <button
+              type="button"
+              onClick={onDownloadZip}
+              className="dzb-btn-secondary"
+            >
+              <Download size={16} />
+              <span>{t('speedtest.zip_save_archive', 'Save Archive')}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Search Input Bar */}
-      <div className="relative flex-1 min-w-[180px] max-w-xs">
-        <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={i18n.t("speedtest.ph_search_zip")}
-          className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 text-xs text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-mono"
-        />
-      </div>
+      {/* Main Controls Row: Search Input + Scrollable Category Filter Pills */}
+      <div className="dzb-toolbar-controls">
+        <div className="dzb-search-box">
+          <Search className="dzb-search-icon" size={16} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={t('speedtest.ph_search_zip', 'Search zip entries...')}
+            className="dzb-search-input"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="dzb-search-clear"
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
 
-      {/* Category Pills */}
-      <div className="hidden sm:flex items-center gap-1 bg-slate-950 border border-slate-800 p-0.5 rounded-xl">
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onCategoryChange(c.id)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
-              category === c.id ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {c.icon}
-            <span>{c.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Extract & Download Actions */}
-      <div className="flex items-center gap-2">
-        {selectedCount > 0 && (
-          <button
-            onClick={onExtractSelected}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all"
-          >
-            <FolderInput className="w-3.5 h-3.5" />
-            <span>Extract ({selectedCount})</span>
-          </button>
-        )}
-
-        {onDownloadZip && (
-          <button
-            onClick={onDownloadZip}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700/60 transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Save Archive</span>
-          </button>
-        )}
+        <div className="dzb-categories">
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onCategoryChange(c.id)}
+              className={`dzb-cat-tab ${category === c.id ? 'active' : ''}`}
+            >
+              {c.icon}
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </header>
   );
