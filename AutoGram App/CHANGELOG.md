@@ -1,3 +1,9 @@
+## v2.3.88 Master Architecture & Workflow Specification
+
+### Pembaharuan Dokumentasi Arsitektur Utuh (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
+- **Master Specification Document**: Menyusun dokumen arsitektur dan workflow master terintegrasi pada file `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`.
+- **Pemetaan Alur Kerja End-to-End**: Merinci alur pemindahan topik forum, infinite scroll prefetching, upload berkas, serta interaksi antara Frontend (React + TS), Tauri IPC Bridge, Rust MTProto Engine (Grammers), dan SQLite/IndexedDB Storage.
+
 ## v2.3.87 Proactive Infinite Scroll & Fast Streaming Pagination
 
 ### Optimalisasi Kecepatan Infinite Scroll & Pagination (`DriveExplorer.tsx`, `driveLoadStaging.ts`, `MediaStudio/index.tsx`)
