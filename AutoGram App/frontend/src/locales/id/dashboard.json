@@ -82,5 +82,17 @@
   "main_workflow": "Jalur kerja utama",
   "quick_steps": "Langkah cepat",
   "parallel_safety": "Parallel safety",
-  "pool_info": "Satu pool Grammers per akun"
+  "pool_info": "Satu pool Grammers per akun",
+  "errors": {
+    "unknown_error": "Terjadi kesalahan tidak diketahui.",
+    "flood_wait": "Batas kuota Telegram tercapai. Harap tunggu {{seconds}} detik sebelum mencoba lagi.",
+    "phone_code_invalid": "Kode verifikasi yang Anda masukkan salah.",
+    "phone_code_expired": "Kode verifikasi telah kadaluarsa. Harap minta kode baru.",
+    "session_revoked": "Sesi Telegram telah dicabut atau kadaluarsa. Silakan login kembali.",
+    "password_invalid": "Kata sandi verifikasi 2 langkah salah.",
+    "peer_invalid": "Tujuan chat atau channel tidak valid atau Anda tidak memiliki akses.",
+    "circuit_open": "Koneksi backend dijeda sementara untuk keamanan rate-limit.",
+    "network_error": "Gagal terhubung ke jaringan atau server Telegram.",
+    "checksum_mismatch": "Integritas file gagal diverifikasi (MD5 mismatch). Re-upload akan dicoba otomatis."
+  }
 }

@@ -1,4 +1,5 @@
 /** AutoGram Drive entity types (Telegram-Drive model). */
+import { formatLocalizedBytes } from '../utils/i18nHelpers';
 
 export type DriveIconType = 'image' | 'video' | 'audio' | 'voice' | 'document' | 'file' | 'folder';
 
@@ -679,11 +680,7 @@ export const EMPTY_TRANSFER_SESSION: TransferSession = {
 };
 
 export function formatDriveBytes(n: number): string {
-  if (!n || n <= 0) return '0 B';
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`;
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  return formatLocalizedBytes(n);
 }
 
 /** ETA for transfer UI: "45s", "1m 12s", "—" */

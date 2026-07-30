@@ -82,5 +82,17 @@
   "main_workflow": "Main workflow",
   "quick_steps": "Quick steps",
   "parallel_safety": "Parallel safety",
-  "pool_info": "One Grammers pool per account"
+  "pool_info": "One Grammers pool per account",
+  "errors": {
+    "unknown_error": "An unknown error occurred.",
+    "flood_wait": "Telegram rate limit reached. Please wait {{seconds}} seconds before retrying.",
+    "phone_code_invalid": "The verification code you entered is invalid.",
+    "phone_code_expired": "Verification code has expired. Please request a new code.",
+    "session_revoked": "Telegram session revoked or expired. Please log in again.",
+    "password_invalid": "Incorrect 2-Step Verification password.",
+    "peer_invalid": "Invalid target chat or channel, or you don't have permission.",
+    "circuit_open": "Backend connection temporarily paused for rate-limit protection.",
+    "network_error": "Failed to connect to network or Telegram server.",
+    "checksum_mismatch": "File integrity verification failed (MD5 mismatch). Re-upload will be attempted automatically."
+  }
 }
