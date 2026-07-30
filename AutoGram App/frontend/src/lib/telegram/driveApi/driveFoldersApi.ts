@@ -10,6 +10,7 @@ import {
 } from './driveApiUtils';
 import { isTransferJobActive } from './driveTransfersApi';
 import { driveListFiles } from './driveFilesApi';
+
 export async function driveScanFolders(creds: DriveCredentials) {
   if (!detectTauriRuntime()) {
     throw new Error('Drive membutuhkan aplikasi desktop (Rust + Grammers).');
@@ -60,7 +61,11 @@ export async function driveScanFolders(creds: DriveCredentials) {
   }
 }
 
-/** Bootstrap first paint — parallel Grammers list chats + list files (no Telethon). */
+/**
+ * Bootstrap first paint — hanya menunggu chats + files (TIDAK blocking pada folder scan).
+ * driveScanFolders berjalan di background via folderScanPromise sehingga grid tampil
+ * sebelum folder scan yang mungkin memakan 5-30 detik selesai.
+ */
 export async function driveBootstrap(
   creds: DriveCredentials,
   folderId: number | null,
@@ -70,7 +75,13 @@ export async function driveBootstrap(
   const chatPage = opts?.chatPageSize ?? DEFAULT_CHAT_PAGE;
   const topicId = opts?.topicId ?? null;
   await ensureDriveSession(creds);
-  const [chatsRes, filesRes, foldersRes] = await Promise.all([
+
+  // Folder scan dimulai tapi TIDAK ditunggu — grid tidak perlu menunggu folder scan.
+  // Caller menggunakan folderScanPromise untuk proses folder setelah first paint.
+  const foldersPromise = driveScanFolders(creds).catch(() => ({ status: 'success', folders: [] }));
+
+  // Hanya chats + files yang blocking first paint
+  const [chatsRes, filesRes] = await Promise.all([
     driveListChats(creds, { limit: chatPage }).catch(() => ({
       status: 'success',
       chats: [],
@@ -82,8 +93,8 @@ export async function driveBootstrap(
       has_more: false,
       next_offset_id: null,
     })),
-    driveScanFolders(creds).catch(() => ({ status: 'success', folders: [] })),
   ]);
+
   return {
     status: 'success',
     chats: (chatsRes as any).chats || [],
@@ -98,7 +109,10 @@ export async function driveBootstrap(
     total_count: (filesRes as any).total_count ?? null,
     total_bytes: (filesRes as any).total_bytes ?? null,
     stats_pending: true,
-    folders: (foldersRes as any).folders || [],
+    // folders kosong di first return — caller proses folderScanPromise setelah first paint
+    folders: [],
+    /** Caller dapat await ini setelah first paint untuk mendapatkan folder list lengkap */
+    folderScanPromise: foldersPromise,
     folder_id: folderId,
     topic_id: topicId,
     backend: 'grammers',
@@ -408,4 +422,5 @@ export async function driveRenameTopic(
   }
   return { status: 'success', topic_id: topicId, title: clean, backend: 'grammers' };
 }
+
 export { addDriveEventListener } from '../core/driveSession';

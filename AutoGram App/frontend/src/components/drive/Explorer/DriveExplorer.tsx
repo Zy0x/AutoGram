@@ -270,11 +270,11 @@ export function DriveExplorer({
   // Slightly higher overscan reduces blank flash while scrolling without
   // mounting the whole grid (main source of "patah"/jank on WebView2).
   const gridOverscan = progressiveReady
-    ? perf.tier === 'high' ? 8 : perf.tier === 'mid' ? 6 : 4
-    : 3;
+    ? perf.tier === 'high' ? 8 : perf.tier === 'mid' ? 5 : 3
+    : 2;
   const listOverscan = progressiveReady
-    ? perf.tier === 'high' ? 22 : perf.tier === 'mid' ? 16 : 10
-    : 8;
+    ? perf.tier === 'high' ? 20 : perf.tier === 'mid' ? 12 : 8
+    : 4;
 
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (hasMore ? 1 : 0),

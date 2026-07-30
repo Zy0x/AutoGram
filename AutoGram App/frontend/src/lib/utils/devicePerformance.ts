@@ -156,26 +156,32 @@ function buildProfile(tier: PerfTier): DrivePerfProfile {
   if (tier === 'mid') {
     return {
       tier: 'mid',
-      filePage: 48,
-      loadMorePage: 96,
-      chatPage: 48,
-      chatSoftPrefetchMax: 240,
+      // filePage dikurangi 48 → 28: first-paint lebih sedikit data dari MTProto
+      // load-more page tetap besar (80) agar scroll tidak sering request
+      filePage: 28,
+      loadMorePage: 80,
+      chatPage: 40,
+      chatSoftPrefetchMax: 120,
       defaultThumbQuality: 'saver',
       defaultGridZoom: 2,
-      statsDelayMs: 1000,
+      // statsDelayMs dikurangi 1000 → 400ms (stats badge muncul lebih cepat)
+      statsDelayMs: 400,
       fullMediaStats: true,
-      thumbBatch: 48,
-      thumbFlushMs: 2,
-      thumbQueueMax: 300,
+      // thumbBatch dikurangi 48 → 32: RPC lebih ringan, selesai lebih cepat
+      thumbBatch: 32,
+      thumbFlushMs: 1,
+      thumbQueueMax: 280,
       thumbConcurrent: 4,
-      thumbResumeMs: 20,
-      thumbPrefetchRows: 6,
+      // thumbResumeMs dikurangi 20 → 8ms: thumbnail mulai hampir seketika
+      thumbResumeMs: 8,
+      thumbPrefetchRows: 5,
       prefetchNextPage: true,
       avatarBatch: 8,
       avatarQueueMax: 32,
-      avatarBootPauseMs: 300,
-      folderScanDelayMs: 500,
-      thumbSoftFailMs: 1_200,
+      // avatarBootPauseMs dikurangi 300 → 100ms: sidebar avatar muncul cepat
+      avatarBootPauseMs: 100,
+      folderScanDelayMs: 300,
+      thumbSoftFailMs: 1_000,
       fastNet,
       label: 'Mode Standar (Default)',
     };

@@ -1834,7 +1834,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       }
 
       // One-shot fallback: single bootstrap RPC (no warm worker)
-      // Chats+files only inside bootstrap; folders scan deferred (was 30–60s on large accounts)
+      // driveBootstrap kini TIDAK memblokir pada folder scan.
+      // Chats + files sudah tersedia langsung; folder scan berjalan via folderScanPromise.
       setStatusText('Menyambungkan (mode satu-kali)…');
       const boot = await driveBootstrap(creds, peerId, {
         filePageSize: getDrivePerfProfile().filePage,
@@ -1858,9 +1859,11 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         offset: boot.chats_next_offset ?? (boot.chats || []).length,
         cursor: bootNextCursor,
       });
+      // boot.folders kosong (non-blocking), folder scan proses di background via folderScanPromise
       startTransition(() => {
         if (gen !== peerGen.current) return;
-        setFolders(withFolderOrphanFlags(boot.folders || []));
+        // Jangan overwrite folder cache yang sudah ada dari sidebar snapshot
+        setFolders((prev) => (prev.length > 0 ? prev : withFolderOrphanFlags(boot.folders || [])));
         if (activeChatFolderIdRef.current === 0) {
           setChats(boot.chats || []);
           setChatsOffset(boot.chats_next_offset ?? (boot.chats || []).length);
@@ -1934,17 +1937,16 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         filesTotalCountRef.current.set(bootKey, n);
         filesTotalBytesRef.current.set(bootKey, exactBytes);
       }
-      const el = boot.elapsed_s != null ? ` · ${boot.elapsed_s}s` : '';
       const nFilesBoot = (boot.files || []).length;
       const known = clampMediaTotal(boot.total_count, boot.files || []);
       setStatusText(
-        `${(boot.folders || []).length} TD · ${(boot.chats || []).length} chats · ${
+        `${(boot.chats || []).length} chats · ${
           known != null
             ? boot.files_has_more
               ? `${nFilesBoot} / ${known}${boot.stats_accurate === true ? '' : '+'}`
               : String(known)
             : `${nFilesBoot}${boot.files_has_more ? '+' : ''}`
-        } files${el}`
+        } files · folder memuat…`
       );
       if (peerId != null) {
         const meta = (boot.chats || []).find((c: DriveChat) => c.id === peerId) ?? null;
@@ -1953,28 +1955,51 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         setTopics([]);
         setIsForumChat(false);
       }
-      // Defer full TD folder walk (expensive) after first paint
-      void driveScanFolders(creds)
-        .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
-          if (gen !== peerGen.current) return;
-          const list = (Array.isArray(fr) ? fr : fr?.folders || []) as DriveFolder[];
-          const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
-          startTransition(() => {
+
+      // Proses folderScanPromise di background setelah first paint
+      // Folder list muncul setelah scan selesai tanpa memblokir grid display.
+      if (boot.folderScanPromise) {
+        void boot.folderScanPromise
+          .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
             if (gen !== peerGen.current) return;
-            setFolders(normalized);
+            const list = (Array.isArray(fr) ? fr : (fr as any)?.folders || []) as DriveFolder[];
+            const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
+            startTransition(() => {
+              if (gen !== peerGen.current) return;
+              setFolders(normalized);
+            });
+            try {
+              saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+            } catch {
+              /* sidebar cache is best-effort */
+            }
+          })
+          .catch(() => { /* ignore */ })
+          .finally(() => {
+            if (gen === peerGen.current) setLoadingFolders(false);
           });
-          try {
-            saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
-          } catch {
-            /* sidebar cache is best-effort */
-          }
-        })
-        .catch(() => {
-          /* ignore */
-        })
-        .finally(() => {
-          if (gen === peerGen.current) setLoadingFolders(false);
-        });
+      } else {
+        // Defer full TD folder walk (expensive) after first paint
+        void driveScanFolders(creds)
+          .then((fr: { folders?: DriveFolder[] } | DriveFolder[]) => {
+            if (gen !== peerGen.current) return;
+            const list = (Array.isArray(fr) ? fr : fr?.folders || []) as DriveFolder[];
+            const normalized = withFolderOrphanFlags(Array.isArray(list) ? list : []);
+            startTransition(() => {
+              if (gen !== peerGen.current) return;
+              setFolders(normalized);
+            });
+            try {
+              saveDriveSidebarSnapshot(localStorage, creds.session, { folders: normalized });
+            } catch {
+              /* sidebar cache is best-effort */
+            }
+          })
+          .catch(() => { /* ignore */ })
+          .finally(() => {
+            if (gen === peerGen.current) setLoadingFolders(false);
+          });
+      }
     } catch (e: any) {
       if (gen !== peerGen.current) return;
       if (isSessionLockError(e) && sessionLockRetriesRef.current < 2) {
