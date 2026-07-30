@@ -71,6 +71,13 @@ Do not claim done until:
 - Regression risk is considered
 - Summary of changes is honest (what changed, what was not done)
 
+## Internationalization & Locale Management (Mandatory)
+
+- **100% Zero Hardcoded Strings Rule:** Every new feature, page, modal, component, toolbar, tooltip, placeholder, dialog, toast, notification, or UI element **MUST** extract all user-facing text into `i18n` locale files (`src/locales/id/*.json` & `src/locales/en/*.json`).
+- **No Hardcoded Text:** Hardcoding user-facing strings directly in `.tsx` / `.ts` files (in either Indonesian or English) is strictly prohibited.
+- **100% Key Parity:** Every key added to `id/*.json` MUST immediately have an identical matching key in `en/*.json`.
+- **Hook Pattern:** Always consume translations via `const { t } = useTranslation();` from `react-i18next`.
+
 ## Safety & language
 
 - Prefer **murid** over **siswa** in product copy when Indonesian is used.
