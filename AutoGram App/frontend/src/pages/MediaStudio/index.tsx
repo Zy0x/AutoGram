@@ -256,14 +256,14 @@ import {
   wouldCreateFolderCycle,
   withFolderOrphanFlags,
 } from '../../lib/telegram/chatSearch';
-import { DriveSidebar } from '../../components/drive/DriveSidebar';
-import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/DriveTopBar';
-import { DriveExplorer } from '../../components/drive/DriveExplorer';
-import { DriveTransferManager } from '../../components/drive/DriveTransferManager';
+import { DriveSidebar } from '../../components/drive/Navigation/DriveSidebarIndex';
+import { DriveTopBar, type DriveCrumbSeg } from '../../components/drive/Navigation/DriveTopBar';
+import { DriveExplorer } from '../../components/drive/Explorer/DriveExplorer';
+import { DriveTransferManager } from '../../components/drive/Transfers/DriveTransferManager';
 
-import { type DriveConfirmState } from '../../components/drive/DriveConfirmDialog';
-import { type DriveInputState } from '../../components/drive/DriveInputDialog';
-import { type DriveDestChoice, type DriveDestPickerState } from '../../components/drive/DriveDestinationPicker';
+import { type DriveConfirmState } from '../../components/drive/Modals/DriveConfirmDialog';
+import { type DriveInputState } from '../../components/drive/Modals/DriveInputDialog';
+import { type DriveDestChoice, type DriveDestPickerState } from '../../components/drive/Modals/DriveDestinationPicker';
 import type { JobChild } from '../../lib/db/jobProcess';
 import { tgDownloadFile } from '../../lib/telegram/telegramBackend';
 import {

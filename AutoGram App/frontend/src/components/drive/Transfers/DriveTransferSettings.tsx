@@ -13,13 +13,13 @@ import {
   RotateCcw,
   Info,
 } from 'lucide-react';
-import type { DriveTransferSettings, QualityMode } from '../../lib/telegram/driveTypes';
+import type { DriveTransferSettings, QualityMode } from '../../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   QUALITY_MODE_OPTIONS,
   clampConcurrency,
-} from '../../lib/telegram/driveTypes';
-import { MediaSelect } from './MediaSelect';
+} from '../../../lib/telegram/driveTypes';
+import { MediaSelect } from '../Navigation/MediaSelect';
 
 type Tab = 'upload' | 'download';
 

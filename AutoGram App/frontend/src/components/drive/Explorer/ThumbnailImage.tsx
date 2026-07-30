@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
-import { FileTypeIcon } from '../FileTypeIcon';
+import { FileTypeIcon } from './FileTypeIcon';
 
 export interface ThumbnailImageProps {
   file: DriveFile;

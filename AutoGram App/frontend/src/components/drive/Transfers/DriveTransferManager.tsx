@@ -23,18 +23,18 @@ import {
   RotateCcw,
   SkipForward,
 } from 'lucide-react';
-import type { TransferSession } from '../../lib/telegram/driveTypes';
+import type { TransferSession } from '../../../lib/telegram/driveTypes';
 import {
   formatDriveBytes,
   formatTransferEta,
   formatTransferSpeed,
-} from '../../lib/telegram/driveTypes';
+} from '../../../lib/telegram/driveTypes';
 import {
   activeItemName,
   countByStatus,
   sessionVisible,
-} from '../../lib/media/transferProgress';
-import { copyTextWithFallback } from '../../lib/utils/debugMode';
+} from '../../../lib/media/transferProgress';
+import { copyTextWithFallback } from '../../../lib/utils/debugMode';
 
 type Props = {
   session: TransferSession;

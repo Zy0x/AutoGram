@@ -34,16 +34,16 @@ import type {
   DriveTopic,
   DriveTopicFilter,
   DriveViewMode,
-} from '../../lib/telegram/driveTypes';
+} from '../../../lib/telegram/driveTypes';
 import { MediaSelect } from './MediaSelect';
-import { copyTextWithFallback } from '../../lib/utils/debugMode';
+import { copyTextWithFallback } from '../../../lib/utils/debugMode';
 import {
   DRIVE_GRID_ZOOM_LEVELS,
   DRIVE_SORT_OPTIONS,
   DRIVE_THUMB_QUALITY_OPTIONS,
   MAX_GRID_ZOOM,
   MIN_GRID_ZOOM,
-} from '../../lib/telegram/driveTypes';
+} from '../../../lib/telegram/driveTypes';
 
 export type DriveCrumbSeg = {
   id: number | null;

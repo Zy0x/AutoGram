@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../lib/telegram/driveTypes';
-import { usePointerDragPrime } from '../../lib/telegram/pointerDragPrime';
+import { driveFileDisplayName, formatDriveBytes, type DriveFile } from '../../../lib/telegram/driveTypes';
+import { usePointerDragPrime } from '../../../lib/telegram/pointerDragPrime';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {

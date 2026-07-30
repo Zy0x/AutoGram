@@ -1,13 +1,13 @@
 import { Play, Pause, Trash2, Edit3, Plus, Terminal, RefreshCw, Upload, Download, Eye } from 'lucide-react';
 import { useState } from 'react';
-import { RerunModal } from './RerunModal';
+import { RerunModal } from '../Modals/RerunModal';
 import {
   resolveJobUiKind,
   jobStatusClass,
   jobDisplayStatus,
   getPrimaryActions,
   startArgsForAction,
-} from '../../lib/db/jobStatus';
+} from '../../../lib/db/jobStatus';
 
 interface JobsListProps {
   jobs: any[];

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { JobsList } from '../../components/Jobs/JobsList';
+import { JobsList } from '../../components/Jobs/Runtime/JobsList';
 import { JobEditor } from '../../components/Jobs/JobEditor';
-import { JobRuntime } from '../../components/Jobs/JobRuntime';
+import { JobRuntime } from '../../components/Jobs/Runtime/JobRuntime';
 import {
   spawnDaemonJob,
   runDaemonOnce,

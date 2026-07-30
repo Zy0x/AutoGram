@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
-import { MediaSelect } from '../MediaSelect';
+import { MediaSelect } from './MediaSelect';
 
 export interface SidebarSessionHeaderProps {
   creds: DriveCredentials | null;

@@ -2328,5 +2328,35 @@
     "mtime": 1785352262.0,
     "ast_hash": "bff9d8b682a5bd4d0e5d6aeba20b41cd",
     "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveFileCard/ThumbnailImage.tsx": {
+    "mtime": 1785370102.0,
+    "ast_hash": "cf932ed2d64a6303a37d31bcad52b38b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveTopBar/TopBarBreadcrumbs.tsx": {
+    "mtime": 1785370092.0,
+    "ast_hash": "c04e47828ca19d2971d40e40b4f20675",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveTopBar/TopBarSearchFilter.tsx": {
+    "mtime": 1785370118.0,
+    "ast_hash": "ee4a61fad3eedb6127d1f164ec5db894",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/Settings/AccountSessionSection.tsx": {
+    "mtime": 1785370084.0,
+    "ast_hash": "cda3f9497a850b3a8442ac97987cda35",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/Settings/AppearanceSection.tsx": {
+    "mtime": 1785370084.0,
+    "ast_hash": "e65dd9fd515ac1536ef7690f22013920",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/pages/Settings/DataBackupSection.tsx": {
+    "mtime": 1785370120.0,
+    "ast_hash": "d0ecbd0f4b1bfafda37d6253c26c38aa",
+    "semantic_hash": ""
   }
 }

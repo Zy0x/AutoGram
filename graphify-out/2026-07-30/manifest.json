@@ -519,11 +519,6 @@
     "ast_hash": "ff661658f9d196026c6943ccd5705c75",
     "semantic_hash": ""
   },
-  "AutoGram App/worker/database/db.py": {
-    "mtime": 1784474612.0,
-    "ast_hash": "9134f18eadb82c705069202ca777848d",
-    "semantic_hash": ""
-  },
   "AutoGram App/worker/database/migrations/005_profiles.sql": {
     "mtime": 1783702494.0,
     "ast_hash": "6e4004a630d8bbd178ab519c8042c8b2",
@@ -532,11 +527,6 @@
   "AutoGram App/worker/database/migrations/006_automations.sql": {
     "mtime": 1783703006.0,
     "ast_hash": "d18e9f19da969937385112e01e180756",
-    "semantic_hash": ""
-  },
-  "AutoGram App/worker/database/queries.py": {
-    "mtime": 1784867898.0,
-    "ast_hash": "3697ac886866c0d75679e445f0e68c0a",
     "semantic_hash": ""
   },
   "AutoGram App/worker/profiles/Tes Donghua 3D.json": {

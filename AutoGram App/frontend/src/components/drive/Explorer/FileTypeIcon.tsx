@@ -10,7 +10,7 @@ import {
   Link,
   Package,
 } from 'lucide-react';
-import { driveFileExt, isTextDriveFile, type DriveFile } from '../../lib/telegram/driveTypes';
+import { driveFileExt, isTextDriveFile, type DriveFile } from '../../../lib/telegram/driveTypes';
 
 type Props = {
   file: DriveFile;

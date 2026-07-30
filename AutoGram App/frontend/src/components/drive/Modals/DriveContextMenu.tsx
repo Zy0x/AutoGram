@@ -20,9 +20,9 @@ import {
   Home,
   Copy,
 } from 'lucide-react';
-import type { DriveFile } from '../../lib/telegram/driveTypes';
-import { driveFileDisplayName } from '../../lib/telegram/driveTypes';
-import { isDesktop } from '../../lib/tauri/platform';
+import type { DriveFile } from '../../../lib/telegram/driveTypes';
+import { driveFileDisplayName } from '../../../lib/telegram/driveTypes';
+import { isDesktop } from '../../../lib/tauri/platform';
 
 export type DriveLocationKind = 'saved' | 'drive' | 'chat';
 

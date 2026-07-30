@@ -71,7 +71,7 @@ import {
   matchesSavedMessagesQuery,
   wouldCreateFolderCycle,
 } from '../../../lib/telegram/chatSearch';
-import { MediaSelect } from '../MediaSelect';
+import { MediaSelect } from './MediaSelect';
 
 const LS_SEC_FOLDERS = 'td_sec_folders_open';
 const LS_SEC_CHATS = 'td_sec_chats_open';

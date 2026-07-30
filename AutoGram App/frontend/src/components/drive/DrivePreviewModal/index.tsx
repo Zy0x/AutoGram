@@ -33,7 +33,7 @@ import {
   Printer,
   Repeat,
 } from 'lucide-react';
-import { DeadCenterProgress } from '../DriveSkeleton';
+import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from '../../../lib/tauri/platform';
 import { registerPreviewOpen, registerPreviewClose } from '../../../lib/telegram/driveSession';
@@ -82,7 +82,7 @@ import {
   revealInFolder,
 } from '../../../lib/tauri/documentOpen';
 import { isDesktop } from '../../../lib/tauri/platform';
-import { DriveConfirmDialog, type DriveConfirmState } from '../DriveConfirmDialog';
+import { DriveConfirmDialog, type DriveConfirmState } from '../Modals/DriveConfirmDialog';
 
 type Props = {
   file: DriveFile;

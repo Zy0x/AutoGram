@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, FolderGit2, Play, RefreshCcw, X, Hash, Users, Radio, User, Bot, Plus, Save, Trash2, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Select } from '../../Select';
-import { InfoTooltip } from '../../InfoTooltip';
-import { CaptionModal } from '../CaptionModal';
+import { Select } from '../../common/Select';
+import { InfoTooltip } from '../../common/InfoTooltip';
+import { CaptionModal } from '../Modals/CaptionModal';
 
 export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => void, onStart: (config: any) => void, initialJob?: any }) {
   const { t } = useTranslation();

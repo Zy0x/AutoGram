@@ -13,8 +13,8 @@ import {
   X,
   Copy,
 } from 'lucide-react';
-import type { DriveTopic } from '../../lib/telegram/driveTypes';
-import { MediaSelect } from './MediaSelect';
+import type { DriveTopic } from '../../../lib/telegram/driveTypes';
+import { MediaSelect } from '../Navigation/MediaSelect';
 
 export type DriveConfirmKind = 'delete' | 'download' | 'move';
 

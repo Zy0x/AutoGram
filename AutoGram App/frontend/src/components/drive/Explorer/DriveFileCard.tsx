@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play } from 'lucide-react';
-import type { DriveCredentials } from '../../lib/telegram/driveApi';
+import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   canShowDriveThumb,
   driveFileDisplayName,
@@ -10,14 +10,14 @@ import {
   formatDriveKindLabel,
   isVideoDriveFile,
   type DriveFile,
-} from '../../lib/telegram/driveTypes';
-import { usePointerDragPrime } from '../../lib/telegram/pointerDragPrime';
+} from '../../../lib/telegram/driveTypes';
+import { usePointerDragPrime } from '../../../lib/telegram/pointerDragPrime';
 import {
   getCachedThumb,
   getCachedSaverThumb,
   invalidateThumb,
   requestThumb,
-} from '../../lib/media/thumbBatcher';
+} from '../../../lib/media/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
 
 type Props = {
