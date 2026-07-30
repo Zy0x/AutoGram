@@ -6,7 +6,7 @@
   "recents": "Recents",
   "trash": "Trash",
   "active_transfers": "Active Transfers",
-  "search_placeholder": "Search files in this location... (Ctrl+F)",
+  "search_placeholder": "Search files in this location… (Ctrl+F)",
   "filter_all": "All",
   "filter_images": "Photos",
   "filter_videos": "Videos",
@@ -656,5 +656,7 @@
   "thumb_balanced_desc": "Balanced format (balance of speed & sharpness)",
   "thumb_clear_short": "Clear",
   "thumb_clear_label": "HD/HQ format",
-  "thumb_clear_desc": "HD/HQ format (sharp image, slightly larger download)"
+  "thumb_clear_desc": "HD/HQ format (sharp image, slightly larger download)",
+  "topic_closed_suffix": "closed",
+  "topbar_tools_aria": "Filter, sort, and thumbnail controls"
 }

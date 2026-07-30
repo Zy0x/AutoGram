@@ -612,25 +612,25 @@ export function DriveTopBar({
             {topicsLoading && topics.length === 0 && (
               <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
             )}
-            {topics.map((t) => (
+            {topics.map((tp) => (
               <button
-                key={t.id}
+                key={tp.id}
                 type="button"
-                className={`td-topic-pill ${topicFilter === t.id ? 'active' : ''} ${t.closed ? 'is-closed' : ''}`}
-                onClick={() => onTopicFilter?.(t.id)}
+                className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${tp.closed ? 'is-closed' : ''}`}
+                onClick={() => onTopicFilter?.(tp.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setTopicContextMenu({
                     x: e.clientX,
                     y: e.clientY,
-                    topicId: t.id,
-                    title: t.title,
+                    topicId: tp.id,
+                    title: tp.title,
                   });
                 }}
-                title={t.closed ? `${t.title} (ditutup)` : t.title}
+                title={tp.closed ? `${tp.title} (${t("speedtest.topic_closed_suffix")})` : tp.title}
               >
-                {t.title}
+                {tp.title}
               </button>
             ))}
             {onAddTopic && (
@@ -661,7 +661,7 @@ export function DriveTopBar({
           className="td-search"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder="Cari file di lokasi ini… (Ctrl+F)"
+          placeholder={t("speedtest.search_placeholder")}
           aria-label={t("speedtest.search_aria_label")}
           title={t('speedtest.filter_media_tooltip')}
         />
@@ -670,7 +670,7 @@ export function DriveTopBar({
 
       {/* Row 3: filters/sort/thumb — labeled groups so controls stay self-explanatory */}
       <div className="td-topbar-row td-topbar-row-tools">
-        <div className="td-topbar-tools" role="toolbar" aria-label="Filter, urutan, dan thumbnail">
+        <div className="td-topbar-tools" role="toolbar" aria-label={t("speedtest.topbar_tools_aria")}>
           <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
             <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
               Filter

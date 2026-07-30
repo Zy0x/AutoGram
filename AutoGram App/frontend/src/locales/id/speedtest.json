@@ -6,7 +6,7 @@
   "recents": "Baru Dilihat",
   "trash": "Tong Sampah",
   "active_transfers": "Transfer Aktif",
-  "search_placeholder": "Cari file di lokasi ini... (Ctrl+F)",
+  "search_placeholder": "Cari berkas di lokasi ini… (Ctrl+F)",
   "filter_all": "Semua",
   "filter_images": "Foto",
   "filter_videos": "Video",
@@ -656,5 +656,7 @@
   "thumb_balanced_desc": "Format standar (keseimbangan kecepatan & ketajaman)",
   "thumb_clear_short": "Jelas",
   "thumb_clear_label": "Format HD/HQ",
-  "thumb_clear_desc": "Format HD/HQ (gambar tajam, unduhan sedikit lebih besar)"
+  "thumb_clear_desc": "Format HD/HQ (gambar tajam, unduhan sedikit lebih besar)",
+  "topic_closed_suffix": "ditutup",
+  "topbar_tools_aria": "Filter, urutan, dan thumbnail"
 }
