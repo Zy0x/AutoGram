@@ -2055,23 +2055,23 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/DocumentViewer.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "9d87ddfef5b74f5aa6fdd6cee0a84c62",
+    "mtime": 1785355612.0,
+    "ast_hash": "48b44f1fa25263e4f341df48a6486d08",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/ImageViewer.tsx": {
-    "mtime": 1785345520.0,
-    "ast_hash": "d058c3b411af95ac0b09befe139f8fa8",
+    "mtime": 1785355588.0,
+    "ast_hash": "d8050132b03c4845296933ffb4431aec",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaAudioPlayer.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "279cbdf45174bec497ac4faa34e1fe96",
+    "mtime": 1785355612.0,
+    "ast_hash": "6fa1a920a09cc2f98f610439d7d79989",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaHeaderToolbar.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "aa04926819eb64ed90db863e93aaa3c8",
+    "mtime": 1785355612.0,
+    "ast_hash": "74377edf4f0a8968ca9e966a35156937",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx": {
