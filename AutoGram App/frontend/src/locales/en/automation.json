@@ -1,16 +1,17 @@
 {
   "title": "Automation & Scheduler",
-  "subtitle": "Real-time Sync and Cron Jobs.",
-  "new_schedule": "New Schedule",
-  "cron_expression": "Cron Expression",
-  "next_run": "Next Execution",
-  "status_active": "Active",
-  "status_disabled": "Disabled",
+  "subtitle": "Real-time Sync and Automatic Scheduled Tasks (Cron).",
   "add_btn": "Add New Automation",
-  "name_label": "Name",
-  "name_ph": "e.g., Daily Sync",
+  "name_label": "Task Name",
+  "name_ph": "e.g., Daily Channel Sync",
   "source_label": "Source (Chat ID / Username)",
   "target_label": "Target (Chat ID / Username)",
   "enable_realtime": "Enable Real-Time Sync",
-  "cron_label": "Cron Expression (Optional)"
+  "cron_label": "Cron Expression (Optional)",
+  "col_name": "Automation Name",
+  "col_source": "Source",
+  "col_target": "Target",
+  "col_schedule": "Schedule",
+  "col_status": "Status",
+  "col_actions": "Actions"
 }

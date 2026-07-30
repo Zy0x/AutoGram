@@ -1,12 +1,12 @@
 {
-  "title": "Statistik Platform",
-  "subtitle": "Lihat ringkasan performa kecepatan transfer dan total media yang telah diproses.",
-  "total_transferred": "Total Terkirim",
-  "transfer_speed": "Kecepatan Rata-Rata",
-  "success_rate": "Tingkat Keberhasilan",
-  "total_jobs": "Total Tugas",
-  "processed_media": "Media Diproses",
+  "title": "Statistik & Ringkasan Platform",
+  "total_jobs": "Total Tugas Migrasi",
+  "processed_media": "Total Berkas Diproses",
   "success_transfer": "Transfer Berhasil",
   "failed_items": "Item Gagal",
-  "total_storage": "Total Storage Diproses"
+  "total_storage": "Total Ruang Disk Diproses",
+  "chart_transfer_speed": "Kecepatan Transfer (MB/dtk)",
+  "chart_daily_activity": "Aktivitas Harian",
+  "recent_logs": "Log Aktivitas Terakhir",
+  "no_data": "Belum ada data statistik tercatat."
 }

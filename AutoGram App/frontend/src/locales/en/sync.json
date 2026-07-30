@@ -1,7 +1,7 @@
 {
-  "title": "Real-Time Sync",
-  "subtitle": "Mirror changes from source to destination in real-time (Messages, Edits, Deletions).",
-  "dev_title": "Feature Under Development",
-  "dev_desc": "This Real-Time Sync menu is reserved for future Mirroring feature development. Currently, the system focuses entirely on Mass Forwarding (Migration) via Job Queue to ensure stability.",
-  "coming_soon_btn": "Start Sync Daemon (Coming Soon)"
+  "title": "Network Sync Status",
+  "connected": "Connected to Telegram MTProto",
+  "connecting": "Connecting...",
+  "offline": "Offline / Disconnected",
+  "syncing": "Syncing media library..."
 }

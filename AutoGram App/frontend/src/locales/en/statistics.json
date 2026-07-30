@@ -1,12 +1,12 @@
 {
-  "title": "Platform Statistics",
-  "subtitle": "View performance summary of transfer speeds and total processed media.",
-  "total_transferred": "Total Transferred",
-  "transfer_speed": "Average Speed",
-  "success_rate": "Success Rate",
-  "total_jobs": "Total Jobs",
-  "processed_media": "Processed Media",
-  "success_transfer": "Success Transfer",
+  "title": "Platform Statistics & Overview",
+  "total_jobs": "Total Migration Jobs",
+  "processed_media": "Total Processed Files",
+  "success_transfer": "Successful Transfers",
   "failed_items": "Failed Items",
-  "total_storage": "Total Storage Processed"
+  "total_storage": "Total Storage Processed",
+  "chart_transfer_speed": "Transfer Speed (MB/s)",
+  "chart_daily_activity": "Daily Activity",
+  "recent_logs": "Recent Activity Logs",
+  "no_data": "No statistical data recorded yet."
 }
