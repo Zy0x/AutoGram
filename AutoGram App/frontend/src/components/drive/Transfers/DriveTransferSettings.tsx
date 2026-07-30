@@ -124,13 +124,13 @@ export function DriveTransferSettings({
             className="td-icon-btn"
             onClick={onClose}
             title={t("speedtest.close_esc")}
-            aria-label="Tutup"
+            aria-label={t("speedtest.close_esc")}
           >
             <X size={18} />
           </button>
         </header>
 
-        <div className="td-xfer-settings-tabs" role="tablist" aria-label="Bagian pengaturan">
+        <div className="td-xfer-settings-tabs" role="tablist" aria-label={t("speedtest.settings_sections_aria")}>
           <button
             type="button"
             role="tab"
@@ -139,7 +139,7 @@ export function DriveTransferSettings({
             onClick={() => setTab('upload')}
           >
             <Upload size={15} />
-            Upload
+            {t("speedtest.upload_tab", "Upload")}
           </button>
           <button
             type="button"
@@ -149,14 +149,14 @@ export function DriveTransferSettings({
             onClick={() => setTab('download')}
           >
             <Download size={15} />
-            Download
+            {t("speedtest.download_tab", "Download")}
           </button>
         </div>
 
         <div className="td-xfer-settings-body">
           {tab === 'upload' && (
             <section className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
-              <h3>{t('speedtest.upload_quality') || "Upload quality"}</h3>
+              <h3>{t('speedtest.upload_quality_header', 'UPLOAD QUALITY')}</h3>
               <p className="td-xfer-hint">
                 {t("speedtest.upload_quality_hint")}
               </p>
@@ -180,8 +180,8 @@ export function DriveTransferSettings({
                       }}
                     />
                     <span>
-                      <strong>{opt.label}</strong>
-                      <small>{opt.description}</small>
+                      <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`, opt.label))}</strong>
+                      <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`, opt.description))}</small>
                     </span>
                   </label>
                 ))}
@@ -198,11 +198,11 @@ export function DriveTransferSettings({
                   onChange={(value) => patch({ reencodeHardware: value as any })}
                   ariaLabel={t("speedtest.hardware_reencode_header")}
                   options={[
-                    { value: 'auto', label: t('speedtest.gpu_auto_label'), description: t('speedtest.gpu_auto_desc') },
-                    { value: 'nvidia', label: 'NVIDIA NVENC', description: t('speedtest.gpu_nvidia_desc') },
-                    { value: 'amd', label: 'AMD AMF', description: t('speedtest.gpu_amd_desc') },
-                    { value: 'intel', label: 'Intel Quick Sync', description: t('speedtest.gpu_intel_desc') },
-                    { value: 'cpu', label: 'CPU x264', description: t('speedtest.gpu_cpu_desc') },
+                    { value: 'auto', label: String(t('speedtest.gpu_auto_label')), description: String(t('speedtest.gpu_auto_desc')) },
+                    { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
+                    { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
+                    { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
+                    { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
                   ]}
                 />
               </label>
@@ -218,17 +218,16 @@ export function DriveTransferSettings({
                   onChange={(value) => patch({ reencodePreset: value as any })}
                   ariaLabel={t("speedtest.reencode_mode_header")}
                   options={[
-                    { value: 'speed', label: t('speedtest.preset_speed_label'), description: t('speedtest.preset_speed_desc') },
-                    { value: 'balanced', label: t('speedtest.preset_balanced_label'), description: t('speedtest.preset_balanced_desc') },
-                    { value: 'quality', label: t('speedtest.preset_quality_label'), description: t('speedtest.preset_quality_desc') },
+                    { value: 'speed', label: String(t('speedtest.preset_speed_label')), description: String(t('speedtest.preset_speed_desc')) },
+                    { value: 'balanced', label: String(t('speedtest.preset_balanced_label')), description: String(t('speedtest.preset_balanced_desc')) },
+                    { value: 'quality', label: String(t('speedtest.preset_quality_label')), description: String(t('speedtest.preset_quality_desc')) },
                   ]}
                 />
               </label>
 
               <h3>{t('speedtest.upload_parallelism_header')}</h3>
               <p className="td-xfer-hint">
-                Berapa file di-pipeline ke data center Telegram bersamaan (1–8). Naikkan untuk multi-file
-                lebih cepat; turunkan jika sering FloodWait.
+                {t("speedtest.upload_parallelism_hint")}
               </p>
               <label className="td-xfer-range-row">
                 <input
@@ -405,8 +404,7 @@ export function DriveTransferSettings({
 
               <h3>{t("speedtest.default_caption_title")}</h3>
               <p className="td-xfer-hint">
-                Teks yang dilampirkan ke setiap unggahan (bisa diganti per-file di masa depan). Kosongkan
-                untuk memakai nama file saja.
+                {t("speedtest.default_caption_hint")}
               </p>
               <textarea
                 className="td-xfer-textarea"
@@ -422,8 +420,7 @@ export function DriveTransferSettings({
               <div className="td-xfer-note">
                 <Info size={14} />
                 <span>
-                  Drag &amp; drop dari File Explorer, tombol Unggah, dan drop ke baris chat memakai
-                  pengaturan ini. Part paralel per-file diatur otomatis di worker (hingga 12).
+                  {t("speedtest.upload_note_box")}
                 </span>
               </div>
             </section>
@@ -431,10 +428,9 @@ export function DriveTransferSettings({
 
           {tab === 'download' && (
             <section className="td-xfer-section" aria-label={t("speedtest.download_settings_aria")}>
-              <h3>{t('speedtest.download_parallel') || "Parallel download"}</h3>
+              <h3>{t('speedtest.download_parallel_header', 'PARALEL DOWNLOAD')}</h3>
               <p className="td-xfer-hint">
-                Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch). Tiap file besar juga
-                memakai unduhan multi-part di worker.
+                {t("speedtest.download_parallelism_hint")}
               </p>
               <label className="td-xfer-range-row">
                 <input
@@ -444,12 +440,12 @@ export function DriveTransferSettings({
                   value={draft.downloadConcurrency}
                   disabled={!!transferActive}
                   onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
-                  aria-label={t("speedtest.download_parallel")}
+                  aria-label={t("speedtest.download_parallel_header")}
                 />
                 <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
               </label>
 
-              <h3>{t('speedtest.download_behavior') || "Download behavior"}</h3>
+              <h3>{t('speedtest.download_behavior_header', 'PERILAKU DOWNLOAD')}</h3>
               <div className="td-xfer-checks">
                 <label className="td-xfer-check">
                   <input
@@ -468,9 +464,7 @@ export function DriveTransferSettings({
               <div className="td-xfer-note">
                 <Info size={14} />
                 <span>
-                  Unduh satu file (dari kartu / preview) selalu ke lokasi yang Anda pilih di dialog
-                  simpan. Batch unduh memakai folder tujuan + paralel di atas. Batal transfer lewat
-                  tombol Batal di dock progress.
+                  {t("speedtest.download_note_box")}
                 </span>
               </div>
 
@@ -492,7 +486,7 @@ export function DriveTransferSettings({
           </button>
           <div className="td-xfer-settings-foot-right">
             <button type="button" className="td-chip-btn" onClick={onClose}>
-              Batal
+              {t("speedtest.topbar_cancel", "Batal")}
             </button>
             <button
               type="button"
@@ -500,7 +494,7 @@ export function DriveTransferSettings({
               onClick={apply}
               disabled={!!transferActive}
             >
-              Simpan
+              {t("speedtest.btn_save", "Simpan")}
             </button>
           </div>
         </footer>

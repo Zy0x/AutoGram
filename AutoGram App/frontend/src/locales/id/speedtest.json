@@ -703,5 +703,19 @@
   "sort_size_asc_desc": "File kecil di atas",
   "thumb_sharp_short": "Jelas",
   "thumb_sharp_label": "Jelas",
-  "thumb_sharp_desc": "Tajam dari layer Telegram terbesar (~70–130 KB) — tanpa unduh full file"
+  "thumb_sharp_desc": "Tajam dari layer Telegram terbesar (~70–130 KB) — tanpa unduh full file",
+  "hardware_reencode_header": "HARDWARE RE-ENCODE (GPU)",
+  "reencode_mode_header": "RE-ENCODE MODE",
+  "reencode_mode_desc": "Keseimbangan antara kecepatan proses dan kualitas akhir.",
+  "upload_parallelism_header": "UPLOAD PARALLELISM",
+  "upload_settings_aria": "Pengaturan upload",
+  "download_settings_aria": "Pengaturan download",
+  "settings_sections_aria": "Bagian pengaturan",
+  "categories_aria": "Kategori Alat dan Pengaturan",
+  "upload_tab": "Upload",
+  "download_tab": "Download",
+  "default_caption_title": "CAPTION DEFAULT",
+  "supported_features_title": "FITUR TERDUKUNG",
+  "download_parallel_header": "PARALEL DOWNLOAD",
+  "download_behavior_header": "PERILAKU DOWNLOAD"
 }

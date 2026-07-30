@@ -703,5 +703,19 @@
   "sort_size_asc_desc": "Smallest files on top",
   "thumb_sharp_short": "Sharp",
   "thumb_sharp_label": "Sharp",
-  "thumb_sharp_desc": "Sharp from largest Telegram layer (~70–130 KB) — no full download"
+  "thumb_sharp_desc": "Sharp from largest Telegram layer (~70–130 KB) — no full download",
+  "hardware_reencode_header": "HARDWARE RE-ENCODE (GPU)",
+  "reencode_mode_header": "RE-ENCODE MODE",
+  "reencode_mode_desc": "Balance between processing speed and final quality.",
+  "upload_parallelism_header": "UPLOAD PARALLELISM",
+  "upload_settings_aria": "Upload settings",
+  "download_settings_aria": "Download settings",
+  "settings_sections_aria": "Settings sections",
+  "categories_aria": "Tool and Setting Categories",
+  "upload_tab": "Upload",
+  "download_tab": "Download",
+  "default_caption_title": "DEFAULT CAPTION",
+  "supported_features_title": "SUPPORTED FEATURES",
+  "download_parallel_header": "DOWNLOAD PARALLELISM",
+  "download_behavior_header": "DOWNLOAD BEHAVIOR"
 }

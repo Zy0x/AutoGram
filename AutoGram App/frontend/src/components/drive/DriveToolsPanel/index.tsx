@@ -299,16 +299,16 @@ export function DriveToolsPanel({
               </div>
             </div>
           </div>
-          <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
             <X size={18} />
           </button>
         </header>
 
         <div className="td-tools-layout">
-          <aside className="td-tools-sidebar" aria-label="Kategori Alat dan Pengaturan">
+          <aside className="td-tools-sidebar" aria-label={t("speedtest.categories_aria")}>
             {TOOL_GROUPS.map((group) => (
               <div key={group.title} className="td-tools-sidebar-group">
-                <span className="td-tools-sidebar-header">{t(group.title === 'ALAT DRIVE' ? 'speedtest.tools_cat_drive' : group.title === 'KONFIGURASI' ? 'speedtest.tools_cat_config' : group.title)}</span>
+                <span className="td-tools-sidebar-header">{t(group.title)}</span>
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
@@ -784,12 +784,12 @@ function TransferTabContent({
 
       <div className="td-xfer-settings-body">
         {subTab === 'upload' && (
-          <section className="td-xfer-section" aria-label="Pengaturan upload">
-            <h3>{t('speedtest.upload_quality')}</h3>
+          <section className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
+            <h3>{t('speedtest.upload_quality_header', 'UPLOAD QUALITY')}</h3>
             <p className="td-xfer-hint">
-              Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
+              {t("speedtest.upload_quality_hint")}
             </p>
-            <div className="td-xfer-radio-list" role="radiogroup" aria-label="Mode kualitas">
+            <div className="td-xfer-radio-list" role="radiogroup" aria-label={t("speedtest.upload_quality")}>
               {QUALITY_MODE_OPTIONS.map((opt: any) => (
                 <label
                   key={opt.id}
@@ -809,54 +809,54 @@ function TransferTabContent({
                     }}
                   />
                   <span>
-                    <strong>{opt.label}</strong>
-                    <small>{opt.description}</small>
+                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`, opt.label))}</strong>
+                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`, opt.description))}</small>
                   </span>
                 </label>
               ))}
             </div>
 
-            <h3>{t('speedtest.hardware_reencode')}</h3>
+            <h3>{t('speedtest.hardware_reencode_header')}</h3>
             <p className="td-xfer-hint">
-              Akselerasi GPU untuk konversi video sebelum diunggah.
+              {t("speedtest.gpu_accel_desc")}
             </p>
             <label className="td-xfer-range-row">
               <MediaSelect
                 value={draft.reencodeHardware}
                 disabled={!!transferActive}
                 onChange={(value: any) => onChange({ reencodeHardware: value as any })}
-                ariaLabel="Hardware re-encode"
+                ariaLabel={t("speedtest.hardware_reencode_header")}
                 options={[
-                  { value: 'auto', label: 'Auto · Prioritas GPU', description: 'Pilih backend yang lolos capability test' },
-                  { value: 'nvidia', label: 'NVIDIA NVENC', description: 'CUDA/NVDEC dengan fallback aman' },
-                  { value: 'amd', label: 'AMD AMF', description: 'AMF hardware encoder' },
-                  { value: 'intel', label: 'Intel Quick Sync', description: 'QSV hardware encoder' },
-                  { value: 'cpu', label: 'CPU x264', description: 'Fallback kompatibilitas' },
+                  { value: 'auto', label: String(t('speedtest.gpu_auto_label')), description: String(t('speedtest.gpu_auto_desc')) },
+                  { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
+                  { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
+                  { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
+                  { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
                 ]}
               />
             </label>
 
-            <h3>{t('speedtest.reencode_mode')}</h3>
+            <h3>{t('speedtest.reencode_mode_header')}</h3>
             <p className="td-xfer-hint">
-              Keseimbangan antara kecepatan proses dan kualitas akhir.
+              {t("speedtest.reencode_mode_desc")}
             </p>
             <label className="td-xfer-range-row">
               <MediaSelect
                 value={draft.reencodePreset}
                 disabled={!!transferActive}
                 onChange={(value: any) => onChange({ reencodePreset: value as any })}
-                ariaLabel="Mode re-encode"
+                ariaLabel={t("speedtest.reencode_mode_header")}
                 options={[
-                  { value: 'speed', label: 'Kecepatan', description: 'Adaptif maksimum, menjaga cadangan memori' },
-                  { value: 'balanced', label: 'Seimbang', description: 'Default kualitas dan kecepatan' },
-                  { value: 'quality', label: 'Kualitas', description: 'Kompresi lebih teliti dan lebih lama' },
+                  { value: 'speed', label: String(t('speedtest.preset_speed_label')), description: String(t('speedtest.preset_speed_desc')) },
+                  { value: 'balanced', label: String(t('speedtest.preset_balanced_label')), description: String(t('speedtest.preset_balanced_desc')) },
+                  { value: 'quality', label: String(t('speedtest.preset_quality_label')), description: String(t('speedtest.preset_quality_desc')) },
                 ]}
               />
             </label>
 
-            <h3>{t('speedtest.upload_parallel')}</h3>
+            <h3>{t('speedtest.upload_parallelism_header')}</h3>
             <p className="td-xfer-hint">
-              Berapa file di-pipeline ke data center Telegram bersamaan (1–8).
+              {t("speedtest.upload_parallelism_hint")}
             </p>
             <label className="td-xfer-range-row">
               <input
@@ -866,7 +866,7 @@ function TransferTabContent({
                 value={draft.uploadConcurrency}
                 disabled={!!transferActive}
                 onChange={(e) => onChange({ uploadConcurrency: Number(e.target.value) })}
-                aria-label="Paralel upload"
+                aria-label={t("speedtest.upload_parallelism_header")}
               />
               <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
             </label>
