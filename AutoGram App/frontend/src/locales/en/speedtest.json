@@ -98,11 +98,11 @@
   "tools_tab_space": "Space Usage",
   "tools_tab_filter": "Advanced Filter",
   "tools_tab_settings": "Transfer Settings",
-  "smart_copy_desc": "Batch copy to Drive/Chat (original untouched). Perfect for chat archive → Drive.",
+  "smart_copy_desc": "Batch copy to Drive/Chat (original untouched). Perfect for chat archive -> Drive.",
   "scope_label": "Scope",
   "scope_selected": "Selected",
   "scope_all": "All files in this location",
-  "target_label": "Target",
+  "target_label": "Destination",
   "btn_start_copy": "Start Batch Copy",
   "dup_mode_title": "Duplicate Detection Mode",
   "dup_mode_subtitle": "Select criteria to find duplicate files",
@@ -362,5 +362,10 @@
   "tm_status_done": "Completed",
   "tm_status_ready": "Ready",
   "tm_log_debug": "Debug log ({{count}})",
-  "sidebar_search_location_ph": "Search location… (Ctrl+K)"
+  "sidebar_search_location_ph": "Search location… (Ctrl+K)",
+  "tools_modal_title": "Drive Tools & Settings",
+  "tools_sec_tools": "DRIVE TOOLS",
+  "tools_sec_config": "CONFIGURATION",
+  "selected_count": "Selected ({{count}})",
+  "all_in_view_count": "All in view ({{count}})"
 }

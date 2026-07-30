@@ -121,7 +121,7 @@ export const TOOL_GROUPS: {
   tabs: { id: DriveToolsTab; label: string; icon: any }[];
 }[] = [
   {
-    title: 'ALAT DRIVE',
+    title: 'speedtest.tools_sec_tools',
     tabs: [
       { id: 'copy', label: 'Salin batch', icon: Copy },
       { id: 'dups', label: 'Duplikat', icon: Layers },
@@ -131,7 +131,7 @@ export const TOOL_GROUPS: {
     ],
   },
   {
-    title: 'KONFIGURASI',
+    title: 'speedtest.tools_sec_config',
     tabs: [
       { id: 'transfer', label: 'Pengaturan Transfer', icon: Settings2 },
     ],
@@ -251,7 +251,7 @@ export function DriveToolsPanel({
 
   const destOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [
-      { value: 'me', label: 'Saved Messages' },
+      { value: 'me', label: t('speedtest.saved_messages') },
     ];
     for (const f of folders) {
       const kind = driveItemKind(f);
@@ -275,7 +275,7 @@ export function DriveToolsPanel({
       className="td-tools-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Alat & Pengaturan Drive"
+      aria-label={t('speedtest.tools_modal_title')}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -537,8 +537,8 @@ export function DriveToolsPanel({
                     onChange={(value: any) => setCopyScope(value as 'selected' | 'all')}
                     ariaLabel="Scope salin"
                     options={[
-                      { value: 'selected', label: `Terpilih (${selectedFiles.length || 0})` },
-                      { value: 'all', label: `Semua di view (${files.length})` },
+                      { value: 'selected', label: t('speedtest.selected_count', { count: selectedFiles.length || 0 }) },
+                      { value: 'all', label: t('speedtest.all_in_view_count', { count: files.length }) },
                     ]}
                   />
                 </label>
