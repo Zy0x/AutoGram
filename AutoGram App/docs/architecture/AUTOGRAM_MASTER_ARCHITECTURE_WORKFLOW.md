@@ -1,14 +1,14 @@
 # AutoGram Master Architecture, Workflow & System Component Specification
 
 > **Dokumen Spesifikasi Utama, Arsitektur Sistem, & Manual Workflow End-to-End AutoGram App**  
-> *Versi Rujukan Terintegrasi: v2.3.88*  
+> *Versi Rujukan Terintegrasi: v2.3.89+ (Full Detailed Master Build)*  
 > *Platform: Desktop Hybrid (Tauri + React 18 + Rust Grammers Engine + SQLite + IndexedDB)*
 
 ---
 
-## 1. Pendahuluan & Filosofi Sistem (Core Technical Philosophy)
+## 1. Pendahuluan & Filosofi Arsitektur Utama (Core Technical Philosophy)
 
-AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berbasis desktop dengan paradigma **Telegram-as-a-Drive**. Aplikasi ini dibangun untuk menangani pustaka media berskala besar (10.000+ hingga 1.000.000+ berkas per saluran/grup) dengan kecepatan tinggi, penggunaan memori minimal, antarmuka responsif (*mobile-first & touch-first*), serta keandalan tingkat tinggi tanpa hambatan *FloodWait*.
+AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berbasis desktop yang menggunakan paradigma **Telegram-as-a-Drive**. Sistem ini dirancang untuk menangani pustaka media berskala besar (10.000+ hingga 1.000.000+ berkas per saluran/grup) dengan kecepatan eksekusi tinggi, konsumsi memori minimal, antarmuka responsif (*mobile-first & touch-first*), serta keandalan tingkat tinggi tanpa hambatan *FloodWait*.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -34,10 +34,10 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 └───────────────────────────────────────────────────────────┘ └───────────────────┘
 ```
 
-### 5 Pilar Filosofi Teknis:
-1. **Grammers-Only Rust MTProto Engine**: Seluruh komunikasi Telegram API (Otentikasi, Pencarian Berkas, Download/Upload Stream, Thumbnail Extraction, Zip Streaming) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
+### 5 Pilar Utama Arsitektur Teknis:
+1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Thumbnail Batch, Upload/Download Stream, Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
 2. **Local-First Stale-While-Revalidate (SWR) Cache**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau SQLite (`topic_media.db`), disusul oleh pembaruan delta secara silent dari server Telegram.
-3. **Server-Side MTProto Topic Filtering (`top_msg_id`)**: Pemfilteran topik pada forum supergroup Telegram dilakukan langsung di server Telegram via `messages.search` berparameter `top_msg_id`, menghasilkan pencarian <50ms tanpa scanning pesan sekensial di client.
+3. **Server-Side MTProto Topic Filtering (`top_msg_id`)**: Pemfilteran topik pada forum supergroup Telegram dilakukan langsung di server Telegram via `messages.search` berparameter `top_msg_id`, menghasilkan pencarian <50ms tanpa pemindaian pesan sekensial di client.
 4. **Proactive Streaming Infinite Scroll**: Antarmuka `DriveExplorer` memicu prefetch halaman berikutnya secara proaktif pada posisi 40% sebelum dasar grid (8–25 baris tersisa), sehingga pengguna tidak pernah mengalami hambatan *spinner loading*.
 5. **Fail-Closed Generation Protection (`peerGen.current`)**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*) antar topik.
 
@@ -140,133 +140,110 @@ AutoGram App/
 
 ---
 
-## 3. Spesifikasi Modul & Fungsi Detail Frontend
+## 3. Spesifikasi Modul & Fungsi Detail Lapisan Frontend
 
-### A. Core Orchestrator: `MediaStudio/index.tsx`
-- **`refreshFiles(opts)`**: Mengoordinasikan pembacaan data awal saat berpindah lokasi atau topik. Mengambil cache IndexedDB terlebih dahulu (Step A), kemudian memicu `driveListFiles` via IPC Rust (Step B).
-- **`loadMoreFiles()`**: Dipanggil oleh listener scroll `DriveExplorer`. Mengambil halaman berkas berikutnya menggunakan `stagedLoadMorePageSize`, menggabungkan item baru dengan dedup Set ID, dan memperbarui `filesCacheRef`.
-- **`syncActiveLocationLive(reason)`**: Melakukan polling silent ke Telegram head server setiap interval tertentu untuk memeriksa apakah ada pesan/media baru yang masuk.
-- **`scheduleMediaStats(opts)`**: Menjalankan pembacaan total ukuran berkas dan statistik media secara bertahap tanpa mengganggu UI utama.
+Berikut adalah tabel rincian modul frontend lengkap beserta **Fungsi Utama**, **Input/State**, dan **Output/Side Effects**:
 
-### B. UI Rendering Layer: `DriveExplorer.tsx`
-- **Virtualization Engine**: Menggunakan layout grid/baris dinamis yang hanya me-render elemen visual pada viewport aktif.
-- **Proactive Prefetch Effect (`useEffect`)**: Memeriksa indeks baris terakhir yang terlihat (`last.index`). Jika berada di posisi `total - threshold` (di mana `threshold` = 40% dari total baris), `onLoadMore()` dipanggil secara otomatis dengan debounce 10ms.
-- **Selection System**: Mengintegrasikan seleksi marquee drag kotak, `Shift+Click` range select, dan `Ctrl+Click` multi-select.
-
-### C. Frontend Telegram API Abstraksi: `driveFilesApi.ts`
-- **`driveListFiles(creds, folderId, opts)`**: Fungsi utama pengambil daftar berkas. Menangani pemfilteran IndexedDB lokal berdasarkan `topic_id` (`r.topic_id === topicId`). Jika cache lokal kosong, memicu RPC Rust `tgListMedia`.
-- **`driveThumbnailsBatch(creds, peerId, requests)`**: Mengirim antrean request thumbnail ke Rust via `tg_thumbs_batch` dan menyimpan blob hasil ke IndexedDB (`thumbnails` store).
-- **`driveDeleteFiles(creds, peerId, messageIds)`**: Menghapus pesan media dari Telegram via `tg_delete_messages` dan membersihkan rekaman terkait dari IndexedDB.
-
-### D. Media Queue Manager: `thumbBatcher.ts`
-- **`queueThumbFetch(creds, peerId, messageId, documentId)`**: Memasukkan request thumbnail ke antrean memori.
-- **`processQueue()`**: Memotong antrean menjadi batch berukuran 16–32 item, mengirimnya ke Rust IPC, dan mendistribusikan WebP blob URL ke komponen kartu yang relevan.
-- **`setThumbContext(creds, peerId, topicId)`**: Dipanggil saat berpindah topik untuk membatalkan seluruh request batch dari topik sebelumnya.
-
-### E. Warm Cache Storage: `mediaStudioDb.ts`
-- **Object Store `media`**: Menyimpan metadata berkas (`MediaRecord`) dengan index `byFolder_Date`, `byFolder_Size`, `byFolder_Name`.
-- **Object Store `thumbnails`**: Menyimpan binary blob thumbnail WebP berbasis `folderId_messageId`.
-- **Object Store `checkpoints`**: Menyimpan status pekerjaan transfer/migrasi yang dapat dilanjutkan (*resumable*).
+| Nama File | Lokasi Path | Peran & Tujuan Modul | Spesifikasi Fungsi-Fungsi Detail & Cara Kerja | Input / State Used | Output & Side Effects |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `MediaStudio/index.tsx` | `src/pages/MediaStudio/` | **Core Page Orchestrator** | • `refreshFiles()`: Menginisialisasi pemuatan media. Menarik data IndexedDB terlebih dahulu (Step A), kemudian memicu IPC Rust `tgListMedia` (Step B).<br>• `loadMoreFiles()`: Memuat halaman berkas berikutnya menggunakan `stagedLoadMorePageSize`, menggabungkan item baru tanpa duplikat.<br>• `syncActiveLocationLive()`: Polling silent ke head server Telegram setiap interval tertentu.<br>• `handleTopicFilter()`: Mengubah topik aktif, menaikkan atomic `peerGen.current`, dan mengosongkan state `files`. | • `creds`, `peerId`, `topicFilter`, `sortMode`, `files`<br>• `peerGen.current` | • Update React State `files`<br>• Save to IndexedDB<br>• Reset Thumbnail Queue |
+| `DriveExplorer.tsx` | `src/components/drive/Explorer/` | **Virtualized Grid/List UI** | • `useVirtualizer()`: Menhitung dan me-render baris kartu yang hanya berada di viewport aktif.<br>• `useEffect Scroll Listener`: Memeriksa `last.index >= total - threshold`. Jika berada 40% mendekati bottom (8–25 baris), memicu `onLoadMore()` dengan debounce 10ms.<br>• `handleMarqueeSelect()`: Mengalkulasi posisi bounding box drag mouse untuk memilih kartu media secara simultan. | • `displayed` files<br>• `viewMode` (grid/list)<br>• `selectedIds`<br>• `loadingMore` | • Trigger `onLoadMore()`<br>• Update `selectedIds`<br>• Context Menu Callbacks |
+| `DriveTopBar.tsx` | `src/components/drive/Navigation/` | **Top Navigation & Filter** | • `renderTopicChips()`: Me-render daftar chip topik forum Telegram (`All Media`, `General`, `AI`, dll.) dengan indikator aktif.<br>• `handleSearchChange()`: Mengisi kata kunci pencarian instan.<br>• `handleSortChange()`: Mengubah mode pengurutan (Newest first, Oldest first, Size, Name).<br>• `handleThumbQualityChange()`: Mengubah mode kualitas thumbnail (`Saver`, `Balanced`, `Sharp`). | • `topics` list<br>• `topicFilter`<br>• `sortMode`<br>• `thumbQuality` | • Call `onTopicChange()`<br>• Call `onSortChange()`<br>• Trigger `refreshVisibleThumbs()` |
+| `MediaStudioSidebar.tsx` | `src/pages/MediaStudio/` | **Sidebar Navigasi & Sesi** | • `renderSessionPicker()`: Dropdown pemilih akun Telegram aktif (`Connected Session`).<br>• `renderFolderList()`: Daftar saluran/grup populer (`#Gudang`, `Saved Messages`, `Telegram`, dll.).<br>• `renderTopicSelector()`: Daftar topik forum pada grup yang sedang terbuka. | • `sessions` list<br>• `activeSession`<br>• `folders` list<br>• `activeFolderId` | • Call `onSessionChange()`<br>• Call `onFolderSelect()` |
+| `driveFilesApi.ts` | `src/lib/telegram/driveApi/` | **Frontend Data Service** | • `driveListFiles()`: Mengambil list media. Memfilter IndexedDB berdasarkan `topic_id`. Jika kosong, memanggil `tgListMedia`.<br>• `driveThumbnailsBatch()`: Mengirim batch request thumbnail ke Rust via `tg_thumbs_batch`.<br>• `driveDeleteFiles()`: Memanggil `tg_delete_messages` untuk menghapus pesan di Telegram dan IndexedDB. | • `creds`, `folderId`, `topicId`, `offsetId`, `pageSize` | • Return `DriveFile[]`<br>• IndexedDB Read/Write<br>• IPC Invoke `tg_*` |
+| `driveFoldersApi.ts` | `src/lib/telegram/driveApi/` | **Folder & Topic Service** | • `driveListDialogs()`: Mengambil daftar saluran, grup, dan chat pribadi dari Telegram via `tg_get_dialogs`.<br>• `driveListTopics()`: Mengambil daftar topik forum pada supergroup via `tg_get_topics`. | • `creds`, `limit`, `offset` | • Return `DriveFolder[]`<br>• Return `DriveTopic[]` |
+| `driveStreamZipApi.ts` | `src/lib/telegram/driveApi/` | **Remote Zip Stream API** | • `inspectZipRemote()`: Membaca Central Directory file `.zip` remote via byte-range reading (EOCD).<br>• `extractZipFileRemote()`: Mengambil byte file spesifik dalam `.zip` dan me-dekompresi stream Deflate di memory. | • `creds`, `peerId`, `messageId`, `entryOffset`, `compressedSize` | • Return `ZipFileEntry[]`<br>• Return Decompressed Blob |
+| `driveTransfersApi.ts` | `src/lib/telegram/driveApi/` | **Upload/Download Service** | • `driveUploadFile()`: Mengunggah berkas lokal ke Telegram via IPC `tg_upload_file` dengan progress callback.<br>• `driveDownloadFile()`: Mengunduh media Telegram ke direktori lokal via IPC `tg_download_file`. | • `creds`, `peerId`, `topicId`, `filePath`, `progressCb` | • Emit Progress Event<br>• Write to Local Storage |
+| `telegramBackend.ts` | `src/lib/telegram/core/` | **Tauri IPC Bridge Wrapper** | • `tgListMedia()`: Invoker IPC ke command Rust `tg_list_media`.<br>• `tgOpenTopicMedia()`: Invoker IPC ke `tg_open_topic_media`.<br>• `tgThumbsBatch()`: Invoker IPC ke `tg_thumbs_batch`.<br>• `tgDeleteMessages()`: Invoker IPC ke `tg_delete_messages`. | • Command string (`tg_*`)<br>• Serialized JSON payload | • Return Promise<Parsed Result><br>• Handle IPC Errors |
+| `mediaStudioDb.ts` | `src/lib/db/` | **IndexedDB Storage Layer** | • `saveMediaRecords()`: Menyimpan array `MediaRecord` ke store `media`.<br>• `getMediaRecords()`: Membaca berkas media per folderId.<br>• `saveThumbnail()`: Menyimpan binary WebP blob ke store `thumbnails`.<br>• `getThumbnail()`: Membaca binary WebP blob berdasarkan `folderId_messageId`. | • `folderId`, `MediaRecord`, `ThumbnailRecord` | • IndexedDB Transactions<br>• Instant UI Data |
+| `thumbBatcher.ts` | `src/lib/media/` | **Thumbnail Queue Manager** | • `queueThumbFetch()`: Memasukkan request thumbnail ke queue memori.<br>• `processQueue()`: Membagi request menjadi batch 16–32 item dan memanggil `tgThumbsBatch`.<br>• `setThumbContext()`: Mereset antrean thumbnail saat beralih lokasi/topik. | • `messageId`, `documentId`, `thumbQuality` | • Dispatches `tgThumbsBatch`<br>• Card Image src Updates |
+| `driveLoadStaging.ts` | `src/lib/telegram/interaction/` | **Pagination Limit Specs** | • `stagedInitialPageSize()`: Return ukuran page awal (Low: 40, Mid: 60, High: 100).<br>• `stagedLoadMorePageSize()`: Return ukuran load-more (Low: 60, Mid: 100, High: 150). | • Device `PerfTier` (`low`, `mid`, `high`), `configured` | • Return `number` (pageSize) |
 
 ---
 
-## 4. Spesifikasi Modul, Struct & Trait Detail Backend Rust
+## 4. Spesifikasi Modul, Struct & Trait Detail Lapisan Backend Rust
 
-### A. Tauri IPC Commands & Entrypoint (`lib.rs` & `telegram_ops.rs`)
-- **`tg_list_media`**: Pintu masuk IPC utama untuk mengambil list media dari Telegram. Memanggil `list_media_blocking_topic` di `media_list.rs`.
-- **`tg_open_topic_media`**: Membuka antarmuka topik media local-first, membaca cache SQLite `topic_media_items`, dan memicu pencarian delta MTProto.
-- **`tg_thumbs_batch`**: Menerima array request thumbnail, mengekstraksi thumbnail server/document via `thumbs.rs`, dan mengembalikan array Base64 WebP.
+Berikut adalah tabel rincian modul backend Rust lengkap beserta **Struct/Enum/Trait**, **Fungsi-Fungsi Detail**, dan **Internal Calls & Side Effects**:
 
-### B. Core MTProto Media List Engine (`media_list.rs`)
-- **`list_media_blocking_topic()`**: Menjalankan query server Telegram:
-  - Jika `topic_id > 0`: Membentuk struct `tl::functions::messages::Search` dengan `top_msg_id: Some(topic_id)`.
-  - Jika `topic_id == 0`: Mengambil media saluran/grup secara umum.
-- **`tl_message_to_row(msg, folder_id)`**: Mapper native yang mengonversi enum raw `tl::enums::Message` menjadi `MediaFileRow` tanpa membutuhkan objek wrapper client `PeerMap`.
-
-### C. Telegram Client Pool & Peer Resolver (`client_pool.rs` & `peer_resolver.rs`)
-- **`GrammersClientPool`**: Struct pengelola instance Grammers Client per sesi telepon/account. Menangani auto-reconnect dan session encryption at rest.
-- **`resolve_peer_ref(client, peer_str)`**: Resolver serbaguna yang mengonversi format ID (`"me"`, `"-1001928374"`, `"@channel"`) menjadi `tl::enums::InputPeer` yang valid dengan caching LRU.
-
-### D. Local-First Topic Media Repository (`repository.rs`)
-- **`get_cached_page(ctx, filter_types, cursor, limit)`**: Membaca halaman berkas dari SQLite `topic_media_items` menggunakan klausa `WHERE account_id = ? AND peer_id = ? AND topic_id = ? AND is_deleted = 0 ORDER BY message_date DESC, message_id DESC`.
-- **`upsert_topic_media_batch(conn, items)`**: Memasukkan atau memperbarui batch rekaman media ke SQLite dalam satu transaksi SQL atomic (`BEGIN TRANSACTION`).
-
-### E. Global Rate Limiter & FloodWait Gate (`flood_wait.rs`)
-- **`FloodWaitGateController`**: Struct thread-safe (`Arc<Mutex<HashMap<GateKey, GateState>>>`) yang mengunci seluruh operasi MTProto pada peer tertentu apabila Telegram mengembalikan error `FloodWaitError(seconds)`.
+| Nama File / Modul | Lokasi Path | Struct / Enum / Trait Utama | Spesifikasi Fungsi-Fungsi Detail & Cara Kerja | Internal Calls & Side Effects |
+| :--- | :--- | :--- | :--- | :--- |
+| `lib.rs` | `src-tauri/src/` | • `tauri::Builder`<br>• Tauri Commands | • `run()`: Entrypoint Tauri App. Mendaftarkan seluruh command (`tg_list_media`, `tg_open_topic_media`, `tg_thumbs_batch`, `tg_upload_file`, `tg_delete_messages`, dll.) dan menginisialisasi plugin database. | • Inisialisasi State Manager<br>• Mount Command Handlers |
+| `telegram_ops.rs` | `src-tauri/src/core/` | • `TelegramOpsHandler`<br>• `MediaFileRow` | • `handle_list_media()`: Pintu masuk command `tg_list_media`. Memanggil `list_media_blocking_topic`.<br>• `handle_upload_file()`: Memanggil `upload_file_blocking` di `media_transfer.rs`.<br>• `handle_thumbs_batch()`: Memanggil `extract_thumbs_batch` di `thumbs.rs`. | • Dispatches Tokio Async Tasks<br>• Error Mapping to `TgErrorPublic` |
+| `media_list.rs` | `src-tauri/src/core/grammers_ops/` | • `MediaFileRow`<br>• `tl_message_to_row()` | • `list_media_blocking_topic()`: Pengeksekusi query server Telegram: jika `topic_id > 0`, membentuk `tl::functions::messages::Search` berparameter `top_msg_id: Some(topic_id)`.<br>• `tl_message_to_row()`: Memetakan raw TL Message (`tl::enums::Message`) langsung ke `MediaFileRow` tanpa dependensi `PeerMap`. | • Invokes Grammers MTProto Client<br>• Returns JSON `Vec<MediaFileRow>` |
+| `client_pool.rs` | `src-tauri/src/core/grammers_ops/` | • `GrammersClientPool`<br>• `SessionInstance` | • `get_client()`: Mengambil atau menginisialisasi instance Grammers client untuk sesi terdaftar.<br>• `import_telethon_session()`: Membaca file `.session` Telethon dan mengonversinya ke format Grammers. | • TCP Connections to Telegram DCs<br>• Key Storage & Session Files |
+| `peer_resolver.rs` | `src-tauri/src/core/grammers_ops/` | • `PeerResolverCache`<br>• `InputPeer` | • `resolve_peer_ref()`: Mengonversi ID string (`"me"`, `"-1001928374"`, `"@channel"`) menjadi `tl::enums::InputPeer` yang valid dengan caching LRU memori. | • LRU Memory Lookup<br>• Telegram RPC ResolveUsername |
+| `session_auth.rs` | `src-tauri/src/core/grammers_ops/` | • `AuthSessionState`<br>• `AuthStatus` | • `init_auth()`: Mengirim kode OTP ke nomor telepon (`auth.sendCode`).<br>• `sign_in()`: Memverifikasi kode OTP & password 2FA (`auth.signIn` / `auth.checkPassword`). | • Writes Encrypted Session File<br>• Registers Client to Pool |
+| `repository.rs` | `src-tauri/src/features/topic_media/` | • `TopicMediaItem`<br>• `TopicMediaContext` | • `get_cached_page()`: Membaca halaman berkas dari SQLite `topic_media_items` berparameter `account_id, peer_id, topic_id, message_date DESC, message_id DESC`.<br>• `upsert_topic_media_batch()`: Memasukkan/memperbarui batch berkas media ke SQLite dalam 1 transaksi atomic (`BEGIN TRANSACTION`). | • SQLite SQL Execution<br>• DB Transactions on `app.db` |
+| `search.rs` | `src-tauri/src/features/topic_media/mtproto/` | • `TopicMediaSearchQuery`<br>• `FilterType` | • `build_search_request()`: Membentuk objek `tl::functions::messages::Search` berparameter `peer`, `q`, `filter`, `top_msg_id`, `offset_id`, `limit`. | • Returns TL Search Struct |
+| `document_mapper.rs` | `src-tauri/src/features/topic_media/mtproto/` | • `DocumentAttributes` | • `map_document_to_item()`: Membedah atribut dokumen Telegram (Filename, MimeType, Video/Audio/Image flags) menjadi model domain `TopicMediaItem`. | • Attribute Extraction |
+| `thumbs.rs` | `src-tauri/src/core/grammers/` | • `ThumbRequest`<br>• `ThumbResult` | • `extract_thumbs_batch()`: Memproses batch request thumbnail. Mengunduh photo size terdistribusi atau membaca 128KB head chunk video untuk diekstrak menjadi WebP byte stream. | • Range Read Bytes from Telegram<br>• Image WebP Encoder |
+| `sparse_zip.rs` | `src-tauri/src/core/grammers/` | • `ZipFileEntry`<br>• `ZipHeaderParser` | • `read_remote_zip_cd()`: Membaca 64KB byte terakhir file `.zip` remote di Telegram untuk mengambil End of Central Directory (EOCD) dan me-parse daftar berkas.<br>• `extract_remote_zip_entry()`: Membaca byte range spesifik dan me-dekompresi Deflate stream di memory. | • Telegram Range Read RPC<br>• Flate2 Deflate Decoder |
+| `flood_wait.rs` | `src-tauri/src/features/topic_media/scheduler/` | • `FloodWaitGateController`<br>• `GateState` | • `is_blocked()`: Memeriksa apakah target peer/account sedang terkunci `FLOOD_WAIT`.<br>• `record_flood_wait()`: Mengunci peer selama `seconds` detik jika Telegram mengembalikan error `FLOOD_WAIT_X`. | • Thread-safe Mutex Map<br>• Global Failsafe Locking |
 
 ---
 
-## 5. Desain Database & Skema Penyimpanan Data
+## 5. Spesifikasi Lengkap Skema Database & Storage
 
-### A. Skema SQLite Offline Desktop (`database/schema.sql` & `app.db`)
+### A. Tabel SQLite Desktop Offline (`database/schema.sql` & `app.db`)
 
 #### 1. Tabel `topic_media_items` (Index Media Topik Local-First)
-```sql
-CREATE TABLE IF NOT EXISTS topic_media_items (
-    account_id TEXT NOT NULL,
-    peer_id TEXT NOT NULL,
-    topic_id INTEGER NOT NULL,
-    message_id INTEGER NOT NULL,
-    message_date INTEGER NOT NULL,
-    edit_date INTEGER,
-    grouped_id INTEGER,
-    sender_id TEXT,
-    caption TEXT,
-    media_type TEXT NOT NULL,
-    mime_type TEXT,
-    file_name TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    document_id INTEGER,
-    access_hash INTEGER,
-    dc_id INTEGER,
-    file_reference BLOB,
-    width INTEGER,
-    height INTEGER,
-    duration_ms INTEGER,
-    has_server_thumb BOOLEAN DEFAULT 0,
-    has_video_thumb BOOLEAN DEFAULT 0,
-    is_deleted BOOLEAN DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY (account_id, peer_id, topic_id, message_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_topic_media_lookup 
-ON topic_media_items (account_id, peer_id, topic_id, message_date DESC, message_id DESC);
-```
-
-#### 2. Tabel `duplicate_history` (Pencegahan Duplikasi Clean-Copy)
-```sql
-CREATE TABLE IF NOT EXISTS duplicate_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_unique_id TEXT NOT NULL,
-    target_entity_id TEXT NOT NULL,
-    target_message_id INTEGER NOT NULL,
-    sha256_hash TEXT,
-    file_name_size TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(file_unique_id, target_entity_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_duplicate_hash ON duplicate_history(sha256_hash);
-```
+| Nama Kolom | Tipe Data | Constraints / Nullable | Fungsi & Peran Kolom | Indeks Terkait |
+| :--- | :--- | :--- | :--- | :--- |
+| `account_id` | `TEXT` | `NOT NULL`, `PRIMARY KEY (1)` | Hash ID akun/sesi Telegram pemilik berkas. | `idx_topic_media_lookup` |
+| `peer_id` | `TEXT` | `NOT NULL`, `PRIMARY KEY (2)` | ID saluran, grup, atau chat Telegram (`-100...`). | `idx_topic_media_lookup` |
+| `topic_id` | `INTEGER` | `NOT NULL`, `PRIMARY KEY (3)` | ID Topik forum Telegram (`0` jika General/All Media). | `idx_topic_media_lookup` |
+| `message_id` | `INTEGER` | `NOT NULL`, `PRIMARY KEY (4)` | ID Pesan unik pada Telegram chat. | `idx_topic_media_lookup` |
+| `message_date` | `INTEGER` | `NOT NULL` | Epoch Unix Timestamp saat pesan terkirim. | `idx_topic_media_lookup` |
+| `edit_date` | `INTEGER` | `NULLABLE` | Timestamp saat pesan diedit (jika ada). | None |
+| `grouped_id` | `INTEGER` | `NULLABLE` | ID grup album media Telegram (jika dikirim bersamaan). | None |
+| `sender_id` | `TEXT` | `NULLABLE` | ID pengguna Telegram pengirim berkas. | None |
+| `caption` | `TEXT` | `NULLABLE` | Teks teks/keterangan lampiran media. | None |
+| `media_type` | `TEXT` | `NOT NULL` | Jenis media (`photo`, `video`, `document`, `music`, `url`). | None |
+| `mime_type` | `TEXT` | `NULLABLE` | MIME String (`video/mp4`, `image/webp`, `application/zip`). | None |
+| `file_name` | `TEXT` | `NOT NULL` | Nama berkas asli beserta ekstensi. | None |
+| `file_size` | `INTEGER` | `NOT NULL` | Ukuran total berkas dalam satuan Bytes. | None |
+| `document_id` | `INTEGER` | `NULLABLE` | Unique Document Object ID dari Telegram. | None |
+| `access_hash` | `INTEGER` | `NULLABLE` | MTProto Access Hash untuk otorisasi download. | None |
+| `dc_id` | `INTEGER` | `NULLABLE` | Data Center ID Telegram penyimpan berkas (DC 1–5). | None |
+| `file_reference` | `BLOB` | `NULLABLE` | Binary File Reference Token MTProto. | None |
+| `width` | `INTEGER` | `NULLABLE` | Lebar resolusi piksel (untuk foto/video). | None |
+| `height` | `INTEGER` | `NULLABLE` | Tinggi resolusi piksel (untuk foto/video). | None |
+| `duration_ms` | `INTEGER` | `NULLABLE` | Durasi pemutaran media dalam milidetik (video/audio). | None |
+| `has_server_thumb`| `BOOLEAN` | `DEFAULT 0` | Flag penanda ketersediaan foto thumbnail server. | None |
+| `has_video_thumb` | `BOOLEAN` | `DEFAULT 0` | Flag penanda ketersediaan video keyframe thumbnail. | None |
+| `is_deleted` | `BOOLEAN` | `DEFAULT 0` | Soft-delete flag (1 jika pesan dihapus di Telegram). | `idx_topic_media_lookup` |
+| `created_at` | `INTEGER` | `NOT NULL` | Unix timestamp saat rekaman dibuat di SQLite. | None |
+| `updated_at` | `INTEGER` | `NOT NULL` | Unix timestamp saat rekaman diperbarui di SQLite. | None |
 
 ---
 
-### B. Skema IndexedDB Warm Cache Frontend (`mediaStudioDb.ts`)
+#### 2. Tabel `duplicate_history` (Pencegahan Duplikasi Clean-Copy)
+| Nama Kolom | Tipe Data | Constraints / Nullable | Fungsi & Peran Kolom | Indeks Terkait |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY AUTOINCREMENT` | Auto-increment unique record ID. | Primary |
+| `file_unique_id` | `TEXT` | `NOT NULL` | Telegram Unique File ID String. | `UNIQUE(file_unique_id, target_entity_id)` |
+| `target_entity_id` | `TEXT` | `NOT NULL` | Target Chat ID tempat berkas diunggah. | `UNIQUE(file_unique_id, target_entity_id)` |
+| `target_message_id` | `INTEGER` | `NOT NULL` | ID Pesan target yang berhasil dibuat. | None |
+| `sha256_hash` | `TEXT` | `NULLABLE` | SHA256 checksum binary berkas. | `idx_duplicate_hash` |
+| `file_name_size` | `TEXT` | `NULLABLE` | String gabungan `filename_filesize` untuk fallback check. | None |
+| `created_at` | `DATETIME` | `DEFAULT CURRENT_TIMESTAMP` | Timestamp pembuatan entri duplikat. | None |
 
-| Object Store | Primary Key | Key Path / Indices | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `media` | `id` | `byFolder_Date` `[folderId+date]`<br>`byFolder_Size` `[folderId+size]` | Cache hangat berkas media per folder/grup untuk instantaneous UI paint. |
-| `thumbnails` | `folderId_messageId` | `timestamp` | Binary Blob WebP thumbnail hasil ekstraksi Rust engine. |
-| `checkpoints` | `jobId` | `status` | Snapshot status pekerjaan transfer/migrasi media yang sedang berjalan. |
-| `actionQueue` | `id` | `status`, `createdAt` | Queue tindakan offline (hapus, pindah, rename) yang akan di-sync ke server. |
+---
+
+### B. Skema Storage IndexedDB Frontend (`mediaStudioDb.ts`)
+
+| Object Store | Primary Key Path | Index Name | Key Path Index | Fungsi & Karakteristik Data |
+| :--- | :--- | :--- | :--- | :--- |
+| `media` | `id` | `byFolder_Date`<br>`byFolder_Size`<br>`byFolder_Name` | `[folderId+date]`<br>`[folderId+size]`<br>`[folderId+name]` | Storage utama cache hangat berkas media per folder/topik untuk instantaneous visual paint (<10ms). |
+| `thumbnails` | `folderId_messageId` | `timestamp` | `timestamp` | Binary Blob WebP thumbnail hasil ekstraksi Rust engine untuk menghindari re-download thumbnail. |
+| `checkpoints` | `jobId` | `status` | `status` | Snapshot status pekerjaan transfer/migrasi media yang sedang berjalan (*resumable jobs*). |
+| `actionQueue` | `id` | `status`<br>`createdAt` | `status`<br>`createdAt` | Queue tindakan offline (hapus, pindah, rename) yang akan di-sync ke server Telegram secara otomatis. |
 
 ---
 
 ## 6. Diagram Sequence Workflow Lengkap (Mermaid)
 
-### 6.1 Bootstrapping & Warm Cache Hybrid Initial Paint Workflow
+### 6.1 Bootstrapping & SWR Warm Cache Initial Paint Workflow
 
 ```mermaid
 sequenceDiagram
@@ -606,4 +583,4 @@ sequenceDiagram
 
 ---
 
-*Dokumen ini disahkan sebagai spesifikasi arsitektur master resmi untuk pengembangan, pengujian, dan pemeliharaan lanjutan platform AutoGram App.*
+*Dokumen master ini menjadi pedoman rujukan teknis definitif paling lengkap dan terintegrasi untuk seluruh arsitektur, workflow, dan komponen sistem AutoGram App.*

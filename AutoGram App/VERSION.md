@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.89
+AutoGram Version: v2.3.90
 
 Current State:
-v2.3.89 Ultimate End-to-End Architecture & Multi-Workflow Master Specification — Memperluas dan menyempurnakan dokumen arsitektur master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan 10 diagram sequence Mermaid utuh (Bootstrapping, Topic Selection, Infinite Scroll, WebP Thumbs Queue, File Upload, Remote ZIP Stream, Duplicate Engine, FloodWait Gate, Stats Worker, Multi-Session Auth), Matriks Panggilan Inter-Module lengkap, dan Skema Database SQLite & IndexedDB mendalam.
+v2.3.90 Granular Functional Matrix & Master Architecture Specification — Memperlengkap dokumen arsitektur master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan kolom spesifikasi fungsi detail, input/state used, dan output/side effects untuk setiap file frontend dan backend Rust, serta spesifikasi detail untuk skema database SQLite dan IndexedDB Object Stores.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.

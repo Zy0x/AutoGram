@@ -1,3 +1,9 @@
+## v2.3.90 Granular Functional Matrix & Master Architecture Specification
+
+### Penambahan Kolom Fungsi & Spesifikasi Input/Output (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
+- **Tabel Spesifikasi Fungsi Frontend & Backend**: Menambahkan kolom `Spesifikasi Fungsi-Fungsi Detail & Cara Kerja`, `Input / State Used`, dan `Output & Side Effects` pada tabel direktori frontend dan backend Rust.
+- **Tabel Detail Kolom Database SQLite & IndexedDB**: Menambahkan kolom `Fungsi & Peran Kolom`, `Constraints`, `Indeks Terkait`, dan `Karakteristik Data` untuk seluruh tabel database `topic_media_items`, `duplicate_history`, serta IndexedDB stores (`media`, `thumbnails`, `checkpoints`, `actionQueue`).
+
 ## v2.3.89 Ultimate End-to-End Architecture & Multi-Workflow Master Specification
 
 ### Ekspansi Master Dokumen Arsitektur (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
