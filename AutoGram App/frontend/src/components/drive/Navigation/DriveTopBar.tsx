@@ -189,8 +189,13 @@ export function DriveTopBar({
   scaleHint: _scaleHint,
 }: Props) {
   const { t } = useTranslation();
-  // Always show filter bar for forum groups (at least "{t("speedtest.all_media_pill")}")
-  const showTopics = !!isForum;
+  const hasTopicSegment = breadcrumbSegs?.some((s) => s.kind === 'topic');
+  const showTopics =
+    !!isForum ||
+    (topics && topics.length > 0) ||
+    topicFilter != null ||
+    !!topicsLoading ||
+    !!hasTopicSegment;
 
   const [topicContextMenu, setTopicContextMenu] = useState<{
     x: number;
@@ -598,7 +603,7 @@ export function DriveTopBar({
         <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
-            Topik
+            {t('speedtest.label_topic', 'Topik')}
           </span>
           <div className="td-topic-pills">
             <button
@@ -607,7 +612,7 @@ export function DriveTopBar({
               onClick={() => onTopicFilter?.(null)}
               title={t('speedtest.show_group_media')}
             >
-              Semua media
+              {t('speedtest.all_media_pill', 'Semua media')}
             </button>
             {topicsLoading && topics.length === 0 && (
               <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
