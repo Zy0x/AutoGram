@@ -3299,6 +3299,19 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
 
       const currentGen = ++topicGenRef.current;
       console.info(`[AutoGram:TopicUI] Filter switch initiated: targetTopicId=${t}, peerId=${peerId}, gen=${currentGen}`);
+
+      // CRITICAL: bump peerGen FIRST (synchronously) so every concurrent async
+      // operation (loadMoreFiles, liveSync, uploadSoftRefresh, stats walk) sees
+      // the generation mismatch immediately and discards its in-flight result.
+      // This must happen BEFORE any await/setTimeout so there is zero window
+      // where stale data from the old topic can land after we clear state.
+      peerGen.current += 1;
+
+      // Release loadMore lock — any in-flight loadMore will see peerGen mismatch
+      // and discard its result; releasing the lock here lets the new topic load start.
+      loadMoreLock.current = false;
+      setLoadingMoreFiles(false);
+
       setTopicFilter(t);
       topicFilterRef.current = t;
       setError(null);
@@ -3323,7 +3336,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       setStatsAccurate(false);
       setStatsLoading(true);
 
-      // Cancel deferred stats and previous topic switch timers for previous topic scope
+      // Cancel deferred stats and previous topic switch timers
       if (mediaStatsTimerRef.current != null) {
         window.clearTimeout(mediaStatsTimerRef.current);
         mediaStatsTimerRef.current = null;
@@ -3333,7 +3346,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         topicDebounceTimerRef.current = null;
       }
 
-      // Execute topic refresh immediately with 50ms micro-debounce
+      // Execute topic refresh with a micro-debounce to coalesce rapid topic clicks
       topicDebounceTimerRef.current = window.setTimeout(() => {
         if (currentGen === topicGenRef.current && activePeerRef.current === peerId) {
           console.info(`[AutoGram:TopicUI] Executing topic refresh: topicId=${t}, peerId=${peerId}, gen=${currentGen}`);
@@ -3343,7 +3356,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         }
       }, 50);
     },
-    [refreshFiles, creds, peerId, topics]
+    [refreshFiles, creds, peerId, topics, session]
   );
 
 

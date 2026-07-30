@@ -385,8 +385,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/common/VSCodeCodeViewer.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "a22918efd2fbd1e5cacf4e9fb557544e",
+    "mtime": 1785403406.0,
+    "ast_hash": "f7872f85283d10e6049ecf9773d5c448",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/i18n.ts": {
@@ -1545,8 +1545,8 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1784726094.0,
-    "ast_hash": "9cc0462079ecd60f93c532384a1c1857",
+    "mtime": 1785388510.0,
+    "ast_hash": "a49a08cdf5f70ceac0e87e5770ca6e97",
     "semantic_hash": ""
   },
   "AutoGram App/CHANGELOG.md": {
@@ -1910,8 +1910,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/index.tsx": {
-    "mtime": 1785384186.0,
-    "ast_hash": "a0eb56d82d898d49b768a1a7f949a4ea",
+    "mtime": 1785407994.0,
+    "ast_hash": "8969383dd2cfcc5fd35b1bcb9f797469",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/jobEditorUtils.ts": {
@@ -1940,13 +1940,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/DocumentViewer.tsx": {
-    "mtime": 1785355612.0,
-    "ast_hash": "48b44f1fa25263e4f341df48a6486d08",
+    "mtime": 1785399016.0,
+    "ast_hash": "e2ad3dde2275c5083b464e36e9adc39a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/ImageViewer.tsx": {
-    "mtime": 1785355588.0,
-    "ast_hash": "d8050132b03c4845296933ffb4431aec",
+    "mtime": 1785399178.0,
+    "ast_hash": "d01921b3bb2f15532ac5ec47ed7a91fa",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaAudioPlayer.tsx": {
@@ -1955,18 +1955,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaHeaderToolbar.tsx": {
-    "mtime": 1785355612.0,
-    "ast_hash": "74377edf4f0a8968ca9e966a35156937",
+    "mtime": 1785403406.0,
+    "ast_hash": "63e1e3fe3598436ddb5006884c9ff247",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "cd6e32291ca4613df3253df3a2b52aa7",
+    "mtime": 1785399198.0,
+    "ast_hash": "cf5885b5d24ca8323ed1aed6e77b40c9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx": {
-    "mtime": 1785384204.0,
-    "ast_hash": "674b1927af2dc2ddda26dbd94c2d7e90",
+    "mtime": 1785407198.0,
+    "ast_hash": "512d34e6d6468d82bd6bcc7fac188a0d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/previewUtils.ts": {
@@ -1975,8 +1975,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "cc698ca6ee905c56454d2ad0b5bea3c8",
+    "mtime": 1785407650.0,
+    "ast_hash": "8d56a661f4fe39f4143b76b4d8267a09",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/toolsUtils.ts": {
@@ -1985,17 +1985,17 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipCodePreviewModal.tsx": {
-    "mtime": 1785344908.0,
+    "mtime": 1785408522.0,
     "ast_hash": "8c41bf349cfcfe1296e07581531168b0",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipEntryTable.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "a449ad4b36c11cc2e78423e495b1f87c",
+    "mtime": 1785408522.0,
+    "ast_hash": "6c49c097dc728128de73be6d5c0fc980",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx": {
-    "mtime": 1785344908.0,
+    "mtime": 1785408522.0,
     "ast_hash": "4f15151f01a220db4667986d9e1a3b01",
     "semantic_hash": ""
   },
@@ -2005,7 +2005,7 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx": {
-    "mtime": 1785345726.0,
+    "mtime": 1785408522.0,
     "ast_hash": "1aa7c14a9dd4430baee5769296759042",
     "semantic_hash": ""
   },
@@ -2015,32 +2015,32 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/layout/Sidebar.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "c212d802da3326db952ad3064459f334",
+    "mtime": 1785402424.0,
+    "ast_hash": "cfd47c9d2cbbb9ad52abd389febf0539",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Accounts/index.tsx": {
-    "mtime": 1785385922.0,
-    "ast_hash": "e78fd1b8e4e7af0a979d4b39b6c716e7",
+    "mtime": 1785400794.0,
+    "ast_hash": "67202e9d6b11573b9d85abac85dba4aa",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Automation/index.tsx": {
-    "mtime": 1785344788.0,
-    "ast_hash": "536d0093f5e1d222ecd2dee65efed249",
+    "mtime": 1785400794.0,
+    "ast_hash": "532dd3870205a3f955d39abe884c3c0b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Dashboard/index.tsx": {
-    "mtime": 1785385936.0,
-    "ast_hash": "fb08fdf5fddf7a6ff00a1fb87459755e",
+    "mtime": 1785402444.0,
+    "ast_hash": "270265a4c3377018641922414bd65b22",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Jobs/index.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "30e2ca49afd9cc77ba181a69f34ce64a",
+    "mtime": 1785388118.0,
+    "ast_hash": "f08d5bc798fe7747aa64da5ca725c697",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioGrid.tsx": {
-    "mtime": 1785344710.0,
+    "mtime": 1785408522.0,
     "ast_hash": "bd1a4cc8d2b1120d7f995aaf0f4d846b",
     "semantic_hash": ""
   },
@@ -2050,7 +2050,7 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx": {
-    "mtime": 1785382556.0,
+    "mtime": 1785408522.0,
     "ast_hash": "ab762f2b5872b92e09e84a4eda81cdc2",
     "semantic_hash": ""
   },
@@ -2060,18 +2060,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioSidebar.tsx": {
-    "mtime": 1785344710.0,
+    "mtime": 1785400098.0,
     "ast_hash": "b0330bdb70a3a348c67dc92ddbd1b032",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioToolbar.tsx": {
-    "mtime": 1785385646.0,
-    "ast_hash": "617d7ba8dc0ce3d7c0c6494595b17f42",
+    "mtime": 1785400086.0,
+    "ast_hash": "b56ca5fbb2ebc5c116975af02c8b2885",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/index.tsx": {
-    "mtime": 1785384146.0,
-    "ast_hash": "5b94b861ec0f73efdd42e4e8307947a7",
+    "mtime": 1785408522.0,
+    "ast_hash": "ab398040b2810f13305969c1f2b33923",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/mediaStudioUtils.ts": {
@@ -2080,13 +2080,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Profiles/index.tsx": {
-    "mtime": 1785344710.0,
+    "mtime": 1785408522.0,
     "ast_hash": "cff940463d385e0bcf5b0962af2d88eb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/DebugLogsSection.tsx": {
-    "mtime": 1785385626.0,
-    "ast_hash": "443b2c94b394163afd9c4bf4c7ba74d4",
+    "mtime": 1785400248.0,
+    "ast_hash": "71e536942710cd0c3bbe3cf79c20c47c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/PerfSection.tsx": {
@@ -2095,8 +2095,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/index.tsx": {
-    "mtime": 1785386018.0,
-    "ast_hash": "dc5c63d949e5d85b860998d0a2a1c37b",
+    "mtime": 1785400248.0,
+    "ast_hash": "0e279db5f0c607e242616497e65526b2",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/settingsUtils.ts": {
@@ -2105,8 +2105,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Statistics/index.tsx": {
-    "mtime": 1785344710.0,
-    "ast_hash": "93501381017402061765a220eac6e8bd",
+    "mtime": 1785400794.0,
+    "ast_hash": "4889870e3232e51345da62384598c7db",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Sync/index.tsx": {
@@ -2130,92 +2130,92 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/JobFilterSettings.tsx": {
-    "mtime": 1785352262.0,
-    "ast_hash": "4cc268c9f660a560837b1308f7e676ac",
+    "mtime": 1785388118.0,
+    "ast_hash": "68b4922578d60cb16008297e49161d2d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/JobSourceTargetConfig.tsx": {
-    "mtime": 1785352262.0,
-    "ast_hash": "85d9535c34ad990833efe6920b3401c7",
+    "mtime": 1785388118.0,
+    "ast_hash": "fd498ac86b720f18a67e2eebd2851097",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/DuplicatesTab.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "58c463c3222266f1e33eb51bb89b4e44",
+    "mtime": 1785399068.0,
+    "ast_hash": "5c8551053dc49cdf88a71cca398e35c3",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/SpaceUsageTab.tsx": {
-    "mtime": 1785352284.0,
-    "ast_hash": "8133fe7068fd9de1e691bf82a16fd3ac",
+    "mtime": 1785399224.0,
+    "ast_hash": "dc4bc39e67d77ad1d19a6c90fc6edf3d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Accounts/AccountLoginModal.tsx": {
-    "mtime": 1785352262.0,
-    "ast_hash": "0efab9aaaeec35fb55bba73384a2b210",
+    "mtime": 1785400306.0,
+    "ast_hash": "0a0b0d8dd5c18d1eeeb1e98c7c7db06d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Accounts/SessionManagerTable.tsx": {
-    "mtime": 1785352262.0,
-    "ast_hash": "bff9d8b682a5bd4d0e5d6aeba20b41cd",
+    "mtime": 1785388118.0,
+    "ast_hash": "a6a01c0e7404e8c40a57abcdc7ae8017",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/AccountSessionSection.tsx": {
-    "mtime": 1785370084.0,
-    "ast_hash": "cda3f9497a850b3a8442ac97987cda35",
+    "mtime": 1785400412.0,
+    "ast_hash": "457b7629f92626d7b5737a48c798bfcb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/AppearanceSection.tsx": {
-    "mtime": 1785370084.0,
-    "ast_hash": "e65dd9fd515ac1536ef7690f22013920",
+    "mtime": 1785400386.0,
+    "ast_hash": "31719266a5dd6c0c7f2af6b9f3a19bb1",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/DataBackupSection.tsx": {
-    "mtime": 1785370120.0,
-    "ast_hash": "d0ecbd0f4b1bfafda37d6253c26c38aa",
+    "mtime": 1785400248.0,
+    "ast_hash": "412dad7c1cdb8516ed2c24da7e190d54",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Modals/CaptionModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "ae5b1761f4b4b71c2fd12d0ae78c0723",
+    "mtime": 1785408522.0,
+    "ast_hash": "c18f1f86e608d41c01817a0073f07b0c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Modals/FreshStartModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "a0a4d4f65d661afebf287b0f123bc5b1",
+    "mtime": 1785388118.0,
+    "ast_hash": "47ab4ec8fbec59a293bf33b09d021c47",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "085a9d398bb9b81b3c604abbe81c3466",
+    "mtime": 1785408522.0,
+    "ast_hash": "22bcbf5cab60cc1a244c6fb1e19d7386",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Modals/RerunModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "0b278f3f9e5d7cfb0c84854a045bbf6e",
+    "mtime": 1785388118.0,
+    "ast_hash": "1122f60491ceddc0003ae75f589230be",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Runtime/JobRuntime.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "4dc4b44edf1b4432ee3e36d81f54ec3a",
+    "mtime": 1785403406.0,
+    "ast_hash": "ded770e3bfb124241096920d6920943d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/Runtime/JobsList.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "0486ce65868b50efda87850526bd3ee3",
+    "mtime": 1785403406.0,
+    "ast_hash": "d72cead6e108b2e9522bee76d5c09a4b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveExplorer.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "c25e961728c4773becfdbe9eddd7c18d",
+    "mtime": 1785400086.0,
+    "ast_hash": "cc161e8203c9a1bbcf74cbc2dab4f7dd",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveFileCard.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "f49bb5d83bddae5b7f905bdcc7005ff1",
+    "mtime": 1785408574.0,
+    "ast_hash": "0f3940dbc0ce9f0e827fb7de6dd16edd",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveFileListItem.tsx": {
-    "mtime": 1785384086.0,
+    "mtime": 1785408522.0,
     "ast_hash": "b5175a0b06e8a8349bb64cc40ad0510f",
     "semantic_hash": ""
   },
@@ -2235,58 +2235,58 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveConfirmDialog.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "b1b5be85f6c197aa272e54386bf1615d",
+    "mtime": 1785398970.0,
+    "ast_hash": "0a9a64c907444fffd780b973683d36c2",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveContextMenu.tsx": {
-    "mtime": 1785382576.0,
+    "mtime": 1785408522.0,
     "ast_hash": "b8589b0c2919cfe0852d4db7dec49fff",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveDestinationPicker.tsx": {
-    "mtime": 1785344908.0,
+    "mtime": 1785408522.0,
     "ast_hash": "a3468ef4833a146180c2e599094a565b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx": {
-    "mtime": 1785344908.0,
+    "mtime": 1785408522.0,
     "ast_hash": "3426fac9474fd12e3730dca5a2c4f496",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/ReUploadBatchModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "48744ecee544c26af34d1009b62a0e0d",
+    "mtime": 1785407994.0,
+    "ast_hash": "3acfea4b9421d56b2d71aebc054c2e35",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/RemoteUploadModal.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "4ecded0e1ca142a6c40746e24f5bf6fe",
+    "mtime": 1785403092.0,
+    "ast_hash": "e29b9132472118b54c5b6cc5445fbad5",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/DriveSidebarIndex.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "cdc2a296b8b1132a6ed997322a8e3868",
+    "mtime": 1785403406.0,
+    "ast_hash": "2d1ace1608d199143fa7de4848ed6309",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/DriveTopBar.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "30c19ba040bb57d3397bb91d917ad731",
+    "mtime": 1785407862.0,
+    "ast_hash": "e1b37ef5ad739e3c9f7cc9f107fa6598",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/MediaSelect.tsx": {
-    "mtime": 1785344908.0,
+    "mtime": 1785408522.0,
     "ast_hash": "83cd3a0ed7d09571a39c85ed5594a25f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarRecentsSection.tsx": {
-    "mtime": 1785384086.0,
-    "ast_hash": "0943add193375dbbdd7656affb84efb9",
+    "mtime": 1785399996.0,
+    "ast_hash": "243210ce8a16008417f47680feb83b11",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarSessionHeader.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "c5918419e8cbe1faac73e187a0249ff6",
+    "mtime": 1785400002.0,
+    "ast_hash": "31974bef9a1408c49b93ec36593936f6",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/TopBarBreadcrumbs.tsx": {
@@ -2295,8 +2295,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/TopBarSearchFilter.tsx": {
-    "mtime": 1785370118.0,
-    "ast_hash": "ee4a61fad3eedb6127d1f164ec5db894",
+    "mtime": 1785400106.0,
+    "ast_hash": "053a777e299b3bccb6a5b49132a72f43",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/sidebarUtils.tsx": {
@@ -2310,18 +2310,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Transfers/DriveTransferManager.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "5df2aec4c27d61982eeaa54d91283b7e",
+    "mtime": 1785403406.0,
+    "ast_hash": "ddd8255dda17d23ecf2397d218b2cb52",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Transfers/DriveTransferSettings.tsx": {
-    "mtime": 1785382576.0,
-    "ast_hash": "1dfb64897c17d3a561ba44f6630dc43d",
+    "mtime": 1785407630.0,
+    "ast_hash": "a9a17d088216537f88055624c621e647",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarCategoryList.tsx": {
-    "mtime": 1785383626.0,
-    "ast_hash": "3f90f57555d45e7cec011bbb0f543a64",
+    "mtime": 1785399994.0,
+    "ast_hash": "397fab5758127f7d16edcd9ed9b9137d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarQuickLinks.tsx": {
@@ -2345,88 +2345,88 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioHeader.tsx": {
-    "mtime": 1785383640.0,
-    "ast_hash": "4df6662e975973525dc07ed8e269b7a5",
+    "mtime": 1785400116.0,
+    "ast_hash": "5608993aa4535bec9e787ea1646e4110",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/accounts.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "88a282379b2e1c2e08d2d7ec9c18010e",
+    "mtime": 1785401656.0,
+    "ast_hash": "39d4717a4f538e3a73499ffbc49bcfaf",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/automation.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "6c505a8cc7d5f6518bb54bb2770de5e8",
+    "mtime": 1785401656.0,
+    "ast_hash": "eabd1be035c8ec8be13fa00dd0324b89",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/dashboard.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "3162f1b6510d0f87c245e2dbded1059f",
+    "mtime": 1785402436.0,
+    "ast_hash": "445e370f26215f5c8bbf15f6d4c4ecfc",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/jobs.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "3487bccb2c50ed370796d6bfb11aba75",
+    "mtime": 1785408498.0,
+    "ast_hash": "471f316b0fb4c0e174d213dd92af249d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/nav.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "bf574d8a1262a0f195dafa78e4e5aae4",
+    "mtime": 1785402422.0,
+    "ast_hash": "406d8c4b21f6a21eabda2361f0dda1d0",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/settings.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "1253228f6b642194a4d3328bf4f5ca35",
+    "mtime": 1785400786.0,
+    "ast_hash": "ca5fa32423b3ef8e7c75ab1517bcb7fa",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/speedtest.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "2ab61f132db2fab3fcdbff8b49e6397b",
+    "mtime": 1785407994.0,
+    "ast_hash": "c248c322e6d3035a29cc47011975d953",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/statistics.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "6132145ad59a1f5171f95a4fd1b75677",
+    "mtime": 1785401656.0,
+    "ast_hash": "9a7d57c30ccbb6b64d7077c7800539c6",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/accounts.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "8e9c44332c59e68515eb42fd452df139",
+    "mtime": 1785401656.0,
+    "ast_hash": "2ad344a6a84139d95c76a928858bc7ae",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/automation.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "bfcaeb3e29dfb1a38c1ce5696b6ce781",
+    "mtime": 1785401656.0,
+    "ast_hash": "86f608bba6e66ff2f9a5619fe4d12621",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/dashboard.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "c9aae3755314b18a6b9589638fdde195",
+    "mtime": 1785402436.0,
+    "ast_hash": "736bf38032a39d4eea422c7d99507613",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/jobs.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "0e499178929acc20b9d7aba26cfc5548",
+    "mtime": 1785408498.0,
+    "ast_hash": "a544224cf760ab0f6bf6be590ad3b22c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/nav.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "1e037c1171c9668cca80ca3d8bb61702",
+    "mtime": 1785402422.0,
+    "ast_hash": "81ceef074079ea4f1f7a9caebb99d9ee",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/settings.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "aa928376dd399eb197586c211fa1a55c",
+    "mtime": 1785400786.0,
+    "ast_hash": "09868c28f199b5cf783ed5f76e3f72b5",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/speedtest.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "c3635133a911549258e9b39f57beae39",
+    "mtime": 1785407994.0,
+    "ast_hash": "2a1a7a80f025e0bb891e5851a51ebc29",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/statistics.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "ccc9e3682e0f1ccfddd8e0c99e4b9dd0",
+    "mtime": 1785401656.0,
+    "ast_hash": "b7ecf2cf48ea9421a4589206b118e7ab",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/index.ts": {
@@ -2435,13 +2435,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/sync.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "e8d99e10b384cf2bb2317cc7e87aa023",
+    "mtime": 1785401656.0,
+    "ast_hash": "86aa705b207db437182e20a9b7b5effe",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/sync.json": {
-    "mtime": 1785385914.0,
-    "ast_hash": "f405c48497386dc1934234998439ec93",
+    "mtime": 1785401656.0,
+    "ast_hash": "35a3b3d95ffd54f68a283208be3564a5",
     "semantic_hash": ""
   }
 }
