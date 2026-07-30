@@ -35,5 +35,7 @@
   "fill_config_fields": "Harap isi setidaknya Nama Tugas, Sumber, atau Tujuan",
   "fresh_start_title": "Mulai Ulang Segar (Fresh Start)",
   "fresh_start_desc": "Menghapus riwayat eksekusi sebelumnya dan memulai tugas dari awal.",
-  "rerun_modal_title": "Pilihan Mode Jalankan Ulang (Re-run)"
+  "rerun_modal_title": "Pilihan Mode Jalankan Ulang (Re-run)",
+  "original_caption_label": "Teks Caption Asli",
+  "fallback_clean_copy_label": "Fast Forward (Beralih ke Clean Copy)"
 }

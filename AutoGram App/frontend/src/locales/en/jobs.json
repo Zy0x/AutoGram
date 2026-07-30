@@ -35,5 +35,7 @@
   "fill_config_fields": "Please fill at least Job Name, Source, or Destination",
   "fresh_start_title": "Fresh Start Migration",
   "fresh_start_desc": "Clears previous execution history and starts the job from scratch.",
-  "rerun_modal_title": "Re-run Mode Selection"
+  "rerun_modal_title": "Re-run Mode Selection",
+  "original_caption_label": "Original Text",
+  "fallback_clean_copy_label": "Fast Forward (Fell back to Clean Copy)"
 }

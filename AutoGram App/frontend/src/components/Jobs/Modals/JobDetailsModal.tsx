@@ -53,7 +53,7 @@ export function JobDetailsModal({ job, fallbackTriggered, onClose }: JobDetailsM
               <DetailItem label="Profile / Session" value={job.profile_name || config.session} />
               <DetailItem label="Mode" value={
                 fallbackTriggered 
-                  ? <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '4px' }} title={i18n.t("jobs.chat_restrictions_fallback")}><Shield size={14} /> Fast Forward (Fell back to Clean Copy)</span>
+                  ? <span style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '4px' }} title={i18n.t("jobs.chat_restrictions_fallback")}><Shield size={14} /> {i18n.t("jobs.fallback_clean_copy_label")}</span>
                   : (job.transfer_mode || config.mode)
               } />
               <DetailItem label="Created At" value={job.created_at} />

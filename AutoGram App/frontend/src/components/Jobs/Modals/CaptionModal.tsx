@@ -69,7 +69,7 @@ export const CaptionModal: React.FC<CaptionModalProps> = ({ isOpen, onClose, ini
             <div><code style={{color: 'var(--primary)', fontFamily: 'monospace'}}>`inline code`</code></div>
             <div><span style={{color: '#58a6ff'}}>[Link](https://url.com)</span></div>
             <div style={{ width: '1px', background: 'var(--border)', height: '16px', margin: '0 4px' }} />
-            <div title={i18n.t("jobs.original_caption_title")}><code style={{color: '#a78bfa', fontFamily: 'monospace'}}>{`{caption}`}</code> Original Text</div>
+            <div title={i18n.t("jobs.original_caption_title")}><code style={{color: '#a78bfa', fontFamily: 'monospace'}}>{`{caption}`}</code> {i18n.t("jobs.original_caption_label")}</div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: viewMode === 'split' ? '1fr 1fr' : '1fr', gap: '20px', height: '320px' }}>
