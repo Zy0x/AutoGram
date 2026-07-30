@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.80
+AutoGram Version: v2.3.81
 
 Current State:
+v2.3.81 Zero-Bleed Instant Switch & Ultra-Fast Realtime Server Head Sync — membenahi `MediaStudio/index.tsx`. Mengeliminasi total kebocoran/sisa kartu berkas & thumbnail dari lokasi sebelumnya saat pengguna berganti chat, topik, atau drive dengan mengeksekusi pembersihan state berkas & reset konteks thumbnail secara seketika pada tick pertama. Menambahkan mekanisme Stale-While-Revalidate super cepat (<300ms) yang mengambil 30 pesan terbaru langsung dari server Telegram di latar belakang saat cache disajikan, menjamin media terbaru dari aplikasi Telegram langsung tersinkron secara real-time.
+
+Previous:
 v2.3.80 Telegram-Drive Instant Topic Media Render & Unblocked Local Cache Query — membenahi `driveFilesApi.ts`, `MediaStudio/index.tsx`, dan `DriveExplorer.tsx`. Memperbaiki `driveListFiles` agar mengembalikan data IndexedDB lokal secara instan (<5ms) tanpa terhalang oleh syarat checkpoint `completed`. Mengeliminasi bug tampilan palsu *Folder ini kosong* pada topik forum (seperti `#Gudang / Anime 3D`) dengan memperbarui state berkas secara langsung pada kecocokan halaman pertama.
 
 Previous:

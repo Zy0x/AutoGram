@@ -2507,6 +2507,42 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           delayMs: INITIAL_STATS_DELAY_MS,
         });
       }
+
+      if (res.cached && creds) {
+        // Ultra-fast background sync of top 30 messages directly from Telegram server
+        void (async () => {
+          try {
+            const syncRes = await driveListFiles(creds, peerId, {
+              pageSize: 30,
+              topicId: tid,
+              sortMode: sortMode,
+              quickStats: false,
+              bypassCache: true,
+            });
+            if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
+            if (syncRes?.status === 'success' && syncRes.files && syncRes.files.length > 0) {
+              let freshPage = dedupeByMsgId(syncRes.files);
+              primeThumbsFromFileList(creds, peerId, freshPage);
+              const missing = freshPage
+                .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null)
+                .map((f) => f.id);
+              if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+              freshPage = stripInlineThumbsFromFiles(freshPage);
+
+              setFiles((prev) => {
+                if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return prev;
+                const merged = reconcileDriveLiveHead(prev, freshPage, !!syncRes.has_more, { isExplicitRefresh: true });
+                filesCacheRef.current.set(cacheKey, merged);
+                return merged;
+              });
+              const folderKey = peerId || 0;
+              void saveMediaRecords(freshPage.map((f) => ({ ...f, folderId: folderKey }))).catch(() => undefined);
+            }
+          } catch (err) {
+            console.warn('[RealtimeSync] Background top-page sync failed:', err);
+          }
+        })();
+      }
     } catch (e: any) {
       if (gen !== peerGen.current) return;
       if (peerId != null && recoverInvalidPeerLocation(e, { gen })) return;
@@ -3285,6 +3321,12 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     }
     if (prevPeer.current === peerId) return;
     prevPeer.current = peerId;
+
+    // Instantly wipe files and reset thumb context to prevent bleeding from previous peer
+    setFiles([]);
+    setLoadingFiles(true);
+    setThumbContext(creds, peerId, null);
+
     // Cancel deferred stats for previous peer
     if (mediaStatsTimerRef.current != null) {
       window.clearTimeout(mediaStatsTimerRef.current);
