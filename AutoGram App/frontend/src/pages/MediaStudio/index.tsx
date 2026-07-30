@@ -4,6 +4,7 @@ import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
+import { TopicMediaGrid } from '../../features/topic-media';
 /**
  * Media Studio → AutoGram Drive (Telegram-Drive model)
  * Tab id remains `speedtest`. Desktop only.
@@ -13,6 +14,38 @@ import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../li
 import {
   startTransition,
   useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { HardDrive, Upload } from 'lucide-react';
+import { canUseLocalTelegramWorker } from '../../lib/tauri/platform';
+import {
+  openDriveMoveConfirm,
+  closeDriveMoveConfirm,
+  subscribeDriveMoveConfirmStore,
+  getDriveMoveConfirmSnapshot,
+  getDriveMoveConfirmVersion,
+} from '../../lib/telegram';
+import {
+  bootstrapSecureCredentials,
+  getApiHashSync,
+  getApiIdSync,
+  getSecureTransferSettings,
+  setSecureTransferSettings,
+} from '../../lib/tauri/secureCredentials';
+import {
+  loadSelectableSessionNames,
+  getActiveSessionTargets,
+  setActiveSessionTargets,
+} from '../../lib/telegram';
+import {
+  driveBootstrap,
+  driveListChatFolders,
+  driveListChats,
+  driveScanFolders,
   driveCreateFolder,
   driveDeleteFolder,
   driveListFiles,
@@ -7546,8 +7579,19 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                 Lepas di <strong>chat atau folder</strong> di sidebar untuk memindahkan
               </div>
             )}
-
-            <DriveExplorer
+            {topicFilter != null && Number(topicFilter) > 0 ? (
+              <TopicMediaGrid
+                context={{
+                  accountId: session || '',
+                  peerId: String(activePeerId || 0),
+                  topicId: Number(topicFilter),
+                }}
+                session={session}
+                apiId={Number(getApiIdSync() || 0)}
+                apiHash={getApiHashSync()}
+              />
+            ) : (
+              <DriveExplorer
               files={files}
               loading={loadingFiles}
               loadingMore={loadingMoreFiles}
@@ -7639,6 +7683,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                 setContextMenu({ kind: 'canvas', x: e.clientX, y: e.clientY });
               }}
             />
+          )}
           </div>
         </div>
       </div>

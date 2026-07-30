@@ -1,3 +1,9 @@
+## v2.3.83 Restore App Load React Imports & Safe Topic Media Integration
+
+### Pemulihan Pemuatan Aplikasi & Integrasi Topik Media (`MediaStudio/index.tsx`)
+- **Pemulihan Import React Hooks & Lucide (`MediaStudio/index.tsx`)**: Memulihkan import React hooks (`useState`, `useEffect`, `useCallback`, `useRef`, `useMemo`, `useSyncExternalStore`) dan `lucide-react`. Mengeliminasi total layar hitam/blank saat aplikasi pertama kali dibuka.
+- **Integrasi `TopicMediaGrid` Kondisional**: Menyajikan `TopicMediaGrid` saat topik spesifik dipilih dan tetap menyajikan `DriveExplorer` saat menavigasi folder/drive umum.
+
 ## v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine
 
 ### Perombakan Total Pemuatan List Media Grup & Topik (`src/features/topic-media`, `src-tauri/src/features/topic_media`)
