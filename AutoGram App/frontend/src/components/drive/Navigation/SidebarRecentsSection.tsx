@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Clock, Home, Folder, MessageSquare } from 'lucide-react';
 import type { DriveRecent } from '../../../lib/telegram';
@@ -17,6 +18,7 @@ export const SidebarRecentsSection: React.FC<SidebarRecentsSectionProps> = ({
   isOpen,
   onToggleOpen,
 }) => {
+  const { t } = useTranslation();
   if (!recents || recents.length === 0) return null;
 
   return (
@@ -27,7 +29,7 @@ export const SidebarRecentsSection: React.FC<SidebarRecentsSectionProps> = ({
       >
         <span className="flex items-center gap-1.5">
           <Clock size={12} className="text-indigo-400" />
-          Terakhir Dibuka
+          {t('speedtest.sidebar_recents_header')}
         </span>
         <span className="text-[10px] text-slate-500 font-mono">{recents.length}</span>
       </div>

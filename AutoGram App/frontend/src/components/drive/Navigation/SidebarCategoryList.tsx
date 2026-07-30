@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Image, Film, Music, FileText, Archive, Package } from 'lucide-react';
 
@@ -10,19 +11,20 @@ export const SidebarCategoryList: React.FC<SidebarCategoryListProps> = ({
   activeCategory,
   onSelectCategory,
 }) => {
+  const { t } = useTranslation();
   const categories = [
-    { id: 'image', label: 'Foto & Gambar', icon: <Image size={15} className="text-blue-400" /> },
-    { id: 'video', label: 'Video & Film', icon: <Film size={15} className="text-purple-400" /> },
-    { id: 'audio', label: 'Audio & Musik', icon: <Music size={15} className="text-emerald-400" /> },
-    { id: 'document', label: 'Dokumen & PDF', icon: <FileText size={15} className="text-amber-400" /> },
-    { id: 'archive', label: 'Arsip (ZIP/RAR)', icon: <Archive size={15} className="text-orange-400" /> },
-    { id: 'apk', label: 'Aplikasi Android', icon: <Package size={15} className="text-lime-400" /> },
+    { id: 'image', label: t('speedtest.sidebar_cat_images'), icon: <Image size={15} className="text-blue-400" /> },
+    { id: 'video', label: t('speedtest.sidebar_cat_videos'), icon: <Film size={15} className="text-purple-400" /> },
+    { id: 'audio', label: t('speedtest.sidebar_cat_audio'), icon: <Music size={15} className="text-emerald-400" /> },
+    { id: 'document', label: t('speedtest.sidebar_cat_documents'), icon: <FileText size={15} className="text-amber-400" /> },
+    { id: 'archive', label: t('speedtest.sidebar_cat_archives'), icon: <Archive size={15} className="text-orange-400" /> },
+    { id: 'apk', label: t('speedtest.sidebar_cat_apk'), icon: <Package size={15} className="text-lime-400" /> },
   ];
 
   return (
     <div className="space-y-1">
       <span className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-        Kategori Media
+        {t('speedtest.sidebar_media_categories')}
       </span>
       {categories.map((cat) => (
         <button

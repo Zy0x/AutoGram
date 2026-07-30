@@ -1469,7 +1469,7 @@ export function DriveSidebar({
               onExitToApp();
               onCloseDrawer?.();
             }}
-            title="Kembali ke AutoGram"
+            title={t("speedtest.sidebar_back_to_app")}
           >
             <ArrowLeft size={18} />
             <span className="td-rail-btn-label">
@@ -1511,7 +1511,7 @@ export function DriveSidebar({
           type="button"
           className="td-rail-btn td-rail-tool"
           title="Muat ulang Drives, folder & chat"
-          aria-label="Muat ulang Drives, folder dan chat"
+          aria-label={t("speedtest.sidebar_refresh_tooltip")}
           onClick={onRefresh}
           disabled={busy}
         >
@@ -1599,9 +1599,9 @@ export function DriveSidebar({
               spellCheck={false}
               value={locationQuery}
               onChange={(e) => onChatQuery(e.target.value)}
-              placeholder="Cari lokasi… (Ctrl+K)"
-              aria-label="Cari lokasi Drive (folder dan chat). Pintasan Ctrl+K"
-              title="Cari folder, chat, @username · Ctrl+K"
+              placeholder={t("speedtest.sidebar_search_ph")}
+              aria-label={t("speedtest.sidebar_search_aria")}
+              title={t("speedtest.sidebar_search_title")}
               onDragOver={(e) => e.stopPropagation()}
             />
             {hasLocationQuery && (
@@ -1609,7 +1609,7 @@ export function DriveSidebar({
                 type="button"
                 className="td-location-search-clear"
                 title={t('speedtest.clear_search')}
-                aria-label="Hapus pencarian lokasi"
+                aria-label={t("speedtest.sidebar_clear_search")}
                 onClick={() => onChatQuery('')}
               >
                 <X size={14} />
@@ -1643,7 +1643,7 @@ export function DriveSidebar({
               <DropRow
                 dropKeyStr={key}
                 className={`td-folder-row ${locationKind === 'saved' ? 'active' : ''}`}
-                title="Saved Messages — klik kanan untuk menu"
+                title={t("speedtest.sidebar_saved_messages_tooltip")}
                 isOver={overKey === key}
                 invalidTarget={isSelf(key)}
                 dragLive={dragLive}
@@ -1757,7 +1757,7 @@ export function DriveSidebar({
               />
               <Clock size={12} className="td-recents-toggle-ico" aria-hidden />
               <span className="td-section-toggle-label">Terbaru</span>
-              <span className="td-chat-count" title="Jumlah lokasi terbaru">
+              <span className="td-chat-count" title={t("speedtest.sidebar_recents_tooltip")}>
                 {recents.length}
               </span>
             </button>
@@ -1992,7 +1992,7 @@ export function DriveSidebar({
         <div
           className="td-zone-divider"
           role="separator"
-          aria-label="Batas Drives dan Chats"
+          aria-label={t("speedtest.sidebar_resizer_aria")}
         >
           <span className="td-zone-divider-line" aria-hidden />
         </div>
@@ -2031,7 +2031,7 @@ export function DriveSidebar({
           />
           <span className="td-section-toggle-label">Chats</span>
           {chatIndex.length > 0 && (
-            <span className="td-chat-count" title="Jumlah chat termuat">
+            <span className="td-chat-count" title={t("speedtest.sidebar_chats_tooltip")}>
               {hasLocationQuery
                 ? `${chatRows.length}/${chatIndex.length}`
                 : chatIndex.length}
@@ -2042,7 +2042,7 @@ export function DriveSidebar({
         {chatsExpanded && chatFolders.length > 0 && (
           <div className="td-chat-folders-wrap td-only-expanded">
             <span className="td-chat-folders-label">Folder Chat Telegram</span>
-            <div className="td-chat-folders" role="tablist" aria-label="Folder Chat Telegram">
+            <div className="td-chat-folders" role="tablist" aria-label={t("speedtest.sidebar_chat_folders_aria")}>
               {chatFolders.map((folder) => {
                 const active = folder.id === activeChatFolderId;
                 return (
