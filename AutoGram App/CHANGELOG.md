@@ -1,3 +1,9 @@
+## v2.3.91 Definitive Master Architecture, Exhaustive WorkTree & Real-World Workflows Specification
+
+### Penyempurnaan Master Dokumen Teknis (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
+- **Peta WorkTree Repository Utuh**: Menyusun peta pohon direktori terlengkap dari seluruh file frontend React, modul backend Rust (`src-tauri/src/`), database SQLite, dan dokumentasi.
+- **10 Real-World Operational Workflows**: Menyediakan rincian skenario alur kerja operasional nyata meliputi Bootstrapping & Telethon Auto-Import, Topic Switching & Server Search `top_msg_id`, Proactive Streaming Infinite Scroll, Dual-lane Thumbnail Extraction (Photo vs Video Keyframe), Upload 1.5GB Chunking 1MB, Remote Stream ZIP Inspection & Decompression, Clean-Copy 4-Level Duplicate Prevention, Fail-Closed FloodWait Gate Controller, Deferred Stats Walking, serta Deletion & Action Queue Execution.
+
 ## v2.3.90 Granular Functional Matrix & Master Architecture Specification
 
 ### Penambahan Kolom Fungsi & Spesifikasi Input/Output (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)

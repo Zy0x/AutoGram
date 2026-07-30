@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.90
+AutoGram Version: v2.3.91
 
 Current State:
-v2.3.90 Granular Functional Matrix & Master Architecture Specification — Memperlengkap dokumen arsitektur master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan kolom spesifikasi fungsi detail, input/state used, dan output/side effects untuk setiap file frontend dan backend Rust, serta spesifikasi detail untuk skema database SQLite dan IndexedDB Object Stores.
+v2.3.91 Definitive Master Architecture, Exhaustive WorkTree & Real-World Workflows Specification — Menyempurnakan dokumen spesifikasi master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan peta WorkTree direktori proyek utuh, 10 alur kerja operasional nyata (*real-world operational scenarios*), tabel matriks fungsional lengkap frontend-backend, dan skema database terperinci.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.
