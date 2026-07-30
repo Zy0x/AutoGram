@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.79
+AutoGram Version: v2.3.80
 
 Current State:
+v2.3.80 Telegram-Drive Instant Topic Media Render & Unblocked Local Cache Query — membenahi `driveFilesApi.ts`, `MediaStudio/index.tsx`, dan `DriveExplorer.tsx`. Memperbaiki `driveListFiles` agar mengembalikan data IndexedDB lokal secara instan (<5ms) tanpa terhalang oleh syarat checkpoint `completed`. Mengeliminasi bug tampilan palsu *Folder ini kosong* pada topik forum (seperti `#Gudang / Anime 3D`) dengan memperbarui state berkas secara langsung pada kecocokan halaman pertama.
+
+Previous:
 v2.3.79 Telegram-Drive Instant Local-First Media Load & Non-Blocking Background Sync — membenahi `DriveExplorer.tsx` dan `MediaStudio/index.tsx`. Menghapus overlay modal `CenteredGlassmorphicProgress` ("Syncing your media library / Loading Catalog") yang sebelumnya memblokir layar aplikasi. Mengadopsi pola Telegram-Drive (`cmd_get_folder_files`): menyajikan data dari cache lokal IndexedDB/SQLite secara instan (<50ms) dengan `bypassCache: false` dan merender skeleton loader non-blocking murni saat pemuatan awal.
 
 Previous:

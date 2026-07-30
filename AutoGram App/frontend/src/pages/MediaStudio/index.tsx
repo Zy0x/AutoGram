@@ -1465,7 +1465,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           if (gen !== peerGen.current || pollInFlight) return;
           pollInFlight = true;
           try {
-            const snap = await driveMediaStats(creds, peerId, {
+            const snap: any = await driveMediaStats(creds, peerId, {
               topicId: tid,
               peek: true,
             });
@@ -2372,6 +2372,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           });
           if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
           page = dedupeByMsgId(nextRes.files || []);
+          if (page.length > 0) {
+            setFiles(page);
+            setLoadingFiles(false);
+          }
           res.has_more = nextRes.has_more;
           res.next_offset_id = nextRes.next_offset_id;
           currentOffset = nextRes.next_offset_id || 0;

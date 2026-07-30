@@ -1,5 +1,5 @@
 import { detectTauriRuntime } from '../../tauri/platform';
-import { getCheckpoint, getMediaRecords, getFolderMediaCount } from '../../db/mediaStudioDb';
+import { getMediaRecords, getFolderMediaCount } from '../../db/mediaStudioDb';
 import {
   DEFAULT_FILE_PAGE,
   DriveCredentials,
@@ -108,10 +108,7 @@ export async function driveListFiles(
 
   // 1. Try serving from local IndexedDB warm cache (completed indexing)
   const folderKey = folderId || 0;
-  const jobId = `index_chat_${folderKey}${topicId ? `_topic_${topicId}` : ''}`;
-  const cp = await getCheckpoint(jobId).catch(() => null);
-
-  if (cp && cp.status === 'completed' && !opts?.bypassCache) {
+  if (!opts?.bypassCache) {
     const localOffset = opts?.localOffset ?? 0;
     try {
       const records = await getMediaRecords(folderKey, sortMode, localOffset, pageSize);

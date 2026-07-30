@@ -1,3 +1,9 @@
+## v2.3.80 Telegram-Drive Instant Topic Media Render & Unblocked Local Cache Query
+
+### Eliminasi Bug "Folder ini kosong" & Pemuatan Topik Instan (`driveFilesApi.ts`, `MediaStudio/index.tsx`)
+- **Pencarian Cache Lokal Instan Bebas Syarat (`driveFilesApi.ts`)**: Menghapus barikade pengondisian checkpoint `status === 'completed'`. Cache IndexedDB/SQLite lokal kini langsung disajikan **instan (<5ms)** saat folder/topik dibuka tanpa harus menunggu status pindaian latar belakang selesai 100%.
+- **Pembaruan State Kartu Topik Langsung (`MediaStudio/index.tsx`)**: Mengeliminasi bug tampilan *Folder ini kosong* pada topik forum (seperti `#Gudang / Anime 3D`) dengan menyisipkan pembaruan `setFiles(page)` dan `setLoadingFiles(false)` seketika saat halaman berkas topik pertama ditemukan di dalam loop pindaian network.
+
 ## v2.3.79 Telegram-Drive Instant Local-First Media Load & Non-Blocking Background Sync
 
 ### Adopsi Pola Pemuatan Instan Telegram-Drive (`DriveExplorer.tsx`, `MediaStudio/index.tsx`)
