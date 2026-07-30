@@ -300,7 +300,7 @@
   "drop_to_upload": "Drop files here to upload to Telegram Drive",
   "folder_label": "Folder",
   "reupload_confirm_title": "Confirm Re-upload",
-  "remote_upload_url_title": "Remote Upload (URL)",
+  "remote_upload_url_title": "Upload file from URL (Remote)",
   "remote_upload_url_desc": "Upload file directly from public URL to Telegram Cloud",
   "url_placeholder_example": "https://example.com/file.zip",
   "uploading_status": "Uploading...",

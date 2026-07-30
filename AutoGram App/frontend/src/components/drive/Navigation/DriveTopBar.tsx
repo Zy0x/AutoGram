@@ -316,7 +316,7 @@ export function DriveTopBar({
               className="td-icon-btn td-menu-btn"
               onClick={onOpenLocations}
               title={t('speedtest.open_location_list')}
-              aria-label="Buka sidebar lokasi"
+              aria-label={t("speedtest.open_location_list")}
             >
               <Menu size={18} />
             </button>
@@ -327,7 +327,7 @@ export function DriveTopBar({
               className={`td-icon-btn ${isPinned ? 'active' : ''}`}
               onClick={onTogglePin}
               title={isPinned ? t('speedtest.topbar_unpin_loc') : t('speedtest.topbar_pin_loc')}
-              aria-label={isPinned ? 'Lepas pin' : 'Pin lokasi'}
+              aria-label={isPinned ? t("speedtest.topbar_unpin_loc") : t("speedtest.topbar_pin_loc")}
             >
               {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
             </button>
@@ -553,7 +553,7 @@ export function DriveTopBar({
               onClick={onDownloadAllClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.topbar_download_zip")}
-              aria-label="Download semua file sebagai ZIP"
+              aria-label={t("speedtest.topbar_download_zip")}
             >
               <FolderArchive size={16} />
             </button>
@@ -565,7 +565,7 @@ export function DriveTopBar({
               onClick={onRemoteUploadClick}
               disabled={!!actionsDisabled}
               title={t("speedtest.remote_upload_url_title")}
-              aria-label="Remote upload file dari URL"
+              aria-label={t("speedtest.remote_upload_url_title")}
             >
               <Globe size={15} />
               <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
@@ -595,7 +595,7 @@ export function DriveTopBar({
 
       {/* Forum topics — Semua media + per-topic filter */}
       {showTopics && (
-        <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label="Filter topik">
+        <div className="td-topbar-row td-topbar-row-topics" role="group" aria-label={t("speedtest.label_topic")}>
           <span className="td-topics-label">
             <MessagesSquare size={14} />
             Topik
@@ -662,7 +662,7 @@ export function DriveTopBar({
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Cari file di lokasi ini… (Ctrl+F)"
-          aria-label="Cari file di lokasi saat ini. Pintasan Ctrl+F"
+          aria-label={t("speedtest.search_aria_label")}
           title={t('speedtest.filter_media_tooltip')}
         />
         {hasSelection && selectionToolbar}
