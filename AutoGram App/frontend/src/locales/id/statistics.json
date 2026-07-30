@@ -1,7 +1,12 @@
 {
-  "title": "Statistik & Performa",
+  "title": "Statistik Platform",
   "subtitle": "Lihat ringkasan performa kecepatan transfer dan total media yang telah diproses.",
   "total_transferred": "Total Terkirim",
   "transfer_speed": "Kecepatan Rata-Rata",
-  "success_rate": "Tingkat Keberhasilan"
+  "success_rate": "Tingkat Keberhasilan",
+  "total_jobs": "Total Tugas",
+  "processed_media": "Media Diproses",
+  "success_transfer": "Transfer Berhasil",
+  "failed_items": "Item Gagal",
+  "total_storage": "Total Storage Diproses"
 }

@@ -1,9 +1,16 @@
 {
-  "title": "Automation & Scheduling",
-  "subtitle": "Set automated execution schedules and Telegram chat monitor daemons.",
+  "title": "Automation & Scheduler",
+  "subtitle": "Real-time Sync and Cron Jobs.",
   "new_schedule": "New Schedule",
   "cron_expression": "Cron Expression",
   "next_run": "Next Execution",
   "status_active": "Active",
-  "status_disabled": "Disabled"
+  "status_disabled": "Disabled",
+  "add_btn": "Add New Automation",
+  "name_label": "Name",
+  "name_ph": "e.g., Daily Sync",
+  "source_label": "Source (Chat ID / Username)",
+  "target_label": "Target (Chat ID / Username)",
+  "enable_realtime": "Enable Real-Time Sync",
+  "cron_label": "Cron Expression (Optional)"
 }

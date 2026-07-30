@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import {
   runDaemonOnce,
@@ -9,6 +10,7 @@ import { isDesktop } from '../../lib/tauri/platform';
 import { Activity, HardDrive, CheckCircle, XCircle, BarChart3, RefreshCw } from 'lucide-react';
 
 export function Statistics() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<any>({
     total_jobs: 0,
     total_items: 0,
@@ -95,7 +97,7 @@ export function Statistics() {
     <main className="main-content page-stack">
       <header className="page-header page-header-row">
         <div style={{ minWidth: 0 }}>
-          <h2 className="title">Platform Statistics</h2>
+          <h2 className="title">{t('statistics.title')}</h2>
           <p className="subtitle" style={{ marginBottom: 0 }}>
             Overall migration analytics and storage health.
             {!isDesktop() ? ' (Desktop app for live data)' : ''}
@@ -133,7 +135,7 @@ export function Statistics() {
       <div className="stats-grid">
         <div className="glass-panel card stat-card">
           <div className="stat-card-head">
-            <span>Total Jobs</span>
+            <span>{t('statistics.total_jobs')}</span>
             <Activity size={20} color="var(--primary)" />
           </div>
           <div className="stat-card-value">{stats.total_jobs || 0}</div>
@@ -141,7 +143,7 @@ export function Statistics() {
 
         <div className="glass-panel card stat-card">
           <div className="stat-card-head">
-            <span>Processed Media</span>
+            <span>{t('statistics.processed_media')}</span>
             <BarChart3 size={20} color="var(--accent)" />
           </div>
           <div className="stat-card-value">{stats.total_items || 0}</div>
@@ -149,7 +151,7 @@ export function Statistics() {
 
         <div className="glass-panel card stat-card">
           <div className="stat-card-head">
-            <span>Success Transfer</span>
+            <span>{t('statistics.success_transfer')}</span>
             <CheckCircle size={20} color="var(--success)" />
           </div>
           <div className="stat-card-value">{stats.total_success || 0}</div>
@@ -157,7 +159,7 @@ export function Statistics() {
 
         <div className="glass-panel card stat-card">
           <div className="stat-card-head">
-            <span>Failed Items</span>
+            <span>{t('statistics.failed_items')}</span>
             <XCircle size={20} color="var(--danger)" />
           </div>
           <div className="stat-card-value">{stats.total_failed || 0}</div>
@@ -169,7 +171,7 @@ export function Statistics() {
           <HardDrive size={32} color="var(--primary)" />
         </div>
         <div className="storage-banner-body">
-          <h3 style={{ fontSize: 'var(--fs-lg)', marginBottom: '8px' }}>Total Storage Processed</h3>
+          <h3 style={{ fontSize: 'var(--fs-lg)', marginBottom: '8px' }}>{t('statistics.total_storage')}</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
             Amount of data migrated through the platform
           </p>

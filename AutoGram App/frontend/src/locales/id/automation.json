@@ -1,9 +1,16 @@
 {
-  "title": "Otomatisasi & Penjadwalan",
-  "subtitle": "Atur jadwal eksekusi otomatis dan daemon pemantau obrolan Telegram.",
+  "title": "Otomatisasi & Penjadwal",
+  "subtitle": "Sinkronisasi Real-time dan Tugas Cron.",
   "new_schedule": "Jadwal Baru",
   "cron_expression": "Ekspresi Cron",
   "next_run": "Eksekusi Berikutnya",
   "status_active": "Aktif",
-  "status_disabled": "Nonaktif"
+  "status_disabled": "Nonaktif",
+  "add_btn": "Tambah Otomatisasi Baru",
+  "name_label": "Nama",
+  "name_ph": "misal: Sinkron Harian",
+  "source_label": "Sumber (Chat ID / Username)",
+  "target_label": "Tujuan (Chat ID / Username)",
+  "enable_realtime": "Aktifkan Sinkron Real-Time",
+  "cron_label": "Ekspresi Cron (Opsional)"
 }

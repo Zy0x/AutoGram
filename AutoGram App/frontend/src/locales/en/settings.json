@@ -72,5 +72,7 @@
   "creds_save_fail": "✕ Failed to save credentials.",
   "loading_credentials": "Loading credentials...",
   "worker_ui_transfer_log": "Worker + UI + transfer",
-  "local_media_cache_label": "Local Media & Thumbnail Cache"
+  "local_media_cache_label": "Local Media & Thumbnail Cache",
+  "clear_cache_modal_title": "Confirm Clear Cache",
+  "clear_db_modal_title": "Confirm Clear Database"
 }

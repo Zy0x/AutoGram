@@ -1,7 +1,12 @@
 {
-  "title": "Statistics & Performance",
+  "title": "Platform Statistics",
   "subtitle": "View performance summary of transfer speeds and total processed media.",
   "total_transferred": "Total Transferred",
   "transfer_speed": "Average Speed",
-  "success_rate": "Success Rate"
+  "success_rate": "Success Rate",
+  "total_jobs": "Total Jobs",
+  "processed_media": "Processed Media",
+  "success_transfer": "Success Transfer",
+  "failed_items": "Failed Items",
+  "total_storage": "Total Storage Processed"
 }

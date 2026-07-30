@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { Play, Pause, Trash2, Calendar, Clock, Plus, RefreshCw } from 'lucide-react';
 
 export function Automation() {
+  const { t } = useTranslation();
   const [automations, setAutomations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -122,7 +124,7 @@ export function Automation() {
       <header className="page-header page-header-row">
         <div style={{ minWidth: 0 }}>
             <h2 className="title">Automation & Scheduler</h2>
-            <p className="subtitle" style={{ marginBottom: 0 }}>Real-time Sync and Cron Jobs.</p>
+            <p className="subtitle" style={{ marginBottom: 0 }}>{t('automation.subtitle')}</p>
         </div>
         <div className="page-header-actions">
             <button type="button" className="btn btn-secondary" onClick={fetchAutomations} disabled={isLoading}>
@@ -136,19 +138,19 @@ export function Automation() {
 
       {showAddForm && (
         <section className="dashboard-section fade-in">
-          <h3 className="section-title">Add New Automation</h3>
+          <h3 className="section-title">{t('automation.add_btn')}</h3>
           <form onSubmit={handleAddAutomation} className="page-stack" style={{ gap: '1rem' }}>
             <div className="input-group">
-                <label className="input-label">Name</label>
-                <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Daily Sync" />
+                <label className="input-label">{t('automation.name_label')}</label>
+                <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder={t("automation.name_ph")} />
             </div>
             <div className="form-row">
                 <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Source (Chat ID / Username)</label>
+                    <label className="input-label">{t('automation.source_label')}</label>
                     <input type="text" className="input-field" value={sourceEntity} onChange={e => setSourceEntity(e.target.value)} required />
                 </div>
                 <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">Target (Chat ID / Username)</label>
+                    <label className="input-label">{t('automation.target_label')}</label>
                     <input type="text" className="input-field" value={targetEntity} onChange={e => setTargetEntity(e.target.value)} required />
                 </div>
             </div>
@@ -160,7 +162,7 @@ export function Automation() {
                     checked={isRealtime}
                     onChange={(e) => setIsRealtime(e.target.checked)}
                 />
-                <label htmlFor="realtime-check" style={{ fontWeight: 600 }}>Enable Real-Time Sync</label>
+                <label htmlFor="realtime-check" style={{ fontWeight: 600 }}>{t('automation.enable_realtime')}</label>
             </div>
 
             {!isRealtime && (

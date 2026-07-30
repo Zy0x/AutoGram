@@ -72,5 +72,7 @@
   "creds_save_fail": "✕ Gagal menyimpan kredensial.",
   "loading_credentials": "Memuat kredensial...",
   "worker_ui_transfer_log": "Worker + UI + transfer",
-  "local_media_cache_label": "Cache Media & Thumbnail Lokal"
+  "local_media_cache_label": "Cache Media & Thumbnail Lokal",
+  "clear_cache_modal_title": "Konfirmasi Hapus Cache",
+  "clear_db_modal_title": "Konfirmasi Kosongkan Database"
 }

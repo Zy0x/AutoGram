@@ -786,9 +786,9 @@ export function Accounts() {
                             </div>
                             <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
                               <li>{t('accounts.open_app')} <strong>Telegram</strong> di Smartphone Anda.</li>
-                              <li>Masuk ke <strong>Pengaturan (Settings) &gt; Perangkat (Devices)</strong>.</li>
-                              <li>Ketuk <strong>Hubungkan Perangkat (Link Desktop Device)</strong>.</li>
-                              <li>Arahkan kamera HP ke QR Code di atas.</li>
+                              <li>Masuk ke <strong>{t('accounts.qr_step_2')}</strong>.</li>
+                              <li>Ketuk <strong>{t('accounts.qr_step_4')}</strong>.</li>
+                              <li>{t('accounts.qr_step_5')}</li>
                             </ol>
                           </div>
 
