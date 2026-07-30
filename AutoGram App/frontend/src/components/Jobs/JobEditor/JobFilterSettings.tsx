@@ -94,7 +94,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             type="text"
             value={keywordFilter}
             onChange={(e) => setKeywordFilter(e.target.value)}
-            placeholder="misal: 1080p, eps01, pdf"
+            placeholder={t("jobs.ph_filter_example")}
             disabled={disabled}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:ring-1 focus:ring-indigo-500"
           />

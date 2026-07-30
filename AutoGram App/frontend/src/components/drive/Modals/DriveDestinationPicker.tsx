@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 /**
  * Destination picker for Media Studio (move / send).
  * Replaces native window.prompt with numbered list.
@@ -112,7 +113,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             className="td-dest-search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari chat / folder…"
+            placeholder={i18n.t("speedtest.ph_search_chat_folder")}
             aria-label="Cari tujuan"
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown') {

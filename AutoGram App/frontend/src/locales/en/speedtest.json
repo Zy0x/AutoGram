@@ -621,5 +621,20 @@
   "input_dialog_confirm": "Confirm",
   "batch_reupload_skip": "Skip all deleted files — nothing re-uploaded",
   "remote_upload_modal_title": "Remote Upload (URL)",
-  "storage_gauge_title": "Storage Usage"
+  "storage_gauge_title": "Storage Usage",
+  "upload_parallelism_hint": "How many files to pipeline to Telegram data centers concurrently (1–8). Increase for faster multi-file upload; decrease if experiencing FloodWait.",
+  "default_caption_hint": "Text attached to every upload (can be customized per-file in the future). Leave blank to use file name only.",
+  "upload_note_box": "Drag & drop from File Explorer, Upload button, and dropping to chat rows use these settings. Multi-part parallel transfer is managed automatically by the worker (up to 12).",
+  "download_parallelism_hint": "Number of files downloaded concurrently when downloading selected items (batch). Large files also use multi-part worker downloads.",
+  "download_note_box": "Single file download (from file card / preview) always saves to your selected destination dialog. Batch downloads use destination folder + parallelism settings above. Cancel transfers via Cancel button in dock progress.",
+  "quality_mode_high_quality_label": "HQ — Telegram native",
+  "quality_mode_high_quality_desc": "Photos/videos as Telegram media (streaming video). Other files as documents.",
+  "quality_mode_smart_label": "SMART — automatic",
+  "quality_mode_smart_desc": "Choose mode per extension (re-encode problematic videos if needed).",
+  "quality_mode_original_label": "ORIGINAL — intact document",
+  "quality_mode_original_desc": "All as documents (force_document). Fastest, no Telegram photo compression.",
+  "ph_search_zip": "Search zip entries...",
+  "ph_search_chat_folder": "Search chat / folder…",
+  "ph_remote_url": "https://example.com/file.zip",
+  "ph_folder_name": "Folder name..."
 }

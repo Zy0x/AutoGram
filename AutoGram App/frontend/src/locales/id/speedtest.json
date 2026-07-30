@@ -621,5 +621,20 @@
   "input_dialog_confirm": "Konfirmasi",
   "batch_reupload_skip": "Lewati semua berkas yang dihapus — tidak ada yang diunggah ulang",
   "remote_upload_modal_title": "Unggah Jarak Jauh (URL)",
-  "storage_gauge_title": "Penggunaan Penyimpanan"
+  "storage_gauge_title": "Penggunaan Penyimpanan",
+  "upload_parallelism_hint": "Berapa file di-pipeline ke data center Telegram bersamaan (1–8). Naikkan untuk multi-file lebih cepat; turunkan jika sering FloodWait.",
+  "default_caption_hint": "Teks yang dilampirkan ke setiap unggahan (bisa diganti per-file di masa depan). Kosongkan untuk memakai nama file saja.",
+  "upload_note_box": "Drag & drop dari File Explorer, tombol Unggah, dan drop ke baris chat memakai pengaturan ini. Part paralel per-file diatur otomatis di worker (hingga 12).",
+  "download_parallelism_hint": "Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch). Tiap file besar juga memakai unduhan multi-part di worker.",
+  "download_note_box": "Unduh satu file (dari kartu / preview) selalu ke lokasi yang Anda pilih di dialog simpan. Batch unduh memakai folder tujuan + paralel di atas. Batal transfer lewat tombol Batal di dock progress.",
+  "quality_mode_high_quality_label": "HQ — Telegram native",
+  "quality_mode_high_quality_desc": "Foto/video sebagai media Telegram (streaming video). Berkas lain sebagai dokumen.",
+  "quality_mode_smart_label": "SMART — otomatis",
+  "quality_mode_smart_desc": "Pilih mode per ekstensi (re-encode video problematik bila perlu).",
+  "quality_mode_original_label": "ORIGINAL — dokumen utuh",
+  "quality_mode_original_desc": "Semua sebagai dokumen (force_document). Paling cepat, tanpa kompresi foto Telegram.",
+  "ph_search_zip": "Cari berkas zip...",
+  "ph_search_chat_folder": "Cari chat / folder…",
+  "ph_remote_url": "https://example.com/file.zip",
+  "ph_folder_name": "Nama folder..."
 }

@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import React, { useState } from 'react';
 import { FolderPlus, Trash2, Edit3, FolderInput, X } from 'lucide-react';
 import { DriveFolder, DriveFile } from '../../lib/telegram/driveTypes';
@@ -63,7 +64,7 @@ export const MediaStudioModals: React.FC<MediaStudioModalsProps> = ({
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              placeholder="Folder name..."
+              placeholder={i18n.t("speedtest.ph_folder_name")}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 mb-4 focus:outline-none focus:border-indigo-500 font-mono"
               autoFocus
             />

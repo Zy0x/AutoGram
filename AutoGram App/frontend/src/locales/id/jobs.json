@@ -37,5 +37,13 @@
   "fresh_start_desc": "Menghapus riwayat eksekusi sebelumnya dan memulai tugas dari awal.",
   "rerun_modal_title": "Pilihan Mode Jalankan Ulang (Re-run)",
   "original_caption_label": "Teks Caption Asli",
-  "fallback_clean_copy_label": "Fast Forward (Beralih ke Clean Copy)"
+  "fallback_clean_copy_label": "Fast Forward (Beralih ke Clean Copy)",
+  "ph_filter_example": "misal: 1080p, eps01, pdf",
+  "ph_profile_name": "Nama Profil",
+  "ph_job_name_example": "misal: Cadangan Semester 1",
+  "ph_chat_id_or_username": "ID atau Username Saluran/Grup",
+  "ph_zero_unlimited": "0 = Tanpa Batas",
+  "ph_min": "Min",
+  "ph_max": "Max",
+  "ph_caption_template": "Ketik templat caption khusus Anda di sini...\n\nContoh:\n*PEMBERITAHUAN PENTING*\n{caption}\n\n[Baca Selengkapnya](https://example.com)"
 }

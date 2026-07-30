@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import React from 'react';
 import {
   Search,
@@ -100,7 +101,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search zip entries..."
+          placeholder={i18n.t("speedtest.ph_search_zip")}
           className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 text-xs text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-mono"
         />
       </div>

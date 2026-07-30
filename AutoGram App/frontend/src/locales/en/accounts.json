@@ -35,5 +35,9 @@
   "btn_send_code": "Send Code",
   "btn_verify_code": "Verify Code",
   "btn_verify_2fa": "Verify Password",
-  "no_accounts_found": "No connected Telegram accounts yet."
+  "no_accounts_found": "No connected Telegram accounts yet.",
+  "ph_phone_example": "+628123456789",
+  "ph_code_example": "12345",
+  "ph_account_name": "MyAccount",
+  "ph_phone_short": "62878xxxx"
 }

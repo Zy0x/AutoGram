@@ -35,5 +35,9 @@
   "btn_send_code": "Kirim Kode",
   "btn_verify_code": "Verifikasi Kode",
   "btn_verify_2fa": "Verifikasi Kata Sandi",
-  "no_accounts_found": "Belum ada akun Telegram yang terhubung."
+  "no_accounts_found": "Belum ada akun Telegram yang terhubung.",
+  "ph_phone_example": "+628123456789",
+  "ph_code_example": "12345",
+  "ph_account_name": "AkunSaya",
+  "ph_phone_short": "62878xxxx"
 }

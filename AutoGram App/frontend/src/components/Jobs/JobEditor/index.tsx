@@ -644,7 +644,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input 
                       type="text" 
                       className="input-field profile-name-input"
-                      placeholder="Profile Name"
+                      placeholder={t("jobs.ph_profile_name")}
                       value={newJobProfileName}
                       onChange={(e) => setNewJobProfileName(e.target.value)}
                     />
@@ -684,7 +684,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
             <h3 className="section-title" style={{ marginBottom: '24px' }}>Job Identity</h3>
             
             <label className="input-label" style={{ marginBottom: '8px', display: 'block' }}>Job Name <span style={{color: 'var(--danger)'}}>*</span></label>
-            <input type="text" className="input-field" placeholder="e.g., Backup Semester 1" value={jobName} onChange={e => {setJobName(e.target.value); setErrors({...errors, jobName: ''});}} style={{ width: '100%', border: errors.jobName ? '1px solid var(--danger)' : undefined }} />
+            <input type="text" className="input-field" placeholder={t("jobs.ph_job_name_example")} value={jobName} onChange={e => {setJobName(e.target.value); setErrors({...errors, jobName: ''});}} style={{ width: '100%', border: errors.jobName ? '1px solid var(--danger)' : undefined }} />
             {errors.jobName && <span style={{color: 'var(--danger)', fontSize: '0.85rem', marginTop: '4px', display: 'block'}}>{errors.jobName}</span>}
             <div style={{marginBottom: '24px'}}></div>
             
@@ -718,7 +718,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 </label>
                 <div style={{ position: 'relative', display: 'flex', width: '100%' }}>
                   <FolderGit2 className="input-icon" size={18} />
-                  <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.sourceValue ? '1px solid var(--danger)' : undefined }} value={sourceValue} onChange={(e) => {setSourceValue(e.target.value); setSourceName(""); setErrors({...errors, sourceValue: ''});}} placeholder="Channel/Group ID or Username" />
+                  <input type="text" className="input-field with-icon" style={{ flex: 1, border: errors.sourceValue ? '1px solid var(--danger)' : undefined }} value={sourceValue} onChange={(e) => {setSourceValue(e.target.value); setSourceName(""); setErrors({...errors, sourceValue: ''});}} placeholder={t("jobs.ph_chat_id_or_username")} />
                 </div>
                 {sourceName && !errors.sourceValue && (
                   <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', background: 'rgba(255, 174, 0, 0.1)', padding: '4px 12px', borderRadius: '12px', color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600 }}>
@@ -893,7 +893,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   <span>Media Limit</span>
                   <InfoTooltip content="Membatasi jumlah maksimal media yang akan ditransfer dalam satu sesi eksekusi. Gunakan angka 0 untuk transfer tanpa batas (Unlimited)." />
                 </div>
-                <input type="number" value={limit} onChange={(e) => setLimit(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder="0 = Unlimited" style={{ width: '100%', opacity: enableLimit ? 1 : 0.5 }} disabled={!enableLimit} />
+                <input type="number" value={limit} onChange={(e) => setLimit(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder={t("jobs.ph_zero_unlimited")} style={{ width: '100%', opacity: enableLimit ? 1 : 0.5 }} disabled={!enableLimit} />
               </div>
               <div className="input-group">
                 <div className="toggle-label-group" style={{ marginBottom: '8px' }}>
@@ -905,8 +905,8 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   <InfoTooltip content="Only transfer media files within this size range." />
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input type="number" value={sizeMin} onChange={(e) => setSizeMin(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder="Min" style={{ flex: 1, opacity: enableSizeFilter ? 1 : 0.5 }} disabled={!enableSizeFilter} />
-                  <input type="number" value={sizeMax} onChange={(e) => setSizeMax(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder="Max" style={{ flex: 1, opacity: enableSizeFilter ? 1 : 0.5 }} disabled={!enableSizeFilter} />
+                  <input type="number" value={sizeMin} onChange={(e) => setSizeMin(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder={t("jobs.ph_min")} style={{ flex: 1, opacity: enableSizeFilter ? 1 : 0.5 }} disabled={!enableSizeFilter} />
+                  <input type="number" value={sizeMax} onChange={(e) => setSizeMax(e.target.value === '' ? '' : Number(e.target.value))} className="input-field" placeholder={t("jobs.ph_max")} style={{ flex: 1, opacity: enableSizeFilter ? 1 : 0.5 }} disabled={!enableSizeFilter} />
                 </div>
               </div>
 

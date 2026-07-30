@@ -37,5 +37,13 @@
   "fresh_start_desc": "Clears previous execution history and starts the job from scratch.",
   "rerun_modal_title": "Re-run Mode Selection",
   "original_caption_label": "Original Text",
-  "fallback_clean_copy_label": "Fast Forward (Fell back to Clean Copy)"
+  "fallback_clean_copy_label": "Fast Forward (Fell back to Clean Copy)",
+  "ph_filter_example": "e.g.: 1080p, eps01, pdf",
+  "ph_profile_name": "Profile Name",
+  "ph_job_name_example": "e.g., Semester 1 Backup",
+  "ph_chat_id_or_username": "Channel/Group ID or Username",
+  "ph_zero_unlimited": "0 = Unlimited",
+  "ph_min": "Min",
+  "ph_max": "Max",
+  "ph_caption_template": "Type your custom caption template here...\n\nExample:\n*IMPORTANT NOTICE*\n{caption}\n\n[Read More](https://example.com)"
 }
