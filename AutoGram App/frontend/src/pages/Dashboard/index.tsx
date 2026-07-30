@@ -132,7 +132,7 @@ export function Dashboard({ onNavigate }: Props) {
         <div className="dash-safety-grid">
           <div>
             <Zap size={16} aria-hidden /> <strong>Satu pool Grammers per akun</strong>
-            <p>Forwarder &amp; Drives berbagi koneksi MTProto yang sama — tidak dual-open Telethon.</p>
+            <p>{t('dashboard.parallel_grammers_desc') || "Forwarder & Drives share the same MTProto connection."}</p>
           </div>
           <div>
             <ShieldCheck size={16} aria-hidden /> <strong>Session guard</strong>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Filter } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
   setMaxSizeMb,
   disabled,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-4">
       <h4 className="font-semibold text-xs text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -114,7 +116,7 @@ export const JobFilterSettings: React.FC<JobFilterSettingsProps> = ({
             type="number"
             value={maxSizeMb || ''}
             onChange={(e) => setMaxSizeMb(Number(e.target.value) || 0)}
-            placeholder="Tanpa batas"
+            placeholder={t('jobs.no_limit')}
             disabled={disabled}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 focus:ring-1 focus:ring-indigo-500 font-mono"
           />

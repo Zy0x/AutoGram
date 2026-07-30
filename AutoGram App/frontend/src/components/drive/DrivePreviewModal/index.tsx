@@ -1,4 +1,5 @@
-import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import React, { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -418,6 +419,7 @@ export function DrivePreviewModal({
   onEnqueueUploadPaths,
   onEnqueueDownloadSingle,
 }: Props) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -2580,7 +2582,7 @@ export function DrivePreviewModal({
                 void handleDownload();
               }}
               disabled={saving}
-              title="Unduh file ke komputer"
+              title={t('speedtest.download_tooltip')}
               aria-label="Download"
             >
               {saving ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
@@ -2595,7 +2597,7 @@ export function DrivePreviewModal({
                     void handleOpenSystem();
                   }}
                   disabled={openingSystem || !creds}
-                  title="Buka dengan aplikasi default Windows"
+                  title={t('speedtest.open_default_tooltip')}
                   aria-label="Buka"
                 >
                   {openingSystem ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
@@ -2608,7 +2610,7 @@ export function DrivePreviewModal({
                     void handleOpenWith();
                   }}
                   disabled={openingSystem || !creds}
-                  title="Buka dengan… (pilih aplikasi)"
+                  title={t('speedtest.open_with_tooltip')}
                   aria-label="Buka dengan"
                 >
                   <AppWindow size={16} />
@@ -2651,21 +2653,21 @@ export function DrivePreviewModal({
           <div className="drive-open-progress" role="status" aria-live="polite">
             <div className="drive-open-progress-main">
               {openingSystem ? <Loader2 size={14} className="spin" /> : null}
-              <span>{openProgressMsg || 'Memproses…'}</span>
+              <span>{openProgressMsg || t('speedtest.processing')}</span>
             </div>
             <div className="drive-open-progress-actions">
               <button
                 type="button"
                 className="drive-open-progress-cancel"
-                title="Batalkan dan kembali ke pratinjau"
+                title={t('speedtest.cancel_preview_tooltip')}
                 onClick={dismissOpenProgress}
               >
-                Batal
+                {t('speedtest.cancel')}
               </button>
               <button
                 type="button"
                 className="drive-open-progress-cancel is-quiet"
-                title="Tutup strip status"
+                title={t('speedtest.close_status_strip')}
                 aria-label="Tutup status"
                 onClick={dismissOpenProgress}
               >
@@ -2867,7 +2869,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn drive-tool-btn-accent"
-                  title="Buka di aplikasi default"
+                  title={t('speedtest.open_default_app')}
                   disabled={openingSystem || !creds}
                   onClick={() => void handleOpenSystem()}
                 >
@@ -2877,7 +2879,7 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="drive-tool-btn"
-                  title="Buka dengan aplikasi lain…"
+                  title={t('speedtest.open_with_other')}
                   disabled={openingSystem || !creds}
                   onClick={() => void handleOpenWith()}
                 >
@@ -2888,7 +2890,7 @@ export function DrivePreviewModal({
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title="Cetak PDF (dialog Windows punya tombol Batal)"
+                    title={t('speedtest.print_pdf_tooltip')}
                     disabled={openingSystem || !creds}
                     onClick={() => void handlePrintPdf()}
                   >
@@ -2900,7 +2902,7 @@ export function DrivePreviewModal({
                   <button
                     type="button"
                     className="drive-tool-btn"
-                    title="Salin teks"
+                    title={t('speedtest.copy_text')}
                     onClick={() => void handleCopyText()}
                   >
                     <Copy size={15} />
@@ -2915,7 +2917,7 @@ export function DrivePreviewModal({
               <button
                 type="button"
                 className={`drive-tool-btn${loading ? ' is-loading' : ''}`}
-                title="Muat ulang preview dari Telegram"
+                title={t('speedtest.reload_preview')}
                 disabled={loading}
                 onClick={() => {
                   resetViewTools();
@@ -2933,7 +2935,7 @@ export function DrivePreviewModal({
               <button
                 type="button"
                 className={`drive-tool-btn${showInfo ? ' is-on' : ''}`}
-                title="Tampilkan detail file (I)"
+                title={t('speedtest.file_detail_tooltip')}
                 onClick={() => setShowInfo((v) => !v)}
               >
                 <Info size={15} />
@@ -4074,7 +4076,7 @@ export function DrivePreviewModal({
                 </div>
               )}
               <div>
-                <strong>Ukuran</strong> {formatDriveBytes(file.size)}
+                <strong>{t('speedtest.media_size')}</strong> {formatDriveBytes(file.size)}
               </div>
               {durationLabel && (
                 <div>

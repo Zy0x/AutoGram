@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * Dedicated Upload / Download settings panel for Media Studio.
  * Surfaces every transfer option supported by the desktop worker UI path.
@@ -39,6 +40,7 @@ export function DriveTransferSettings({
   onClose,
   transferActive,
 }: Props) {
+  const { t } = useTranslation();
   const titleId = useId();
   const [tab, setTab] = useState<Tab>('upload');
   const [draft, setDraft] = useState<DriveTransferSettings>(() => ({
@@ -113,8 +115,8 @@ export function DriveTransferSettings({
           <div className="td-xfer-settings-title">
             <Settings2 size={18} aria-hidden />
             <div>
-              <h2 id={titleId}>Pengaturan Transfer</h2>
-              <p>Konfigurasi unggah &amp; unduh Media Studio (Desktop)</p>
+              <h2 id={titleId}>{t('speedtest.transfer_settings_title')}</h2>
+              <p>{t('speedtest.transfer_settings_subtitle')}</p>
             </div>
           </div>
           <button
@@ -154,7 +156,7 @@ export function DriveTransferSettings({
         <div className="td-xfer-settings-body">
           {tab === 'upload' && (
             <section className="td-xfer-section" aria-label="Pengaturan upload">
-              <h3>Kualitas unggah</h3>
+              <h3>{t('speedtest.upload_quality') || "Upload quality"}</h3>
               <p className="td-xfer-hint">
                 Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
               </p>
@@ -223,7 +225,7 @@ export function DriveTransferSettings({
                 />
               </label>
 
-              <h3>Paralel unggah</h3>
+              <h3>{t('speedtest.upload_parallel') || "Parallel upload"}</h3>
               <p className="td-xfer-hint">
                 Berapa file di-pipeline ke data center Telegram bersamaan (1–8). Naikkan untuk multi-file
                 lebih cepat; turunkan jika sering FloodWait.
@@ -305,7 +307,7 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ refreshAfterUpload: e.target.checked })}
                   />
                   <span>
-                    <strong>Refresh daftar setelah unggah</strong>
+                    <strong>{t('speedtest.refresh_after_upload')}</strong>
                     <small>Muat ulang grid di folder tujuan agar file baru langsung terlihat.</small>
                   </span>
                 </label>
@@ -317,8 +319,8 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
                   />
                   <span>
-                    <strong>Lewati berkas terunggah (De-duplikasi)</strong>
-                    <small>Deteksi riwayat Telegram dan database lokal secara otomatis untuk menghindari pengunggahan ganda.</small>
+                    <strong>{t('speedtest.skip_uploaded_files') || "Skip uploaded files"}</strong>
+                    <small>{t('speedtest.skip_uploaded_desc') || "Automatically detect Telegram history"}</small>
                   </span>
                 </label>
 
@@ -429,7 +431,7 @@ export function DriveTransferSettings({
 
           {tab === 'download' && (
             <section className="td-xfer-section" aria-label="Pengaturan download">
-              <h3>Paralel unduh</h3>
+              <h3>{t('speedtest.download_parallel') || "Parallel download"}</h3>
               <p className="td-xfer-hint">
                 Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch). Tiap file besar juga
                 memakai unduhan multi-part di worker.
@@ -447,7 +449,7 @@ export function DriveTransferSettings({
                 <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
               </label>
 
-              <h3>Perilaku unduh</h3>
+              <h3>{t('speedtest.download_behavior') || "Download behavior"}</h3>
               <div className="td-xfer-checks">
                 <label className="td-xfer-check">
                   <input
@@ -457,8 +459,8 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ notifyDownloadDone: e.target.checked })}
                   />
                   <span>
-                    <strong>Status selesai unduh</strong>
-                    <small>Tampilkan path folder tujuan di status bar setelah batch selesai.</small>
+                    <strong>{t('speedtest.download_status_title')}</strong>
+                    <small>{t('speedtest.download_status_desc')}</small>
                   </span>
                 </label>
               </div>
@@ -474,10 +476,10 @@ export function DriveTransferSettings({
 
               <h3>Yang didukung</h3>
               <ul className="td-xfer-list">
-                <li>Unduh multi-pilih ke folder (batch)</li>
-                <li>Unduh satu file dari kartu, menu konteks, atau preview</li>
+                <li>{t('speedtest.download_multi_folder')}</li>
+                <li>{t('speedtest.download_single_file')}</li>
                 <li>Progress % / MB/s / puncak di dock transfer</li>
-                <li>Batal job unduh aktif</li>
+                <li>{t('speedtest.cancel_active_download')}</li>
                 <li>Multi-part paralel untuk file besar (worker)</li>
               </ul>
             </section>

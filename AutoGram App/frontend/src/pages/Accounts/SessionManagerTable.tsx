@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Shield, Trash2, CheckCircle2 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export const SessionManagerTable: React.FC<SessionManagerTableProps> = ({
   onSelectActive,
   onDeleteSession,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -65,7 +67,7 @@ export const SessionManagerTable: React.FC<SessionManagerTableProps> = ({
                   type="button"
                   onClick={() => onDeleteSession(s.session)}
                   className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all"
-                  title="Hapus Sesi"
+                  title={t('accounts.delete_title')}
                 >
                   <Trash2 size={15} />
                 </button>

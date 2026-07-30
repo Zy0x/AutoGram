@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link2, X, Loader2 } from 'lucide-react';
@@ -15,6 +16,7 @@ interface RemoteUploadModalProps {
 }
 
 export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: RemoteUploadModalProps) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState('');
   const [folderId, setFolderId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -176,7 +178,7 @@ export function RemoteUploadModal({ isOpen, onClose, folders, onUpload }: Remote
             ) : (
               <>
                 <Link2 size={15} strokeWidth={2.25} />
-                <span>Mulai Unggah</span>
+                <span>{t('speedtest.start_upload')}</span>
               </>
             )}
           </button>

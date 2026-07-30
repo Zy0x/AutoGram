@@ -1,4 +1,5 @@
 import { Play, Pause, Trash2, Edit3, Plus, Terminal, RefreshCw, Upload, Download, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { RerunModal } from '../Modals/RerunModal';
 import {
@@ -40,6 +41,7 @@ export function JobsList({
   onViewRuntime,
   onEditJob
 }: JobsListProps) {
+  const { t } = useTranslation();
   const [selectedJobForRerun, setSelectedJobForRerun] = useState<any>(null);
 
   return (
@@ -130,7 +132,7 @@ export function JobsList({
                     type="button"
                     className="btn btn-secondary btn-warning-soft"
                     onClick={() => pauseJob(job.id)}
-                    title="Jeda eksekusi (cooperative pause)"
+                    title={t('jobs.pause_execution')}
                   >
                     <Pause size={18} /> {action.label}
                   </button>
@@ -145,7 +147,7 @@ export function JobsList({
                     className="btn btn-primary"
                     onClick={() => startJob(job, args.isRetry, args.isDryRun, args.rerunMode)}
                     disabled={busy}
-                    title="Lanjutkan dari checkpoint / pesan yang belum selesai"
+                    title={t('jobs.resume_from_checkpoint')}
                   >
                     <Play size={18} /> {action.label}
                   </button>

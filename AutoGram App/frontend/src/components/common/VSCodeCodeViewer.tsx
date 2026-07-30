@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * Reusable Universal VSCode Dark+ Style Code & Text Viewer Component.
  * High-performance regex syntax highlighter for 20+ programming, markup, and data languages.
@@ -15,6 +16,7 @@ export interface VSCodeCodeViewerProps {
 
 /** Language detector based on file extension */
 function detectLanguage(filename: string): { lang: string; name: string } {
+
   const ext = (filename.split('.').pop() || '').toLowerCase();
   switch (ext) {
     case 'ts':
@@ -103,6 +105,7 @@ const TYPES = /\b([A-Z]\w*)\b/g;
 const TAGS = /<\/?([a-zA-Z0-9-]+)(\s+[^>]*>|>)?/g;
 
 function escapeHtml(str: string): string {
+
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -112,6 +115,7 @@ function escapeHtml(str: string): string {
 }
 
 function highlightLine(line: string, lang: string): string {
+
   if (!line || line.trim() === '') return '&nbsp;';
 
   // Highlight comments first to avoid nested highlighting inside comments
@@ -162,6 +166,7 @@ export function VSCodeCodeViewer({
   name,
   maxCharLimit = 1_000_000,
 }: VSCodeCodeViewerProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(false);
   const [formattedText, setFormattedText] = useState<string | null>(null);
@@ -257,7 +262,7 @@ export function VSCodeCodeViewer({
             type="button"
             className="vscode-action-btn is-primary"
             onClick={() => void handleCopyCode()}
-            title="Salin isi kode ke clipboard"
+            title={t('speedtest.copy_code_tooltip') || "Copy code to clipboard"}
           >
             {copied ? <Check size={13} style={{ color: '#4ade80' }} /> : <Copy size={13} />}
             <span>{copied ? 'Tersalin!' : 'Salin Kode'}</span>

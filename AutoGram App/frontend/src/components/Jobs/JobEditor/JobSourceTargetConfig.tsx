@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 
 
@@ -18,6 +19,7 @@ export const JobSourceTargetConfig: React.FC<JobSourceTargetConfigProps> = ({
   chats,
   disabled,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-4">
       <h4 className="font-semibold text-xs text-slate-200 uppercase tracking-wider">
@@ -36,7 +38,7 @@ export const JobSourceTargetConfig: React.FC<JobSourceTargetConfigProps> = ({
             disabled={disabled}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-indigo-500 font-mono"
           >
-            <option value="">-- Pilih Sumber Telegram --</option>
+            <option value="">{t('jobs.select_source_placeholder')}</option>
             {chats.map((c) => (
               <option key={`src-${c.id}`} value={c.id}>
                 {c.name} ({c.id})
@@ -56,7 +58,7 @@ export const JobSourceTargetConfig: React.FC<JobSourceTargetConfigProps> = ({
             disabled={disabled}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:ring-1 focus:ring-indigo-500 font-mono"
           >
-            <option value="">-- Pilih Tujuan Telegram --</option>
+            <option value="">{t('jobs.select_target_placeholder')}</option>
             {chats.map((c) => (
               <option key={`target-${c.id}`} value={c.id}>
                 {c.name} ({c.id})

@@ -1,4 +1,5 @@
 import { Play, Pause, Terminal, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, Info, Download, Trash2, Edit3, Zap, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { runDaemonOnce } from '../../../lib/tauri/workerBridge';
 
@@ -30,6 +31,7 @@ export function JobRuntime({
   onEditJob,
   runResult
 }: JobRuntimeProps) {
+  const { t } = useTranslation();
   const [historicalLogs, setHistoricalLogs] = useState<string | null>(null);
   const [isFetchingLogs, setIsFetchingLogs] = useState(false);
   const [showRerunModal, setShowRerunModal] = useState(false);
@@ -351,7 +353,7 @@ export function JobRuntime({
                   type="button"
                   className="btn btn-primary"
                   onClick={() => startJob(job, false, false)}
-                  title="Lanjutkan dari checkpoint / pesan yang belum selesai"
+                  title={t('jobs.resume_from_checkpoint')}
                 >
                   <Play size={18} /> Resume
                 </button>

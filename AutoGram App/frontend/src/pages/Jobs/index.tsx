@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { JobsList } from '../../components/Jobs/Runtime/JobsList';
 import { JobEditor } from '../../components/Jobs/JobEditor';
@@ -24,6 +25,7 @@ import { detectTauriRuntime } from '../../lib/tauri/platform';
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
 export function Jobs() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<WorkspaceMode>('list');
   const [jobs, setJobs] = useState<any[]>([]);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
@@ -34,6 +36,7 @@ export function Jobs() {
 
   /** Only tracks "is running" — never call kill on these */
   const [activeCommands, setActiveCommands] = useState<{ [key: number]: JobChild | true }>({});
+
   const [jobLogs, setJobLogs] = useState<{ [key: number]: any[] }>({});
   const [runResults, setRunResults] = useState<{ [key: number]: 'success' | 'failed' | undefined }>({});
   const intentionalStopRef = useRef<Set<number>>(new Set());
@@ -443,10 +446,10 @@ export function Jobs() {
         await runDaemonOnce(['--action', 'fresh-start', '--job-id', String(jobId)]);
       }
       fetchJobs();
-      alert('History mapping berhasil dihapus. Job direset ke posisi 0.');
+      alert(t('jobs.fresh_start_success'));
     } catch (err) {
       console.error('Failed to fresh start job', err);
-      alert('Gagal melakukan fresh start.');
+      alert(t('jobs.fresh_start_fail'));
     }
   };
 

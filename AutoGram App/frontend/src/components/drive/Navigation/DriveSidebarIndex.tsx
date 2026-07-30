@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   FolderPlus,
   Folder,
@@ -79,12 +80,14 @@ const LS_SEC_RECENTS = 'td_sec_recents_open';
 const TELEGRAM_FOLDER_COLORS = ['#ef4444', '#f59e0b', '#8b5cf6', '#22c55e', '#06b6d4', '#3b82f6', '#ec4899'];
 
 function telegramFolderColor(color?: number | null): string {
+
   return color != null && color >= 0
     ? TELEGRAM_FOLDER_COLORS[color % TELEGRAM_FOLDER_COLORS.length]
     : '#8b5cf6';
 }
 
 function readSecOpen(key: string, fallback = true): boolean {
+
   try {
     const v = localStorage.getItem(key);
     if (v === '0') return false;
@@ -96,6 +99,7 @@ function readSecOpen(key: string, fallback = true): boolean {
 }
 
 function writeSecOpen(key: string, open: boolean): void {
+
   try {
     localStorage.setItem(key, open ? '1' : '0');
   } catch {
@@ -178,6 +182,7 @@ type Props = {
 };
 
 function ChatIcon({ type }: { type: string }) {
+
   if (type === 'user') return <Users size={16} />;
   if (type === 'bot') return <Bot size={16} />;
   if (type === 'group') return <MessageSquare size={16} />;
@@ -196,6 +201,7 @@ function PeerAvatar({
   fallback: React.ReactNode;
   title?: string;
 }) {
+
   const cached = getCachedAvatar(peerId);
   const [url, setUrl] = useState<string | null>(() =>
     cached === undefined ? null : cached
@@ -238,10 +244,12 @@ function PeerAvatar({
 }
 
 function dropKey(kind: string, id: number | null) {
+
   return `${kind}:${id ?? 'me'}`;
 }
 
 function parseDropKey(key: string): { kind: DriveDropTarget['kind']; id: number | null } | null {
+
   const idx = key.indexOf(':');
   if (idx < 0) return null;
   const kind = key.slice(0, idx) as DriveDropTarget['kind'];
@@ -294,6 +302,7 @@ function DropRow({
   onContextMenu,
   folderDragSource,
 }: DropRowProps) {
+
   const anyDrag = dragLive || !!folderDragLive;
   const allow = (e: React.DragEvent) =>
     dragLive || !!folderDragLive || acceptDrop(e) || isFolderReparentDragActive();
@@ -473,6 +482,8 @@ export function DriveSidebar({
   channelLimitWarning,
   pingState,
 }: Props) {
+  const { t } = useTranslation();
+
   const getPingTooltip = () => {
     if (pingState?.status === 'transferring') return 'Telegram: Sedang mentransfer data (Session terkunci eksklusif)';
     if (!pingState) return connected ? 'Drive Terhubung' : 'Terhubung';
@@ -1597,7 +1608,7 @@ export function DriveSidebar({
               <button
                 type="button"
                 className="td-location-search-clear"
-                title="Hapus pencarian"
+                title={t('speedtest.clear_search')}
                 aria-label="Hapus pencarian lokasi"
                 onClick={() => onChatQuery('')}
               >
@@ -2161,7 +2172,7 @@ export function DriveSidebar({
                       {c.is_forum && (
                         <span
                           className="td-badge-forum td-only-expanded"
-                          title="Grup dengan topik"
+                          title={t('speedtest.group_with_topics')}
                         >
                           Topik
                         </span>

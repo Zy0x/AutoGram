@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Play } from 'lucide-react';
@@ -10,6 +11,7 @@ interface RerunModalProps {
 }
 
 export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunModalProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'RESUME' | 'OVERWRITE' | 'SMART_SYNC'>('RESUME');
   
   // Overwrite safety checks
@@ -51,7 +53,7 @@ export function RerunModal({ jobName, successCount, onClose, onConfirm }: RerunM
                 <strong style={{ display: 'block', color: 'var(--text-main)', marginBottom: '4px' }}>RESUME — Lanjutkan dari checkpoint</strong>
                 <ul style={{ margin: 0, paddingLeft: '16px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   <li>Lewati pesan sudah sukses</li>
-                  <li>Proses pesan belum/belum selesai</li>
+                  <li>{t('jobs.rerun_incomplete')}</li>
                   <li>Cepat, aman, default</li>
                 </ul>
               </div>

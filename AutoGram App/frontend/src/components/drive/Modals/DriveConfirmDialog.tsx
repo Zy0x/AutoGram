@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * Confirm dialog for destructive / significant Drive actions
  * (delete, download, move/forward with optional forum topic + keep-source).
@@ -62,6 +63,7 @@ type Props = {
 };
 
 export function DriveConfirmDialog({ state, onClose }: Props) {
+  const { t } = useTranslation();
   const confirmRef = useRef<HTMLButtonElement>(null);
   const open = !!state;
   const [moveMode, setMoveMode] = useState<'move' | 'copy'>('move');
@@ -276,7 +278,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
 
             {state.isForum && (
               <label className="td-confirm-topic">
-                <span>Topik forum (opsional)</span>
+                <span>{t('speedtest.forum_topic_optional')}</span>
                 <MediaSelect
                   className="td-confirm-topic-select"
                   value={topicId == null ? '' : String(topicId)}

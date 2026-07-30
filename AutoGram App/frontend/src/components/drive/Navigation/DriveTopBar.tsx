@@ -24,6 +24,7 @@ import {
   Globe,
   FolderArchive,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type {
@@ -187,6 +188,7 @@ export function DriveTopBar({
   statsAccurate,
   scaleHint: _scaleHint,
 }: Props) {
+  const { t } = useTranslation();
   // Always show filter bar for forum groups (at least "Semua media")
   const showTopics = !!isForum;
 
@@ -235,7 +237,7 @@ export function DriveTopBar({
             type="button"
             className="td-chip-btn"
             onClick={onSelectAll}
-            title="Pilih semua yang terlihat (Ctrl+A)"
+            title={t('speedtest.select_visible_all')}
           >
             <ListChecks size={15} strokeWidth={2} aria-hidden />
             <span className="td-chip-label">Semua</span>
@@ -313,7 +315,7 @@ export function DriveTopBar({
               type="button"
               className="td-icon-btn td-menu-btn"
               onClick={onOpenLocations}
-              title="Buka daftar lokasi / chat"
+              title={t('speedtest.open_location_list')}
               aria-label="Buka sidebar lokasi"
             >
               <Menu size={18} />
@@ -437,7 +439,7 @@ export function DriveTopBar({
               type="button"
               className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
               onClick={onOpenTools}
-              title="Alat & Pengaturan Drive: salin batch, duplikat, rename, filter, storage, transfer (Ctrl+Shift+T)"
+              title={t('speedtest.tools_panel_tooltip')}
               aria-label="Buka alat & pengaturan Drive"
             >
               <SlidersHorizontal size={16} />
@@ -603,7 +605,7 @@ export function DriveTopBar({
               type="button"
               className={`td-topic-pill ${topicFilter == null ? 'active' : ''}`}
               onClick={() => onTopicFilter?.(null)}
-              title="Tampilkan semua media di grup (semua topik)"
+              title={t('speedtest.show_group_media')}
             >
               Semua media
             </button>
@@ -636,7 +638,7 @@ export function DriveTopBar({
                 type="button"
                 className="td-topic-pill td-topic-pill-add"
                 onClick={onAddTopic}
-                title="Tambah topik baru ke grup ini"
+                title={t('speedtest.add_new_topic')}
               >
                 + Tambah Topik
               </button>
@@ -661,7 +663,7 @@ export function DriveTopBar({
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Cari file di lokasi ini… (Ctrl+F)"
           aria-label="Cari file di lokasi saat ini. Pintasan Ctrl+F"
-          title="Filter media di folder/chat yang dibuka. Ctrl+F fokus. Lokasi: Ctrl+K di sidebar."
+          title={t('speedtest.filter_media_tooltip')}
         />
         {hasSelection && selectionToolbar}
       </div>
@@ -803,7 +805,7 @@ export function DriveTopBar({
                 }}
               >
                 <Copy size={14} />
-                <span>Salin ID Topik</span>
+                <span>{t('speedtest.copy_topic_id')}</span>
               </button>
               {onRenameTopic && (
                 <button
@@ -831,7 +833,7 @@ export function DriveTopBar({
                   }}
                 >
                   <Trash2 size={14} />
-                  <span>Hapus Topik</span>
+                  <span>{t('speedtest.delete_topic')}</span>
                 </button>
               )}
             </div>

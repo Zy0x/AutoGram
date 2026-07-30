@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
@@ -8,6 +9,7 @@ interface FreshStartModalProps {
 }
 
 export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModalProps) {
+  const { t } = useTranslation();
   const node = (
     <div className="modal-overlay" onClick={onClose} role="presentation">
       <div className="modal-panel glass-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
@@ -30,7 +32,7 @@ export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModal
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '20px' }}>
             <strong>Setelah ini:</strong>
             <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: 'var(--danger)' }}>
-              <li>Tidak bisa resume dari job sebelumnya</li>
+              <li>{t('jobs.fresh_start_cannot_resume')}</li>
               <li>Tidak bisa deteksi duplikasi dengan job lama</li>
               <li>Reply chain dari job lama tidak bisa direkonstruksi</li>
             </ul>
@@ -40,7 +42,7 @@ export function FreshStartModal({ jobName, onClose, onConfirm }: FreshStartModal
           <ul style={{ margin: '8px 0 0', paddingLeft: '20px', color: 'var(--text-muted)' }}>
             <li>Chat tujuan benar-benar kosong/dihapus semua</li>
             <li>Anda ingin mulai migrasi dari nol</li>
-            <li>Anda tidak peduli dengan job sebelumnya</li>
+            <li>{t('jobs.fresh_start_dont_care')}</li>
           </ul>
         </div>
         

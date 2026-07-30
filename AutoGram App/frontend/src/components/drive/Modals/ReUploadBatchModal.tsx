@@ -15,6 +15,7 @@
  *     onClose={() => setGuardrailPending([])}
  *   />
  */
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { RotateCcw, AlertTriangle, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -38,6 +39,7 @@ type Props = {
 };
 
 function formatBytes(n?: number): string {
+
   if (!n || n <= 0) return '';
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -46,6 +48,7 @@ function formatBytes(n?: number): string {
 }
 
 function formatTimestamp(ts?: number): string {
+
   if (!ts) return '';
   try {
     return new Date(ts * 1000).toLocaleString('id-ID', {
@@ -65,6 +68,7 @@ export function ReUploadBatchModal({
   onSkipAll,
   onClose,
 }: Props) {
+  const { t } = useTranslation();
   const titleId = useId();
   const [selected, setSelected] = useState<Set<number>>(() => new Set(items.map((i: any) => i.index)));
   const [expanded, setExpanded] = useState(false);
@@ -190,7 +194,7 @@ export function ReUploadBatchModal({
               onClick={() => setExpanded((v) => !v)}
             >
               {expanded ? (
-                <><ChevronUp size={13} /> Tampilkan lebih sedikit</>
+                <><ChevronUp size={13} /> {t('speedtest.show_less')}</>
               ) : (
                 <><ChevronDown size={13} /> Tampilkan {items.length - 5} file lainnya</>
               )}

@@ -130,7 +130,7 @@ export const DebugSection = memo(function DebugSection() {
                 <button
                   type="button"
                   className="dbg-icon-btn"
-                  title="Salin buffer"
+                  title={t('settings.copy_buffer_tooltip')}
                   onClick={() => {
                     const text = getDebugLogBuffer().join('\n') || '(kosong)';
                     void copyTextWithFallback(text).then((ok) => {
@@ -148,7 +148,7 @@ export const DebugSection = memo(function DebugSection() {
                 <button
                   type="button"
                   className="dbg-icon-btn danger"
-                  title="Hapus buffer"
+                  title={t('settings.clear_buffer_tooltip')}
                   onClick={() => {
                     clearDebugLogBuffer();
                     setLogSnap([]);

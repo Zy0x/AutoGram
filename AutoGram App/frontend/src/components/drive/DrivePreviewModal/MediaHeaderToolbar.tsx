@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import {
   X,
@@ -51,6 +52,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
   saving,
   openingSystem,
 }) => {
+  const { t } = useTranslation();
   const displayName = driveFileDisplayName(file);
 
   return (
@@ -67,7 +69,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={!hasPrev}
             onClick={onPrev}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
-            title="File Sebelumnya (Panah Kiri)"
+            title={t('speedtest.prev_file_tooltip')}
           >
             <ChevronLeft size={18} />
           </button>
@@ -90,7 +92,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={openingSystem}
             onClick={onOpenSystem}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-            title="Buka Aplikasi Sistem"
+            title={t('speedtest.open_system_app')}
           >
             <ExternalLink size={16} />
           </button>

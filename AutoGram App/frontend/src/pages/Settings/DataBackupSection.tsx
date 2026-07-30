@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, RefreshCw } from 'lucide-react';
 import { formatDriveBytes } from '../../lib/telegram/driveTypes';
 
@@ -17,6 +18,8 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
   onClearAllCaches,
   isClearingCache,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -38,7 +41,7 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
             disabled={isCalculating}
             onClick={onCalculateCacheSize}
             className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
-            title="Hitung Ulang Ukuran Cache"
+            title={t('settings.recalculate_cache_tooltip')}
           >
             <RefreshCw size={15} className={isCalculating ? 'animate-spin' : ''} />
           </button>

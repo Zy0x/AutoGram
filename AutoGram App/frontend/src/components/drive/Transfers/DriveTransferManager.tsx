@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 /**
  * Floating Transfer Manager — IDM-like expanded panel + Google Drive-style FAB.
  */
@@ -56,6 +57,7 @@ type Props = {
 };
 
 function StatusIcon({ status }: { status: string }) {
+
   // skipped: treated as done visually (green check), badge shows separately
   if (status === 'done' || status === 'skipped') return <Check size={14} className="tm-ico ok" />;
   if (status === 'reuploaded') return <RotateCcw size={14} className="tm-ico reupload" />;
@@ -76,6 +78,7 @@ function ProgressRing({
   size?: number;
   stroke?: number;
 }) {
+
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const p = Math.min(100, Math.max(0, percent));
@@ -113,6 +116,7 @@ function ProgressRing({
 }
 
 function encoderLabel(item: TransferSession['items'][number]): string {
+
   const backend = (item.encoderBackend || '').toLowerCase();
   const family = backend === 'nvidia'
     ? 'NVIDIA NVENC'
@@ -141,6 +145,7 @@ export function DriveTransferManager({
   onRetryFailed,
   canRetryFailed,
 }: Props) {
+  const { t } = useTranslation();
   const hasSession = sessionVisible(session);
   const visible = hasSession || forceShow;
   const counts = useMemo(() => countByStatus(session), [session]);
@@ -329,7 +334,7 @@ export function DriveTransferManager({
               // Always minimize first — never wipe history on X
               onToggleMinimize();
             }}
-            title="Sembunyikan panel (minimize)"
+            title={t('speedtest.minimize_panel')}
             aria-label="Sembunyikan"
           >
             <X size={15} />
@@ -481,7 +486,7 @@ export function DriveTransferManager({
                 type="button"
                 className="tm-btn ghost"
                 onClick={onToggleMinimize}
-                title="Minimize ke pojok — buka lagi lewat FAB atau tombol top bar"
+                title={t('speedtest.minimize_corner_tooltip')}
               >
                 <Minimize2 size={13} /> Sembunyikan
               </button>
@@ -500,7 +505,7 @@ export function DriveTransferManager({
                   type="button"
                   className="tm-btn"
                   onClick={onRetryFailed}
-                  title="Ulangi file yang gagal"
+                  title={t('speedtest.retry_failed_files')}
                 >
                   <RotateCcw size={13} /> Retry gagal ({counts.failed})
                 </button>
@@ -515,7 +520,7 @@ export function DriveTransferManager({
                   type="button"
                   className="tm-btn ghost"
                   onClick={onDismiss}
-                  title="Hapus riwayat transfer dari panel"
+                  title={t('speedtest.clear_transfer_history')}
                 >
                   Tutup riwayat
                 </button>
@@ -539,7 +544,7 @@ export function DriveTransferManager({
                     )}
                   </div>
                   <div className="tm-row-meta">
-                    {(it.status === 'done' || it.status === 'skipped') && <span>Selesai</span>}
+                    {(it.status === 'done' || it.status === 'skipped') && <span>{t('speedtest.status_done')}</span>}
                     {it.status === 'skipped' && (
                       <span
                         className="tm-skip-badge-pill"
@@ -637,7 +642,7 @@ export function DriveTransferManager({
                     window.setTimeout(() => setCopyMsg(null), 2000);
                   });
                 }}
-                title="Salin log ke clipboard (fallback textarea jika API diblokir)"
+                title={t('speedtest.copy_log_clipboard')}
               >
                 <Copy size={12} /> {copyMsg || 'Salin'}
               </button>

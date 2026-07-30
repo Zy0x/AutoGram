@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
@@ -150,6 +151,7 @@ export function DriveExplorer({
   scrollKey,
   onDisplayedIdsChange,
 }: Props) {
+  const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
   const parentRef = useRef<HTMLDivElement>(null);
   const pendingScrollRestoreRef = useRef<{ key: string; top: number } | null>(null);
@@ -711,7 +713,7 @@ export function DriveExplorer({
           <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
             <AlertTriangle size={48} />
           </div>
-          <h3>Gagal Memuat Lokasi</h3>
+          <h3>{t('speedtest.load_location_failed')}</h3>
           <p style={{ maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>{error}</p>
         </div>
       </div>

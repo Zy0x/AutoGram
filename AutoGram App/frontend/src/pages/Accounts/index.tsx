@@ -317,7 +317,7 @@ export function Accounts() {
       await new Promise((resolve) => window.setTimeout(resolve, 350 + attempt * 150));
     }
     if (!verified) {
-      setErrorMsg('Telegram menerima login, tetapi koneksi Grammers belum terverifikasi. Coba lagi tanpa menghapus session.');
+      setErrorMsg(t('accounts.unverified_connection'));
       setIsProcessing(false);
       return false;
     }
@@ -334,7 +334,7 @@ export function Accounts() {
 
   const handleStartQrLogin = async () => {
     if (!sessionName) {
-      setErrorMsg('Nama sesi wajib diisi.');
+      setErrorMsg(t('accounts.session_name_required'));
       return;
     }
 
@@ -784,7 +784,7 @@ export function Accounts() {
                               <Smartphone size={16} color="var(--primary)" /> Langkah-langkah scan di HP:
                             </div>
                             <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
-                              <li>Buka aplikasi <strong>Telegram</strong> di Smartphone Anda.</li>
+                              <li>{t('accounts.open_app')} <strong>Telegram</strong> di Smartphone Anda.</li>
                               <li>Masuk ke <strong>Pengaturan (Settings) &gt; Perangkat (Devices)</strong>.</li>
                               <li>Ketuk <strong>Hubungkan Perangkat (Link Desktop Device)</strong>.</li>
                               <li>Arahkan kamera HP ke QR Code di atas.</li>

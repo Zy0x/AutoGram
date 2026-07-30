@@ -771,7 +771,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'square' }}>
                       <li>Native Telegram forward (tercepat) + batch album</li>
                       <li>Caption &amp; album utuh; reply hanya jika pesan terkait ikut di-forward</li>
-                      <li>Resume, pause, skip duplikat (message ID), filter media/tanggal/ukuran</li>
+                      <li>{t('jobs.job_editor_features')}</li>
                       <li><strong>Kelemahan:</strong> jejak &quot;Forwarded from…&quot; selalu ada (API)</li>
                       <li><strong>Cocok untuk:</strong> backup pribadi / arsip cepat; channel restricted → Auto-Fallback ke Clean Copy</li>
                     </ul>
@@ -786,7 +786,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                   <div style={{ paddingLeft: '30px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                     <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'square' }}>
                       <li>Tanpa jejak "Forwarded from..." (Stealth)</li>
-                      <li>Mendukung kustomisasi caption dan filter ketat</li>
+                      <li>{t('jobs.job_editor_custom')}</li>
                       <li>Lebih lambat dari Fast Forward</li>
                     </ul>
                   </div>
@@ -901,7 +901,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableSizeFilter} onChange={e => setEnableSizeFilter(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span>Size Filter (MB)</span>
+                  <span>{t('jobs.size_filter')}</span>
                   <InfoTooltip content="Only transfer media files within this size range." />
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -916,7 +916,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableMediaFilter} onChange={e => setEnableMediaFilter(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span>Media Filter</span>
+                  <span>{t('jobs.media_filter')}</span>
                   <InfoTooltip content="Filter specific types of media." />
                 </div>
                 <Select 
@@ -959,7 +959,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     <input type="checkbox" checked={enableDateFilter} onChange={e => setEnableDateFilter(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
-                  <span>Date Filter</span>
+                  <span>{t('jobs.date_filter')}</span>
                   <InfoTooltip content="Only transfer messages posted within this date range." />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

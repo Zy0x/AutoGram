@@ -2,6 +2,7 @@
  * Power tools panel: duplicates, space usage, bulk rename, smart copy, advanced filters.
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -169,6 +170,7 @@ export function DriveToolsPanel({
   onBulkRename,
   onSmartCopy,
 }: Props) {
+  const { t } = useTranslation();
   const [dupMode, setDupMode] = useState<'name_size' | 'both'>('name_size');
   const [pattern, setPattern] = useState('{name}_{n:2}.{ext}');
   const [startAt, setStartAt] = useState(1);
@@ -290,7 +292,7 @@ export function DriveToolsPanel({
               <SlidersHorizontal size={20} />
             </div>
             <div className="td-tools-title-text">
-              <h2>Alat &amp; Pengaturan Drive</h2>
+              <h2>{t('speedtest.tools_title')}</h2>
               <div className="td-tools-sub" title={locationLabel}>
                 <span className="td-tools-loc-dot"></span>
                 <span>{locationLabel}</span>
@@ -364,9 +366,9 @@ export function DriveToolsPanel({
                 {locationStatsAccurate ? (
                   <>Total unik seluruh {scopeLabel} (metadata Telegram, tanpa unduh file). Tidak double-count antar filter.</>
                 ) : locationStatsLoading ? (
-                  <>Walk media di latar — angka akan final saat selesai. Grid tetap bisa dipakai.</>
+                  <>{t('speedtest.walk_media_notice')}</>
                 ) : (
-                  <>Dari halaman grid / lower-bound. Buka tab ini memicu hitung akurat otomatis.</>
+                  <>{t('speedtest.walk_grid_notice')}</>
                 )}
               </p>
 
@@ -556,7 +558,7 @@ export function DriveToolsPanel({
                       checked={skipDup}
                       onChange={(e) => setSkipDup(e.target.checked)}
                     />
-                    <span>Skip duplikat (nama + ukuran di tujuan)</span>
+                    <span>{t('speedtest.skip_dup_name_size')}</span>
                   </label>
                 </div>
               </div>
@@ -754,6 +756,7 @@ function TransferTabContent({
   subTab: 'upload' | 'download';
   onSubTab: (t: 'upload' | 'download') => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="td-tools-xfer-container">
       <div className="td-xfer-settings-tabs" role="tablist" aria-label="Bagian pengaturan">
@@ -782,7 +785,7 @@ function TransferTabContent({
       <div className="td-xfer-settings-body">
         {subTab === 'upload' && (
           <section className="td-xfer-section" aria-label="Pengaturan upload">
-            <h3>Kualitas unggah</h3>
+            <h3>{t('speedtest.upload_quality')}</h3>
             <p className="td-xfer-hint">
               Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).
             </p>
@@ -851,7 +854,7 @@ function TransferTabContent({
               />
             </label>
 
-            <h3>Paralel unggah</h3>
+            <h3>{t('speedtest.upload_parallel')}</h3>
             <p className="td-xfer-hint">
               Berapa file di-pipeline ke data center Telegram bersamaan (1–8).
             </p>
@@ -932,8 +935,8 @@ function TransferTabContent({
                   onChange={(e) => onChange({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
                 />
                 <span>
-                  <strong>Lewati berkas terunggah (De-duplikasi)</strong>
-                  <small>Deteksi riwayat Telegram dan database lokal otomatis.</small>
+                  <strong>{t('speedtest.skip_uploaded_files')}</strong>
+                  <small>{t('speedtest.skip_uploaded_desc')}</small>
                 </span>
               </label>
             </div>
@@ -954,7 +957,7 @@ function TransferTabContent({
 
         {subTab === 'download' && (
           <section className="td-xfer-section" aria-label="Pengaturan download">
-            <h3>Paralel unduh</h3>
+            <h3>{t('speedtest.download_parallel')}</h3>
             <p className="td-xfer-hint">
               Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch).
             </p>
@@ -971,7 +974,7 @@ function TransferTabContent({
               <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
             </label>
 
-            <h3>Perilaku unduh</h3>
+            <h3>{t('speedtest.download_behavior')}</h3>
             <div className="td-xfer-checks">
               <label className="td-xfer-check">
                 <input
@@ -980,8 +983,8 @@ function TransferTabContent({
                   onChange={(e) => onChange({ notifyDownloadDone: e.target.checked })}
                 />
                 <span>
-                  <strong>Notifikasi saat unduhan selesai</strong>
-                  <small>Tampilkan pemberitahuan banner ketika batch download rampung.</small>
+                  <strong>{t('speedtest.download_notice_title')}</strong>
+                  <small>{t('speedtest.download_notice_desc')}</small>
                 </span>
               </label>
             </div>
@@ -1004,7 +1007,7 @@ function TransferTabContent({
           type="button"
           className="td-btn-primary"
           onClick={onSave}
-          title="Simpan perubahan pengaturan transfer"
+          title={t('speedtest.save_transfer_settings')}
         >
           <Check size={14} />
           Simpan Pengaturan
@@ -1127,6 +1130,7 @@ function DupTab({
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
 }) {
+  const { t } = useTranslation();
   const [keepNewest, setKeepNewest] = useState(true);
   /** Message ids marked for deletion (checked = salinan yang akan dihapus). */
   const [markedDelete, setMarkedDelete] = useState<Set<number>>(() => new Set());
@@ -1247,7 +1251,7 @@ function DupTab({
             checked={keepNewest}
             onChange={(e) => setKeepNewest(e.target.checked)}
           />
-          <span>Default: simpan terbaru</span>
+          <span>{t('speedtest.default_keep_newest') || "Default: keep newest"}</span>
         </label>
       </div>
 
@@ -1258,7 +1262,7 @@ function DupTab({
             className="btn btn-ghost"
             disabled={busy}
             onClick={applySmartAll}
-            title="Per grup: simpan 1 (terbaru/terlama), centang sisanya untuk dihapus"
+            title={t('speedtest.per_group_keep_one') || "Per group: keep 1"}
           >
             <Check size={14} /> Pilihan cerdas
           </button>
@@ -1267,12 +1271,12 @@ function DupTab({
             className="btn btn-ghost"
             disabled={busy}
             onClick={clearAllMarks}
-            title="Simpan semua file di semua grup (tidak ada yang dihapus)"
+            title={t('speedtest.keep_all_groups') || "Keep all files"}
           >
             Simpan semua
           </button>
           <span className="td-tools-dup-summary">
-            Simpan <strong>{keepCount}</strong> · hapus <strong>{idsToDelete.length}</strong>
+            Simpan <strong>{keepCount}</strong> · {t('speedtest.delete_action') || "delete"} <strong>{idsToDelete.length}</strong>
             {selectedWaste > 0 ? (
               <>
                 {' '}
@@ -1320,7 +1324,7 @@ function DupTab({
                     className="td-tools-dup-mini"
                     disabled={busy}
                     onClick={() => markGroupExtras(g)}
-                    title="Simpan 1 (default), centang sisanya"
+                    title={t('speedtest.keep_one_check_rest') || "Keep 1, check rest"}
                   >
                     Cerdas
                   </button>
@@ -1329,7 +1333,7 @@ function DupTab({
                     className="td-tools-dup-mini"
                     disabled={busy}
                     onClick={() => clearGroupMarks(g)}
-                    title="Simpan semua di grup ini"
+                    title={t('speedtest.keep_all_in_group') || "Keep all in group"}
                   >
                     Simpan semua
                   </button>
