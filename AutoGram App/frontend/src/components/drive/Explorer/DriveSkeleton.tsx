@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Zap, Image as ImageIcon } from 'lucide-react';
 
 /**
@@ -47,6 +48,7 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
   label,
   isLoading = true,
 }) => {
+  const { t } = useTranslation();
   const smoothProgress = useSmoothProgress(isLoading, percent);
   const displayPercent = Math.round(smoothProgress);
   const remainingSecs = Math.max(1, Math.ceil((100 - displayPercent) / 12));
@@ -54,12 +56,12 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
   // Dynamic context message based on progress stage
   const dynamicStatus = label || (
     displayPercent < 35
-      ? 'Menghubungkan Telegram MTProto…'
+      ? String(t('speedtest.status_connecting_mtproto', 'Menghubungkan Telegram MTProto…'))
       : displayPercent < 70
-      ? 'Membaca katalog media drive…'
+      ? String(t('speedtest.status_reading_catalog', 'Membaca katalog media drive…'))
       : displayPercent < 90
-      ? 'Menyusun metadata & file…'
-      : 'Hampir selesai…'
+      ? String(t('speedtest.status_parsing_metadata', 'Menyusun metadata & file…'))
+      : String(t('speedtest.status_almost_done', 'Hampir selesai…'))
   );
 
   return (
@@ -74,13 +76,13 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
       {/* Brand Header */}
       <div className="ag-brand-block">
         <div className="ag-brand-name">AutoGram</div>
-        <div className="ag-brand-sub">Syncing your media library</div>
+        <div className="ag-brand-sub">{t('speedtest.syncing_media_library', 'Syncing your media library')}</div>
       </div>
 
       {/* Progress Box */}
       <div className="ag-progress-box">
         <div className="ag-progress-header">
-          <span className="ag-progress-label">Memuat Katalog</span>
+          <span className="ag-progress-label">{t('speedtest.loading_catalog', 'Memuat Katalog')}</span>
           <span className="ag-progress-percent">{displayPercent}%</span>
         </div>
         <div className="ag-slim-track">
@@ -96,10 +98,10 @@ export const CenteredGlassmorphicProgress: React.FC<CenteredGlassmorphicProgress
       {/* Estimate Text */}
       <div className="ag-estimate-text">
         {displayPercent >= 100
-          ? 'Selesai!'
+          ? t('speedtest.done_exclamation', 'Selesai!')
           : displayPercent > 88
-          ? 'Menyiapkan tampilan…'
-          : `~${remainingSecs} detik tersisa`}
+          ? t('speedtest.preparing_display', 'Menyiapkan tampilan…')
+          : t('speedtest.secs_remaining', { count: remainingSecs, defaultValue: `~${remainingSecs} detik tersisa` })}
       </div>
     </div>
   );

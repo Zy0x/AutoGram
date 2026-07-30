@@ -730,5 +730,20 @@
   "create_folder_btn": "Create folder",
   "create_drive_btn": "Create Drive",
   "loading_more": "Loading more…",
-  "scroll_to_load_more": "Scroll to load more…"
+  "scroll_to_load_more": "Scroll to load more…",
+  "loading_video": "Loading Video…",
+  "loading_short": "Loading…",
+  "deselect": "Deselect",
+  "select": "Select",
+  "duration_title": "Duration {{duration}}",
+  "btn_delete": "Delete",
+  "status_connecting_mtproto": "Connecting Telegram MTProto…",
+  "status_reading_catalog": "Reading drive media catalog…",
+  "status_parsing_metadata": "Parsing metadata & files…",
+  "status_almost_done": "Almost done…",
+  "syncing_media_library": "Syncing your media library",
+  "loading_catalog": "Loading Catalog",
+  "done_exclamation": "Done!",
+  "preparing_display": "Preparing display…",
+  "secs_remaining": "~{{count}} secs remaining"
 }

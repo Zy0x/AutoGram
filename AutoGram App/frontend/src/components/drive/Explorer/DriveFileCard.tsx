@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { memo, useEffect, useState } from 'react';
 import { Eye, Download, Trash2, Check, Loader2, Play } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
@@ -64,6 +65,7 @@ function DriveFileCardInner({
   folderId,
   thumbQuality,
 }: Props) {
+  const { t } = useTranslation();
   const canThumb = canShowDriveThumb(file);
   const isVideo = isVideoDriveFile(file);
   const durationSecs = driveFileDurationSeconds(file);
@@ -482,7 +484,7 @@ function DriveFileCardInner({
             {thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
                 <Loader2 size={24} className="spin" />
-                <span>{isVideo ? 'Memuat Video…' : 'Memuat…'}</span>
+                <span>{isVideo ? t('speedtest.loading_video', 'Memuat Video…') : t('speedtest.loading_short', 'Memuat…')}</span>
               </div>
             ) : (
               <div className="td-thumb-placeholder">
@@ -500,7 +502,7 @@ function DriveFileCardInner({
             onToggleSelection?.();
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label={selected ? 'Deselect' : 'Select'}
+          aria-label={selected ? t('speedtest.deselect', 'Batal pilih') : t('speedtest.select', 'Pilih')}
         >
           {selected && <Check size={10} strokeWidth={3} />}
         </button>
@@ -517,7 +519,7 @@ function DriveFileCardInner({
           }`}
         >
           {durationLabel ? (
-            <span className="td-video-duration" title={`Durasi ${durationLabel}`}>
+            <span className="td-video-duration" title={t('speedtest.duration_title', { duration: durationLabel, defaultValue: `Durasi ${durationLabel}` })}>
               {durationLabel}
             </span>
           ) : null}
@@ -534,7 +536,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act"
-              title="Preview"
+              title={t('speedtest.topbar_preview', 'Preview')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -548,7 +550,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act ok"
-              title="Download"
+              title={t('speedtest.download_tab', 'Download')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -562,7 +564,7 @@ function DriveFileCardInner({
             <button
               type="button"
               className="td-file-act danger"
-              title="Delete"
+              title={t('speedtest.btn_delete', 'Hapus')}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
