@@ -286,6 +286,96 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
     }
 }
 
+pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
+    let m = match msg {
+        grammers_client::tl::enums::Message::Message(m) => m,
+        _ => return None,
+    };
+
+    let id = m.id as i64;
+    let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
+    let caption = m.message.trim();
+
+    if let Some(ref media) = m.media {
+        match media {
+            grammers_client::tl::enums::MessageMedia::Photo(_) => {
+                let name = if caption.is_empty() {
+                    format!("photo_{id}.jpg")
+                } else {
+                    format!("{caption}.jpg")
+                };
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name,
+                    size: 0,
+                    mime_type: Some("image/jpeg".to_string()),
+                    icon_type: "photo".to_string(),
+                    created_at: created,
+                    has_thumb: true,
+                    as_document: false,
+                    backend: BACKEND.to_string(),
+                    thumb_data_url: None,
+                })
+            }
+            grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
+                let doc = match &doc_media.document {
+                    Some(grammers_client::tl::enums::Document::Document(d)) => d,
+                    _ => return None,
+                };
+                let mut raw_name: Option<String> = None;
+                for attr in &doc.attributes {
+                    if let grammers_client::tl::enums::DocumentAttribute::Filename(f) = attr {
+                        raw_name = Some(f.file_name.clone());
+                    }
+                }
+                let name = raw_name
+                    .or_else(|| if caption.is_empty() { None } else { Some(caption.to_string()) })
+                    .unwrap_or_else(|| format!("file_{id}"));
+                let mime = doc.mime_type.clone();
+                let mime_l = mime.to_ascii_lowercase();
+                let name_l = name.to_ascii_lowercase();
+
+                let is_video = mime_l.starts_with("video/")
+                    || name_l.ends_with(".mp4")
+                    || name_l.ends_with(".mov")
+                    || name_l.ends_with(".mkv")
+                    || name_l.ends_with(".webm");
+
+                let is_audio = mime_l.starts_with("audio/")
+                    || name_l.ends_with(".mp3")
+                    || name_l.ends_with(".wav")
+                    || name_l.ends_with(".flac");
+
+                let icon_type = if is_video {
+                    "video".to_string()
+                } else if is_audio {
+                    "audio".to_string()
+                } else {
+                    "file".to_string()
+                };
+
+                Some(MediaFileRow {
+                    id,
+                    folder_id,
+                    name,
+                    size: doc.size as u64,
+                    mime_type: Some(mime),
+                    icon_type,
+                    created_at: created,
+                    has_thumb: is_video || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
+                    as_document: true,
+                    backend: BACKEND.to_string(),
+                    thumb_data_url: None,
+                })
+            }
+            _ => None,
+        }
+    } else {
+        None
+    }
+}
+
 /// Forward messages source → dest (no delete). Returns count forwarded.
 pub fn forward_messages_blocking(
     sessions_dir: &Path,
@@ -433,15 +523,11 @@ pub fn list_media_blocking_topic(
                             };
 
                             for tl_msg in raw_msgs {
-                                let msg = grammers_client::message::Message::from_raw(
-                                    client,
-                                    tl_msg,
-                                    None,
-                                    &grammers_client::types::PeerMap::empty(),
-                                );
-                                last_id = Some(msg.id() as i64);
-                                scanned += 1;
-                                if let Some(row) = media_to_row(&msg, folder_id) {
+                                if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
+                                    last_id = Some(m.id as i64);
+                                    scanned += 1;
+                                }
+                                if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
                                     files.push(row);
                                     if files.len() >= limit {
                                         break;

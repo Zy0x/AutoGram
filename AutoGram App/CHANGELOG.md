@@ -1,3 +1,10 @@
+## v2.3.86 Fix Rust TL Message Mapping & Clean Cargo Build
+
+### Perbaikan Pemetaan Pesan TL Rust (`media_list.rs`)
+- **Direct TL Enum Mapping (`tl_message_to_row`)**: Menambahkan pemetaan langsung objek `tl::enums::Message` ke `MediaFileRow` tanpa memerlukan konstruksi `grammers_client::message::Message::from_raw` atau dependensi `PeerMap`.
+- **Option Safe Handling (`thumbs.as_ref()`)**: Menangani tipe `Option<Vec<PhotoSize>>` pada atribut thumbnail dokumen secara aman dengan `.as_ref().map(|t| !t.is_empty()).unwrap_or(false)`.
+- **Clean Cargo & TypeScript Compilation**: Menjamin seluruh build Rust (`cargo check`) dan frontend TypeScript (`npx tsc --noEmit`) lulus **0 error**.
+
 ## v2.3.85 Eliminate All-Media Topic Leakage & Enforce Topic-Scoped Local Cache
 
 ### Eliminasi Kebocoran "Semua Media" Saat berpindah Topik (`driveFilesApi.ts`, `MediaStudio/index.tsx`)

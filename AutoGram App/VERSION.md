@@ -1,7 +1,7 @@
-AutoGram Version: v2.3.85
+AutoGram Version: v2.3.86
 
 Current State:
-v2.3.85 Eliminate All-Media Topic Leakage & Enforce Topic-Scoped Local Cache — Memperbaiki kebocoran data "Semua Media" ke topik-topik spesifik (General, AI, Anime 3D) dengan mewajibkan filter `topic_id` pada pembacaan cache IndexedDB di `driveFilesApi.ts` & `MediaStudio/index.tsx`. Apabila cache topik lokal belum terisi, sistem secara otomatis melakukan fallback ke MTProto server-side topic search `tgListMedia` untuk mengambil media khusus topik tersebut.
+v2.3.86 Fix Rust TL Message Mapping & Clean Cargo Build — Memperbaiki fungsi `tl_message_to_row` di Rust engine (`media_list.rs`) untuk melakukan pemetaan langsung objek `tl::enums::Message` tanpa dependensi `PeerMap` serta menangani `Option<Vec<PhotoSize>>` pada `thumbs` secara aman. Memastikan kompilasi Rust (`cargo check`) dan TypeScript (`tsc`) lulus 100% dengan 0 error.
 
 Previous:
 v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.
