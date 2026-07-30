@@ -1,12 +1,12 @@
 # AutoGram Master Architecture, WorkTree & Operational Workflow Specification
 
-> **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, & Manual Operational Workflow Real-World AutoGram App**  
-> *Versi Rujukan Terintegrasi: v2.3.90+ (Definitive Master Edition)*  
+> **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid & Manual Operational Workflow Real-World AutoGram App**  
+> *Versi Rujukan Terintegrasi: v2.3.92 (Ultimate Comprehensive Master Edition)*  
 > *Platform: Desktop Hybrid (Tauri + React 18 + Rust Grammers Engine + SQLite + IndexedDB)*
 
 ---
 
-## 1. Pendahuluan & Prinsip Desain Utama Sistem
+## 1. Pendahuluan & Filosofi Arsitektur Utama (Core Technical Philosophy)
 
 AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berbasis desktop yang menggunakan paradigma **Telegram-as-a-Drive**. Sistem ini dirancang untuk menangani pustaka media berskala besar (10.000+ hingga 1.000.000+ berkas per saluran/grup) dengan kecepatan eksekusi tinggi, penggunaan memori minimal, antarmuka responsif (*mobile-first & touch-first*), serta keandalan tingkat tinggi tanpa hambatan *FloodWait*.
 
@@ -33,6 +33,13 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 │                   TELEGRAM MTPROTO SERVERS                │ │ LOCAL SQLITE DB   │
 └───────────────────────────────────────────────────────────┘ └───────────────────┘
 ```
+
+### 5 Pilar Utama Arsitektur Teknis:
+1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Thumbnail Batch, Upload/Download Stream, Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
+2. **Local-First Stale-While-Revalidate (SWR) Cache**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau SQLite (`topic_media.db`), disusul oleh pembaruan delta secara silent dari server Telegram.
+3. **Server-Side MTProto Topic Filtering (`top_msg_id`)**: Pemfilteran topik pada forum supergroup Telegram dilakukan langsung di server Telegram via `messages.search` berparameter `top_msg_id`, menghasilkan pencarian <50ms tanpa pemindaian pesan sekensial di client.
+4. **Proactive Streaming Infinite Scroll**: Antarmuka `DriveExplorer` memicu prefetch halaman berikutnya secara proaktif pada posisi 40% sebelum dasar grid (8–25 baris tersisa), sehingga pengguna tidak pernah mengalami hambatan *spinner loading*.
+5. **Fail-Closed Generation Protection (`peerGen.current`)**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*) antar topik.
 
 ---
 
@@ -200,16 +207,322 @@ AutoGram App/
 
 ---
 
-## 4. Alur Kerja Operasional Nyata (Real-World Operational Workflows)
+## 4. Diagram Sequence Workflow Lengkap (Mermaid)
 
-### 4.1 Real Workflow 1: Bootstrapping Sesi, Auto-Import Telethon, & Warm Cache SWR
+### 4.1 Bootstrapping & SWR Warm Cache Initial Paint Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as DriveExplorer / MediaStudio
+    participant IDB as IndexedDB (mediaStudioDb)
+    participant IPC as Tauri IPC Bridge
+    participant Rust as Rust Engine (media_list.rs)
+    participant TG as Telegram MTProto Server
+
+    User->>UI: Buka Folder / Grup Telegram
+    UI->>UI: Bump peerGen.current (Atomic Generation Guard)
+    UI->>IDB: Query getMediaRecords(peerId, topicId)
+    IDB-->>UI: Return Cached Media Records (<10ms)
+    UI->>User: Render Visual Cards Instan (0ms Delay)
+
+    UI->>IPC: invoke('tg_list_media', { peerId, topicId, limit: 60 })
+    IPC->>Rust: list_media_blocking_topic()
+    Rust->>TG: RPC messages.search(top_msg_id: Some(topicId))
+    TG-->>Rust: Raw Message Vector (TL Enum)
+    Rust->>Rust: Map via tl_message_to_row()
+    Rust-->>IPC: JSON MediaFileRow Vector
+    IPC-->>UI: Return Fresh Media List
+    UI->>UI: Reconcile SWR (Merge fresh items into State)
+    UI->>IDB: Save fresh records to IndexedDB in background
+```
+
+---
+
+### 4.2 Topic Selection & Server-Side Filtering Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Bar as DriveTopBar.tsx
+    participant Studio as MediaStudio/index.tsx
+    participant Batch as thumbBatcher.ts
+    participant API as driveFilesApi.ts
+    participant Rust as Rust Engine (search.rs)
+    participant TG as Telegram MTProto Server
+
+    User->>Bar: Klik Chip Topik (misal: "Anime 3D", topicId: 482)
+    Bar->>Studio: handleTopicFilter(482)
+    Studio->>Studio: setFiles([]) & peerGen.current++
+    Studio->>Batch: setThumbContext(creds, peerId, 482) (Abort stale batches)
+    Studio->>API: driveListFiles(creds, peerId, { topicId: 482 })
+    API->>API: Read IndexedDB & filter (r.topic_id === 482)
+    alt Cache Local Ada
+        API-->>Studio: Return Cached Topic Records
+        Studio->>Bar: Render Topic Cards Instan
+    else Cache Local Kosong
+        API->>Rust: invoke('tg_list_media', { topicId: 482 })
+        Rust->>TG: messages.search(filter: InputMessagesFilter, top_msg_id: 482)
+        TG-->>Rust: Server Matching Messages (<50ms)
+        Rust-->>API: Return Topic MediaFileRow[]
+        API-->>Studio: Update State & Save to IndexedDB
+    end
+```
+
+---
+
+### 4.3 Proactive Infinite Streaming Pagination Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Grid as DriveExplorer.tsx
+    participant Studio as MediaStudio/index.tsx
+    participant API as driveFilesApi.ts
+    participant Rust as Rust Engine
+
+    User->>Grid: Scroll Ke Bawah (Melewati 60% Grid)
+    Grid->>Grid: Detect last.index >= (total - threshold) [Threshold = 40%]
+    Grid->>Studio: Trigger onLoadMore() (10ms Debounce)
+    Studio->>Studio: Check !loadMoreLock.current & filesHasMore
+    Studio->>Studio: loadMoreLock.current = true
+    Studio->>API: driveListFiles(offsetId: lastMsgId, pageSize: 100)
+    API->>Rust: invoke('tg_list_media', { offsetId: lastMsgId, limit: 100 })
+    Rust-->>API: Return Next 100 Media Rows
+    API-->>Studio: Return Page Files
+    Studio->>Studio: Merge Deduplicated Items into State
+    Studio->>Studio: loadMoreLock.current = false (Immediate Release)
+    Studio-->>Grid: Render Additional Cards Seamlessly
+```
+
+---
+
+### 4.4 Multi-Lane Progressive WebP Thumbnail Queue Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Card as DriveExplorer Card Item
+    participant Batch as thumbBatcher.ts
+    participant IPC as Tauri IPC Bridge
+    participant Rust as Rust Thumbs (thumbs.rs)
+    participant TG as Telegram DC Server
+
+    Card->>Batch: queueThumbFetch(messageId, documentId)
+    Batch->>Batch: Group into Batch Queue (16-32 items)
+    Batch->>IPC: invoke('tg_thumbs_batch', { requests })
+    IPC->>Rust: Extract Thumbs Batch
+    loop Per Request in Batch
+        alt Server Photo Size Available
+            Rust->>TG: Download Small Photo Size (Location/Bytes)
+        else Video Keyframe Request
+            Rust->>TG: Range Read 128KB Head Chunk
+            Rust->>Rust: Extract Keyframe Frame
+        end
+        Rust->>Rust: Encode Image Bytes to WebP Format
+    end
+        Rust-->>IPC: Base64 WebP Strings Array
+        IPC-->>Batch: Return WebP Map
+        Batch->>Card: Update Card Image src (Data URL WebP)
+```
+
+---
+
+### 4.5 Parallel File Uploading & Progress Callback Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as UploadModal.tsx
+    participant API as driveTransfersApi.ts
+    participant Gate as FloodWaitGate (flood_wait.rs)
+    participant Rust as Rust Transfer Engine (media_transfer.rs)
+    participant TG as Telegram MTProto Server
+
+    User->>UI: Drop File / Select Files to Upload
+    UI->>API: driveUploadFile(file)
+    API->>Rust: invoke('tg_upload_file', { filePath, peerId, topicId })
+    Rust->>Gate: Check is_blocked(peerId)
+    Gate-->>Rust: Gate Unlocked (OK)
+    loop Read File in 1MB Chunks
+        Rust->>Rust: Read Chunk Bytes
+        Rust->>TG: upload.saveBigFilePart(file_id, part_index, bytes)
+        Rust-->>API: Emit Progress Event (bytesUploaded / totalBytes)
+        API-->>UI: Update Progress Bar UI
+    end
+    Rust->>TG: messages.sendMedia(reply_to: topicId, media: InputMediaUploadedDocument)
+    TG-->>Rust: Updates Message Result
+    Rust-->>API: Return UploadStepResult
+    API->>UI: Mark Upload Complete & Trigger Soft Refresh
+```
+
+---
+
+### 4.6 Remote Stream ZIP Inspection & Extraction Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as DriveZipBrowser.tsx
+    participant API as driveStreamZipApi.ts
+    participant Rust as Rust Sparse Zip Engine (sparse_zip.rs)
+    participant TG as Telegram Media DC
+
+    User->>UI: Klik Berkas Zip ("archive.zip")
+    UI->>API: inspectZipRemote(messageId)
+    API->>Rust: invoke('tg_stream_zip_list', { messageId })
+    Rust->>TG: Range Read Last 64KB Bytes of Zip File (EOCD Record)
+    TG-->>Rust: Return End of Central Directory Bytes
+    Rust->>Rust: Parse Central Directory Header Entries
+    Rust-->>API: Return ZipFileEntry[] (Names, Sizes, Offsets)
+    API-->>UI: Render Zip File Tree Modal Instan (<200ms)
+    
+    User->>UI: Klik Extract Single File ("document.pdf")
+    UI->>API: extractZipFileRemote(messageId, entryOffset, compressedSize)
+    API->>Rust: invoke('tg_stream_zip_extract', { entryOffset, compressedSize })
+    Rust->>TG: Range Read Exact Byte Range [Offset .. Offset + Size]
+    TG-->>Rust: Compressed Entry Bytes
+    Rust->>Rust: Decompress Deflate Stream in Memory
+    Rust-->>API: Decompressed File Blob
+    API-->>UI: Save / Open Extracted File
+```
+
+---
+
+### 4.7 Clean-Copy Duplicate Prevention Engine Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Engine as Duplicate Engine (Rust/SQLite)
+    participant DB as SQLite (duplicate_history)
+    participant TG as Telegram MTProto API
+
+    Engine->>Engine: Prepare Transfer Item (Message ID, Unique ID, SHA256, Name+Size)
+    
+    Note over Engine,DB: Level 1 Check: Message ID Mapping
+    Engine->>DB: Query message_mappings (source_chat_id, source_message_id)
+    alt Found ID Mapping
+        DB-->>Engine: Match Found -> SKIP (Duplicate)
+    end
+    
+    Note over Engine,DB: Level 2 Check: Telegram Unique ID
+    Engine->>DB: Query duplicate_history WHERE file_unique_id = ?
+    alt Found Unique ID
+        DB-->>Engine: Match Found -> SKIP (Duplicate)
+    end
+    
+    Note over Engine,DB: Level 3 Check: SHA256 Hash
+    Engine->>DB: Query duplicate_history WHERE sha256_hash = ?
+    alt Found SHA256 Match
+        DB-->>Engine: Match Found -> SKIP (Duplicate)
+    end
+    
+    Note over Engine,DB: Level 4 Check: Filename + Size Composite
+    Engine->>DB: Query duplicate_history WHERE file_name_size = ?
+    alt Found Name+Size Match
+        DB-->>Engine: Match Found -> SKIP (Duplicate)
+    end
+
+    Note over Engine,TG: All 4 Levels Passed: Execute Clean Transfer
+    Engine->>TG: Upload / Transfer Clean Copy
+    Engine->>DB: Record new entry in duplicate_history & message_mappings
+```
+
+---
+
+### 4.8 Smart Rate Controller & Global FloodWait Gate Workflow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Grammers MTProto Worker
+    participant Gate as FloodWaitGateController (flood_wait.rs)
+    participant TG as Telegram MTProto Server
+
+    Client->>Gate: Check is_blocked(GateKey { account_id, peer_id })
+    alt Gate is Blocked
+        Gate-->>Client: Returns Some(DurationRemaining)
+        Client->>Client: Sleep / Pause Queue for DurationRemaining
+    else Gate is Unlocked
+        Gate-->>Client: Returns None (Proceed)
+        Client->>TG: Execute MTProto Request
+        alt Telegram Returns Error: FLOOD_WAIT_X (seconds)
+            TG-->>Client: Exception FLOOD_WAIT_30
+            Client->>Gate: record_flood_wait(GateKey, 30)
+            Gate->>Gate: Set blocked_until = Instant::now() + 30s
+            Client-->>Client: Backoff & Notify Rate Controller
+        else Success 200 OK
+            TG-->>Client: RPC Result Response
+        end
+    end
+```
+
+---
+
+### 4.9 Background Media Stats Walking & Dynamic Reconciler
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as MediaStudio UI
+    participant Worker as Stats Worker (MediaStudio/index.tsx)
+    participant Rust as Rust Engine
+    participant TG as Telegram Server
+
+    UI->>Worker: Schedule scheduleMediaStats(delay: 8000ms)
+    Worker->>Rust: invoke('tg_get_media_stats', { peerId })
+    Rust->>TG: messages.getSearchCounters(peerId, filters)
+    TG-->>Rust: Vector of Media Category Counters
+    Rust-->>Worker: Return Total Count & Total Bytes Estimate
+    Worker->>Worker: Reconcile filesTotalCountRef & filesTotalBytesRef
+    Worker->>UI: Update TopBar Stats Badge ("1,420 files • 4.82 GB")
+```
+
+---
+
+### 4.10 Multi-Session Authentication & Telethon Session Auto-Import
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Sidebar Session Picker
+    participant Auth as session_auth.rs
+    participant Pool as client_pool.rs
+    participant TG as Telegram Auth DC
+
+    User->>UI: Pilih Sesi "Lavender" / Tambah Sesi Baru
+    UI->>Auth: invoke('tg_auth_init', { phoneNumber })
+    Auth->>TG: auth.sendCode(phone_number, api_id, api_hash)
+    TG-->>Auth: SentCode { phone_code_hash }
+    Auth-->>UI: Prompt OTP Code Modal
+    User->>UI: Input Kode OTP (dan 2FA Password jika aktif)
+    UI->>Auth: invoke('tg_auth_signIn', { code, password })
+    Auth->>TG: auth.signIn / auth.checkPassword
+    TG-->>Auth: Authorization { user }
+    Auth->>Auth: Encrypt Session File & Write to App Data Directory
+    Auth->>Pool: Register Session Instance to GrammersClientPool
+    Pool-->>UI: Session Ready & Connected Badge
+```
+
+---
+
+## 5. Alur Kerja Operasional Nyata (Real-World Operational Workflows)
+
+### 5.1 Real Workflow 1: Bootstrapping Sesi, Auto-Import Telethon, & Warm Cache SWR
 Ketika pengguna membuka AutoGram App pertama kali:
 1. **App Mount & Session Probe**: Frontend `App.tsx` mengeksekusi IPC `tg_get_sessions`.
 2. **Telethon Session Auto-Import**: Core Rust (`client_pool.rs`) memindai direktori aplikasi lokal. Jika menemukan file `.session` Telethon lama, Rust mengeksekusi `import_telethon_session()`, mengonversi kunci auth secara otomatis, dan mendaftarkannya ke `GrammersClientPool`.
 3. **Instant Visual Paint (<10ms)**: Frontend `MediaStudio/index.tsx` membaca IndexedDB `getMediaRecords(peerId)`. Berkas media dari sesi sebelumnya langsung tampil di antarmuka tanpa menanti jaringan.
 4. **Background Live Sync**: Dalam 50ms disusul panggilan IPC `tg_list_media`, mengambil head pesan terbaru dari server Telegram, memperbarui IndexedDB, dan melakukan rekonsiliasi data (*Stale-While-Revalidate*).
 
-### 4.2 Real Workflow 2: Pemilihan Topik Forum & Server-Side Filtering (`messages.search` `top_msg_id`)
+### 5.2 Real Workflow 2: Pemilihan Topik Forum & Server-Side Filtering (`messages.search` `top_msg_id`)
 Ketika pengguna mengklik chip topik (misal: Topic "Donghua 3D", ID: 482):
 1. **Generation Counter Bump**: `MediaStudio/index.tsx` menaikkan `peerGen.current` (atomic counter). Seluruh request thumbnail dan pagination dari topik lama yang masih berjalan secara otomatis dibatalkan.
 2. **Local Cache Read**: `driveFilesApi.ts` membaca IndexedDB dengan filter `r.topic_id === 482`. Jika ada, data topik tampil instan di `DriveExplorer.tsx`.
@@ -217,13 +530,13 @@ Ketika pengguna mengklik chip topik (misal: Topic "Donghua 3D", ID: 482):
 4. **Direct Top-Message Request**: Modul Rust `media_list.rs` membangun struct `tl::functions::messages::Search` berparameter `top_msg_id: Some(482)`. Telegram Server memfilter dan mengembalikan pesan khusus topik tersebut dalam waktu <50ms.
 5. **Direct Enum Mapping**: Fungsi `tl_message_to_row` di Rust memetakan `tl::enums::Message` langsung menjadi `MediaFileRow` tanpa dependensi `PeerMap`.
 
-### 4.3 Real Workflow 3: Proactive Streaming Infinite Scroll & Staged Offset Pagination
+### 5.3 Real Workflow 3: Proactive Streaming Infinite Scroll & Staged Offset Pagination
 Ketika pengguna me-scroll antarmuka `DriveExplorer`:
 1. **Proactive Threshold Detection**: `useEffect` scroll detector di `DriveExplorer.tsx` memantau indeks kartu visual terakhir. Begitu pengguna me-scroll melewati 60% grid (tersisa 8–25 baris kartu / 48–150 item), `onLoadMore()` dipanggil dengan debounce 10ms.
 2. **Staged Load Page Size**: `MediaStudio/index.tsx` mengambil batas ukuran halaman berdasarkan tingkat performa perangkat (`stagedLoadMorePageSize`: Low: 60, Mid: 100, High: 150 item).
 3. **Continuous Merging**: Berkas baru digabungkan ke state `files` dengan pengecekan Set ID unik. `loadMoreLock.current` langsung dilepas kembali (`false`), memungkinkan pengguna me-scroll terus-menerus tanpa pernah menjumpai spinner penundaan.
 
-### 4.4 Real Workflow 4: Multi-Lane Thumbnail Extraction (Photo vs Video Keyframe Range Read)
+### 5.4 Real Workflow 4: Multi-Lane Thumbnail Extraction (Photo vs Video Keyframe Range Read)
 Ketika kartu media tampil di layar `DriveExplorer`:
 1. **Queueing Visible Items**: Card item memanggil `queueThumbFetch(messageId, documentId)` pada `thumbBatcher.ts`.
 2. **Batch IPC Request**: `thumbBatcher` mengelompokkan request menjadi batch 16–32 item dan memicu IPC `tg_thumbs_batch`.
@@ -232,20 +545,20 @@ Ketika kartu media tampil di layar `DriveExplorer`:
    - *Video*: Membaca 128KB head chunk pertama dari berkas video (`Range Read`), mengekstraksi keyframe frame secara native di memory.
 4. **WebP Encoding & Blob Caching**: Hasil ekstraksi di-encode menjadi format WebP modern, dikembalikan sebagai Base64 string ke JS, dan disimpan ke IndexedDB `thumbnails` store.
 
-### 4.5 Real Workflow 5: Upload Berkas 1.5GB dengan Chunking 1MB & Progress Bar Callback
+### 5.5 Real Workflow 5: Upload Berkas 1.5GB dengan Chunking 1MB & Progress Bar Callback
 Ketika pengguna mengunggah berkas video 1.5GB:
 1. **FloodWait Gate Check**: Modul Rust `media_transfer.rs` memeriksa `FloodWaitGateController`. Jika gate unlocked, proses dimulai.
 2. **1MB Chunking Loop**: Berkas dibaca per blok 1MB. Setiap chunk diunggah via Grammers MTProto `upload.saveBigFilePart(file_id, part_index, bytes)`.
 3. **Progress Callback**: Rust mengirimkan event progress `(bytesUploaded / totalBytes)` secara realtime ke frontend untuk mengupdate progress bar di `DriveTransfersPanel.tsx`.
 4. **Message Dispatch & Duplicate Indexing**: Setelah seluruh chunk terkirim, Rust mengeksekusi `messages.sendMedia(reply_to: topicId)`. Berkas baru dicatat ke SQLite `duplicate_history` (SHA256, Unique ID, Name+Size) dan `uploadSoftRefresh()` memperbarui UI.
 
-### 4.6 Real Workflow 6: Remote Stream ZIP Central Directory Reading & Single Entry Extraction
+### 5.6 Real Workflow 6: Remote Stream ZIP Central Directory Reading & Single Entry Extraction
 Ketika pengguna mengklik berkas `.zip` 500MB di Drive:
 1. **Remote EOCD Range Read**: `driveStreamZipApi.ts` memanggil IPC `tg_stream_zip_list`. Modul Rust `sparse_zip.rs` membaca 64KB byte terakhir berkas `.zip` dari Telegram DC untuk mengambil End of Central Directory (EOCD) Record.
 2. **Instant Zip Tree Render**: Rust me-parse entri Central Directory dan mengembalikan daftar berkas (`ZipFileEntry[]`). Modal `DriveZipBrowser.tsx` me-render struktur folder/file di dalam zip dalam waktu <200ms **tanpa mengunduh 500MB berkas zip**.
 3. **Single File Extraction**: Jika pengguna mengklik "Extract document.pdf" (ukuran 2MB pada offset 120MB), Rust mengeksekusi MTProto byte range read *hanya* pada rentang `[120MB .. 122MB]`, me-dekompresi Deflate stream di memory, dan mengembalikan file pdf tersebut secara langsung.
 
-### 4.7 Real Workflow 7: Clean-Copy Duplicate Prevention Engine (4-Level Hash/ID Check)
+### 5.7 Real Workflow 7: Clean-Copy Duplicate Prevention Engine (4-Level Hash/ID Check)
 Saat dilakukan pemindahan atau migrasi media (*Clean Copy*):
 1. **Level 1 (Message ID Mapping)**: Pengecekan tabel SQLite `message_mappings(source_chat_id, source_message_id)`. Jika sudah ada, transfer di-skip.
 2. **Level 2 (Telegram Unique ID)**: Pengecekan tabel SQLite `duplicate_history` berdasarkan `file_unique_id`. If match, transfer di-skip.
@@ -253,20 +566,20 @@ Saat dilakukan pemindahan atau migrasi media (*Clean Copy*):
 4. **Level 4 (Filename + FileSize Composite)**: Pengecekan string `file_name_size`. If match, transfer di-skip.
 5. **Execution**: Transfer hanya dijalankan jika ke-4 level pengecekan menyatakan berkas belum pernah diunggah.
 
-### 4.8 Real Workflow 8: Fail-Closed Smart Rate Controller & Global FloodWait Gate
+### 5.8 Real Workflow 8: Fail-Closed Smart Rate Controller & Global FloodWait Gate
 Ketika Telegram API mengembalikan exception `FLOOD_WAIT_45` (45 detik):
 1. **Exception Interception**: Modul Rust `tg_error.rs` menangkap `FloodWaitError(45)`.
 2. **Global Gate Locking**: `FloodWaitGateController` di `flood_wait.rs` mencatat `GateKey { account_id, peer_id }` dengan `blocked_until = Instant::now() + 45s`.
 3. **Failsafe Queue Pause**: Seluruh request MTProto berikutnya ke target peer/account secara otomatis tertahan di queue tanpa mengirim RPC baru ke Telegram.
 4. **Silent Resumption**: Begitu timer 45 detik berakhir, gate terbuka kembali secara otomatis dan antrean request dilanjutkan tanpa error crash atau pemblokiran IP.
 
-### 4.9 Real Workflow 9: Background Media Stats Worker & Dynamic Location Reconciler
+### 5.9 Real Workflow 9: Background Media Stats Worker & Dynamic Location Reconciler
 Saat aplikasi terbuka:
 1. **Deferred Stats Execution**: `MediaStudio/index.tsx` menjadwalkan `scheduleMediaStats` dengan delay 8.000ms (tidak mengganggu render grid awal).
 2. **Category Counters RPC**: Rust memanggil RPC Telegram `messages.getSearchCounters` untuk menghitung total foto, video, dokumen, audio, dan file link.
 3. **UI Badge Update**: Total berkas dan estimasi kapasitas folder diperbarui secara dinamis di `DriveTopBar.tsx` (misal: `"1,420 files • 4.82 GB"`).
 
-### 4.10 Real Workflow 10: Deletion & Batch Action Queue Execution
+### 5.10 Real Workflow 10: Deletion & Batch Action Queue Execution
 Ketika pengguna menghapus 10 berkas media:
 1. **Optimistic UI Removal**: Berkas langsung dihilangkan dari antarmuka `DriveExplorer.tsx`.
 2. **Action Queue Insertion**: Tindakan hapus dicatat ke IndexedDB `actionQueue` dengan status `'pending'`.
@@ -275,7 +588,7 @@ Ketika pengguna menghapus 10 berkas media:
 
 ---
 
-## 5. Spesifikasi Lengkap Skema Database & Storage
+## 6. Spesifikasi Lengkap Skema Database & Storage
 
 ### A. Tabel SQLite Desktop Offline (`database/schema.sql` & `app.db`)
 
@@ -334,7 +647,7 @@ Ketika pengguna menghapus 10 berkas media:
 
 ---
 
-## 6. Matriks Hubungan & Panggilan Inter-Module (Call Graph Matrix)
+## 7. Matriks Hubungan & Panggilan Inter-Module (Call Graph Matrix)
 
 | Modul Pemanggil (Caller) | Modul Dipanggil (Callee) | Mekanisme Komunikasi | Tujuan & Hasil Interaksi |
 | :--- | :--- | :--- | :--- |
@@ -353,7 +666,7 @@ Ketika pengguna menghapus 10 berkas media:
 
 ---
 
-## 7. Standar Kode, Keamanan & Kebijakan Data (Non-Negotiable Rules)
+## 8. Standar Kode, Keamanan & Kebijakan Data (Non-Negotiable Rules)
 
 1. **100% Zero Hardcoded Text (Mandatory i18n)**:
    - Seluruh teks yang tampil di UI (modal, dialog, button, toast, tooltip, status text) wajib diekstraksi ke file locale `src/locales/id/*.json` & `src/locales/en/*.json`.
@@ -370,4 +683,4 @@ Ketika pengguna menghapus 10 berkas media:
 
 ---
 
-*Dokumen master ini disahkan sebagai pedoman teknis utama definitif paling lengkap, menyeluruh, dan terstruktur untuk seluruh arsitektur, worktree, dan operational workflow AutoGram App.*
+*Dokumen master ini disahkan sebagai pedoman teknis utama definitif paling lengkap, komprehensif, dan tidak ada informasi yang dikurangi untuk seluruh arsitektur, worktree, sequence diagrams, dan operational workflow AutoGram App.*
