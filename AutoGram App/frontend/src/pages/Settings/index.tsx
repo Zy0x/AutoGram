@@ -24,7 +24,7 @@ import {
   type ProxyStatus,
 } from '../../lib/tauri/rustBackend';
 import { useTranslation } from 'react-i18next';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
 import { clearAvatarCache } from '../../lib/media/avatarBatcher';
@@ -126,6 +126,9 @@ export function Settings() {
   const [isClearingDb, setIsClearingDb] = useState(false);
   const [dbClearStatus, setDbClearStatus] = useState<"idle" | "success" | "error">("idle");
 
+  const [isConfirmClearCacheOpen, setIsConfirmClearCacheOpen] = useState(false);
+  const [isConfirmClearDbOpen, setIsConfirmClearDbOpen] = useState(false);
+
   // Proxy / VPN (Rust-owned; applied to Telethon via worker env)
   const [netCfg, setNetCfg] = useState<NetworkConfigSnapshot | null>(null);
   const [netBusy, setNetBusy] = useState(false);
@@ -187,18 +190,12 @@ export function Settings() {
     }
   };
 
-  const handleClearCache = async () => {
-    const confirmed = await ask(
-      'Apakah Anda yakin ingin menghapus semua cache? Semua thumbnail, pratinjau media, dan riwayat folder lokal akan dibersihkan.',
-      {
-        title: 'Konfirmasi Hapus Cache',
-        kind: 'warning',
-        okLabel: 'Hapus',
-        cancelLabel: 'Batal'
-      }
-    );
-    if (!confirmed) return;
+  const handleClearCache = () => {
+    setIsConfirmClearCacheOpen(true);
+  };
 
+  const executeClearCache = async () => {
+    setIsConfirmClearCacheOpen(false);
     setIsClearing(true);
     setClearStatus('idle');
     try {
@@ -246,18 +243,12 @@ export function Settings() {
     }
   };
 
-  const handleClearDatabase = async () => {
-    const confirmed = await ask(
-      'Apakah Anda yakin ingin mengosongkan seluruh database transfer? Tindakan ini akan menghapus semua riwayat transfer, de-duplikasi berkas, riwayat scan, dan resume state secara permanen. Pemindaian berikutnya akan dipaksa mengambil data segar langsung via API Telegram.',
-      {
-        title: 'Konfirmasi Kosongkan Database',
-        kind: 'warning',
-        okLabel: 'Kosongkan',
-        cancelLabel: 'Batal'
-      }
-    );
-    if (!confirmed) return;
+  const handleClearDatabase = () => {
+    setIsConfirmClearDbOpen(true);
+  };
 
+  const executeClearDatabase = async () => {
+    setIsConfirmClearDbOpen(false);
     setIsClearingDb(true);
     setDbClearStatus('idle');
     try {
@@ -861,19 +852,20 @@ export function Settings() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={calculateCacheSize} 
                 disabled={isCalculating || isClearing || isTrimming}
+                style={{ minHeight: '44px', flex: '1 1 auto' }}
               >
                 {t('settings.calc_size_btn')}
               </button>
               <button 
                 type="button" 
                 className="btn btn-primary" 
-                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)' }}
+                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', minHeight: '44px', flex: '1 1 auto' }}
                 onClick={handleClearCache} 
                 disabled={isCalculating || isClearing || isTrimming}
               >
@@ -891,7 +883,7 @@ export function Settings() {
               <button 
                 type="button" 
                 className="btn" 
-                style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)' }}
+                style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)', minHeight: '44px', width: '100%' }}
                 onClick={handleClearDatabase} 
                 disabled={isCalculating || isClearing || isClearingDb}
               >
@@ -922,6 +914,30 @@ export function Settings() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmClearCacheOpen}
+        title={t('settings.confirm_clear_cache_title')}
+        description={t('settings.confirm_clear_cache_msg')}
+        variant="warning"
+        confirmText={t('settings.clear_cache')}
+        cancelText="Batal"
+        isLoading={isClearing}
+        onConfirm={executeClearCache}
+        onCancel={() => setIsConfirmClearCacheOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmClearDbOpen}
+        title={t('settings.confirm_clear_db_title')}
+        description={t('settings.confirm_clear_db_msg')}
+        variant="danger"
+        confirmText={t('settings.clear_db_btn')}
+        cancelText="Batal"
+        isLoading={isClearingDb}
+        onConfirm={executeClearDatabase}
+        onCancel={() => setIsConfirmClearDbOpen(false)}
+      />
     </main>
   );
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { Bookmark, Trash2, Edit3, Save } from 'lucide-react';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 interface Profile {
   id: number;
@@ -42,9 +44,18 @@ export function Profiles() {
     loadProfiles();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this profile?")) return;
-    
+  const { t } = useTranslation();
+  const [deleteTargetProfileId, setDeleteTargetProfileId] = useState<number | null>(null);
+
+  const handleDelete = (id: number) => {
+    setDeleteTargetProfileId(id);
+  };
+
+  const executeDeleteProfile = async () => {
+    const id = deleteTargetProfileId;
+    if (id === null) return;
+    setDeleteTargetProfileId(null);
+
     try {
       await runDaemonOnce([
         '--action', 'delete-profile',
@@ -190,6 +201,17 @@ export function Profiles() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTargetProfileId !== null}
+        title={t('profiles.delete_confirm_title', 'Konfirmasi Hapus Profil')}
+        description={t('profiles.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus profil konfigurasi ini?')}
+        variant="danger"
+        confirmText={t('common.delete', 'Hapus')}
+        cancelText={t('common.cancel', 'Batal')}
+        onConfirm={executeDeleteProfile}
+        onCancel={() => setDeleteTargetProfileId(null)}
+      />
     </main>
   );
 }

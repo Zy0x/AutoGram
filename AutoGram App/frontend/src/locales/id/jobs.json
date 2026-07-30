@@ -45,5 +45,7 @@
   "ph_zero_unlimited": "0 = Tanpa Batas",
   "ph_min": "Min",
   "ph_max": "Max",
-  "ph_caption_template": "Ketik templat caption khusus Anda di sini...\n\nContoh:\n*PEMBERITAHUAN PENTING*\n{caption}\n\n[Baca Selengkapnya](https://example.com)"
+  "ph_caption_template": "Ketik templat caption khusus Anda di sini...\n\nContoh:\n*PEMBERITAHUAN PENTING*\n{caption}\n\n[Baca Selengkapnya](https://example.com)",
+  "delete_confirm_title": "Konfirmasi Hapus Tugas",
+  "delete_confirm_desc": "Apakah Anda yakin ingin menghapus tugas ini beserta riwayat eksekusinya?"
 }

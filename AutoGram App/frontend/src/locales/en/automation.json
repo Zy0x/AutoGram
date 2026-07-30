@@ -13,5 +13,7 @@
   "col_target": "Target",
   "col_schedule": "Schedule",
   "col_status": "Status",
-  "col_actions": "Actions"
+  "col_actions": "Actions",
+  "delete_confirm_title": "Confirm Delete Automation",
+  "delete_confirm_desc": "Are you sure you want to delete this automation job?"
 }

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { Play, Pause, Trash2, Calendar, Clock, Plus, RefreshCw } from 'lucide-react';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 export function Automation() {
   const { t } = useTranslation();
@@ -82,8 +83,17 @@ export function Automation() {
     }
   };
 
-  const deleteAutomation = async (id: number) => {
-    if (!confirm('Delete this automation job?')) return;
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+  const deleteAutomation = (id: number) => {
+    setDeleteTargetId(id);
+  };
+
+  const executeDeleteAutomation = async () => {
+    const id = deleteTargetId;
+    if (id === null) return;
+    setDeleteTargetId(null);
+
     try {
       const result = await runDaemonOnce([
         '--action', 'delete-automation',
@@ -248,6 +258,17 @@ export function Automation() {
             </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        title={t('automation.delete_confirm_title', 'Konfirmasi Hapus Otomatisasi')}
+        description={t('automation.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus pekerjaan otomatisasi ini?')}
+        variant="danger"
+        confirmText={t('common.delete', 'Hapus')}
+        cancelText={t('common.cancel', 'Batal')}
+        onConfirm={executeDeleteAutomation}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </main>
   );
 }

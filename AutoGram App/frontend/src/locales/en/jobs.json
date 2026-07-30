@@ -45,5 +45,7 @@
   "ph_zero_unlimited": "0 = Unlimited",
   "ph_min": "Min",
   "ph_max": "Max",
-  "ph_caption_template": "Type your custom caption template here...\n\nExample:\n*IMPORTANT NOTICE*\n{caption}\n\n[Read More](https://example.com)"
+  "ph_caption_template": "Type your custom caption template here...\n\nExample:\n*IMPORTANT NOTICE*\n{caption}\n\n[Read More](https://example.com)",
+  "delete_confirm_title": "Confirm Delete Job",
+  "delete_confirm_desc": "Are you sure you want to delete this job and its execution history?"
 }

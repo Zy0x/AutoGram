@@ -10,6 +10,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
 import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegram';
 import { invalidateSessionListCache } from '../../lib/telegram';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 const safeGetCallingCode = (val: string) => {
   if (!val) return '';
@@ -400,8 +401,16 @@ export function Accounts() {
     }
   };
 
-  const handleDeleteSession = async (name: string) => {
-    if (!window.confirm(t('accounts.delete_confirm', { name }))) return;
+  const [deleteTargetSession, setDeleteTargetSession] = useState<string | null>(null);
+
+  const handleDeleteSession = (name: string) => {
+    setDeleteTargetSession(name);
+  };
+
+  const executeDeleteSession = async () => {
+    const name = deleteTargetSession;
+    if (!name) return;
+    setDeleteTargetSession(null);
 
     setIsLoading(true);
     setSessions((prev) => prev.filter((s) => s.name !== name));
@@ -872,6 +881,17 @@ export function Accounts() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetSession)}
+        title={t('accounts.delete_session_title', 'Konfirmasi Hapus Sesi')}
+        description={t('accounts.delete_confirm', { name: deleteTargetSession || '' })}
+        variant="danger"
+        confirmText={t('common.delete', 'Hapus')}
+        cancelText={t('common.cancel', 'Batal')}
+        onConfirm={executeDeleteSession}
+        onCancel={() => setDeleteTargetSession(null)}
+      />
     </main>
   );
 }

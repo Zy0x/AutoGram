@@ -13,5 +13,7 @@
   "col_target": "Tujuan",
   "col_schedule": "Jadwal",
   "col_status": "Status",
-  "col_actions": "Aksi"
+  "col_actions": "Aksi",
+  "delete_confirm_title": "Konfirmasi Hapus Otomatisasi",
+  "delete_confirm_desc": "Apakah Anda yakin ingin menghapus pekerjaan otomatisasi ini?"
 }

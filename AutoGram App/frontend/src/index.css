@@ -1536,6 +1536,24 @@ html, body {
 }
 
 
+@keyframes confirmModalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
 
-
+@media (max-width: 480px) {
+  .confirm-modal-actions {
+    flex-direction: column-reverse;
+  }
+  .confirm-modal-actions button {
+    width: 100%;
+    flex: 1 1 100% !important;
+  }
+}
 

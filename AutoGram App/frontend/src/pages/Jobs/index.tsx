@@ -21,6 +21,7 @@ import {
   jobsImportJson,
 } from '../../lib/db/jobsApi';
 import { detectTauriRuntime } from '../../lib/tauri/platform';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 export type WorkspaceMode = 'list' | 'editor' | 'runtime';
 
@@ -413,8 +414,17 @@ export function Jobs() {
     }
   };
 
-  const deleteJob = async (jobId: number) => {
-    if (!confirm('Are you sure you want to delete this job and its execution history?')) return;
+  const [deleteTargetJobId, setDeleteTargetJobId] = useState<number | null>(null);
+
+  const deleteJob = (jobId: number) => {
+    setDeleteTargetJobId(jobId);
+  };
+
+  const executeDeleteJob = async () => {
+    const jobId = deleteTargetJobId;
+    if (jobId === null) return;
+    setDeleteTargetJobId(null);
+
     try {
       intentionalStopRef.current.add(jobId);
       if (runningRef.current.has(jobId) || activeCommands[jobId]) {
@@ -605,6 +615,17 @@ export function Jobs() {
           />
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTargetJobId !== null}
+        title={t('jobs.delete_confirm_title', 'Konfirmasi Hapus Tugas')}
+        description={t('jobs.delete_confirm_desc', 'Apakah Anda yakin ingin menghapus tugas ini beserta riwayat eksekusinya?')}
+        variant="danger"
+        confirmText={t('common.delete', 'Hapus')}
+        cancelText={t('common.cancel', 'Batal')}
+        onConfirm={executeDeleteJob}
+        onCancel={() => setDeleteTargetJobId(null)}
+      />
     </main>
   );
 }

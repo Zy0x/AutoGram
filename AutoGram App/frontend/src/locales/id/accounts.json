@@ -39,5 +39,7 @@
   "ph_phone_example": "+628123456789",
   "ph_code_example": "12345",
   "ph_account_name": "AkunSaya",
-  "ph_phone_short": "62878xxxx"
+  "ph_phone_short": "62878xxxx",
+  "delete_session_title": "Konfirmasi Hapus Sesi",
+  "delete_confirm": "Apakah Anda yakin ingin menghapus sesi \"{{name}}\" dari penyimpanan lokal?"
 }
