@@ -9,5 +9,7 @@
   "expand": "Expand",
   "jobs": "Jobs",
   "automation": "Automation",
-  "statistics": "Statistics"
+  "statistics": "Statistics",
+  "profiles": "Profiles",
+  "sync": "Sync"
 }

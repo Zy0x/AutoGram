@@ -18,6 +18,11 @@
   "clear_selection": "Clear Selection",
   "download_batch": "Download Selected",
   "delete_batch": "Delete Selected",
+  "delete_batch_confirm": "Delete Batch",
   "cloud_storage": "Telegram Cloud Storage",
-  "unlimited_cloud": "Unlimited Cloud"
+  "unlimited_cloud": "Unlimited Cloud",
+  "global_sort_warning": "Global sorting (size/name) requires loading all folder items first.",
+  "download_failed": "Failed to download file",
+  "write_debug_failed": "Failed to write transfer debug log",
+  "save_file": "Save File"
 }

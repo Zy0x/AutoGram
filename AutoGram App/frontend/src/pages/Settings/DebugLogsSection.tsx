@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { Bug, Copy, Trash2, FileText, Terminal, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   isDebugMode,
   setDebugMode,
@@ -12,6 +13,7 @@ import {
 } from '../../lib/utils/debugMode';
 
 export const DebugSection = memo(function DebugSection() {
+  const { t } = useTranslation();
   const [debugOn, setDebugOn] = useState(() => isDebugMode());
   const [debugBusy, setDebugBusy] = useState(false);
   const [logSnap, setLogSnap] = useState<string[]>([]);
@@ -63,8 +65,8 @@ export const DebugSection = memo(function DebugSection() {
             <Bug size={18} strokeWidth={2.25} />
           </span>
           <div className="dbg-head-text">
-            <h3>Debug Mode</h3>
-            <p>Log penuh AutoGram &amp; Telegram Drive</p>
+            <h3>{t('settings.debug_title')}</h3>
+            <p>{t('settings.debug_subtitle')}</p>
           </div>
         </div>
         <button
@@ -72,7 +74,7 @@ export const DebugSection = memo(function DebugSection() {
           className={`dbg-switch ${debugOn ? 'on' : ''} ${debugBusy ? 'busy' : ''}`}
           role="switch"
           aria-checked={debugOn}
-          aria-label={debugOn ? 'Matikan Debug Mode' : 'Nyalakan Debug Mode'}
+          aria-label={debugOn ? t('settings.debug_disable') : t('settings.debug_enable')}
           disabled={debugBusy}
           onClick={() => void toggleDebug(!debugOn)}
         >
@@ -84,15 +86,13 @@ export const DebugSection = memo(function DebugSection() {
       </div>
 
       <p className="dbg-desc">
-        Menangkap log worker + UI untuk men-debug unduhan yang mengulang, fallback, dan error
-        transfer. Sedikit lebih lambat saat aktif.{' '}
-        <strong>Jangan bagikan log</strong> — bisa berisi path &amp; nama file.
+        {t('settings.debug_desc')}
       </p>
 
       <div className="dbg-status-row">
         <span className={`dbg-pill ${debugOn ? 'live' : 'idle'}`}>
           <span className="dbg-pill-dot" />
-          {debugOn ? 'Aktif' : 'Nonaktif'}
+          {debugOn ? t('settings.debug_status_active') : t('settings.debug_status_inactive')}
         </span>
         <span className="dbg-meta-sep" aria-hidden>
           ·
@@ -130,7 +130,7 @@ export const DebugSection = memo(function DebugSection() {
                 <button
                   type="button"
                   className="dbg-icon-btn"
-                  title="Salin buffer (fallback jika clipboard diblokir WebView)"
+                  title="Salin buffer"
                   onClick={() => {
                     const text = getDebugLogBuffer().join('\n') || '(kosong)';
                     void copyTextWithFallback(text).then((ok) => {
@@ -143,7 +143,7 @@ export const DebugSection = memo(function DebugSection() {
                   }}
                 >
                   <Copy size={14} />
-                  <span>{copied ? 'Tersalin ✓' : 'Salin'}</span>
+                  <span>{copied ? t('settings.debug_copied') : t('settings.debug_copy_logs')}</span>
                 </button>
                 <button
                   type="button"
@@ -155,22 +155,21 @@ export const DebugSection = memo(function DebugSection() {
                   }}
                 >
                   <Trash2 size={14} />
-                  <span>Clear</span>
+                  <span>{t('settings.debug_clear_logs')}</span>
                 </button>
               </div>
             </div>
             <pre className="dbg-console-pre" aria-label="Debug log buffer">
               {logSnap.length
                 ? logSnap.slice(-48).join('\n')
-                : 'Buffer kosong — jalankan unduh, unggah, atau buka Media Studio untuk mengisi log.'}
+                : t('settings.debug_empty_buffer')}
             </pre>
           </div>
 
           <div className="dbg-tip" role="note">
             <AlertTriangle size={14} />
             <p>
-              Job yang sudah jalan (drive-serve / unduhan) perlu diulang setelah toggle agar flag
-              terbaca penuh.
+              {t('settings.debug_tip')}
             </p>
           </div>
         </div>

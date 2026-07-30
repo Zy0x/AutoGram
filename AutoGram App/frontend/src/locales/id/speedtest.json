@@ -18,6 +18,11 @@
   "clear_selection": "Batalkan Pilihan",
   "download_batch": "Download Terpilih",
   "delete_batch": "Hapus Terpilih",
+  "delete_batch_confirm": "Hapus Batch",
   "cloud_storage": "Telegram Cloud Storage",
-  "unlimited_cloud": "Awan Tanpa Batas"
+  "unlimited_cloud": "Awan Tanpa Batas",
+  "global_sort_warning": "Pengurutan global (ukuran/nama) memerlukan pemuatan seluruh item folder.",
+  "download_failed": "Gagal mengunduh berkas",
+  "write_debug_failed": "Gagal menulis file debug transfer",
+  "save_file": "Simpan File"
 }

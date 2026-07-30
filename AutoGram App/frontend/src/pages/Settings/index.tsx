@@ -425,9 +425,7 @@ export function Settings() {
           </div>
           
           <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            Dapatkan API ID &amp; API Hash dari{' '}
-            <strong>my.telegram.org</strong>. Di desktop, kredensial disimpan{' '}
-            <strong>terenkripsi</strong> (bukan LocalStorage browser). Jangan bagikan hash ke orang lain.
+            {t('settings.api_config_hint')}
           </p>
           
           {isLoading ? (
@@ -436,27 +434,27 @@ export function Settings() {
             <div className="page-stack" style={{ gap: '1.25rem' }}>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label className="input-label title-with-icon">
-                  <Key size={14} /> {t('settings.api_id')}
+                  <Key size={14} /> API ID
                 </label>
                 <input 
                   type="text" 
                   value={apiId} 
                   onChange={e => setApiId(e.target.value)} 
                   className="input-field" 
-                  placeholder={t('settings.api_id_placeholder')}
+                  placeholder="e.g. 12345678"
                 />
               </div>
               
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label className="input-label title-with-icon">
-                  <Key size={14} /> {t('settings.api_hash')}
+                  <Key size={14} /> API Hash
                 </label>
                 <input 
                   type="password" 
                   value={apiHash} 
                   onChange={e => setApiHash(e.target.value)} 
                   className="input-field" 
-                  placeholder={t('settings.api_hash_placeholder')} 
+                  placeholder="e.g. 0123456789abcdef0123456789abcdef" 
                 />
               </div>
               
@@ -468,17 +466,17 @@ export function Settings() {
                   disabled={isSaving || !apiId || !apiHash}
                 >
                   <Save size={18} />
-                  {isSaving ? '...' : t('settings.save_btn')}
+                  {isSaving ? '...' : t('settings.save_credentials')}
                 </button>
                 
                 {saveStatus === 'success' && (
                   <span className="status-msg success">
-                    ✓ {t('settings.save_success')}
+                    ✓ {t('settings.credentials_saved')}
                   </span>
                 )}
                 {saveStatus === 'error' && (
                   <span className="status-msg error">
-                    Failed to save settings.
+                    {t('settings.credentials_error')}
                   </span>
                 )}
               </div>
@@ -490,11 +488,10 @@ export function Settings() {
           <div className="glass-panel card">
             <div className="card-header">
               <Terminal size={20} color="var(--primary)" />
-              <h3>Telegram Backend Native</h3>
+              <h3>{t('settings.backend_native_title')}</h3>
             </div>
             <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
-              <strong>Grammers</strong> adalah backend MTProto aktif untuk Account, Session, daftar media,
-              preview dokumen, progressive video, chunk, dan seek.
+              {t('settings.backend_native_desc')}
             </p>
             <div className="page-stack" style={{ gap: '0.75rem' }}>
               <p className="field-hint" style={{ margin: 0 }}>

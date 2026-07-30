@@ -1,8 +1,10 @@
 import { useState, memo } from 'react';
 import { Sliders } from 'lucide-react';
-import { getDrivePerfProfile, setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
+import { useTranslation } from 'react-i18next';
+import { setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
 
 export const PerfSection = memo(function PerfSection() {
+  const { t } = useTranslation();
   const [tier, setTier] = useState<PerfTier>(() => {
     try {
       const saved = localStorage.getItem('autogram_perf_tier');
@@ -10,7 +12,7 @@ export const PerfSection = memo(function PerfSection() {
     } catch {
       /* ignore */
     }
-    return 'mid'; // Mode Standar Default
+    return 'mid';
   });
 
   const handleSelectTier = (newTier: PerfTier) => {
@@ -18,27 +20,25 @@ export const PerfSection = memo(function PerfSection() {
     setPerfTierOverride(newTier);
   };
 
-  const profile = getDrivePerfProfile();
-
   const options: { id: PerfTier; title: string; desc: string; badge?: string; icon: string }[] = [
     {
       id: 'low',
       icon: '🍃',
-      title: 'Mode Hemat',
-      desc: 'Menghemat penggunaan RAM & CPU. Batch thumbnail kecil (20 item per request).',
+      title: t('settings.perf_tier_low_title'),
+      desc: t('settings.perf_tier_low_desc'),
     },
     {
       id: 'mid',
       icon: '⚡',
-      title: 'Mode Standar',
+      title: t('settings.perf_tier_mid_title'),
       badge: 'DEFAULT',
-      desc: 'Keseimbangan ideal kecepatan transfer MTProto & kelancaran visual (48 batch).',
+      desc: t('settings.perf_tier_mid_desc'),
     },
     {
       id: 'high',
       icon: '🚀',
-      title: 'Mode Turbo',
-      desc: 'Throughput maksimal untuk perangkat & jaringan cepat (96 batch, 6 stream paralel).',
+      title: t('settings.perf_tier_high_title'),
+      desc: t('settings.perf_tier_high_desc'),
     },
   ];
 
@@ -46,10 +46,10 @@ export const PerfSection = memo(function PerfSection() {
     <div className="glass-panel card">
       <div className="card-header">
         <Sliders size={20} color="var(--primary)" />
-        <h3>Mode Optimasi Performa Perangkat</h3>
+        <h3>{t('settings.perf_title')}</h3>
       </div>
       <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
-        Atur tingkat akselerasi pengunduhan, pemuatan thumbnail, dan kelancaran render list card.
+        {t('settings.perf_subtitle')}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -153,7 +153,15 @@ export const PerfSection = memo(function PerfSection() {
           color: 'var(--text-muted)',
         }}
       >
-        Status Aktif: <strong style={{ color: 'var(--primary)' }}>{profile.label}</strong> · Engine MTProto Rust
+        {t('settings.perf_status_active')}{' '}
+        <strong style={{ color: 'var(--primary)' }}>
+          {tier === 'low'
+            ? t('settings.perf_tier_low_title')
+            : tier === 'high'
+            ? t('settings.perf_tier_high_title')
+            : t('settings.perf_tier_mid_title')}
+        </strong>{' '}
+        · {t('settings.perf_engine_rust')}
       </div>
     </div>
   );

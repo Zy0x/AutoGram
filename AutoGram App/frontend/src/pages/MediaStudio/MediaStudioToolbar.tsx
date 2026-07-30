@@ -11,6 +11,7 @@ import {
   File,
   Link as LinkIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DriveMediaFilter, DriveViewMode, DriveSortMode } from '../../lib/telegram/driveTypes';
 
 type MediaStudioToolbarProps = {
@@ -36,11 +37,13 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
   onSortModeChange,
   onUploadClick,
 }) => {
+  const { t } = useTranslation();
+
   const filters: { id: DriveMediaFilter; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: 'All Files', icon: <File className="w-3.5 h-3.5" /> },
-    { id: 'image', label: 'Photos', icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
-    { id: 'video', label: 'Videos', icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
-    { id: 'document', label: 'Documents', icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'all', label: t('speedtest.filter_all'), icon: <File className="w-3.5 h-3.5" /> },
+    { id: 'image', label: t('speedtest.filter_images'), icon: <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> },
+    { id: 'video', label: t('speedtest.filter_videos'), icon: <Film className="w-3.5 h-3.5 text-indigo-400" /> },
+    { id: 'document', label: t('speedtest.filter_docs'), icon: <FileText className="w-3.5 h-3.5 text-amber-400" /> },
     { id: 'link', label: 'Links', icon: <LinkIcon className="w-3.5 h-3.5 text-sky-400" /> },
   ];
 
@@ -52,7 +55,7 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search Drive files & folders..."
+          placeholder={t('speedtest.search_placeholder')}
           className="w-full pl-9 pr-4 py-1.5 bg-slate-950 border border-slate-800 text-xs text-slate-100 rounded-xl placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all font-mono"
         />
       </div>
