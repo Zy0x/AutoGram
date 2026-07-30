@@ -2447,10 +2447,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         return page;
       });
       const hasMore = !!res.has_more;
-      if (files.length <= page.length) {
-        setFilesHasMore(hasMore);
-        setNextOffsetId(res.next_offset_id ?? null);
-      }
+      setFilesHasMore(hasMore);
+      setNextOffsetId(res.next_offset_id ?? null);
       try {
         saveDriveLocationSnapshot(localStorage, creds.session, peerId, tid, {
           files: page,
@@ -2732,7 +2730,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
 
   const loadMoreFiles = useCallback(async () => {
     if (!creds || !filesHasMore || loadingMoreFiles || loadMoreLock.current) return;
-    if (nextOffsetId == null) return;
+    if (nextOffsetId == null) {
+      setFilesHasMore(false);
+      return;
+    }
     loadMoreLock.current = true;
     setLoadingMoreFiles(true);
     // Metadata and media use independent worker lanes. Keep thumbnails moving

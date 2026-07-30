@@ -837,14 +837,28 @@ export function DriveExplorer({
                 <div
                   key="more"
                   className="td-load-more-row"
+                  onClick={() => {
+                    if (!loadingMore && onLoadMore) {
+                      onLoadMore();
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     top: v.start + LIST_HEAD_H + LIST_PAD_TOP,
                     left: 0,
                     width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'center',
+                    cursor: loadingMore ? 'default' : 'pointer',
                   }}
                 >
-                  {loadingMore ? 'Loading more…' : hasMore ? 'Scroll for more…' : ''}
+                  {loadingMore ? (
+                    <span>
+                      <Loader2 size={14} className="spin" /> {t('speedtest.loading_more', 'Memuat lagi…')}
+                    </span>
+                  ) : (
+                    t('speedtest.scroll_to_load_more', 'Gulir untuk memuat lebih banyak…')
+                  )}
                 </div>
               );
             }
@@ -895,12 +909,19 @@ export function DriveExplorer({
                 <div
                   key="more"
                   className="td-load-more-row"
+                  onClick={() => {
+                    if (!loadingMore && onLoadMore) {
+                      onLoadMore();
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     top: vRow.start + GRID_PAD_TOP,
                     left: 0,
                     width: '100%',
                     padding: 16,
+                    textAlign: 'center',
+                    cursor: loadingMore ? 'default' : 'pointer',
                   }}
                 >
                   {loadingMore ? (

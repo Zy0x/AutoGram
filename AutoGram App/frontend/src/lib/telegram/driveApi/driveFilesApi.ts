@@ -122,9 +122,9 @@ export async function driveListFiles(
   }
 
   const work = (async () => {
-    // 1. Try serving from local IndexedDB warm cache (completed indexing)
+    // 1. Try serving from local IndexedDB warm cache (initial page only, no offsetId)
     const folderKey = folderId || 0;
-    if (!opts?.bypassCache) {
+    if (!opts?.bypassCache && opts?.offsetId == null) {
       try {
         let records = opts?.context
           ? await getMediaPageByContext(opts.context, sortMode, localOffset, pageSize)
@@ -133,7 +133,7 @@ export async function driveListFiles(
         if (!opts?.context && topicId != null && topicId > 0) {
           records = records.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(topicId));
         }
-        if (records.length > 0 || topicId == null || topicId <= 0) {
+        if (records.length > 0) {
           const totalCount = records.length;
           const hasMore = localOffset + records.length < totalCount;
           const nextOffsetId = records.length > 0 ? records[records.length - 1].id : null;
