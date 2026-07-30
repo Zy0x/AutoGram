@@ -1,3 +1,9 @@
+## v2.3.89 Ultimate End-to-End Architecture & Multi-Workflow Master Specification
+
+### Ekspansi Master Dokumen Arsitektur (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
+- **10 Diagram Sequence Workflow Mermaid**: Menyusun diagram alur visual interaktif untuk Bootstrapping SWR, Topic Selection, Infinite Streaming Scroll, WebP Thumbnail Queueing, File Upload Chunking, Remote ZIP Streaming, Duplicate Prevention Engine 4-Level, Smart Rate Controller & FloodWait Gate, Background Stats Walking, serta Multi-Session Auth.
+- **Matriks Inter-Module Call Graph**: Mendokumentasikan hubungan panggilan fungsi antara Frontend JS/TS, IPC Tauri Bridge, Rust MTProto Engine (Grammers), SQLite Database (`app.db`), dan IndexedDB (`mediaStudioDb.ts`).
+
 ## v2.3.88 Master Architecture & Workflow Specification
 
 ### Pembaharuan Dokumentasi Arsitektur Utuh (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
