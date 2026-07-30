@@ -2535,7 +2535,7 @@ export function DrivePreviewModal({
               onClose();
             }}
             aria-label="Close"
-            title="Tutup (Esc)"
+            title={t("speedtest.close_esc_tooltip")}
           >
             <X size={18} />
           </button>
@@ -2692,7 +2692,7 @@ export function DrivePreviewModal({
           <div className="drive-preview-tools">
             {(isImage || isVideo) && (
               <div className="drive-tool-group" role="group" aria-label="Zoom">
-                <span className="drive-tool-group-label">Zoom</span>
+                <span className="drive-tool-group-label">{t("speedtest.label_zoom")}</span>
                 <button
                   type="button"
                   className="drive-tool-btn"
@@ -2701,12 +2701,12 @@ export function DrivePreviewModal({
                   onClick={() => zoomBy(-ZOOM_STEP)}
                 >
                   <ZoomOut size={15} />
-                  <span className="drive-tool-btn-label">Kecil</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_zoom_out")}</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn drive-tool-btn-value"
-                  title="Kembalikan 100% (default) — tombol 0"
+                  title={t("speedtest.tooltip_zoom_reset")}
                   onClick={resetZoom}
                 >
                   <Shrink size={14} />
@@ -2720,49 +2720,49 @@ export function DrivePreviewModal({
                   onClick={() => zoomBy(ZOOM_STEP)}
                 >
                   <ZoomIn size={15} />
-                  <span className="drive-tool-btn-label">Besar</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_zoom_in")}</span>
                 </button>
               </div>
             )}
 
             {(isImage || isVideo) && (
               <div className="drive-tool-group" role="group" aria-label="Putar">
-                <span className="drive-tool-group-label">Putar</span>
+                <span className="drive-tool-group-label">{t("speedtest.label_rotate")}</span>
                 <button
                   type="button"
                   className={`drive-tool-btn${rotation ? ' is-on' : ''}`}
-                  title="Putar kiri 90 derajat"
+                  title={t("speedtest.tooltip_rotate_left")}
                   onClick={() => setRotation((r) => (r + 270) % 360)}
                 >
                   <RotateCcw size={15} />
-                  <span className="drive-tool-btn-label">Kiri</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_left")}</span>
                 </button>
                 <button
                   type="button"
                   className={`drive-tool-btn${rotation ? ' is-on' : ''}`}
-                  title="Putar kanan 90 derajat (R)"
+                  title={t("speedtest.tooltip_rotate_right")}
                   onClick={() => setRotation((r) => (r + 90) % 360)}
                 >
                   <RotateCw size={15} />
-                  <span className="drive-tool-btn-label">Kanan</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_right")}</span>
                 </button>
                 <button
                   type="button"
                   className={`drive-tool-btn${flipH ? ' is-on' : ''}`}
-                  title="Cermin horizontal (kiri-kanan)"
+                  title={t("speedtest.tooltip_flip_h")}
                   onClick={() => setFlipH((v) => !v)}
                 >
                   <FlipHorizontal size={15} />
-                  <span className="drive-tool-btn-label">Cermin</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_flip")}</span>
                 </button>
                 <button
                   type="button"
                   className={`drive-tool-btn${flipV ? ' is-on' : ''}`}
-                  title="Balik vertikal (atas-bawah)"
+                  title={t("speedtest.tooltip_flip_v")}
                   onClick={() => setFlipV((v) => !v)}
                 >
                   <FlipVertical size={15} />
-                  <span className="drive-tool-btn-label">Balik</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_flip_v")}</span>
                 </button>
               </div>
             )}
@@ -2776,7 +2776,7 @@ export function DrivePreviewModal({
                       ref={qualityBtnRef}
                       type="button"
                       className="drive-tool-btn drive-tool-btn-accent"
-                      title="Resolusi stream (Otomatis / Asli / 720p…)"
+                      title={t("speedtest.tooltip_res")}
                       onClick={() => {
                         setRateOpen(false);
                         setRateMenuPos(null);
@@ -2808,7 +2808,7 @@ export function DrivePreviewModal({
                     ref={rateBtnRef}
                     type="button"
                     className="drive-tool-btn drive-tool-btn-value"
-                    title="Kecepatan putar (0.5x – 2x)"
+                    title={t("speedtest.tooltip_speed")}
                     onClick={() => {
                       setQualityOpen(false);
                       setQualityMenuPos(null);
@@ -2834,7 +2834,7 @@ export function DrivePreviewModal({
                   onClick={() => setMuted((m) => !m)}
                 >
                   {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                  <span className="drive-tool-btn-label">{muted ? 'Mute' : 'Suara'}</span>
+                  <span className="drive-tool-btn-label">{muted ? t('speedtest.label_mute') : t('speedtest.label_sound')}</span>
                 </button>
                 <button
                   type="button"
@@ -2849,7 +2849,7 @@ export function DrivePreviewModal({
                   onClick={() => setLoopVideo((on) => !on)}
                 >
                   <Repeat size={15} />
-                  <span className="drive-tool-btn-label">Loop</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_loop")}</span>
                 </button>
                 <button
                   type="button"
@@ -2858,14 +2858,14 @@ export function DrivePreviewModal({
                   onClick={() => void togglePip()}
                 >
                   <PictureInPicture2 size={15} />
-                  <span className="drive-tool-btn-label">PiP</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_pip")}</span>
                 </button>
               </div>
             )}
 
             {(isPdf || isText || isDocOther) && isDesktop() && (
               <div className="drive-tool-group" role="group" aria-label="Buka dokumen">
-                <span className="drive-tool-group-label">Buka</span>
+                <span className="drive-tool-group-label">{t("speedtest.label_open")}</span>
                 <button
                   type="button"
                   className="drive-tool-btn drive-tool-btn-accent"
@@ -2874,7 +2874,7 @@ export function DrivePreviewModal({
                   onClick={() => void handleOpenSystem()}
                 >
                   {openingSystem ? <Loader2 size={15} className="spin" /> : <ExternalLink size={15} />}
-                  <span className="drive-tool-btn-label">Aplikasi</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_app")}</span>
                 </button>
                 <button
                   type="button"
@@ -2884,7 +2884,7 @@ export function DrivePreviewModal({
                   onClick={() => void handleOpenWith()}
                 >
                   <AppWindow size={15} />
-                  <span className="drive-tool-btn-label">Dengan…</span>
+                  <span className="drive-tool-btn-label">{t("speedtest.label_with")}</span>
                 </button>
                 {isPdf && (
                   <button
@@ -2895,7 +2895,7 @@ export function DrivePreviewModal({
                     onClick={() => void handlePrintPdf()}
                   >
                     <Printer size={15} />
-                    <span className="drive-tool-btn-label">Cetak</span>
+                    <span className="drive-tool-btn-label">{t("speedtest.label_print")}</span>
                   </button>
                 )}
                 {isText && textBody && (
@@ -2906,14 +2906,14 @@ export function DrivePreviewModal({
                     onClick={() => void handleCopyText()}
                   >
                     <Copy size={15} />
-                    <span className="drive-tool-btn-label">Salin</span>
+                    <span className="drive-tool-btn-label">{t("speedtest.label_copy")}</span>
                   </button>
                 )}
               </div>
             )}
 
             <div className="drive-tool-group" role="group" aria-label="Lainnya">
-              <span className="drive-tool-group-label">Lain</span>
+              <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
               <button
                 type="button"
                 className={`drive-tool-btn${loading ? ' is-loading' : ''}`}
@@ -2930,7 +2930,7 @@ export function DrivePreviewModal({
                 }}
               >
                 <RefreshCw size={15} className={loading ? 'spin' : ''} />
-                <span className="drive-tool-btn-label">{loading ? 'Memuat…' : 'Muat'}</span>
+                <span className="drive-tool-btn-label">{loading ? t('speedtest.label_loading') : t('speedtest.label_load')}</span>
               </button>
               <button
                 type="button"
@@ -2939,7 +2939,7 @@ export function DrivePreviewModal({
                 onClick={() => setShowInfo((v) => !v)}
               >
                 <Info size={15} />
-                <span className="drive-tool-btn-label">Info</span>
+                <span className="drive-tool-btn-label">{t("speedtest.label_info")}</span>
               </button>
             </div>
           </div>
@@ -4046,7 +4046,7 @@ export function DrivePreviewModal({
             <div
               className="drive-preview-info"
               role="dialog"
-              aria-label="Detail file"
+              aria-label={t("speedtest.detail_aria")}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
@@ -4055,8 +4055,8 @@ export function DrivePreviewModal({
                 <button
                   type="button"
                   className="td-icon-btn drive-preview-info-close"
-                  title="Tutup info"
-                  aria-label="Tutup info"
+                  title={t("speedtest.close_info")}
+                  aria-label={t("speedtest.close_info")}
                   onClick={() => setShowInfo(false)}
                 >
                   <X size={14} />

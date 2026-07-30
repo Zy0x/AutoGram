@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { formatDriveDuration } from '../../../lib/telegram/driveTypes';
@@ -25,6 +26,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
   qualityLabel,
   onQualityMenuToggle,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -238,7 +240,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
             <button
               onClick={toggleFullscreen}
               className="p-2 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all"
-              title="Fullscreen"
+              title={t("speedtest.fullscreen")}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>

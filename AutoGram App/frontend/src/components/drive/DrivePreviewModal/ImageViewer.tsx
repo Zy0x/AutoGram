@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { ZoomIn, ZoomOut, RotateCw, RotateCcw, FlipHorizontal, FlipVertical } from 'lucide-react';
 
@@ -34,6 +35,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   onReset,
   onLoadImage,
 }) => {
+  const { t } = useTranslation();
   const transformStyle = {
     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
     transition: 'transform 0.15s ease-out',
@@ -60,7 +62,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onZoomOut}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title="Zoom Out"
+          title={t("speedtest.zoom_out_tooltip")}
         >
           <ZoomOut size={16} />
         </button>
@@ -71,7 +73,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onZoomIn}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title="Zoom In"
+          title={t("speedtest.zoom_in_tooltip")}
         >
           <ZoomIn size={16} />
         </button>
@@ -82,7 +84,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onRotateCcw}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title="Putar Kiri 90°"
+          title={t("speedtest.rotate_left_tooltip")}
         >
           <RotateCcw size={16} />
         </button>
@@ -90,7 +92,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onRotateCw}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
-          title="Putar Kanan 90°"
+          title={t("speedtest.rotate_right_tooltip")}
         >
           <RotateCw size={16} />
         </button>
@@ -101,7 +103,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onFlipH}
           className={`p-1.5 rounded-lg ${flipH ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-          title="Cermin Horizontal"
+          title={t("speedtest.flip_h_tooltip")}
         >
           <FlipHorizontal size={16} />
         </button>
@@ -109,7 +111,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           type="button"
           onClick={onFlipV}
           className={`p-1.5 rounded-lg ${flipV ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
-          title="Cermin Vertikal"
+          title={t("speedtest.flip_v_tooltip")}
         >
           <FlipVertical size={16} />
         </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { HardDrive, PieChart } from 'lucide-react';
 import type { DriveFile } from '../../../lib/telegram/driveTypes';
@@ -16,6 +17,7 @@ export const SpaceUsageTab: React.FC<SpaceUsageTabProps> = ({
   totalCount,
   totalBytes,
 }) => {
+  const { t } = useTranslation();
   const videoBytes = files.filter(isVideoDriveFile).reduce((acc, f) => acc + f.size, 0);
   const imageBytes = files.filter(isImageDriveFile).reduce((acc, f) => acc + f.size, 0);
   const audioBytes = files.filter(isAudioDriveFile).reduce((acc, f) => acc + f.size, 0);
@@ -58,23 +60,23 @@ export const SpaceUsageTab: React.FC<SpaceUsageTabProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-xs">
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-indigo-400 font-medium">Video</span>
+            <span className="text-indigo-400 font-medium">{t('speedtest.space_cat_videos')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(videoBytes)} ({calcPct(videoBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-emerald-400 font-medium">Gambar</span>
+            <span className="text-emerald-400 font-medium">{t('speedtest.space_cat_images')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(imageBytes)} ({calcPct(imageBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-amber-400 font-medium">Audio</span>
+            <span className="text-amber-400 font-medium">{t('speedtest.space_cat_audio')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(audioBytes)} ({calcPct(audioBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-purple-400 font-medium">Arsip (ZIP/RAR)</span>
+            <span className="text-purple-400 font-medium">{t('speedtest.space_cat_archives')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(archiveBytes)} ({calcPct(archiveBytes)}%)</p>
           </div>
           <div className="p-2 bg-slate-950/60 rounded-lg border border-slate-800/80">
-            <span className="text-slate-400 font-medium">Lainnya</span>
+            <span className="text-slate-400 font-medium">{t('speedtest.space_cat_other')}</span>
             <p className="font-mono text-slate-200 mt-0.5">{formatDriveBytes(otherBytes)} ({calcPct(otherBytes)}%)</p>
           </div>
         </div>

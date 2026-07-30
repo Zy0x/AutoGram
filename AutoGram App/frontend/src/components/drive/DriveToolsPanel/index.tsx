@@ -308,19 +308,19 @@ export function DriveToolsPanel({
           <aside className="td-tools-sidebar" aria-label="Kategori Alat dan Pengaturan">
             {TOOL_GROUPS.map((group) => (
               <div key={group.title} className="td-tools-sidebar-group">
-                <span className="td-tools-sidebar-header">{group.title}</span>
-                {group.tabs.map((t) => {
-                  const Icon = t.icon;
-                  const isActive = tab === t.id;
+                <span className="td-tools-sidebar-header">{t(group.title === 'ALAT DRIVE' ? 'speedtest.tools_cat_drive' : group.title === 'KONFIGURASI' ? 'speedtest.tools_cat_config' : group.title)}</span>
+                {group.tabs.map((tItem) => {
+                  const Icon = tItem.icon;
+                  const isActive = tab === tItem.id;
                   return (
                     <button
-                      key={t.id}
+                      key={tItem.id}
                       type="button"
                       className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
-                      onClick={() => onTab(t.id)}
+                      onClick={() => onTab(tItem.id)}
                     >
                       <Icon size={16} />
-                      <span>{t.label}</span>
+                      <span>{t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`)}</span>
                     </button>
                   );
                 })}
@@ -353,11 +353,11 @@ export function DriveToolsPanel({
                 </div>
                 <div className="td-tools-stats-status">
                   {locationStatsAccurate ? (
-                    <span className="td-tools-badge-ok">Akurat (Metadata Telegram)</span>
+                    <span className="td-tools-badge-ok">{t('speedtest.accurate_metadata')}</span>
                   ) : locationStatsLoading ? (
                     <span className="td-tools-badge-busy">Menghitung…</span>
                   ) : (
-                    <span className="td-tools-badge-est">Perkiraan (Grid Loaded)</span>
+                    <span className="td-tools-badge-est">{t('speedtest.approx_loaded')}</span>
                   )}
                 </div>
               </div>
@@ -416,7 +416,7 @@ export function DriveToolsPanel({
 
               {space.largest.length > 0 && (
                 <>
-                  <h4 className="td-tools-h">File Terbesar</h4>
+                  <h4 className="td-tools-h">{t('speedtest.top_largest_files')}</h4>
                   <ul className="td-tools-largest-list">
                     {space.largest.map((f: any) => (
                       <li key={f.id} className="td-tools-largest-item">
@@ -456,7 +456,7 @@ export function DriveToolsPanel({
                   Scope: <strong>{selectedFiles.length ? `${selectedFiles.length} terpilih` : `hingga 50 file di view`}</strong>.
                 </p>
                 <div className="td-tools-tokens">
-                  <span className="td-tools-token-label">Token:</span>
+                  <span className="td-tools-token-label">{t('speedtest.token_label')}</span>
                   <code className="td-token-badge">{'{n}'}</code>
                   <code className="td-token-badge">{'{n:3}'}</code>
                   <code className="td-token-badge">{'{name}'}</code>
@@ -487,10 +487,10 @@ export function DriveToolsPanel({
                 </label>
               </div>
 
-              <h4 className="td-tools-h">Pratinjau Hasil Rename</h4>
+              <h4 className="td-tools-h">{t('speedtest.rename_preview_title')}</h4>
               <div className="td-tools-preview-container">
                 {renamePreview.length === 0 ? (
-                  <p className="td-tools-empty">Tidak ada perubahan / file kosong</p>
+                  <p className="td-tools-empty">{t('speedtest.rename_no_change')}</p>
                 ) : (
                   <ul className="td-tools-preview-list mono">
                     {renamePreview.map((r: any) => (
@@ -527,7 +527,7 @@ export function DriveToolsPanel({
           {tab === 'copy' && (
             <div className="td-tools-section">
               <p className="td-tools-lead">
-                Salin batch ke Drive/Chat (sumber tetap). Cocok untuk arsip chat → Drive.
+                {t('speedtest.smart_copy_desc')}
               </p>
               <div className="td-tools-form-stack">
                 <label className="td-tools-field">
@@ -595,7 +595,7 @@ export function DriveToolsPanel({
                     });
                   }}
                 >
-                  <Copy size={15} /> Mulai Salin Batch
+                  <Copy size={15} /> {t('speedtest.btn_start_copy')}
                 </button>
               </div>
             </div>
@@ -816,7 +816,7 @@ function TransferTabContent({
               ))}
             </div>
 
-            <h3>Hardware Re-encode (GPU)</h3>
+            <h3>{t('speedtest.hardware_reencode')}</h3>
             <p className="td-xfer-hint">
               Akselerasi GPU untuk konversi video sebelum diunggah.
             </p>
@@ -836,7 +836,7 @@ function TransferTabContent({
               />
             </label>
 
-            <h3>Mode Re-encode</h3>
+            <h3>{t('speedtest.reencode_mode')}</h3>
             <p className="td-xfer-hint">
               Keseimbangan antara kecepatan proses dan kualitas akhir.
             </p>
@@ -871,7 +871,7 @@ function TransferTabContent({
               <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
             </label>
 
-            <h3>Opsi pengiriman</h3>
+            <h3>{t('speedtest.send_options')}</h3>
             <div className="td-xfer-checks">
               <label className="td-xfer-check">
                 <input
@@ -881,8 +881,8 @@ function TransferTabContent({
                   onChange={(e) => onChange({ groupAsAlbum: e.target.checked })}
                 />
                 <span>
-                  <strong>Kirim sebagai album</strong>
-                  <small>Kelompokkan foto/video sejenis (maks 10 per batch Telegram).</small>
+                  <strong>{t('speedtest.send_as_album')}</strong>
+                  <small>{t('speedtest.send_as_album_desc')}</small>
                 </span>
               </label>
               <label className="td-xfer-check">
@@ -893,8 +893,8 @@ function TransferTabContent({
                   onChange={(e) => onChange({ silent: e.target.checked })}
                 />
                 <span>
-                  <strong>Silent (tanpa notifikasi)</strong>
-                  <small>Kirim tanpa bunyi notifikasi di sisi penerima.</small>
+                  <strong>{t('speedtest.silent_send')}</strong>
+                  <small>{t('speedtest.silent_send_desc')}</small>
                 </span>
               </label>
               <label className="td-xfer-check">
@@ -905,8 +905,8 @@ function TransferTabContent({
                   onChange={(e) => onChange({ spoiler: e.target.checked })}
                 />
                 <span>
-                  <strong>Spoiler media</strong>
-                  <small>Tandai media sebagai spoiler (blur sampai diklik).</small>
+                  <strong>{t('speedtest.spoiler_media')}</strong>
+                  <small>{t('speedtest.spoiler_media_desc')}</small>
                 </span>
               </label>
               <label className="td-xfer-check">
@@ -923,8 +923,8 @@ function TransferTabContent({
                   }}
                 />
                 <span>
-                  <strong>Paksa dokumen (ORIGINAL)</strong>
-                  <small>File utuh tanpa kompresi foto Telegram.</small>
+                  <strong>{t('speedtest.force_document')}</strong>
+                  <small>{t('speedtest.force_document_desc')}</small>
                 </span>
               </label>
               <label className="td-xfer-check">
@@ -941,12 +941,12 @@ function TransferTabContent({
               </label>
             </div>
 
-            <h3>Caption default</h3>
+            <h3>{t('speedtest.default_caption')}</h3>
             <textarea
               className="td-xfer-textarea"
               rows={3}
               maxLength={1024}
-              placeholder="Caption opsional…"
+              placeholder={t("speedtest.default_caption_ph")}
               value={draft.globalCaption}
               disabled={!!transferActive}
               onChange={(e) => onChange({ globalCaption: e.target.value })}
@@ -998,7 +998,7 @@ function TransferTabContent({
           className="td-btn-secondary"
           disabled={!!transferActive}
           onClick={onReset}
-          title="Kembalikan semua ke setelan awal"
+          title={t("speedtest.restore_defaults")}
         >
           <RotateCcw size={14} />
           Reset Default
@@ -1229,7 +1229,7 @@ function DupTab({
         )}
       </p>
       <div className="td-tools-actions-bar">
-        <div className="td-tools-segmented" role="radiogroup" aria-label="Mode deteksi duplikat">
+        <div className="td-tools-segmented" role="radiogroup" aria-label={t("speedtest.dup_detection_mode")}>
           <button
             type="button"
             className={`td-segmented-item ${dupMode === 'name_size' ? 'active' : ''}`}
@@ -1245,7 +1245,7 @@ function DupTab({
             + ukuran sama (soft)
           </button>
         </div>
-        <label className="td-tools-check-inline" title="Preferensi default cerdas (bisa diubah per-item)">
+        <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")}>
           <input
             type="checkbox"
             checked={keepNewest}
@@ -1352,7 +1352,7 @@ function DupTab({
                         isPreferredKeep ? ' is-preferred-keep' : ''
                       }`}
                     >
-                      <label className="td-tools-dup-check" title="Centang untuk menghapus salinan ini">
+                      <label className="td-tools-dup-check" title={t("speedtest.check_delete_tooltip")}>
                         <input
                           type="checkbox"
                           checked={marked}

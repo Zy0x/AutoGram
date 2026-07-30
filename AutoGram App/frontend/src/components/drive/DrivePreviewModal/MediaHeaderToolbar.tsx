@@ -80,7 +80,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             disabled={!hasNext}
             onClick={onNext}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80 disabled:opacity-40"
-            title="File Berikutnya (Panah Kanan)"
+            title={t("speedtest.next_file_tooltip")}
           >
             <ChevronRight size={18} />
           </button>
@@ -114,7 +114,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
           disabled={saving}
           onClick={onDownload}
           className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800/80"
-          title="Download File"
+          title={t("speedtest.download_file_tooltip")}
         >
           <Download size={16} />
         </button>
@@ -126,7 +126,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
             className={`p-1.5 rounded-lg transition-colors ${
               showInfo ? 'text-indigo-400 bg-indigo-950/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
             }`}
-            title="Detail Info File"
+            title={t("speedtest.file_detail_tooltip")}
           >
             <Info size={16} />
           </button>
@@ -147,7 +147,7 @@ export const MediaHeaderToolbar: React.FC<MediaHeaderToolbarProps> = ({
           type="button"
           onClick={onClose}
           className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-red-500/20 hover:text-red-300 ml-1"
-          title="Tutup (ESC)"
+          title={t("speedtest.close_esc_tooltip")}
         >
           <X size={18} />
         </button>
