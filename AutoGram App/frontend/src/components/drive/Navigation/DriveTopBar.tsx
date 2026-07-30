@@ -673,16 +673,16 @@ export function DriveTopBar({
         <div className="td-topbar-tools" role="toolbar" aria-label={t("speedtest.topbar_tools_aria")}>
           <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
             <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
-              Filter
+              {t("speedtest.topbar_label_filter", "Filter")}
             </span>
             <div className="td-filter-pills">
               {(
                 [
-                  ['all', 'Semua', 'Semua tipe media'],
-                  ['image', 'Gambar', 'Hanya gambar'],
-                  ['video', 'Video', 'Hanya video'],
-                  ['document', 'Dokumen', 'Hanya dokumen'],
-                  ['link', 'Link', 'Hanya link / URL'],
+                  ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua tipe media")],
+                  ['image', t("speedtest.filter_image", "Gambar"), t("speedtest.filter_image_tip", "Hanya gambar")],
+                  ['video', t("speedtest.filter_video", "Video"), t("speedtest.filter_video_tip", "Hanya video")],
+                  ['document', t("speedtest.filter_document", "Dokumen"), t("speedtest.filter_document_tip", "Hanya dokumen")],
+                  ['link', t("speedtest.filter_link", "Link"), t("speedtest.filter_link_tip", "Hanya link / URL")],
                 ] as const
               ).map(([id, label, tip]) => (
                 <button
@@ -691,7 +691,7 @@ export function DriveTopBar({
                   className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
                   onClick={() => onMediaFilter(id)}
                   title={tip}
-                  aria-label={`Filter: ${tip}`}
+                  aria-label={`${t("speedtest.topbar_label_filter", "Filter")}: ${tip}`}
                   aria-pressed={mediaFilter === id}
                 >
                   <span className="td-pill-label">{label}</span>
@@ -702,20 +702,20 @@ export function DriveTopBar({
 
           <div className="td-tool-group" title={t("speedtest.topbar_sort_order")}>
             <span className="td-tool-label" id="td-label-sort" title={t("speedtest.topbar_sort_order")}>
-              Urutkan
+              {t("speedtest.topbar_label_sort", "Urutkan")}
             </span>
             <div className="td-sort-group">
               <ArrowUpDown size={14} className="td-sort-ico" aria-hidden />
               <MediaSelect
                 value={sortMode}
                 onChange={(value) => onSortMode(value as DriveSortMode)}
-                ariaLabel="Urutkan media"
+                ariaLabel={t("speedtest.topbar_sort_media_aria", "Urutkan media")}
                 compact
                 className="td-sort"
                 options={DRIVE_SORT_OPTIONS.map((opt: any) => ({
                   value: opt.id,
-                  label: opt.label,
-                  description: opt.description,
+                  label: String(t(`speedtest.sort_${opt.id}_label`, opt.label)),
+                  description: String(t(`speedtest.sort_${opt.id}_desc`, opt.description)),
                 }))}
               />
             </div>
@@ -728,22 +728,27 @@ export function DriveTopBar({
             title={t("speedtest.topbar_thumb_quality")}
           >
             <span id="td-label-thumb" className="td-tool-label" title={t("speedtest.topbar_preview_quality")}>
-              Thumb
+              {t("speedtest.topbar_label_thumb", "Thumb")}
             </span>
             <div className="td-thumb-quality-pills">
-              {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
-                  onClick={() => onThumbQuality(opt.id)}
-                  title={`Thumb: ${opt.description}`}
-                  aria-label={`Thumb: ${opt.label}`}
-                  aria-pressed={thumbQuality === opt.id}
-                >
-                  {opt.short}
-                </button>
-              ))}
+              {DRIVE_THUMB_QUALITY_OPTIONS.map((opt: any) => {
+                const label = String(t(`speedtest.thumb_${opt.id}_label`, opt.label));
+                const short = String(t(`speedtest.thumb_${opt.id}_short`, opt.short));
+                const description = String(t(`speedtest.thumb_${opt.id}_desc`, opt.description));
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`td-pill td-thumb-pill ${thumbQuality === opt.id ? 'active' : ''}`}
+                    onClick={() => onThumbQuality(opt.id)}
+                    title={`Thumb: ${description}`}
+                    aria-label={`Thumb: ${label}`}
+                    aria-pressed={thumbQuality === opt.id}
+                  >
+                    {short}
+                  </button>
+                );
+              })}
             </div>
           </div>
       </div>
