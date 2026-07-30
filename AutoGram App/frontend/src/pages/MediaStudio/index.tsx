@@ -13,38 +13,6 @@ import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../li
 import {
   startTransition,
   useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
-import { HardDrive, Upload } from 'lucide-react';
-import { canUseLocalTelegramWorker } from '../../lib/tauri/platform';
-import {
-  openDriveMoveConfirm,
-  closeDriveMoveConfirm,
-  subscribeDriveMoveConfirmStore,
-  getDriveMoveConfirmSnapshot,
-  getDriveMoveConfirmVersion,
-} from '../../lib/telegram';
-import {
-  bootstrapSecureCredentials,
-  getApiHashSync,
-  getApiIdSync,
-  getSecureTransferSettings,
-  setSecureTransferSettings,
-} from '../../lib/tauri/secureCredentials';
-import {
-  loadSelectableSessionNames,
-  getActiveSessionTargets,
-  setActiveSessionTargets,
-} from '../../lib/telegram';
-import {
-  driveBootstrap,
-  driveListChatFolders,
-  driveListChats,
-  driveScanFolders,
   driveCreateFolder,
   driveDeleteFolder,
   driveListFiles,

@@ -210,7 +210,7 @@ pub struct OpResult<T: Serialize> {
     pub user_message: Option<String>,
 }
 
-fn ok_result<T: Serialize>(backend: &str, data: T) -> OpResult<T> {
+pub fn ok_result<T: Serialize>(backend: &str, data: T) -> OpResult<T> {
     OpResult {
         ok: true,
         backend: backend.into(),
@@ -220,7 +220,7 @@ fn ok_result<T: Serialize>(backend: &str, data: T) -> OpResult<T> {
     }
 }
 
-fn err_result<T: Serialize>(backend: &str, e: TgError) -> OpResult<T> {
+pub fn err_result<T: Serialize>(backend: &str, e: TgError) -> OpResult<T> {
     let user_message = Some(e.user_message());
     OpResult {
         ok: false,
@@ -231,7 +231,7 @@ fn err_result<T: Serialize>(backend: &str, e: TgError) -> OpResult<T> {
     }
 }
 
-fn sessions_dir_from_env() -> std::path::PathBuf {
+pub fn sessions_dir_from_env() -> std::path::PathBuf {
     super::grammers_ops::resolve_sessions_dir(None)
 }
 

@@ -1269,7 +1269,9 @@ name = "frontend"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "async-trait",
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "flate2",
  "grammers-client",
@@ -1293,6 +1295,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tiny_http",
  "tokio",
+ "tokio-util",
  "ureq",
  "zip",
 ]

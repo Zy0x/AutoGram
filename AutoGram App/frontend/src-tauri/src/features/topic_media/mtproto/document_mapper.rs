@@ -1,0 +1,198 @@
+//! Converts Grammers TL Message / Media into normalized TopicMediaItem domain models.
+
+use grammers_client::tl;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use super::super::models::{TopicMediaContext, TopicMediaItem};
+
+fn now_unix() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+pub fn message_to_topic_media_item(
+    ctx: &TopicMediaContext,
+    msg: &tl::enums::Message,
+) -> Option<TopicMediaItem> {
+    let m = match msg {
+        tl::enums::Message::Message(m) => m,
+        _ => return None,
+    };
+
+    let message_id = m.id as i64;
+    let message_date = m.date as i64;
+    let text = m.message.trim();
+    let caption = if text.is_empty() {
+        None
+    } else {
+        Some(text.to_string())
+    };
+
+    let now = now_unix();
+
+    if let Some(ref media) = m.media {
+        match media {
+            tl::enums::MessageMedia::Photo(photo_media) => {
+                let file_name = match &caption {
+                    Some(c) => format!("{c}.jpg"),
+                    None => format!("photo_{message_id}.jpg"),
+                };
+                Some(TopicMediaItem {
+                    account_id: ctx.account_id.clone(),
+                    peer_id: ctx.peer_id.clone(),
+                    topic_id: ctx.topic_id,
+                    message_id,
+                    message_date,
+                    edit_date: None,
+                    grouped_id: m.grouped_id,
+                    sender_id: None,
+                    caption,
+                    media_type: "photo".to_string(),
+                    mime_type: Some("image/jpeg".to_string()),
+                    file_name,
+                    file_size: 0,
+                    document_id: None,
+                    access_hash: None,
+                    dc_id: None,
+                    file_reference: None,
+                    width: None,
+                    height: None,
+                    duration_ms: None,
+                    has_server_thumb: true,
+                    has_video_thumb: false,
+                    thumb_url: None,
+                    is_deleted: false,
+                    created_at: now,
+                    updated_at: now,
+                })
+            }
+            tl::enums::MessageMedia::Document(doc_media) => {
+                let doc = match &doc_media.document {
+                    Some(tl::enums::Document::Document(d)) => d,
+                    _ => return None,
+                };
+
+                let mut raw_name: Option<String> = None;
+                let mut mime: Option<String> = Some(doc.mime_type.clone());
+
+                for attr in &doc.attributes {
+                    if let tl::enums::DocumentAttribute::Filename(f) = attr {
+                        raw_name = Some(f.file_name.clone());
+                    }
+                }
+
+                let file_name = raw_name
+                    .or_else(|| caption.clone())
+                    .unwrap_or_else(|| format!("file_{message_id}"));
+
+                let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
+                let name_l = file_name.to_ascii_lowercase();
+
+                let is_video = mime_l.starts_with("video/")
+                    || name_l.ends_with(".mp4")
+                    || name_l.ends_with(".mov")
+                    || name_l.ends_with(".mkv")
+                    || name_l.ends_with(".webm")
+                    || name_l.ends_with(".avi");
+
+                let is_audio = mime_l.starts_with("audio/")
+                    || name_l.ends_with(".mp3")
+                    || name_l.ends_with(".wav")
+                    || name_l.ends_with(".flac")
+                    || name_l.ends_with(".m4a");
+
+                let is_image = mime_l.starts_with("image/")
+                    || name_l.ends_with(".jpg")
+                    || name_l.ends_with(".png")
+                    || name_l.ends_with(".webp")
+                    || name_l.ends_with(".gif");
+
+                let media_type = if is_video {
+                    "video"
+                } else if is_audio {
+                    "audio"
+                } else if is_image {
+                    "photo"
+                } else {
+                    "document"
+                };
+
+                let has_thumb = doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false);
+
+                Some(TopicMediaItem {
+                    account_id: ctx.account_id.clone(),
+                    peer_id: ctx.peer_id.clone(),
+                    topic_id: ctx.topic_id,
+                    message_id,
+                    message_date,
+                    edit_date: None,
+                    grouped_id: m.grouped_id,
+                    sender_id: None,
+                    caption,
+                    media_type: media_type.to_string(),
+                    mime_type: mime,
+                    file_name,
+                    file_size: doc.size as u64,
+                    document_id: Some(doc.id),
+                    access_hash: Some(doc.access_hash),
+                    dc_id: Some(doc.dc_id as i32),
+                    file_reference: Some(doc.file_reference.clone()),
+                    width: None,
+                    height: None,
+                    duration_ms: None,
+                    has_server_thumb: has_thumb,
+                    has_video_thumb: is_video,
+                    thumb_url: None,
+                    is_deleted: false,
+                    created_at: now,
+                    updated_at: now,
+                })
+            }
+            _ => None,
+        }
+    } else if let Some(ref c) = caption {
+        let is_link = c.contains("http://") || c.contains("https://") || c.contains("t.me/");
+        if is_link {
+            let clean_title = c.lines().next().unwrap_or(c).trim();
+            let file_name = if clean_title.ends_with(".url") {
+                clean_title.to_string()
+            } else {
+                format!("{clean_title}.url")
+            };
+            Some(TopicMediaItem {
+                account_id: ctx.account_id.clone(),
+                peer_id: ctx.peer_id.clone(),
+                topic_id: ctx.topic_id,
+                message_id,
+                message_date,
+                edit_date: None,
+                grouped_id: m.grouped_id,
+                sender_id: None,
+                caption: Some(c.clone()),
+                media_type: "url".to_string(),
+                mime_type: Some("text/html".to_string()),
+                file_name,
+                file_size: c.len() as u64,
+                document_id: None,
+                access_hash: None,
+                dc_id: None,
+                file_reference: None,
+                width: None,
+                height: None,
+                duration_ms: None,
+                has_server_thumb: false,
+                has_video_thumb: false,
+                thumb_url: None,
+                is_deleted: false,
+                created_at: now,
+                updated_at: now,
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}

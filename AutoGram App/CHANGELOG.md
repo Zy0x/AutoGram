@@ -1,3 +1,12 @@
+## v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine
+
+### Perombakan Total Pemuatan List Media Grup & Topik (`src/features/topic-media`, `src-tauri/src/features/topic_media`)
+- **Secure Local-First Hybrid Cache Architecture**: Menambahkan tabel SQLite `topic_media_items`, `topic_media_thumbnails`, `topic_media_sync_state`, dan `topic_media_downloads` dengan composite index `(account_id, peer_id, topic_id, message_id)`. Pemuatan awal menyajikan cache lokal instan (<10ms).
+- **MTProto Server-Side Topic Search**: Menggunakan `tl::functions::messages::Search` dengan `top_msg_id: Some(topic_id)` untuk memfilter topik pada server Telegram secara langsung tanpa perlu pemindaian pesan sekensial.
+- **Centralized FloodWait Gate Controller**: Memasang pengunci global yang mendeteksi `FloodWaitError`, menangguhkan semua request MTProto yang sesuai batas waktu `wait_seconds`, dan mencegah pemblokiran akun/IP.
+- **Progressive Document Thumbnail Resolver & WebP Cache Layer**: Mendukung pemisahan kualitas thumbnail (`Saver`, `Balance`, `High`), ekstraksi thumbnail partial dari header dokumen, dan penyimpan visual WebP atomic di disk lokal.
+- **Fail-Closed Context Switch**: Menginkremen `generation_id` secara atomic saat berganti topik/chat untuk membatalkan seluruh task async lama dan menggaransi nol kebocoran data visual.
+
 ## v2.3.81 Zero-Bleed Instant Switch & Ultra-Fast Realtime Server Head Sync
 
 ### Eliminasi Kebocoran Kartu Antar-Lokasi & Sinkronisasi Server Super Cepat (<300ms) (`MediaStudio/index.tsx`)

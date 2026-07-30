@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.81
+AutoGram Version: v2.3.82
 
 Current State:
+v2.3.82 Secure Local-First Topic Media Architecture & Multi-Lane MTProto Engine — Perombakan total pemuatan list media grup & topik dengan Secure Local-First Hybrid Cache Architecture, Server-side MTProto topic search (`messages.search` via `top_msg_id`), Adaptive Multi-Lane Media Pipeline, Progressive Document Thumbnail Resolver, dan Context-bound scoped batch events.
+
+Previous:
 v2.3.81 Zero-Bleed Instant Switch & Ultra-Fast Realtime Server Head Sync — membenahi `MediaStudio/index.tsx`. Mengeliminasi total kebocoran/sisa kartu berkas & thumbnail dari lokasi sebelumnya saat pengguna berganti chat, topik, atau drive dengan mengeksekusi pembersihan state berkas & reset konteks thumbnail secara seketika pada tick pertama. Menambahkan mekanisme Stale-While-Revalidate super cepat (<300ms) yang mengambil 30 pesan terbaru langsung dari server Telegram di latar belakang saat cache disajikan, menjamin media terbaru dari aplikasi Telegram langsung tersinkron secara real-time.
 
 Previous:

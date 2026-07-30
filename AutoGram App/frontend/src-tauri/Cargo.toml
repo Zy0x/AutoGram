@@ -43,6 +43,9 @@ grammers-client = "0.10"
 grammers-session = { version = "0.10", default-features = false, features = ["serde"] }
 grammers-mtsender = "0.10"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "fs", "io-util"] }
+tokio-util = "0.7"
+bytes = "1"
+async-trait = "0.1"
 log = "0.4"
 thiserror = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
