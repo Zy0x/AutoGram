@@ -7,6 +7,7 @@ use super::models::{ThumbnailBatchEvent, TopicMediaDeltaEvent};
 
 pub const EVENT_DELTA: &str = "topic-media://delta";
 pub const EVENT_THUMBNAIL_BATCH: &str = "topic-media://thumbnail-batch";
+pub const EVENT_THUMB_READY_BATCH: &str = "topic-media://thumb-ready-batch";
 pub const EVENT_DOWNLOAD_PROGRESS: &str = "topic-media://download-progress";
 
 pub fn emit_delta_event(
@@ -24,3 +25,12 @@ pub fn emit_thumbnail_batch_event(
     app.emit(EVENT_THUMBNAIL_BATCH, payload)
         .map_err(|e| TopicMediaError::Internal(format!("Failed emit thumbnail batch event: {e}")))
 }
+
+pub fn emit_thumb_ready_batch_event(
+    app: &AppHandle,
+    payload: &super::models::ThumbReadyBatchEvent,
+) -> Result<(), TopicMediaError> {
+    app.emit(EVENT_THUMB_READY_BATCH, payload)
+        .map_err(|e| TopicMediaError::Internal(format!("Failed emit thumb ready batch event: {e}")))
+}
+

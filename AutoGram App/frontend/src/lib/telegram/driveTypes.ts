@@ -3,6 +3,73 @@ import { formatLocalizedBytes } from '../utils/i18nHelpers';
 
 export type DriveIconType = 'image' | 'video' | 'audio' | 'voice' | 'document' | 'file' | 'folder';
 
+export type MediaScopeKind = 'all' | 'general' | 'topic';
+
+export interface DriveMediaContext {
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicId: number | null;
+}
+
+export interface ThumbBatchV2ItemRequest {
+  messageId: number;
+  documentId?: string;
+  dcId?: number;
+  mimeType?: string;
+  fileName?: string;
+  visibleRank: number;
+}
+
+export interface ThumbBatchV2Request {
+  windowLabel: string;
+  generation: number;
+  context: DriveMediaContext;
+  quality: DriveThumbQuality;
+  items: ThumbBatchV2ItemRequest[];
+}
+
+export interface ThumbCacheHit {
+  messageId: number;
+  localPath: string;
+  quality: string;
+}
+
+export interface ThumbBatchV2Accepted {
+  cacheHits: ThumbCacheHit[];
+  queuedMessageIds: number[];
+  rejectedMessageIds: number[];
+}
+
+export interface ThumbCompletedItemV2 {
+  messageId: number;
+  quality: DriveThumbQuality;
+  localPath: string;
+  width: number;
+  height: number;
+  source:
+    | 'disk'
+    | 'telegram-photo'
+    | 'telegram-document'
+    | 'telegram-video-thumb'
+    | 'partial-image'
+    | 'partial-video';
+}
+
+export interface ThumbReadyBatchEvent {
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicId: number | null;
+  generation: number;
+  completed: ThumbCompletedItemV2[];
+  failed: Array<{
+    messageId: number;
+    code: string;
+    retryable: boolean;
+  }>;
+}
+
 export type DriveFile = {
   id: number;
   folder_id: number | null;

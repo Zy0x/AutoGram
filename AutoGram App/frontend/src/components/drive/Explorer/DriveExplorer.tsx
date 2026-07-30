@@ -7,7 +7,6 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
   canShowDriveThumb,
-  isVideoDriveFile,
   gridColumnsForWidth,
   type DriveFile,
   type DriveGridZoom,
@@ -342,21 +341,57 @@ export function DriveExplorer({
     };
   }, [scrollKey, onScrollPositionChange, loading]);
 
+  const isFastScrollingRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const lastScrollTimeRef = useRef(0);
+  const scrollFlingTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const now = performance.now();
+      const dt = now - (lastScrollTimeRef.current || now);
+      const dy = Math.abs(el.scrollTop - (lastScrollTopRef.current || 0));
+      lastScrollTopRef.current = el.scrollTop;
+      lastScrollTimeRef.current = now;
+
+      if (dt > 0 && dy / dt > 1.2) {
+        isFastScrollingRef.current = true;
+      }
+
+      if (scrollFlingTimerRef.current != null) {
+        window.clearTimeout(scrollFlingTimerRef.current);
+      }
+      scrollFlingTimerRef.current = window.setTimeout(() => {
+        isFastScrollingRef.current = false;
+      }, 80);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (scrollFlingTimerRef.current != null) window.clearTimeout(scrollFlingTimerRef.current);
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).
-  // Throttle is tier-aware: high=16ms (1 frame), mid=30ms, low=50ms.
+  // Skip during active fast fling to preserve 60-120 FPS frame rate.
   useEffect(() => {
     if (!progressiveReady || !creds || loading || !displayed.length || isThumbsPaused()) return;
     let raf = 0;
     let cancelled = false;
     let lastRun = 0;
-    // Tier-aware throttle: high=16ms, mid=30ms, low=50ms
     const throttleMs = perf.tier === 'high' ? 16 : perf.tier === 'mid' ? 30 : 50;
     const run = () => {
       const now = Date.now();
       if (now - lastRun < throttleMs) return;
       lastRun = now;
       if (cancelled) return;
+
+      // Skip IPC request during active fast fling to keep scroll 60 FPS
+      if (isFastScrollingRef.current) return;
+
       const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
       let startIdx = 0;
       let endIdx = Math.min(displayed.length, cols * 6);
@@ -377,7 +412,6 @@ export function DriveExplorer({
       }
       const visibleIds: number[] = [];
       const nearIds: number[] = [];
-      const videoIds: number[] = [];
       for (let i = startIdx; i < endIdx; i++) {
         const f = displayed[i];
         if (!f) continue;
@@ -385,15 +419,9 @@ export function DriveExplorer({
           if (i >= visStart && i < visEnd) visibleIds.push(f.id);
           else nearIds.push(f.id);
         }
-        if (isVideoDriveFile(f) && i >= visStart && i < visEnd) videoIds.push(f.id);
       }
-      // Only request ids not already primed from list_media (mem cache).
-      // Avoid thumbs_batch storms when every card already has stripped data.
       if (visibleIds.length) requestVisibleThumbs(creds, folderId, visibleIds);
       if (nearIds.length) prefetchThumbs(creds, folderId, nearIds);
-      // Do NOT warm video previews while scrolling the grid — steals bandwidth
-      // from thumb/list and made first paint feel stuck.
-      void videoIds;
     };
     raf = requestAnimationFrame(run);
     return () => {

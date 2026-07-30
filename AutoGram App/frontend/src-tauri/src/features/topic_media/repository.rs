@@ -29,14 +29,31 @@ pub fn get_cached_page(
          dc_id, file_reference, width, height, duration_ms, has_server_thumb, has_video_thumb, \
          is_deleted, created_at, updated_at \
          FROM topic_media_items \
-         WHERE account_id = ?1 AND peer_id = ?2 AND topic_id = ?3 AND is_deleted = 0",
+         WHERE account_id = ?1 AND peer_id = ?2 AND is_deleted = 0",
     );
 
     let mut params_vec: Vec<rusqlite::types::Value> = vec![
         ctx.account_id.clone().into(),
         ctx.peer_id.clone().into(),
-        ctx.topic_id.into(),
     ];
+
+    match ctx.scope_kind {
+        super::models::MediaScopeKind::All => {
+            // All Media: no topic_id restriction
+        }
+        super::models::MediaScopeKind::General => {
+            let gen_id = ctx.topic_id.unwrap_or(0);
+            let idx = params_vec.len() + 1;
+            sql.push_str(&format!(" AND (topic_id IS NULL OR topic_id = 0 OR topic_id = 1 OR topic_id = ?{idx})"));
+            params_vec.push(gen_id.into());
+        }
+        super::models::MediaScopeKind::Topic => {
+            let tid = ctx.topic_id.unwrap_or(0);
+            let idx = params_vec.len() + 1;
+            sql.push_str(&format!(" AND topic_id = ?{idx}"));
+            params_vec.push(tid.into());
+        }
+    }
 
     if !filter_types.is_empty() {
         let type_placeholders: Vec<String> = (0..filter_types.len())

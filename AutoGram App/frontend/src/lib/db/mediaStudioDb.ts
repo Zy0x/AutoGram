@@ -1,9 +1,28 @@
-import type { DriveFile } from '../telegram/driveTypes';
+import type { DriveFile, DriveMediaContext, MediaScopeKind } from '../telegram/driveTypes';
 
 export interface MediaRecord extends DriveFile {
   folderId: number;      // composite folder/chat id
   lastAccessed: number;
   accessCount: number;
+  accountId?: string;
+  peerId?: string;
+  scopeKind?: MediaScopeKind;
+  topicIdNormalized?: number;
+}
+
+export interface ThumbnailCacheRecord {
+  key: string; // accountId:peerId:scopeKind:topicId:messageId:quality
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicId: number | null;
+  messageId: number;
+  quality: 'saver' | 'balanced' | 'sharp';
+  sourceFingerprint: string;
+  localPath?: string;
+  blob?: Blob;
+  updatedAt: number;
+  lastAccessedAt: number;
 }
 
 export interface ThumbnailRecord {
@@ -55,9 +74,17 @@ export interface SyncState {
 }
 
 const DB_NAME = 'autogram-media-studio-v2';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+
+export function normalizeTopicId(
+  scopeKind: MediaScopeKind,
+  topicId: number | null | undefined
+): number {
+  if (scopeKind === 'all') return -1;
+  return topicId ?? 0;
+}
 
 export function initDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
@@ -69,18 +96,41 @@ export function initDb(): Promise<IDBDatabase> {
       const db = req.result;
 
       // 1. Media store with composite keys and indices
+      let mediaStore: IDBObjectStore;
       if (!db.objectStoreNames.contains('media')) {
-        const mediaStore = db.createObjectStore('media', { keyPath: ['folderId', 'id'] });
+        mediaStore = db.createObjectStore('media', { keyPath: ['folderId', 'id'] });
         mediaStore.createIndex('byFolder', 'folderId', { unique: false });
         mediaStore.createIndex('byFolder_Date', ['folderId', 'created_at'], { unique: false });
         mediaStore.createIndex('byFolder_Size', ['folderId', 'size'], { unique: false });
         mediaStore.createIndex('byFolder_Name', ['folderId', 'name'], { unique: false });
         mediaStore.createIndex('byFolder_Access', ['folderId', 'lastAccessed'], { unique: false });
+      } else {
+        mediaStore = req.transaction!.objectStore('media');
+      }
+
+      if (!mediaStore.indexNames.contains('byContextDate')) {
+        mediaStore.createIndex(
+          'byContextDate',
+          ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'created_at'],
+          { unique: false }
+        );
+      }
+
+      if (!mediaStore.indexNames.contains('byContextMessage')) {
+        mediaStore.createIndex(
+          'byContextMessage',
+          ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'id'],
+          { unique: false }
+        );
       }
 
       // 2. Thumbnails store
       if (!db.objectStoreNames.contains('thumbnails')) {
         db.createObjectStore('thumbnails', { keyPath: ['folderId', 'messageId'] });
+      }
+
+      if (!db.objectStoreNames.contains('thumbnailsV2')) {
+        db.createObjectStore('thumbnailsV2', { keyPath: 'key' });
       }
 
       // 3. Checkpoints store
@@ -106,6 +156,62 @@ export function initDb(): Promise<IDBDatabase> {
   });
 
   return dbPromise;
+}
+
+export async function getMediaPageByContext(
+  context: DriveMediaContext,
+  sortMode: string,
+  offset: number,
+  limit: number
+): Promise<MediaRecord[]> {
+  const db = await initDb();
+  return new Promise<MediaRecord[]>((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const normTopic = normalizeTopicId(context.scopeKind, context.topicId);
+
+    if (!store.indexNames.contains('byContextDate')) {
+      resolve([]);
+      return;
+    }
+
+    const index = store.index('byContextDate');
+    let direction: IDBCursorDirection = 'prev';
+    if (sortMode === 'oldest' || sortMode === 'oldest_first') {
+      direction = 'next';
+    }
+
+    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, ''];
+    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, '\uffff'];
+    const range = IDBKeyRange.bound(minKey, maxKey);
+
+    const results: MediaRecord[] = [];
+    let advanced = false;
+
+    const request = index.openCursor(range, direction);
+    request.onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) {
+        resolve(results);
+        return;
+      }
+
+      if (offset > 0 && !advanced) {
+        advanced = true;
+        cursor.advance(offset);
+        return;
+      }
+
+      results.push(cursor.value);
+      if (results.length < limit) {
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+
+    request.onerror = () => reject(request.error || new Error('getMediaPageByContext query failed'));
+  });
 }
 
 function requestToPromise<T>(req: IDBRequest<T>): Promise<T> {

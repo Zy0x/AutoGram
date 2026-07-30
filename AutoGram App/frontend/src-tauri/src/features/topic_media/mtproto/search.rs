@@ -32,10 +32,10 @@ pub async fn search_topic_media(
 
     let input_peer: tl::enums::InputPeer = peer.into();
     let filter = map_filter_type_to_input(filter_type);
-    let top_msg_id = if ctx.topic_id > 0 {
-        Some(ctx.topic_id as i32)
-    } else {
-        None
+    let top_msg_id = match ctx.scope_kind {
+        super::super::models::MediaScopeKind::All => None,
+        super::super::models::MediaScopeKind::General => ctx.topic_id.map(|t| t as i32).or(Some(1)),
+        super::super::models::MediaScopeKind::Topic => ctx.topic_id.map(|t| t as i32),
     };
 
     let offset_id = cursor.map(|c| c.message_id as i32).unwrap_or(0);

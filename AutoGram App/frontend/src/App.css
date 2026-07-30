@@ -3426,6 +3426,9 @@ body.td-dnd-external {
   /* Shift/Ctrl multi-select must not look like browser text highlight */
   user-select: none;
   -webkit-user-select: none;
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
 }
 
 .td-list-row *,

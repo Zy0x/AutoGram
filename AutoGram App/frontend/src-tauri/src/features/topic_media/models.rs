@@ -2,17 +2,34 @@
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum MediaScopeKind {
+    All,
+    General,
+    Topic,
+}
+
+impl Default for MediaScopeKind {
+    fn default() -> Self {
+        MediaScopeKind::All
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct TopicMediaContext {
     pub account_id: String,
     pub peer_id: String,
-    pub topic_id: i64,
+    #[serde(default)]
+    pub scope_kind: MediaScopeKind,
+    pub topic_id: Option<i64>,
 }
 
 impl TopicMediaContext {
     pub fn topic_key(&self) -> String {
-        format!("{}:{}:{}", self.account_id, self.peer_id, self.topic_id)
+        let topic_str = self.topic_id.map(|t| t.to_string()).unwrap_or_else(|| "none".to_string());
+        format!("{}:{}:{:?}:{}", self.account_id, self.peer_id, self.scope_kind, topic_str)
     }
 }
 
@@ -35,7 +52,7 @@ pub struct TopicMediaCursor {
 pub struct TopicMediaItem {
     pub account_id: String,
     pub peer_id: String,
-    pub topic_id: i64,
+    pub topic_id: Option<i64>,
     pub message_id: i64,
     pub message_date: i64,
     pub edit_date: Option<i64>,
@@ -128,7 +145,7 @@ pub struct TopicMediaDeltaEvent {
     pub window_label: String,
     pub account_id: String,
     pub peer_id: String,
-    pub topic_id: i64,
+    pub topic_id: Option<i64>,
     pub generation_id: u64,
     pub inserted: Vec<TopicMediaItem>,
     pub updated: Vec<TopicMediaItem>,
@@ -136,6 +153,54 @@ pub struct TopicMediaDeltaEvent {
     pub cursor: Option<TopicMediaCursor>,
     pub has_more: bool,
     pub sync_status: String, // "syncing" | "ready" | "paused" | "error"
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbBatchV2ItemRequest {
+    pub message_id: i64,
+    pub document_id: Option<String>,
+    pub dc_id: Option<i32>,
+    pub mime_type: Option<String>,
+    pub file_name: Option<String>,
+    pub visible_rank: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbBatchV2Request {
+    pub window_label: String,
+    pub generation: u64,
+    pub context: TopicMediaContext,
+    pub quality: String, // "saver" | "balanced" | "sharp"
+    pub items: Vec<ThumbBatchV2ItemRequest>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbCacheHit {
+    pub message_id: i64,
+    pub local_path: String,
+    pub quality: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbBatchV2Accepted {
+    pub cache_hits: Vec<ThumbCacheHit>,
+    pub queued_message_ids: Vec<i64>,
+    pub rejected_message_ids: Vec<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbCompletedItemV2 {
+    pub message_id: i64,
+    pub quality: String,
+    pub local_path: String,
+    pub width: i32,
+    pub height: i32,
+    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,7 +228,20 @@ pub struct ThumbnailBatchEvent {
     pub schema_version: u32,
     pub account_id: String,
     pub peer_id: String,
-    pub topic_id: i64,
+    pub topic_id: Option<i64>,
     pub completed: Vec<ThumbnailBatchCompletedItem>,
     pub failed: Vec<ThumbnailBatchFailedItem>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbReadyBatchEvent {
+    pub account_id: String,
+    pub peer_id: String,
+    pub scope_kind: MediaScopeKind,
+    pub topic_id: Option<i64>,
+    pub generation: u64,
+    pub completed: Vec<ThumbCompletedItemV2>,
+    pub failed: Vec<ThumbnailBatchFailedItem>,
+}
+

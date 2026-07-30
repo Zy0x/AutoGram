@@ -27,7 +27,8 @@ pub struct OpenTopicMediaIpcPayload {
     pub api_hash: String,
     pub account_id: String,
     pub peer_id: String,
-    pub topic_id: i64,
+    pub scope_kind: Option<super::models::MediaScopeKind>,
+    pub topic_id: Option<i64>,
     pub filter_types: Option<Vec<String>>,
     pub page_size: Option<usize>,
 }
@@ -46,12 +47,15 @@ pub async fn tg_open_topic_media(
         api_hash: payload.api_hash,
     };
 
+    let scope_kind = payload.scope_kind.unwrap_or(super::models::MediaScopeKind::All);
+
     let req = OpenTopicMediaRequest {
         window_label: payload.window_label,
         generation_id: gen_id,
         context: TopicMediaContext {
             account_id: payload.account_id,
             peer_id: payload.peer_id,
+            scope_kind,
             topic_id: payload.topic_id,
         },
         filter_types: payload.filter_types.unwrap_or_default(),
@@ -71,13 +75,15 @@ pub async fn tg_open_topic_media(
 pub async fn tg_load_more_topic_media(
     account_id: String,
     peer_id: String,
-    topic_id: i64,
+    scope_kind: Option<super::models::MediaScopeKind>,
+    topic_id: Option<i64>,
     cursor: Option<TopicMediaCursor>,
     page_size: Option<usize>,
 ) -> Result<OpResult<Vec<TopicMediaItem>>, String> {
     let ctx = TopicMediaContext {
         account_id,
         peer_id,
+        scope_kind: scope_kind.unwrap_or(super::models::MediaScopeKind::All),
         topic_id,
     };
 
@@ -89,3 +95,40 @@ pub async fn tg_load_more_topic_media(
         ))),
     }
 }
+
+#[tauri::command]
+pub async fn tg_thumbs_batch_v2(
+    app: AppHandle,
+    request: super::models::ThumbBatchV2Request,
+) -> Result<OpResult<super::models::ThumbBatchV2Accepted>, String> {
+    let account_id = &request.context.account_id;
+    let cache_dir = super::cache::disk::get_account_cache_dir(account_id);
+
+    let mut cache_hits = Vec::new();
+    let mut queued_ids = Vec::new();
+    let rejected_ids = Vec::new();
+
+    for item in &request.items {
+        let file_name = format!("{}_{}_{}.webp", item.message_id, request.context.peer_id, request.quality);
+        let file_path = cache_dir.join(&file_name);
+
+        if file_path.exists() {
+            cache_hits.push(super::models::ThumbCacheHit {
+                message_id: item.message_id,
+                local_path: file_path.to_string_lossy().to_string(),
+                quality: request.quality.clone(),
+            });
+        } else {
+            queued_ids.push(item.message_id);
+        }
+    }
+
+    let accepted = super::models::ThumbBatchV2Accepted {
+        cache_hits,
+        queued_message_ids: queued_ids,
+        rejected_message_ids: rejected_ids,
+    };
+
+    Ok(ok_result("grammers", accepted))
+}
+

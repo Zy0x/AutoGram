@@ -1,5 +1,4 @@
 import { detectTauriRuntime } from '../../tauri/platform';
-import { getMediaRecords } from '../../db/mediaStudioDb';
 import {
   DEFAULT_FILE_PAGE,
   DriveCredentials,
@@ -88,6 +87,11 @@ export async function driveAvatarsBatch(
   }
 }
 
+import type { DriveMediaContext } from '../driveTypes';
+import { getMediaPageByContext, getMediaRecords } from '../../db/mediaStudioDb';
+
+const inFlightPages = new Map<string, Promise<any>>();
+
 export async function driveListFiles(
   creds: DriveCredentials,
   folderId: number | null,
@@ -95,6 +99,7 @@ export async function driveListFiles(
     pageSize?: number;
     offsetId?: number | null;
     topicId?: number | null;
+    context?: DriveMediaContext;
     /** Skip aggregate counters on the latency-critical first page. */
     quickStats?: boolean;
     sortMode?: string;
@@ -105,105 +110,128 @@ export async function driveListFiles(
   const pageSize = opts?.pageSize ?? DEFAULT_FILE_PAGE;
   const topicId = opts?.topicId ?? null;
   const sortMode = opts?.sortMode ?? 'newest';
+  const offsetId = opts?.offsetId ?? null;
+  const localOffset = opts?.localOffset ?? 0;
 
-  // 1. Try serving from local IndexedDB warm cache (completed indexing)
-  const folderKey = folderId || 0;
-  if (!opts?.bypassCache) {
-    const localOffset = opts?.localOffset ?? 0;
-    try {
-      let records = await getMediaRecords(folderKey, sortMode, localOffset, pageSize);
-      if (topicId != null && topicId > 0) {
-        records = records.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(topicId));
+  const contextKey = opts?.context
+    ? `${opts.context.accountId}:${opts.context.peerId}:${opts.context.scopeKind}:${opts.context.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}`
+    : `${folderId ?? 'me'}:${topicId ?? 'all'}:${offsetId ?? 0}:${localOffset}`;
+
+  if (inFlightPages.has(contextKey)) {
+    return inFlightPages.get(contextKey)!;
+  }
+
+  const work = (async () => {
+    // 1. Try serving from local IndexedDB warm cache (completed indexing)
+    const folderKey = folderId || 0;
+    if (!opts?.bypassCache) {
+      try {
+        let records = opts?.context
+          ? await getMediaPageByContext(opts.context, sortMode, localOffset, pageSize)
+          : await getMediaRecords(folderKey, sortMode, localOffset, pageSize);
+
+        if (!opts?.context && topicId != null && topicId > 0) {
+          records = records.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(topicId));
+        }
+        if (records.length > 0 || topicId == null || topicId <= 0) {
+          const totalCount = records.length;
+          const hasMore = localOffset + records.length < totalCount;
+          const nextOffsetId = records.length > 0 ? records[records.length - 1].id : null;
+
+          return {
+            status: 'success',
+            folder_id: folderId,
+            topic_id: topicId,
+            files: records,
+            total: records.length,
+            page_size: pageSize,
+            has_more: hasMore,
+            next_offset_id: nextOffsetId,
+            total_count: totalCount,
+            total_bytes: null,
+            stats_accurate: true,
+            stats_pending: false,
+            cached: true,
+          };
+        }
+      } catch (e) {
+        console.warn('[driveListFiles] Local cache query failed, falling back to network:', e);
       }
-      if (records.length > 0 || topicId == null || topicId <= 0) {
-        const totalCount = records.length;
-        const hasMore = localOffset + records.length < totalCount;
-        const nextOffsetId = records.length > 0 ? records[records.length - 1].id : null;
+    }
 
+    // 2. Grammers only (topic/sort client-side gaps handled as newest network page).
+    if (!detectTauriRuntime()) {
+      throw new Error('Daftar media membutuhkan desktop Rust + Grammers.');
+    }
+    try {
+      const { tgListMedia } = await import('../core/telegramBackend');
+      const chatId = folderId == null ? 'me' : String(folderId);
+      const apiId = Number(creds.apiId) || 0;
+      const gr = await tgListMedia({
+        session: creds.session,
+        apiId,
+        apiHash: creds.apiHash,
+        chatId,
+        limit: pageSize,
+        offsetId: opts?.offsetId ?? null,
+        topicId: topicId != null && topicId > 0 ? topicId : null,
+      });
+      if (gr?.ok && gr.data?.files) {
+        let files = gr.data.files.map((f: any) => ({
+          id: Number(f.id),
+          folder_id: f.folderId ?? folderId,
+          name: f.name,
+          size: Number(f.size || 0),
+          mime_type: f.mimeType ?? null,
+          icon_type: f.iconType || 'file',
+          created_at: f.createdAt ?? undefined,
+          has_thumb: !!f.hasThumb,
+          as_document: !!f.asDocument,
+          topic_id: topicId,
+        }));
+        // Client-side sort for non-newest modes (network page is newest-first).
+        if (sortMode === 'oldest') {
+          files = [...files].reverse();
+        } else if (sortMode === 'size_desc') {
+          files = [...files].sort((a, b) => b.size - a.size);
+        } else if (sortMode === 'size_asc') {
+          files = [...files].sort((a, b) => a.size - b.size);
+        } else if (sortMode === 'name_desc') {
+          files = [...files].sort((a, b) => b.name.localeCompare(a.name));
+        } else if (sortMode === 'name_asc') {
+          files = [...files].sort((a, b) => a.name.localeCompare(b.name));
+        }
         return {
           status: 'success',
           folder_id: folderId,
           topic_id: topicId,
-          files: records,
-          total: records.length,
+          files,
+          total: files.length,
           page_size: pageSize,
-          has_more: hasMore,
-          next_offset_id: nextOffsetId,
-          total_count: totalCount,
+          has_more: !!gr.data.hasMore,
+          next_offset_id: gr.data.nextOffsetId ?? null,
+          total_count: null,
           total_bytes: null,
-          stats_accurate: true,
-          stats_pending: false,
-          cached: true,
-        };
+          stats_accurate: false,
+          stats_pending: true,
+          cached: false,
+          invalid_topic: false,
+          backend: 'grammers',
+        } as any;
       }
+      throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
     } catch (e) {
-      console.warn('[driveListFiles] Local cache query failed, falling back to network:', e);
+      throw new Error(`Daftar media Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
     }
-  }
+  })();
 
-  // 2. Grammers only (topic/sort client-side gaps handled as newest network page).
-  if (!detectTauriRuntime()) {
-    throw new Error('Daftar media membutuhkan desktop Rust + Grammers.');
-  }
+  inFlightPages.set(contextKey, work);
   try {
-    const { tgListMedia } = await import('../core/telegramBackend');
-    const chatId = folderId == null ? 'me' : String(folderId);
-    const apiId = Number(creds.apiId) || 0;
-    const gr = await tgListMedia({
-      session: creds.session,
-      apiId,
-      apiHash: creds.apiHash,
-      chatId,
-      limit: pageSize,
-      offsetId: opts?.offsetId ?? null,
-      topicId: topicId != null && topicId > 0 ? topicId : null,
-    });
-    if (gr?.ok && gr.data?.files) {
-      let files = gr.data.files.map((f: any) => ({
-        id: Number(f.id),
-        folder_id: f.folderId ?? folderId,
-        name: f.name,
-        size: Number(f.size || 0),
-        mime_type: f.mimeType ?? null,
-        icon_type: f.iconType || 'file',
-        created_at: f.createdAt ?? undefined,
-        has_thumb: !!f.hasThumb,
-        as_document: !!f.asDocument,
-        topic_id: topicId,
-      }));
-      // Client-side sort for non-newest modes (network page is newest-first).
-      if (sortMode === 'oldest') {
-        files = [...files].reverse();
-      } else if (sortMode === 'size_desc') {
-        files = [...files].sort((a, b) => b.size - a.size);
-      } else if (sortMode === 'size_asc') {
-        files = [...files].sort((a, b) => a.size - b.size);
-      } else if (sortMode === 'name_desc') {
-        files = [...files].sort((a, b) => b.name.localeCompare(a.name));
-      } else if (sortMode === 'name_asc') {
-        files = [...files].sort((a, b) => a.name.localeCompare(b.name));
-      }
-      return {
-        status: 'success',
-        folder_id: folderId,
-        topic_id: topicId,
-        files,
-        total: files.length,
-        page_size: pageSize,
-        has_more: !!gr.data.hasMore,
-        next_offset_id: gr.data.nextOffsetId ?? null,
-        total_count: null,
-        total_bytes: null,
-        stats_accurate: false,
-        stats_pending: true,
-        cached: false,
-        invalid_topic: false,
-        backend: 'grammers',
-      } as any;
+    return await work;
+  } finally {
+    if (inFlightPages.get(contextKey) === work) {
+      inFlightPages.delete(contextKey);
     }
-    throw new Error(gr?.userMessage || gr?.error?.message || 'Daftar media native gagal.');
-  } catch (e) {
-    throw new Error(`Daftar media Rust + Grammers gagal: ${String((e as Error)?.message || e)}`);
   }
 }
 

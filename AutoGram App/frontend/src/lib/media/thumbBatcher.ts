@@ -236,6 +236,32 @@ if (typeof window !== 'undefined') {
           queue.delete(taskKey);
         }
       }).catch(() => {});
+
+      listen<any>('topic-media://thumb-ready-batch', (event) => {
+        const p = event.payload;
+        if (!p || !Array.isArray(p.completed)) return;
+        for (const item of p.completed) {
+          if (!item.localPath) continue;
+          const fileUrl = item.localPath.startsWith('http') || item.localPath.startsWith('asset:')
+            ? item.localPath
+            : 'file:///' + item.localPath.replace(/\\/g, '/');
+          const quality = mapRustThumbQuality(item.quality);
+          const folderPart = p.topicId ?? null;
+          const k = cacheKey(folderPart, Number(item.messageId), quality, activeSession);
+          memCache.set(k, fileUrl);
+          notifyThumbReady(k, fileUrl, false);
+
+          for (const [taskKey, task] of queue.entries()) {
+            if (task.messageId === Number(item.messageId)) {
+              memCache.set(taskKey, fileUrl);
+              softFailAt.delete(taskKey);
+              errorFailAt.delete(taskKey);
+              resolveTask(task, fileUrl);
+              queue.delete(taskKey);
+            }
+          }
+        }
+      }).catch(() => {});
     })
     .catch(() => {});
 }
