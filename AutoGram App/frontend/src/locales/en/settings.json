@@ -64,5 +64,13 @@
   "confirm_clear_cache_title": "Confirm Cache Clear",
   "confirm_clear_cache_msg": "Are you sure you want to clear all cache? All thumbnails, media previews, and local folder history will be cleaned.",
   "confirm_clear_db_title": "Confirm Database Clear",
-  "confirm_clear_db_msg": "Are you sure you want to clear the local database? All job history and local sessions will be wiped."
+  "confirm_clear_db_msg": "Are you sure you want to clear the local database? All job history and local sessions will be wiped.",
+  "density_label": "Layout Density (Grid Spacing)",
+  "api_id_ph": "e.g., 123456",
+  "api_hash_ph": "e.g., 0123456789abcdef0123456789abcdef",
+  "creds_save_success": "✓ Credentials saved to Rust Keychain successfully!",
+  "creds_save_fail": "✕ Failed to save credentials.",
+  "loading_credentials": "Loading credentials...",
+  "worker_ui_transfer_log": "Worker + UI + transfer",
+  "local_media_cache_label": "Local Media & Thumbnail Cache"
 }

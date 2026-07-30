@@ -33,7 +33,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </div>
         <div className="sidebar-brand-text">
           <h1>AutoGram</h1>
-          <p>Forwarder · Drives</p>
+          <p>{t('nav.subtitle')}</p>
         </div>
       </div>
 
@@ -59,7 +59,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </nav>
 
       <div className="sidebar-footer">
-        <p>Rust · Grammers</p>
+        <p>{t('nav.engine_tag')}</p>
       </div>
     </aside>
   );

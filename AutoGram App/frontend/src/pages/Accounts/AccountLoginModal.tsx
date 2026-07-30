@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { X, Phone, ShieldCheck, Loader2 } from 'lucide-react';
 
@@ -34,6 +35,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
   loading,
   error,
 }) => {
+  const { t } = useTranslation();
   if (!open) return null;
 
   return (
@@ -115,7 +117,7 @@ export const AccountLoginModal: React.FC<AccountLoginModalProps> = ({
               type="password"
               value={password2FA}
               onChange={(e) => setPassword2FA(e.target.value)}
-              placeholder="••••••••"
+              placeholder={t('accounts.passcode_ph')}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-1 focus:ring-indigo-500"
             />
             <button

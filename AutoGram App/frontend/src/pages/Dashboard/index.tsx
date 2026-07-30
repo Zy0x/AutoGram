@@ -37,7 +37,7 @@ export function Dashboard({ onNavigate }: Props) {
         <div className="card glass-panel status-hero">
           <MonitorSmartphone size={32} color="var(--accent)" className="status-hero-icon" aria-hidden />
           <div className="status-hero-body">
-            <h3>Mode Browser</h3>
+            <h3>{t('dashboard.browser_mode')}</h3>
             <p>
               UI pratinjau saja. Forwarder, Drives, dan Accounts penuh membutuhkan aplikasi desktop
               AutoGram (Tauri).
@@ -46,7 +46,7 @@ export function Dashboard({ onNavigate }: Props) {
         </div>
       )}
 
-      <section className="dash-pillars" aria-label="Jalur kerja utama">
+      <section className="dash-pillars" aria-label={t("dashboard.main_workflow")}>
         <article className="dash-pillar glass-panel card">
           <div className="dash-pillar-icon" style={{ background: 'rgba(59,130,246,0.15)' }}>
             <ArrowRightLeft size={28} color="var(--primary)" aria-hidden />
@@ -95,7 +95,7 @@ export function Dashboard({ onNavigate }: Props) {
         </article>
       </section>
 
-      <section className="dash-steps glass-panel card" aria-label="Langkah cepat">
+      <section className="dash-steps glass-panel card" aria-label={t("dashboard.quick_steps")}>
         <h3 className="dash-section-title">{t('dashboard.workflow_title')}</h3>
         <ol className="dash-steps-list">
           <li>
@@ -124,14 +124,14 @@ export function Dashboard({ onNavigate }: Props) {
         </ol>
       </section>
 
-      <section className="dash-safety glass-panel card" aria-label="Parallel safety">
+      <section className="dash-safety glass-panel card" aria-label={t("dashboard.parallel_safety")}>
         <h3 className="dash-section-title title-with-icon">
           <ShieldCheck size={18} color="var(--primary)" aria-hidden />
           Kerja paralel aman
         </h3>
         <div className="dash-safety-grid">
           <div>
-            <Zap size={16} aria-hidden /> <strong>Satu pool Grammers per akun</strong>
+            <Zap size={16} aria-hidden /> <strong>{t('dashboard.pool_info')}</strong>
             <p>{t('dashboard.parallel_grammers_desc') || "Forwarder & Drives share the same MTProto connection."}</p>
           </div>
           <div>

@@ -30,5 +30,10 @@
   "step_2fa": "Masukkan Kata Sandi 2-FA",
   "multi_account_hint": "Aktifkan beberapa akun sekaligus (hingga 12). Media Studio dan Migration Jobs bisa beralih cepat antar akun aktif — akun pertama dalam daftar menjadi default saat boot.",
   "active_count_suffix": "aktif",
-  "no_active_targets": "belum ada target aktif"
+  "no_active_targets": "belum ada target aktif",
+  "search_country_ph": "Cari negara…",
+  "account_name_ph": "AkunSaya",
+  "qr_login_title": "Buat QR Code Login",
+  "qr_scan_instruction": "Pindai QR code ini menggunakan aplikasi Telegram di smartphone Anda.",
+  "passcode_ph": "••••••••"
 }

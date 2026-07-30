@@ -1,5 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { Key, ShieldCheck, Save, Loader2 } from 'lucide-react';
+import { ShieldCheck, Save, Loader2 } from 'lucide-react';
 
 export interface AccountSessionSectionProps {
   apiId: string;
@@ -20,6 +21,7 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
   isSaving,
   saveStatus,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -32,39 +34,43 @@ export const AccountSessionSection: React.FC<AccountSessionSectionProps> = ({
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
-            <Key size={13} className="text-indigo-400" /> Telegram API ID
+        <div>
+          <label className="block text-xs font-semibold text-slate-300 mb-1">
+            API ID Telegram
           </label>
           <input
             type="text"
             value={apiId}
             onChange={(e) => setApiId(e.target.value)}
-            placeholder="misal: 123456"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:ring-1 focus:ring-indigo-500"
+            placeholder={t('settings.api_id_ph')}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-slate-300 flex items-center gap-1.5">
-            <Key size={13} className="text-indigo-400" /> Telegram API Hash
+        <div>
+          <label className="block text-xs font-semibold text-slate-300 mb-1">
+            API Hash Telegram
           </label>
           <input
             type="password"
             value={apiHash}
             onChange={(e) => setApiHash(e.target.value)}
-            placeholder="misal: 0123456789abcdef0123456789abcdef"
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:ring-1 focus:ring-indigo-500"
+            placeholder={t('settings.api_hash_ph')}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 focus:ring-1 focus:ring-indigo-500"
           />
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-2">
         {saveStatus === 'success' && (
-          <span className="text-xs text-emerald-400 font-medium">✓ Kredensial berhasil disimpan di Rust Keychain!</span>
+          <span className="text-xs text-emerald-400 font-medium">
+            {t('settings.creds_save_success')}
+          </span>
         )}
         {saveStatus === 'error' && (
-          <span className="text-xs text-red-400 font-medium">✕ Gagal menyimpan kredensial.</span>
+          <span className="text-xs text-red-400 font-medium">
+            {t('settings.creds_save_fail')}
+          </span>
         )}
         {saveStatus === 'idle' && <span />}
 

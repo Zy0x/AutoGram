@@ -97,7 +97,7 @@ export const DebugSection = memo(function DebugSection() {
         <span className="dbg-meta-sep" aria-hidden>
           ·
         </span>
-        <span className="dbg-meta">Worker + UI + transfer</span>
+        <span className="dbg-meta">{t('settings.worker_ui_transfer_log')}</span>
       </div>
 
       {debugOn && (

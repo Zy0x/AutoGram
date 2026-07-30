@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Globe, Sliders } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
   uiDensity,
   onChangeUiDensity,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
       <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -37,7 +39,7 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-slate-300">Densitas Layout (Grid Spacing)</label>
+          <label className="block text-xs font-medium text-slate-300">{t('settings.density_label')}</label>
           <div className="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               type="button"

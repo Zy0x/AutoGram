@@ -428,7 +428,7 @@ export function Settings() {
           </p>
           
           {isLoading ? (
-            <div style={{ color: 'var(--text-muted)' }}>Loading existing credentials...</div>
+            <div style={{ color: 'var(--text-muted)' }}>{t('settings.loading_credentials')}</div>
           ) : (
             <div className="page-stack" style={{ gap: '1.25rem' }}>
               <div className="input-group" style={{ marginBottom: 0 }}>
@@ -440,7 +440,7 @@ export function Settings() {
                   value={apiId} 
                   onChange={e => setApiId(e.target.value)} 
                   className="input-field" 
-                  placeholder="e.g. 12345678"
+                  placeholder={t("settings.api_id_ph")}
                 />
               </div>
               
@@ -453,7 +453,7 @@ export function Settings() {
                   value={apiHash} 
                   onChange={e => setApiHash(e.target.value)} 
                   className="input-field" 
-                  placeholder="e.g. 0123456789abcdef0123456789abcdef" 
+                  placeholder={t("settings.api_hash_ph")} 
                 />
               </div>
               

@@ -64,5 +64,13 @@
   "confirm_clear_cache_title": "Konfirmasi Hapus Cache",
   "confirm_clear_cache_msg": "Apakah Anda yakin ingin menghapus semua cache? Semua thumbnail, pratinjau media, dan riwayat folder lokal akan dibersihkan.",
   "confirm_clear_db_title": "Konfirmasi Hapus Database",
-  "confirm_clear_db_msg": "Apakah Anda yakin ingin menghapus database lokal? Semua riwayat pekerjaan dan sesi lokal akan dibersihkan."
+  "confirm_clear_db_msg": "Apakah Anda yakin ingin menghapus database lokal? Semua riwayat pekerjaan dan sesi lokal akan dibersihkan.",
+  "density_label": "Densitas Layout (Grid Spacing)",
+  "api_id_ph": "misal: 123456",
+  "api_hash_ph": "misal: 0123456789abcdef0123456789abcdef",
+  "creds_save_success": "✓ Kredensial berhasil disimpan di Rust Keychain!",
+  "creds_save_fail": "✕ Gagal menyimpan kredensial.",
+  "loading_credentials": "Memuat kredensial...",
+  "worker_ui_transfer_log": "Worker + UI + transfer",
+  "local_media_cache_label": "Cache Media & Thumbnail Lokal"
 }

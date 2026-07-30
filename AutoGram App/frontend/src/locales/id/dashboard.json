@@ -77,5 +77,10 @@
   "filter_doc": "Dokumen",
   "filter_audio": "Audio",
   "filter_voice": "Pesan Suara",
-  "filter_gif": "GIF"
+  "filter_gif": "GIF",
+  "browser_mode": "Mode Browser",
+  "main_workflow": "Jalur kerja utama",
+  "quick_steps": "Langkah cepat",
+  "parallel_safety": "Parallel safety",
+  "pool_info": "Satu pool Grammers per akun"
 }

@@ -11,5 +11,7 @@
   "automation": "Automation",
   "statistics": "Statistics",
   "profiles": "Profiles",
-  "sync": "Sync"
+  "sync": "Sync",
+  "subtitle": "Forwarder · Drives",
+  "engine_tag": "Rust · Grammers"
 }

@@ -11,5 +11,7 @@
   "automation": "Otomatisasi",
   "statistics": "Statistik",
   "profiles": "Profil",
-  "sync": "Sinkronisasi"
+  "sync": "Sinkronisasi",
+  "subtitle": "Forwarder · Drives",
+  "engine_tag": "Rust · Grammers"
 }

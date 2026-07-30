@@ -29,7 +29,7 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({
 
       <div className="flex items-center justify-between bg-slate-950 p-4 rounded-xl border border-slate-800">
         <div>
-          <h4 className="font-semibold text-xs text-slate-200">Cache Media &amp; Thumbnail Lokal</h4>
+          <h4 className="font-semibold text-xs text-slate-200">{t('settings.local_media_cache_label')}</h4>
           <p className="text-[11px] text-slate-400 mt-0.5">
             Total ruang disk terpakai: <strong className="text-indigo-400 font-mono">{formatDriveBytes(cacheSizeBytes)}</strong>
           </p>

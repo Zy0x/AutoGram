@@ -21,6 +21,7 @@ const safeGetCallingCode = (val: string) => {
 };
 
 const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }: any) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -79,7 +80,7 @@ const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }: 
              <input 
                autoFocus
                type="text" 
-               placeholder="Search country..." 
+               placeholder={t('accounts.search_country_ph')}
                value={search}
                onChange={e => setSearch(e.target.value)}
                style={{ width: '100%', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '4px', color: '#fff', outline: 'none' }}
