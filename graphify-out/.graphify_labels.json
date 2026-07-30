@@ -265,6 +265,7 @@
   "263": "SidebarStorageGauge.tsx",
   "264": "MediaStudioBatchActionBar.tsx",
   "265": "MediaStudioHeader.tsx",
+  "266": "react-phone-number-input",
   "276": "README.md",
   "277": "build-frontend-debug.ps1",
   "278": "inspect_video_state.mjs",

@@ -1,16 +1,16 @@
 # Graph Report - AutoGram  (2026-07-30)
 
 ## Corpus Check
-- 455 files · ~501,947 words
+- 457 files · ~502,131 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2646 nodes · 5435 edges · 303 communities (144 shown, 159 thin omitted)
+- 2646 nodes · 5435 edges · 302 communities (143 shown, 159 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 194 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `91853388`
+- Built from commit: `08f6d455`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -291,7 +291,6 @@
 - MediaStudioToolbar.tsx
 - v2.3.75 Full Uncorrupted Faststart MP4 Reconstruction & Fault-Tolerant FFmpeg Extraction
 - @tauri-apps/plugin-dialog
-- react-phone-number-input
 - @tauri-apps/plugin-opener
 - @types/qrcode
 - DeadCenterProgress
@@ -333,7 +332,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (303 total, 159 thin omitted)
+## Communities (302 total, 159 thin omitted)
 
 ### Community 0 - "frontend/src-tauri/src/lib.rs"
 Cohesion: 0.05
@@ -453,7 +452,7 @@ Nodes (3): DriveSidebarProps, DropRowProps, TELEGRAM_FOLDER_COLORS
 
 ### Community 30 - "dependencies"
 Cohesion: 0.12
-Nodes (17): dependencies, i18next, lucide-react, pdfjs-dist, react-dom, @tanstack/react-virtual, @tauri-apps/api, @tauri-apps/plugin-fs (+9 more)
+Nodes (17): dependencies, i18next, i18next-browser-languagedetector, lucide-react, pdfjs-dist, react-phone-number-input, @tanstack/react-virtual, @tauri-apps/api (+9 more)
 
 ### Community 31 - "devDependencies"
 Cohesion: 0.12
@@ -504,8 +503,8 @@ Cohesion: 0.26
 Nodes (14): bug(), bugs, cdpSession(), evalJSON(), httpGet(), log(), main(), require (+6 more)
 
 ### Community 44 - "DriveSidebar.tsx"
-Cohesion: 0.19
-Nodes (10): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+2 more)
+Cohesion: 0.10
+Nodes (17): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+9 more)
 
 ### Community 45 - "Bug Investigation"
 Cohesion: 0.15
@@ -846,10 +845,6 @@ Nodes (7): drivesBtn, gudang, page, photo, report, samples, t0
 ### Community 248 - "@tauri-apps/plugin-shell"
 Cohesion: 0.36
 Nodes (6): detectLanguage(), escapeHtml(), highlightLine(), VSCodeCodeViewer(), VSCodeCodeViewerProps, DocumentViewerProps
-
-### Community 259 - "remote/e2e-cdp-smoke.mjs"
-Cohesion: 0.22
-Nodes (7): candidates, card, errors, pages, results, sessionSelect, tDrive
 
 ### Community 291 - "stats_db.rs"
 Cohesion: 0.42

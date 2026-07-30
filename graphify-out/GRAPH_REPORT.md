@@ -1,16 +1,16 @@
 # Graph Report - AutoGram  (2026-07-30)
 
 ## Corpus Check
-- 457 files · ~502,131 words
+- 457 files · ~502,091 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2646 nodes · 5435 edges · 302 communities (143 shown, 159 thin omitted)
+- 2646 nodes · 5435 edges · 303 communities (144 shown, 159 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 194 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `08f6d455`
+- Built from commit: `ff7edb6f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -277,6 +277,7 @@
 - SidebarStorageGauge.tsx
 - MediaStudioBatchActionBar.tsx
 - MediaStudioHeader.tsx
+- react-phone-number-input
 - README.md
 - probe_thumb_files.mjs
 - probe_thumbs_diag.mjs
@@ -332,7 +333,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (302 total, 159 thin omitted)
+## Communities (303 total, 159 thin omitted)
 
 ### Community 0 - "frontend/src-tauri/src/lib.rs"
 Cohesion: 0.05
@@ -452,7 +453,7 @@ Nodes (3): DriveSidebarProps, DropRowProps, TELEGRAM_FOLDER_COLORS
 
 ### Community 30 - "dependencies"
 Cohesion: 0.12
-Nodes (17): dependencies, i18next, i18next-browser-languagedetector, lucide-react, pdfjs-dist, react-phone-number-input, @tanstack/react-virtual, @tauri-apps/api (+9 more)
+Nodes (17): dependencies, i18next, lucide-react, pdfjs-dist, react-dom, @tanstack/react-virtual, @tauri-apps/api, @tauri-apps/plugin-fs (+9 more)
 
 ### Community 31 - "devDependencies"
 Cohesion: 0.12
@@ -503,8 +504,8 @@ Cohesion: 0.26
 Nodes (14): bug(), bugs, cdpSession(), evalJSON(), httpGet(), log(), main(), require (+6 more)
 
 ### Community 44 - "DriveSidebar.tsx"
-Cohesion: 0.10
-Nodes (17): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+9 more)
+Cohesion: 0.19
+Nodes (10): DriveSidebar(), dropKey(), DropRowProps, Props, IMPORTANT: include folder reparent drag — without it WebView2 folder→Drive DnD d, readSecOpen(), TELEGRAM_FOLDER_COLORS, telegramFolderColor() (+2 more)
 
 ### Community 45 - "Bug Investigation"
 Cohesion: 0.15
@@ -629,6 +630,10 @@ Nodes (7): Bug Investigation: Preview Random Seek, Constraints, Evidence and roo
 ### Community 76 - "Thumbnail cold-load and pagination performance"
 Cohesion: 0.25
 Nodes (7): Cache reset, Root causes, Status, Symptoms, Thumbnail cold-load and pagination performance, Verification, Working fix
+
+### Community 77 - "e2e-gudang-thumbs.mjs"
+Cohesion: 0.22
+Nodes (7): candidates, card, errors, pages, results, sessionSelect, tDrive
 
 ### Community 78 - "scripts"
 Cohesion: 0.25
