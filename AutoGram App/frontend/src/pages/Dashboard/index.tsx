@@ -114,7 +114,7 @@ export function Dashboard({ onNavigate }: Props) {
             <button
               type="button"
               className="dash-step-link"
-              onClick={() => go('speedtest')}
+              onClick={() => go('media-studio')}
               disabled={!drivesOk}
             >
               <HardDrive size={16} aria-hidden /> {t('dashboard.workflow_step3').split(' — ')[0]}

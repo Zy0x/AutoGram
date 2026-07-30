@@ -9,15 +9,15 @@ interface SidebarProps {
 
 /** Two primary workspaces first: Forwarder (jobs) + Drives (media studio). */
 const NAV_ITEMS = [
-  { id: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' as const, short: 'Home', full: 'Beranda', desktopOnly: false },
-  { id: 'jobs', icon: ArrowRightLeft, labelKey: 'nav.forwarder' as const, short: 'Forward', full: 'Forwarder', desktopOnly: false },
+  { id: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' as const, short: 'Dashboard', full: 'Dashboard', desktopOnly: false },
+  { id: 'jobs', icon: ArrowRightLeft, labelKey: 'nav.forwarder' as const, short: 'Forwarder', full: 'Forwarder', desktopOnly: false },
   { id: 'media-studio', icon: HardDrive, labelKey: 'nav.drives' as const, short: 'Drives', full: 'Drives', desktopOnly: true },
   { id: 'accounts', icon: Users, labelKey: 'nav.accounts' as const, short: 'Akun', full: 'Accounts', desktopOnly: false },
-  { id: 'profiles', icon: Bookmark, labelKey: null, short: 'Profil', full: 'Profiles', desktopOnly: false },
-  { id: 'automation', icon: CalendarClock, labelKey: null, short: 'Auto', full: 'Automation', desktopOnly: false },
-  { id: 'sync', icon: RefreshCw, labelKey: null, short: 'Sync', full: 'Sync', desktopOnly: false },
-  { id: 'stats', icon: BarChart3, labelKey: null, short: 'Stats', full: 'Statistics', desktopOnly: false },
-  { id: 'settings', icon: Settings, labelKey: 'nav.settings' as const, short: 'Setelan', full: 'Settings', desktopOnly: false },
+  { id: 'profiles', icon: Bookmark, labelKey: 'nav.profiles' as const, short: 'Profil', full: 'Profiles', desktopOnly: false },
+  { id: 'automation', icon: CalendarClock, labelKey: 'nav.automation' as const, short: 'Auto', full: 'Automation', desktopOnly: false },
+  { id: 'sync', icon: RefreshCw, labelKey: 'nav.sync' as const, short: 'Sync', full: 'Sync', desktopOnly: false },
+  { id: 'stats', icon: BarChart3, labelKey: 'nav.statistics' as const, short: 'Stats', full: 'Statistics', desktopOnly: false },
+  { id: 'settings', icon: Settings, labelKey: 'nav.settings' as const, short: 'Settings', full: 'Settings', desktopOnly: false },
 ];
 
 export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {

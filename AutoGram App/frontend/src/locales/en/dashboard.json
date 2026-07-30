@@ -2,13 +2,13 @@
   "title": "Telegram Migration & Drives",
   "subtitle": "Rust-based Telegram migration & drive platform. Two distinct workflows — can run in parallel without session conflicts.",
   "forwarder_card_title": "Forwarder",
-  "forwarder_card_desc": "Chat → chat migration: Fast forward or Clean Copy (download + re-upload, 4-level dedupe, resume, FloodWait). Ideal for long background jobs.",
+  "forwarder_card_desc": "Chat -> chat migration: Fast forward or Clean Copy (download + re-upload, 4-level dedupe, resume, FloodWait). Ideal for long background jobs.",
   "drives_card_title": "Drives",
   "drives_card_desc": "Media Studio: browse chats, [TD] folders, video/photo/document previews, upload & download. Designed fast with multi-active account switching.",
   "open_forwarder": "Open Forwarder",
   "open_drives": "Open Drives",
   "forwarder_step1": "Select active account in Accounts",
-  "forwarder_step2": "Create source → destination job",
+  "forwarder_step2": "Create source -> destination job",
   "forwarder_step3": "Run & monitor progress / resume",
   "drives_step1": "Browse & search media",
   "drives_step2": "Instant preview (progressive stream)",
@@ -79,9 +79,9 @@
   "filter_voice": "Voice Messages",
   "filter_gif": "GIFs",
   "browser_mode": "Browser Mode",
-  "main_workflow": "Main workflow",
-  "quick_steps": "Quick steps",
-  "parallel_safety": "Parallel safety",
+  "main_workflow": "Main Workflow",
+  "quick_steps": "Quick Steps",
+  "parallel_safety": "Parallel Safety",
   "pool_info": "One Grammers pool per account",
   "errors": {
     "unknown_error": "An unknown error occurred.",
@@ -94,5 +94,6 @@
     "circuit_open": "Backend connection temporarily paused for rate-limit protection.",
     "network_error": "Failed to connect to network or Telegram server.",
     "checksum_mismatch": "File integrity verification failed (MD5 mismatch). Re-upload will be attempted automatically."
-  }
+  },
+  "parallel_grammers_desc": "Forwarder & Drives share the same MTProto connection safely."
 }
