@@ -208,7 +208,7 @@ export function ReUploadBatchModal({
             type="button"
             className="rub-btn-skip"
             onClick={onSkipAll}
-            title="Lewati semua file yang dihapus — tidak ada yang diunggah ulang"
+            title={t("speedtest.batch_reupload_skip")}
           >
             Lewati Semua
           </button>

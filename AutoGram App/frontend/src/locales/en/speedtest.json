@@ -612,5 +612,14 @@
   "dock_progress_feature": "Progress % / MB/s / peak in transfer dock",
   "multipart_feature": "Multi-part parallel for large files (worker)",
   "btn_reset_default": "Reset default",
-  "btn_save": "Save"
+  "btn_save": "Save",
+  "zip_preview_content": "Preview Content",
+  "zip_extract_entry": "Extract Entry",
+  "zip_extract_title": "Extract ZIP File",
+  "zip_code_preview_title": "File Code Preview",
+  "dest_picker_title": "Select Destination Location",
+  "input_dialog_confirm": "Confirm",
+  "batch_reupload_skip": "Skip all deleted files — nothing re-uploaded",
+  "remote_upload_modal_title": "Remote Upload (URL)",
+  "storage_gauge_title": "Storage Usage"
 }

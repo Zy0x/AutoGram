@@ -612,5 +612,14 @@
   "dock_progress_feature": "Progress % / MB/s / puncak di dock transfer",
   "multipart_feature": "Multi-part paralel untuk berkas besar (worker)",
   "btn_reset_default": "Atur ulang default",
-  "btn_save": "Simpan"
+  "btn_save": "Simpan",
+  "zip_preview_content": "Pratinjau Konten",
+  "zip_extract_entry": "Ekstrak File Ini",
+  "zip_extract_title": "Ekstrak Berkas ZIP",
+  "zip_code_preview_title": "Pratinjau Kode Berkas",
+  "dest_picker_title": "Pilih Lokasi Tujuan",
+  "input_dialog_confirm": "Konfirmasi",
+  "batch_reupload_skip": "Lewati semua berkas yang dihapus — tidak ada yang diunggah ulang",
+  "remote_upload_modal_title": "Unggah Jarak Jauh (URL)",
+  "storage_gauge_title": "Penggunaan Penyimpanan"
 }

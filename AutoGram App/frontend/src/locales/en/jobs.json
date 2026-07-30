@@ -28,5 +28,12 @@
   "jobs_export_audit": "Export Audit Logs",
   "jobs_import_title": "Import Migration Jobs",
   "jobs_export_title": "Export Migration Jobs",
-  "jobs_delete_title": "Delete Migration Job"
+  "jobs_delete_title": "Delete Migration Job",
+  "original_caption_title": "Original Caption Text",
+  "chat_restrictions_fallback": "Fell back to Clean Copy due to Telegram chat restrictions",
+  "save_config_profile": "Save current configuration as a profile",
+  "fill_config_fields": "Please fill at least Job Name, Source, or Destination",
+  "fresh_start_title": "Fresh Start Migration",
+  "fresh_start_desc": "Clears previous execution history and starts the job from scratch.",
+  "rerun_modal_title": "Re-run Mode Selection"
 }

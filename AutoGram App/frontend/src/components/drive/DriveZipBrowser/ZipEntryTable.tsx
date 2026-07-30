@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import React from 'react';
 import {
   Folder,
@@ -153,7 +154,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                           onPreviewCode(e);
                         }}
                         className="p-1 text-slate-400 hover:text-indigo-400 rounded transition-colors"
-                        title="Preview Content"
+                        title={i18n.t("speedtest.zip_preview_content")}
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -163,7 +164,7 @@ export const ZipEntryTable: React.FC<ZipEntryTableProps> = ({
                           onExtractEntry(e);
                         }}
                         className="p-1 text-slate-400 hover:text-emerald-400 rounded transition-colors"
-                        title="Extract Entry"
+                        title={i18n.t("speedtest.zip_extract_entry")}
                       >
                         <Download className="w-3.5 h-3.5" />
                       </button>

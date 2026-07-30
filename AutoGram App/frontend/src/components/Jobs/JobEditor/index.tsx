@@ -629,7 +629,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                     type="button"
                     onClick={handleDeleteJobProfile}
                     className="profile-delete-btn"
-                    title={`Hapus profil "${selectedJobProfile}"`}
+                    title={t("jobs.jobs_delete_profile", { name: selectedJobProfile })}
                     aria-label={`Hapus profil ${selectedJobProfile}`}
                   >
                     <Trash2 size={15} strokeWidth={2} />
@@ -653,7 +653,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                       onClick={handleSaveJobProfile}
                       className="btn btn-secondary"
                       disabled={!newJobProfileName.trim() || (!jobName.trim() && !sourceValue.trim() && !destValue.trim())}
-                      title={(!jobName.trim() && !sourceValue.trim() && !destValue.trim()) ? "Please fill at least Job Name, Source, or Destination" : "Save current configuration as a profile"}
+                      title={(!jobName.trim() && !sourceValue.trim() && !destValue.trim()) ? t("jobs.fill_config_fields") : t("jobs.save_config_profile")}
                     >
                       <Save size={16} /> Save
                     </button>

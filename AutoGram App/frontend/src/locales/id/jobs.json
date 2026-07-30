@@ -28,5 +28,12 @@
   "jobs_export_audit": "Ekspor Log Audit",
   "jobs_import_title": "Impor Tugas Migrasi",
   "jobs_export_title": "Ekspor Tugas Migrasi",
-  "jobs_delete_title": "Hapus Tugas Migrasi"
+  "jobs_delete_title": "Hapus Tugas Migrasi",
+  "original_caption_title": "Teks Caption Asli",
+  "chat_restrictions_fallback": "Beralih ke Clean Copy karena batasan obrolan Telegram",
+  "save_config_profile": "Simpan konfigurasi saat ini sebagai profil",
+  "fill_config_fields": "Harap isi setidaknya Nama Tugas, Sumber, atau Tujuan",
+  "fresh_start_title": "Mulai Ulang Segar (Fresh Start)",
+  "fresh_start_desc": "Menghapus riwayat eksekusi sebelumnya dan memulai tugas dari awal.",
+  "rerun_modal_title": "Pilihan Mode Jalankan Ulang (Re-run)"
 }
