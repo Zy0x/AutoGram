@@ -881,10 +881,10 @@ export function DriveExplorer({
                 >
                   {loadingMore ? (
                     <span>
-                      <Loader2 size={14} className="spin" /> Memuat lagi…
+                      <Loader2 size={14} className="spin" /> {t('speedtest.loading_more', 'Memuat lagi…')}
                     </span>
                   ) : (
-                    'Gulir untuk memuat lebih banyak…'
+                    t('speedtest.scroll_to_load_more', 'Gulir untuk memuat lebih banyak…')
                   )}
                 </div>
               );

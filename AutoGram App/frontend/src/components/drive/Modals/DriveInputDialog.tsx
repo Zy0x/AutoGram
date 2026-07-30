@@ -3,6 +3,7 @@
  * Replaces native window.prompt().
  * Portaled to document.body so layout never collapses inside .td-page (vertical-strip bug).
  */
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FolderPlus, MessagesSquare, Pencil, X } from 'lucide-react';
@@ -27,6 +28,7 @@ type Props = {
 };
 
 export function DriveInputDialog({ state, onClose }: Props) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const open = !!state;
   const [value, setValue] = useState('');
@@ -36,7 +38,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
     if (!open || !state) return;
     setValue(state.defaultValue || '');
     setError(null);
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
     }, 40);
@@ -48,7 +50,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      window.clearTimeout(t);
+      window.clearTimeout(timer);
       window.removeEventListener('keydown', onKey);
     };
   }, [open, state, onClose]);
@@ -66,7 +68,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
   const submit = () => {
     const v = value.trim();
     if (!v) {
-      setError('Nama tidak boleh kosong');
+      setError(String(t('speedtest.err_name_empty', 'Nama tidak boleh kosong')));
       return;
     }
     if (state.defaultValue != null && v === state.defaultValue.trim()) {
@@ -104,7 +106,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
               <p className="td-confirm-desc">{state.description}</p>
             ) : null}
           </div>
-          <button type="button" className="td-confirm-close" onClick={onClose} aria-label="Tutup">
+          <button type="button" className="td-confirm-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
             <X size={18} />
           </button>
         </header>
@@ -144,7 +146,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
-            Batal
+            {t("speedtest.topbar_cancel", "Batal")}
           </button>
           <button
             type="button"
@@ -153,7 +155,7 @@ export function DriveInputDialog({ state, onClose }: Props) {
             disabled={!canSubmit}
           >
             <Icon size={15} strokeWidth={2.25} />
-            <span>{state.confirmLabel || 'Simpan'}</span>
+            <span>{state.confirmLabel || t("speedtest.btn_save", "Simpan")}</span>
           </button>
         </footer>
       </div>

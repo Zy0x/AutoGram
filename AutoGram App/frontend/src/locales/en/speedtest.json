@@ -717,5 +717,18 @@
   "default_caption_title": "DEFAULT CAPTION",
   "supported_features_title": "SUPPORTED FEATURES",
   "download_parallel_header": "DOWNLOAD PARALLELISM",
-  "download_behavior_header": "DOWNLOAD BEHAVIOR"
+  "download_behavior_header": "DOWNLOAD BEHAVIOR",
+  "err_name_empty": "Name cannot be empty",
+  "create_folder_title": "Create folder",
+  "create_drive_title": "Create Drive [TD]",
+  "create_folder_desc": "Inside “{{parentName}}”. Folder can contain subfolders.",
+  "create_drive_desc": "Root drive in Media Studio (private Telegram channel [TD]).",
+  "folder_name_label": "Folder name",
+  "drive_name_label": "Drive name",
+  "folder_name_ph": "e.g. Semester 1",
+  "drive_name_ph": "e.g. Class A Material",
+  "create_folder_btn": "Create folder",
+  "create_drive_btn": "Create Drive",
+  "loading_more": "Loading more…",
+  "scroll_to_load_more": "Scroll to load more…"
 }

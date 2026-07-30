@@ -717,5 +717,18 @@
   "default_caption_title": "CAPTION DEFAULT",
   "supported_features_title": "FITUR TERDUKUNG",
   "download_parallel_header": "PARALEL DOWNLOAD",
-  "download_behavior_header": "PERILAKU DOWNLOAD"
+  "download_behavior_header": "PERILAKU DOWNLOAD",
+  "err_name_empty": "Nama tidak boleh kosong",
+  "create_folder_title": "Buat folder",
+  "create_drive_title": "Buat Drive [TD]",
+  "create_folder_desc": "Di dalam “{{parentName}}”. Folder bisa berisi subfolder.",
+  "create_drive_desc": "Drive root di Media Studio (channel privat Telegram [TD]).",
+  "folder_name_label": "Nama folder",
+  "drive_name_label": "Nama Drive",
+  "folder_name_ph": "mis. Semester 1",
+  "drive_name_ph": "mis. Materi Kelas A",
+  "create_folder_btn": "Buat folder",
+  "create_drive_btn": "Buat Drive",
+  "loading_more": "Memuat lagi…",
+  "scroll_to_load_more": "Gulir untuk memuat lebih banyak…"
 }

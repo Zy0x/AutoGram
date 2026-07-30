@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
@@ -353,6 +354,7 @@ export function MediaStudio({ onExitToApp }: MediaStudioProps = {}) {
 }
 
 function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
+  const { t } = useTranslation();
   // Instant restore from cache — avoids waiting list-sessions before first paint boot
   const [sessions, setSessions] = useState<string[]>(() => readSessionsCache());
   const [session, setSession] = useState(() => {
@@ -3979,14 +3981,14 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     setError(null);
     setInputDlg({
       kind: 'create-folder',
-      title: parentId != null ? 'Buat folder' : 'Buat Drive [TD]',
+      title: parentId != null ? String(t('speedtest.create_folder_title', 'Buat folder')) : String(t('speedtest.create_drive_title', 'Buat Drive [TD]')),
       description:
         parentId != null
-          ? `Di dalam “${parentName}”. Folder bisa berisi subfolder.`
-          : 'Drive root di Media Studio (channel privat Telegram [TD]).',
-      label: parentId != null ? 'Nama folder' : 'Nama Drive',
-      placeholder: parentId != null ? 'mis. Semester 1' : 'mis. Materi Kelas A',
-      confirmLabel: parentId != null ? 'Buat folder' : 'Buat Drive',
+          ? String(t('speedtest.create_folder_desc', { parentName, defaultValue: `Di dalam “${parentName}”. Folder bisa berisi subfolder.` }))
+          : String(t('speedtest.create_drive_desc', 'Drive root di Media Studio (channel privat Telegram [TD]).')),
+      label: parentId != null ? String(t('speedtest.folder_name_label', 'Nama folder')) : String(t('speedtest.drive_name_label', 'Nama Drive')),
+      placeholder: parentId != null ? String(t('speedtest.folder_name_ph', 'mis. Semester 1')) : String(t('speedtest.drive_name_ph', 'mis. Materi Kelas A')),
+      confirmLabel: parentId != null ? String(t('speedtest.create_folder_btn', 'Buat folder')) : String(t('speedtest.create_drive_btn', 'Buat Drive')),
       onConfirm: (name: any) => {
         void (async () => {
           try {
