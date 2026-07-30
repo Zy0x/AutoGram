@@ -187,9 +187,9 @@ export function DriveTransferSettings({
                 ))}
               </div>
 
-              <h3>Hardware Re-encode (GPU)</h3>
+              <h3>{t("speedtest.hardware_reencode_header")}</h3>
               <p className="td-xfer-hint">
-                Akselerasi GPU untuk konversi video sebelum diunggah.
+                {t("speedtest.gpu_accel_desc")}
               </p>
               <label className="td-xfer-range-row">
                 <MediaSelect
@@ -198,7 +198,7 @@ export function DriveTransferSettings({
                   onChange={(value) => patch({ reencodeHardware: value as any })}
                   ariaLabel="Hardware re-encode"
                   options={[
-                    { value: 'auto', label: 'Auto · Prioritas GPU', description: 'Pilih backend yang lolos capability test' },
+                    { value: 'auto', label: t('speedtest.gpu_auto_label'), description: t('speedtest.gpu_auto_desc') },
                     { value: 'nvidia', label: 'NVIDIA NVENC', description: 'CUDA/NVDEC dengan fallback aman' },
                     { value: 'amd', label: 'AMD AMF', description: 'AMF hardware encoder' },
                     { value: 'intel', label: 'Intel Quick Sync', description: 'QSV hardware encoder' },
@@ -207,9 +207,9 @@ export function DriveTransferSettings({
                 />
               </label>
 
-              <h3>Mode Re-encode</h3>
+              <h3>{t("speedtest.reencode_mode_header")}</h3>
               <p className="td-xfer-hint">
-                Keseimbangan antara kecepatan proses dan kualitas akhir.
+                {t("speedtest.reencode_mode_desc")}
               </p>
               <label className="td-xfer-range-row">
                 <MediaSelect
@@ -218,14 +218,14 @@ export function DriveTransferSettings({
                   onChange={(value) => patch({ reencodePreset: value as any })}
                   ariaLabel="Mode re-encode"
                   options={[
-                    { value: 'speed', label: 'Kecepatan', description: 'Adaptif maksimum, menjaga cadangan memori' },
-                    { value: 'balanced', label: 'Seimbang', description: 'Default kualitas dan kecepatan' },
-                    { value: 'quality', label: 'Kualitas', description: 'Kompresi lebih teliti dan lebih lama' },
+                    { value: 'speed', label: t('speedtest.preset_speed_label'), description: t('speedtest.preset_speed_desc') },
+                    { value: 'balanced', label: t('speedtest.preset_balanced_label'), description: t('speedtest.preset_balanced_desc') },
+                    { value: 'quality', label: t('speedtest.preset_quality_label'), description: t('speedtest.preset_quality_desc') },
                   ]}
                 />
               </label>
 
-              <h3>{t('speedtest.upload_parallel') || "Parallel upload"}</h3>
+              <h3>{t('speedtest.upload_parallelism_header')}</h3>
               <p className="td-xfer-hint">
                 Berapa file di-pipeline ke data center Telegram bersamaan (1–8). Naikkan untuk multi-file
                 lebih cepat; turunkan jika sering FloodWait.
@@ -243,7 +243,7 @@ export function DriveTransferSettings({
                 <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
               </label>
 
-              <h3>Opsi pengiriman</h3>
+              <h3>{t("speedtest.send_options_header")}</h3>
               <div className="td-xfer-checks">
                 <label className="td-xfer-check">
                   <input
@@ -253,8 +253,8 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ groupAsAlbum: e.target.checked })}
                   />
                   <span>
-                    <strong>Kirim sebagai album</strong>
-                    <small>Kelompokkan foto/video sejenis (maks 10 per batch Telegram).</small>
+                    <strong>{t("speedtest.send_as_album")}</strong>
+                    <small>{t("speedtest.send_as_album_desc")}</small>
                   </span>
                 </label>
                 <label className="td-xfer-check">
@@ -265,8 +265,8 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ silent: e.target.checked })}
                   />
                   <span>
-                    <strong>Silent (tanpa notifikasi)</strong>
-                    <small>Kirim tanpa bunyi notifikasi di sisi penerima (jika didukung).</small>
+                    <strong>{t("speedtest.send_silent")}</strong>
+                    <small>{t("speedtest.send_silent_desc")}</small>
                   </span>
                 </label>
                 <label className="td-xfer-check">
@@ -277,7 +277,7 @@ export function DriveTransferSettings({
                     onChange={(e) => patch({ spoiler: e.target.checked })}
                   />
                   <span>
-                    <strong>Spoiler media</strong>
+                    <strong>{t("speedtest.send_spoiler")}</strong>
                     <small>Tandai media sebagai spoiler (blur sampai diklik).</small>
                   </span>
                 </label>

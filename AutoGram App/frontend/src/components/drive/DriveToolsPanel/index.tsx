@@ -348,7 +348,7 @@ export function DriveToolsPanel({
               <div className="td-tools-stats-hero">
                 <div className="td-tools-stats-main">
                   <span className="td-tools-stats-count">{displayCount.toLocaleString('id-ID')}</span>
-                  <span className="td-tools-stats-label">file di {scopeLabel}</span>
+                  <span className="td-tools-stats-label">{t("speedtest.files_in_scope", { scope: scopeLabel })}</span>
                   <span className="td-tools-stats-bytes">({formatDriveBytes(displayBytes)})</span>
                 </div>
                 <div className="td-tools-stats-status">
@@ -364,7 +364,7 @@ export function DriveToolsPanel({
 
               <p className="td-tools-hint">
                 {locationStatsAccurate ? (
-                  <>Total unik seluruh {scopeLabel} (metadata Telegram, tanpa unduh file). Tidak double-count antar filter.</>
+                  <>{t("speedtest.accurate_total_hint", { scope: scopeLabel })}</>
                 ) : locationStatsLoading ? (
                   <>{t('speedtest.walk_media_notice')}</>
                 ) : (
@@ -381,7 +381,7 @@ export function DriveToolsPanel({
               )}
 
               <h4 className="td-tools-h">
-                Per tipe {typeFromStats ? '(seluruh lokasi)' : '(yang dimuat di grid)'}
+                {typeFromStats ? t("speedtest.by_type_all_loc") : t("speedtest.by_type_grid_loaded")}
               </h4>
               <div className="td-tools-bars">
                 {typeRows.length === 0 && (
@@ -604,9 +604,9 @@ export function DriveToolsPanel({
           {tab === 'filter' && (
             <div className="td-tools-section">
               <p className="td-tools-lead">
-                Filter lanjutan di lokasi ini (di atas filter tipe media &amp; search).
+                {t('speedtest.adv_filter_desc')}
                 {isAdvFilterActive(advFilter) && (
-                  <span className="td-tools-active"> · Aktif</span>
+                  <span className="td-tools-active"> · {t("speedtest.filter_active_badge")}</span>
                 )}
               </p>
               <div className="td-tools-grid2">
@@ -699,7 +699,7 @@ export function DriveToolsPanel({
 
               <div className="td-tools-card-hint">
                 <p className="td-tools-hint-text">
-                  ⚡ <strong>Shortcut:</strong> <kbd className="td-tools-kbd">1 MB</kbd> ≈ 1.048.576 · contoh min video besar: <kbd className="td-tools-kbd">5000000</kbd>
+                  {t("speedtest.adv_filter_shortcut_hint")}
                 </p>
               </div>
 

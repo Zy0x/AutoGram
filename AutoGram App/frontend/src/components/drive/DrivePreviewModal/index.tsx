@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import React, { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
@@ -301,7 +302,7 @@ function formatQualitySize(n?: number | null): string {
 function sanitizeQualityLabel(raw: unknown, id?: string, height?: number | null): string {
   const s = String(raw || '').trim();
   const idS = String(id || '').toLowerCase();
-  if (/^auto/i.test(idS) || /^otomatis$/i.test(s)) return 'Otomatis';
+  if (/^auto/i.test(idS) || /^otomatis$/i.test(s)) return i18n.t('speedtest.auto_mode_label');
   if (/^original/i.test(idS) || /^asli$/i.test(s)) return 'Asli';
   // Prefer explicit height
   if (height != null && Number.isFinite(height) && height >= 144) {

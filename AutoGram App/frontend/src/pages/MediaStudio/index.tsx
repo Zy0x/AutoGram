@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
@@ -2441,7 +2442,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             : `${knownTotal} files${topicNote}`
         );
       } else {
-        setStatusText(`${page.length}${hasMore ? '+' : ''} files${topicNote}`);
+        setStatusText(i18n.t("speedtest.status_loaded_files", { count: page.length, more: hasMore ? "+" : "", topicNote }));
       }
       // Always refine unique count+size in background (never freeze at page size 28/40).
       // Only skip when server already proved the whole location is smaller than one page.
@@ -2922,7 +2923,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           const recountDelay = tier === 'high' ? 1_500 : tier === 'mid' ? 3_000 : 6_000;
           scheduleMediaStats({ force: true, delayMs: recountDelay });
         }
-        setStatusText(`Sinkron live · ${merged.length}${res.has_more ? '+' : ''} files`);
+        setStatusText(i18n.t("speedtest.status_live_sync", { count: merged.length, more: res.has_more ? "+" : "" }));
       } catch {
         // Smart backoff: retain the last visible data and reduce Telegram load.
         liveSyncFailuresRef.current += 1;

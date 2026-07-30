@@ -189,7 +189,7 @@ export function DriveTopBar({
   scaleHint: _scaleHint,
 }: Props) {
   const { t } = useTranslation();
-  // Always show filter bar for forum groups (at least "Semua media")
+  // Always show filter bar for forum groups (at least "{t("speedtest.all_media_pill")}")
   const showTopics = !!isForum;
 
   const [topicContextMenu, setTopicContextMenu] = useState<{
@@ -407,7 +407,7 @@ export function DriveTopBar({
             {isForum && (
               <span className="td-forum-badge" title={t("speedtest.topbar_forum_group")}>
                 <MessagesSquare size={12} />
-                Topik
+                {t("speedtest.label_topic")}
               </span>
             )}
           </nav>
@@ -484,7 +484,7 @@ export function DriveTopBar({
                 type="button"
                 className="td-zoom-label"
                 onClick={() => onGridZoom(2 as DriveGridZoom)}
-                title={`${zoomLevel.label} — klik untuk reset ke Sedang. Ctrl+scroll di grid juga mengatur zoom.`}
+                title={t("speedtest.topbar_zoom_reset_hint", { label: zoomLevel.label })}
               >
                 {zoomLevel.short}
               </button>
@@ -525,7 +525,7 @@ export function DriveTopBar({
                     ? `Transfer Manager — ${transferBadgeCount} gagal`
                     : transferBadgeKind === 'done'
                       ? `Transfer Manager — ${transferBadgeCount} selesai`
-                      : 'Buka Transfer Manager (progress unduh/unggah)'
+                      : t('speedtest.topbar_open_transfer_manager')
               }
               aria-label={
                 transferBadgeCount > 0
@@ -568,7 +568,7 @@ export function DriveTopBar({
               aria-label="Remote upload file dari URL"
             >
               <Globe size={15} />
-              <span className="td-btn-label">Remote URL</span>
+              <span className="td-btn-label">{t("speedtest.remote_url_btn")}</span>
             </button>
           )}
           <button
@@ -579,7 +579,7 @@ export function DriveTopBar({
             title={
               actionsDisabled
                 ? 'Transfer masih berjalan — Stop dulu di Transfer Manager'
-                : 'Unggah file ke lokasi ini'
+                : t('speedtest.upload_file_to_loc')
             }
             aria-label={
               actionsDisabled
@@ -588,7 +588,7 @@ export function DriveTopBar({
             }
           >
             <Upload size={15} />
-            <span className="td-btn-label">Unggah</span>
+            <span className="td-btn-label">{t("speedtest.btn_upload")}</span>
           </button>
         </div>
       </div>
@@ -610,7 +610,7 @@ export function DriveTopBar({
               Semua media
             </button>
             {topicsLoading && topics.length === 0 && (
-              <span className="td-topics-loading">Memuat topik…</span>
+              <span className="td-topics-loading">{t("speedtest.loading_topics")}</span>
             )}
             {topics.map((t) => (
               <button
@@ -640,7 +640,7 @@ export function DriveTopBar({
                 onClick={onAddTopic}
                 title={t('speedtest.add_new_topic')}
               >
-                + Tambah Topik
+                {t("speedtest.btn_add_topic")}
               </button>
             )}
           </div>
