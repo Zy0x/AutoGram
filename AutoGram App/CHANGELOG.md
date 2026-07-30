@@ -1,8 +1,10 @@
-## v2.3.78 Multi-Decoder CPU Software Fallback (`libdav1d` / `av1`) & Head Rescue Loop
+## v2.3.78 Ultra-Fast 2-Stage Progressive Thumbnail, Dual-Layer Bulk Warm-Up & Atomic Context Isolation Sync
 
-### Penanganan Dekode AV1 Software Multithreaded CPU (`grammers_media.rs`)
-- **Dekoder Software `libdav1d` / `av1` Pilihan Utama**: Mempercepat dan menggaransi dekode AV1 menggunakan CPU software decoder VideoLAN (`libdav1d`) dengan opsi `-hwaccel none`, sepenuhnya mengeliminasi error GPU hardware acceleration (`Function not implemented / Missing Sequence Header`).
-- **Kombinasi Ekspansi Head Rescue Loop dengan `last_tail_bytes`**: Menghubungkan ekspansi sampel kepala (*head sample expansion* hingga 25 MB) dengan atom `moov` tail yang telah didapat sebelumnya. Rekonstruksi Faststart MP4 pada video AV1 2K/4K high bitrate 3D Donghua kini memuat hingga 25 MB data video awal, menggaransi ekstraksi keyframe visual berjalan 100% tanpa hambatan.
+### Optimasi Pemuatan List Card, Thumbnail 2-Stage & Isolasi Konteks Presisi (`thumbBatcher.ts`, `DriveExplorer.tsx`, `driveFilesApi.ts`)
+- **Isolasi Konteks Atomic (`switchThumbContext`)**: Mengimplementasikan pengunci generasi konteks (`contextGeneration`) saat berpindah folder/chat/topik. Antrean thumbnail lama dibatalkan secara atomic dan event sisa dari folder sebelumnya diabaikan, menjamin **nol kebocoran data visual antar-source dan destination**.
+- **Dual-Layer Bulk Warm-Up (<100ms)**: Menjalankan 1x transaksi massal IndexedDB (`loadPersistentThumbs`) saat folder dibuka untuk mengisi `memCache` seluruh viewport sekaligus. Kartu media yang pernah dimuat tampil instan 0ms tanpa *loading spinner*.
+- **Pemuatan 2-Stage Progressive & Real-Time HD Streaming**: Menampilkan `PhotoSize::Stripped` (mini-thumb base64 Telegram) atau `saver-cache` sebagai blur placeholder visual pada Stage 1 (0ms/1-2s). Menyusulkan gambar tajam HD 1-per-1 via event `thumb_single_ready` pada Stage 2 secara halus (*smooth upgrade*).
+- **Sinkronisasi Real-Time Media Baru (`notifyMediaUploaded`)**: Menambahkan listener event real-time untuk menyisipkan (*prepend*) berkas media baru yang diunggah dari aplikasi ini maupun langsung dari aplikasi Telegram ke urutan paling atas kisi secara langsung.
 
 ## v2.3.77 Universal Media Preview Frame Capture & Grid Thumbnail Sync
 

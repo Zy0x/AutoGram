@@ -20,7 +20,8 @@ import {
   type DriveAdvFilter,
 } from '../../../lib/telegram';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused } from '../../../lib/media/thumbBatcher';
+import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused, switchThumbContext } from '../../../lib/media/thumbBatcher';
+import { loadPersistentThumbs } from '../../../lib/media/thumbPersistentCache';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -195,10 +196,20 @@ export function DriveExplorer({
   const liveSelectedRef = useRef<number[] | null>(null);
 
   useEffect(() => {
+    if (creds) {
+      switchThumbContext(creds, folderId);
+    }
     if (creds && files.length) {
       primeThumbsFromFileList(creds, folderId, files);
+      const initialKeys = files
+        .slice(0, 48)
+        .filter(canShowDriveThumb)
+        .map((f) => `${creds.session}:${thumbQuality || 'balanced'}:${folderId ?? 'home'}:${f.id}`);
+      if (initialKeys.length) {
+        void loadPersistentThumbs(initialKeys);
+      }
     }
-  }, [creds, folderId, files]);
+  }, [creds, folderId, files, thumbQuality]);
 
   useEffect(() => {
     const el = parentRef.current;

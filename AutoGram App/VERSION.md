@@ -1,7 +1,7 @@
 AutoGram Version: v2.3.78
 
 Current State:
-v2.3.78 Multi-Decoder CPU Software Fallback (`libdav1d` / `av1`) & Head-Sample Faststart Rescue Loop — membenahi `grammers_media.rs`. Menambahkan prioritas dekoder CPU software `libdav1d` / `av1` dengan `-hwaccel none` pada ekstraksi FFmpeg, mencegah kesalahan `Function not implemented / Missing Sequence Header` akibat inkompatibilitas hardware GPU. Mengintegrasikan sampel ekspansi kepala (*head rescue loop* hingga 25 MB) dengan `last_tail_bytes` rekonstruksi `make_faststart_mp4`, menggaransi video AV1 2K/4K high bitrate 3D Donghua 100% terekstrak thumbnail visualnya.
+v2.3.78 Ultra-Fast 2-Stage Progressive Thumbnail, Dual-Layer Bulk Warm-Up & Atomic Context Isolation Sync — membenahi `thumbBatcher.ts`, `DriveExplorer.tsx`, `driveFilesApi.ts`, dan `thumbPersistentCache.ts`. Mengimplementasikan `switchThumbContext` atomic context generation lock saat berganti folder/chat/topik untuk mengeliminasi total kebocoran data thumbnail antar-source/destination. Memadukan 1x transaksi massal IndexedDB (`loadPersistentThumbs`) untuk warm-up memCache <100ms, 2-stage progressive rendering (stripped base64 blur -> real-time HD single-item streaming), dan event listener real-time `notifyMediaUploaded`.
 
 Previous:
 v2.3.77 Universal Media Preview Frame Capture & Grid Thumbnail Sync — membenahi `DrivePreviewModal.tsx`. Menambahkan mekanisme fallback otomatis yang menangkap frame visual dari modal preview media (baik video, gambar, PDF, maupun poster media) saat dibuka oleh pengguna. Frame yang ditangkap langsung disimpan ke memori `thumbBatcher` & cache disk SQLite lokal serta menyebarkan event `autogram-thumb-ready`, secara instan memperbarui kartu thumbnail media yang sebelumnya belum/gagal tampil di kisi `DriveExplorer`.

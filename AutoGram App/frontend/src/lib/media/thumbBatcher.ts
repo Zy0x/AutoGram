@@ -328,6 +328,8 @@ export function setThumbContext(
   return next;
 }
 
+export const switchThumbContext = setThumbContext;
+
 export function getThumbSchedulerMetrics(): ThumbSchedulerMetrics {
   return { ...metrics, queued: queue.size, inFlight: flushInFlight };
 }
@@ -641,6 +643,15 @@ export function notifyMediaDeleted(deletedIds: number[], peerId: number | null):
   window.dispatchEvent(
     new CustomEvent('autogram-media-deleted', {
       detail: { deletedIds: deletedIds.map((id) => Number(id)), peerId },
+    })
+  );
+}
+
+export function notifyMediaUploaded(file: any, folderId: number | null): void {
+  if (!file || typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('autogram-media-uploaded', {
+      detail: { file, folderId },
     })
   );
 }
