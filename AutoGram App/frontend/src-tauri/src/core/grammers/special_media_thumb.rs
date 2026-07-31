@@ -97,7 +97,13 @@ pub fn enqueue_special_media_item(
 
                 let mut resolved_url: Option<String> = None;
 
-                if let Some(bridge) = spawn_range_bridge(&rt_handle, item.client.clone(), item.media.clone(), total_size, max_budget) {
+                if let Some(rem) = super::super::session_rate::flood_remaining_secs(&peer_id) {
+                    if rem > 0 {
+                        tokio::time::sleep(Duration::from_secs(u64::from(rem).min(10))).await;
+                    }
+                }
+
+                if let Some(bridge) = spawn_range_bridge(&rt_handle, item.client.clone(), item.media.clone(), total_size, max_budget, &peer_id) {
                     let probe_url = bridge.url.clone();
                     let q_mode = item.q_mode.clone();
 

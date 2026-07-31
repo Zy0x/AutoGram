@@ -1,3 +1,12 @@
+## v2.5.8 Smart FLOOD_PREMIUM_WAIT Handler & Range Bridge Auto-Recovery Engine
+
+### Rust MTProto Rate Limiter (`session_rate.rs`)
+- **FLOOD_PREMIUM_WAIT Detection**: Memperbarui fungsi `parse_flood_secs` untuk dapat mengekstrak nilai detik `(value: X)` dari pesan kesalahan `FLOOD_PREMIUM_WAIT` Telegram (RPC 420). Menjamin kode HTTP status `420` tidak keliru teridentifikasi sebagai durasi waktu tunggu.
+
+### HTTP Range Bridge Auto-Recovery (`thumbnail_range_bridge.rs` & `special_media_thumb.rs`)
+- **Pre-flight Flood Gate Check**: Sebelum mengunduh chunk dari MTProto, `fetch_range_bytes` dan worker `special_media_thumb` kini memeriksa status `flood_remaining_secs` terlebih dahulu untuk mencegah penembakan RPC secara agresif saat sesi sedang dalam masa jeda FloodWait.
+- **Auto-Retry with Backoff**: Saat terjadi `FLOOD_PREMIUM_WAIT` / `FLOOD_WAIT` di tengah pengunduhan range bytes, sistem mencatat waktu tunggu ke `session_rate`, melakukan jeda (*sleep*) otomatis sedurasi waktu tunggu Telegram (maksimal 25 detik), lalu melakukan auto-retry chunk. Hal ini mencegah pengembalian HTTP 500 (`Server returned 5XX Server Error reply`) ke FFmpeg.
+
 ## v2.5.7 Asynchronous Tier-2 Video Thumbnail Delegation & Non-Blocking Batch Dispatcher
 
 ### Rust MTProto Thumbnail Engine (`thumbs.rs` & `special_media_thumb.rs`)

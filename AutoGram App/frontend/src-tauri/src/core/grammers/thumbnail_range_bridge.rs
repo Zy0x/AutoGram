@@ -51,7 +51,9 @@ pub fn spawn_range_bridge(
     media: Media,
     total_size: u64,
     max_budget: u64,
+    session_name: impl Into<String>,
 ) -> Option<RangeBridgeHandle> {
+    let session = session_name.into();
     let server = Server::http("127.0.0.1:0").ok()?;
     let port = server.server_addr().to_ip().map(|a| a.port())?;
     let url = format!("http://127.0.0.1:{port}/thumb.mp4");
@@ -59,7 +61,7 @@ pub fn spawn_range_bridge(
     tg_log::info(
         BACKEND,
         "range_bridge_started",
-        format!("url='{url}' total_size={total_size} max_budget={max_budget}"),
+        format!("url='{url}' total_size={total_size} max_budget={max_budget} session={session}"),
     );
 
     let stop_signal = Arc::new(AtomicBool::new(false));
@@ -149,6 +151,7 @@ pub fn spawn_range_bridge(
 
             let client_cloned = client.clone();
             let media_cloned = media.clone();
+            let session_cloned = session.clone();
 
             let cache_key = (req_start, fetch_len);
             let cached_bytes = {
@@ -160,7 +163,7 @@ pub fn spawn_range_bridge(
                 Ok(bytes)
             } else {
                 let res = rt_handle.block_on(async move {
-                    fetch_range_bytes(&client_cloned, &media_cloned, req_start, fetch_len, total_size).await
+                    fetch_range_bytes(&client_cloned, &media_cloned, req_start, fetch_len, total_size, &session_cloned).await
                 });
                 if let Ok(ref bytes) = res {
                     let mut guard = range_cache.lock();
@@ -240,6 +243,7 @@ async fn fetch_range_bytes(
     offset: u64,
     length: usize,
     total_size: u64,
+    session_name: &str,
 ) -> Result<Vec<u8>, String> {
     if offset >= total_size || length == 0 {
         return Ok(Vec::new());
@@ -250,6 +254,17 @@ async fn fetch_range_bytes(
         _ => return Err("Media is not a document".to_string()),
     };
 
+    if let Some(rem_secs) = crate::core::session_rate::flood_remaining_secs(session_name) {
+        if rem_secs > 0 {
+            tg_log::warn(
+                BACKEND,
+                "range_fetch_flood_active",
+                format!("session={session_name} flood_remaining={rem_secs}s. Failing range fetch fast to protect MTProto session."),
+            );
+            return Err(format!("FLOOD_WAIT active ({rem_secs}s)"));
+        }
+    }
+
     let chunk_size = DEFAULT_CHUNK_SIZE;
     let start_chunk = (offset / chunk_size) as i32;
     let start_chunk_byte = (start_chunk as u64) * chunk_size;
@@ -258,22 +273,49 @@ async fn fetch_range_bytes(
     let target_length_with_offset = byte_offset_in_first_chunk + length;
 
     let mut collected = Vec::with_capacity(target_length_with_offset + chunk_size as usize);
-    let mut iter = client
-        .iter_download(doc)
-        .chunk_size(chunk_size as i32)
-        .skip_chunks(start_chunk);
+    let mut retry_count = 0;
 
-    while collected.len() < target_length_with_offset {
-        match iter.next().await {
-            Ok(Some(chunk)) => {
-                if chunk.is_empty() {
+    loop {
+        let mut iter = client
+            .iter_download(doc)
+            .chunk_size(chunk_size as i32)
+            .skip_chunks(start_chunk + (collected.len() as u64 / chunk_size) as i32);
+
+        let mut err_occurred = None;
+        while collected.len() < target_length_with_offset {
+            match iter.next().await {
+                Ok(Some(chunk)) => {
+                    if chunk.is_empty() {
+                        break;
+                    }
+                    collected.extend_from_slice(&chunk);
+                }
+                Ok(None) => break,
+                Err(e) => {
+                    err_occurred = Some(e);
                     break;
                 }
-                collected.extend_from_slice(&chunk);
             }
-            Ok(None) => break,
-            Err(e) => return Err(format!("iter_download error: {e}")),
         }
+
+        if let Some(e) = err_occurred {
+            let err_str = e.to_string();
+            if let Some(secs) = crate::core::session_rate::parse_flood_secs(&err_str) {
+                crate::core::session_rate::note_flood_wait(session_name, secs);
+                tg_log::warn(
+                    BACKEND,
+                    "range_fetch_flood_wait",
+                    format!("session={session_name} FLOOD_WAIT ({secs}s) hit during range fetch. Auto-retrying after wait..."),
+                );
+                if retry_count < 1 && secs <= 25 {
+                    retry_count += 1;
+                    tokio::time::sleep(Duration::from_secs(u64::from(secs) + 1)).await;
+                    continue;
+                }
+            }
+            return Err(format!("iter_download error: {err_str}"));
+        }
+        break;
     }
 
     if collected.len() <= byte_offset_in_first_chunk {

@@ -52,15 +52,38 @@ pub fn note_flood_wait(session: &str, secs: u32) {
     });
 }
 
-/// Parse FLOOD_WAIT seconds from Telegram RPC error text if present.
+/// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.
 pub fn parse_flood_secs(err: &str) -> Option<u32> {
     let low = err.to_ascii_lowercase();
-    if !low.contains("flood_wait") && !low.contains("flood wait") && !low.contains("floodwait") && !low.contains("a wait of") {
+    if !low.contains("flood") && !low.contains("a wait of") && !low.contains("wait") && !low.contains("420") {
         return None;
     }
+    // 1. Check for value: X or (value: X) in FLOOD_PREMIUM_WAIT
+    if let Some(val_idx) = low.find("value") {
+        let after = &low[val_idx..];
+        for part in after.split(|c: char| !c.is_ascii_digit()) {
+            if let Ok(n) = part.parse::<u32>() {
+                if (1..3600).contains(&n) && n != 420 && n != 400 {
+                    return Some(n);
+                }
+            }
+        }
+    }
+    // 2. Check for wait of X or wait X
+    if let Some(wait_idx) = low.find("wait") {
+        let after = &low[wait_idx..];
+        for part in after.split(|c: char| !c.is_ascii_digit()) {
+            if let Ok(n) = part.parse::<u32>() {
+                if (1..3600).contains(&n) && n != 420 && n != 400 {
+                    return Some(n);
+                }
+            }
+        }
+    }
+    // 3. Fallback: find any number except HTTP/RPC status 420 / 400
     for part in low.split(|c: char| !c.is_ascii_digit()) {
         if let Ok(n) = part.parse::<u32>() {
-            if (1..3600).contains(&n) {
+            if (1..3600).contains(&n) && n != 420 && n != 400 {
                 return Some(n);
             }
         }

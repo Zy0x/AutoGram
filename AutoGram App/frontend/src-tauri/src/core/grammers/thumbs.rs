@@ -972,7 +972,7 @@ async fn download_media_thumb(
 
                 if doc_size > 0 {
                     if let Ok(rt) = tokio::runtime::Handle::try_current() {
-                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64, max_budget) {
+                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64, max_budget, "drive") {
                             if let Some(frame_bytes) = extract_ffmpeg_frame_from_url(&bridge.url, quality, is_av1_video) {
                                 tg_log::info(
                                     BACKEND,
