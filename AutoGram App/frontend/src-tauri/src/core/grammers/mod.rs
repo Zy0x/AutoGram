@@ -7,8 +7,11 @@ pub mod thumbnail_range_bridge;
 pub mod thumbs;
 pub mod topics;
 
+pub mod special_media_thumb;
+
 pub use ffmpeg::*;
 pub use session::*;
+pub use special_media_thumb::*;
 pub use stream::*;
 pub use thumbnail_range_bridge::*;
 pub use thumbs::*;

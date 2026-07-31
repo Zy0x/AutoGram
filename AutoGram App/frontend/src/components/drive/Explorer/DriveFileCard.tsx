@@ -204,7 +204,28 @@ function DriveFileCardInner({
         | { key?: string; url?: string; isPlaceholder?: boolean }
         | undefined;
       if (!detail?.key || !detail?.url) return;
-      const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
+    const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
+
+    let unlistenSpecial: (() => void) | undefined;
+    import('@tauri-apps/api/event')
+      .then(({ listen }) => {
+        listen<{ peerId: string; telegramMessageId: number; url: string }>(
+          'special-thumb-resolved',
+          (e) => {
+            if (e.payload && Number(e.payload.telegramMessageId) === file.id) {
+              setThumb(e.payload.url);
+              setIsPlaceholderImg(false);
+              setThumbLoading(false);
+              setImgError(false);
+            }
+          }
+        )
+          .then((un) => {
+            unlistenSpecial = un;
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
       if (!detail.key.endsWith(targetSuffix)) return;
 
       const hit = getCachedThumb(folderId, file.id);

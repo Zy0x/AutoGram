@@ -17,6 +17,7 @@ use tauri::Emitter;
 
 use super::ffmpeg::{extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary, get_ffmpeg_capabilities, is_fallback_black_card_bytes, unstrip_jpeg};
 use super::thumbnail_range_bridge::spawn_range_bridge;
+use super::special_media_thumb;
 
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use crate::core::grammers_ops::{
@@ -2006,6 +2007,14 @@ pub fn thumbs_batch_items_blocking_app(
                                             }
                                         }
                                     }
+                                    special_media_thumb::enqueue_special_media_item(
+                                        app_ref.clone(),
+                                        client.clone(),
+                                        peer_str.clone(),
+                                        mid,
+                                        q_key.to_string(),
+                                        media.clone(),
+                                    );
                                 }
 
                                 tg_log::info(

@@ -1,3 +1,10 @@
+## v2.5.0 Dual-Tier Asynchronous Special Media Thumbnail Handler
+
+### Separate Special Media Background Processor (`special_media_thumb.rs`)
+- **Decoupled Tier-2 Engine**: Membuat modul terpisah `special_media_thumb.rs` yang menangani ekstraksi *keyframe* media khusus/edge-case secara *asynchronous* dan *low-priority* di latar belakang.
+- **Smart Head & Tail MP4 Atom Probing**: Untuk video tanpa thumbnail statis bawaan Telegram yang memiliki atom `moov` (indeks MP4) di ujung file, *Range Bridge* latar belakang hanya mengunduh 256 KB awal + 512 KB akhir via MTProto, lalu mengekstrak *keyframe* secara akurat tanpa mengganggu antrean utama.
+- **Non-Blocking Main Standard Engine**: Standar utama pemuatan grid (`thumbs.rs`, `thumbBatcher.ts`) tetap 100% instan dan dilindungi (60 FPS). Kartu video yang diproses di latar belakang akan memicu event Tauri `special-thumb-resolved` untuk memperbarui tampilan kartu secara halus saat selesai.
+
 ## v2.4.6 Terminal Non-Thumb Blacklist Eviction & Detailed Multi-Layer Logging
 
 ### Elimination of Video Permanent Blacklisting (`thumbs.rs`)
