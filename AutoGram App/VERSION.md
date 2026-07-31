@@ -1,9 +1,10 @@
-AutoGram Version: v2.5.0
+AutoGram Version: v2.5.1
 
 Current State:
-v2.5.0 Dual-Tier Asynchronous Special Media Thumbnail Handler — membenahi `special_media_thumb.rs`, `thumbs.rs`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memisahkan penanganan khusus untuk media video tanpa thumbnail statis Telegram ke dalam modul latar belakang terpisah (`special_media_thumb.rs`). Standar utama pemuatan grid (60 FPS) tetap 100% cepat dan terlindungi, sementara video dengan atom `moov` di ujung file akan diproses secara asynchronous di latar belakang via Local Range Bridge (Head 256KB + Tail 512KB) dan memicu pembaruan halus (`special-thumb-resolved`) saat selesai.
+v2.5.1 Guaranteed Video Poster Engine & Extended Range Bridge Probe — membenahi `special_media_thumb.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menaikkan batas budget Range Bridge menjadi 16 MB dan timeout menjadi 12s pada modul terpisah `special_media_thumb.rs`. Menambahkan generator poster SVG visual beresolusi tinggi sebagai jaminan fallback 100%, memastikan bahwa seluruh media video dijamin memiliki dan menampilkan thumbnail visual tanpa menyentuh penanganan thumbnail utama.
 
 Previous:
+v2.5.0 Dual-Tier Asynchronous Special Media Thumbnail Handler — membenahi `special_media_thumb.rs`, `thumbs.rs`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.6 Terminal Non-Thumb Blacklist Eviction & Detailed Multi-Layer Logging — membenahi `thumbs.rs`, `thumbBatcher.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.

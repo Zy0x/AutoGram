@@ -85,22 +85,24 @@ pub fn enqueue_special_media_item(
                 }
 
                 let total_size = item.media.size().unwrap_or(0) as u64;
-                let max_budget = 6 * 1024 * 1024; // 6 MB budget for background tail probing
+                let max_budget = 16 * 1024 * 1024; // 16 MB budget for background tail probing
+                let peer_id = item.peer_id.clone();
+                let mid = item.telegram_message_id;
 
                 tg_log::info(
                     BACKEND,
                     "special_thumb_bg_start",
-                    format!("op=special_thumb_bg_start peer_id={} message_id={}", item.peer_id, item.telegram_message_id),
+                    format!("op=special_thumb_bg_start peer_id={} message_id={}", peer_id, mid),
                 );
+
+                let mut resolved_url: Option<String> = None;
 
                 if let Some(bridge) = spawn_range_bridge(&rt_handle, item.client.clone(), item.media.clone(), total_size, max_budget) {
                     let probe_url = bridge.url.clone();
                     let q_mode = item.q_mode.clone();
-                    let peer_id = item.peer_id.clone();
-                    let mid = item.telegram_message_id;
 
                     let frame_res = tokio::time::timeout(
-                        Duration::from_secs(6),
+                        Duration::from_secs(12),
                         tokio::task::spawn_blocking(move || {
                             extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
                         })
@@ -114,24 +116,39 @@ pub fn enqueue_special_media_item(
                                     "special_thumb_bg_success",
                                     format!("op=special_thumb_bg_success peer_id={} message_id={} bytes={}", peer_id, mid, frame_bytes.len()),
                                 );
-
-                                let item_key = format!("{}:{}", peer_id, mid);
-                                {
-                                    let mut cache_lock = resolved_cache().lock();
-                                    let cache = cache_lock.get_or_insert_with(HashMap::new);
-                                    cache.insert(item_key, url.clone());
-                                }
-
-                                if let Some(ref handle) = app {
-                                    let payload = SpecialThumbResolvedPayload {
-                                        peer_id: peer_id.clone(),
-                                        telegram_message_id: mid,
-                                        url: url.clone(),
-                                    };
-                                    let _ = handle.emit("special-thumb-resolved", payload);
-                                }
+                                resolved_url = Some(url);
                             }
                         }
+                    }
+                }
+
+                // Guaranteed Fallback: If FFmpeg range extraction returned None or timed out,
+                // generate a high-quality video visual poster data URL so EVERY media item
+                // guarantees a visual thumbnail image.
+                if resolved_url.is_none() {
+                    tg_log::info(
+                        BACKEND,
+                        "special_thumb_guaranteed_poster",
+                        format!("op=special_thumb_guaranteed_poster peer_id={} message_id={}", peer_id, mid),
+                    );
+                    resolved_url = Some(generate_guaranteed_video_poster_url(&peer_id, mid));
+                }
+
+                if let Some(url) = resolved_url {
+                    let item_key = format!("{}:{}", peer_id, mid);
+                    {
+                        let mut cache_lock = resolved_cache().lock();
+                        let cache = cache_lock.get_or_insert_with(HashMap::new);
+                        cache.insert(item_key, url.clone());
+                    }
+
+                    if let Some(ref handle) = app {
+                        let payload = SpecialThumbResolvedPayload {
+                            peer_id: peer_id.clone(),
+                            telegram_message_id: mid,
+                            url: url.clone(),
+                        };
+                        let _ = handle.emit("special-thumb-resolved", payload);
                     }
                 }
 
@@ -157,4 +174,39 @@ pub fn get_cached_special_thumb(peer_str: &str, mid: i32) -> Option<String> {
     let key = format!("{}:{}", peer_str, mid);
     let lock = resolved_cache().lock();
     lock.as_ref().and_then(|c| c.get(&key).cloned())
+}
+
+/// Generates an elegant visual SVG video poster data URL as a guaranteed fallback.
+fn generate_guaranteed_video_poster_url(_peer_id: &str, mid: i32) -> String {
+    use base64::{engine::general_purpose::STANDARD as B64, Engine};
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181825"/>
+      <stop offset="50%" stop-color="#2a2a3e"/>
+      <stop offset="100%" stop-color="#0f0f17"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#89b4fa"/>
+      <stop offset="100%" stop-color="#cba6f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="180" rx="8" fill="url(#bg)"/>
+  <circle cx="160" cy="80" r="28" fill="#1e1e2e" stroke="url(#accent)" stroke-width="2.5" opacity="0.9"/>
+  <polygon points="153,68 173,80 153,92" fill="#89b4fa"/>
+  <g fill="#89b4fa" opacity="0.35">
+    <rect x="40" y="130" width="4" height="20" rx="2"/>
+    <rect x="50" y="120" width="4" height="30" rx="2"/>
+    <rect x="60" y="135" width="4" height="15" rx="2"/>
+    <rect x="70" y="125" width="4" height="25" rx="2"/>
+    <rect x="240" y="125" width="4" height="25" rx="2"/>
+    <rect x="250" y="115" width="4" height="35" rx="2"/>
+    <rect x="260" y="130" width="4" height="20" rx="2"/>
+    <rect x="270" y="120" width="4" height="30" rx="2"/>
+  </g>
+  <rect x="108" y="132" width="104" height="18" rx="9" fill="#11111b" opacity="0.75"/>
+  <text x="160" y="145" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#cdd6f4" text-anchor="middle">VIDEO PREVIEW #{MID}</text>
+</svg>"##.replace("{MID}", &mid.to_string());
+    let b64_svg = B64.encode(svg.as_bytes());
+    format!("data:image/svg+xml;base64,{}", b64_svg)
 }

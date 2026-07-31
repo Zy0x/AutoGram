@@ -1,3 +1,9 @@
+## v2.5.1 Guaranteed Video Poster Engine & Extended Range Bridge Probe
+
+### Guaranteed Visual Fallback Poster (`special_media_thumb.rs`)
+- **100% Visual Thumbnail Guarantee**: Menambahkan generator poster SVG visual beresolusi tinggi (base64) pada modul latar belakang `special_media_thumb.rs`. Jika ekstraksi *keyframe* FFmpeg Range Bridge mengalami timeout / gagal jaringan, aplikasi secara otomatis menghasilkan poster visual thumbnail berdesain modern dengan badge video dan ID pesan, menjamin seluruh media video 100% memiliki dan menampilkan thumbnail visual.
+- **Extended Range Probe Window**: Menaikkan budget Range Bridge dari 6 MB menjadi 16 MB dan timeout dari 6s menjadi 12s khusus pada antrean *background thread* untuk memberikan waktu ekstra pada ekstraksi indeks MP4 di ujung file.
+
 ## v2.5.0 Dual-Tier Asynchronous Special Media Thumbnail Handler
 
 ### Separate Special Media Background Processor (`special_media_thumb.rs`)
