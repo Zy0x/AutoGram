@@ -311,6 +311,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
     let caption = m.message.trim();
 
     if let Some(ref media) = m.media {
+        let thumb_data_url = crate::core::grammers_media::tl_stripped_thumb_data_url(media);
         match media {
             grammers_client::tl::enums::MessageMedia::Photo(_) => {
                 let name = if caption.is_empty() {
@@ -329,7 +330,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     has_thumb: true,
                     as_document: false,
                     backend: BACKEND.to_string(),
-                    thumb_data_url: None,
+                    thumb_data_url,
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -380,7 +381,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     has_thumb: is_video || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
                     as_document: true,
                     backend: BACKEND.to_string(),
-                    thumb_data_url: None,
+                    thumb_data_url,
                 })
             }
             _ => None,
