@@ -1,9 +1,10 @@
-AutoGram Version: v2.5.4
+AutoGram Version: v2.5.5
 
 Current State:
-v2.5.4 Canvas Event Key Alignment & Automatic Preview Frame Dispatcher — membenahi `VideoCanvasThumbnailCapturer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan event listener dan fungsi penyimpan `cacheCapturedThumb` pada komponen terisolasi `VideoCanvasThumbnailCapturer.tsx`. Saat frame detik ke-1.0 dipotret dari canvas, sistem otomatis menyimpan ke cache memori/disk untuk seluruh kualitas (`saver`, `balanced`, `sharp`) dan memicu event `autogram-thumb-ready`, memastikan kartu media langsung ter-update secara real-time.
+v2.5.5 Post-Wipe Terminal Cache Eviction & Automatic Viewport Refetch Engine — membenahi `thumbs.rs`, `jobs_db.rs`, `thumbBatcher.ts`, `DriveFileCard.tsx`, `DriveExplorer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan pembersihan `THUMB_TERMINAL_CACHE` di backend Rust saat hapus cache di Settings, menambahkan listener event `autogram-cache-cleared` pada `DriveFileCard.tsx`, serta memperbarui `requestVisibleThumbs` dengan opsi `bypassCache: true` untuk menjamin thumbnail langsung diekstrak ulang secara mulus pasca pembersihan cache manual.
 
 Previous:
+v2.5.4 Canvas Event Key Alignment & Automatic Preview Frame Dispatcher — membenahi `VideoCanvasThumbnailCapturer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan event listener dan fungsi penyimpan `cacheCapturedThumb` pada komponen terisolasi `VideoCanvasThumbnailCapturer.tsx`. Saat frame detik ke-1.0 dipotret dari canvas, sistem otomatis menyimpan ke cache memori/disk untuk seluruh kualitas (`saver`, `balanced`, `sharp`) dan memicu event `autogram-thumb-ready`, memastikan kartu media langsung ter-update secara real-time.
 v2.5.3 Isolated Last-Resort Video Canvas Frame Capturer — membenahi `VideoCanvasThumbnailCapturer.tsx`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.5.2 Universal Media Background Processor & Guaranteed Poster Delivery — membenahi `special_media_thumb.rs`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.5.1 Guaranteed Video Poster Engine & Extended Range Bridge Probe — membenahi `special_media_thumb.rs`, `VERSION.md`, dan `CHANGELOG.md`.

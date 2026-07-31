@@ -389,19 +389,23 @@ export function setThumbQuality(q: DriveThumbQuality): void {
 export function requestVisibleThumbs(
   creds: DriveCredentials,
   folderId: number | null,
-  messageIds: number[]
+  messageIds: number[],
+  opts?: { bypassCache?: boolean }
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
-  const missing = ids.filter((mid) => !memCache.has(cacheKey(folderId, mid, activeQuality, creds.session)));
+  const missing = opts?.bypassCache
+    ? ids
+    : ids.filter((mid) => !memCache.has(cacheKey(folderId, mid, activeQuality, creds.session)));
   if (!missing.length) return;
 
   for (const mid of missing) {
     const k = cacheKey(folderId, mid, activeQuality, creds.session);
-    if (memCache.has(k) || queue.has(k)) continue;
+    if (!opts?.bypassCache && (memCache.has(k) || queue.has(k))) continue;
     void requestThumb(creds, folderId, mid, {
       priority: 'visible',
       contextKey: activeContextKey,
+      bypassCache: opts?.bypassCache,
     });
   }
   const n = maxConcurrent();
@@ -552,11 +556,18 @@ export function stripInlineThumbsFromFiles<T extends { thumb_data_url?: string |
   });
 }
 
+let lastCacheClearTimestamp = 0;
+
+export function getLastCacheClearTimestamp(): number {
+  return lastCacheClearTimestamp;
+}
+
 export function clearThumbCache() {
   memCache.clear();
   softFailAt.clear();
   errorFailAt.clear();
   inflightByKey.clear();
+  lastCacheClearTimestamp = Date.now();
   contextGeneration += 1;
   for (const [, task] of queue) {
     resolveTask(task, null);

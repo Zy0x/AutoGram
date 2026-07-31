@@ -562,6 +562,7 @@ pub fn import_jobs_json(json_str: &str) -> Result<usize, String> {
 
 pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
     super::grammers_media::clear_thumb_mem_cache();
+    super::grammers_media::clear_thumb_terminal_cache();
     let sessions = resolve_sessions_dir(None);
     let cache = sessions
         .parent()

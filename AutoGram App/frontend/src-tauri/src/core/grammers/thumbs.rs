@@ -303,6 +303,10 @@ pub fn clear_thumb_mem_cache() {
     thumb_mem_cache().lock().clear();
 }
 
+pub fn clear_thumb_terminal_cache() {
+    thumb_terminal_cache().lock().clear();
+}
+
 pub fn prune_thumb_cache(t_dir: &Path) {
     if !t_dir.is_dir() {
         return;

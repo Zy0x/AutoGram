@@ -19,7 +19,7 @@ import {
   type DriveAdvFilter,
 } from '../../../lib/telegram';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext } from '../../../lib/media/thumbBatcher';
+import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext, getLastCacheClearTimestamp } from '../../../lib/media/thumbBatcher';
 import { loadPersistentThumbs } from '../../../lib/media/thumbPersistentCache';
 import {
   applyLiveMarquee,
@@ -493,9 +493,13 @@ export function DriveExplorer({
         if (f && canShowDriveThumb(f)) visibleIds.push(f.id);
       }
       if (visibleIds.length) {
-        requestVisibleThumbs(creds, folderId, visibleIds);
+        requestVisibleThumbs(creds, folderId, visibleIds, { bypassCache: true });
       }
     };
+    const lastWipe = getLastCacheClearTimestamp();
+    if (lastWipe > 0 && Date.now() - lastWipe < 60000) {
+      handleCacheCleared();
+    }
     window.addEventListener('autogram-cache-cleared', handleCacheCleared);
     return () => window.removeEventListener('autogram-cache-cleared', handleCacheCleared);
   }, [creds, folderId, displayed]);

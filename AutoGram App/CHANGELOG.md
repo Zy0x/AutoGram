@@ -1,3 +1,12 @@
+## v2.5.5 Post-Wipe Terminal Cache Eviction & Automatic Viewport Refetch Engine
+
+### Rust Backend Terminal Cache Wipe (`thumbs.rs` & `jobs_db.rs`)
+- **Complete `THUMB_TERMINAL_CACHE` Eviction**: Menambahkan fungsi `clear_thumb_terminal_cache()` dan mengintegrasikannya ke dalam `clear_disk_cache()` di `jobs_db.rs`. Saat pengguna menekan "Hapus Cache" di Settings, memori terminal failure cache di Rust ikut dibersihkan 100%, mengeliminasi bug di mana penolakan thumbnail terdahulu mengunci permintaan thumbnail baru.
+
+### Frontend Card & Scheduler Synchronization (`DriveFileCard.tsx`, `DriveExplorer.tsx`, `thumbBatcher.ts`)
+- **Direct Card Event Listener**: Menambahkan listener event `autogram-cache-cleared` pada `DriveFileCard.tsx` untuk mereset state `thumb` & `imgError`, serta memicu permintaan ekstraksi thumbnail ulang secara langsung dengan `bypassCache: true`.
+- **Mount & Viewport Sync**: Memperbarui `requestVisibleThumbs` dengan opsi `bypassCache: true` dan menyelaraskan `DriveExplorer.tsx` agar memicu refetch otomatis pada thumbnail yang ada di viewport saat pengguna kembali dari halaman Settings.
+
 ## v2.5.4 Canvas Event Key Alignment & Automatic Preview Frame Dispatcher
 
 ### Cache Integration & Event Alignment (`VideoCanvasThumbnailCapturer.tsx`)

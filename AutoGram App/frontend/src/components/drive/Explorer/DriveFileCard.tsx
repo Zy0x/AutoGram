@@ -200,12 +200,6 @@ function DriveFileCardInner({
   // or a sharper frame may replace a stripped placeholder.
   useEffect(() => {
     if (!canThumb) return;
-    const onReady = (ev: Event) => {
-      const detail = (ev as CustomEvent).detail as
-        | { key?: string; url?: string; isPlaceholder?: boolean }
-        | undefined;
-      if (!detail?.key || !detail?.url) return;
-    const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
 
     let unlistenSpecial: (() => void) | undefined;
     import('@tauri-apps/api/event')
@@ -227,6 +221,13 @@ function DriveFileCardInner({
           .catch(() => {});
       })
       .catch(() => {});
+
+    const onReady = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as
+        | { key?: string; url?: string; isPlaceholder?: boolean }
+        | undefined;
+      if (!detail?.key || !detail?.url) return;
+      const targetSuffix = `:${folderId ?? 'home'}:${file.id}`;
       if (!detail.key.endsWith(targetSuffix)) return;
 
       const hit = getCachedThumb(folderId, file.id);
@@ -290,11 +291,33 @@ function DriveFileCardInner({
         });
       }
     };
+    const onCacheCleared = () => {
+      setThumb(null);
+      setImgError(false);
+      setIsPlaceholderImg(false);
+      if (visible && creds && canThumb) {
+        setThumbLoading(true);
+        void requestThumb(creds, folderId, file.id, {
+          priority: 'visible',
+          bypassCache: true,
+        }).then((url: any) => {
+          if (url) {
+            setThumb(url);
+            setIsPlaceholderImg(false);
+            setImgError(false);
+          }
+          setThumbLoading(false);
+        });
+      }
+    };
     window.addEventListener('autogram-thumb-ready', onReady);
     window.addEventListener('autogram-thumb-quality', onQuality);
+    window.addEventListener('autogram-cache-cleared', onCacheCleared);
     return () => {
       window.removeEventListener('autogram-thumb-ready', onReady);
       window.removeEventListener('autogram-thumb-quality', onQuality);
+      window.removeEventListener('autogram-cache-cleared', onCacheCleared);
+      if (unlistenSpecial) unlistenSpecial();
     };
   }, [canThumb, folderId, file.id, thumbQuality, visible, creds]);
 
@@ -613,7 +636,7 @@ function DriveFileCardInner({
         <VideoCanvasThumbnailCapturer
           fileId={file.id}
           folderId={folderId}
-          streamUrl={file.stream_url || file.streamUrl}
+          streamUrl={(file as any).stream_url || (file as any).streamUrl}
         />
       )}
     </div>
