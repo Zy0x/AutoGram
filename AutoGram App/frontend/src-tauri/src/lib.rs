@@ -1600,6 +1600,10 @@ pub fn run() {
                 let q_path = dir.join("AutoGram").join("studio_queue.json");
                 core::job_queue::init_queue_path(q_path);
             }
+            #[cfg(debug_assertions)]
+            if let Some(window) = app.get_webview_window("main") {
+                window.open_devtools();
+            }
             Ok(())
         })
         .build(tauri::generate_context!())
