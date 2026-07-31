@@ -20,6 +20,7 @@ import {
   requestThumb,
 } from '../../../lib/media/thumbBatcher';
 import { FileTypeIcon } from './FileTypeIcon';
+import { VideoCanvasThumbnailCapturer } from './VideoCanvasThumbnailCapturer';
 
 type Props = {
   file: DriveFile;
@@ -608,6 +609,13 @@ function DriveFileCardInner({
           )}
         </div>
       </div>
+      {!thumb && isVideo && visible && (
+        <VideoCanvasThumbnailCapturer
+          fileId={file.id}
+          folderId={folderId}
+          streamUrl={file.stream_url || file.streamUrl}
+        />
+      )}
     </div>
   );
 }

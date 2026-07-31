@@ -1,3 +1,10 @@
+## v2.5.3 Isolated Last-Resort Video Canvas Frame Capturer
+
+### Offscreen Canvas Frame Capture (`VideoCanvasThumbnailCapturer.tsx`)
+- **Isolated Last-Resort Alternative**: Menambahkan komponen terisolasi `VideoCanvasThumbnailCapturer.tsx` yang menangkap frame video pada detik ke-1.0 menggunakan HTML5 offscreen `<canvas>` saat video di-stream / di-preview.
+- **Strict Logic Separation**: Komponen ini berjalan 100% independen di luar pipa thumbnail utama (`thumbs.rs`, `thumbBatcher.ts`), memastikan logika pemuatan thumbnail utama tetap utuh dan terlindungi.
+- **Automatic Resource Cleanup**: Setelah frame dipotret dan disimpan ke cache lokal `autogram:thumb:ready`, elemen `<video>` offscreen langsung dilepas dari memori.
+
 ## v2.5.2 Universal Media Background Processor & Guaranteed Poster Delivery
 
 ### Universal Generic Document Enqueue (`thumbs.rs` & `special_media_thumb.rs`)
