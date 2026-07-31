@@ -752,6 +752,7 @@
   "create_drive_btn": "Create Drive",
   "loading_more": "Loading more…",
   "scroll_to_load_more": "Scroll to load more…",
+  "all_media_loaded": "All {{count}} media loaded",
   "loading_video": "Loading Video…",
   "loading_short": "Loading…",
   "deselect": "Deselect",

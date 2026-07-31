@@ -752,6 +752,7 @@
   "create_drive_btn": "Buat Drive",
   "loading_more": "Memuat lagi…",
   "scroll_to_load_more": "Gulir untuk memuat lebih banyak…",
+  "all_media_loaded": "Semua {{count}} media telah dimuat",
   "loading_video": "Memuat Video…",
   "loading_short": "Memuat…",
   "deselect": "Batal pilih",

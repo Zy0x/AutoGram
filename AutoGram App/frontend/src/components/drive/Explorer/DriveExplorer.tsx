@@ -289,14 +289,14 @@ export function DriveExplorer({
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: (index) => (index >= rowCount && loadingMore ? 260 : rowHeight),
+    estimateSize: (index) => (index >= rowCount ? (loadingMore ? 260 : 64) : rowHeight),
     overscan: gridOverscan,
   });
 
   const listVirtualizer = useVirtualizer({
     count: displayed.length + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => LIST_ROW_H,
+    estimateSize: (index) => (index >= displayed.length ? (loadingMore ? 120 : 64) : LIST_ROW_H),
     overscan: listOverscan,
   });
 
@@ -930,10 +930,16 @@ export function DriveExplorer({
                         color: '#34d399',
                         fontSize: '13px',
                         fontWeight: 500,
+                        backdropFilter: 'blur(8px)',
                       }}
                     >
                       <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span>{t('drive.all_media_loaded', `Semua ${displayed.length} media telah dimuat`)}</span>
+                      <span>
+                        {t('speedtest.all_media_loaded', {
+                          count: displayed.length,
+                          defaultValue: `Semua ${displayed.length} media telah dimuat`,
+                        })}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1103,7 +1109,12 @@ export function DriveExplorer({
                       }}
                     >
                       <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span>{t('drive.all_media_loaded', `Semua ${displayed.length} media telah dimuat`)}</span>
+                      <span>
+                        {t('speedtest.all_media_loaded', {
+                          count: displayed.length,
+                          defaultValue: `Semua ${displayed.length} media telah dimuat`,
+                        })}
+                      </span>
                     </div>
                   )}
                 </div>
