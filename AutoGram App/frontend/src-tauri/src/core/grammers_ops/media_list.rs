@@ -63,6 +63,7 @@ pub struct ListMediaResult {
     pub page_size: usize,
     pub has_more: bool,
     pub next_offset_id: Option<i64>,
+    pub total_count: Option<usize>,
     pub backend: String,
     pub cached: bool,
 }
@@ -77,6 +78,7 @@ pub struct FolderChunkPayload {
     pub next_offset_id: Option<i64>,
     pub has_more: bool,
     pub is_initial_chunk: bool,
+    pub total_count: Option<usize>,
 }
 
 pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
@@ -504,23 +506,18 @@ pub fn list_media_blocking_topic(
                     let mut files = Vec::new();
                     let mut last_id: Option<i64> = None;
                     let mut scanned = 0usize;
+                    let mut total_count_res: Option<usize> = None;
 
                     if let Some(want) = topic_filter {
                         let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
                         let mut cur_offset_id = offset_id.unwrap_or(0) as i32;
 
                         loop {
-                            let req = grammers_client::tl::functions::messages::Search {
+                            let req = grammers_client::tl::functions::messages::GetReplies {
                                 peer: input_peer.clone(),
-                                q: String::new(),
-                                from_id: None,
-                                saved_peer_id: None,
-                                saved_reaction: None,
-                                top_msg_id: Some(want as i32),
-                                filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
-                                min_date: 0,
-                                max_date: 0,
+                                msg_id: want as i32,
                                 offset_id: cur_offset_id,
+                                offset_date: 0,
                                 add_offset: 0,
                                 limit: 100,
                                 max_id: 0,
@@ -535,8 +532,14 @@ pub fn list_media_blocking_topic(
 
                             let raw_msgs = match res {
                                 grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
-                                grammers_client::tl::enums::messages::Messages::Slice(m) => m.messages,
-                                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => m.messages,
+                                grammers_client::tl::enums::messages::Messages::Slice(m) => {
+                                    total_count_res = Some(m.count as usize);
+                                    m.messages
+                                }
+                                grammers_client::tl::enums::messages::Messages::ChannelMessages(m) => {
+                                    total_count_res = Some(m.count as usize);
+                                    m.messages
+                                }
                                 grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
                             };
 
@@ -627,6 +630,7 @@ pub fn list_media_blocking_topic(
                         page_size: limit,
                         has_more,
                         next_offset_id,
+                        total_count: total_count_res,
                         files,
                         backend: BACKEND.into(),
                         cached: false,
@@ -679,6 +683,7 @@ pub fn start_folder_stream_blocking(
         next_offset_id: res.next_offset_id,
         has_more: res.has_more,
         is_initial_chunk: offset_id.is_none(),
+        total_count: res.total_count,
     };
 
     let _ = channel.send(payload);

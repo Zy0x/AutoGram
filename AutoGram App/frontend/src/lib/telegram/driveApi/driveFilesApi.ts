@@ -207,7 +207,7 @@ export async function driveListFiles(
           page_size: pageSize,
           has_more: !!gr.data.hasMore,
           next_offset_id: gr.data.nextOffsetId ?? null,
-          total_count: null,
+          total_count: gr.data.totalCount ?? null,
           total_bytes: null,
           stats_accurate: false,
           stats_pending: true,
