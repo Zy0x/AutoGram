@@ -507,26 +507,32 @@ pub fn list_media_blocking_topic(
 
                     if let Some(want) = topic_filter {
                         let input_peer: grammers_client::tl::enums::InputPeer = (&peer).into();
-                        let offset_id_val = offset_id.unwrap_or(0) as i32;
-                        let req = grammers_client::tl::functions::messages::Search {
-                            peer: input_peer,
-                            q: String::new(),
-                            from_id: None,
-                            saved_peer_id: None,
-                            saved_reaction: None,
-                            top_msg_id: Some(want as i32),
-                            filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
-                            min_date: 0,
-                            max_date: 0,
-                            offset_id: offset_id_val,
-                            add_offset: 0,
-                            limit: limit.clamp(1, 100) as i32,
-                            max_id: 0,
-                            min_id: 0,
-                            hash: 0,
-                        };
+                        let mut cur_offset_id = offset_id.unwrap_or(0) as i32;
 
-                        if let Ok(res) = client.invoke(&req).await {
+                        loop {
+                            let req = grammers_client::tl::functions::messages::Search {
+                                peer: input_peer.clone(),
+                                q: String::new(),
+                                from_id: None,
+                                saved_peer_id: None,
+                                saved_reaction: None,
+                                top_msg_id: Some(want as i32),
+                                filter: grammers_client::tl::enums::MessagesFilter::InputMessagesFilterEmpty,
+                                min_date: 0,
+                                max_date: 0,
+                                offset_id: cur_offset_id,
+                                add_offset: 0,
+                                limit: 100,
+                                max_id: 0,
+                                min_id: 0,
+                                hash: 0,
+                            };
+
+                            let res = match client.invoke(&req).await {
+                                Ok(r) => r,
+                                Err(_) => break,
+                            };
+
                             let raw_msgs = match res {
                                 grammers_client::tl::enums::messages::Messages::Messages(m) => m.messages,
                                 grammers_client::tl::enums::messages::Messages::Slice(m) => m.messages,
@@ -534,9 +540,15 @@ pub fn list_media_blocking_topic(
                                 grammers_client::tl::enums::messages::Messages::NotModified(_) => Vec::new(),
                             };
 
+                            if raw_msgs.is_empty() {
+                                break;
+                            }
+
+                            let batch_len = raw_msgs.len();
                             for tl_msg in raw_msgs {
                                 if let grammers_client::tl::enums::Message::Message(ref m) = tl_msg {
                                     last_id = Some(m.id as i64);
+                                    cur_offset_id = m.id;
                                     scanned += 1;
                                 }
                                 if let Some(row) = tl_message_to_row(&tl_msg, folder_id) {
@@ -545,6 +557,10 @@ pub fn list_media_blocking_topic(
                                         break;
                                     }
                                 }
+                            }
+
+                            if files.len() >= limit || batch_len < 100 || scanned >= 2000 {
+                                break;
                             }
                         }
                     } else {
@@ -588,12 +604,12 @@ pub fn list_media_blocking_topic(
                         }
                     }
                     let has_more = if let Some(lid) = last_id {
-                        lid > 1 && (files.len() > 0 || scanned > 0)
+                        lid > 1 && scanned > 0
                     } else {
                         false
                     };
                     let next_offset_id = if has_more {
-                        last_id.map(|id| if id > 1 { id - 1 } else { id })
+                        last_id
                     } else {
                         None
                     };

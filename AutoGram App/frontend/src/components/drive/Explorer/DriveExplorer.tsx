@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { DriveGridSkeleton, DriveListSkeleton } from './DriveSkeleton';
+import { DriveGridSkeleton, DriveListSkeleton, CenteredGlassmorphicProgress } from './DriveSkeleton';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
@@ -753,7 +753,10 @@ export function DriveExplorer({
 
   if (loading && files.length === 0) {
     return (
-      <div className="td-explorer" style={{ padding: '16px' }}>
+      <div className="td-explorer" style={{ padding: '16px', position: 'relative' }}>
+        <div className="ag-loading-overlay">
+          <CenteredGlassmorphicProgress isLoading={true} />
+        </div>
         {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
       </div>
     );
