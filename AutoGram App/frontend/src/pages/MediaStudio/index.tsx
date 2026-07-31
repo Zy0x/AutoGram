@@ -7248,7 +7248,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             onOpenLocations={openDrawer}
             loading={loadingFiles}
             fileCount={
-              statsAccurate && totalFileCount != null
+              topicFilter != null || mediaFilter !== 'all' || query
+                ? files.length
+                : statsAccurate && totalFileCount != null
                 ? totalFileCount
                 : files.length
             }

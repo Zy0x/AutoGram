@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, FolderOpen, FolderPlus, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { DriveGridSkeleton, DriveListSkeleton } from './DriveSkeleton';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
@@ -287,14 +287,14 @@ export function DriveExplorer({
     : 4;
 
   const gridVirtualizer = useVirtualizer({
-    count: rowCount + (hasMore ? 1 : 0),
+    count: rowCount + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => (index >= rowCount && loadingMore ? 260 : rowHeight),
     overscan: gridOverscan,
   });
 
   const listVirtualizer = useVirtualizer({
-    count: displayed.length + (hasMore ? 1 : 0),
+    count: displayed.length + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
     estimateSize: () => LIST_ROW_H,
     overscan: listOverscan,
@@ -900,7 +900,7 @@ export function DriveExplorer({
                       <Loader2 size={16} className="spin text-blue-400" />
                       <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
                     </div>
-                  ) : (
+                  ) : hasMore ? (
                     <div
                       style={{
                         display: 'inline-flex',
@@ -916,6 +916,25 @@ export function DriveExplorer({
                       }}
                     >
                       <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="td-end-of-list-badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 20px',
+                        borderRadius: 20,
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#34d399',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                      <span>{t('drive.all_media_loaded', `Semua ${displayed.length} media telah dimuat`)}</span>
                     </div>
                   )}
                 </div>
@@ -1048,7 +1067,7 @@ export function DriveExplorer({
                         <span>{t('speedtest.loading_more', 'Memuat media dari Telegram…')}</span>
                       </div>
                     </div>
-                  ) : (
+                  ) : hasMore ? (
                     <div
                       className="td-load-more-btn"
                       style={{
@@ -1066,6 +1085,26 @@ export function DriveExplorer({
                       }}
                     >
                       <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="td-end-of-list-badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 20px',
+                        borderRadius: 20,
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#34d399',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        backdropFilter: 'blur(8px)',
+                      }}
+                    >
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                      <span>{t('drive.all_media_loaded', `Semua ${displayed.length} media telah dimuat`)}</span>
                     </div>
                   )}
                 </div>
