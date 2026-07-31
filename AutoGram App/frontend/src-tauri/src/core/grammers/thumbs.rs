@@ -403,13 +403,8 @@ pub fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
 
     if !downloadable.is_empty() {
         if sharp {
-            // Jelas: largest static layer available in Telegram.
-            // If static layer max dimension is < 400px, return None to trigger HD photo chunk download or 1080p FFmpeg video frame extraction.
+            // Jelas: largest static layer available in Telegram (320px 'm' or 800px 'x' is ideal for UI grid cards).
             let best = downloadable.last().copied()?;
-            let (w, h) = photo_size_dimensions(best);
-            if w > 0 && h > 0 && w.max(h) < 400 {
-                return None;
-            }
             return Some(best.clone());
         }
 
@@ -748,10 +743,10 @@ async fn download_media_thumb(
     for s in downloadable {
         let (w, h) = photo_size_dimensions(s);
         let max_dim = w.max(h);
-        let mode = quality.to_lowercase();
-        let sharp = mode.contains("jelas") || mode.contains("sharp");
-        // For jelas mode only, skip tiny static layer (< 400px) so Tier 4 photo chunk or Tier 5 FFmpeg HD frame extraction can run
-        if sharp && max_dim > 0 && max_dim < 400 {
+        let sharp = quality.to_lowercase().contains("jelas") || quality.to_lowercase().contains("sharp");
+        let is_doc_video = matches!(media, Media::Document(_));
+        // For video documents only, skip tiny static layer (< 400px) so FFmpeg HD frame extraction can run
+        if sharp && is_doc_video && max_dim > 0 && max_dim < 400 {
             continue;
         }
         if let Ok(bytes) = download_thumb_bytes(client, s).await {
