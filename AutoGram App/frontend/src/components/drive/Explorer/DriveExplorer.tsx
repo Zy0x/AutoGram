@@ -289,7 +289,7 @@ export function DriveExplorer({
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (hasMore ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: () => rowHeight,
+    estimateSize: (index) => (index >= rowCount && loadingMore ? 260 : rowHeight),
     overscan: gridOverscan,
   });
 
@@ -865,7 +865,7 @@ export function DriveExplorer({
               return (
                 <div
                   key="more"
-                  className="td-load-more-row"
+                  className={`td-load-more-row ${loadingMore ? 'is-loading' : ''}`}
                   onClick={() => {
                     if (!loadingMore && onLoadMore) {
                       onLoadMore();
@@ -878,15 +878,45 @@ export function DriveExplorer({
                     width: '100%',
                     padding: '12px 16px',
                     textAlign: 'center',
-                    cursor: loadingMore ? 'default' : 'pointer',
                   }}
                 >
                   {loadingMore ? (
-                    <span>
-                      <Loader2 size={14} className="spin" /> {t('speedtest.loading_more', 'Memuat lagi…')}
-                    </span>
+                    <div
+                      className="td-loading-more-badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 20px',
+                        borderRadius: 20,
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        color: '#60a5fa',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        backdropFilter: 'blur(8px)',
+                      }}
+                    >
+                      <Loader2 size={16} className="spin text-blue-400" />
+                      <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
+                    </div>
                   ) : (
-                    t('speedtest.scroll_to_load_more', 'Gulir untuk memuat lebih banyak…')
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 20px',
+                        borderRadius: 20,
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                    </div>
                   )}
                 </div>
               );
@@ -937,7 +967,7 @@ export function DriveExplorer({
               return (
                 <div
                   key="more"
-                  className="td-load-more-row"
+                  className={`td-load-more-row ${loadingMore ? 'is-loading' : ''}`}
                   onClick={() => {
                     if (!loadingMore && onLoadMore) {
                       onLoadMore();
@@ -946,19 +976,97 @@ export function DriveExplorer({
                   style={{
                     position: 'absolute',
                     top: vRow.start + GRID_PAD_TOP,
-                    left: 0,
-                    width: '100%',
-                    padding: 16,
+                    left: GRID_PAD_X,
+                    right: GRID_PAD_X,
+                    width: 'auto',
+                    padding: '16px 0',
                     textAlign: 'center',
-                    cursor: loadingMore ? 'default' : 'pointer',
                   }}
                 >
                   {loadingMore ? (
-                    <span>
-                      <Loader2 size={14} className="spin" /> {t('speedtest.loading_more', 'Memuat lagi…')}
-                    </span>
+                    <div className="td-loading-more-container">
+                      <div
+                        className="td-grid-skeleton-row"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                          gap: GRID_GAP,
+                          marginBottom: 16,
+                        }}
+                      >
+                        {Array.from({ length: cols }).map((_, idx) => (
+                          <div
+                            key={idx}
+                            className="td-card-skeleton animate-pulse"
+                            style={{
+                              height: 180,
+                              borderRadius: 12,
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              padding: 12,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '60%',
+                                height: 14,
+                                borderRadius: 4,
+                                background: 'rgba(255, 255, 255, 0.1)',
+                              }}
+                            />
+                            <div
+                              style={{
+                                width: '40%',
+                                height: 10,
+                                borderRadius: 4,
+                                background: 'rgba(255, 255, 255, 0.07)',
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        className="td-loading-more-badge"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '8px 20px',
+                          borderRadius: 20,
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          color: '#60a5fa',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          backdropFilter: 'blur(8px)',
+                        }}
+                      >
+                        <Loader2 size={16} className="spin text-blue-400" />
+                        <span>{t('speedtest.loading_more', 'Memuat media dari Telegram…')}</span>
+                      </div>
+                    </div>
                   ) : (
-                    t('speedtest.scroll_to_load_more', 'Gulir untuk memuat lebih banyak…')
+                    <div
+                      className="td-load-more-btn"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '10px 22px',
+                        borderRadius: 20,
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                    </div>
                   )}
                 </div>
               );
