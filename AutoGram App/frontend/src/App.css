@@ -2478,8 +2478,12 @@ body.td-dnd-external {
   border-color: color-mix(in srgb, var(--td-accent, #3b82f6) 45%, var(--td-border));
 }
 
-.td-count-pill.is-accurate {
-  border-color: color-mix(in srgb, #22c55e 40%, var(--td-border));
+.td-count-pill.is-accurate,
+.td-count-pill.is-final {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.12);
 }
 
 .td-hint-pill {
@@ -7804,8 +7808,12 @@ body:has(.td-page),
 .td-count-pill.is-counting {
   border-color: color-mix(in srgb, var(--td-accent, #3b82f6) 45%, var(--td-border));
 }
-.td-count-pill.is-accurate {
-  border-color: color-mix(in srgb, #22c55e 40%, var(--td-border));
+.td-count-pill.is-accurate,
+.td-count-pill.is-final {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.12);
 }
 .td-count-ellip {
   opacity: 0.75;

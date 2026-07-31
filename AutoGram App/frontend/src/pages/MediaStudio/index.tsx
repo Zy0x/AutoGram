@@ -7289,6 +7289,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             spaceLabel={spaceHint}
             statsLoading={statsLoading}
             statsAccurate={statsAccurate}
+            hasMore={filesHasMore}
             scaleHint={scaleHint}
           />
 

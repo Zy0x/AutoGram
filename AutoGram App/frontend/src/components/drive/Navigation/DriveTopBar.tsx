@@ -124,6 +124,8 @@ type Props = {
   statsLoading?: boolean;
   /** True when unique media_stats finished (location-wide accurate) */
   statsAccurate?: boolean;
+  /** True when pagination has more pages remaining to fetch from Telegram */
+  hasMore?: boolean;
   /** Optional background calculation hint text */
   scaleHint?: string | null;
 };
@@ -186,9 +188,11 @@ export function DriveTopBar({
   spaceLabel,
   statsLoading,
   statsAccurate,
+  hasMore,
   scaleHint: _scaleHint,
 }: Props) {
   const { t } = useTranslation();
+  const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
   const hasTopicSegment = breadcrumbSegs?.some((s) => s.kind === 'topic');
   const showTopics =
     !!isForum ||
@@ -417,21 +421,42 @@ export function DriveTopBar({
             )}
           </nav>
           <span
-            className={`td-count-pill${statsLoading && !statsAccurate ? ' is-counting' : ''}${
-              statsAccurate ? ' is-accurate' : ''
+            className={`td-count-pill${statsLoading && !isFinal ? ' is-counting' : ''}${
+              isFinal ? ' is-accurate is-final' : ''
             }`}
             title={
-              statsLoading && !statsAccurate
-                ? `Menghitung total media unik di lokasi… (${fileCount}${spaceLabel ? ` · ${spaceLabel}` : ''})`
+              statsLoading && !isFinal
+                ? t('speedtest.count_pill_counting_title', {
+                    count: fileCount,
+                    space: spaceLabel ? ` · ${spaceLabel}` : '',
+                    defaultValue: `Menghitung total media unik di lokasi… (${fileCount}${spaceLabel ? ` · ${spaceLabel}` : ''})`,
+                  })
                 : statsAccurate
-                  ? `Total akurat (unik) di lokasi ini: ${fileCount} file${spaceLabel ? ` · ${spaceLabel}` : ''}`
-                  : spaceLabel
-                    ? `${fileCount} item · ${spaceLabel} (perkiraan / belum final)`
-                    : `${fileCount} item di lokasi ini`
+                ? t('speedtest.count_pill_accurate_title', {
+                    count: fileCount,
+                    space: spaceLabel ? ` · ${spaceLabel}` : '',
+                    defaultValue: `Total akurat (unik) di lokasi ini: ${fileCount} file${spaceLabel ? ` · ${spaceLabel}` : ''}`,
+                  })
+                : isFinal
+                ? t('speedtest.count_pill_final_title', {
+                    count: fileCount,
+                    space: spaceLabel ? ` · ${spaceLabel}` : '',
+                    defaultValue: `Total final (selesai dimuat): ${fileCount} media${spaceLabel ? ` · ${spaceLabel}` : ''}`,
+                  })
+                : spaceLabel
+                ? t('speedtest.count_pill_estimate_title', {
+                    count: fileCount,
+                    space: spaceLabel,
+                    defaultValue: `${fileCount} item · ${spaceLabel} (perkiraan / belum final)`,
+                  })
+                : t('speedtest.count_pill_simple_title', {
+                    count: fileCount,
+                    defaultValue: `${fileCount} item di lokasi ini`,
+                  })
             }
           >
             {fileCount}
-            {statsLoading && !statsAccurate ? (
+            {statsLoading && !isFinal ? (
               <span className="td-count-ellip" aria-hidden>
                 …
               </span>
