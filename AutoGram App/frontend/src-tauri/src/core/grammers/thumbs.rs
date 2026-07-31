@@ -294,42 +294,21 @@ pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
 }
 
 pub fn tl_stripped_thumb_data_url(media: &grammers_client::tl::enums::MessageMedia) -> Option<String> {
-    use grammers_client::tl::enums::{MessageMedia, Photo, Document, PhotoSize};
-
-    let thumbs: Option<&Vec<PhotoSize>> = match media {
-        MessageMedia::Photo(p) => match &p.photo {
-            Some(Photo::Photo(ph)) => Some(&ph.sizes),
-            _ => None,
-        },
-        MessageMedia::Document(d) => match &d.document {
-            Some(Document::Document(doc)) => doc.thumbs.as_ref(),
-            _ => None,
-        },
-        MessageMedia::WebPage(wp) => match &wp.webpage {
-            grammers_client::tl::enums::WebPage::Page(page) => match &page.photo {
-                Some(Photo::Photo(ph)) => Some(&ph.sizes),
-                _ => None,
-            },
-            _ => None,
-        },
-        _ => None,
-    };
-
-    if let Some(sizes) = thumbs {
-        for s in sizes {
-            let bytes_opt = match s {
-                PhotoSize::Stripped(st) => unstrip_jpeg(&st.bytes).or_else(|| Some(st.bytes.clone())),
-                PhotoSize::Size(sz) if sz.bytes.len() < 400 => unstrip_jpeg(&sz.bytes).or_else(|| Some(sz.bytes.clone())),
-                _ => None,
-            };
-            if let Some(bytes) = bytes_opt {
-                if !bytes.is_empty() {
-                    if let Some(url) = to_data_url(&bytes) {
-                        return Some(url);
-                    }
-                }
+    use grammers_client::tl::enums::MessageMedia;
+    match media {
+        MessageMedia::Photo(p) => {
+            if let Some(ref photo) = p.photo {
+                let ph = grammers_client::media::Photo::from_raw(photo.clone());
+                let m = Media::Photo(ph);
+                return stripped_thumb_data_url(&m);
             }
         }
+        MessageMedia::Document(d) => {
+            let m_doc = grammers_client::media::Document::from_raw_media(d.clone());
+            let m = Media::Document(m_doc);
+            return stripped_thumb_data_url(&m);
+        }
+        _ => {}
     }
     None
 }

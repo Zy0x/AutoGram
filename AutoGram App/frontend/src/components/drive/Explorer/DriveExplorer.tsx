@@ -19,7 +19,7 @@ import {
   type DriveAdvFilter,
 } from '../../../lib/telegram';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, setThumbsPaused, switchThumbContext } from '../../../lib/media/thumbBatcher';
+import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext } from '../../../lib/media/thumbBatcher';
 import { loadPersistentThumbs } from '../../../lib/media/thumbPersistentCache';
 import {
   applyLiveMarquee,
@@ -535,22 +535,6 @@ export function DriveExplorer({
     listItems,
     perf.prefetchNextPage,
   ]);
-
-  // Pause thumbnail batching while fetching next page.
-  // driveThumbnailsBatch and list_media share the same Grammers session —
-  // thumb calls running in parallel queue ahead of loadMore and stall the file list.
-  // Pause thumbs so Grammers can process list_media without competition.
-  useEffect(() => {
-    if (loadingMore) {
-      setThumbsPaused(true);
-    } else {
-      // Resume after short delay to let the new files render first
-      const timer = setTimeout(() => {
-        setThumbsPaused(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [loadingMore]);
 
   const effectiveSelected = liveSelected ?? selectedIds;
   const selectedSet = useMemo(() => new Set(effectiveSelected), [effectiveSelected]);

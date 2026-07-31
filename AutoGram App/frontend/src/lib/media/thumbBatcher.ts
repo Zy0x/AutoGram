@@ -257,11 +257,10 @@ function softFailMs(priority?: number): number {
 
 function batchLimit(_q: DriveThumbQuality): number {
   const configured = Math.max(2, getDrivePerfProfile().thumbBatch);
-  if (!bootstrapMode) return configured;
+  if (!bootstrapMode) return Math.max(configured, 48);
   const tier = getDrivePerfProfile().tier;
-  // Larger first batches so viewport fills without waiting for scroll.
-  const startupCap = tier === 'high' ? 64 : tier === 'mid' ? 36 : 16;
-  return Math.min(configured, startupCap);
+  const startupCap = tier === 'high' ? 64 : tier === 'mid' ? 48 : 24;
+  return Math.max(configured, startupCap);
 }
 
 function flushDelayMs(): number {
@@ -272,17 +271,12 @@ function queueMax(): number {
   const configured = getDrivePerfProfile().thumbQueueMax;
   if (!bootstrapMode) return configured;
   const tier = getDrivePerfProfile().tier;
-  const startupCap = tier === 'high' ? 160 : tier === 'mid' ? 80 : 32;
+  const startupCap = tier === 'high' ? 160 : tier === 'mid' ? 120 : 64;
   return Math.min(configured, startupCap);
 }
 
 function maxConcurrent(): number {
-  // Cap at 2 concurrent thumb batch flights.
-  // REASON: driveThumbnailsBatch and list_media share the SAME Grammers session in Rust.
-  // High concurrency (10-16) queues many thumb batches in front of list_media/loadMore,
-  // making the file list appear stuck. 2 flights = 1 visible + 1 prefetch, enough throughput.
-  // Larger batch sizes (profile.thumbBatch) reduce total RPCs without adding parallelism.
-  return Math.min(2, Math.max(1, getDrivePerfProfile().thumbConcurrent || 1));
+  return Math.max(1, getDrivePerfProfile().thumbConcurrent || 4);
 }
 
 function cacheKey(

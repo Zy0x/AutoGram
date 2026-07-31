@@ -378,7 +378,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     mime_type: Some(mime),
                     icon_type,
                     created_at: created,
-                    has_thumb: is_video || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
+                    has_thumb: is_video || mime_l.starts_with("image/") || thumb_data_url.is_some() || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
                     as_document: true,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
