@@ -1,6 +1,7 @@
 ## v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command
 
 ### Request Correlation & Canonical Identifiers (`thumbs.rs`, `telegram_ops.rs`, `thumbBatcher.ts`, `driveFilesApi.ts`, `telegramBackend.ts`)
+- **Master Architecture Documentation Update (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)**: Memperbarui dokumen arsitektur dan spesifikasi workflow master ke v2.3.99 mencakup arsitektur nyata Request Correlation ID pipeline, Seekable Local HTTP Range Bridge, Dual-Track Semaphores (`fast_sem` 12 / `video_sem` 4), Native WinRT PDF Page 1 rendering, serta bab diagnostik deep-dive yang menjelaskan secara presisi perbedaan latensi pemuatan List Card (<10ms) vs Thumbnail (Foto, Video, Dokumen, dan Foto/Video yang dikirim sebagai dokumen).
 - **End-to-End Correlation ID (`requestId`)**: Frontend membuat `requestId` unik (seperti `thumb:-1004468191168:69:g12`) yang diteruskan tanpa modifikasi dari UI -> `thumbBatcher` -> `driveFilesApi` -> Tauri IPC -> Rust `thumbs_batch_blocking_app` -> per-item result response.
 - **Log Boundary Terstruktur**: Menambahkan `op=thumb_frontend_invoke` pada boundary frontend dan `op=thumb_backend_received` pada entry point backend Rust untuk memverifikasi konsistensi `requestId`, `peer_id`, dan `telegram_message_id`.
 - **Penamaan Identitas Eksplisit (Tanpa Fallback)**: Menggunakan `telegram_message_id` dan `telegram_peer_id` secara eksplisit pada seluruh struktur data payload. Dilarang menggunakan fallback generik `messageId ?? id`.
