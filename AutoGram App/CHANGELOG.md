@@ -1,3 +1,13 @@
+## v2.5.7 Asynchronous Tier-2 Video Thumbnail Delegation & Non-Blocking Batch Dispatcher
+
+### Rust MTProto Thumbnail Engine (`thumbs.rs` & `special_media_thumb.rs`)
+- **Non-Blocking Batch Dispatching**: Mengeliminasi timeout 3 detik synchronous pada `drive_thumbnails_batch` ketika mendeteksi berkas video tanpa thumbnail statis Telegram. Pemuatan batch kini langsung mengembalikan respons `fallback` dalam ~10ms dan mendelegasikan pemrosesan frame video ke worker latar belakang `special_media_thumb`.
+- **Cached Special Thumb Check**: Sebelum mendelegasikan ke antrean latar belakang, `thumbs.rs` memeriksa `get_cached_special_thumb` terlebih dahulu. Jika frame/poster video telah ada di cache latar belakang, thumbnail langsung dikembalikan sebagai `ready` secara instan.
+- **Dual Event Synchronization**: Memastikan worker `special_media_thumb` memancar event `special-thumb-resolved` dan `thumb_single_ready` secara bersamaan agar seluruh komponen kartu media di frontend ter-update secara real-time.
+
+### Frontend Synchronization (`thumbBatcher.ts`)
+- **Special Thumb Cache Integration**: Menambahkan listener event `special-thumb-resolved` di `thumbBatcher.ts` yang otomatis mengisikan thumbnail ke `memCache`, menghapus penunda *soft-fail*, dan menyimpan ke cache disk permanen sehingga thumbnail seluruh kartu di area fokus scroll termuat secara instan dan seimbang.
+
 ## v2.5.6 Smart Viewport Priority Elevation & Immediate Scroll Thumbnail Scheduler Engine
 
 ### Scheduler Priority & Queue Eviction Fixes (`thumbBatcher.ts`)

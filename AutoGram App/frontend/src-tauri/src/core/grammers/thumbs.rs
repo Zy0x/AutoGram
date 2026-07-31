@@ -1958,68 +1958,28 @@ pub fn thumbs_batch_items_blocking_app(
                                 }
 
                                 if classification.is_video() {
+                                    if let Some(cached_url) = special_media_thumb::get_cached_special_thumb(&peer_str, mid) {
+                                        return (
+                                            key,
+                                            Some(cached_url.clone()),
+                                            ThumbnailBatchItemResult {
+                                                request_id: item_req_id,
+                                                peer_id: peer_str,
+                                                telegram_message_id: mid,
+                                                status: "ready".into(),
+                                                source: Some("special_media_cache".into()),
+                                                reason: None,
+                                                url: Some(cached_url),
+                                                classification: Some(classification.as_str().to_string()),
+                                            },
+                                        );
+                                    }
+
                                     tg_log::info(
                                         BACKEND,
-                                        "thumb_ffmpeg_attempt",
-                                        format!("op=thumb_ffmpeg_attempt batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification=VideoDocument"),
+                                        "thumb_special_delegate",
+                                        format!("op=thumb_special_delegate batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification=VideoDocument"),
                                     );
-                                    if let Some(_caps) = get_ffmpeg_capabilities() {
-                                        let rt_handle = tokio::runtime::Handle::current();
-                                        let total_size = media.size().unwrap_or(0) as u64;
-                                        let max_budget = 2 * 1024 * 1024;
-                                        if let Some(bridge) = spawn_range_bridge(&rt_handle, client.clone(), media.clone(), total_size, max_budget) {
-                                            let probe_url = bridge.url.clone();
-                                            let q_mode = q_key.to_string();
-                                            let frame_res = tokio::time::timeout(
-                                                std::time::Duration::from_secs(3),
-                                                tokio::task::spawn_blocking(move || {
-                                                    extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
-                                                })
-                                            ).await;
-                                            match frame_res {
-                                                Ok(Ok(Some(frame_bytes))) => {
-                                                    if frame_bytes.len() >= 64 && !is_fallback_black_card_bytes(&frame_bytes) {
-                                                        if let Some(url) = to_data_url(&frame_bytes) {
-                                                            tg_log::info(
-                                                                BACKEND,
-                                                                "thumb_ffmpeg_success",
-                                                                format!("op=thumb_ffmpeg_success batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} bytes={}", frame_bytes.len()),
-                                                            );
-                                                            return (
-                                                                key,
-                                                                Some(url.clone()),
-                                                                ThumbnailBatchItemResult {
-                                                                    request_id: item_req_id,
-                                                                    peer_id: peer_str,
-                                                                    telegram_message_id: mid,
-                                                                    status: "ready".into(),
-                                                                    source: Some("ffmpeg_range".into()),
-                                                                    reason: None,
-                                                                    url: Some(url),
-                                                                    classification: Some(classification.as_str().to_string()),
-                                                                },
-                                                            );
-                                                        }
-                                                    }
-                                                }
-                                                Ok(Err(e)) => {
-                                                    tg_log::warn(
-                                                        BACKEND,
-                                                        "thumb_ffmpeg_task_error",
-                                                        format!("op=thumb_ffmpeg_task_error batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} error={e:?}"),
-                                                    );
-                                                }
-                                                Err(_) => {
-                                                    tg_log::warn(
-                                                        BACKEND,
-                                                        "thumb_ffmpeg_timeout_3s",
-                                                        format!("op=thumb_ffmpeg_timeout_3s batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid}"),
-                                                    );
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                    }
                                     special_media_thumb::enqueue_special_media_item(
                                         app_ref.clone(),
                                         client.clone(),

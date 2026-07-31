@@ -149,6 +149,16 @@ pub fn enqueue_special_media_item(
                             url: url.clone(),
                         };
                         let _ = handle.emit("special-thumb-resolved", payload);
+                        let _ = handle.emit(
+                            "thumb_single_ready",
+                            super::thumbs::ThumbSinglePayload {
+                                chat_id: peer_id.clone(),
+                                message_id: mid as i64,
+                                quality: item.q_mode.clone(),
+                                url: url.clone(),
+                                is_placeholder: false,
+                            },
+                        );
                     }
                 }
 

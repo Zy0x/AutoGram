@@ -262,6 +262,15 @@ if (typeof window !== 'undefined') {
           }
         }
       }).catch(() => {});
+
+      listen<{ peerId?: string; telegramMessageId?: number; url?: string }>('special-thumb-resolved', (event) => {
+        const p = event.payload;
+        if (!p || !p.telegramMessageId || !p.url) return;
+        const mid = Number(p.telegramMessageId);
+        const folderId = !p.peerId || p.peerId === 'me' || p.peerId === 'saved' ? null : Number(p.peerId);
+        const folderPart = Number.isFinite(folderId as number) ? (folderId as number) : null;
+        cacheCapturedThumb(folderPart, mid, p.url);
+      }).catch(() => {});
     })
     .catch(() => {});
 }
