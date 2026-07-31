@@ -56,10 +56,36 @@ pub fn message_to_topic_media_item(
     if let Some(ref media) = m.media {
         match media {
             tl::enums::MessageMedia::Photo(photo_media) => {
-                let file_name = match &caption {
-                    Some(c) => format!("{c}.jpg"),
+                let file_name = match caption {
+                    Some(ref c) => format!("{c}.jpg"),
                     None => format!("photo_{message_id}.jpg"),
                 };
+                let mut photo_size = 0u64;
+                let mut p_width: Option<i32> = None;
+                let mut p_height: Option<i32> = None;
+                if let Some(tl::enums::Photo::Photo(photo)) = &photo_media.photo {
+                    for s in &photo.sizes {
+                        match s {
+                            tl::enums::PhotoSize::Size(sz) => {
+                                photo_size = photo_size.max(sz.size as u64);
+                                if sz.w > 0 && sz.h > 0 {
+                                    p_width = Some(sz.w);
+                                    p_height = Some(sz.h);
+                                }
+                            }
+                            tl::enums::PhotoSize::Progressive(pr) => {
+                                if let Some(&max_sz) = pr.sizes.iter().max() {
+                                    photo_size = photo_size.max(max_sz as u64);
+                                }
+                                if pr.w > 0 && pr.h > 0 {
+                                    p_width = Some(pr.w);
+                                    p_height = Some(pr.h);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
                 Some(TopicMediaItem {
                     account_id: ctx.account_id.clone(),
                     peer_id: ctx.peer_id.clone(),
@@ -73,13 +99,13 @@ pub fn message_to_topic_media_item(
                     media_type: "photo".to_string(),
                     mime_type: Some("image/jpeg".to_string()),
                     file_name,
-                    file_size: 0,
+                    file_size: photo_size,
                     document_id: None,
                     access_hash: None,
                     dc_id: None,
                     file_reference: None,
-                    width: None,
-                    height: None,
+                    width: p_width,
+                    height: p_height,
                     duration_ms: None,
                     has_server_thumb: true,
                     has_video_thumb: false,

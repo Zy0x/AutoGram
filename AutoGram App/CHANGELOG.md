@@ -1,3 +1,8 @@
+## v2.4.2 Accurate Telegram Photo Size Extraction Engine
+
+### Telegram Photo File Size Extraction (`media_list.rs` & `document_mapper.rs`)
+- **Accurate Photo Bytes Resolver**: Memperbaiki masalah file size `0 B` pada seluruh file media foto (`photo_*.jpg`). Backend Rust kini melakukan inspeksi dinamis pada array `photo.sizes` (`PhotoSize::Size` & `PhotoSize::Progressive`) serta fallback `p.thumbs()` pada Grammers MTProto `MessageMedia::Photo` untuk mengembalikan ukuran byte file resolusi asli secara presisi.
+
 ## v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback
 
 ### Parallel Backend MTProto Batch Execution (`thumbs.rs`)

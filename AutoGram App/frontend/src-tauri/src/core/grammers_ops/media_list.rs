@@ -99,7 +99,12 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
         return None;
     };
 
-    let size = media.size().unwrap_or(0) as u64;
+    let mut size = media.size().unwrap_or(0) as u64;
+    if size == 0 {
+        if let Media::Photo(ref p) = media {
+            size = p.thumbs().iter().map(|s| s.size() as u64).max().unwrap_or(0);
+        }
+    }
     let thumb_data_url = crate::core::grammers_media::stripped_thumb_data_url(&media);
     let has_thumb = thumb_data_url.is_some()
         || match &media {
@@ -285,17 +290,33 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
     if let Some(ref media) = m.media {
         let thumb_data_url = crate::core::grammers_media::tl_stripped_thumb_data_url(media);
         match media {
-            grammers_client::tl::enums::MessageMedia::Photo(_) => {
+            grammers_client::tl::enums::MessageMedia::Photo(photo_media) => {
                 let name = if caption.is_empty() {
                     format!("photo_{id}.jpg")
                 } else {
                     format!("{caption}.jpg")
                 };
+                let mut photo_size = 0u64;
+                if let Some(grammers_client::tl::enums::Photo::Photo(photo)) = &photo_media.photo {
+                    for s in &photo.sizes {
+                        match s {
+                            grammers_client::tl::enums::PhotoSize::Size(sz) => {
+                                photo_size = photo_size.max(sz.size as u64);
+                            }
+                            grammers_client::tl::enums::PhotoSize::Progressive(pr) => {
+                                if let Some(&max_sz) = pr.sizes.iter().max() {
+                                    photo_size = photo_size.max(max_sz as u64);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
                 Some(MediaFileRow {
                     id,
                     folder_id,
                     name,
-                    size: 0,
+                    size: photo_size,
                     mime_type: Some("image/jpeg".to_string()),
                     icon_type: "photo".to_string(),
                     created_at: created,

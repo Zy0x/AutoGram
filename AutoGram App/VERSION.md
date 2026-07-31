@@ -1,9 +1,10 @@
-AutoGram Version: v2.4.1
+AutoGram Version: v2.4.2
 
 Current State:
-v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan `findSuffix()` pada `LRUThumbnailCache` untuk pencarian instant blur mini-thumb yang konsisten 0ms terlepas dari perbedaan nama session, serta meng-konversi loop pengunduhan batch thumbnail backend Rust `thumbs.rs` dari sekuensial menjadi `tokio::task::JoinSet` eksekusi paralel penuh untuk pemuatan 32+ kartu media dalam <100ms.
+v2.4.2 Accurate Telegram Photo Size Extraction Engine — membenahi `media_list.rs`, `document_mapper.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug ukuran media `0 B` pada seluruh file foto (`photo_*.jpg`) dengan mengekstrak ukuran byte file asli maksimum dari struktur `PhotoSize::Size` / `PhotoSize::Progressive` dan `p.thumbs()` pada objek Grammers MTProto `MessageMedia::Photo`.
 
 Previous:
+v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `thumbs.rs`, `thumbnail_range_bridge.rs`, `CHANGELOG.md`, dan `VERSION.md`.
 v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `thumbBatcher.ts`, `mediaStudioDb.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`, dan `VERSION.md`.
