@@ -789,15 +789,22 @@ export async function requestThumb(
     if (hit) return hit;
     const failAt = softFailAt.get(k);
     if (failAt != null && Date.now() - failAt < softFailMs(priorityValue(opts?.priority))) {
+      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { folderId, messageId, reason: 'softFail' });
       return null;
     }
     const errAt = errorFailAt.get(k);
     if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) {
+      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { folderId, messageId, reason: 'errorCooldown' });
       return null;
     }
     const inflight = inflightByKey.get(k);
-    if (inflight) return inflight;
+    if (inflight) {
+      debugLog('thumbBatcher', 'thumb_frontend_request_joined', { folderId, messageId });
+      return inflight;
+    }
   }
+
+  debugLog('thumbBatcher', 'thumb_frontend_request_started', { folderId, messageId, quality: activeQuality });
 
   const work = (async (): Promise<string | null> => {
     // Re-check mem (list_media prime often races card mount by one tick).

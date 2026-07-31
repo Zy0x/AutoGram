@@ -306,6 +306,19 @@ pub(crate) async fn resolve_peer(
         if pid == want || pid == -want || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs())) {
             let res = peer_to_ref(&peer).await;
             if let Ok(ref pref) = res {
+                let peer_type_str = match &peer {
+                    grammers_client::peer::Peer::User(_) => "user",
+                    grammers_client::peer::Peer::Channel(_) => "channel",
+                    grammers_client::peer::Peer::Group(_) => "group",
+                };
+                let p_id = peer_id_i64(peer.id());
+                tg_log::info(
+                    "grammers",
+                    "thumb_peer_resolved",
+                    format!(
+                        "op=thumb_peer_resolved input_chat={s} peer_type={peer_type_str} peer_id={p_id} access_hash_available=true"
+                    ),
+                );
                 if owner_id != 0 {
                     if let Ok(mut guard) = peer_cache().write() {
                         guard.insert(ckey(s), *pref);
@@ -318,6 +331,13 @@ pub(crate) async fn resolve_peer(
             return res;
         }
     }
+    tg_log::warn(
+        "grammers",
+        "thumb_peer_resolved",
+        format!(
+            "op=thumb_peer_resolved input_chat={s} peer_type=unknown peer_id=0 access_hash_available=false"
+        ),
+    );
     Err(TgError::new(
         TgErrorCode::PeerNotFound,
         format!(

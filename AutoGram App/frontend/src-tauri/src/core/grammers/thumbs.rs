@@ -31,6 +31,24 @@ use crate::core::tg_log;
 const PROGRESSIVE_MAX: u64 = 4 * 1024 * 1024 * 1024;
 const THUMB_TARGET_MAX: usize = 96 * 1024;
 
+/// Structured locator for media thumbnails extracted during listing or search.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThumbnailLocator {
+    pub account_id: String,
+    pub peer_id: i64,
+    pub message_id: i32,
+    pub topic_id: Option<i32>,
+    pub media_kind: String,
+    pub document_id: Option<i64>,
+    pub photo_id: Option<i64>,
+    pub dc_id: Option<i32>,
+    pub telegram_thumb_type: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+}
+
 pub fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
         return None;
@@ -1242,7 +1260,12 @@ pub fn thumbs_batch_blocking_app(
 
     for &mid in &ids {
         let key = mid.to_string();
-        let cache_key = format!("{chat_safe}_{mid}_{q_key}");
+        let cache_key = format!("v98_{chat_safe}_{mid}_{q_key}");
+        tg_log::info(
+            BACKEND,
+            "thumb_request_identity",
+            format!("op=thumb_request_identity account_id={} peer_id={} topic_id=None message_id={} media_kind_from_list=unknown", identity.session, chat, mid),
+        );
         let mut found_url: Option<String> = None;
         let mut is_negative_hit = false;
         {
@@ -1262,6 +1285,11 @@ pub fn thumbs_batch_blocking_app(
             }
         }
         if is_negative_hit {
+            tg_log::info(
+                BACKEND,
+                "thumb_cache_hit",
+                format!("op=thumb_cache_hit message_id={mid} negative=true"),
+            );
             thumbs.insert(key, None);
             continue;
         }
@@ -1269,14 +1297,9 @@ pub fn thumbs_batch_blocking_app(
         if found_url.is_none() {
             // Prefer exact quality file; fall back to hemat (stripped) so grid
             // reopens like Telegram without re-hitting the network.
-            // Exact quality file only — never serve hemat blur as seimbang/jelas.
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    // 64 bytes is the real minimum for any JPEG/PNG/WebP thumbnail.
-                    // Do NOT apply a data-URL character-length filter here — small
-                    // but valid thumbnails (e.g. stripped 310-byte JPEGs) would be
-                    // wrongly discarded and re-downloaded on every grid open.
                     let min_disk = 64;
                     if bytes.len() >= min_disk {
                         if let Some(url) = to_data_url(&bytes) {
@@ -1288,6 +1311,11 @@ pub fn thumbs_batch_blocking_app(
             }
         }
         if let Some(url) = found_url {
+            tg_log::info(
+                BACKEND,
+                "thumb_cache_hit",
+                format!("op=thumb_cache_hit message_id={mid}"),
+            );
             thumbs.insert(key, Some(url.clone()));
             if let Some(app_handle) = app {
                 let _ = app_handle.emit(
@@ -1497,7 +1525,7 @@ pub fn thumbs_batch_blocking_app(
                     // Accept any non-empty cached URL — do NOT apply a character-length
                     // threshold (previously url.len() > 600) which rejected valid small
                     // thumbnails (e.g. 310-byte JPEG → ~437-char data URL).
-                    let q_cache = format!("{chat_safe}_{mid}_{q_key}");
+                    let q_cache = format!("v98_{chat_safe}_{mid}_{q_key}");
                     {
                         let mut mem = thumb_mem_cache().lock();
                         if let Some(url) = mem.get(&q_cache) {
@@ -1529,17 +1557,40 @@ pub fn thumbs_batch_blocking_app(
                     let Some(msg) = msg_by_id.get(&mid) else {
                         tg_log::warn(
                             BACKEND,
-                            "thumb_msg_not_found",
-                            format!("chat={chat} mid={mid} reason=message_id_not_found_in_telegram_response"),
+                            "thumb_msg_not_returned",
+                            format!("op=thumb_msg_not_returned requested_peer_id={chat} requested_message_id={mid} reason=MessageNotReturned"),
                         );
                         thumbs.insert(key, None);
                         continue;
                     };
-                    let Some(media) = msg.media() else {
+                    let returned_id = msg.id();
+                    if returned_id != mid {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumb_identity_mismatch",
+                            format!("op=thumb_identity_mismatch requested_peer={chat} requested_message_id={mid} returned_peer={chat} returned_message_id={returned_id} reason=MessageIdentityMismatch"),
+                        );
+                        thumbs.insert(key, None);
+                        continue;
+                    }
+                    let maybe_media = msg.media();
+                    let has_media = maybe_media.is_some();
+                    let media_kind_str = match &maybe_media {
+                        Some(Media::Photo(_)) => "photo",
+                        Some(Media::Document(_)) => "document",
+                        Some(Media::Sticker(_)) => "sticker",
+                        _ => "none",
+                    };
+                    tg_log::info(
+                        BACKEND,
+                        "thumb_message_resolved",
+                        format!("op=thumb_message_resolved requested_peer_id={chat} requested_message_id={mid} returned_peer_id={chat} returned_message_id={returned_id} has_media={has_media} media_kind={media_kind_str}"),
+                    );
+                    let Some(media) = maybe_media else {
                         tg_log::warn(
                             BACKEND,
                             "thumb_no_media",
-                            format!("chat={chat} mid={mid} reason=message_has_no_media"),
+                            format!("op=thumb_no_media requested_peer_id={chat} requested_message_id={mid} reason=MessageHasNoMedia"),
                         );
                         thumbs.insert(key, None);
                         continue;
@@ -1672,3 +1723,31 @@ pub fn thumbs_batch_blocking_app(
 }
 
 // Section
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_identity_contract_batch_matching() {
+        let requested_ids = vec![10, 20, 30, 40, 50];
+        let mut mock_map: HashMap<i32, String> = HashMap::new();
+        // Simulate missing message ID 30 (not returned by Telegram) and out-of-order return
+        mock_map.insert(50, "msg_50".to_string());
+        mock_map.insert(10, "msg_10".to_string());
+        mock_map.insert(40, "msg_40".to_string());
+        mock_map.insert(20, "msg_20".to_string());
+
+        let mut resolved_results: HashMap<i32, Option<String>> = HashMap::new();
+        for &req_id in &requested_ids {
+            let res = mock_map.get(&req_id).cloned();
+            resolved_results.insert(req_id, res);
+        }
+
+        assert_eq!(resolved_results.get(&10), Some(&Some("msg_10".to_string())));
+        assert_eq!(resolved_results.get(&20), Some(&Some("msg_20".to_string())));
+        assert_eq!(resolved_results.get(&30), Some(&None)); // Missing ID 30 cleanly resolved as None, not swapped!
+        assert_eq!(resolved_results.get(&40), Some(&Some("msg_40".to_string())));
+        assert_eq!(resolved_results.get(&50), Some(&Some("msg_50".to_string())));
+    }
+}

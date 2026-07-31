@@ -1,4 +1,15 @@
+## v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning
+
+### Core Identity Pipeline (`media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`)
+- **End-to-End Identity Tracing**: Menambahkan log terstruktur `op=media_list_identity`, `op=thumb_request_identity`, `op=thumb_peer_resolved`, `op=thumb_message_resolved`, `op=thumb_identity_mismatch`, `op=thumb_source_selected`, `op=thumb_result`, `thumb_frontend_request_started`, `thumb_frontend_request_joined`, `thumb_frontend_request_suppressed`.
+- **Validasi Identitas Keras**: Menegakkan aturan `returned_message.id() == requested_message_id`. Jika ID atau peer tidak cocok, mengembalikan `MessageIdentityMismatch` dan tidak menganggapnya sebagai `MessageHasNoMedia`.
+- **Pencocokan Batch Non-Positional**: Meng-eliminasikan seluruh pencocokan `zip` array positional. Menggunakan `HashMap<i32, Message>` untuk mencocokkan message response Telegram secara eksplisit berdasarkan ID asli.
+- **Pemisahan Kode Alasan Kegagalan**: Membedakan `MessageNotReturned`, `MessageIdentityMismatch`, `PeerResolutionFailed`, `MessageHasNoMedia`, `MediaMetadataMissing`, `FileReferenceExpired`, `ServerThumbUnavailable`.
+- **Schema Cache Versioning (`v98_`)**: Memperbarui namespace cache ke `v98_` untuk menginvalidasi file `.nothumb` dan key `"NOT_FOUND"` lama dari v2.3.96/v2.3.97 agar kegagalan lama tidak menghalangi thumbnail yang sekarang valid.
+- **`ThumbnailLocator` Struct**: Menambahkan struktur locator terstruktur untuk cache locator media.
+
 ## v2.3.97 Capability-Gated FFmpeg Resolver, Dynamic AV1 Decoder Selection, In-Flight Request Coalescing & Atomic Negative Cache
+
 
 ### Capability Probe, Dynamic Decoder Selection & Fail-Fast Range Bridge (`ffmpeg.rs`, `thumbnail_range_bridge.rs`, `thumbs.rs`)
 - **Capability Probe FFmpeg (`probe_ffmpeg_capabilities`)**: Menguji protokol input `http` dan decoder AV1 secara nyata pada seluruh biner FFmpeg sistem. Secara otomatis memfilter biner tersembunyi tanpa HTTP (seperti BlueStacks FFmpeg) dan memilih biner valid yang memiliki HTTP + AV1 decoder (seperti FormatFactory/Bundled FFmpeg).

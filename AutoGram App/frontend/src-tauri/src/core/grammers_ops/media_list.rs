@@ -51,6 +51,8 @@ pub struct MediaFileRow {
     /// Inline stripped thumb (data:image/…) — paints grid without a second RPC.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub thumb_data_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,6 +131,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     as_document: false,
                     backend: BACKEND.into(),
                     thumb_data_url,
+                    topic_id: message_topic_id(msg),
                 })
             }
             Media::Document(doc) => {
@@ -219,6 +222,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     as_document: true,
                     backend: BACKEND.into(),
                     thumb_data_url,
+                    topic_id: message_topic_id(msg),
                 })
             }
             Media::Sticker(_) => Some(MediaFileRow {
@@ -233,6 +237,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                 as_document: true,
                 backend: BACKEND.into(),
                 thumb_data_url,
+                topic_id: message_topic_id(msg),
             }),
             Media::WebPage(wp) => {
                 let webpage_has_thumb = match &wp.raw.webpage {
@@ -265,6 +270,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     as_document: false,
                     backend: BACKEND.into(),
                     thumb_data_url,
+                    topic_id: message_topic_id(msg),
                 })
             }
             _ => None,
@@ -294,6 +300,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
             as_document: false,
             backend: BACKEND.into(),
             thumb_data_url: None,
+            topic_id: message_topic_id(msg),
         })
     } else {
         None
@@ -309,6 +316,12 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
     let id = m.id as i64;
     let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
     let caption = m.message.trim();
+    let topic_id = match &m.reply_to {
+        Some(grammers_client::tl::enums::MessageReplyHeader::Header(h)) => {
+            h.reply_to_top_id.or(h.reply_to_msg_id).map(|top| top as i64)
+        }
+        _ => None,
+    };
 
     if let Some(ref media) = m.media {
         let thumb_data_url = crate::core::grammers_media::tl_stripped_thumb_data_url(media);
@@ -331,6 +344,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     as_document: false,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
+                    topic_id,
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -382,6 +396,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     as_document: true,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
+                    topic_id,
                 })
             }
             _ => None,
@@ -613,6 +628,16 @@ pub fn list_media_blocking_topic(
                     } else {
                         None
                     };
+                    for f in &files {
+                        tg_log::info(
+                            BACKEND,
+                            "media_list_identity",
+                            format!(
+                                "op=media_list_identity account_id={} peer_id={} topic_id={:?} message_id={} media_kind={} has_media=true icon_type={}",
+                                session_name, chat, topic_filter, f.id, f.icon_type, f.icon_type
+                            ),
+                        );
+                    }
                     tg_log::info(
                         BACKEND,
                         "list_media",
