@@ -693,8 +693,18 @@ async function flushQueue() {
 
   try {
     const started = performance.now();
+    const batchUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+    const realBatchId = `thumb-batch:${batchUuid}`;
     const batchRequestId = first ? `thumb:${folderId ?? 'me'}:${first.messageId}:g${first.generation}` : `thumb:batch:${Date.now()}`;
+    const itemRequests = tasks.map((t) => ({
+      requestId: `thumb:${folderId ?? 'me'}:${t.messageId}:g${t.generation}`,
+      peerId: folderId == null ? 'me' : String(folderId),
+      telegramMessageId: t.messageId,
+      quality: t.quality,
+      generation: t.generation,
+    }));
     debugLog('thumbBatcher', 'op=thumb_frontend_invoke', {
+      batchId: realBatchId,
       requestId: batchRequestId,
       peerId: folderId == null ? 'me' : String(folderId),
       telegramMessageIds: ids,
@@ -705,6 +715,8 @@ async function flushQueue() {
       quality,
       batchSize: limit,
       requestId: batchRequestId,
+      batchId: realBatchId,
+      items: itemRequests,
       telegramPeerId: folderId == null ? 'me' : String(folderId),
       telegramMessageIds: ids,
     });
@@ -935,4 +947,18 @@ export function prefetchThumbs(
       contextKey: activeContextKey,
     });
   }
+}
+
+if (typeof window !== 'undefined') {
+  import('@tauri-apps/api/event').then(({ listen }) => {
+    void listen<{ peerId: string; telegramMessageId: number; reason: string }>(
+      'topic-media://invalidate-media-row',
+      (event) => {
+        const { peerId, telegramMessageId } = event.payload;
+        const pNum = peerId === 'me' ? null : Number(peerId) || null;
+        invalidateThumb(pNum, telegramMessageId);
+        notifyMediaDeleted([telegramMessageId], pNum);
+      }
+    );
+  }).catch(() => {});
 }

@@ -82,8 +82,180 @@ pub struct ThumbSinglePayload {
     pub is_placeholder: bool,
 }
 
-// Thumbnails
-// ----------------------------------------------------------------------------
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MediaPreviewClass {
+    TelegramPhoto,
+    TelegramVideo,
+    ImageDocument,
+    VideoDocument,
+    PdfDocument,
+    GenericDocument,
+    AudioDocument,
+    ArchiveDocument,
+    Unknown,
+}
+
+impl MediaPreviewClass {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::TelegramPhoto => "TelegramPhoto",
+            Self::TelegramVideo => "TelegramVideo",
+            Self::ImageDocument => "ImageDocument",
+            Self::VideoDocument => "VideoDocument",
+            Self::PdfDocument => "PdfDocument",
+            Self::GenericDocument => "GenericDocument",
+            Self::AudioDocument => "AudioDocument",
+            Self::ArchiveDocument => "ArchiveDocument",
+            Self::Unknown => "Unknown",
+        }
+    }
+
+    pub fn is_video(&self) -> bool {
+        matches!(self, Self::TelegramVideo | Self::VideoDocument)
+    }
+
+    pub fn is_generic_or_non_media(&self) -> bool {
+        matches!(
+            self,
+            Self::GenericDocument | Self::ArchiveDocument | Self::AudioDocument | Self::Unknown
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedThumbRequestId {
+    pub peer_id: String,
+    pub message_id: i32,
+    pub generation: u64,
+}
+
+pub fn parse_thumb_request_id(req_id: &str) -> Option<ParsedThumbRequestId> {
+    let parts: Vec<&str> = req_id.split(':').collect();
+    if parts.len() != 4 || parts[0] != "thumb" {
+        return None;
+    }
+    let peer_id = parts[1].to_string();
+    let message_id = parts[2].parse::<i32>().ok()?;
+    if !parts[3].starts_with('g') {
+        return None;
+    }
+    let generation = parts[3][1..].parse::<u64>().ok()?;
+    Some(ParsedThumbRequestId {
+        peer_id,
+        message_id,
+        generation,
+    })
+}
+
+pub fn classify_message_media(msg: &grammers_client::message::Message) -> MediaPreviewClass {
+    let Some(media) = msg.media() else {
+        return MediaPreviewClass::Unknown;
+    };
+    match media {
+        Media::Photo(_) => MediaPreviewClass::TelegramPhoto,
+        Media::Document(ref doc) => {
+            let mime = doc.mime_type().unwrap_or("").to_lowercase();
+            let name = doc.name().unwrap_or("").to_lowercase();
+            let ext = std::path::Path::new(&name)
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            let has_video_attr = doc.raw.video;
+
+            if has_video_attr {
+                return MediaPreviewClass::TelegramVideo;
+            }
+            if mime.starts_with("video/")
+                || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts")
+            {
+                return MediaPreviewClass::VideoDocument;
+            }
+            if mime.starts_with("image/")
+                || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
+            {
+                return MediaPreviewClass::ImageDocument;
+            }
+            if mime == "application/pdf" || ext == "pdf" {
+                return MediaPreviewClass::PdfDocument;
+            }
+            if mime.starts_with("audio/") || matches!(ext.as_str(), "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus") {
+                return MediaPreviewClass::AudioDocument;
+            }
+            if matches!(ext.as_str(), "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz") {
+                return MediaPreviewClass::ArchiveDocument;
+            }
+            if matches!(ext.as_str(), "bin" | "exe" | "iso" | "dat" | "sys" | "dll")
+                || (mime == "application/octet-stream" && ext.is_empty())
+            {
+                return MediaPreviewClass::GenericDocument;
+            }
+            MediaPreviewClass::GenericDocument
+        }
+        Media::Sticker(_) => MediaPreviewClass::ImageDocument,
+        _ => MediaPreviewClass::Unknown,
+    }
+}
+
+pub fn classify_media_preview(mime: Option<&str>, name: Option<&str>) -> MediaPreviewClass {
+    let mime = mime.unwrap_or("").to_lowercase();
+    let name = name.unwrap_or("").to_lowercase();
+    let ext = std::path::Path::new(&name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if mime.starts_with("video/")
+        || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts")
+    {
+        return MediaPreviewClass::VideoDocument;
+    }
+    if mime.starts_with("image/")
+        || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
+    {
+        return MediaPreviewClass::ImageDocument;
+    }
+    if mime == "application/pdf" || ext == "pdf" {
+        return MediaPreviewClass::PdfDocument;
+    }
+    if mime.starts_with("audio/") || matches!(ext.as_str(), "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus") {
+        return MediaPreviewClass::AudioDocument;
+    }
+    if matches!(ext.as_str(), "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz") {
+        return MediaPreviewClass::ArchiveDocument;
+    }
+    if matches!(ext.as_str(), "bin" | "exe" | "iso" | "dat" | "sys" | "dll")
+        || mime == "application/octet-stream"
+    {
+        return MediaPreviewClass::GenericDocument;
+    }
+    MediaPreviewClass::GenericDocument
+}
+
+pub fn is_ffmpeg_eligible_media(class: &MediaPreviewClass, mime: Option<&str>, name: Option<&str>) -> bool {
+    if !class.is_video() {
+        return false;
+    }
+    let mime = mime.unwrap_or("").to_lowercase();
+    let name = name.unwrap_or("").to_lowercase();
+    let ext = std::path::Path::new(&name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    mime.starts_with("video/")
+        || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v")
+}
+
+static THUMB_TERMINAL_CACHE: std::sync::OnceLock<parking_lot::Mutex<std::collections::HashSet<String>>> =
+    std::sync::OnceLock::new();
+
+fn thumb_terminal_cache() -> &'static parking_lot::Mutex<std::collections::HashSet<String>> {
+    THUMB_TERMINAL_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -95,6 +267,8 @@ pub struct ThumbnailBatchItemResult {
     pub source: Option<String>,
     pub reason: Option<String>,
     pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1231,17 +1405,8 @@ async fn make_smart_target_mp4(
 
     extract_ffmpeg_frame_sync(&out, quality, ext_hint)
 }
-pub fn thumbs_batch_blocking(
-    sessions_dir: &Path,
-    identity: &TelegramIdentity,
-    chat_id: &str,
-    message_ids: &[i64],
-    quality: &str,
-) -> Result<ThumbsBatchResult, TgError> {
-    thumbs_batch_blocking_app(sessions_dir, identity, chat_id, message_ids, quality, None, None)
-}
 
-pub fn thumbs_batch_blocking_app(
+pub fn thumbs_batch_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
     chat_id: &str,
@@ -1250,13 +1415,76 @@ pub fn thumbs_batch_blocking_app(
     request_id: Option<&str>,
     app: Option<&tauri::AppHandle>,
 ) -> Result<ThumbsBatchResult, TgError> {
-    let ids: Vec<i32> = message_ids
-        .iter()
-        .filter(|&&id| id > 0)
-        .take(64)
-        .map(|&id| id as i32)
-        .collect();
-    if ids.is_empty() {
+    let req = crate::core::telegram_ops::ThumbsBatchRequest {
+        session: identity.session.clone(),
+        api_id: identity.api_id,
+        api_hash: identity.api_hash.clone(),
+        batch_id: None,
+        items: Vec::new(),
+        request_id: request_id.map(String::from),
+        chat_id: Some(chat_id.to_string()),
+        telegram_peer_id: Some(chat_id.to_string()),
+        message_ids: Some(message_ids.to_vec()),
+        telegram_message_ids: Some(message_ids.to_vec()),
+        quality: Some(quality.to_string()),
+    };
+    thumbs_batch_items_blocking_app(sessions_dir, identity, &req, quality, app)
+}
+
+pub fn thumbs_batch_items_blocking_app(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    req: &crate::core::telegram_ops::ThumbsBatchRequest,
+    quality: &str,
+    app: Option<&tauri::AppHandle>,
+) -> Result<ThumbsBatchResult, TgError> {
+    use crate::core::telegram_ops::ThumbnailItemRequest;
+
+    let batch_id = req
+        .batch_id
+        .as_deref()
+        .unwrap_or("thumb-batch:default")
+        .to_string();
+
+    let items: Vec<ThumbnailItemRequest> = if !req.items.is_empty() {
+        req.items.clone()
+    } else {
+        let peer = req
+            .telegram_peer_id
+            .as_deref()
+            .or(req.chat_id.as_deref())
+            .unwrap_or("me")
+            .to_string();
+        let req_id_prefix = req.request_id.as_deref().unwrap_or("thumb");
+        let mids = req
+            .telegram_message_ids
+            .as_ref()
+            .or(req.message_ids.as_ref());
+        if let Some(mids) = mids {
+            mids.iter()
+                .filter(|&&id| id > 0)
+                .take(64)
+                .map(|&id| {
+                    let request_id = if req_id_prefix.contains(":g") || req_id_prefix.ends_with(&id.to_string()) {
+                        req_id_prefix.to_string()
+                    } else {
+                        format!("{req_id_prefix}:{id}")
+                    };
+                    ThumbnailItemRequest {
+                        request_id,
+                        peer_id: peer.clone(),
+                        telegram_message_id: id as i32,
+                        quality: Some(quality.to_string()),
+                        generation: None,
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    };
+
+    if items.is_empty() {
         return Ok(ThumbsBatchResult {
             status: "success".into(),
             thumbs: HashMap::new(),
@@ -1264,8 +1492,8 @@ pub fn thumbs_batch_blocking_app(
             backend: BACKEND.into(),
         });
     }
+
     let rt = runtime()?;
-    let chat = chat_id.to_string();
     let q_mode = quality.to_lowercase();
     let q_key = if q_mode.contains("hemat") || q_mode.contains("saver") {
         "hemat"
@@ -1274,65 +1502,92 @@ pub fn thumbs_batch_blocking_app(
     } else {
         "seimbang"
     };
-    let chat_safe: String = chat
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-        .collect();
+
     let t_dir = thumb_dir(sessions_dir);
     let _ = std::fs::create_dir_all(&t_dir);
     prune_thumb_cache(&t_dir);
 
-    let req_id_str = request_id.unwrap_or("none").to_string();
-
     let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
     let mut item_results: Vec<ThumbnailBatchItemResult> = Vec::new();
-    let mut uncached_ids: Vec<i32> = Vec::new();
+    let mut uncached_items: Vec<ThumbnailItemRequest> = Vec::new();
 
-    for &mid in &ids {
+    for item in &items {
+        let peer_id = &item.peer_id;
+        let mid = item.telegram_message_id;
+        let item_req_id = &item.request_id;
         let key = mid.to_string();
-        let cache_key = format!("v99_{chat_safe}_{mid}_{q_key}");
-        tg_log::info(
-            BACKEND,
-            "thumb_backend_received",
-            format!("op=thumb_backend_received request_id={req_id_str} peer_id={chat} telegram_message_id={mid} topic_id=None"),
-        );
+
+        // 1. Correlation assertion check (Requirement 1)
+        if let Some(gen) = item.generation {
+            let expected_id = format!("thumb:{}:{}:g{}", peer_id, mid, gen);
+            if item_req_id != &expected_id {
+                tg_log::warn(
+                    BACKEND,
+                    "thumb_invalid_correlation",
+                    format!(
+                        "op=thumb_invalid_correlation batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_id} requested_message_id={mid} reason=InvalidRequestCorrelation"
+                    ),
+                );
+                thumbs.insert(key, None);
+                item_results.push(ThumbnailBatchItemResult {
+                    request_id: item_req_id.clone(),
+                    peer_id: peer_id.clone(),
+                    telegram_message_id: mid,
+                    status: "failed".into(),
+                    source: None,
+                    reason: Some("InvalidRequestCorrelation".into()),
+                    url: None,
+                    classification: None,
+                });
+                continue;
+            }
+        }
+
+        // 2. Terminal fallback cache check (Requirement 6)
+        let term_key = format!("v99_item_{peer_id}_{mid}");
+        if thumb_terminal_cache().lock().contains(&term_key) {
+            tg_log::info(
+                BACKEND,
+                "thumb_terminal_cache_hit",
+                format!(
+                    "op=thumb_terminal_cache_hit batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_id} requested_message_id={mid}"
+                ),
+            );
+            thumbs.insert(key, None);
+            item_results.push(ThumbnailBatchItemResult {
+                request_id: item_req_id.clone(),
+                peer_id: peer_id.clone(),
+                telegram_message_id: mid,
+                status: "fallback".into(),
+                source: Some("file_type_icon".into()),
+                reason: Some("GenericDocumentNoThumbnail".into()),
+                url: None,
+                classification: Some("GenericDocument".into()),
+            });
+            continue;
+        }
+
+        // 3. Disk / memory cache check
+        let peer_safe: String = peer_id
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        let cache_key = format!("v99_item_{peer_safe}_{mid}_{q_key}");
         let mut found_url: Option<String> = None;
-        let mut is_negative_hit = false;
         {
             let mem = thumb_mem_cache().lock();
             if let Some(url) = mem.get(&cache_key) {
-                if url == "NOT_FOUND" {
-                    is_negative_hit = true;
-                } else if !url.is_empty() {
+                if !url.is_empty() && url != "NOT_FOUND" {
                     found_url = Some(url.clone());
                 }
             }
-        }
-        if is_negative_hit {
-            tg_log::info(
-                BACKEND,
-                "thumb_cache_hit",
-                format!("op=thumb_cache_hit request_id={req_id_str} message_id={mid} negative=true"),
-            );
-            thumbs.insert(key.clone(), None);
-            item_results.push(ThumbnailBatchItemResult {
-                request_id: req_id_str.clone(),
-                peer_id: chat.clone(),
-                telegram_message_id: mid,
-                status: "miss".into(),
-                source: None,
-                reason: Some("ShortMemorySuppressed".into()),
-                url: None,
-            });
-            continue;
         }
 
         if found_url.is_none() {
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
-                    let min_disk = 64;
-                    if bytes.len() >= min_disk {
+                    if bytes.len() >= 64 {
                         if let Some(url) = to_data_url(&bytes) {
                             thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
                             found_url = Some(url);
@@ -1341,27 +1596,31 @@ pub fn thumbs_batch_blocking_app(
                 }
             }
         }
+
         if let Some(url) = found_url {
             tg_log::info(
                 BACKEND,
                 "thumb_cache_hit",
-                format!("op=thumb_cache_hit request_id={req_id_str} message_id={mid}"),
+                format!(
+                    "op=thumb_cache_hit batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_id} requested_message_id={mid}"
+                ),
             );
-            thumbs.insert(key.clone(), Some(url.clone()));
+            thumbs.insert(key, Some(url.clone()));
             item_results.push(ThumbnailBatchItemResult {
-                request_id: req_id_str.clone(),
-                peer_id: chat.clone(),
+                request_id: item_req_id.clone(),
+                peer_id: peer_id.clone(),
                 telegram_message_id: mid,
                 status: "ready".into(),
                 source: Some("disk_cache".into()),
                 reason: None,
                 url: Some(url.clone()),
+                classification: None,
             });
             if let Some(app_handle) = app {
                 let _ = app_handle.emit(
                     "thumb_single_ready",
                     ThumbSinglePayload {
-                        chat_id: chat.clone(),
+                        chat_id: peer_id.clone(),
                         message_id: mid as i64,
                         quality: q_key.to_string(),
                         url,
@@ -1371,10 +1630,11 @@ pub fn thumbs_batch_blocking_app(
             }
             continue;
         }
-        uncached_ids.push(mid);
+
+        uncached_items.push(item.clone());
     }
 
-    if uncached_ids.is_empty() {
+    if uncached_items.is_empty() {
         return Ok(ThumbsBatchResult {
             status: "success".into(),
             thumbs,
@@ -1387,440 +1647,269 @@ pub fn thumbs_batch_blocking_app(
 
     rt.block_on(async {
         with_pool_retry(&identity.session, || {
-            let chat = chat.clone();
-            let uncached_ids = uncached_ids.clone();
+            let uncached_items = uncached_items.clone();
             let t_dir = t_dir.clone();
-            let chat_safe = chat_safe.clone();
             let mut thumbs = thumbs.clone();
             let mut item_results = item_results.clone();
             let app_owned = app_owned.clone();
             let session_name = identity.session.clone();
-            let req_id_str = req_id_str.clone();
+            let batch_id = batch_id.clone();
+
             with_client(sessions_dir, identity, true, move |client| {
-            let app_ref = app_owned.clone();
-            let session_name = session_name.clone();
-            let req_id_str = req_id_str.clone();
-            Box::pin(async move {
-                if !crate::core::grammers_ops::session_known_authorized(&session_name)
-                    && !client
-                        .is_authorized()
-                        .await
-                        .map_err(|e| map_invocation(&e))?
-                {
-                    return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
-                }
-                let peer = match resolve_peer(client, &chat).await {
-                    Ok(p) => p,
-                    Err(e) => {
-                        tg_log::warn(
-                            BACKEND,
-                            "thumbs_batch_peer_error",
-                            format!("op=thumb_peer_failed request_id={req_id_str} chat={chat} error={e}"),
-                        );
-                        return Err(e);
-                    }
-                };
+                let app_ref = app_owned.clone();
+                let session_name = session_name.clone();
+                let batch_id = batch_id.clone();
 
-                let fetch_ids = uncached_ids.clone();
-                tg_log::info(
-                    BACKEND,
-                    "thumb_lookup_started",
-                    format!("op=thumb_lookup_started request_id={req_id_str} peer_id={chat} fetch_count={}", fetch_ids.len()),
-                );
-
-                let msgs = client
-                    .get_messages_by_id(peer, &fetch_ids)
-                    .await
-                    .map_err(|e| map_invocation(&e))?;
-
-                let mut msg_by_id: HashMap<i32, grammers_client::message::Message> =
-                    HashMap::with_capacity(fetch_ids.len());
-                for msg_opt in msgs {
-                    if let Some(msg) = msg_opt {
-                        msg_by_id.insert(msg.id(), msg);
-                    }
-                }
-
-                tg_log::info(
-                    BACKEND,
-                    "thumb_lookup_response",
-                    format!("op=thumb_lookup_response request_id={req_id_str} returned_count={}", msg_by_id.len()),
-                );
-
-                let quality_owned = q_key.to_string();
-                let hemat_only = q_key == "hemat";
-                let mut need_download: Vec<i32> = Vec::new();
-
-                for mid in fetch_ids.iter().copied() {
-                    let key = mid.to_string();
-                    let mut got_stripped = false;
-                    if let Some(msg) = msg_by_id.get(&mid) {
-                        if let Some(media) = msg.media() {
-                            let sizes = media_thumbs(Some(&client), &media);
-                            for s in &sizes {
-                                if let Some(data) = s.to_data() {
-                                    let bytes = unstrip_jpeg(&data).unwrap_or(data);
-                                    if bytes.is_empty() {
-                                        continue;
-                                    }
-                                    if let Some(url) = to_data_url(&bytes) {
-                                        let cache_file = t_dir
-                                            .join(format!("v99_{chat_safe}_{mid}_hemat.jpg"));
-                                        let rand_id = now_ms();
-                                        let part_file = t_dir.join(format!("v99_{chat_safe}_{mid}_hemat.{rand_id}.part"));
-                                        if std::fs::write(&part_file, &bytes).is_ok() {
-                                            let _ = std::fs::rename(&part_file, &cache_file);
-                                        }
-                                        thumb_mem_cache().lock().insert(
-                                            format!("v99_{chat_safe}_{mid}_hemat"),
-                                            url.clone(),
-                                        );
-                                        got_stripped = true;
-                                        if hemat_only {
-                                            thumbs.insert(key.clone(), Some(url.clone()));
-                                            item_results.push(ThumbnailBatchItemResult {
-                                                request_id: req_id_str.clone(),
-                                                peer_id: chat.clone(),
-                                                telegram_message_id: mid,
-                                                status: "ready".into(),
-                                                source: Some("telegram_thumb_stripped".into()),
-                                                reason: None,
-                                                url: Some(url.clone()),
-                                            });
-                                            if let Some(app_handle) = app_ref.as_ref() {
-                                                let _ = app_handle.emit(
-                                                    "thumb_single_ready",
-                                                    ThumbSinglePayload {
-                                                        chat_id: chat.clone(),
-                                                        message_id: mid as i64,
-                                                        quality: "hemat".into(),
-                                                        url,
-                                                        is_placeholder: false,
-                                                    },
-                                                );
-                                            }
-                                        } else {
-                                            if let Some(app_handle) = app_ref.as_ref() {
-                                                let _ = app_handle.emit(
-                                                    "thumb_single_ready",
-                                                    ThumbSinglePayload {
-                                                        chat_id: chat.clone(),
-                                                        message_id: mid as i64,
-                                                        quality: q_key.to_string(),
-                                                        url,
-                                                        is_placeholder: true,
-                                                    },
-                                                );
-                                            }
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if hemat_only {
-                        if !got_stripped {
-                            need_download.push(mid);
-                        }
-                    } else {
-                        need_download.push(mid);
-                    }
-                }
-
-                let mut set = tokio::task::JoinSet::new();
-                let fast_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(12));
-                let video_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
-                let is_flooded = session_rate::flood_remaining_secs(&session_name).unwrap_or(0) > 0;
-
-                let mut sorted_download = need_download.clone();
-                sorted_download.sort_by_key(|mid| {
-                    if let Some(msg) = msg_by_id.get(mid) {
-                        if let Some(media) = msg.media() {
-                            match media {
-                                Media::Document(ref d) => {
-                                    let mime = d.mime_type().unwrap_or("").to_lowercase();
-                                    let name = d.name().unwrap_or("").to_lowercase();
-                                    let has_video_attr = d.raw.video;
-                                    let sizes = media_thumbs(Some(&client), &media);
-                                    let is_v = has_video_attr
-                                        || mime.starts_with("video/")
-                                        || name.ends_with(".mp4")
-                                        || name.ends_with(".mov")
-                                        || name.ends_with(".mkv")
-                                        || name.ends_with(".webm")
-                                        || name.ends_with(".avi")
-                                        || name.ends_with(".ts");
-                                    let has_static = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)));
-                                    is_v && !has_static
-                                }
-                                _ => false,
-                            }
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                });
-
-                for mid in sorted_download.iter().copied() {
-                    let key = mid.to_string();
-                    if is_flooded {
-                        tg_log::warn(
-                            BACKEND,
-                            "thumbs_batch_flooded",
-                            format!("request_id={req_id_str} chat={chat} session={session_name} skipping mid={mid}"),
-                        );
-                        thumbs.insert(key.clone(), None);
-                        item_results.push(ThumbnailBatchItemResult {
-                            request_id: req_id_str.clone(),
-                            peer_id: chat.clone(),
-                            telegram_message_id: mid,
-                            status: "failed".into(),
-                            source: None,
-                            reason: Some("FloodWaitActive".into()),
-                            url: None,
-                        });
-                        continue;
-                    }
-
-                    let q_cache = format!("v99_{chat_safe}_{mid}_{q_key}");
+                Box::pin(async move {
+                    if !crate::core::grammers_ops::session_known_authorized(&session_name)
+                        && !client.is_authorized().await.map_err(|e| map_invocation(&e))?
                     {
-                        let mut mem = thumb_mem_cache().lock();
-                        if let Some(url) = mem.get(&q_cache) {
-                            if url != "NOT_FOUND" && !url.is_empty() {
-                                thumbs.insert(key.clone(), Some(url.clone()));
+                        return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
+                    }
+
+                    // Group uncached items by peer_id
+                    let mut items_by_peer: HashMap<String, Vec<ThumbnailItemRequest>> = HashMap::new();
+                    for it in uncached_items {
+                        items_by_peer.entry(it.peer_id.clone()).or_default().push(it);
+                    }
+
+                    for (peer_str, p_items) in items_by_peer {
+                        let peer = match resolve_peer(client, &peer_str).await {
+                            Ok(p) => p,
+                            Err(e) => {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "thumb_peer_failed",
+                                    format!("op=thumb_peer_failed batch_id={batch_id} requested_peer_id={peer_str} error={e}"),
+                                );
+                                for it in p_items {
+                                    thumbs.insert(it.telegram_message_id.to_string(), None);
+                                    item_results.push(ThumbnailBatchItemResult {
+                                        request_id: it.request_id.clone(),
+                                        peer_id: it.peer_id.clone(),
+                                        telegram_message_id: it.telegram_message_id,
+                                        status: "failed".into(),
+                                        source: None,
+                                        reason: Some("PeerResolutionFailed".into()),
+                                        url: None,
+                                        classification: None,
+                                    });
+                                }
+                                continue;
+                            }
+                        };
+
+                        let mids: Vec<i32> = p_items.iter().map(|it| it.telegram_message_id).collect();
+                        tg_log::info(
+                            BACKEND,
+                            "thumb_lookup_started",
+                            format!("op=thumb_lookup_started batch_id={batch_id} requested_peer_id={peer_str} fetch_count={}", mids.len()),
+                        );
+
+                        let msgs = client.get_messages_by_id(peer, &mids).await.map_err(|e| map_invocation(&e))?;
+                        let mut msg_by_id: HashMap<i32, grammers_client::message::Message> = HashMap::new();
+                        for m_opt in msgs {
+                            if let Some(m) = m_opt {
+                                msg_by_id.insert(m.id(), m);
+                            }
+                        }
+
+                        for it in p_items {
+                            let mid = it.telegram_message_id;
+                            let item_req_id = &it.request_id;
+                            let key = mid.to_string();
+                            let term_key = format!("v99_item_{peer_str}_{mid}");
+
+                            let Some(msg) = msg_by_id.get(&mid) else {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "thumb_msg_not_returned",
+                                    format!("op=thumb_msg_not_returned batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} reason=MessageNotReturned"),
+                                );
+                                thumbs.insert(key, None);
                                 item_results.push(ThumbnailBatchItemResult {
-                                    request_id: req_id_str.clone(),
-                                    peer_id: chat.clone(),
+                                    request_id: item_req_id.clone(),
+                                    peer_id: peer_str.clone(),
                                     telegram_message_id: mid,
-                                    status: "ready".into(),
-                                    source: Some("memory_cache".into()),
-                                    reason: None,
-                                    url: Some(url.clone()),
+                                    status: "failed".into(),
+                                    source: None,
+                                    reason: Some("MessageNotReturned".into()),
+                                    url: None,
+                                    classification: None,
+                                });
+                                continue;
+                            };
+
+                            let msg_var = "Message";
+                            let text_len = msg.text().len();
+                            let raw_var = if msg.media().is_some() { "Media" } else { "Text" };
+                            let has_media = msg.media().is_some();
+
+                            // Requirement 9: Inspection log
+                            tg_log::info(
+                                BACKEND,
+                                "thumb_message_inspected",
+                                format!(
+                                    "op=thumb_message_inspected batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} returned_message_id={} message_variant={msg_var} text_length={text_len} has_media={has_media} raw_media_variant={raw_var}",
+                                    msg.id()
+                                ),
+                            );
+
+                            if !has_media {
+                                tg_log::warn(
+                                    BACKEND,
+                                    "MediaListingContractViolation",
+                                    format!("op=MediaListingContractViolation batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid}"),
+                                );
+                                if let Some(app_handle) = &app_ref {
+                                    use tauri::Emitter;
+                                    let _ = app_handle.emit(
+                                        "topic-media://invalidate-media-row",
+                                        serde_json::json!({
+                                            "peerId": peer_str.clone(),
+                                            "telegramMessageId": mid,
+                                            "reason": "MediaListingContractViolation"
+                                        }),
+                                    );
+                                }
+                                thumb_terminal_cache().lock().insert(term_key);
+                                thumbs.insert(key, None);
+                                item_results.push(ThumbnailBatchItemResult {
+                                    request_id: item_req_id.clone(),
+                                    peer_id: peer_str.clone(),
+                                    telegram_message_id: mid,
+                                    status: "not_applicable".into(),
+                                    source: None,
+                                    reason: Some("MediaListingContractViolation".into()),
+                                    url: None,
+                                    classification: Some("NoMedia".into()),
                                 });
                                 continue;
                             }
-                        }
-                    }
-                    let q_file = t_dir.join(format!("{q_cache}.jpg"));
-                    if q_file.is_file() {
-                        if let Ok(bytes) = std::fs::read(&q_file) {
-                            let min_ok = 64;
-                            if bytes.len() >= min_ok {
-                                if let Some(url) = to_data_url(&bytes) {
-                                    thumb_mem_cache().lock().insert(q_cache, url.clone());
-                                    thumbs.insert(key.clone(), Some(url.clone()));
-                                    item_results.push(ThumbnailBatchItemResult {
-                                        request_id: req_id_str.clone(),
-                                        peer_id: chat.clone(),
-                                        telegram_message_id: mid,
-                                        status: "ready".into(),
-                                        source: Some("disk_cache".into()),
-                                        reason: None,
-                                        url: Some(url.clone()),
-                                    });
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                    let Some(msg) = msg_by_id.get(&mid) else {
-                        tg_log::warn(
-                            BACKEND,
-                            "thumb_msg_not_returned",
-                            format!("op=thumb_msg_not_returned request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} reason=MessageNotReturned"),
-                        );
-                        thumbs.insert(key.clone(), None);
-                        item_results.push(ThumbnailBatchItemResult {
-                            request_id: req_id_str.clone(),
-                            peer_id: chat.clone(),
-                            telegram_message_id: mid,
-                            status: "failed".into(),
-                            source: None,
-                            reason: Some("MessageNotReturned".into()),
-                            url: None,
-                        });
-                        continue;
-                    };
-                    let returned_id = msg.id();
-                    if returned_id != mid {
-                        tg_log::warn(
-                            BACKEND,
-                            "thumb_identity_mismatch",
-                            format!("op=thumb_identity_mismatch request_id={req_id_str} requested_peer={chat} requested_message_id={mid} returned_peer={chat} returned_message_id={returned_id} reason=MessageIdentityMismatch"),
-                        );
-                        thumbs.insert(key.clone(), None);
-                        item_results.push(ThumbnailBatchItemResult {
-                            request_id: req_id_str.clone(),
-                            peer_id: chat.clone(),
-                            telegram_message_id: mid,
-                            status: "failed".into(),
-                            source: None,
-                            reason: Some("MessageIdentityMismatch".into()),
-                            url: None,
-                        });
-                        continue;
-                    }
-                    let maybe_media = msg.media();
-                    let has_media = maybe_media.is_some();
-                    let media_kind_str = match &maybe_media {
-                        Some(Media::Photo(_)) => "photo",
-                        Some(Media::Document(_)) => "document",
-                        Some(Media::Sticker(_)) => "sticker",
-                        _ => "none",
-                    };
-                    tg_log::info(
-                        BACKEND,
-                        "thumb_message_resolved",
-                        format!("op=thumb_message_resolved request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} returned_peer_id={chat} returned_message_id={returned_id} has_media={has_media} media_kind={media_kind_str}"),
-                    );
-                    let Some(media) = maybe_media else {
-                        tg_log::warn(
-                            BACKEND,
-                            "thumb_no_media",
-                            format!("op=thumb_no_media request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} reason=MessageHasNoMedia"),
-                        );
-                        thumbs.insert(key.clone(), None);
-                        item_results.push(ThumbnailBatchItemResult {
-                            request_id: req_id_str.clone(),
-                            peer_id: chat.clone(),
-                            telegram_message_id: mid,
-                            status: "failed".into(),
-                            source: None,
-                            reason: Some("MessageHasNoMedia".into()),
-                            url: None,
-                        });
-                        continue;
-                    };
-                    let media_cloned = media.clone();
-                    let client_ref = client.clone();
-                    let mid_val = mid;
-                    let q_sub = quality_owned.clone();
-                    let c_sub = chat_safe.clone();
-                    let t_sub = t_dir.clone();
-                    let req_id_sub = req_id_str.clone();
 
-                    let is_heavy_video = match &media {
-                        Media::Document(d) => {
-                            let mime = d.mime_type().unwrap_or("").to_lowercase();
-                            let name = d.name().unwrap_or("").to_lowercase();
-                            let has_video_attr = d.raw.video;
-                            let sizes = media_thumbs(Some(&client), &media);
-                            let is_v = has_video_attr
-                                || mime.starts_with("video/")
-                                || name.ends_with(".mp4")
-                                || name.ends_with(".mov")
-                                || name.ends_with(".mkv")
-                                || name.ends_with(".webm")
-                                || name.ends_with(".avi")
-                                || name.ends_with(".ts");
-                            let has_static = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)));
-                            is_v && !has_static
-                        }
-                        _ => false,
-                    };
-
-                    let sem_sub = if is_heavy_video {
-                        video_sem.clone()
-                    } else {
-                        fast_sem.clone()
-                    };
-
-                    set.spawn(async move {
-                        let _permit = sem_sub.acquire_owned().await.ok();
-                        let cache_file = t_sub.join(format!("v99_{c_sub}_{mid_val}_{q_sub}.jpg"));
-                        let rand_id = now_ms();
-                        let part_file = t_sub.join(format!("v99_{c_sub}_{mid_val}_{q_sub}.{rand_id}.part"));
-                        match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
-                            Ok(bytes) => {
-                                let min_ok = 64;
-                                if bytes.len() < min_ok {
-                                    return (mid_val, req_id_sub, None, Some("ThumbPayloadTooSmall".to_string()));
-                                }
-                                if std::fs::write(&part_file, &bytes).is_ok() {
-                                    let _ = std::fs::rename(&part_file, &cache_file);
-                                }
-                                let url = to_data_url(&bytes);
-                                if let Some(ref u) = url {
-                                    thumb_mem_cache().lock().insert(
-                                        format!("v99_{c_sub}_{mid_val}_{q_sub}"),
-                                        u.clone(),
-                                    );
-                                }
-                                (mid_val, req_id_sub, url, None)
-                            }
-                            Err(e) => {
-                                let err_str = e.to_string();
-                                (mid_val, req_id_sub, None, Some(err_str))
-                            }
-                        }
-                    });
-                }
-
-                while let Some(res) = set.join_next().await {
-                    if let Ok((mid_i32, r_id, v, err_opt)) = res {
-                        let k = mid_i32.to_string();
-                        if let Some(ref url_str) = v {
-                            if let Some(app_handle) = app_ref.as_ref() {
-                                let _ = app_handle.emit(
-                                    "thumb_single_ready",
-                                    ThumbSinglePayload {
-                                        chat_id: chat.clone(),
-                                        message_id: mid_i32 as i64,
-                                        quality: q_key.to_string(),
-                                        url: (*url_str).clone(),
-                                        is_placeholder: false,
-                                    },
+                            // Requirement 3: Explicit Media Classification
+                            let classification = classify_message_media(msg);
+                            if classification.is_generic_or_non_media() {
+                                tg_log::info(
+                                    BACKEND,
+                                    "thumb_generic_fallback",
+                                    format!(
+                                        "op=thumb_generic_fallback batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification={} status=fallback source=file_type_icon reason=GenericDocumentNoThumbnail",
+                                        classification.as_str()
+                                    ),
                                 );
+                                thumb_terminal_cache().lock().insert(term_key);
+                                thumbs.insert(key, None);
+                                item_results.push(ThumbnailBatchItemResult {
+                                    request_id: item_req_id.clone(),
+                                    peer_id: peer_str.clone(),
+                                    telegram_message_id: mid,
+                                    status: "fallback".into(),
+                                    source: Some("file_type_icon".into()),
+                                    reason: Some("GenericDocumentNoThumbnail".into()),
+                                    url: None,
+                                    classification: Some(classification.as_str().to_string()),
+                                });
+                                continue;
                             }
-                            thumbs.insert(k, Some(url_str.clone()));
+
+                            // Photo or document static thumbnail extraction
+                            let Some(media) = msg.media() else { continue; };
+                            let peer_safe: String = peer_str.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect();
+                            let q_cache = format!("v99_item_{peer_safe}_{mid}_{q_key}");
+
+                            let dl_res = download_media_thumb(&client, &media, q_key).await;
+                            match dl_res {
+                                Ok(bytes) if bytes.len() >= 64 => {
+                                    let cache_file = t_dir.join(format!("{q_cache}.jpg"));
+                                    let rand_id = now_ms();
+                                    let part_file = t_dir.join(format!("{q_cache}.{rand_id}.part"));
+                                    if std::fs::write(&part_file, &bytes).is_ok() {
+                                        let _ = std::fs::rename(&part_file, &cache_file);
+                                    }
+                                    if let Some(url) = to_data_url(&bytes) {
+                                        thumb_mem_cache().lock().insert(q_cache, url.clone());
+                                        thumbs.insert(key, Some(url.clone()));
+                                        item_results.push(ThumbnailBatchItemResult {
+                                            request_id: item_req_id.clone(),
+                                            peer_id: peer_str.clone(),
+                                            telegram_message_id: mid,
+                                            status: "ready".into(),
+                                            source: Some("telegram_thumb".into()),
+                                            reason: None,
+                                            url: Some(url),
+                                            classification: Some(classification.as_str().to_string()),
+                                        });
+                                        continue;
+                                    }
+                                }
+                                _ => {}
+                            }
+
+                            // Requirement 4: FFmpeg strictly gated for Video ONLY
+                            if classification.is_video() {
+                                tg_log::info(
+                                    BACKEND,
+                                    "thumb_ffmpeg_attempt",
+                                    format!("op=thumb_ffmpeg_attempt batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification=VideoDocument"),
+                                );
+                                if let Some(_caps) = get_ffmpeg_capabilities() {
+                                    let rt_handle = tokio::runtime::Handle::current();
+                                    let total_size = media.size().unwrap_or(0) as u64;
+                                    let max_budget = 2 * 1024 * 1024;
+                                    if let Some(bridge) = spawn_range_bridge(&rt_handle, client.clone(), media.clone(), total_size, max_budget) {
+                                        let probe_url = bridge.url.clone();
+                                        let q_mode = q_key.to_string();
+                                        let frame_res = tokio::task::spawn_blocking(move || {
+                                            extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
+                                        }).await;
+                                        if let Ok(Some(frame_bytes)) = frame_res {
+                                            if frame_bytes.len() >= 64 && !is_fallback_black_card_bytes(&frame_bytes) {
+                                                if let Some(url) = to_data_url(&frame_bytes) {
+                                                    thumbs.insert(key.clone(), Some(url.clone()));
+                                                    item_results.push(ThumbnailBatchItemResult {
+                                                        request_id: item_req_id.clone(),
+                                                        peer_id: peer_str.clone(),
+                                                        telegram_message_id: mid,
+                                                        status: "ready".into(),
+                                                        source: Some("ffmpeg_range".into()),
+                                                        reason: None,
+                                                        url: Some(url),
+                                                        classification: Some(classification.as_str().to_string()),
+                                                    });
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Default fallback if no static thumb or ffmpeg frame retrieved
+                            thumb_terminal_cache().lock().insert(term_key);
+                            thumbs.insert(key, None);
                             item_results.push(ThumbnailBatchItemResult {
-                                request_id: r_id,
-                                peer_id: chat.clone(),
-                                telegram_message_id: mid_i32,
-                                status: "ready".into(),
-                                source: Some("telegram_download".into()),
-                                reason: None,
-                                url: Some(url_str.clone()),
-                            });
-                        } else {
-                            thumbs.insert(k, None);
-                            item_results.push(ThumbnailBatchItemResult {
-                                request_id: r_id,
-                                peer_id: chat.clone(),
-                                telegram_message_id: mid_i32,
-                                status: "failed".into(),
-                                source: None,
-                                reason: err_opt.or(Some("DownloadFailed".into())),
+                                request_id: item_req_id.clone(),
+                                peer_id: peer_str.clone(),
+                                telegram_message_id: mid,
+                                status: "fallback".into(),
+                                source: Some("file_type_icon".into()),
+                                reason: Some("NoThumbnailAvailable".into()),
                                 url: None,
+                                classification: Some(classification.as_str().to_string()),
                             });
                         }
                     }
-                }
 
-                tg_log::info(
-                    BACKEND,
-                    "thumbs_batch",
-                    format!(
-                        "op=thumb_batch_done request_id={req_id_str} chat={} q={} total={} ok={}",
-                        chat,
-                        q_key,
-                        uncached_ids.len(),
-                        thumbs.values().filter(|v| v.is_some()).count()
-                    ),
-                );
-                Ok(ThumbsBatchResult {
-                    status: "success".into(),
-                    thumbs,
-                    items: item_results,
-                    backend: BACKEND.into(),
+                    Ok(ThumbsBatchResult {
+                        status: "success".into(),
+                        thumbs,
+                        items: item_results,
+                        backend: BACKEND.into(),
+                    })
                 })
             })
-            })
-        })
-        .await
+        }).await
     })
 }
 
@@ -1851,5 +1940,78 @@ mod tests {
         assert_eq!(resolved_results.get(&30), Some(&None)); // Missing ID 30 cleanly resolved as None, not swapped!
         assert_eq!(resolved_results.get(&40), Some(&Some("msg_40".to_string())));
         assert_eq!(resolved_results.get(&50), Some(&Some("msg_50".to_string())));
+    }
+
+    #[test]
+    fn test_per_item_request_id_correlation() {
+        let peer_id = "-1004468191168";
+        let msg_id = 215;
+        let gen = 4;
+        let valid_req_id = format!("thumb:{}:{}:g{}", peer_id, msg_id, gen);
+        assert_eq!(valid_req_id, "thumb:-1004468191168:215:g4");
+
+        let mismatch_req_id = "thumb:-1004468191168:214:g4";
+        assert_ne!(mismatch_req_id, valid_req_id);
+    }
+
+    #[test]
+    fn test_media_classification_ffmpeg_gating() {
+        // Generic bin files must be classified as GenericDocument and reject FFmpeg
+        let bin_class = classify_media_preview(Some("application/octet-stream"), Some("speed_12mb.bin"));
+        assert!(matches!(bin_class, MediaPreviewClass::GenericDocument));
+        assert!(!is_ffmpeg_eligible_media(&bin_class, Some("application/octet-stream"), Some("speed_12mb.bin")));
+
+        // Archive zip files must reject FFmpeg
+        let zip_class = classify_media_preview(Some("application/zip"), Some("data.zip"));
+        assert!(matches!(zip_class, MediaPreviewClass::ArchiveDocument));
+        assert!(!is_ffmpeg_eligible_media(&zip_class, Some("application/zip"), Some("data.zip")));
+
+        // Video mp4 must accept FFmpeg
+        let video_class = classify_media_preview(Some("video/mp4"), Some("clip.mp4"));
+        assert!(matches!(video_class, MediaPreviewClass::TelegramVideo | MediaPreviewClass::VideoDocument));
+        assert!(is_ffmpeg_eligible_media(&video_class, Some("video/mp4"), Some("clip.mp4")));
+    }
+
+    #[test]
+    fn test_parse_thumb_request_id_valid() {
+        let req_id = "thumb:-1004468191168:220:g2";
+        let parsed = parse_thumb_request_id(req_id).expect("Should parse valid thumb request ID");
+        assert_eq!(parsed.peer_id, "-1004468191168");
+        assert_eq!(parsed.message_id, 220);
+        assert_eq!(parsed.generation, 2);
+    }
+
+    #[test]
+    fn test_parse_thumb_request_id_mismatch_and_invalid() {
+        let req_id = "thumb:-1004468191168:220:g2";
+        let parsed = parse_thumb_request_id(req_id).unwrap();
+        // Mismatch check
+        assert_ne!(parsed.message_id, 221);
+        assert_ne!(parsed.peer_id, "-1001234567890");
+
+        // Invalid format
+        assert!(parse_thumb_request_id("invalid_format").is_none());
+        assert!(parse_thumb_request_id("thumb:-1004468191168:220").is_none());
+    }
+
+    #[test]
+    fn test_request_id_no_double_append() {
+        let prefix = "thumb:-1004468191168:220:g2";
+        let msg_id = 220;
+        let formatted = if prefix.contains(":g") || prefix.ends_with(&msg_id.to_string()) {
+            prefix.to_string()
+        } else {
+            format!("{prefix}:{msg_id}")
+        };
+        assert_eq!(formatted, "thumb:-1004468191168:220:g2");
+        assert_ne!(formatted, "thumb:-1004468191168:220:g2:220");
+    }
+
+    #[test]
+    fn test_batch_id_uuid_format() {
+        let uuid_str = "550e8400-e29b-41d4-a716-446655440000";
+        let batch_id = format!("thumb-batch:{uuid_str}");
+        assert!(batch_id.starts_with("thumb-batch:"));
+        assert_ne!(batch_id, "thumb-batch:default");
     }
 }

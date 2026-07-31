@@ -60,6 +60,17 @@ pub async fn search_topic_media(
         hash: 0,
     };
 
+    crate::core::tg_log::info(
+        "grammers",
+        "media_list_entry",
+        format!(
+            "op=media_list_entry provider=grammers_search peer_id={} topic_id={} offset={}",
+            ctx.peer_id,
+            ctx.topic_id.unwrap_or(0),
+            offset_id
+        ),
+    );
+
     let result = client
         .invoke(&req)
         .await
@@ -77,6 +88,20 @@ pub async fn search_topic_media(
 
     for tl_msg in messages {
         if let Some(item) = message_to_topic_media_item(ctx, &tl_msg) {
+            crate::core::tg_log::info(
+                "grammers",
+                "media_list_row_out",
+                format!(
+                    "op=media_list_row_out provider=grammers_search peer_id={} telegram_message_id={} telegram_message_variant=Message has_media=true raw_media_variant={} media_class={} file_name={} mime_type={} document_id={} photo_id=none",
+                    item.peer_id,
+                    item.message_id,
+                    item.media_type,
+                    item.media_type,
+                    item.file_name,
+                    item.mime_type.as_deref().unwrap_or("none"),
+                    item.document_id.map(|d| d.to_string()).unwrap_or_else(|| "none".into())
+                ),
+            );
             last_cursor = Some(TopicMediaCursor {
                 message_date: item.message_date,
                 message_id: item.message_id,

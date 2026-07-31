@@ -90,241 +90,179 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
     let id = msg.id() as i64;
     let created = Some(msg.date().to_rfc3339());
     let caption = msg.text().trim();
-    let maybe_media = msg.media();
+    let Some(media) = msg.media() else {
+        crate::core::tg_log::info(
+            BACKEND,
+            "MediaListingRejectedNoMedia",
+            format!("op=MediaListingRejectedNoMedia peer_id={} telegram_message_id={}", folder_id.unwrap_or(0), id),
+        );
+        return None;
+    };
 
-    if let Some(media) = maybe_media {
-        let size = media.size().unwrap_or(0) as u64;
-        let thumb_data_url = crate::core::grammers_media::stripped_thumb_data_url(&media);
-        let has_thumb = thumb_data_url.is_some()
-            || match &media {
-                Media::Photo(_) => true,
-                Media::Document(d) => {
-                    let mime = d.mime_type().unwrap_or("").to_lowercase();
-                    let name = d.name().unwrap_or("").to_lowercase();
-                    let is_video = mime.starts_with("video/")
-                        || name.ends_with(".mp4")
-                        || name.ends_with(".mov")
-                        || name.ends_with(".mkv")
-                        || name.ends_with(".webm")
-                        || name.ends_with(".avi")
-                        || name.ends_with(".m4v")
-                        || name.ends_with(".3gp");
-                    !d.thumbs().is_empty() || is_video
-                }
-                Media::Sticker(s) => !s.document.thumbs().is_empty(),
-                _ => false,
+    let size = media.size().unwrap_or(0) as u64;
+    let thumb_data_url = crate::core::grammers_media::stripped_thumb_data_url(&media);
+    let has_thumb = thumb_data_url.is_some()
+        || match &media {
+            Media::Photo(_) => true,
+            Media::Document(d) => {
+                let mime = d.mime_type().unwrap_or("").to_lowercase();
+                let name = d.name().unwrap_or("").to_lowercase();
+                let is_video = mime.starts_with("video/")
+                    || name.ends_with(".mp4")
+                    || name.ends_with(".mov")
+                    || name.ends_with(".mkv")
+                    || name.ends_with(".webm")
+                    || name.ends_with(".avi")
+                    || name.ends_with(".m4v")
+                    || name.ends_with(".3gp");
+                !d.thumbs().is_empty() || is_video
+            }
+            Media::Sticker(s) => !s.document.thumbs().is_empty(),
+            _ => false,
+        };
+    match media {
+        Media::Photo(_p) => {
+            let name = if !caption.is_empty() {
+                format!("{caption}.jpg")
+            } else {
+                format!("photo_{id}.jpg")
             };
-        match media {
-            Media::Photo(_p) => {
-                let name = if !caption.is_empty() {
-                    format!("{caption}.jpg")
-                } else {
-                    format!("photo_{id}.jpg")
-                };
-                let row = MediaFileRow {
-                    id,
-                    folder_id,
-                    name,
-                    size,
-                    mime_type: Some("image/jpeg".into()),
-                    icon_type: "image".into(),
-                    created_at: created,
-                    has_thumb,
-                    as_document: false,
-                    backend: BACKEND.into(),
-                    thumb_data_url,
-                    topic_id: message_topic_id(msg),
-                    identity_source: Some("telegram_search".into()),
-                };
-                crate::core::tg_log::info(
-                    BACKEND,
-                    "media_row_created",
-                    format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind=image has_media_metadata=true", folder_id.unwrap_or(0), id, message_topic_id(msg)),
-                );
-                Some(row)
-            }
-            Media::Document(doc) => {
-                let n = doc
-                    .name()
-                    .map(|s| s.to_string())
-                    .filter(|s| !s.is_empty())
-                    .or_else(|| {
-                        if !caption.is_empty() {
-                            Some(caption.to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or_else(|| format!("file_{id}"));
-                let mime = doc.mime_type().map(|s| s.to_string());
-                let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
-                let name_l = n.to_ascii_lowercase();
-
-                let is_video_file = mime_l.starts_with("video/")
-                    || name_l.ends_with(".mp4")
-                    || name_l.ends_with(".mov")
-                    || name_l.ends_with(".mkv")
-                    || name_l.ends_with(".webm")
-                    || name_l.ends_with(".avi")
-                    || name_l.ends_with(".m4v")
-                    || name_l.ends_with(".3gp")
-                    || name_l.ends_with(".flv")
-                    || name_l.ends_with(".wmv")
-                    || name_l.ends_with(".ts")
-                    || name_l.ends_with(".m2ts")
-                    || name_l.ends_with(".vob")
-                    || name_l.ends_with(".ogv");
-
-                let is_image_file = mime_l.starts_with("image/")
-                    || name_l.ends_with(".jpg")
-                    || name_l.ends_with(".jpeg")
-                    || name_l.ends_with(".png")
-                    || name_l.ends_with(".webp")
-                    || name_l.ends_with(".gif")
-                    || name_l.ends_with(".bmp")
-                    || name_l.ends_with(".tiff");
-
-                let is_audio_file = mime_l.starts_with("audio/")
-                    || name_l.ends_with(".mp3")
-                    || name_l.ends_with(".wav")
-                    || name_l.ends_with(".flac")
-                    || name_l.ends_with(".m4a")
-                    || name_l.ends_with(".aac")
-                    || name_l.ends_with(".ogg")
-                    || name_l.ends_with(".opus");
-
-                let icon = if is_video_file {
-                    "video"
-                } else if is_audio_file {
-                    "audio"
-                } else if is_image_file {
-                    "image"
-                } else {
-                    "document"
-                };
-
-                let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
-                    if is_video_file {
-                        Some("video/mp4".to_string())
-                    } else if is_image_file {
-                        Some("image/jpeg".to_string())
-                    } else if is_audio_file {
-                        Some("audio/mpeg".to_string())
-                    } else {
-                        mime
-                    }
-                } else {
-                    mime
-                };
-
-                let is_pdf = mime_l == "application/pdf" || mime_l.contains("pdf") || name_l.ends_with(".pdf");
-
-                let doc_has_thumb = has_thumb || is_video_file || is_image_file || is_audio_file || is_pdf || !doc.thumbs().is_empty();
-
-                let row = MediaFileRow {
-                    id,
-                    folder_id,
-                    name: n,
-                    size,
-                    mime_type: final_mime,
-                    icon_type: icon.into(),
-                    created_at: created,
-                    has_thumb: doc_has_thumb,
-                    as_document: true,
-                    backend: BACKEND.into(),
-                    thumb_data_url,
-                    topic_id: message_topic_id(msg),
-                    identity_source: Some("telegram_search".into()),
-                };
-                crate::core::tg_log::info(
-                    BACKEND,
-                    "media_row_created",
-                    format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind={} has_media_metadata={doc_has_thumb} document_id={}", folder_id.unwrap_or(0), id, message_topic_id(msg), icon, doc.id()),
-                );
-                Some(row)
-            }
-            Media::Sticker(_) => Some(MediaFileRow {
+            let row = MediaFileRow {
                 id,
                 folder_id,
-                name: format!("sticker_{id}.webp"),
+                name,
                 size,
-                mime_type: Some("image/webp".into()),
+                mime_type: Some("image/jpeg".into()),
                 icon_type: "image".into(),
                 created_at: created,
                 has_thumb,
+                as_document: false,
+                backend: BACKEND.into(),
+                thumb_data_url,
+                topic_id: message_topic_id(msg),
+                identity_source: Some("telegram_search".into()),
+            };
+            crate::core::tg_log::info(
+                BACKEND,
+                "media_row_created",
+                format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind=image has_media_metadata=true", folder_id.unwrap_or(0), id, message_topic_id(msg)),
+            );
+            Some(row)
+        }
+        Media::Document(doc) => {
+            let n = doc
+                .name()
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .or_else(|| {
+                    if !caption.is_empty() {
+                        Some(caption.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| format!("file_{id}"));
+            let mime = doc.mime_type().map(|s| s.to_string());
+            let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
+            let name_l = n.to_ascii_lowercase();
+
+            let is_video_file = mime_l.starts_with("video/")
+                || name_l.ends_with(".mp4")
+                || name_l.ends_with(".mov")
+                || name_l.ends_with(".mkv")
+                || name_l.ends_with(".webm")
+                || name_l.ends_with(".avi")
+                || name_l.ends_with(".m4v")
+                || name_l.ends_with(".3gp")
+                || name_l.ends_with(".flv")
+                || name_l.ends_with(".wmv")
+                || name_l.ends_with(".ts")
+                || name_l.ends_with(".m2ts")
+                || name_l.ends_with(".vob")
+                || name_l.ends_with(".ogv");
+
+            let is_image_file = mime_l.starts_with("image/")
+                || name_l.ends_with(".jpg")
+                || name_l.ends_with(".jpeg")
+                || name_l.ends_with(".png")
+                || name_l.ends_with(".webp")
+                || name_l.ends_with(".gif")
+                || name_l.ends_with(".bmp")
+                || name_l.ends_with(".tiff");
+
+            let is_audio_file = mime_l.starts_with("audio/")
+                || name_l.ends_with(".mp3")
+                || name_l.ends_with(".wav")
+                || name_l.ends_with(".flac")
+                || name_l.ends_with(".m4a")
+                || name_l.ends_with(".aac")
+                || name_l.ends_with(".ogg")
+                || name_l.ends_with(".opus");
+
+            let icon = if is_video_file {
+                "video"
+            } else if is_audio_file {
+                "audio"
+            } else if is_image_file {
+                "image"
+            } else {
+                "document"
+            };
+
+            let final_mime = if mime.is_none() || mime_l == "application/octet-stream" {
+                if is_video_file {
+                    Some("video/mp4".to_string())
+                } else if is_image_file {
+                    Some("image/jpeg".to_string())
+                } else if is_audio_file {
+                    Some("audio/mpeg".to_string())
+                } else {
+                    mime
+                }
+            } else {
+                mime
+            };
+
+            let doc_has_thumb = has_thumb || !doc.thumbs().is_empty();
+
+            let row = MediaFileRow {
+                id,
+                folder_id,
+                name: n,
+                size,
+                mime_type: final_mime,
+                icon_type: icon.into(),
+                created_at: created,
+                has_thumb: doc_has_thumb,
                 as_document: true,
                 backend: BACKEND.into(),
                 thumb_data_url,
                 topic_id: message_topic_id(msg),
                 identity_source: Some("telegram_search".into()),
-            }),
-            Media::WebPage(wp) => {
-                let webpage_has_thumb = match &wp.raw.webpage {
-                    grammers_client::tl::enums::WebPage::Page(page) => {
-                        page.photo.is_some() || page.document.is_some()
-                    }
-                    _ => false,
-                };
-                let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
-                let clean_title = caption.lines().next().unwrap_or(caption).trim();
-                let display_name = if !clean_title.is_empty() {
-                    if clean_title.chars().count() > 50 {
-                        format!("{}...", clean_title.chars().take(47).collect::<String>())
-                    } else {
-                        clean_title.to_string()
-                    }
-                } else {
-                    format!("link_{id}")
-                };
-                let file_name = if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") };
-                Some(MediaFileRow {
-                    id,
-                    folder_id,
-                    name: file_name,
-                    size: caption.len() as u64,
-                    mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
-                    icon_type: if is_link { "link".into() } else { "document".into() },
-                    created_at: created,
-                    has_thumb: webpage_has_thumb,
-                    as_document: false,
-                    backend: BACKEND.into(),
-                    thumb_data_url,
-                    topic_id: message_topic_id(msg),
-                    identity_source: Some("telegram_search".into()),
-                })
-            }
-            _ => None,
+            };
+            crate::core::tg_log::info(
+                BACKEND,
+                "media_row_created",
+                format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind={} has_media_metadata={doc_has_thumb} document_id={}", folder_id.unwrap_or(0), id, message_topic_id(msg), icon, doc.id()),
+            );
+            Some(row)
         }
-    } else if !caption.is_empty() {
-        let is_link = caption.contains("http://") || caption.contains("https://") || caption.contains("t.me/");
-        let clean_title = caption.lines().next().unwrap_or(caption).trim();
-        let display_name = if clean_title.chars().count() > 50 {
-            format!("{}...", clean_title.chars().take(47).collect::<String>())
-        } else {
-            clean_title.to_string()
-        };
-        let file_name = if is_link {
-            if display_name.ends_with(".url") { display_name } else { format!("{display_name}.url") }
-        } else {
-            if display_name.ends_with(".txt") { display_name } else { format!("{display_name}.txt") }
-        };
-        Some(MediaFileRow {
+        Media::Sticker(_) => Some(MediaFileRow {
             id,
             folder_id,
-            name: file_name,
-            size: caption.len() as u64,
-            mime_type: Some(if is_link { "text/html".into() } else { "text/plain".into() }),
-            icon_type: if is_link { "link".into() } else { "document".into() },
+            name: format!("sticker_{id}.webp"),
+            size,
+            mime_type: Some("image/webp".into()),
+            icon_type: "image".into(),
             created_at: created,
-            has_thumb: false,
-            as_document: false,
+            has_thumb,
+            as_document: true,
             backend: BACKEND.into(),
-            thumb_data_url: None,
+            thumb_data_url,
             topic_id: message_topic_id(msg),
             identity_source: Some("telegram_search".into()),
-        })
-    } else {
-        None
+        }),
+        _ => None,
     }
 }
 

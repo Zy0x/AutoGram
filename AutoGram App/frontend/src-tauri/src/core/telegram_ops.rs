@@ -539,14 +539,29 @@ pub fn tg_list_topics(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ThumbnailItemRequest {
+    pub request_id: String,
+    pub peer_id: String,
+    pub telegram_message_id: i32,
+    #[serde(default)]
+    pub quality: Option<String>,
+    #[serde(default)]
+    pub generation: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ThumbsBatchRequest {
-    pub request_id: Option<String>,
     pub session: String,
     pub api_id: i64,
     pub api_hash: String,
-    pub chat_id: String,
+    pub batch_id: Option<String>,
+    #[serde(default)]
+    pub items: Vec<ThumbnailItemRequest>,
+    pub request_id: Option<String>,
+    pub chat_id: Option<String>,
     pub telegram_peer_id: Option<String>,
-    pub message_ids: Vec<i64>,
+    pub message_ids: Option<Vec<i64>>,
     pub telegram_message_ids: Option<Vec<i64>>,
     pub quality: Option<String>,
 }
@@ -563,22 +578,17 @@ pub fn tg_thumbs_batch_app(
 ) -> OpResult<super::grammers_media::ThumbsBatchResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
-        session: req.session,
+        session: req.session.clone(),
         api_id: req.api_id,
-        api_hash: req.api_hash,
+        api_hash: req.api_hash.clone(),
     };
     let q = req.quality.as_deref().unwrap_or("balanced");
-    let target_peer = req.telegram_peer_id.as_deref().unwrap_or(&req.chat_id);
-    let target_mids = req.telegram_message_ids.as_ref().unwrap_or(&req.message_ids);
-    let req_id = req.request_id.as_deref();
 
-    match super::grammers_media::thumbs_batch_blocking_app(
+    match super::grammers_media::thumbs_batch_items_blocking_app(
         &dir,
         &identity,
-        target_peer,
-        target_mids,
+        &req,
         q,
-        req_id,
         app,
     ) {
         Ok(r) => ok_result("grammers", r),

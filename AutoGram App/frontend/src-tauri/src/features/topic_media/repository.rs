@@ -21,6 +21,26 @@ pub fn get_cached_page(
     limit: usize,
 ) -> Result<Vec<TopicMediaItem>, TopicMediaError> {
     let conn = open_db().map_err(|e| TopicMediaError::Internal(e))?;
+
+    // Environment wipe or startup purge of legacy non-media synthesized rows
+    if std::env::var("AUTOGRAM_CLEAR_MEDIA_CACHE").map(|v| v == "1").unwrap_or(false) {
+        let _ = conn.execute("DELETE FROM topic_media_items", []);
+        crate::core::tg_log::info(
+            "grammers",
+            "media_cache_schema",
+            "op=media_cache_schema database_name=autogram.db store_name=topic_media_items migration_action=clear row_count_after=0",
+        );
+    } else {
+        let count_before: i64 = conn.query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0)).unwrap_or(0);
+        let _ = conn.execute("DELETE FROM topic_media_items WHERE media_type = 'url' OR media_type NOT IN ('photo', 'video', 'document', 'audio')", []);
+        let count_after: i64 = conn.query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0)).unwrap_or(0);
+        crate::core::tg_log::info(
+            "grammers",
+            "media_cache_schema",
+            format!("op=media_cache_schema database_name=autogram.db store_name=topic_media_items row_count_before={count_before} migration_action=purge_invalid row_count_after={count_after}"),
+        );
+    }
+
     let limit = limit.clamp(1, 100);
 
     let mut sql = String::from(
@@ -29,7 +49,7 @@ pub fn get_cached_page(
          dc_id, file_reference, width, height, duration_ms, has_server_thumb, has_video_thumb, \
          is_deleted, created_at, updated_at \
          FROM topic_media_items \
-         WHERE account_id = ?1 AND peer_id = ?2 AND is_deleted = 0",
+         WHERE account_id = ?1 AND peer_id = ?2 AND is_deleted = 0 AND media_type IN ('photo', 'video', 'document', 'audio')",
     );
 
     let mut params_vec: Vec<rusqlite::types::Value> = vec![

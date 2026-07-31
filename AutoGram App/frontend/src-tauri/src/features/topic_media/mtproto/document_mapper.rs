@@ -18,7 +18,28 @@ pub fn message_to_topic_media_item(
 ) -> Option<TopicMediaItem> {
     let m = match msg {
         tl::enums::Message::Message(m) => m,
-        _ => return None,
+        tl::enums::Message::Service(s) => {
+            crate::core::tg_log::info(
+                "grammers",
+                "media_list_rejected_no_media",
+                format!(
+                    "op=media_list_rejected_no_media peer_id={} message_id={} message_variant=MessageService has_media=false raw_media_variant=None",
+                    ctx.peer_id, s.id
+                ),
+            );
+            return None;
+        }
+        tl::enums::Message::Empty(e) => {
+            crate::core::tg_log::info(
+                "grammers",
+                "media_list_rejected_no_media",
+                format!(
+                    "op=media_list_rejected_no_media peer_id={} message_id={} message_variant=MessageEmpty has_media=false raw_media_variant=None",
+                    ctx.peer_id, e.id
+                ),
+            );
+            return None;
+        }
     };
 
     let message_id = m.id as i64;
@@ -150,49 +171,27 @@ pub fn message_to_topic_media_item(
                     updated_at: now,
                 })
             }
-            _ => None,
-        }
-    } else if let Some(ref c) = caption {
-        let is_link = c.contains("http://") || c.contains("https://") || c.contains("t.me/");
-        if is_link {
-            let clean_title = c.lines().next().unwrap_or(c).trim();
-            let file_name = if clean_title.ends_with(".url") {
-                clean_title.to_string()
-            } else {
-                format!("{clean_title}.url")
-            };
-            Some(TopicMediaItem {
-                account_id: ctx.account_id.clone(),
-                peer_id: ctx.peer_id.clone(),
-                topic_id: ctx.topic_id,
-                message_id,
-                message_date,
-                edit_date: None,
-                grouped_id: m.grouped_id,
-                sender_id: None,
-                caption: Some(c.clone()),
-                media_type: "url".to_string(),
-                mime_type: Some("text/html".to_string()),
-                file_name,
-                file_size: c.len() as u64,
-                document_id: None,
-                access_hash: None,
-                dc_id: None,
-                file_reference: None,
-                width: None,
-                height: None,
-                duration_ms: None,
-                has_server_thumb: false,
-                has_video_thumb: false,
-                thumb_url: None,
-                is_deleted: false,
-                created_at: now,
-                updated_at: now,
-            })
-        } else {
-            None
+            _ => {
+                crate::core::tg_log::info(
+                    "grammers",
+                    "media_list_rejected_no_media",
+                    format!(
+                        "op=media_list_rejected_no_media peer_id={} message_id={} message_variant=Message has_media=false raw_media_variant=OtherOrNone",
+                        ctx.peer_id, message_id
+                    ),
+                );
+                None
+            }
         }
     } else {
+        crate::core::tg_log::info(
+            "grammers",
+            "media_list_rejected_no_media",
+            format!(
+                "op=media_list_rejected_no_media peer_id={} message_id={} message_variant=Message has_media=false raw_media_variant=None",
+                ctx.peer_id, message_id
+            ),
+        );
         None
     }
 }

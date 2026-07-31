@@ -12,11 +12,19 @@ export async function driveThumbnailsBatch(
     quality?: 'saver' | 'balanced' | 'sharp';
     batchSize?: number;
     requestId?: string;
+    batchId?: string;
+    items?: Array<{
+      requestId: string;
+      peerId: string;
+      telegramMessageId: number;
+      quality?: string;
+      generation?: number;
+    }>;
     telegramPeerId?: string;
     telegramMessageIds?: number[];
   }
 ) {
-  if (!messageIds.length) return { status: 'success', thumbs: {} as Record<string, string | null>, items: [] };
+  if (!messageIds.length && !opts?.items?.length) return { status: 'success', thumbs: {} as Record<string, string | null>, items: [] };
   const quality = opts?.quality || 'balanced';
   const batch =
     opts?.batchSize ??
@@ -32,6 +40,8 @@ export async function driveThumbnailsBatch(
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgThumbsBatch({
       requestId: opts?.requestId,
+      batchId: opts?.batchId,
+      items: opts?.items,
       session: creds.session,
       apiId,
       apiHash: creds.apiHash,
