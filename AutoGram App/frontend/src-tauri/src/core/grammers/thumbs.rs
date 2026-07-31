@@ -15,7 +15,9 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
-use super::ffmpeg::{extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg};
+use super::ffmpeg::{extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg};
+use super::thumbnail_range_bridge::spawn_range_bridge;
+
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use crate::core::grammers_ops::{
     obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
@@ -651,30 +653,11 @@ async fn download_media_thumb(
                 }
             } else if is_video {
                 let doc_size = d.size().unwrap_or(0) as usize;
-                let mode = quality.to_lowercase();
-                let saver = mode.contains("hemat") || mode.contains("saver");
 
-                // Phase 3: Detect AV1 encoding to apply larger sample budget.
-                // AV1 MP4s often store moov at the end and have sparse keyframes;
-                // 2 MB from the head is insufficient — 8 MB covers 99% of Telegram AV1 uploads.
-                // We check both the MIME type / filename and the actual magic bytes in the first chunk.
                 let is_av1_video = mime.contains("av1")
                     || name.ends_with(".av1")
                     || sample_bytes.windows(4).any(|w| w == b"av1C")
                     || sample_bytes.windows(4).any(|w| w == b"av01");
-
-                // Apply 8 MB sample budget for AV1 / 2K MP4 video documents to handle sparse keyframes.
-
-                // In Saver (Hemat) mode: fetch up to 768KB sample (3 chunks) for fast frame extraction without heavy bandwidth waste.
-                // In Seimbang/Jelas mode: fetch up to 2MB sample (non-AV1) or 8MB (AV1) to handle late moov atoms.
-                let max_sample = if is_av1_video {
-                    // AV1 needs more headroom — saver uses 4 MB, normal uses 8 MB
-                    if saver { 4 * 1024 * 1024 } else { 8 * 1024 * 1024 }
-                } else if saver {
-                    768 * 1024
-                } else {
-                    2048 * 1024
-                };
 
                 let ext_hint = if name.ends_with(".webm") {
                     "webm"
@@ -694,93 +677,22 @@ async fn download_media_thumb(
                     "mp4"
                 };
 
-                while sample_bytes.len() < max_sample {
-                    if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
-                        sample_bytes.extend_from_slice(&chunk);
-                    } else {
-                        break;
+                // Level 3 primary path: Seekable Local HTTP Range Bridge for FFmpeg
+                if doc_size > 0 {
+                    if let Ok(rt) = tokio::runtime::Handle::try_current() {
+                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64) {
+                            if let Some(frame_bytes) = extract_ffmpeg_frame_from_url(&bridge.url, quality, is_av1_video) {
+                                return Ok(frame_bytes);
+                            }
+                        }
                     }
                 }
 
+                // Secondary fallback for local sample bytes
                 if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
                     return Ok(frame_bytes);
                 }
 
-                // Try patched mdat header for truncated faststart MP4s
-                let patched_sample = patch_head_mp4(&sample_bytes);
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&patched_sample, quality, ext_hint) {
-                    return Ok(frame_bytes);
-                }
-
-                // Progressive multi-pass tail chunk fetch (8 chunks = 2MB, 24 chunks = 6MB, 48 chunks = 12MB)
-                // Covers large 2K/4K MP4 video documents where moov atom exceeds 2MB or is offset from EOF.
-                let chunk_bytes = 256 * 1024;
-                let mut last_tail_bytes: Option<Vec<u8>> = None;
-                if doc_size > 0 {
-                    let total_chunks = (doc_size + chunk_bytes - 1) / chunk_bytes;
-                    for tail_count in [8usize, 24usize, 48usize, 96usize, 160usize] {
-                        let actual_tail_count = tail_count.min(total_chunks);
-                        let skip = total_chunks.saturating_sub(actual_tail_count) as i32;
-                        let mut tail_bytes = Vec::new();
-                        let mut tail_iter = client.iter_download(d).chunk_size(chunk_bytes as i32).skip_chunks(skip);
-                        while let Ok(Some(chunk)) = tail_iter.next().await.map_err(|e| map_invocation(&e)) {
-                            tail_bytes.extend_from_slice(&chunk);
-                        }
-                        if !tail_bytes.is_empty() {
-                            last_tail_bytes = Some(tail_bytes.clone());
-                            if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, &tail_bytes) {
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
-                            }
-                            if let Some(frame_bytes) = make_smart_target_mp4(client, d, &sample_bytes, &tail_bytes, quality, ext_hint).await {
-                                return Ok(frame_bytes);
-                            }
-                        }
-                        if actual_tail_count >= total_chunks {
-                            break;
-                        }
-                    }
-                }
-
-                // Ultimate Rescue Fallback for video documents (up to 25MB head sample for stubborn video files):
-                // Download additional head chunks and test FFmpeg progressively every 4MB chunk
-                let max_rescue_bytes = if doc_size > 25 * 1024 * 1024 {
-                    25 * 1024 * 1024
-                } else {
-                    doc_size.min(12 * 1024 * 1024)
-                };
-                if doc_size > 0 && sample_bytes.len() < max_rescue_bytes {
-                    while sample_bytes.len() < max_rescue_bytes {
-                        if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
-                            sample_bytes.extend_from_slice(&chunk);
-                            if sample_bytes.len() % (4 * 1024 * 1024) == 0 {
-                                if let Some(ref tail_b) = last_tail_bytes {
-                                    if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
-                                        if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                            return Ok(frame_bytes);
-                                        }
-                                    }
-                                }
-                                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                                    return Ok(frame_bytes);
-                                }
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                    if let Some(ref tail_b) = last_tail_bytes {
-                        if let Some(reconstructed) = make_faststart_mp4(&sample_bytes, tail_b) {
-                            if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&reconstructed, quality, ext_hint) {
-                                return Ok(frame_bytes);
-                            }
-                        }
-                    }
-                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                        return Ok(frame_bytes);
-                    }
-                }
             } else {
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {

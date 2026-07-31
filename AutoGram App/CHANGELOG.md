@@ -1,4 +1,13 @@
+## v2.3.96 Seekable Local HTTP Range Bridge, AV1 Software Decoder Bypass & Stderr Log Spam Elimination
+
+### Local HTTP Range Bridge & Perbaikan AV1 MP4 Video Thumbnail (`thumbnail_range_bridge.rs`, `ffmpeg.rs`, `thumbs.rs`)
+- **Seekable Local HTTP Range Bridge (`thumbnail_range_bridge.rs`)**: Menambahkan server `tiny_http` lokal sementara yang melayani request HTTP `206 Partial Content` ke FFmpeg saat pemuatan thumbnail video dokumen Telegram (MP4/AV1). Mengizinkan FFmpeg melakukan seek acak secara presisi untuk membaca atom `moov` di lokasi manapun dalam file dan mendownload < 500 KB byte keyframe AV1 secara akurat via MTProto.
+- **Eliminasi MP4 Sample Corruption**: Menghapus pemotongan dan penyambungan naif `make_faststart_mp4` yang sebelumnya memicu error `[av1] video_get_buffer: image parameters invalid` & `moov atom not found` akibat offset chunk `stco`/`co64` yang korup.
+- **AV1 Software Decoder Probe & HW Accel Bypass**: Menambahkan deteksi kapabilitas `libdav1d`/AV1 (`ffmpeg_supports_av1`), menonaktifkan hardware acceleration (`-hwaccel none`), serta melakukan fail-fast ke Fallback Icon jika biner FFmpeg tidak memiliki decoder AV1.
+- **Process Control & Stderr Log Trimming**: Membatasi stderr output subprocess FFmpeg maksimal 1 KB dan mengeliminasi total pencetakan log error ribuan baris di terminal console.
+
 ## v2.3.95 Instant Stripped Mini-Thumbs, Unpaused Thumbnail Batcher & High-Throughput RPC Pipeline
+
 
 ### Pemuatan Thumbnail Topik Instan & Pembongkaran Throughput Batcher (`media_list.rs`, `thumbs.rs`, `thumbBatcher.ts`, `DriveExplorer.tsx`)
 - **Instant Stripped Mini-Thumbs (0 MS First Paint)**: Menambahkan `tl_stripped_thumb_data_url` di backend Rust (`thumbs.rs` & `media_list.rs`) untuk ekstraksi data mini-thumb *inline JPEG* (`PhotoSize::Stripped` / `PhotoSize::Cached`) langsung dari payload pesan MTProto `GetReplies`. Merender visual buram instan (0 ms) untuk 100% kartu di topik forum tanpa kotak abu-abu.

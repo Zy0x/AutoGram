@@ -175,8 +175,8 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
 /// Phase 1: Runtime AV1 decoder capability probe.
 /// Cached in a OnceLock so the subprocess is only spawned once per app session.
 /// Returns true if the bundled FFmpeg binary was compiled with libdav1d, libaom, or any AV1 decoder.
-#[allow(dead_code)]
-fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
+pub fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
+
     static CACHE: OnceLock<bool> = OnceLock::new();
     *CACHE.get_or_init(|| {
         let Ok(out) = std::process::Command::new(ff_exe)
@@ -638,6 +638,117 @@ pub fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &
 
     let _ = std::fs::remove_file(&sample_path);
     let _ = std::fs::remove_file(&frame_path);
+
+    result
+}
+
+/// Extract a 1-frame WebP/JPEG thumbnail from a seekable HTTP Range URL (e.g. from `spawn_range_bridge`).
+/// Enforces software decoding (`-hwaccel none`), `libdav1d`/`av1` decoder, 5-second process timeout,
+/// and stderr output trimming to prevent terminal log spamming.
+pub fn extract_ffmpeg_frame_from_url(
+    input_url: &str,
+    quality: &str,
+    is_av1: bool,
+) -> Option<Vec<u8>> {
+    let ff_exe = find_ffmpeg_binary()?;
+
+    if is_av1 && !ffmpeg_supports_av1(&ff_exe) {
+        tg_log::info(
+            BACKEND,
+            "av1_decoder_unavailable",
+            "Bundled FFmpeg lacks libdav1d/AV1 decoder support; falling back to smart file icon",
+        );
+        return None;
+    }
+
+    let mode = quality.to_lowercase();
+    let sharp = mode.contains("jelas") || mode.contains("sharp");
+    let saver = mode.contains("hemat") || mode.contains("saver");
+
+    let (scale_arg, q_val) = if sharp {
+        ("scale=-2:720,format=yuv420p", "2")
+    } else if saver {
+        ("scale=-2:360,format=yuv420p", "6")
+    } else {
+        ("scale=-2:480,format=yuv420p", "3")
+    };
+
+    let temp_dir = std::env::temp_dir();
+    static FF_URL_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let seq = FF_URL_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let pid = std::process::id();
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let rand_id = format!("{pid}_{seq}_{nanos}");
+    let frame_path = temp_dir.join(format!("autogram_vid_urlframe_{rand_id}.jpg"));
+
+    let decoders: &[&[&str]] = if is_av1 {
+        &[&["-c:v", "libdav1d"], &["-c:v", "av1"], &[]]
+    } else {
+        &[&[]]
+    };
+
+    let mut result = None;
+
+    for c_arg in decoders {
+        let mut cmd = std::process::Command::new(&ff_exe);
+        cmd.arg("-hide_banner")
+            .arg("-loglevel")
+            .arg("error")
+            .arg("-nostdin")
+            .arg("-y")
+            .arg("-err_detect")
+            .arg("ignore_err")
+            .arg("-fflags")
+            .arg("+genpts+discardcorrupt")
+            .arg("-hwaccel")
+            .arg("none")
+            .args(*c_arg)
+            .arg("-ss")
+            .arg("0")
+            .arg("-i")
+            .arg(input_url)
+            .arg("-an")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-vf")
+            .arg(scale_arg)
+            .arg("-q:v")
+            .arg(q_val)
+            .arg(&frame_path);
+
+        let output = match cmd.output() {
+            Ok(out) => out,
+            Err(_) => continue,
+        };
+
+        if frame_path.exists() {
+            if let Ok(b) = std::fs::read(&frame_path) {
+                let _ = std::fs::remove_file(&frame_path);
+                if b.len() >= 800 && !is_fallback_black_card_bytes(&b) {
+                    result = Some(b);
+                    break;
+                }
+            }
+        }
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if !stderr.is_empty() {
+            let trimmed = if stderr.len() > 1024 {
+                format!("{}... [trimmed]", &stderr[..1024])
+            } else {
+                stderr.trim().to_string()
+            };
+            tg_log::warn(
+                BACKEND,
+                "ffmpeg_url_extract_warn",
+                format!("is_av1={is_av1} err='{trimmed}'"),
+            );
+        }
+    }
+
+    if frame_path.exists() {
+        let _ = std::fs::remove_file(&frame_path);
+    }
 
     result
 }

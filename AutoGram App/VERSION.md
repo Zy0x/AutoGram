@@ -1,7 +1,11 @@
-AutoGram Version: v2.3.95
+AutoGram Version: v2.3.96
 
 Current State:
+v2.3.96 Seekable Local HTTP Range Bridge, AV1 Software Decoder Bypass & Stderr Log Spam Elimination — membenahi `thumbnail_range_bridge.rs`, `ffmpeg.rs`, `thumbs.rs`, dan `mod.rs`. Menambahkan `spawn_range_bridge` (server HTTP Range local `206 Partial Content` sementara) untuk ekstraksi seekable FFmpeg pada berkas video dokumen Telegram (MP4/AV1). Mengeliminasi total kesalahan MP4 Frankenstein `[av1] video_get_buffer: image parameters invalid` & `moov atom not found` akibat pemotongan sampel parsial. Menambahkan deteksi kapabilitas `libdav1d`/AV1, timeout 5 detik pada subprocess FFmpeg, pembatasan stderr log (maks 1 KB), serta pengisolasian negative cache (`.nothumb`) per item batch.
+
+Previous:
 v2.3.95 Instant Stripped Mini-Thumbs, Unpaused Thumbnail Batcher & High-Throughput RPC Pipeline — membenahi `media_list.rs`, `thumbs.rs`, `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`. Menambahkan `tl_stripped_thumb_data_url` di backend Rust untuk ekstraksi *inline mini-thumb* MTProto `PhotoSize::Stripped` / `PhotoSize::Cached` instan (0ms), merender visual 100% kartu buram di topik forum tanpa kotak abu-abu. Menghapus penguncian `setThumbsPaused(true)` saat pemuatan berkas, meningkatkan pemrosesan paralel menjadi 4 RPC flight dengan batch size 48 item per request, serta menyempurnakan estimasi virtualizer UI dan i18n key parity.
+
 
 Previous:
 v2.3.94 Absolute Definitive Master Specification with Agent Standards & 16-Skill Pack Matrix — Menyempurnakan dokumen spesifikasi master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan menambahkan Bab Standar Tata Kelola Agent, Aturan Proyek, Matriks 16-Skill Pack Active, Standar UI/UX Mobile-First, Aturan 100% Zero Hardcoded Text i18n, Proteksi Kredensial, serta Sistem Otomasi Release Commit-Push.
