@@ -370,7 +370,7 @@ export function DriveExplorer({
       lastScrollTopRef.current = el.scrollTop;
       lastScrollTimeRef.current = now;
 
-      if (dt > 0 && dy / dt > 1.2) {
+      if (dt > 0 && dy / dt > 2.8) {
         isFastScrollingRef.current = true;
       }
 
@@ -417,7 +417,6 @@ export function DriveExplorer({
 
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).
-  // Skip during active fast fling to preserve 60-120 FPS frame rate.
   useEffect(() => {
     if (!progressiveReady || !creds || loading || !displayed.length || isThumbsPaused()) return;
     let raf = 0;
@@ -429,9 +428,6 @@ export function DriveExplorer({
       if (now - lastRun < throttleMs) return;
       lastRun = now;
       if (cancelled) return;
-
-      // Skip IPC request during active fast fling to keep scroll 60 FPS
-      if (isFastScrollingRef.current) return;
 
       const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
       let startIdx = 0;
@@ -462,7 +458,7 @@ export function DriveExplorer({
         }
       }
       if (visibleIds.length) requestVisibleThumbs(creds, folderId, visibleIds);
-      if (nearIds.length) prefetchThumbs(creds, folderId, nearIds);
+      if (nearIds.length && !isFastScrollingRef.current) prefetchThumbs(creds, folderId, nearIds);
     };
     raf = requestAnimationFrame(run);
     return () => {

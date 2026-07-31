@@ -1,3 +1,14 @@
+## v2.5.6 Smart Viewport Priority Elevation & Immediate Scroll Thumbnail Scheduler Engine
+
+### Scheduler Priority & Queue Eviction Fixes (`thumbBatcher.ts`)
+- **Queue Priority Promotion**: Mengubah `Math.min` menjadi `Math.max` pada `requestThumb` agar tugas yang sebelumnya di-queue dengan prioritas rendah (seperti `prefetch`) langsung diangkat ke prioritas `visible` (32) begitu kartu media muncul di viewport.
+- **Queue Eviction Correction**: Mengoreksi logika eviksi antrean penuh. Daripada mencari tugas berprioritas tinggi yang berujung pada penolakan item visible (`resolve(null)`), scheduler kini membuang tugas berprioritas terendah (`prefetch` / `prewarm`) untuk memberi ruang bagi item viewport visible.
+- **Sequence Bumping & Soft-Fail Clearance**: Pada `requestVisibleThumbs`, item yang sudah ada di antrean langsung ditingkatkan prioritasnya ke `visible`, nomor urut `sequence`-nya digeser ke posisi terdepan, serta `soft-fail` dihapus agar thumbnail pada viewport langsung diekstrak secara cepat.
+
+### Immediate Scroll Thumbnail Scheduler (`DriveExplorer.tsx`)
+- **Non-Blocking Viewport Requests**: Memisahkan eksekusi `requestVisibleThumbs` dari penguncian scroll cepat. Kartu media yang berada di viewport sekarang selalu meminta thumbnail secara langsung tanpa tertunda saat pengguna melakukan scroll ringan ("scroll scroll ringan diarea").
+- **Ultra-Fast Fling Protection**: Menaikkan ambang batas fling scroll ke 2.8 px/ms agar hanya pemuatan berlatar belakang (`prefetchThumbs` / overscan) yang ditunda saat terjadi scroll sangat cepat, menjaga frame-rate tetap mulus.
+
 ## v2.5.5 Post-Wipe Terminal Cache Eviction & Automatic Viewport Refetch Engine
 
 ### Rust Backend Terminal Cache Wipe (`thumbs.rs` & `jobs_db.rs`)

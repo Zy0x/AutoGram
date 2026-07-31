@@ -394,14 +394,26 @@ export function requestVisibleThumbs(
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
-  const missing = opts?.bypassCache
-    ? ids
-    : ids.filter((mid) => !memCache.has(cacheKey(folderId, mid, activeQuality, creds.session)));
-  if (!missing.length) return;
+  const missing: number[] = [];
+
+  for (const mid of ids) {
+    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    if (!opts?.bypassCache && memCache.has(k)) continue;
+
+    // Clear soft-fail for visible items so they try cleanly when scrolled into view
+    softFailAt.delete(k);
+
+    const existing = queue.get(k);
+    if (existing) {
+      // Upgrade existing task in queue to visible priority & bump sequence to front
+      existing.priority = priorityValue('visible');
+      existing.sequence = taskSequence++;
+    } else {
+      missing.push(mid);
+    }
+  }
 
   for (const mid of missing) {
-    const k = cacheKey(folderId, mid, activeQuality, creds.session);
-    if (!opts?.bypassCache && (memCache.has(k) || queue.has(k))) continue;
     void requestThumb(creds, folderId, mid, {
       priority: 'visible',
       contextKey: activeContextKey,
@@ -869,9 +881,12 @@ export async function requestThumb(
 
   const requestId = `thumb:${peerId}:${telegramMessageId}:g${generation}`;
 
-  if (opts?.bypassCache) {
+  if (opts?.priority === 'visible' || opts?.bypassCache) {
     softFailAt.delete(k);
     errorFailAt.delete(k);
+  }
+
+  if (opts?.bypassCache) {
     inflightByKey.delete(k);
     memCache.delete(k);
   } else {
@@ -920,15 +935,16 @@ export async function requestThumb(
       }
       const existing = queue.get(k);
       if (existing) {
-        existing.priority = Math.min(existing.priority, priorityValue(opts?.priority));
+        existing.priority = Math.max(existing.priority, priorityValue(opts?.priority));
+        existing.sequence = taskSequence++;
         existing.waiters.push({ resolve, signal: opts?.signal });
-        scheduleFlush(false);
+        scheduleFlush(opts?.priority === 'visible');
         return;
       }
       if (queue.size >= queueMax()) {
         const evictable = [...queue.values()]
-          .filter((task) => task.priority > priorityValue(opts?.priority))
-          .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)[0];
+          .filter((task) => task.priority < priorityValue(opts?.priority))
+          .sort((a, b) => a.priority - b.priority || a.sequence - b.sequence)[0];
         if (!evictable) {
           resolve(null);
           return;
