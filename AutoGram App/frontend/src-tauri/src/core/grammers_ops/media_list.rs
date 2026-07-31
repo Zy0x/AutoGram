@@ -603,13 +603,9 @@ pub fn list_media_blocking_topic(
                             first_item = iter.next().await;
                         }
                     }
-                    let has_more = if let Some(lid) = last_id {
-                        lid > 1 && scanned > 0
-                    } else {
-                        false
-                    };
+                    let has_more = files.len() >= limit || (scanned > 0 && last_id.map_or(false, |id| id > 1));
                     let next_offset_id = if has_more {
-                        last_id
+                        files.last().map(|f| f.id).or(last_id)
                     } else {
                         None
                     };

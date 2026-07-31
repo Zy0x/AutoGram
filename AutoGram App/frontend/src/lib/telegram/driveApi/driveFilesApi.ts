@@ -134,10 +134,7 @@ export async function driveListFiles(
           records = records.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(topicId));
         }
         if (records.length > 0) {
-          const totalCount = records.length;
-          const hasMore = localOffset + records.length < totalCount;
-          const nextOffsetId = records.length > 0 ? records[records.length - 1].id : null;
-
+          const nextOffsetId = records[records.length - 1].id;
           return {
             status: 'success',
             folder_id: folderId,
@@ -145,12 +142,12 @@ export async function driveListFiles(
             files: records,
             total: records.length,
             page_size: pageSize,
-            has_more: hasMore,
+            has_more: true,
             next_offset_id: nextOffsetId,
-            total_count: totalCount,
+            total_count: null,
             total_bytes: null,
-            stats_accurate: true,
-            stats_pending: false,
+            stats_accurate: false,
+            stats_pending: true,
             cached: true,
           };
         }

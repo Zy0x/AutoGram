@@ -2812,13 +2812,14 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         return merged;
       });
       setFilesHasMore(!!res.has_more);
-      const next = res.next_offset_id ?? null;
-      // Guard: if cursor did not advance, stop to avoid infinite slow loop
+      let next = res.next_offset_id ?? null;
+      // Guard: if cursor did not advance, decrement by 1 to strictly step past scanned message IDs
       if (next != null && Number(next) === Number(offsetAtStart)) {
+        next = Number(next) > 1 ? Number(next) - 1 : null;
+      }
+      setNextOffsetId(next);
+      if (next == null) {
         setFilesHasMore(false);
-        setNextOffsetId(null);
-      } else {
-        setNextOffsetId(next);
       }
       // Scrolled to end: loaded length is a lower bound; prefer media_stats if higher
       if (!res.has_more) {
