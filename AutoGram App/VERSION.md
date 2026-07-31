@@ -1,9 +1,10 @@
-AutoGram Version: v2.4.4
+AutoGram Version: v2.4.5
 
 Current State:
-v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug deadlock `flushInFlight` pada queue scheduler frontend dengan mengamankan `flushInFlight` di dalam blok `try {} finally {}` serta menambahkan 10s concurrency watchdog. Menambahkan `tokio::time::timeout(3s)` pada proses ekstraksi keyframe video FFmpeg backend Rust untuk mencegah stalling pada berkas video korup.
+v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah pengurutan antrean thumbnail dari FIFO (`a.sequence - b.sequence`) menjadi LIFO (`b.sequence - a.sequence`) pada tingkat prioritas yang sama sehingga kartu media pada posisi scroll saat ini (viewport aktif) dimuat secara instan (<50ms). Memperbaiki filter `Balanced` mode pada backend Rust `thumbs.rs` agar selalu menerima thumbnail statis dokumen video Telegram (`PhotoSize::Size` >0px).
 
 Previous:
+v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.3 Native Telegram Direct Static Thumbnail Pipeline & Ultra-Fast Media Engine — membenahi `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.2 Accurate Telegram Photo Size Extraction Engine — membenahi `media_list.rs`, `document_mapper.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.

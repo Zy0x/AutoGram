@@ -704,7 +704,7 @@ async function flushQueue() {
   }
 
   const first = [...queue.values()].sort(
-    (a, b) => b.priority - a.priority || a.sequence - b.sequence
+    (a, b) => b.priority - a.priority || b.sequence - a.sequence
   )[0];
   if (!first) return;
 
@@ -724,7 +724,7 @@ async function flushQueue() {
           task.quality === quality &&
           task.creds.session === creds.session
       )
-      .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)
+      .sort((a, b) => b.priority - a.priority || b.sequence - a.sequence)
       .slice(0, limit);
     const ids = tasks.map((task) => task.messageId);
     for (const task of tasks) queue.delete(task.key);

@@ -420,7 +420,7 @@ pub fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
             .filter_map(|s| {
                 let (w, h) = photo_size_dimensions(s);
                 let d = w.max(h);
-                if d > 0 && d >= 240 {
+                if d > 0 {
                     Some(((d - target).abs(), *s))
                 } else {
                     None

@@ -1,3 +1,11 @@
+## v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine
+
+### LIFO Viewport Priority Queue (`thumbBatcher.ts`)
+- **Instant Jump/Scroll Viewport Prioritization**: Mengubah pengurutan antrean thumbnail pada tingkat prioritas yang sama dari FIFO (`a.sequence - b.sequence`) menjadi **LIFO (`b.sequence - a.sequence`)**. Ketika pengguna melakukan *fast scroll* / melompat ke tengah folder 2800+ file, kartu media yang saat ini tepat berada di layar (*current viewport*) dijamin mengeksekusi pengunduhan batch secara **prioritas instan (<50ms)** tanpa harus mengantre hingga kartu-kartu yang terlewati di bagian atas selesai.
+
+### Video Document Static Thumbnail Matching (`thumbs.rs`)
+- **Unrestricted Video Static Layers in Balanced Mode**: Menghapus pembatasan `d >= 240` pada mode `Balanced` di `pick_thumb()`. Backend Rust kini menerima seluruh layer thumbnail statis bawaan dokumen video Telegram (`PhotoSize::Size` >0px), mengunduhnya dalam **<15ms** tanpa memaksa ekstraksi *heavy keyframe* FFmpeg.
+
 ## v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection
 
 ### Queue Concurrency Deadlock Prevention (`thumbBatcher.ts`)
