@@ -970,8 +970,9 @@ mod tests {
 
     #[test]
     fn merge_and_prefix() {
-        let r = merge_ranges(vec![(0, 100), (100, 200), (300, 400)]);
+        let r = merge_ranges(&[(0, 100), (100, 200), (300, 400)]);
         assert_eq!(r, vec![(0, 200), (300, 400)]);
+
         assert_eq!(contiguous_from_zero(&r), 200);
         assert_eq!(contiguous_end_from(&r, 300), 400);
     }
