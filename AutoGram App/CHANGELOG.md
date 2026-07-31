@@ -1,3 +1,8 @@
+## v2.5.9 Resilient Media Preview Auto-Retry Engine
+
+### Backend Pratinjau Grammers (`stream.rs`)
+- **RPC Timeout Auto-Retry**: Menambahkan penanganan otomatis untuk error timeout Grammers `rpc error -503: Timeout caused by upload.getFile`. Saat terjadi fluktuasi jaringan atau penundaan dari Datacenter Telegram, backend Rust kini melakukan *auto-retry* 2x dengan jeda 500ms secara transparan sebelum mengembalikan error ke antarmuka pengguna.
+
 ## v2.5.8 Smart FLOOD_PREMIUM_WAIT Handler & Range Bridge Auto-Recovery Engine
 
 ### Rust MTProto Rate Limiter (`session_rate.rs`)

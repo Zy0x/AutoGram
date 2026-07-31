@@ -683,10 +683,27 @@ fn start_preview_stream_inner(
             if !(dest.is_file()
                 && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) == size)
             {
-                client
-                    .download_media(&media, &dest)
-                    .await
-                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("download document: {e}")))?;
+                let mut dl_retry = 0;
+                loop {
+                    match client.download_media(&media, &dest).await {
+                        Ok(_) => break,
+                        Err(e) => {
+                            let err_str = e.to_string();
+                            let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
+                            if is_timeout && dl_retry < 2 {
+                                dl_retry += 1;
+                                tg_log::warn(
+                                    BACKEND,
+                                    "preview_stream_retry",
+                                    format!("RPC Timeout (-503) during document download (retry {dl_retry}/2), retrying..."),
+                                );
+                                tokio::time::sleep(Duration::from_millis(500 * dl_retry as u64)).await;
+                                continue;
+                            }
+                            return Err(TgError::new(TgErrorCode::Io, format!("download document: {e}")));
+                        }
+                    }
+                }
             }
             let _ = persist_memory_session(&live.session, &live.session_path);
             let local = crate::core::doc_preview::preview_local_document(dest.to_str().unwrap_or(""));
@@ -725,10 +742,27 @@ fn start_preview_stream_inner(
             if !(dest.is_file()
                 && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10)
             {
-                client
-                    .download_media(&media, &dest)
-                    .await
-                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("download: {e}")))?;
+                let mut dl_retry = 0;
+                loop {
+                    match client.download_media(&media, &dest).await {
+                        Ok(_) => break,
+                        Err(e) => {
+                            let err_str = e.to_string();
+                            let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
+                            if is_timeout && dl_retry < 2 {
+                                dl_retry += 1;
+                                tg_log::warn(
+                                    BACKEND,
+                                    "preview_stream_retry",
+                                    format!("RPC Timeout (-503) during photo download (retry {dl_retry}/2), retrying..."),
+                                );
+                                tokio::time::sleep(Duration::from_millis(500 * dl_retry as u64)).await;
+                                continue;
+                            }
+                            return Err(TgError::new(TgErrorCode::Io, format!("download: {e}")));
+                        }
+                    }
+                }
             }
             let _ = persist_memory_session(&live.session, &live.session_path);
             let final_size = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(size);
