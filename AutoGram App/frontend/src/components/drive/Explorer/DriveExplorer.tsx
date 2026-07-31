@@ -374,14 +374,13 @@ export function DriveExplorer({
         isFastScrollingRef.current = true;
       }
 
-      // Proactive prefetch at 60% scroll height when scrolling down
+      // Proactive prefetch at 60% scroll height
       if (
         progressiveReady &&
         hasMore &&
         onLoadMore &&
         !loadingMore &&
-        !loading &&
-        scrollDirectionRef.current === 'down'
+        !loading
       ) {
         const viewportHeight = el.clientHeight;
         const scrollHeight = el.scrollHeight;
