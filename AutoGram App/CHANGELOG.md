@@ -1,4 +1,16 @@
+## v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command
+
+### Request Correlation & Canonical Identifiers (`thumbs.rs`, `telegram_ops.rs`, `thumbBatcher.ts`, `driveFilesApi.ts`, `telegramBackend.ts`)
+- **End-to-End Correlation ID (`requestId`)**: Frontend membuat `requestId` unik (seperti `thumb:-1004468191168:69:g12`) yang diteruskan tanpa modifikasi dari UI -> `thumbBatcher` -> `driveFilesApi` -> Tauri IPC -> Rust `thumbs_batch_blocking_app` -> per-item result response.
+- **Log Boundary Terstruktur**: Menambahkan `op=thumb_frontend_invoke` pada boundary frontend dan `op=thumb_backend_received` pada entry point backend Rust untuk memverifikasi konsistensi `requestId`, `peer_id`, dan `telegram_message_id`.
+- **Penamaan Identitas Eksplisit (Tanpa Fallback)**: Menggunakan `telegram_message_id` dan `telegram_peer_id` secara eksplisit pada seluruh struktur data payload. Dilarang menggunakan fallback generik `messageId ?? id`.
+- **Media Source Identity Auditing**: Menambahkan `identity_source` (`telegram_search`, `sqlite`, `indexeddb`, `legacy_api`) dan mencatat log `op=media_row_created` untuk setiap baris media yang dibuat.
+- **Hasil Per-Item Terstruktur (`ThumbnailBatchItemResult`)**: Mengembalikan array `items` terstruktur per-item yang menyertakan `status` (`ready`, `miss`, `fallback`, `failed`), `reason` (`MessageNotReturned`, `MessageIdentityMismatch`, `MessageHasNoMedia`, `FloodWaitActive`), dan `source`.
+- **Command Debug `tg_debug_get_message`**: Menyediakan command Rust IPC debug `tg_debug_get_message` untuk memeriksa keberadaan dan metadata message Telegram secara langsung berdasarkan `peer_id` dan `telegram_message_id`.
+- **Schema Invalidation (`v99_` & `v3`)**: Memperbarui namespace cache ke `v99_` dan versi IndexedDB ke `autogram-media-studio-v3` untuk menginvalidasi seluruh row dan negative cache lama.
+
 ## v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning
+
 
 ### Core Identity Pipeline (`media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`)
 - **End-to-End Identity Tracing**: Menambahkan log terstruktur `op=media_list_identity`, `op=thumb_request_identity`, `op=thumb_peer_resolved`, `op=thumb_message_resolved`, `op=thumb_identity_mismatch`, `op=thumb_source_selected`, `op=thumb_result`, `thumb_frontend_request_started`, `thumb_frontend_request_joined`, `thumb_frontend_request_suppressed`.

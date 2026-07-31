@@ -8,43 +8,51 @@ export async function driveThumbnailsBatch(
   creds: DriveCredentials,
   messageIds: number[],
   folderId: number | null,
-  opts?: { quality?: 'saver' | 'balanced' | 'sharp'; batchSize?: number }
+  opts?: {
+    quality?: 'saver' | 'balanced' | 'sharp';
+    batchSize?: number;
+    requestId?: string;
+    telegramPeerId?: string;
+    telegramMessageIds?: number[];
+  }
 ) {
-  if (!messageIds.length) return { status: 'success', thumbs: {} as Record<string, string | null> };
+  if (!messageIds.length) return { status: 'success', thumbs: {} as Record<string, string | null>, items: [] };
   const quality = opts?.quality || 'balanced';
   const batch =
     opts?.batchSize ??
     (quality === 'saver' ? 24 : quality === 'sharp' ? 16 : 32);
-  // Backend caps at 96; send full requested batch so scroll fill is fewer RPCs.
   const ids = messageIds.slice(0, Math.min(96, batch));
 
   if (!detectTauriRuntime()) {
-    return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
+    return { status: 'success', thumbs: {} as Record<string, string | null>, items: [], deferred: true };
   }
   try {
     const { tgThumbsBatch } = await import('../core/telegramBackend');
-    const chatId = folderId == null ? 'me' : String(folderId);
+    const chatId = opts?.telegramPeerId || (folderId == null ? 'me' : String(folderId));
     const apiId = Number(creds.apiId) || 0;
     const gr = await tgThumbsBatch({
+      requestId: opts?.requestId,
       session: creds.session,
       apiId,
       apiHash: creds.apiHash,
       chatId,
+      telegramPeerId: chatId,
       messageIds: ids,
+      telegramMessageIds: opts?.telegramMessageIds || ids,
       quality,
     });
-    if (gr?.ok && gr.data?.thumbs) {
+    if (gr?.ok && gr.data) {
       return {
         status: 'success',
-        thumbs: gr.data.thumbs as Record<string, string | null>,
+        thumbs: gr.data.thumbs || {},
+        items: gr.data.items || [],
         backend: 'grammers',
       };
     }
-    // Session not ready yet — soft defer for scheduler retry
-    return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
+    return { status: 'success', thumbs: {} as Record<string, string | null>, items: [], deferred: true };
   } catch (e) {
     console.warn('[driveThumbnailsBatch] Grammers thumbnail failed', e);
-    return { status: 'success', thumbs: {} as Record<string, string | null>, deferred: true };
+    return { status: 'success', thumbs: {} as Record<string, string | null>, items: [], deferred: true };
   }
 }
 

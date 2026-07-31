@@ -50,6 +50,7 @@ allow = [
     "tg_download_file",
     "tg_list_topics",
     "tg_thumbs_batch",
+    "tg_debug_get_message",
     "tg_preview_stream",
     "tg_stop_stream",
     "tg_seek_stream",

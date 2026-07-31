@@ -693,11 +693,24 @@ async function flushQueue() {
 
   try {
     const started = performance.now();
+    const batchRequestId = first ? `thumb:${folderId ?? 'me'}:${first.messageId}:g${first.generation}` : `thumb:batch:${Date.now()}`;
+    debugLog('thumbBatcher', 'op=thumb_frontend_invoke', {
+      requestId: batchRequestId,
+      peerId: folderId == null ? 'me' : String(folderId),
+      telegramMessageIds: ids,
+      count: ids.length,
+    });
+
     const res = await driveThumbnailsBatch(creds, ids, folderId, {
       quality,
       batchSize: limit,
+      requestId: batchRequestId,
+      telegramPeerId: folderId == null ? 'me' : String(folderId),
+      telegramMessageIds: ids,
     });
+
     const thumbs = (res.thumbs || {}) as Record<string, string | null>;
+    const items = (res as any).items || [];
     const deferred = !!(res as { deferred?: boolean }).deferred;
     const deletedIds = (res as { deleted_ids?: number[] }).deleted_ids;
     if (deletedIds && deletedIds.length) {
@@ -706,6 +719,20 @@ async function flushQueue() {
     metrics.batches += 1;
 
     metrics.batchLatencyMs = Math.round(performance.now() - started);
+
+    if (items.length > 0) {
+      for (const item of items) {
+        debugLog('thumbBatcher', 'op=thumb_frontend_result', {
+          requestId: item.requestId,
+          peerId: item.peerId,
+          telegramMessageId: item.telegramMessageId,
+          status: item.status,
+          reason: item.reason,
+          source: item.source,
+        });
+      }
+    }
+
     for (const task of tasks) {
       const mid = task.messageId;
       const k = task.key;
@@ -727,7 +754,12 @@ async function flushQueue() {
         }
       } else {
         // Miss: short soft-fail so visible cards can re-request soon without hammering.
-        debugLog('thumbBatcher', 'miss', { folderId: folderId ?? 'home', mid, quality });
+        debugLog('thumbBatcher', 'op=thumb_frontend_result', {
+          requestId: `thumb:${folderId ?? 'me'}:${mid}:g${task.generation}`,
+          peerId: folderId == null ? 'me' : String(folderId),
+          telegramMessageId: mid,
+          status: 'miss',
+        });
         softFailAt.set(k, Date.now());
         resolveTask(task, null);
       }
@@ -778,33 +810,41 @@ export async function requestThumb(
   const contextKey = opts?.contextKey || activeContextKey;
   const generation = contextGeneration;
   const k = cacheKey(folderId, messageId, activeQuality, creds.session);
+  const peerId = folderId == null ? 'me' : String(folderId);
+  const telegramMessageId = Number(messageId);
+  if (!Number.isInteger(telegramMessageId) || telegramMessageId <= 0 || !peerId) {
+    debugLog('thumbBatcher', 'op=thumb_request_rejected_invalid_locator', { folderId, messageId, peerId, telegramMessageId });
+    return null;
+  }
+
+  const requestId = `thumb:${peerId}:${telegramMessageId}:g${generation}`;
+
   if (opts?.bypassCache) {
     softFailAt.delete(k);
     errorFailAt.delete(k);
     inflightByKey.delete(k);
-    // Drop mem for this quality key so seimbang/jelas re-fetch (do not keep hemat blur).
     memCache.delete(k);
   } else {
     const hit = memCache.get(k);
     if (hit) return hit;
     const failAt = softFailAt.get(k);
     if (failAt != null && Date.now() - failAt < softFailMs(priorityValue(opts?.priority))) {
-      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { folderId, messageId, reason: 'softFail' });
+      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { requestId, folderId, messageId, reason: 'softFail' });
       return null;
     }
     const errAt = errorFailAt.get(k);
     if (errAt != null && Date.now() - errAt < ERROR_COOLDOWN_MS) {
-      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { folderId, messageId, reason: 'errorCooldown' });
+      debugLog('thumbBatcher', 'thumb_frontend_request_suppressed', { requestId, folderId, messageId, reason: 'errorCooldown' });
       return null;
     }
     const inflight = inflightByKey.get(k);
     if (inflight) {
-      debugLog('thumbBatcher', 'thumb_frontend_request_joined', { folderId, messageId });
+      debugLog('thumbBatcher', 'thumb_frontend_request_joined', { requestId, folderId, messageId });
       return inflight;
     }
   }
 
-  debugLog('thumbBatcher', 'thumb_frontend_request_started', { folderId, messageId, quality: activeQuality });
+  debugLog('thumbBatcher', 'thumb_frontend_request_started', { requestId, folderId, messageId, quality: activeQuality });
 
   const work = (async (): Promise<string | null> => {
     // Re-check mem (list_media prime often races card mount by one tick).

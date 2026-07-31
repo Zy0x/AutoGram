@@ -53,6 +53,8 @@ pub struct MediaFileRow {
     pub thumb_data_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub topic_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity_source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -119,7 +121,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                 } else {
                     format!("photo_{id}.jpg")
                 };
-                Some(MediaFileRow {
+                let row = MediaFileRow {
                     id,
                     folder_id,
                     name,
@@ -132,7 +134,14 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     backend: BACKEND.into(),
                     thumb_data_url,
                     topic_id: message_topic_id(msg),
-                })
+                    identity_source: Some("telegram_search".into()),
+                };
+                crate::core::tg_log::info(
+                    BACKEND,
+                    "media_row_created",
+                    format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind=image has_media_metadata=true", folder_id.unwrap_or(0), id, message_topic_id(msg)),
+                );
+                Some(row)
             }
             Media::Document(doc) => {
                 let n = doc
@@ -210,7 +219,9 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
 
                 let is_pdf = mime_l == "application/pdf" || mime_l.contains("pdf") || name_l.ends_with(".pdf");
 
-                Some(MediaFileRow {
+                let doc_has_thumb = has_thumb || is_video_file || is_image_file || is_audio_file || is_pdf || !doc.thumbs().is_empty();
+
+                let row = MediaFileRow {
                     id,
                     folder_id,
                     name: n,
@@ -218,12 +229,19 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     mime_type: final_mime,
                     icon_type: icon.into(),
                     created_at: created,
-                    has_thumb: has_thumb || is_video_file || is_image_file || is_audio_file || is_pdf || !doc.thumbs().is_empty(),
+                    has_thumb: doc_has_thumb,
                     as_document: true,
                     backend: BACKEND.into(),
                     thumb_data_url,
                     topic_id: message_topic_id(msg),
-                })
+                    identity_source: Some("telegram_search".into()),
+                };
+                crate::core::tg_log::info(
+                    BACKEND,
+                    "media_row_created",
+                    format!("op=media_row_created identity_source=telegram_search peer_id={} telegram_message_id={} topic_id={:?} media_kind={} has_media_metadata={doc_has_thumb} document_id={}", folder_id.unwrap_or(0), id, message_topic_id(msg), icon, doc.id()),
+                );
+                Some(row)
             }
             Media::Sticker(_) => Some(MediaFileRow {
                 id,
@@ -238,6 +256,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                 backend: BACKEND.into(),
                 thumb_data_url,
                 topic_id: message_topic_id(msg),
+                identity_source: Some("telegram_search".into()),
             }),
             Media::WebPage(wp) => {
                 let webpage_has_thumb = match &wp.raw.webpage {
@@ -271,6 +290,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                     backend: BACKEND.into(),
                     thumb_data_url,
                     topic_id: message_topic_id(msg),
+                    identity_source: Some("telegram_search".into()),
                 })
             }
             _ => None,
@@ -301,6 +321,7 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
             backend: BACKEND.into(),
             thumb_data_url: None,
             topic_id: message_topic_id(msg),
+            identity_source: Some("telegram_search".into()),
         })
     } else {
         None
@@ -345,6 +366,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     backend: BACKEND.to_string(),
                     thumb_data_url,
                     topic_id,
+                    identity_source: Some("telegram_search".into()),
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -397,6 +419,7 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     backend: BACKEND.to_string(),
                     thumb_data_url,
                     topic_id,
+                    identity_source: Some("telegram_search".into()),
                 })
             }
             _ => None,

@@ -1297,6 +1297,17 @@ async fn tg_thumbs_batch(
 }
 
 #[tauri::command]
+async fn tg_debug_get_message(
+    app: AppHandle,
+    request: core::telegram_ops::DebugGetMessageRequest,
+) -> Result<core::telegram_ops::OpResult<core::telegram_ops::DebugGetMessageResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_debug_get_message(request))
+        .await
+        .map_err(|e| format!("native debug get message task failed: {e}"))
+}
+
+#[tauri::command]
 async fn tg_preview_stream(
     app: AppHandle,
     request: core::telegram_ops::PreviewStreamRequest,
@@ -1512,6 +1523,7 @@ pub fn run() {
             tg_list_topics,
             tg_purge_inactive_sessions,
             tg_thumbs_batch,
+            tg_debug_get_message,
             tg_preview_stream,
             tg_stop_stream,
             tg_seek_stream,

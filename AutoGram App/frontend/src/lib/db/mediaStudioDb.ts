@@ -73,8 +73,8 @@ export interface SyncState {
   lastSync: number;
 }
 
-const DB_NAME = 'autogram-media-studio-v2';
-const DB_VERSION = 2;
+const DB_NAME = 'autogram-media-studio-v3';
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 

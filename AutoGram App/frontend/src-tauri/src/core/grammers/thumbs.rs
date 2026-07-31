@@ -87,10 +87,36 @@ pub struct ThumbSinglePayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ThumbnailBatchItemResult {
+    pub request_id: String,
+    pub peer_id: String,
+    pub telegram_message_id: i32,
+    pub status: String,
+    pub source: Option<String>,
+    pub reason: Option<String>,
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ThumbsBatchResult {
     pub status: String,
     pub thumbs: HashMap<String, Option<String>>,
+    pub items: Vec<ThumbnailBatchItemResult>,
     pub backend: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TelegramMediaLocator {
+    pub account_id: String,
+    pub telegram_peer_id: String,
+    pub telegram_message_id: i32,
+    pub topic_id: Option<i32>,
+    pub document_id: Option<i64>,
+    pub photo_id: Option<i64>,
+    pub media_kind: String,
+    pub identity_source: String,
 }
 
 fn thumb_mem_cache() -> &'static Mutex<HashMap<String, String>> {
@@ -1212,7 +1238,7 @@ pub fn thumbs_batch_blocking(
     message_ids: &[i64],
     quality: &str,
 ) -> Result<ThumbsBatchResult, TgError> {
-    thumbs_batch_blocking_app(sessions_dir, identity, chat_id, message_ids, quality, None)
+    thumbs_batch_blocking_app(sessions_dir, identity, chat_id, message_ids, quality, None, None)
 }
 
 pub fn thumbs_batch_blocking_app(
@@ -1221,6 +1247,7 @@ pub fn thumbs_batch_blocking_app(
     chat_id: &str,
     message_ids: &[i64],
     quality: &str,
+    request_id: Option<&str>,
     app: Option<&tauri::AppHandle>,
 ) -> Result<ThumbsBatchResult, TgError> {
     let ids: Vec<i32> = message_ids
@@ -1233,6 +1260,7 @@ pub fn thumbs_batch_blocking_app(
         return Ok(ThumbsBatchResult {
             status: "success".into(),
             thumbs: HashMap::new(),
+            items: Vec::new(),
             backend: BACKEND.into(),
         });
     }
@@ -1254,17 +1282,19 @@ pub fn thumbs_batch_blocking_app(
     let _ = std::fs::create_dir_all(&t_dir);
     prune_thumb_cache(&t_dir);
 
-    // Section
+    let req_id_str = request_id.unwrap_or("none").to_string();
+
     let mut thumbs: HashMap<String, Option<String>> = HashMap::new();
+    let mut item_results: Vec<ThumbnailBatchItemResult> = Vec::new();
     let mut uncached_ids: Vec<i32> = Vec::new();
 
     for &mid in &ids {
         let key = mid.to_string();
-        let cache_key = format!("v98_{chat_safe}_{mid}_{q_key}");
+        let cache_key = format!("v99_{chat_safe}_{mid}_{q_key}");
         tg_log::info(
             BACKEND,
-            "thumb_request_identity",
-            format!("op=thumb_request_identity account_id={} peer_id={} topic_id=None message_id={} media_kind_from_list=unknown", identity.session, chat, mid),
+            "thumb_backend_received",
+            format!("op=thumb_backend_received request_id={req_id_str} peer_id={chat} telegram_message_id={mid} topic_id=None"),
         );
         let mut found_url: Option<String> = None;
         let mut is_negative_hit = false;
@@ -1278,25 +1308,26 @@ pub fn thumbs_batch_blocking_app(
                 }
             }
         }
-        if !is_negative_hit && found_url.is_none() {
-            let nothumb_file = t_dir.join(format!("{cache_key}.nothumb"));
-            if nothumb_file.is_file() {
-                let _ = std::fs::remove_file(&nothumb_file);
-            }
-        }
         if is_negative_hit {
             tg_log::info(
                 BACKEND,
                 "thumb_cache_hit",
-                format!("op=thumb_cache_hit message_id={mid} negative=true"),
+                format!("op=thumb_cache_hit request_id={req_id_str} message_id={mid} negative=true"),
             );
-            thumbs.insert(key, None);
+            thumbs.insert(key.clone(), None);
+            item_results.push(ThumbnailBatchItemResult {
+                request_id: req_id_str.clone(),
+                peer_id: chat.clone(),
+                telegram_message_id: mid,
+                status: "miss".into(),
+                source: None,
+                reason: Some("ShortMemorySuppressed".into()),
+                url: None,
+            });
             continue;
         }
 
         if found_url.is_none() {
-            // Prefer exact quality file; fall back to hemat (stripped) so grid
-            // reopens like Telegram without re-hitting the network.
             let cache_file = t_dir.join(format!("{cache_key}.jpg"));
             if cache_file.is_file() {
                 if let Ok(bytes) = std::fs::read(&cache_file) {
@@ -1314,9 +1345,18 @@ pub fn thumbs_batch_blocking_app(
             tg_log::info(
                 BACKEND,
                 "thumb_cache_hit",
-                format!("op=thumb_cache_hit message_id={mid}"),
+                format!("op=thumb_cache_hit request_id={req_id_str} message_id={mid}"),
             );
-            thumbs.insert(key, Some(url.clone()));
+            thumbs.insert(key.clone(), Some(url.clone()));
+            item_results.push(ThumbnailBatchItemResult {
+                request_id: req_id_str.clone(),
+                peer_id: chat.clone(),
+                telegram_message_id: mid,
+                status: "ready".into(),
+                source: Some("disk_cache".into()),
+                reason: None,
+                url: Some(url.clone()),
+            });
             if let Some(app_handle) = app {
                 let _ = app_handle.emit(
                     "thumb_single_ready",
@@ -1338,6 +1378,7 @@ pub fn thumbs_batch_blocking_app(
         return Ok(ThumbsBatchResult {
             status: "success".into(),
             thumbs,
+            items: item_results,
             backend: BACKEND.into(),
         });
     }
@@ -1351,12 +1392,14 @@ pub fn thumbs_batch_blocking_app(
             let t_dir = t_dir.clone();
             let chat_safe = chat_safe.clone();
             let mut thumbs = thumbs.clone();
-            let ids = ids.clone();
+            let mut item_results = item_results.clone();
             let app_owned = app_owned.clone();
             let session_name = identity.session.clone();
+            let req_id_str = req_id_str.clone();
             with_client(sessions_dir, identity, true, move |client| {
             let app_ref = app_owned.clone();
             let session_name = session_name.clone();
+            let req_id_str = req_id_str.clone();
             Box::pin(async move {
                 if !crate::core::grammers_ops::session_known_authorized(&session_name)
                     && !client
@@ -1372,22 +1415,24 @@ pub fn thumbs_batch_blocking_app(
                         tg_log::warn(
                             BACKEND,
                             "thumbs_batch_peer_error",
-                            format!("chat={chat} error={e}"),
+                            format!("op=thumb_peer_failed request_id={req_id_str} chat={chat} error={e}"),
                         );
                         return Err(e);
                     }
                 };
-                // Keep the requested id list so we can index results by id, not by
-                // position after the stripped fast-path filters some ids out.
+
                 let fetch_ids = uncached_ids.clone();
+                tg_log::info(
+                    BACKEND,
+                    "thumb_lookup_started",
+                    format!("op=thumb_lookup_started request_id={req_id_str} peer_id={chat} fetch_count={}", fetch_ids.len()),
+                );
+
                 let msgs = client
                     .get_messages_by_id(peer, &fetch_ids)
                     .await
                     .map_err(|e| map_invocation(&e))?;
 
-                // Align messages to message_id. After hemat stripped filtering,
-                // enumerating remaining ids with msgs.get(i) would map the wrong
-                // media onto the wrong card (missing / swapped thumbs).
                 let mut msg_by_id: HashMap<i32, grammers_client::message::Message> =
                     HashMap::with_capacity(fetch_ids.len());
                 for msg_opt in msgs {
@@ -1396,8 +1441,12 @@ pub fn thumbs_batch_blocking_app(
                     }
                 }
 
-                // Hemat: stripped = final (fast). Seimbang/Jelas: download real
-                // layers so quality pills actually change the grid.
+                tg_log::info(
+                    BACKEND,
+                    "thumb_lookup_response",
+                    format!("op=thumb_lookup_response request_id={req_id_str} returned_count={}", msg_by_id.len()),
+                );
+
                 let quality_owned = q_key.to_string();
                 let hemat_only = q_key == "hemat";
                 let mut need_download: Vec<i32> = Vec::new();
@@ -1415,21 +1464,29 @@ pub fn thumbs_batch_blocking_app(
                                         continue;
                                     }
                                     if let Some(url) = to_data_url(&bytes) {
-                                        // Always keep stripped under hemat only using atomic .part rename
                                         let cache_file = t_dir
-                                            .join(format!("{chat_safe}_{mid}_hemat.jpg"));
+                                            .join(format!("v99_{chat_safe}_{mid}_hemat.jpg"));
                                         let rand_id = now_ms();
-                                        let part_file = t_dir.join(format!("{chat_safe}_{mid}_hemat.{rand_id}.part"));
+                                        let part_file = t_dir.join(format!("v99_{chat_safe}_{mid}_hemat.{rand_id}.part"));
                                         if std::fs::write(&part_file, &bytes).is_ok() {
                                             let _ = std::fs::rename(&part_file, &cache_file);
                                         }
                                         thumb_mem_cache().lock().insert(
-                                            format!("{chat_safe}_{mid}_hemat"),
+                                            format!("v99_{chat_safe}_{mid}_hemat"),
                                             url.clone(),
                                         );
                                         got_stripped = true;
                                         if hemat_only {
                                             thumbs.insert(key.clone(), Some(url.clone()));
+                                            item_results.push(ThumbnailBatchItemResult {
+                                                request_id: req_id_str.clone(),
+                                                peer_id: chat.clone(),
+                                                telegram_message_id: mid,
+                                                status: "ready".into(),
+                                                source: Some("telegram_thumb_stripped".into()),
+                                                reason: None,
+                                                url: Some(url.clone()),
+                                            });
                                             if let Some(app_handle) = app_ref.as_ref() {
                                                 let _ = app_handle.emit(
                                                     "thumb_single_ready",
@@ -1443,7 +1500,6 @@ pub fn thumbs_batch_blocking_app(
                                                 );
                                             }
                                         } else {
-                                            // Placeholder paint while seimbang/jelas downloads
                                             if let Some(app_handle) = app_ref.as_ref() {
                                                 let _ = app_handle.emit(
                                                     "thumb_single_ready",
@@ -1468,7 +1524,6 @@ pub fn thumbs_batch_blocking_app(
                             need_download.push(mid);
                         }
                     } else {
-                        // seimbang/jelas always need a real download when not on disk
                         need_download.push(mid);
                     }
                 }
@@ -1478,7 +1533,6 @@ pub fn thumbs_batch_blocking_app(
                 let video_sem = std::sync::Arc::new(tokio::sync::Semaphore::new(2));
                 let is_flooded = session_rate::flood_remaining_secs(&session_name).unwrap_or(0) > 0;
 
-                // Sort need_download so fast-path items (photos, image docs, static thumbs) spawn BEFORE heavy video extraction tasks
                 let mut sorted_download = need_download.clone();
                 sorted_download.sort_by_key(|mid| {
                     if let Some(msg) = msg_by_id.get(mid) {
@@ -1498,7 +1552,7 @@ pub fn thumbs_batch_blocking_app(
                                         || name.ends_with(".avi")
                                         || name.ends_with(".ts");
                                     let has_static = sizes.iter().any(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)));
-                                    is_v && !has_static // Video without static thumb is heavy (key = 1), fast items are key = 0
+                                    is_v && !has_static
                                 }
                                 _ => false,
                             }
@@ -1516,30 +1570,39 @@ pub fn thumbs_batch_blocking_app(
                         tg_log::warn(
                             BACKEND,
                             "thumbs_batch_flooded",
-                            format!("chat={chat} session={session_name} skipping mid={mid}"),
+                            format!("request_id={req_id_str} chat={chat} session={session_name} skipping mid={mid}"),
                         );
-                        thumbs.insert(key, None);
+                        thumbs.insert(key.clone(), None);
+                        item_results.push(ThumbnailBatchItemResult {
+                            request_id: req_id_str.clone(),
+                            peer_id: chat.clone(),
+                            telegram_message_id: mid,
+                            status: "failed".into(),
+                            source: None,
+                            reason: Some("FloodWaitActive".into()),
+                            url: None,
+                        });
                         continue;
                     }
-                    // Disk hit for THIS quality only (never fall back to hemat blur here).
-                    // Accept any non-empty cached URL — do NOT apply a character-length
-                    // threshold (previously url.len() > 600) which rejected valid small
-                    // thumbnails (e.g. 310-byte JPEG → ~437-char data URL).
-                    let q_cache = format!("v98_{chat_safe}_{mid}_{q_key}");
+
+                    let q_cache = format!("v99_{chat_safe}_{mid}_{q_key}");
                     {
                         let mut mem = thumb_mem_cache().lock();
                         if let Some(url) = mem.get(&q_cache) {
                             if url != "NOT_FOUND" && !url.is_empty() {
-                                thumbs.insert(key, Some(url.clone()));
+                                thumbs.insert(key.clone(), Some(url.clone()));
+                                item_results.push(ThumbnailBatchItemResult {
+                                    request_id: req_id_str.clone(),
+                                    peer_id: chat.clone(),
+                                    telegram_message_id: mid,
+                                    status: "ready".into(),
+                                    source: Some("memory_cache".into()),
+                                    reason: None,
+                                    url: Some(url.clone()),
+                                });
                                 continue;
-                            } else if url == "NOT_FOUND" {
-                                mem.remove(&q_cache);
                             }
                         }
-                    }
-                    let nothumb_file_check = t_dir.join(format!("{q_cache}.nothumb"));
-                    if nothumb_file_check.is_file() {
-                        let _ = std::fs::remove_file(&nothumb_file_check);
                     }
                     let q_file = t_dir.join(format!("{q_cache}.jpg"));
                     if q_file.is_file() {
@@ -1548,7 +1611,16 @@ pub fn thumbs_batch_blocking_app(
                             if bytes.len() >= min_ok {
                                 if let Some(url) = to_data_url(&bytes) {
                                     thumb_mem_cache().lock().insert(q_cache, url.clone());
-                                    thumbs.insert(key, Some(url));
+                                    thumbs.insert(key.clone(), Some(url.clone()));
+                                    item_results.push(ThumbnailBatchItemResult {
+                                        request_id: req_id_str.clone(),
+                                        peer_id: chat.clone(),
+                                        telegram_message_id: mid,
+                                        status: "ready".into(),
+                                        source: Some("disk_cache".into()),
+                                        reason: None,
+                                        url: Some(url.clone()),
+                                    });
                                     continue;
                                 }
                             }
@@ -1558,9 +1630,18 @@ pub fn thumbs_batch_blocking_app(
                         tg_log::warn(
                             BACKEND,
                             "thumb_msg_not_returned",
-                            format!("op=thumb_msg_not_returned requested_peer_id={chat} requested_message_id={mid} reason=MessageNotReturned"),
+                            format!("op=thumb_msg_not_returned request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} reason=MessageNotReturned"),
                         );
-                        thumbs.insert(key, None);
+                        thumbs.insert(key.clone(), None);
+                        item_results.push(ThumbnailBatchItemResult {
+                            request_id: req_id_str.clone(),
+                            peer_id: chat.clone(),
+                            telegram_message_id: mid,
+                            status: "failed".into(),
+                            source: None,
+                            reason: Some("MessageNotReturned".into()),
+                            url: None,
+                        });
                         continue;
                     };
                     let returned_id = msg.id();
@@ -1568,9 +1649,18 @@ pub fn thumbs_batch_blocking_app(
                         tg_log::warn(
                             BACKEND,
                             "thumb_identity_mismatch",
-                            format!("op=thumb_identity_mismatch requested_peer={chat} requested_message_id={mid} returned_peer={chat} returned_message_id={returned_id} reason=MessageIdentityMismatch"),
+                            format!("op=thumb_identity_mismatch request_id={req_id_str} requested_peer={chat} requested_message_id={mid} returned_peer={chat} returned_message_id={returned_id} reason=MessageIdentityMismatch"),
                         );
-                        thumbs.insert(key, None);
+                        thumbs.insert(key.clone(), None);
+                        item_results.push(ThumbnailBatchItemResult {
+                            request_id: req_id_str.clone(),
+                            peer_id: chat.clone(),
+                            telegram_message_id: mid,
+                            status: "failed".into(),
+                            source: None,
+                            reason: Some("MessageIdentityMismatch".into()),
+                            url: None,
+                        });
                         continue;
                     }
                     let maybe_media = msg.media();
@@ -1584,15 +1674,24 @@ pub fn thumbs_batch_blocking_app(
                     tg_log::info(
                         BACKEND,
                         "thumb_message_resolved",
-                        format!("op=thumb_message_resolved requested_peer_id={chat} requested_message_id={mid} returned_peer_id={chat} returned_message_id={returned_id} has_media={has_media} media_kind={media_kind_str}"),
+                        format!("op=thumb_message_resolved request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} returned_peer_id={chat} returned_message_id={returned_id} has_media={has_media} media_kind={media_kind_str}"),
                     );
                     let Some(media) = maybe_media else {
                         tg_log::warn(
                             BACKEND,
                             "thumb_no_media",
-                            format!("op=thumb_no_media requested_peer_id={chat} requested_message_id={mid} reason=MessageHasNoMedia"),
+                            format!("op=thumb_no_media request_id={req_id_str} requested_peer_id={chat} requested_message_id={mid} reason=MessageHasNoMedia"),
                         );
-                        thumbs.insert(key, None);
+                        thumbs.insert(key.clone(), None);
+                        item_results.push(ThumbnailBatchItemResult {
+                            request_id: req_id_str.clone(),
+                            peer_id: chat.clone(),
+                            telegram_message_id: mid,
+                            status: "failed".into(),
+                            source: None,
+                            reason: Some("MessageHasNoMedia".into()),
+                            url: None,
+                        });
                         continue;
                     };
                     let media_cloned = media.clone();
@@ -1601,6 +1700,7 @@ pub fn thumbs_batch_blocking_app(
                     let q_sub = quality_owned.clone();
                     let c_sub = chat_safe.clone();
                     let t_sub = t_dir.clone();
+                    let req_id_sub = req_id_str.clone();
 
                     let is_heavy_video = match &media {
                         Media::Document(d) => {
@@ -1630,21 +1730,14 @@ pub fn thumbs_batch_blocking_app(
 
                     set.spawn(async move {
                         let _permit = sem_sub.acquire_owned().await.ok();
-                        let cache_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.jpg"));
+                        let cache_file = t_sub.join(format!("v99_{c_sub}_{mid_val}_{q_sub}.jpg"));
                         let rand_id = now_ms();
-                        let part_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.{rand_id}.part"));
+                        let part_file = t_sub.join(format!("v99_{c_sub}_{mid_val}_{q_sub}.{rand_id}.part"));
                         match download_media_thumb(&client_ref, &media_cloned, &q_sub).await {
                             Ok(bytes) => {
-                                // Accept any valid thumbnail payload (>= 64 bytes)
                                 let min_ok = 64;
                                 if bytes.len() < min_ok {
-                                    let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
-                                    let _ = std::fs::write(&nothumb_file, b"none");
-                                    thumb_mem_cache().lock().insert(
-                                        format!("{c_sub}_{mid_val}_{q_sub}"),
-                                        "NOT_FOUND".to_string(),
-                                    );
-                                    return (mid_val.to_string(), None);
+                                    return (mid_val, req_id_sub, None, Some("ThumbPayloadTooSmall".to_string()));
                                 }
                                 if std::fs::write(&part_file, &bytes).is_ok() {
                                     let _ = std::fs::rename(&part_file, &cache_file);
@@ -1652,49 +1745,58 @@ pub fn thumbs_batch_blocking_app(
                                 let url = to_data_url(&bytes);
                                 if let Some(ref u) = url {
                                     thumb_mem_cache().lock().insert(
-                                        format!("{c_sub}_{mid_val}_{q_sub}"),
+                                        format!("v99_{c_sub}_{mid_val}_{q_sub}"),
                                         u.clone(),
                                     );
                                 }
-                                (mid_val.to_string(), url)
+                                (mid_val, req_id_sub, url, None)
                             }
                             Err(e) => {
-                                let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
-                                let _ = std::fs::write(&nothumb_file, b"none");
-                                thumb_mem_cache().lock().insert(
-                                    format!("{c_sub}_{mid_val}_{q_sub}"),
-                                    "NOT_FOUND".to_string(),
-                                );
-
                                 let err_str = e.to_string();
-                                tg_log::info(
-                                    BACKEND,
-                                    "thumb_negative_cache_written",
-                                    format!("chat={c_sub} mid={mid_val} quality={q_sub} reason={err_str}"),
-                                );
-                                (mid_val.to_string(), None)
+                                (mid_val, req_id_sub, None, Some(err_str))
                             }
                         }
                     });
                 }
 
                 while let Some(res) = set.join_next().await {
-                    if let Ok((k, v)) = res {
-                        if let (Ok(mid_i64), Some(ref url_str)) = (k.parse::<i64>(), v.as_ref()) {
+                    if let Ok((mid_i32, r_id, v, err_opt)) = res {
+                        let k = mid_i32.to_string();
+                        if let Some(ref url_str) = v {
                             if let Some(app_handle) = app_ref.as_ref() {
                                 let _ = app_handle.emit(
                                     "thumb_single_ready",
                                     ThumbSinglePayload {
                                         chat_id: chat.clone(),
-                                        message_id: mid_i64,
+                                        message_id: mid_i32 as i64,
                                         quality: q_key.to_string(),
                                         url: (*url_str).clone(),
                                         is_placeholder: false,
                                     },
                                 );
                             }
+                            thumbs.insert(k, Some(url_str.clone()));
+                            item_results.push(ThumbnailBatchItemResult {
+                                request_id: r_id,
+                                peer_id: chat.clone(),
+                                telegram_message_id: mid_i32,
+                                status: "ready".into(),
+                                source: Some("telegram_download".into()),
+                                reason: None,
+                                url: Some(url_str.clone()),
+                            });
+                        } else {
+                            thumbs.insert(k, None);
+                            item_results.push(ThumbnailBatchItemResult {
+                                request_id: r_id,
+                                peer_id: chat.clone(),
+                                telegram_message_id: mid_i32,
+                                status: "failed".into(),
+                                source: None,
+                                reason: err_opt.or(Some("DownloadFailed".into())),
+                                url: None,
+                            });
                         }
-                        thumbs.insert(k, v);
                     }
                 }
 
@@ -1702,17 +1804,17 @@ pub fn thumbs_batch_blocking_app(
                     BACKEND,
                     "thumbs_batch",
                     format!(
-                        "chat={} q={} total={} download={} ok={}",
+                        "op=thumb_batch_done request_id={req_id_str} chat={} q={} total={} ok={}",
                         chat,
                         q_key,
-                        ids.len(),
-                        need_download.len(),
+                        uncached_ids.len(),
                         thumbs.values().filter(|v| v.is_some()).count()
                     ),
                 );
                 Ok(ThumbsBatchResult {
                     status: "success".into(),
                     thumbs,
+                    items: item_results,
                     backend: BACKEND.into(),
                 })
             })

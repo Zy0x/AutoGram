@@ -1,10 +1,11 @@
-AutoGram Version: v2.3.98
+AutoGram Version: v2.3.99
 
 Current State:
-v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`, dan `VERSION.md`. Menambahkan `topic_id` pada `MediaFileRow` & `ThumbnailLocator`, menjamin `message_id` adalah Telegram message ID asli, menambahkan structured tracing (`media_list_identity`, `thumb_request_identity`, `thumb_peer_resolved`, `thumb_message_resolved`, `thumb_identity_mismatch`), menegakkan validasi identitas keras (`returned_message.id() == requested_message_id`), meng-eliminasikan positional zip batch matching melalui `HashMap<i32, Message>`, membedakan kode alasan kegagalan (`MessageNotReturned`, `MessageIdentityMismatch`, `PeerResolutionFailed`, `MessageHasNoMedia`), dan memperbarui namespace cache ke `v98_` untuk menginvalidasi false negative `.nothumb` lama.
+v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `thumbBatcher.ts`, `mediaStudioDb.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan `requestId` unik (seperti `thumb:-1004468191168:69:g12`) yang di-pass tanpa perubahan dari frontend ke backend response. Menegakkan nama eksplisit `telegram_message_id` dan `telegram_peer_id` tanpa fallback generik. Meng-audit sumber baris media (`identity_source`) dengan log `op=media_row_created`. Menginvaliasi cache ke `v99_` dan `autogram-media-studio-v3`. Menambahkan per-item structured result `ThumbnailBatchItemResult` dan command debug IPC `tg_debug_get_message`.
 
 Previous:
-v2.3.97 Capability-Gated FFmpeg Resolver, Dynamic AV1 Decoder Selection, In-Flight Request Coalescing & Atomic Negative Cache — membenahi `ffmpeg.rs`, `thumbnail_range_bridge.rs`, `thumbs.rs`, dan `VERSION.md`.
+v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`, dan `VERSION.md`.
+
 
 
 Previous:

@@ -540,11 +540,14 @@ pub fn tg_list_topics(
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ThumbsBatchRequest {
+    pub request_id: Option<String>,
     pub session: String,
     pub api_id: i64,
     pub api_hash: String,
     pub chat_id: String,
+    pub telegram_peer_id: Option<String>,
     pub message_ids: Vec<i64>,
+    pub telegram_message_ids: Option<Vec<i64>>,
     pub quality: Option<String>,
 }
 
@@ -565,12 +568,17 @@ pub fn tg_thumbs_batch_app(
         api_hash: req.api_hash,
     };
     let q = req.quality.as_deref().unwrap_or("balanced");
+    let target_peer = req.telegram_peer_id.as_deref().unwrap_or(&req.chat_id);
+    let target_mids = req.telegram_message_ids.as_ref().unwrap_or(&req.message_ids);
+    let req_id = req.request_id.as_deref();
+
     match super::grammers_media::thumbs_batch_blocking_app(
         &dir,
         &identity,
-        &req.chat_id,
-        &req.message_ids,
+        target_peer,
+        target_mids,
         q,
+        req_id,
         app,
     ) {
         Ok(r) => ok_result("grammers", r),
@@ -578,6 +586,102 @@ pub fn tg_thumbs_batch_app(
             tg_log::error("grammers", "thumbs_batch", e.to_string());
             err_result("grammers", e)
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugGetMessageRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub peer_id: String,
+    pub telegram_message_id: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugGetMessageResult {
+    pub found: bool,
+    pub returned_id: Option<i64>,
+    pub message_type: Option<String>,
+    pub has_media: bool,
+    pub media_type: Option<String>,
+    pub document_id: Option<i64>,
+    pub photo_id: Option<i64>,
+    pub text_preview: Option<String>,
+}
+
+pub fn tg_debug_get_message(
+    req: DebugGetMessageRequest,
+) -> OpResult<DebugGetMessageResult> {
+    let dir = sessions_dir_from_env();
+    let identity = TelegramIdentity {
+        session: req.session,
+        api_id: req.api_id,
+        api_hash: req.api_hash,
+    };
+    let rt = match runtime() {
+        Ok(r) => r,
+        Err(e) => return err_result("grammers", e),
+    };
+    let chat = req.peer_id.clone();
+    let mid = req.telegram_message_id as i32;
+
+    let res = rt.block_on(async {
+        with_pool_retry(&identity.session, || {
+            let chat = chat.clone();
+            with_client(&dir, &identity, true, move |client| {
+                let chat = chat.clone();
+                Box::pin(async move {
+                    let peer = resolve_peer(client, &chat).await?;
+                    let msgs = client.get_messages_by_id(peer, &[mid]).await.map_err(|e| map_invocation(&e))?;
+                    if let Some(Some(msg)) = msgs.first() {
+                        let returned_id = msg.id() as i64;
+                        let maybe_media = msg.media();
+                        let has_media = maybe_media.is_some();
+                        let (media_type, doc_id, photo_id) = match &maybe_media {
+                            Some(grammers_client::media::Media::Photo(p)) => (Some("photo".into()), None, Some(p.id())),
+                            Some(grammers_client::media::Media::Document(d)) => (Some("document".into()), Some(d.id()), None),
+                            Some(grammers_client::media::Media::Sticker(s)) => (Some("sticker".into()), Some(s.document.id()), None),
+                            _ => (None, None, None),
+                        };
+                        let text_prev = if !msg.text().is_empty() {
+                            Some(msg.text().chars().take(50).collect())
+                        } else {
+                            None
+                        };
+                        Ok(DebugGetMessageResult {
+                            found: true,
+                            returned_id: Some(returned_id),
+                            message_type: Some("Message".into()),
+                            has_media,
+                            media_type,
+                            document_id: doc_id,
+                            photo_id,
+                            text_preview: text_prev,
+                        })
+                    } else {
+                        Ok(DebugGetMessageResult {
+                            found: false,
+                            returned_id: None,
+                            message_type: None,
+                            has_media: false,
+                            media_type: None,
+                            document_id: None,
+                            photo_id: None,
+                            text_preview: None,
+                        })
+                    }
+                })
+            })
+        })
+        .await
+    });
+
+    match res {
+        Ok(r) => ok_result("grammers", r),
+        Err(e) => err_result("grammers", e),
     }
 }
 
