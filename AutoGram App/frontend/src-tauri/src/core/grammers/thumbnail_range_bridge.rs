@@ -20,12 +20,20 @@ const DEFAULT_CHUNK_SIZE: u64 = 256 * 1024; // 256 KB chunk size for MTProto
 
 pub struct RangeBridgeHandle {
     pub url: String,
+    pub cumulative_bytes: Arc<std::sync::atomic::AtomicU64>,
     stop_signal: Arc<AtomicBool>,
 }
 
 impl RangeBridgeHandle {
     pub fn stop(&self) {
-        self.stop_signal.store(true, Ordering::Relaxed);
+        if !self.stop_signal.swap(true, Ordering::Relaxed) {
+            let total = self.cumulative_bytes.load(Ordering::Relaxed);
+            tg_log::info(
+                BACKEND,
+                "range_bridge_stopped",
+                format!("url='{}' cumulative_bytes={total}", self.url),
+            );
+        }
     }
 }
 
@@ -42,14 +50,24 @@ pub fn spawn_range_bridge(
     client: Client,
     media: Media,
     total_size: u64,
+    max_budget: u64,
 ) -> Option<RangeBridgeHandle> {
     let server = Server::http("127.0.0.1:0").ok()?;
     let port = server.server_addr().to_ip().map(|a| a.port())?;
     let url = format!("http://127.0.0.1:{port}/thumb.mp4");
 
+    tg_log::info(
+        BACKEND,
+        "range_bridge_started",
+        format!("url='{url}' total_size={total_size} max_budget={max_budget}"),
+    );
+
     let stop_signal = Arc::new(AtomicBool::new(false));
     let stop_ref = stop_signal.clone();
+    let cumulative_bytes = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let cum_ref = cumulative_bytes.clone();
     let rt_handle = rt.clone();
+    let url_log = url.clone();
 
     std::thread::spawn(move || {
         while !stop_ref.load(Ordering::Relaxed) {
@@ -78,6 +96,25 @@ pub fn spawn_range_bridge(
                 continue;
             }
 
+            let current_cum = cum_ref.load(Ordering::Relaxed);
+            if current_cum >= max_budget {
+                tg_log::warn(
+                    BACKEND,
+                    "range_bridge_budget_exceeded",
+                    format!("url='{url_log}' cumulative={current_cum} max_budget={max_budget}"),
+                );
+                let mut res = Response::empty(StatusCode(416));
+                res.add_header(
+                    Header::from_bytes(
+                        &b"Content-Range"[..],
+                        format!("bytes */{total_size}").as_bytes(),
+                    )
+                    .unwrap(),
+                );
+                let _ = req.respond(res);
+                break;
+            }
+
             let range_hdr = req
                 .headers()
                 .iter()
@@ -103,6 +140,12 @@ pub fn spawn_range_bridge(
             let actual_end = req_end.min(req_start + max_fetch - 1).min(total_size.saturating_sub(1));
             let fetch_len = (actual_end - req_start + 1) as usize;
 
+            tg_log::info(
+                BACKEND,
+                "range_bridge_request",
+                format!("offset={req_start} requested_length={fetch_len}"),
+            );
+
             let client_cloned = client.clone();
             let media_cloned = media.clone();
 
@@ -113,6 +156,14 @@ pub fn spawn_range_bridge(
             match bytes_res {
                 Ok(bytes) => {
                     let body_len = bytes.len() as u64;
+                    let new_cum = cum_ref.fetch_add(body_len, Ordering::Relaxed) + body_len;
+
+                    tg_log::info(
+                        BACKEND,
+                        "range_bridge_response",
+                        format!("status=206 bytes={body_len} cumulative_bytes={new_cum}"),
+                    );
+
                     let resp_end = req_start + body_len.saturating_sub(1);
                     let mut res = Response::from_data(bytes).with_status_code(StatusCode(206));
                     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
@@ -140,7 +191,11 @@ pub fn spawn_range_bridge(
         }
     });
 
-    Some(RangeBridgeHandle { url, stop_signal })
+    Some(RangeBridgeHandle {
+        url,
+        cumulative_bytes,
+        stop_signal,
+    })
 }
 
 /// Parses standard `Range: bytes=start-end` or `bytes=start-` header values.

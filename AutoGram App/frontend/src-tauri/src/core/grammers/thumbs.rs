@@ -15,7 +15,7 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
-use super::ffmpeg::{extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg};
+use super::ffmpeg::{extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary, get_ffmpeg_capabilities, is_fallback_black_card_bytes, unstrip_jpeg};
 use super::thumbnail_range_bridge::spawn_range_bridge;
 
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
@@ -659,39 +659,59 @@ async fn download_media_thumb(
                     || sample_bytes.windows(4).any(|w| w == b"av1C")
                     || sample_bytes.windows(4).any(|w| w == b"av01");
 
-                let ext_hint = if name.ends_with(".webm") {
-                    "webm"
-                } else if name.ends_with(".mkv") {
-                    "mkv"
-                } else if name.ends_with(".mov") {
-                    "mov"
-                } else if name.ends_with(".avi") {
-                    "avi"
-                } else if name.ends_with(".ts") {
-                    "ts"
-                } else if name.ends_with(".flv") {
-                    "flv"
-                } else if name.ends_with(".wmv") {
-                    "wmv"
+                let caps = get_ffmpeg_capabilities();
+                if let Some(ref c) = caps {
+                    if !c.supports_http {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumb_result",
+                            format!("status=fallback reason=http_protocol_unavailable path='{}'", c.path.display()),
+                        );
+                        return Err(TgError::new(TgErrorCode::Internal, "HttpProtocolUnavailable"));
+                    }
+                    if is_av1_video && c.av1_decoder.is_none() {
+                        tg_log::warn(
+                            BACKEND,
+                            "thumb_result",
+                            format!("status=fallback reason=decoder_unavailable path='{}'", c.path.display()),
+                        );
+                        return Err(TgError::new(TgErrorCode::Internal, "DecoderUnavailable"));
+                    }
                 } else {
-                    "mp4"
-                };
+                    tg_log::warn(
+                        BACKEND,
+                        "thumb_result",
+                        "status=fallback reason=ffmpeg_not_found",
+                    );
+                    return Err(TgError::new(TgErrorCode::Internal, "FfmpegNotFound"));
+                }
 
                 // Level 3 primary path: Seekable Local HTTP Range Bridge for FFmpeg
+                let saver = quality.to_lowercase().contains("hemat") || quality.to_lowercase().contains("saver");
+                let max_budget = if saver { 3 * 1024 * 1024 } else { 6 * 1024 * 1024 };
+
                 if doc_size > 0 {
                     if let Ok(rt) = tokio::runtime::Handle::try_current() {
-                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64) {
+                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64, max_budget) {
                             if let Some(frame_bytes) = extract_ffmpeg_frame_from_url(&bridge.url, quality, is_av1_video) {
+                                tg_log::info(
+                                    BACKEND,
+                                    "thumb_result",
+                                    format!("status=ready source=ffmpeg_range bytes={}", frame_bytes.len()),
+                                );
                                 return Ok(frame_bytes);
                             }
                         }
                     }
                 }
 
-                // Secondary fallback for local sample bytes
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
-                    return Ok(frame_bytes);
-                }
+                // Strictly NO partial MP4 fallback! Fail-fast to Fallback Icon.
+                tg_log::warn(
+                    BACKEND,
+                    "thumb_result",
+                    "status=fallback reason=range_bridge_failed",
+                );
+                return Err(TgError::new(TgErrorCode::Internal, "RangeBridgeFailed"));
 
             } else {
                 // Fallback extraction for general documents
@@ -1589,36 +1609,18 @@ pub fn thumbs_batch_blocking_app(
                             }
                             Err(e) => {
                                 let nothumb_file = t_sub.join(format!("{c_sub}_{mid_val}_{q_sub}.nothumb"));
-                                let _ = std::fs::remove_file(&nothumb_file);
+                                let _ = std::fs::write(&nothumb_file, b"none");
+                                thumb_mem_cache().lock().insert(
+                                    format!("{c_sub}_{mid_val}_{q_sub}"),
+                                    "NOT_FOUND".to_string(),
+                                );
 
-                                let is_media_doc = matches!(&media_cloned, Media::Photo(_)) || matches!(&media_cloned, Media::Document(d) if {
-                                    let mime = d.mime_type().unwrap_or("").to_lowercase();
-                                    let name = d.name().unwrap_or("").to_lowercase();
-                                    mime.starts_with("video/") || mime.starts_with("image/")
-                                        || name.ends_with(".mp4") || name.ends_with(".mov") || name.ends_with(".mkv") || name.ends_with(".webm") || name.ends_with(".avi")
-                                });
-
-                                if !is_media_doc {
-                                    let _ = std::fs::write(&nothumb_file, b"none");
-                                    thumb_mem_cache().lock().insert(
-                                        format!("{c_sub}_{mid_val}_{q_sub}"),
-                                        "NOT_FOUND".to_string(),
-                                    );
-                                }
                                 let err_str = e.to_string();
-                                if !err_str.contains("no valid thumb found") {
-                                    tg_log::warn(
-                                        BACKEND,
-                                        "thumb_download_failed",
-                                        format!("chat={c_sub} mid={mid_val} quality={q_sub} error={err_str}"),
-                                    );
-                                } else {
-                                    tg_log::info(
-                                        BACKEND,
-                                        "thumb_not_present",
-                                        format!("chat={c_sub} mid={mid_val} quality={q_sub} cached negative result"),
-                                    );
-                                }
+                                tg_log::info(
+                                    BACKEND,
+                                    "thumb_negative_cache_written",
+                                    format!("chat={c_sub} mid={mid_val} quality={q_sub} reason={err_str}"),
+                                );
                                 (mid_val.to_string(), None)
                             }
                         }

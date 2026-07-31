@@ -1,7 +1,11 @@
-AutoGram Version: v2.3.96
+AutoGram Version: v2.3.97
 
 Current State:
+v2.3.97 Capability-Gated FFmpeg Resolver, Dynamic AV1 Decoder Selection, In-Flight Request Coalescing & Atomic Negative Cache — membenahi `ffmpeg.rs`, `thumbnail_range_bridge.rs`, `thumbs.rs`, dan `VERSION.md`. Menambahkan `probe_ffmpeg_capabilities` untuk secara otomatis menguji protokol `http` dan decoder AV1 (`libdav1d`/`libaom-av1`/`av1`) pada biner FFmpeg sistem, mengeliminasi biner tersembunyi tanpa HTTP (seperti BlueStacks). Meng-eliminasikan total alur fallback parsial MP4 256 KB yang korup, menambahkan *in-flight request coalescing* di backend Rust, menegakkan hard budget 6 MiB (Balanced) / 3 MiB (Data Saver) per media, serta menjamin negative cache (`.nothumb` & `"NOT_FOUND"`) ditulis secara atomic pada setiap kegagalan deterministik.
+
+Previous:
 v2.3.96 Seekable Local HTTP Range Bridge, AV1 Software Decoder Bypass & Stderr Log Spam Elimination — membenahi `thumbnail_range_bridge.rs`, `ffmpeg.rs`, `thumbs.rs`, dan `mod.rs`. Menambahkan `spawn_range_bridge` (server HTTP Range local `206 Partial Content` sementara) untuk ekstraksi seekable FFmpeg pada berkas video dokumen Telegram (MP4/AV1). Mengeliminasi total kesalahan MP4 Frankenstein `[av1] video_get_buffer: image parameters invalid` & `moov atom not found` akibat pemotongan sampel parsial. Menambahkan deteksi kapabilitas `libdav1d`/AV1, timeout 5 detik pada subprocess FFmpeg, pembatasan stderr log (maks 1 KB), serta pengisolasian negative cache (`.nothumb`) per item batch.
+
 
 Previous:
 v2.3.95 Instant Stripped Mini-Thumbs, Unpaused Thumbnail Batcher & High-Throughput RPC Pipeline — membenahi `media_list.rs`, `thumbs.rs`, `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`. Menambahkan `tl_stripped_thumb_data_url` di backend Rust untuk ekstraksi *inline mini-thumb* MTProto `PhotoSize::Stripped` / `PhotoSize::Cached` instan (0ms), merender visual 100% kartu buram di topik forum tanpa kotak abu-abu. Menghapus penguncian `setThumbsPaused(true)` saat pemuatan berkas, meningkatkan pemrosesan paralel menjadi 4 RPC flight dengan batch size 48 item per request, serta menyempurnakan estimasi virtualizer UI dan i18n key parity.

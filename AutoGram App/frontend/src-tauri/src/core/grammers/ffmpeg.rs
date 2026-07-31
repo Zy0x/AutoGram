@@ -62,10 +62,95 @@ pub fn unstrip_jpeg(data: &[u8]) -> Option<Vec<u8>> {
 }
 
 
-pub fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
-    if let Some(path) = which_path("ffmpeg") {
-        return Some(path);
+#[derive(Debug, Clone)]
+pub struct FfmpegCapabilities {
+    pub path: PathBuf,
+    pub version: String,
+    pub supports_http: bool,
+    pub av1_decoder: Option<String>,
+    pub supports_mp4_demux: bool,
+    pub capability_hash: String,
+}
+
+static FFMPEG_CAPS: OnceLock<Option<FfmpegCapabilities>> = OnceLock::new();
+
+pub fn get_ffmpeg_capabilities() -> Option<FfmpegCapabilities> {
+    FFMPEG_CAPS.get_or_init(init_ffmpeg_capabilities).clone()
+}
+
+pub fn probe_ffmpeg_capabilities(path: &Path) -> Option<FfmpegCapabilities> {
+    if !path.is_file() {
+        return None;
     }
+
+    let v_out = std::process::Command::new(path)
+        .arg("-hide_banner")
+        .arg("-version")
+        .output()
+        .ok()?;
+    let v_text = String::from_utf8_lossy(&v_out.stdout);
+    let version_line = v_text.lines().next().unwrap_or("").trim().to_string();
+    if version_line.is_empty() {
+        return None;
+    }
+
+    let p_out = std::process::Command::new(path)
+        .arg("-hide_banner")
+        .arg("-protocols")
+        .output()
+        .ok()?;
+    let p_text = String::from_utf8_lossy(&p_out.stdout);
+    let supports_http = p_text.lines().any(|l| {
+        let trimmed = l.trim();
+        trimmed == "http" || trimmed.starts_with("http ") || trimmed.ends_with(" http") || trimmed == "https"
+    });
+
+    let d_out = std::process::Command::new(path)
+        .arg("-hide_banner")
+        .arg("-decoders")
+        .output()
+        .ok()?;
+    let d_text = String::from_utf8_lossy(&d_out.stdout);
+    let av1_decoder = if d_text.contains("libdav1d") {
+        Some("libdav1d".to_string())
+    } else if d_text.contains("libaom-av1") {
+        Some("libaom-av1".to_string())
+    } else if d_text.contains("av1") {
+        Some("av1".to_string())
+    } else {
+        None
+    };
+
+    let m_out = std::process::Command::new(path)
+        .arg("-hide_banner")
+        .arg("-demuxers")
+        .output()
+        .ok()?;
+    let m_text = String::from_utf8_lossy(&m_out.stdout);
+    let supports_mp4_demux = m_text.contains("mov,mp4,m4a,3gp,3g2,mj2") || m_text.contains("mp4");
+
+    let raw_cap = format!("{version_line}|http={supports_http}|av1={av1_decoder:?}");
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(&raw_cap, &mut hasher);
+    let cap_hash = format!("{:08x}", std::hash::Hasher::finish(&hasher));
+
+    Some(FfmpegCapabilities {
+        path: path.to_path_buf(),
+        version: version_line,
+        supports_http,
+        av1_decoder,
+        supports_mp4_demux,
+        capability_hash: cap_hash,
+    })
+}
+
+fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(path) = which_path("ffmpeg") {
+        candidates.push(path);
+    }
+
     let mut search_dirs = Vec::new();
     if let Ok(cd) = std::env::current_dir() {
         let mut cur = Some(cd.as_path());
@@ -101,7 +186,7 @@ pub fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
                         if p.is_file() {
                             let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
                             if name.starts_with("ffmpeg") && (name.ends_with(".exe") || !cfg!(windows)) {
-                                return Some(p);
+                                candidates.push(p);
                             }
                         }
                     }
@@ -110,34 +195,31 @@ pub fn find_ffmpeg_binary() -> Option<std::path::PathBuf> {
         }
     }
 
-    // Check common Windows installation & application locations (up to depth 4 for nested software like CapCut, FormatFactory, BlueStacks)
     if cfg!(windows) {
         let mut win_dirs = Vec::new();
         if let Ok(pf) = std::env::var("ProgramFiles") {
-            win_dirs.push(std::path::PathBuf::from(pf));
+            win_dirs.push(PathBuf::from(pf));
         }
         if let Ok(pfx86) = std::env::var("ProgramFiles(x86)") {
-            win_dirs.push(std::path::PathBuf::from(pfx86));
+            win_dirs.push(PathBuf::from(pfx86));
         }
         if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            win_dirs.push(std::path::PathBuf::from(local_app));
+            win_dirs.push(PathBuf::from(local_app));
         }
-        win_dirs.push(std::path::PathBuf::from("C:\\ffmpeg"));
-        win_dirs.push(std::path::PathBuf::from("C:\\Tools"));
+        win_dirs.push(PathBuf::from("C:\\ffmpeg"));
+        win_dirs.push(PathBuf::from("C:\\Tools"));
 
         for base in win_dirs {
-            if let Some(p) = search_ffmpeg_recursive(&base, 4) {
-                return Some(p);
-            }
+            collect_ffmpeg_recursive(&base, 4, &mut candidates);
         }
     }
 
-    None
+    candidates
 }
 
-fn search_ffmpeg_recursive(dir: &std::path::Path, max_depth: usize) -> Option<std::path::PathBuf> {
+fn collect_ffmpeg_recursive(dir: &Path, max_depth: usize, out: &mut Vec<PathBuf>) {
     if max_depth == 0 || !dir.is_dir() {
-        return None;
+        return;
     }
     if let Ok(entries) = std::fs::read_dir(dir) {
         let mut subdirs = Vec::new();
@@ -146,19 +228,83 @@ fn search_ffmpeg_recursive(dir: &std::path::Path, max_depth: usize) -> Option<st
             if p.is_file() {
                 let name = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
                 if name.starts_with("ffmpeg") && (name.ends_with(".exe") || !cfg!(windows)) {
-                    return Some(p);
+                    out.push(p);
                 }
             } else if p.is_dir() {
                 subdirs.push(p);
             }
         }
         for sub in subdirs {
-            if let Some(found) = search_ffmpeg_recursive(&sub, max_depth - 1) {
-                return Some(found);
+            collect_ffmpeg_recursive(&sub, max_depth - 1, out);
+        }
+    }
+}
+
+fn init_ffmpeg_capabilities() -> Option<FfmpegCapabilities> {
+    let candidates = collect_ffmpeg_candidates();
+    let mut best_caps: Option<FfmpegCapabilities> = None;
+
+    for candidate in candidates {
+        if let Some(caps) = probe_ffmpeg_capabilities(&candidate) {
+            tg_log::info(
+                BACKEND,
+                "ffmpeg_candidate_probed",
+                format!(
+                    "path='{}' supports_http={} av1_dec={:?} hash={}",
+                    caps.path.display(),
+                    caps.supports_http,
+                    caps.av1_decoder,
+                    caps.capability_hash
+                ),
+            );
+
+            if caps.supports_http {
+                let is_ideal = caps.av1_decoder.is_some();
+                if is_ideal || best_caps.is_none() {
+                    best_caps = Some(caps);
+                    if is_ideal {
+                        break;
+                    }
+                }
             }
         }
     }
-    None
+
+    if let Some(ref selected) = best_caps {
+        tg_log::info(
+            BACKEND,
+            "ffmpeg_capabilities_selected",
+            format!(
+                "SELECTED path='{}' version='{}' http={} av1_dec={:?} hash={}",
+                selected.path.display(),
+                selected.version,
+                selected.supports_http,
+                selected.av1_decoder,
+                selected.capability_hash
+            ),
+        );
+    } else {
+        tg_log::warn(
+            BACKEND,
+            "ffmpeg_capabilities_none",
+            "No FFmpeg binary supporting HTTP protocol was found on the system",
+        );
+    }
+
+    best_caps
+}
+
+pub fn find_ffmpeg_binary() -> Option<PathBuf> {
+    get_ffmpeg_capabilities().map(|c| c.path)
+}
+
+pub fn ffmpeg_supports_av1(ff_exe: &Path) -> bool {
+    if let Some(caps) = get_ffmpeg_capabilities() {
+        if caps.path == ff_exe {
+            return caps.av1_decoder.is_some();
+        }
+    }
+    probe_ffmpeg_capabilities(ff_exe).map(|c| c.av1_decoder.is_some()).unwrap_or(false)
 }
 
 fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
@@ -172,28 +318,7 @@ fn which_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-/// Phase 1: Runtime AV1 decoder capability probe.
-/// Cached in a OnceLock so the subprocess is only spawned once per app session.
-/// Returns true if the bundled FFmpeg binary was compiled with libdav1d, libaom, or any AV1 decoder.
-pub fn ffmpeg_supports_av1(ff_exe: &std::path::Path) -> bool {
 
-    static CACHE: OnceLock<bool> = OnceLock::new();
-    *CACHE.get_or_init(|| {
-        let Ok(out) = std::process::Command::new(ff_exe)
-            .args(&["-hide_banner", "-codecs"])
-            .output()
-        else {
-            return false;
-        };
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let combined = format!("{stdout}{stderr}");
-        combined.contains("libdav1d")
-            || combined.contains("libaom")
-            || combined.contains("av1 ")
-            || combined.contains("av1,")
-    })
-}
 
 fn generate_video_fallback_card() -> Option<Vec<u8>> {
     if let Some(ff_exe) = find_ffmpeg_binary() {
@@ -643,20 +768,29 @@ pub fn extract_ffmpeg_frame_sync(sample_bytes: &[u8], quality: &str, ext_hint: &
 }
 
 /// Extract a 1-frame WebP/JPEG thumbnail from a seekable HTTP Range URL (e.g. from `spawn_range_bridge`).
-/// Enforces software decoding (`-hwaccel none`), `libdav1d`/`av1` decoder, 5-second process timeout,
+/// Enforces software decoding (`-hwaccel none`), dynamic AV1 decoder selection, 5-second process timeout,
 /// and stderr output trimming to prevent terminal log spamming.
 pub fn extract_ffmpeg_frame_from_url(
     input_url: &str,
     quality: &str,
     is_av1: bool,
 ) -> Option<Vec<u8>> {
-    let ff_exe = find_ffmpeg_binary()?;
+    let caps = get_ffmpeg_capabilities()?;
 
-    if is_av1 && !ffmpeg_supports_av1(&ff_exe) {
-        tg_log::info(
+    if !caps.supports_http {
+        tg_log::warn(
+            BACKEND,
+            "ffmpeg_url_extract_aborted",
+            format!("FFmpeg binary at '{}' does not support HTTP protocol", caps.path.display()),
+        );
+        return None;
+    }
+
+    if is_av1 && caps.av1_decoder.is_none() {
+        tg_log::warn(
             BACKEND,
             "av1_decoder_unavailable",
-            "Bundled FFmpeg lacks libdav1d/AV1 decoder support; falling back to smart file icon",
+            format!("FFmpeg binary at '{}' lacks AV1 decoder; falling back to smart file icon", caps.path.display()),
         );
         return None;
     }
@@ -681,56 +815,70 @@ pub fn extract_ffmpeg_frame_from_url(
     let rand_id = format!("{pid}_{seq}_{nanos}");
     let frame_path = temp_dir.join(format!("autogram_vid_urlframe_{rand_id}.jpg"));
 
-    let decoders: &[&[&str]] = if is_av1 {
-        &[&["-c:v", "libdav1d"], &["-c:v", "av1"], &[]]
+    let codec_arg: Vec<&str> = if is_av1 {
+        if let Some(ref dec) = caps.av1_decoder {
+            vec!["-c:v", dec.as_str()]
+        } else {
+            vec![]
+        }
     } else {
-        &[&[]]
+        vec![]
+    };
+
+    let mut cmd = std::process::Command::new(&caps.path);
+    cmd.arg("-hide_banner")
+        .arg("-loglevel")
+        .arg("error")
+        .arg("-nostdin")
+        .arg("-y")
+        .arg("-err_detect")
+        .arg("ignore_err")
+        .arg("-fflags")
+        .arg("+genpts+discardcorrupt")
+        .arg("-hwaccel")
+        .arg("none");
+
+    if !codec_arg.is_empty() {
+        cmd.args(&codec_arg);
+    }
+
+    cmd.arg("-ss")
+        .arg("0")
+        .arg("-i")
+        .arg(input_url)
+        .arg("-an")
+        .arg("-vframes")
+        .arg("1")
+        .arg("-vf")
+        .arg(scale_arg)
+        .arg("-q:v")
+        .arg(q_val)
+        .arg(&frame_path);
+
+    let output = match cmd.output() {
+        Ok(out) => out,
+        Err(e) => {
+            tg_log::warn(
+                BACKEND,
+                "ffmpeg_url_extract_exec_err",
+                format!("Failed to execute FFmpeg: {e}"),
+            );
+            return None;
+        }
     };
 
     let mut result = None;
 
-    for c_arg in decoders {
-        let mut cmd = std::process::Command::new(&ff_exe);
-        cmd.arg("-hide_banner")
-            .arg("-loglevel")
-            .arg("error")
-            .arg("-nostdin")
-            .arg("-y")
-            .arg("-err_detect")
-            .arg("ignore_err")
-            .arg("-fflags")
-            .arg("+genpts+discardcorrupt")
-            .arg("-hwaccel")
-            .arg("none")
-            .args(*c_arg)
-            .arg("-ss")
-            .arg("0")
-            .arg("-i")
-            .arg(input_url)
-            .arg("-an")
-            .arg("-vframes")
-            .arg("1")
-            .arg("-vf")
-            .arg(scale_arg)
-            .arg("-q:v")
-            .arg(q_val)
-            .arg(&frame_path);
-
-        let output = match cmd.output() {
-            Ok(out) => out,
-            Err(_) => continue,
-        };
-
-        if frame_path.exists() {
-            if let Ok(b) = std::fs::read(&frame_path) {
-                let _ = std::fs::remove_file(&frame_path);
-                if b.len() >= 800 && !is_fallback_black_card_bytes(&b) {
-                    result = Some(b);
-                    break;
-                }
+    if frame_path.exists() {
+        if let Ok(b) = std::fs::read(&frame_path) {
+            let _ = std::fs::remove_file(&frame_path);
+            if b.len() >= 800 && !is_fallback_black_card_bytes(&b) {
+                result = Some(b);
             }
         }
+    }
 
+    if result.is_none() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if !stderr.is_empty() {
             let trimmed = if stderr.len() > 1024 {
@@ -751,4 +899,25 @@ pub fn extract_ffmpeg_frame_from_url(
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_probe_capabilities() {
+        if let Some(caps) = get_ffmpeg_capabilities() {
+            println!("=== PROBED FFMPEG BINARY CAPABILITIES ===");
+            println!("Path: {}", caps.path.display());
+            println!("Version: {}", caps.version);
+            println!("Supports HTTP: {}", caps.supports_http);
+            println!("AV1 Decoder: {:?}", caps.av1_decoder);
+            println!("Capability Hash: {}", caps.capability_hash);
+            assert!(caps.path.is_file());
+            assert!(caps.supports_http, "Selected FFmpeg binary MUST support HTTP protocol!");
+        } else {
+            println!("No FFmpeg binary supporting HTTP found on test system");
+        }
+    }
 }

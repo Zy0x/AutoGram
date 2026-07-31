@@ -1,4 +1,14 @@
+## v2.3.97 Capability-Gated FFmpeg Resolver, Dynamic AV1 Decoder Selection, In-Flight Request Coalescing & Atomic Negative Cache
+
+### Capability Probe, Dynamic Decoder Selection & Fail-Fast Range Bridge (`ffmpeg.rs`, `thumbnail_range_bridge.rs`, `thumbs.rs`)
+- **Capability Probe FFmpeg (`probe_ffmpeg_capabilities`)**: Menguji protokol input `http` dan decoder AV1 secara nyata pada seluruh biner FFmpeg sistem. Secara otomatis memfilter biner tersembunyi tanpa HTTP (seperti BlueStacks FFmpeg) dan memilih biner valid yang memiliki HTTP + AV1 decoder (seperti FormatFactory/Bundled FFmpeg).
+- **Dynamic AV1 Decoder Selection**: Menghapus hardcode `libdav1d`. Decoder AV1 kini dipilih secara dinamis dari hasil probe biner (`libdav1d` -> `libaom-av1` -> `av1`).
+- **Eliminasi Total Fallback Parsial MP4**: Menghapus total pembuatan file `autogram_vid_sample_*.mp4` 256 KB. Video dokumen tanpa thumbnail Telegram HANYA memiliki 2 hasil: Range Bridge sukses ATAU Fallback Icon (fail-fast 0ms).
+- **Atomic Negative Caching**: Menjamin file `.nothumb` dan key `"NOT_FOUND"` ditulis pada memory cache untuk SELURUH kegagalan thumbnail video dokumen, menghentikan total request berulang 21x per 29 detik.
+- **Structured Range Bridge Logging & Bandwidth Budget**: Menegakkan batas hard bandwidth 6 MiB (Balanced) / 3 MiB (Data Saver) per media item serta menambahkan log terstruktur `range_bridge_started`, `range_bridge_request`, `range_bridge_response`, `range_bridge_stopped`.
+
 ## v2.3.96 Seekable Local HTTP Range Bridge, AV1 Software Decoder Bypass & Stderr Log Spam Elimination
+
 
 ### Local HTTP Range Bridge & Perbaikan AV1 MP4 Video Thumbnail (`thumbnail_range_bridge.rs`, `ffmpeg.rs`, `thumbs.rs`)
 - **Seekable Local HTTP Range Bridge (`thumbnail_range_bridge.rs`)**: Menambahkan server `tiny_http` lokal sementara yang melayani request HTTP `206 Partial Content` ke FFmpeg saat pemuatan thumbnail video dokumen Telegram (MP4/AV1). Mengizinkan FFmpeg melakukan seek acak secara presisi untuk membaca atom `moov` di lokasi manapun dalam file dan mendownload < 500 KB byte keyframe AV1 secara akurat via MTProto.
