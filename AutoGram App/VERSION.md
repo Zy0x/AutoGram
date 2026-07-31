@@ -1,9 +1,10 @@
-AutoGram Version: v2.4.3
+AutoGram Version: v2.4.4
 
 Current State:
-v2.4.3 Native Telegram Direct Static Thumbnail Pipeline & Ultra-Fast Media Engine — membenahi `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Mengeliminasi bypass latensi `w.max(h) < 400px` yang sebelumnya memicu pengunduhan file foto penuh 2MB per kartu, mengalihkan pengambilan ke layer thumbnail pre-compressed resmi Telegram (`'m'` 320px & `'x'` 800px) secara langsung over MTProto. Waktu unduh thumbnail per foto turun dari ~300ms menjadi ~15ms, memungkinkan 32+ thumbnail termuat instan dalam ~30ms selayaknya aplikasi Telegram/Nekogram/Nagram asli.
+v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug deadlock `flushInFlight` pada queue scheduler frontend dengan mengamankan `flushInFlight` di dalam blok `try {} finally {}` serta menambahkan 10s concurrency watchdog. Menambahkan `tokio::time::timeout(3s)` pada proses ekstraksi keyframe video FFmpeg backend Rust untuk mencegah stalling pada berkas video korup.
 
 Previous:
+v2.4.3 Native Telegram Direct Static Thumbnail Pipeline & Ultra-Fast Media Engine — membenahi `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.2 Accurate Telegram Photo Size Extraction Engine — membenahi `media_list.rs`, `document_mapper.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `thumbs.rs`, `thumbnail_range_bridge.rs`, `CHANGELOG.md`, dan `VERSION.md`.

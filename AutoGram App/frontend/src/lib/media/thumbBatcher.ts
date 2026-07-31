@@ -134,6 +134,7 @@ const queue = new Map<string, Task>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 /** Parallel in-flight flush count (high tier > 1) */
 let flushInFlight = 0;
+let lastFlushStartMs = Date.now();
 let activeQuality: DriveThumbQuality = DEFAULT_THUMB_QUALITY;
 let activeContextKey = 'unscoped';
 let activeSession = 'unscoped';
@@ -692,38 +693,48 @@ async function flushQueue() {
     scheduleFlush();
     return;
   }
-  if (flushInFlight >= maxConcurrent()) return;
-
-  flushInFlight++;
+  if (flushInFlight >= maxConcurrent()) {
+    // Watchdog: If in-flight requests stay locked for > 10s, force reset counters
+    if (Date.now() - lastFlushStartMs > 10000) {
+      console.warn('[thumbBatcher] Watchdog: in-flight flush locked > 10s. Force resetting concurrency counters.');
+      flushInFlight = 0;
+    } else {
+      return;
+    }
+  }
 
   const first = [...queue.values()].sort(
     (a, b) => b.priority - a.priority || a.sequence - b.sequence
   )[0];
   if (!first) return;
-  const creds = first.creds;
-  const folderId = first.folderId;
-  const quality = first.quality;
-  const limit = batchLimit(quality);
-  const tasks = [...queue.values()]
-    .filter(
-      (task) =>
-        task.contextKey === first.contextKey &&
-        task.folderId === folderId &&
-        task.quality === quality &&
-        task.creds.session === creds.session
-    )
-    .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)
-    .slice(0, limit);
-  const ids = tasks.map((task) => task.messageId);
-  for (const task of tasks) queue.delete(task.key);
-  metrics.queued = queue.size;
 
-  // Pipeline: start next batch while this one is in flight (high concurrent)
-  if (queue.size > 0 && flushInFlight < maxConcurrent()) {
-    scheduleFlush(true);
-  }
+  flushInFlight++;
+  lastFlushStartMs = Date.now();
 
   try {
+    const creds = first.creds;
+    const folderId = first.folderId;
+    const quality = first.quality;
+    const limit = batchLimit(quality);
+    const tasks = [...queue.values()]
+      .filter(
+        (task) =>
+          task.contextKey === first.contextKey &&
+          task.folderId === folderId &&
+          task.quality === quality &&
+          task.creds.session === creds.session
+      )
+      .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)
+      .slice(0, limit);
+    const ids = tasks.map((task) => task.messageId);
+    for (const task of tasks) queue.delete(task.key);
+    metrics.queued = queue.size;
+
+    // Pipeline: start next batch while this one is in flight (high concurrent)
+    if (queue.size > 0 && flushInFlight < maxConcurrent()) {
+      scheduleFlush(true);
+    }
+
     const started = performance.now();
     const batchUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     const realBatchId = `thumb-batch:${batchUuid}`;
@@ -809,7 +820,7 @@ async function flushQueue() {
       }
     }
   } catch (err) {
-    console.error(`[thumbBatcher] Thumbnail batch failed for chat=${folderId ?? 'home'} ids=[${ids.join(',')}] quality=${quality}:`, err);
+    console.error('[thumbBatcher] Thumbnail batch failed:', err);
     const errStr = String(err || '').toLowerCase();
     if (errStr.includes('flood') || errStr.includes('wait') || errStr.includes('420')) {
       const match = errStr.match(/wait of (\d+)/i);
@@ -820,27 +831,10 @@ async function flushQueue() {
         setThumbsPaused(false);
       }, Math.min(waitSecs, 60) * 1000);
     }
-    for (const task of tasks) {
-      const k = task.key;
-      errorFailAt.set(k, Date.now());
-      // Transient errors: requeue high-priority (visible) once generation is still current
-      if (
-        task.priority === 0 &&
-        task.generation === contextGeneration &&
-        task.contextKey === activeContextKey
-      ) {
-        queue.set(k, {
-          ...task,
-          waiters: [], // original waiters already resolved null; cards re-request
-        });
-        metrics.retries += 1;
-      }
-      resolveTask(task, null);
-    }
+  } finally {
+    flushInFlight = Math.max(0, flushInFlight - 1);
+    if (queue.size) scheduleFlush(flushInFlight === 0);
   }
-
-  flushInFlight--;
-  if (queue.size) scheduleFlush(flushInFlight === 0);
 }
 
 /** Request a thumb; coalesces with other visible cards. */

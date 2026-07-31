@@ -1,3 +1,11 @@
+## v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection
+
+### Queue Concurrency Deadlock Prevention (`thumbBatcher.ts`)
+- **`flushInFlight` Leak Elimination & 10s Concurrency Watchdog**: Memperbaiki bug kebocoran penghitung `flushInFlight` saat mengulur ribuan kartu via *fast scrolling*. Seluruh siklus eksekusi batch kini dijamin aman di dalam blok `try {} finally {}`, dilengkapi dengan *auto-reset watchdog* 10 detik untuk mencegah penghentian antrean thumbnail secara permanen.
+
+### FFmpeg Extraction Bounded Timeout (`thumbs.rs`)
+- **3-Second FFmpeg Frame Extraction Timeout**: Membungkus pemanggilan ekstraksi *keyframe* video FFmpeg backend Rust dengan `tokio::time::timeout(Duration::from_secs(3))`. Mengeliminasi masalah *stuck/hang* >10 detik saat memuat thumbnail video berukuran besar atau memiliki struktur file yang tidak standar.
+
 ## v2.4.3 Native Telegram Direct Static Thumbnail Pipeline & Ultra-Fast Media Engine
 
 ### Native MTProto Static Thumbnail Pipeline (`thumbs.rs`)

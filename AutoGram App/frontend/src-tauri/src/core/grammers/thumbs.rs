@@ -1956,10 +1956,13 @@ pub fn thumbs_batch_items_blocking_app(
                                         if let Some(bridge) = spawn_range_bridge(&rt_handle, client.clone(), media.clone(), total_size, max_budget) {
                                             let probe_url = bridge.url.clone();
                                             let q_mode = q_key.to_string();
-                                            let frame_res = tokio::task::spawn_blocking(move || {
-                                                extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
-                                            }).await;
-                                            if let Ok(Some(frame_bytes)) = frame_res {
+                                            let frame_res = tokio::time::timeout(
+                                                std::time::Duration::from_secs(3),
+                                                tokio::task::spawn_blocking(move || {
+                                                    extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
+                                                })
+                                            ).await;
+                                            if let Ok(Ok(Some(frame_bytes))) = frame_res {
                                                 if frame_bytes.len() >= 64 && !is_fallback_black_card_bytes(&frame_bytes) {
                                                     if let Some(url) = to_data_url(&frame_bytes) {
                                                         return (
