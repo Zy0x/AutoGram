@@ -19,7 +19,7 @@ use super::ffmpeg::{extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_b
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use super::thumbs::*;
 use crate::core::grammers_ops::{
-    obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
+    disconnect_cached_session, obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
 };
 use crate::core::path_policy;
 use crate::core::session_rate;
@@ -544,14 +544,40 @@ fn start_preview_stream_inner(
         if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
             return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
         }
-        let peer = resolve_peer(client, chat).await?;
+        let mut current_live = live.clone();
+        let peer = resolve_peer(&current_live.client, chat).await?;
         let mid = message_id as i32;
-        let msgs = match client.get_messages_by_id(peer, &[mid]).await {
+        let msgs = match current_live.client.get_messages_by_id(peer, &[mid]).await {
             Ok(m) => m,
             Err(e) => {
                 let err = map_invocation(&e);
                 session_rate::note_error(&session_name, &err);
-                if err.code() == TgErrorCode::FloodWait {
+                let err_str = err.to_string();
+                let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
+                if is_timeout {
+                    tg_log::warn(
+                        "grammers",
+                        "preview_stream",
+                        "RPC Timeout (-503) during get_messages. Reconnecting fresh socket...",
+                    );
+                    disconnect_cached_session(&session_name);
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                    if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                        current_live = fresh_live;
+                        let fresh_peer = resolve_peer(&current_live.client, chat).await?;
+                        current_live
+                            .client
+                            .get_messages_by_id(fresh_peer, &[mid])
+                            .await
+                            .map_err(|retry_err| {
+                                let mapped = map_invocation(&retry_err);
+                                session_rate::note_error(&session_name, &mapped);
+                                mapped
+                            })?
+                    } else {
+                        return Err(err);
+                    }
+                } else if err.code() == TgErrorCode::FloodWait {
                     if let Some(secs) = err.flood_wait_secs() {
                         if secs <= 35 {
                             tg_log::warn(
@@ -560,7 +586,8 @@ fn start_preview_stream_inner(
                                 format!("FloodWait ({secs}s) hit during get_messages, auto-retrying..."),
                             );
                             tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
-                            client
+                            current_live
+                                .client
                                 .get_messages_by_id(peer, &[mid])
                                 .await
                                 .map_err(|retry_err| {
@@ -685,7 +712,7 @@ fn start_preview_stream_inner(
             {
                 let mut dl_retry = 0;
                 loop {
-                    match client.download_media(&media, &dest).await {
+                    match current_live.client.download_media(&media, &dest).await {
                         Ok(_) => break,
                         Err(e) => {
                             let err_str = e.to_string();
@@ -695,11 +722,17 @@ fn start_preview_stream_inner(
                                 tg_log::warn(
                                     BACKEND,
                                     "preview_stream_retry",
-                                    format!("RPC Timeout (-503) during document download (retry {dl_retry}/2), retrying..."),
+                                    format!("RPC Timeout (-503) during document download (retry {dl_retry}/2). Reconnecting fresh socket..."),
                                 );
-                                tokio::time::sleep(Duration::from_millis(500 * dl_retry as u64)).await;
+                                let _ = std::fs::remove_file(&dest);
+                                disconnect_cached_session(&session_name);
+                                tokio::time::sleep(Duration::from_millis(300)).await;
+                                if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                                    current_live = fresh_live;
+                                }
                                 continue;
                             }
+                            let _ = std::fs::remove_file(&dest);
                             return Err(TgError::new(TgErrorCode::Io, format!("download document: {e}")));
                         }
                     }
@@ -744,7 +777,7 @@ fn start_preview_stream_inner(
             {
                 let mut dl_retry = 0;
                 loop {
-                    match client.download_media(&media, &dest).await {
+                    match current_live.client.download_media(&media, &dest).await {
                         Ok(_) => break,
                         Err(e) => {
                             let err_str = e.to_string();
@@ -754,11 +787,17 @@ fn start_preview_stream_inner(
                                 tg_log::warn(
                                     BACKEND,
                                     "preview_stream_retry",
-                                    format!("RPC Timeout (-503) during photo download (retry {dl_retry}/2), retrying..."),
+                                    format!("RPC Timeout (-503) during photo download (retry {dl_retry}/2). Reconnecting fresh socket..."),
                                 );
-                                tokio::time::sleep(Duration::from_millis(500 * dl_retry as u64)).await;
+                                let _ = std::fs::remove_file(&dest);
+                                disconnect_cached_session(&session_name);
+                                tokio::time::sleep(Duration::from_millis(300)).await;
+                                if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                                    current_live = fresh_live;
+                                }
                                 continue;
                             }
+                            let _ = std::fs::remove_file(&dest);
                             return Err(TgError::new(TgErrorCode::Io, format!("download: {e}")));
                         }
                     }

@@ -1,3 +1,8 @@
+## v2.5.10 Active Socket Invalidation & Fresh MTProto Reconnect Engine
+
+### Backend Pratinjau Grammers (`stream.rs`)
+- **Stale Socket Invalidation & Fresh Reconnect**: Ketika permintaan pratinjau media mengalami error RPC Timeout Grammers (`rpc error -503: Timeout caused by upload.getFile`), backend Rust kini secara otomatis menghapus file korup/setengah unduh di disk, memutus koneksi socket mati (`disconnect_cached_session`), dan membuka koneksi socket TCP MTProto baru (`obtain_live_client` dengan `force_fresh: true`) sebelum melakukan coba ulang. Hal ini menjamin pratinjau foto/dokumen selalu berhasil dibuka tanpa terjebak pada koneksi socket mati.
+
 ## v2.5.9 Resilient Media Preview Auto-Retry Engine
 
 ### Backend Pratinjau Grammers (`stream.rs`)
