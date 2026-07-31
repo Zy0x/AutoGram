@@ -70,6 +70,7 @@ pub fn spawn_range_bridge(
     let url_log = url.clone();
 
     std::thread::spawn(move || {
+        let range_cache = Arc::new(parking_lot::Mutex::new(std::collections::HashMap::<(u64, usize), Vec<u8>>::new()));
         while !stop_ref.load(Ordering::Relaxed) {
             let req = match server.recv_timeout(Duration::from_millis(250)) {
                 Ok(Some(r)) => r,
@@ -149,9 +150,26 @@ pub fn spawn_range_bridge(
             let client_cloned = client.clone();
             let media_cloned = media.clone();
 
-            let bytes_res = rt_handle.block_on(async move {
-                fetch_range_bytes(&client_cloned, &media_cloned, req_start, fetch_len, total_size).await
-            });
+            let cache_key = (req_start, fetch_len);
+            let cached_bytes = {
+                let guard = range_cache.lock();
+                guard.get(&cache_key).cloned()
+            };
+
+            let bytes_res = if let Some(bytes) = cached_bytes {
+                Ok(bytes)
+            } else {
+                let res = rt_handle.block_on(async move {
+                    fetch_range_bytes(&client_cloned, &media_cloned, req_start, fetch_len, total_size).await
+                });
+                if let Ok(ref bytes) = res {
+                    let mut guard = range_cache.lock();
+                    if guard.len() < 16 {
+                        guard.insert(cache_key, bytes.clone());
+                    }
+                }
+                res
+            };
 
             match bytes_res {
                 Ok(bytes) => {

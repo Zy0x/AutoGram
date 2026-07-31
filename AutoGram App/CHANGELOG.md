@@ -1,3 +1,16 @@
+## v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine
+
+### Progressive Preview Ladder & Viewport Scheduler (`thumbBatcher.ts`, `DriveFileCard.tsx`)
+- **Level 0 Deterministic Placeholder**: Menambahkan Level 0 deterministic category tint background gradient pada `DriveFileCard.tsx` berdasarkan kelas media (Video: `#0f172a / #1e1b4b`, Image: `#064e3b`, Audio: `#451a03`, Doc: `#1e293b`). Kartu media 100% tidak pernah tampil kosong polos saat menunggu thumbnail.
+- **Viewport Priority Queue Score**: Mengubah skala prioritas antrean thumbnail di `thumbBatcher.ts` menjadi skor numerik eksplisit (Priority 32: Viewport, 28: Near, 20: Prefetch, 12: Prewarm, 4: Regen, 1: Maintenance) dan menyortir pengiriman batch secara descending `(b.priority - a.priority)` sehingga kartu yang sedang terlihat selalu terlayani paling awal.
+- **Local Performance Metrics**: Menambahkan struktur `ThumbSchedulerMetrics` lokal untuk merekam hit memori, IndexedDB, hit disk, serta jumlah kegagalan sementara (*temporary failure*) vs permanen (*permanent failure*).
+
+### Document Smart Extractors & Range Cache (`thumbs.rs`, `thumbnail_range_bridge.rs`)
+- **Office ZIP Embedded Thumbnail Extractor**: Menambahkan `extract_office_zip_thumbnail()` pada backend Rust untuk mengekstrak gambar sampul `docProps/thumbnail.jpeg` / `docProps/thumbnail.png` secara langsung dari kontainer ZIP berkas Office (DOCX, PPTX, XLSX) tanpa merender ulang seluruh dokumen.
+- **MP3 ID3 Album Art Extractor**: Menambahkan `extract_id3_album_art()` untuk mengekstraksi bingkai gambar sampul album (JPEG/PNG) dari tag ID3v2 berkas audio MP3.
+- **Range Chunk Cache**: Menambahkan `range_cache` di `thumbnail_range_bridge.rs` yang menyimpan chunk byte range yang sudah pernah diunduh dari Telegram MTProto di memori, mempercepat pembacaan atom `moov` video oleh FFmpeg dalam <1ms.
+- **Failure Classification**: Memisahkan error sementara (cooldown retry) dari error permanen (.nothumb), mencegah kegagalan jaringan sementara mengunci thumbnail berkas secara permanen.
+
 ## v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command
 
 ### Request Correlation & Canonical Identifiers (`thumbs.rs`, `telegram_ops.rs`, `thumbBatcher.ts`, `driveFilesApi.ts`, `telegramBackend.ts`)

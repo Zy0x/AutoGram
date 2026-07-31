@@ -453,6 +453,68 @@ pub fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
     None
 }
 
+pub fn extract_office_zip_thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
+    if bytes.len() < 100 || !bytes.starts_with(b"PK\x03\x04") {
+        return None;
+    }
+    let mut pos = 0;
+    let limit = bytes.len().saturating_sub(4);
+    while pos < limit {
+        if bytes[pos] == 0xFF && bytes[pos + 1] == 0xD8 && bytes[pos + 2] == 0xFF {
+            let start = pos;
+            let mut end = start + 3;
+            while end + 1 < bytes.len() {
+                if bytes[end] == 0xFF && bytes[end + 1] == 0xD9 {
+                    end += 2;
+                    let jpeg = &bytes[start..end];
+                    if jpeg.len() >= 1024 && jpeg.len() <= 2 * 1024 * 1024 {
+                        return Some(jpeg.to_vec());
+                    }
+                    break;
+                }
+                end += 1;
+            }
+        }
+        pos += 1;
+    }
+    None
+}
+
+pub fn extract_id3_album_art(bytes: &[u8]) -> Option<Vec<u8>> {
+    if bytes.len() < 10 || !bytes.starts_with(b"ID3") {
+        return None;
+    }
+    let limit = bytes.len().min(512 * 1024);
+    for pos in 0..limit.saturating_sub(4) {
+        if (bytes[pos] == 0xFF && bytes[pos + 1] == 0xD8 && bytes[pos + 2] == 0xFF)
+            || bytes[pos..].starts_with(b"\x89PNG")
+        {
+            let is_png = bytes[pos] == 0x89;
+            let start = pos;
+            if is_png {
+                let end = (start + 32 * 1024).min(bytes.len());
+                if end > start + 512 {
+                    return Some(bytes[start..end].to_vec());
+                }
+            } else {
+                let mut end = start + 3;
+                while end + 1 < bytes.len() {
+                    if bytes[end] == 0xFF && bytes[end + 1] == 0xD9 {
+                        end += 2;
+                        let img = &bytes[start..end];
+                        if img.len() >= 512 {
+                            return Some(img.to_vec());
+                        }
+                        break;
+                    }
+                    end += 1;
+                }
+            }
+        }
+    }
+    None
+}
+
 pub fn media_thumbs(_client: Option<&Client>, media: &Media) -> Vec<PhotoSize> {
     match media {
         Media::Photo(p) => p.thumbs(),
@@ -932,6 +994,15 @@ async fn download_media_thumb(
                 return Err(TgError::new(TgErrorCode::Internal, "RangeBridgeFailed"));
 
             } else {
+                // Check Office document embedded thumbnail (docProps/thumbnail.jpeg inside ZIP container)
+                if let Some(office_thumb) = extract_office_zip_thumbnail(&sample_bytes) {
+                    return Ok(office_thumb);
+                }
+                // Check MP3 ID3 album art
+                if let Some(album_art) = extract_id3_album_art(&sample_bytes) {
+                    return Ok(album_art);
+                }
+
                 // Fallback extraction for general documents
                 let ext_hint = if name.contains('.') {
                     name.rsplit('.').next().unwrap_or("bin")

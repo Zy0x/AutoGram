@@ -1,9 +1,10 @@
-AutoGram Version: v2.3.99
+AutoGram Version: v2.4.0
 
 Current State:
-v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `thumbBatcher.ts`, `mediaStudioDb.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan `requestId` unik (seperti `thumb:-1004468191168:69:g12`) yang di-pass tanpa perubahan dari frontend ke backend response. Menegakkan nama eksplisit `telegram_message_id` dan `telegram_peer_id` tanpa fallback generik. Meng-audit sumber baris media (`identity_source`) dengan log `op=media_row_created`. Menginvaliasi cache ke `v99_` dan `autogram-media-studio-v3`. Menambahkan per-item structured result `ThumbnailBatchItemResult` dan command debug IPC `tg_debug_get_message`.
+v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `thumbs.rs`, `thumbnail_range_bridge.rs`, `CHANGELOG.md`, dan `VERSION.md`. Mengimplementasikan Progressive Preview Ladder (Level 0–5) dengan Level 0 deterministic category tint gradient background, Viewport Priority Queue (Priority 32/28/20/12/4/1 score scale) dengan sorting descending, pemisahan Temporary Failures (cooldown retry) vs Permanent Failures (.nothumb / "NOT_FOUND"), ekstraktor gambar sampul Office ZIP container (`docProps/thumbnail.jpeg`) dan MP3 ID3 album art, serta Range Cache pada Seekable Local HTTP Range Bridge.
 
 Previous:
+v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `thumbBatcher.ts`, `mediaStudioDb.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`, dan `VERSION.md`.
 
 

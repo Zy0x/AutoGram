@@ -480,10 +480,21 @@ function DriveFileCardInner({
             )}
           </div>
         ) : (
-          <div className={`td-file-thumb-empty${isVideo ? ' is-video-empty' : ''}`}>
+          <div
+            className={`td-file-thumb-empty${isVideo ? ' is-video-empty' : ''}`}
+            style={{
+              background: isVideo
+                ? 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)'
+                : file.icon_type === 'image' || file.mime_type?.startsWith('image/')
+                ? 'linear-gradient(135deg, #064e3b 0%, #0f172a 100%)'
+                : file.icon_type === 'audio' || file.mime_type?.startsWith('audio/')
+                ? 'linear-gradient(135deg, #451a03 0%, #0f172a 100%)'
+                : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            }}
+          >
             {thumbLoading && canThumb ? (
               <div className="td-thumb-loading">
-                <Loader2 size={24} className="spin" />
+                <Loader2 size={22} className="spin" />
                 <span>{isVideo ? t('speedtest.loading_video', 'Memuat Video…') : t('speedtest.loading_short', 'Memuat…')}</span>
               </div>
             ) : (

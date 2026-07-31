@@ -14,7 +14,7 @@ import {
   savePersistentThumb,
 } from './thumbPersistentCache';
 
-export type ThumbPriority = 'visible' | 'near' | 'prefetch';
+export type ThumbPriority = 'visible' | 'near' | 'prefetch' | 'prewarm' | 'regen' | 'maintenance';
 type Waiter = { resolve: (url: string | null) => void; signal?: AbortSignal };
 type Task = {
   key: string;
@@ -37,6 +37,10 @@ export type ThumbSchedulerMetrics = {
   batches: number;
   batchLatencyMs: number;
   retries: number;
+  cacheHitMemory: number;
+  cacheHitIndexedDb: number;
+  temporaryFailureCount: number;
+  permanentFailureCount: number;
 };
 
 
@@ -134,6 +138,10 @@ const metrics: ThumbSchedulerMetrics = {
   batches: 0,
   batchLatencyMs: 0,
   retries: 0,
+  cacheHitMemory: 0,
+  cacheHitIndexedDb: 0,
+  temporaryFailureCount: 0,
+  permanentFailureCount: 0,
 };
 /**
  * Startup guard: visible cards still load, but only through one small batch at
@@ -248,9 +256,8 @@ if (typeof window !== 'undefined') {
     .catch(() => {});
 }
 
-function softFailMs(priority?: number): number {
-  // Visible cards retry faster (800ms); prefetch/near can wait longer (1500ms).
-  if (priority === 0) return 800; // visible
+function softFailMs(priorityScore?: number): number {
+  if (priorityScore && priorityScore >= 32) return 600;
   return 1_500;
 }
 
@@ -289,9 +296,13 @@ function cacheKey(
 }
 
 function priorityValue(priority: ThumbPriority | undefined): number {
-  if (priority === 'prefetch') return 2;
-  if (priority === 'near') return 1;
-  return 0;
+  if (priority === 'visible') return 32;
+  if (priority === 'near') return 28;
+  if (priority === 'prefetch') return 20;
+  if (priority === 'prewarm') return 12;
+  if (priority === 'regen') return 4;
+  if (priority === 'maintenance') return 1;
+  return 32;
 }
 
 function resolveTask(task: Task, value: string | null): void {
@@ -665,7 +676,7 @@ async function flushQueue() {
   flushInFlight++;
 
   const first = [...queue.values()].sort(
-    (a, b) => a.priority - b.priority || a.sequence - b.sequence
+    (a, b) => b.priority - a.priority || a.sequence - b.sequence
   )[0];
   if (!first) return;
   const creds = first.creds;
@@ -680,7 +691,7 @@ async function flushQueue() {
         task.quality === quality &&
         task.creds.session === creds.session
     )
-    .sort((a, b) => a.priority - b.priority || a.sequence - b.sequence)
+    .sort((a, b) => b.priority - a.priority || a.sequence - b.sequence)
     .slice(0, limit);
   const ids = tasks.map((task) => task.messageId);
   for (const task of tasks) queue.delete(task.key);
