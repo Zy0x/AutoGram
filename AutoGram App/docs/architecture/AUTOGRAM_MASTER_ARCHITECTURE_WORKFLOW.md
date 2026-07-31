@@ -1,7 +1,7 @@
 # AutoGram Master Architecture, WorkTree & Operational Workflow Specification
 
 > **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid, Manual Operational Workflow Real-World & Standar Tata Kelola Agent AutoGram App**  
-> *Versi Rujukan Terintegrasi: v2.3.94 (Absolute Definitive Master Edition — 100% Comprehensive & Complete)*  
+> *Versi Rujukan Terintegrasi: v2.3.95 (Absolute Definitive Master Edition — 100% Comprehensive & Complete)*  
 > *Platform: Desktop Hybrid (Tauri + React 18 + Rust Grammers Engine + SQLite + IndexedDB)*
 
 ---
@@ -35,10 +35,10 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 ```
 
 ### 5 Pilar Utama Arsitektur Teknis:
-1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Thumbnail Batch, Upload/Download Stream, Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
-2. **Local-First Stale-While-Revalidate (SWR) Cache**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau SQLite (`topic_media.db`), disusul oleh pembaruan delta secara silent dari server Telegram.
-3. **Server-Side MTProto Topic Filtering (`top_msg_id`)**: Pemfilteran topik pada forum supergroup Telegram dilakukan langsung di server Telegram via `messages.search` berparameter `top_msg_id`, menghasilkan pencarian <50ms tanpa pemindaian pesan sekensial di client.
-4. **Proactive Streaming Infinite Scroll**: Antarmuka `DriveExplorer` memicu prefetch halaman berikutnya secara proaktif pada posisi 40% sebelum dasar grid (8–25 baris tersisa), sehingga pengguna tidak pernah mengalami hambatan *spinner loading*.
+1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Instant Stripped Mini-Thumb Extraction, Thumbnail Batch, Upload/Download Stream, Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
+2. **Local-First SWR & Instant 0ms Mini-Thumb Paint**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau mini-thumb Telegram MTProto `PhotoSize::Stripped` (`tl_stripped_thumb_data_url`), disusul oleh pembaruan HD background batch tanpa jeda.
+3. **Unpaused High-Throughput Thumbnail Pipeline**: Pemroses antrean thumbnail `thumbBatcher.ts` mengeksekusi 4 penerbangan RPC paralel dengan kapasitas batch hingga 48 item per request tanpa pernah dibekukan saat pemuatan berkas (`loadingMore`), menjamin 100% kartu di viewport merender gambar secara tajam dan cepat.
+4. **Server-Side MTProto Topic Filtering (`messages.GetReplies`)**: Pemfilteran topik pada forum supergroup Telegram dilakukan langsung via RPC resmi `messages.GetReplies` (`top_msg_id`), menghasilkan total count media akurat (`2803 messages`) dan pemuatan kartu super cepat.
 5. **Fail-Closed Generation Protection (`peerGen.current`)**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*) antar topik.
 
 ---

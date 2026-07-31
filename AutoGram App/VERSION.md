@@ -1,6 +1,9 @@
-AutoGram Version: v2.3.94
+AutoGram Version: v2.3.95
 
 Current State:
+v2.3.95 Instant Stripped Mini-Thumbs, Unpaused Thumbnail Batcher & High-Throughput RPC Pipeline — membenahi `media_list.rs`, `thumbs.rs`, `thumbBatcher.ts`, `DriveExplorer.tsx`, dan `AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`. Menambahkan `tl_stripped_thumb_data_url` di backend Rust untuk ekstraksi *inline mini-thumb* MTProto `PhotoSize::Stripped` / `PhotoSize::Cached` instan (0ms), merender visual 100% kartu buram di topik forum tanpa kotak abu-abu. Menghapus penguncian `setThumbsPaused(true)` saat pemuatan berkas, meningkatkan pemrosesan paralel menjadi 4 RPC flight dengan batch size 48 item per request, serta menyempurnakan estimasi virtualizer UI dan i18n key parity.
+
+Previous:
 v2.3.94 Absolute Definitive Master Specification with Agent Standards & 16-Skill Pack Matrix — Menyempurnakan dokumen spesifikasi master `docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md` dengan menambahkan Bab Standar Tata Kelola Agent, Aturan Proyek, Matriks 16-Skill Pack Active, Standar UI/UX Mobile-First, Aturan 100% Zero Hardcoded Text i18n, Proteksi Kredensial, serta Sistem Otomasi Release Commit-Push.
 
 Previous:

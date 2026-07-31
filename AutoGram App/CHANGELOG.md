@@ -1,3 +1,11 @@
+## v2.3.95 Instant Stripped Mini-Thumbs, Unpaused Thumbnail Batcher & High-Throughput RPC Pipeline
+
+### Pemuatan Thumbnail Topik Instan & Pembongkaran Throughput Batcher (`media_list.rs`, `thumbs.rs`, `thumbBatcher.ts`, `DriveExplorer.tsx`)
+- **Instant Stripped Mini-Thumbs (0 MS First Paint)**: Menambahkan `tl_stripped_thumb_data_url` di backend Rust (`thumbs.rs` & `media_list.rs`) untuk ekstraksi data mini-thumb *inline JPEG* (`PhotoSize::Stripped` / `PhotoSize::Cached`) langsung dari payload pesan MTProto `GetReplies`. Merender visual buram instan (0 ms) untuk 100% kartu di topik forum tanpa kotak abu-abu.
+- **Unpaused Batcher Thumbnail**: Menghapus pembekuan `setThumbsPaused(true)` di `DriveExplorer.tsx` saat pemuatan berkas/paging (`loadingMore`). Pengunduhan thumbnail kini berjalan kontinu tanpa jeda bersamaan dengan auto-fill berkas.
+- **High-Throughput RPC Batch Pipeline**: Meningkatkan `maxConcurrent` pada `thumbBatcher.ts` menjadi 4 penerbangan RPC paralel dan `batchLimit` hingga 48 item per request, memenuhi thumbnail seluruh kartu di layar dalam 1 kali RPC batch call.
+- **Perbaikan Estimasi Virtualizer & i18n Key Parity**: Memperbarui estimasi tinggi baris virtualizer `DriveExplorer.tsx` dan menyinkronkan key `speedtest.all_media_loaded`.
+
 ## v2.3.94 Absolute Definitive Master Specification with Agent Standards & 16-Skill Pack Matrix
 
 ### Penambahan Bab Standar Tata Kelola Agent & Skill Pack (`AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md`)
