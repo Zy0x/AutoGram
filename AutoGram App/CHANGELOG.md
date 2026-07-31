@@ -1,3 +1,12 @@
+## v2.4.6 Terminal Non-Thumb Blacklist Eviction & Detailed Multi-Layer Logging
+
+### Elimination of Video Permanent Blacklisting (`thumbs.rs`)
+- **Evicted Video Terminal Cache Insertion**: Menghapus pendaftaran `thumb_terminal_cache` pada dokumen video yang mengalami *fallback* / *timeout*. Sebelumnya, kegagalan sementara pada ekstraksi keyframe FFmpeg memasukkan ID pesan ke dalam *in-memory blacklist*, yang menyebabkan seluruh pemanggilan berikutnya di-short-circuit secara lokal (0ms) tanpa mencoba ulang MTProto/FFmpeg. Dengan perbaikan ini, kartu video yang belum termuat dapat di-retry secara otomatis.
+
+### Detailed Multi-Layer Logging (`thumbs.rs` & `thumbBatcher.ts`)
+- **Backend Log Tracing (`tg_log`)**: Menambahkan log terperinci pada backend Rust untuk merekam event `thumb_ffmpeg_success`, `thumb_ffmpeg_timeout_3s`, `thumb_ffmpeg_task_error`, dan `thumb_item_fallback`.
+- **Frontend Console Log Tracing (`[thumbBatcher]`)**: Menambahkan log konsol real-time pada DevTools yang mencetak latency batch (ms), jumlah item sukses (*ready*), dan item terlewat (*missing*).
+
 ## v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine
 
 ### LIFO Viewport Priority Queue (`thumbBatcher.ts`)

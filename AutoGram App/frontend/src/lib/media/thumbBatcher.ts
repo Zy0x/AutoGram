@@ -772,8 +772,9 @@ async function flushQueue() {
       notifyMediaDeleted(deletedIds, folderId);
     }
     metrics.batches += 1;
-
     metrics.batchLatencyMs = Math.round(performance.now() - started);
+    const readyCount = Object.values(thumbs).filter(Boolean).length;
+    console.log(`[thumbBatcher] Batch ${realBatchId} completed in ${metrics.batchLatencyMs}ms: chat=${folderId ?? 'home'} items=${ids.length} (ready=${readyCount}, missing=${ids.length - readyCount})`);
 
     if (items.length > 0) {
       for (const item of items) {

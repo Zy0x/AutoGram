@@ -1,9 +1,10 @@
-AutoGram Version: v2.4.5
+AutoGram Version: v2.4.6
 
 Current State:
-v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah pengurutan antrean thumbnail dari FIFO (`a.sequence - b.sequence`) menjadi LIFO (`b.sequence - a.sequence`) pada tingkat prioritas yang sama sehingga kartu media pada posisi scroll saat ini (viewport aktif) dimuat secara instan (<50ms). Memperbaiki filter `Balanced` mode pada backend Rust `thumbs.rs` agar selalu menerima thumbnail statis dokumen video Telegram (`PhotoSize::Size` >0px).
+v2.4.6 Terminal Non-Thumb Blacklist Eviction & Detailed Multi-Layer Logging — membenahi `thumbs.rs`, `thumbBatcher.ts`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus pemblokiran permanen (`thumb_terminal_cache`) untuk dokumen video yang mengalami timeout/glitch sementara agar kartu video yang gagal dapat di-retry secara otomatis. Menambahkan log detail real-time pada DevTools console (`[thumbBatcher]`) dan backend Rust (`tg_log`) untuk melacak setiap tahapan pemuatan thumbnail.
 
 Previous:
+v2.4.5 LIFO Viewport Priority Scheduler & Video Document Static Thumbnail Engine — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.4 Queue Concurrency Deadlock Prevention & FFmpeg 3s Timeout Protection — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.3 Native Telegram Direct Static Thumbnail Pipeline & Ultra-Fast Media Engine — membenahi `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.4.2 Accurate Telegram Photo Size Extraction Engine — membenahi `media_list.rs`, `document_mapper.rs`, `VERSION.md`, dan `CHANGELOG.md`.
