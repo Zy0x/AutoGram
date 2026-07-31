@@ -1,3 +1,9 @@
+## v2.5.2 Universal Media Background Processor & Guaranteed Poster Delivery
+
+### Universal Generic Document Enqueue (`thumbs.rs` & `special_media_thumb.rs`)
+- **Coverage for Generic Document Media (e.g. Message 62, 64, 69, 73)**: Menambahkan pendaftaran antrean latar belakang pada `thumbs.rs` saat Telegram mereturn `GenericDocumentNoThumbnail`. Dokumen generic tanpa atribut bawaan tidak lagi diabaikan/di-blacklist. Modul latar belakang `special_media_thumb.rs` akan memproses item tersebut secara *low-priority*, mendeteksi header video/gambar via Range Bridge, atau memberikan poster visual HD secara instan.
+- **Elimination of Generic Document Blacklisting**: Menghapus pemblokiran permanen (`thumb_terminal_cache`) pada dokumen generic agar seluruh media dijamin memiliki dan menampilkan thumbnail visual tanpa tersendat.
+
 ## v2.5.1 Guaranteed Video Poster Engine & Extended Range Bridge Probe
 
 ### Guaranteed Visual Fallback Poster (`special_media_thumb.rs`)

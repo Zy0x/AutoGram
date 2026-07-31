@@ -1877,7 +1877,16 @@ pub fn thumbs_batch_items_blocking_app(
                                             classification.as_str()
                                         ),
                                     );
-                                    thumb_terminal_cache().lock().insert(term_key);
+                                    if let Some(ref media) = msg.media() {
+                                        special_media_thumb::enqueue_special_media_item(
+                                            app_ref.clone(),
+                                            client.clone(),
+                                            peer_str.clone(),
+                                            mid,
+                                            q_key.to_string(),
+                                            media.clone(),
+                                        );
+                                    }
                                     return (
                                         key,
                                         None,
