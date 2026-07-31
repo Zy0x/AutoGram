@@ -403,6 +403,18 @@ export function DriveExplorer({
     };
   }, [progressiveReady, hasMore, onLoadMore, loadingMore, loading, scrollKey, displayed.length]);
 
+  // Proactive auto-fill effect: if loaded items do not fill the viewport and hasMore is true, load next page automatically
+  useEffect(() => {
+    if (!progressiveReady || !hasMore || !onLoadMore || loadingMore || loading) return;
+    const el = parentRef.current;
+    if (!el) return;
+    const viewportHeight = el.clientHeight;
+    const scrollHeight = el.scrollHeight;
+    if (scrollHeight === 0 || scrollHeight <= viewportHeight + 400 || el.scrollTop + viewportHeight >= scrollHeight * 0.6) {
+      onLoadMore();
+    }
+  }, [progressiveReady, hasMore, onLoadMore, loadingMore, loading, displayed.length]);
+
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).
   // Skip during active fast fling to preserve 60-120 FPS frame rate.
