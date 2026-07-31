@@ -615,7 +615,8 @@ pub struct DebugGetMessageResult {
 pub fn tg_debug_get_message(
     req: DebugGetMessageRequest,
 ) -> OpResult<DebugGetMessageResult> {
-    use crate::core::grammers_ops::{map_invocation, resolve_peer, runtime, with_client, with_pool_retry};
+    use crate::core::grammers_ops::{resolve_peer, runtime, with_client, with_pool_retry};
+    use crate::core::tg_error::map_invocation;
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
         session: req.session,
