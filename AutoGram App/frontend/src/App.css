@@ -3388,7 +3388,7 @@ body.td-dnd-external {
 }
 
 .td-list {
-  padding-bottom: 24px;
+  padding-bottom: 0;
 }
 
 .td-list-head,
@@ -5635,12 +5635,12 @@ video.drive-preview-media {
   border: 1px solid var(--td-border);
 }
 .td-grid-virtual {
-  min-height: 100%;
-  padding-bottom: 24px;
+  min-height: 0;
+  padding-bottom: 0;
 }
 .td-list-virtual {
-  min-height: 100%;
-  padding-bottom: 24px;
+  min-height: 0;
+  padding-bottom: 0;
 }
 .td-load-more-row {
   text-align: center;
@@ -8986,7 +8986,7 @@ body:has(.td-page),
 
 /* Explorer padding under transfer dock */
 .td-explorer {
-  scroll-padding-bottom: 24px;
+  scroll-padding-bottom: 8px;
 }
 
 /* Pill active state stronger for thumb quality */

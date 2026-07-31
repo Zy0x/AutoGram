@@ -100,11 +100,11 @@ const GRID_GAP = 10;
 const GRID_PAD_X = 14;
 /** Breathing room under topbar / above last row (virtual rows are absolute) */
 const GRID_PAD_TOP = 22;
-const GRID_PAD_BOTTOM = 20;
+const GRID_PAD_BOTTOM = 8;
 const LIST_ROW_H = 48;
 const LIST_HEAD_H = 40;
 const LIST_PAD_TOP = 12;
-const LIST_PAD_BOTTOM = 16;
+const LIST_PAD_BOTTOM = 8;
 const MARQUEE_THRESHOLD = 5;
 
 export function DriveExplorer({
@@ -289,14 +289,14 @@ export function DriveExplorer({
   const gridVirtualizer = useVirtualizer({
     count: rowCount + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: (index) => (index >= rowCount ? (loadingMore ? 260 : 64) : rowHeight),
+    estimateSize: (index) => (index >= rowCount ? 48 : rowHeight),
     overscan: gridOverscan,
   });
 
   const listVirtualizer = useVirtualizer({
     count: displayed.length + (displayed.length > 0 ? 1 : 0),
     getScrollElement: () => parentRef.current,
-    estimateSize: (index) => (index >= displayed.length ? (loadingMore ? 120 : 64) : LIST_ROW_H),
+    estimateSize: (index) => (index >= displayed.length ? 48 : LIST_ROW_H),
     overscan: listOverscan,
   });
 
@@ -875,7 +875,7 @@ export function DriveExplorer({
                     top: v.start + LIST_HEAD_H + LIST_PAD_TOP,
                     left: 0,
                     width: '100%',
-                    padding: '12px 16px',
+                    padding: '6px 16px',
                     textAlign: 'center',
                   }}
                 >
@@ -1003,74 +1003,29 @@ export function DriveExplorer({
                     left: GRID_PAD_X,
                     right: GRID_PAD_X,
                     width: 'auto',
-                    padding: '16px 0',
+                    padding: '6px 0',
                     textAlign: 'center',
                   }}
                 >
                   {loadingMore ? (
-                    <div className="td-loading-more-container">
-                      <div
-                        className="td-grid-skeleton-row"
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                          gap: GRID_GAP,
-                          marginBottom: 16,
-                        }}
-                      >
-                        {Array.from({ length: cols }).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="td-card-skeleton animate-pulse"
-                            style={{
-                              height: 180,
-                              borderRadius: 12,
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid rgba(255, 255, 255, 0.08)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              padding: 12,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '60%',
-                                height: 14,
-                                borderRadius: 4,
-                                background: 'rgba(255, 255, 255, 0.1)',
-                              }}
-                            />
-                            <div
-                              style={{
-                                width: '40%',
-                                height: 10,
-                                borderRadius: 4,
-                                background: 'rgba(255, 255, 255, 0.07)',
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div
-                        className="td-loading-more-badge"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '8px 20px',
-                          borderRadius: 20,
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          color: '#60a5fa',
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          backdropFilter: 'blur(8px)',
-                        }}
-                      >
-                        <Loader2 size={16} className="spin text-blue-400" />
-                        <span>{t('speedtest.loading_more', 'Memuat media dari Telegram…')}</span>
-                      </div>
+                    <div
+                      className="td-loading-more-badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 20px',
+                        borderRadius: 20,
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        color: '#60a5fa',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        backdropFilter: 'blur(8px)',
+                      }}
+                    >
+                      <Loader2 size={16} className="spin text-blue-400" />
+                      <span>{t('speedtest.loading_more', 'Memuat media dari Telegram…')}</span>
                     </div>
                   ) : hasMore ? (
                     <div
