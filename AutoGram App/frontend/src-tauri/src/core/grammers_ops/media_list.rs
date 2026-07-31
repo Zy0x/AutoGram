@@ -474,11 +474,11 @@ pub fn list_media_blocking_topic(
         chat.parse().ok()
     };
     let topic_filter = topic_id.filter(|t| *t > 0);
-    // Over-fetch when filtering by topic so a page still fills even for older topics
+    // Over-fetch when scanning so a page fills even in chats with many text messages
     let scan_limit = if topic_filter.is_some() {
         (limit * 100).clamp(1000, 10000)
     } else {
-        (limit * 5).clamp(150, 500)
+        (limit * 20).clamp(500, 3000)
     };
     let session_name = identity.session.clone();
 
@@ -587,9 +587,13 @@ pub fn list_media_blocking_topic(
                             first_item = iter.next().await;
                         }
                     }
-                    let has_more = files.len() >= limit || scanned >= scan_limit;
+                    let has_more = if let Some(lid) = last_id {
+                        lid > 1 && (files.len() > 0 || scanned > 0)
+                    } else {
+                        false
+                    };
                     let next_offset_id = if has_more {
-                        files.last().map(|f| f.id).or(last_id)
+                        last_id
                     } else {
                         None
                     };

@@ -374,7 +374,7 @@ export function DriveExplorer({
         isFastScrollingRef.current = true;
       }
 
-      // Proactive prefetch at 65% scroll height when scrolling down
+      // Proactive prefetch at 60% scroll height when scrolling down
       if (
         progressiveReady &&
         hasMore &&
@@ -385,12 +385,8 @@ export function DriveExplorer({
       ) {
         const viewportHeight = el.clientHeight;
         const scrollHeight = el.scrollHeight;
-        if (scrollHeight > 0 && el.scrollTop + viewportHeight >= scrollHeight * 0.65) {
-          const prefetchKey = `${scrollKey}_${displayed.length}`;
-          if (!prefetchedOffsetsRef.current.has(prefetchKey)) {
-            prefetchedOffsetsRef.current.add(prefetchKey);
-            onLoadMore();
-          }
+        if (scrollHeight > 0 && el.scrollTop + viewportHeight >= scrollHeight * 0.6) {
+          onLoadMore();
         }
       }
 
