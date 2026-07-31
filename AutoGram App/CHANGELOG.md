@@ -1,3 +1,9 @@
+## v2.5.4 Canvas Event Key Alignment & Automatic Preview Frame Dispatcher
+
+### Cache Integration & Event Alignment (`VideoCanvasThumbnailCapturer.tsx`)
+- **Integration with `cacheCapturedThumb`**: Mengganti dispatch event manual dengan panggilan fungsi standar `cacheCapturedThumb(folderId, fileId, dataUrl)`. Fungsi ini menyimpan gambar ke memori & disk cache untuk seluruh mode kualitas (`saver`, `balanced`, `sharp`).
+- **Synchronized Event Dispatch**: Memastikan pemicuan event `autogram-thumb-ready` terhubung secara sempurna ke listener `DriveFileCard`, sehingga gambar tangkapan layar langsung tampil di kartu media secara real-time tanpa perlu refresh.
+
 ## v2.5.3 Isolated Last-Resort Video Canvas Frame Capturer
 
 ### Offscreen Canvas Frame Capture (`VideoCanvasThumbnailCapturer.tsx`)

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { cacheCapturedThumb } from '../../../lib/media/thumbBatcher';
 
 type Props = {
   fileId: number;
@@ -56,16 +57,7 @@ export function VideoCanvasThumbnailCapturer({
           ctx.drawImage(video, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
           if (dataUrl && dataUrl.startsWith('data:image/jpeg')) {
-            const cacheKey = `thumb:${folderId ?? 'home'}:${fileId}`;
-            window.dispatchEvent(
-              new CustomEvent('autogram:thumb:ready', {
-                detail: {
-                  key: cacheKey,
-                  url: dataUrl,
-                  isPlaceholder: false,
-                },
-              })
-            );
+            cacheCapturedThumb(folderId, fileId, dataUrl);
             if (onCaptured) {
               onCaptured(dataUrl);
             }

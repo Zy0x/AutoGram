@@ -1,9 +1,10 @@
-AutoGram Version: v2.5.3
+AutoGram Version: v2.5.4
 
 Current State:
-v2.5.3 Isolated Last-Resort Video Canvas Frame Capturer — membenahi `VideoCanvasThumbnailCapturer.tsx`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan komponen terisolasi `VideoCanvasThumbnailCapturer.tsx` yang bertindak sebagai jalur alternatif terakhir (*last resort*) ketika kartu video tidak memiliki thumbnail. Tanpa mengganggu atau mengubah logika utama thumbnail, komponen ini secara senyap memotret frame detik ke-1.0 menggunakan HTML5 offscreen canvas saat video di-stream, menyimpannya ke cache lokal, dan memperbarui kartu secara otomatis.
+v2.5.4 Canvas Event Key Alignment & Automatic Preview Frame Dispatcher — membenahi `VideoCanvasThumbnailCapturer.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyelaraskan event listener dan fungsi penyimpan `cacheCapturedThumb` pada komponen terisolasi `VideoCanvasThumbnailCapturer.tsx`. Saat frame detik ke-1.0 dipotret dari canvas, sistem otomatis menyimpan ke cache memori/disk untuk seluruh kualitas (`saver`, `balanced`, `sharp`) dan memicu event `autogram-thumb-ready`, memastikan kartu media langsung ter-update secara real-time.
 
 Previous:
+v2.5.3 Isolated Last-Resort Video Canvas Frame Capturer — membenahi `VideoCanvasThumbnailCapturer.tsx`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.5.2 Universal Media Background Processor & Guaranteed Poster Delivery — membenahi `special_media_thumb.rs`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.5.1 Guaranteed Video Poster Engine & Extended Range Bridge Probe — membenahi `special_media_thumb.rs`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.5.0 Dual-Tier Asynchronous Special Media Thumbnail Handler — membenahi `special_media_thumb.rs`, `thumbs.rs`, `DriveFileCard.tsx`, `VERSION.md`, dan `CHANGELOG.md`.
