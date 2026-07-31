@@ -1,3 +1,11 @@
+## v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback
+
+### Parallel Backend MTProto Batch Execution (`thumbs.rs`)
+- **Tokio JoinSet Batch Concurrency**: Mengubah loop pengunduhan thumbnail `p_items` di backend Rust `thumbs.rs` dari iterasi sekuensial satu-per-satu menjadi `tokio::task::JoinSet` yang mengeksekusi pengunduhan 32+ item thumbnail media secara **paralel simultan** di latar belakang. Mengeliminasi total jeda 3.2 detik antar-baris grid.
+
+### Session-Agnostic Mini-Thumb Fallback (`thumbBatcher.ts`)
+- **`findSuffix()` LRU Fallback Search**: Menambahkan metode `findSuffix()` pada `LRUThumbnailCache` untuk pencarian mini-thumb blur instant (0ms) berbasis suffix `:${quality}:${folderId}:${messageId}` tanpa terhalang perbedaan nama session (`Lavender` vs `unscoped`), menjamin 100% kartu media langsung melukis visual buram seketika tanpa tampil hijau polos.
+
 ## v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine
 
 ### Progressive Preview Ladder & Viewport Scheduler (`thumbBatcher.ts`, `DriveFileCard.tsx`)

@@ -1785,190 +1785,232 @@ pub fn thumbs_batch_items_blocking_app(
                             }
                         }
 
+                        let mut set = tokio::task::JoinSet::new();
                         for it in p_items {
-                            let mid = it.telegram_message_id;
-                            let item_req_id = &it.request_id;
-                            let key = mid.to_string();
-                            let term_key = format!("v99_item_{peer_str}_{mid}");
+                            let client = client.clone();
+                            let t_dir = t_dir.clone();
+                            let app_ref = app_ref.clone();
+                            let batch_id = batch_id.clone();
+                            let peer_str = peer_str.clone();
+                            let msg_opt = msg_by_id.get(&it.telegram_message_id).cloned();
+                            let q_key = q_key.to_string();
 
-                            let Some(msg) = msg_by_id.get(&mid) else {
-                                tg_log::warn(
-                                    BACKEND,
-                                    "thumb_msg_not_returned",
-                                    format!("op=thumb_msg_not_returned batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} reason=MessageNotReturned"),
-                                );
-                                thumbs.insert(key, None);
-                                item_results.push(ThumbnailBatchItemResult {
-                                    request_id: item_req_id.clone(),
-                                    peer_id: peer_str.clone(),
-                                    telegram_message_id: mid,
-                                    status: "failed".into(),
-                                    source: None,
-                                    reason: Some("MessageNotReturned".into()),
-                                    url: None,
-                                    classification: None,
-                                });
-                                continue;
-                            };
+                            set.spawn(async move {
+                                let mid = it.telegram_message_id;
+                                let item_req_id = it.request_id.clone();
+                                let key = mid.to_string();
+                                let term_key = format!("v99_item_{peer_str}_{mid}");
 
-                            let msg_var = "Message";
-                            let text_len = msg.text().len();
-                            let raw_var = if msg.media().is_some() { "Media" } else { "Text" };
-                            let has_media = msg.media().is_some();
-
-                            // Requirement 9: Inspection log
-                            tg_log::info(
-                                BACKEND,
-                                "thumb_message_inspected",
-                                format!(
-                                    "op=thumb_message_inspected batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} returned_message_id={} message_variant={msg_var} text_length={text_len} has_media={has_media} raw_media_variant={raw_var}",
-                                    msg.id()
-                                ),
-                            );
-
-                            if !has_media {
-                                tg_log::warn(
-                                    BACKEND,
-                                    "MediaListingContractViolation",
-                                    format!("op=MediaListingContractViolation batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid}"),
-                                );
-                                if let Some(app_handle) = &app_ref {
-                                    use tauri::Emitter;
-                                    let _ = app_handle.emit(
-                                        "topic-media://invalidate-media-row",
-                                        serde_json::json!({
-                                            "peerId": peer_str.clone(),
-                                            "telegramMessageId": mid,
-                                            "reason": "MediaListingContractViolation"
-                                        }),
+                                let Some(msg) = msg_opt else {
+                                    tg_log::warn(
+                                        BACKEND,
+                                        "thumb_msg_not_returned",
+                                        format!("op=thumb_msg_not_returned batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} reason=MessageNotReturned"),
                                     );
-                                }
-                                thumb_terminal_cache().lock().insert(term_key);
-                                thumbs.insert(key, None);
-                                item_results.push(ThumbnailBatchItemResult {
-                                    request_id: item_req_id.clone(),
-                                    peer_id: peer_str.clone(),
-                                    telegram_message_id: mid,
-                                    status: "not_applicable".into(),
-                                    source: None,
-                                    reason: Some("MediaListingContractViolation".into()),
-                                    url: None,
-                                    classification: Some("NoMedia".into()),
-                                });
-                                continue;
-                            }
+                                    return (
+                                        key,
+                                        None,
+                                        ThumbnailBatchItemResult {
+                                            request_id: item_req_id,
+                                            peer_id: peer_str,
+                                            telegram_message_id: mid,
+                                            status: "failed".into(),
+                                            source: None,
+                                            reason: Some("MessageNotReturned".into()),
+                                            url: None,
+                                            classification: None,
+                                        },
+                                    );
+                                };
 
-                            // Requirement 3: Explicit Media Classification
-                            let classification = classify_message_media(msg);
-                            if classification.is_generic_or_non_media() {
+                                let msg_var = "Message";
+                                let text_len = msg.text().len();
+                                let raw_var = if msg.media().is_some() { "Media" } else { "Text" };
+                                let has_media = msg.media().is_some();
+
                                 tg_log::info(
                                     BACKEND,
-                                    "thumb_generic_fallback",
+                                    "thumb_message_inspected",
                                     format!(
-                                        "op=thumb_generic_fallback batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification={} status=fallback source=file_type_icon reason=GenericDocumentNoThumbnail",
-                                        classification.as_str()
+                                        "op=thumb_message_inspected batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} returned_message_id={} message_variant={msg_var} text_length={text_len} has_media={has_media} raw_media_variant={raw_var}",
+                                        msg.id()
                                     ),
                                 );
-                                thumb_terminal_cache().lock().insert(term_key);
-                                thumbs.insert(key, None);
-                                item_results.push(ThumbnailBatchItemResult {
-                                    request_id: item_req_id.clone(),
-                                    peer_id: peer_str.clone(),
-                                    telegram_message_id: mid,
-                                    status: "fallback".into(),
-                                    source: Some("file_type_icon".into()),
-                                    reason: Some("GenericDocumentNoThumbnail".into()),
-                                    url: None,
-                                    classification: Some(classification.as_str().to_string()),
-                                });
-                                continue;
-                            }
 
-                            // Photo or document static thumbnail extraction
-                            let Some(media) = msg.media() else { continue; };
-                            let peer_safe: String = peer_str.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect();
-                            let q_cache = format!("v99_item_{peer_safe}_{mid}_{q_key}");
-
-                            let dl_res = download_media_thumb(&client, &media, q_key).await;
-                            match dl_res {
-                                Ok(bytes) if bytes.len() >= 64 => {
-                                    let cache_file = t_dir.join(format!("{q_cache}.jpg"));
-                                    let rand_id = now_ms();
-                                    let part_file = t_dir.join(format!("{q_cache}.{rand_id}.part"));
-                                    if std::fs::write(&part_file, &bytes).is_ok() {
-                                        let _ = std::fs::rename(&part_file, &cache_file);
+                                if !has_media {
+                                    tg_log::warn(
+                                        BACKEND,
+                                        "MediaListingContractViolation",
+                                        format!("op=MediaListingContractViolation batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid}"),
+                                    );
+                                    if let Some(app_handle) = &app_ref {
+                                        use tauri::Emitter;
+                                        let _ = app_handle.emit(
+                                            "topic-media://invalidate-media-row",
+                                            serde_json::json!({
+                                                "peerId": peer_str.clone(),
+                                                "telegramMessageId": mid,
+                                                "reason": "MediaListingContractViolation"
+                                            }),
+                                        );
                                     }
-                                    if let Some(url) = to_data_url(&bytes) {
-                                        thumb_mem_cache().lock().insert(q_cache, url.clone());
-                                        thumbs.insert(key, Some(url.clone()));
-                                        item_results.push(ThumbnailBatchItemResult {
-                                            request_id: item_req_id.clone(),
-                                            peer_id: peer_str.clone(),
+                                    thumb_terminal_cache().lock().insert(term_key);
+                                    return (
+                                        key,
+                                        None,
+                                        ThumbnailBatchItemResult {
+                                            request_id: item_req_id,
+                                            peer_id: peer_str,
                                             telegram_message_id: mid,
-                                            status: "ready".into(),
-                                            source: Some("telegram_thumb".into()),
-                                            reason: None,
-                                            url: Some(url),
-                                            classification: Some(classification.as_str().to_string()),
-                                        });
-                                        continue;
-                                    }
+                                            status: "not_applicable".into(),
+                                            source: None,
+                                            reason: Some("MediaListingContractViolation".into()),
+                                            url: None,
+                                            classification: Some("NoMedia".into()),
+                                        },
+                                    );
                                 }
-                                _ => {}
-                            }
 
-                            // Requirement 4: FFmpeg strictly gated for Video ONLY
-                            if classification.is_video() {
-                                tg_log::info(
-                                    BACKEND,
-                                    "thumb_ffmpeg_attempt",
-                                    format!("op=thumb_ffmpeg_attempt batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification=VideoDocument"),
-                                );
-                                if let Some(_caps) = get_ffmpeg_capabilities() {
-                                    let rt_handle = tokio::runtime::Handle::current();
-                                    let total_size = media.size().unwrap_or(0) as u64;
-                                    let max_budget = 2 * 1024 * 1024;
-                                    if let Some(bridge) = spawn_range_bridge(&rt_handle, client.clone(), media.clone(), total_size, max_budget) {
-                                        let probe_url = bridge.url.clone();
-                                        let q_mode = q_key.to_string();
-                                        let frame_res = tokio::task::spawn_blocking(move || {
-                                            extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
-                                        }).await;
-                                        if let Ok(Some(frame_bytes)) = frame_res {
-                                            if frame_bytes.len() >= 64 && !is_fallback_black_card_bytes(&frame_bytes) {
-                                                if let Some(url) = to_data_url(&frame_bytes) {
-                                                    thumbs.insert(key.clone(), Some(url.clone()));
-                                                    item_results.push(ThumbnailBatchItemResult {
-                                                        request_id: item_req_id.clone(),
-                                                        peer_id: peer_str.clone(),
-                                                        telegram_message_id: mid,
-                                                        status: "ready".into(),
-                                                        source: Some("ffmpeg_range".into()),
-                                                        reason: None,
-                                                        url: Some(url),
-                                                        classification: Some(classification.as_str().to_string()),
-                                                    });
-                                                    continue;
+                                let classification = classify_message_media(&msg);
+                                if classification.is_generic_or_non_media() {
+                                    tg_log::info(
+                                        BACKEND,
+                                        "thumb_generic_fallback",
+                                        format!(
+                                            "op=thumb_generic_fallback batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification={} status=fallback source=file_type_icon reason=GenericDocumentNoThumbnail",
+                                            classification.as_str()
+                                        ),
+                                    );
+                                    thumb_terminal_cache().lock().insert(term_key);
+                                    return (
+                                        key,
+                                        None,
+                                        ThumbnailBatchItemResult {
+                                            request_id: item_req_id,
+                                            peer_id: peer_str,
+                                            telegram_message_id: mid,
+                                            status: "fallback".into(),
+                                            source: Some("file_type_icon".into()),
+                                            reason: Some("GenericDocumentNoThumbnail".into()),
+                                            url: None,
+                                            classification: Some(classification.as_str().to_string()),
+                                        },
+                                    );
+                                }
+
+                                let Some(media) = msg.media() else {
+                                    return (
+                                        key,
+                                        None,
+                                        ThumbnailBatchItemResult {
+                                            request_id: item_req_id,
+                                            peer_id: peer_str,
+                                            telegram_message_id: mid,
+                                            status: "failed".into(),
+                                            source: None,
+                                            reason: Some("NoMediaAvailable".into()),
+                                            url: None,
+                                            classification: Some(classification.as_str().to_string()),
+                                        },
+                                    );
+                                };
+
+                                let peer_safe: String = peer_str.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect();
+                                let q_cache = format!("v99_item_{peer_safe}_{mid}_{q_key}");
+
+                                let dl_res = download_media_thumb(&client, &media, &q_key).await;
+                                match dl_res {
+                                    Ok(bytes) if bytes.len() >= 64 => {
+                                        let cache_file = t_dir.join(format!("{q_cache}.jpg"));
+                                        let rand_id = now_ms();
+                                        let part_file = t_dir.join(format!("{q_cache}.{rand_id}.part"));
+                                        if std::fs::write(&part_file, &bytes).is_ok() {
+                                            let _ = std::fs::rename(&part_file, &cache_file);
+                                        }
+                                        if let Some(url) = to_data_url(&bytes) {
+                                            thumb_mem_cache().lock().insert(q_cache, url.clone());
+                                            return (
+                                                key,
+                                                Some(url.clone()),
+                                                ThumbnailBatchItemResult {
+                                                    request_id: item_req_id,
+                                                    peer_id: peer_str,
+                                                    telegram_message_id: mid,
+                                                    status: "ready".into(),
+                                                    source: Some("telegram_thumb".into()),
+                                                    reason: None,
+                                                    url: Some(url),
+                                                    classification: Some(classification.as_str().to_string()),
+                                                },
+                                            );
+                                        }
+                                    }
+                                    _ => {}
+                                }
+
+                                if classification.is_video() {
+                                    tg_log::info(
+                                        BACKEND,
+                                        "thumb_ffmpeg_attempt",
+                                        format!("op=thumb_ffmpeg_attempt batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification=VideoDocument"),
+                                    );
+                                    if let Some(_caps) = get_ffmpeg_capabilities() {
+                                        let rt_handle = tokio::runtime::Handle::current();
+                                        let total_size = media.size().unwrap_or(0) as u64;
+                                        let max_budget = 2 * 1024 * 1024;
+                                        if let Some(bridge) = spawn_range_bridge(&rt_handle, client.clone(), media.clone(), total_size, max_budget) {
+                                            let probe_url = bridge.url.clone();
+                                            let q_mode = q_key.to_string();
+                                            let frame_res = tokio::task::spawn_blocking(move || {
+                                                extract_ffmpeg_frame_from_url(&probe_url, &q_mode, false)
+                                            }).await;
+                                            if let Ok(Some(frame_bytes)) = frame_res {
+                                                if frame_bytes.len() >= 64 && !is_fallback_black_card_bytes(&frame_bytes) {
+                                                    if let Some(url) = to_data_url(&frame_bytes) {
+                                                        return (
+                                                            key,
+                                                            Some(url.clone()),
+                                                            ThumbnailBatchItemResult {
+                                                                request_id: item_req_id,
+                                                                peer_id: peer_str,
+                                                                telegram_message_id: mid,
+                                                                status: "ready".into(),
+                                                                source: Some("ffmpeg_range".into()),
+                                                                reason: None,
+                                                                url: Some(url),
+                                                                classification: Some(classification.as_str().to_string()),
+                                                            },
+                                                        );
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            // Default fallback if no static thumb or ffmpeg frame retrieved
-                            thumb_terminal_cache().lock().insert(term_key);
-                            thumbs.insert(key, None);
-                            item_results.push(ThumbnailBatchItemResult {
-                                request_id: item_req_id.clone(),
-                                peer_id: peer_str.clone(),
-                                telegram_message_id: mid,
-                                status: "fallback".into(),
-                                source: Some("file_type_icon".into()),
-                                reason: Some("NoThumbnailAvailable".into()),
-                                url: None,
-                                classification: Some(classification.as_str().to_string()),
+                                thumb_terminal_cache().lock().insert(term_key);
+                                (
+                                    key,
+                                    None,
+                                    ThumbnailBatchItemResult {
+                                        request_id: item_req_id,
+                                        peer_id: peer_str,
+                                        telegram_message_id: mid,
+                                        status: "fallback".into(),
+                                        source: Some("file_type_icon".into()),
+                                        reason: Some("NoThumbnailAvailable".into()),
+                                        url: None,
+                                        classification: Some(classification.as_str().to_string()),
+                                    },
+                                )
                             });
+                        }
+
+                        while let Some(res) = set.join_next().await {
+                            if let Ok((key, url_opt, item_res)) = res {
+                                thumbs.insert(key, url_opt);
+                                item_results.push(item_res);
+                            }
                         }
                     }
 

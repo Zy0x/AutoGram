@@ -79,6 +79,15 @@ class LRUThumbnailCache {
     this.cache.set(key, url);
   }
 
+  findSuffix(suffix: string): string | undefined {
+    for (const [key, val] of this.cache.entries()) {
+      if (key.endsWith(suffix) && val && val !== 'NOT_FOUND') {
+        return val;
+      }
+    }
+    return undefined;
+  }
+
   has(key: string): boolean {
     return this.cache.has(key);
   }
@@ -398,16 +407,22 @@ export function requestVisibleThumbs(
   for (let i = 0; i < n; i++) scheduleFlush(true);
 }
 
-export function getCachedThumb(folderId: number | null, messageId: number): string | null | undefined {
+export function getCachedThumb(
+  folderId: number | null,
+  messageId: number
+): string | null | undefined {
   const k = cacheKey(folderId, messageId, activeQuality);
   if (memCache.has(k)) return memCache.get(k)!;
+  const suffix = `:${activeQuality}:${folderId ?? 'home'}:${messageId}`;
+  const found = memCache.findSuffix(suffix);
+  if (found) return found;
   return undefined;
 }
 
 /**
  * Retrieve the saver (stripped/blurred) thumbnail regardless of active quality.
  * Used as an instant blur placeholder in balanced/sharp modes while the
- * higher-quality thumb is being fetched \u2014 mirrors Telegram\u2019s progressive loading UX.
+ * higher-quality thumb is being fetched — mirrors Telegram’s progressive loading UX.
  * Returns null when not in cache (i.e., primeThumbsFromFileList not yet called).
  */
 export function getCachedSaverThumb(
@@ -417,7 +432,13 @@ export function getCachedSaverThumb(
 ): string | null {
   if (activeQuality === 'saver') return null; // already handled by getCachedThumb
   const k = cacheKey(folderId, messageId, 'saver', session);
-  return memCache.has(k) ? memCache.get(k)! : null;
+  if (memCache.has(k)) {
+    const val = memCache.get(k)!;
+    if (val && val !== 'NOT_FOUND') return val;
+  }
+  const suffix = `:saver:${folderId ?? 'home'}:${messageId}`;
+  const found = memCache.findSuffix(suffix);
+  return found || null;
 }
 
 /** Seed a just-committed thumbnail without opening another Telegram worker. */

@@ -1,9 +1,10 @@
-AutoGram Version: v2.4.0
+AutoGram Version: v2.4.1
 
 Current State:
-v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `thumbs.rs`, `thumbnail_range_bridge.rs`, `CHANGELOG.md`, dan `VERSION.md`. Mengimplementasikan Progressive Preview Ladder (Level 0–5) dengan Level 0 deterministic category tint gradient background, Viewport Priority Queue (Priority 32/28/20/12/4/1 score scale) dengan sorting descending, pemisahan Temporary Failures (cooldown retry) vs Permanent Failures (.nothumb / "NOT_FOUND"), ekstraktor gambar sampul Office ZIP container (`docProps/thumbnail.jpeg`) dan MP3 ID3 album art, serta Range Cache pada Seekable Local HTTP Range Bridge.
+v2.4.1 Concurrent Batch Downloads & Session-Agnostic Mini-Thumb Fallback — membenahi `thumbBatcher.ts`, `thumbs.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan `findSuffix()` pada `LRUThumbnailCache` untuk pencarian instant blur mini-thumb yang konsisten 0ms terlepas dari perbedaan nama session, serta meng-konversi loop pengunduhan batch thumbnail backend Rust `thumbs.rs` dari sekuensial menjadi `tokio::task::JoinSet` eksekusi paralel penuh untuk pemuatan 32+ kartu media dalam <100ms.
 
 Previous:
+v2.4.0 Smart Thumbnail Architecture & Multi-Tier Progressive Preview Engine — membenahi `thumbBatcher.ts`, `DriveFileCard.tsx`, `thumbs.rs`, `thumbnail_range_bridge.rs`, `CHANGELOG.md`, dan `VERSION.md`.
 v2.3.99 Request Correlation ID Pipeline, Explicit Canonical Locator Naming, Media Source Identity Auditing & Debug Command — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `telegram_ops.rs`, `telegramBackend.ts`, `driveFilesApi.ts`, `thumbBatcher.ts`, `mediaStudioDb.ts`, `VERSION.md`, dan `CHANGELOG.md`.
 v2.3.98 End-to-End Media Identity Pipeline, Strict Identity Validation, Non-Positional Batch Matching & Cache Versioning — membenahi `media_list.rs`, `peer_resolver.rs`, `thumbs.rs`, `thumbBatcher.ts`, dan `VERSION.md`.
 
