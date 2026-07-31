@@ -593,7 +593,7 @@ pub fn list_media_blocking_topic(
                         false
                     };
                     let next_offset_id = if has_more {
-                        last_id
+                        last_id.map(|id| if id > 1 { id - 1 } else { id })
                     } else {
                         None
                     };
