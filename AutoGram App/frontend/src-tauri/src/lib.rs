@@ -1205,6 +1205,33 @@ async fn tg_list_media(
 }
 
 #[tauri::command]
+async fn tg_start_folder_stream(
+    app: AppHandle,
+    request: core::telegram_ops::StartFolderStreamRequest,
+    channel: tauri::ipc::Channel<core::grammers_ops::FolderChunkPayload>,
+) -> Result<core::telegram_ops::OpResult<bool>, String> {
+    ensure_sessions_dir_env(&app);
+    let req_id = request.request_id.clone();
+    let cancel_flag = core::telegram_ops::register_stream(&req_id);
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let res = core::telegram_ops::tg_start_folder_stream_blocking(request, &channel, &cancel_flag);
+        core::telegram_ops::unregister_stream(&req_id);
+        res
+    })
+    .await
+    .map_err(|e| format!("native folder stream task failed: {e}"))
+}
+
+#[tauri::command]
+async fn tg_cancel_folder_stream(
+    request_id: String,
+) -> Result<core::telegram_ops::OpResult<bool>, String> {
+    core::telegram_ops::cancel_stream(&request_id);
+    Ok(core::telegram_ops::ok_result("grammers", true))
+}
+
+#[tauri::command]
 async fn tg_upload_file(
     app: AppHandle,
     request: core::telegram_ops::UploadFileRequest,
@@ -1477,6 +1504,8 @@ pub fn run() {
             tg_list_dialogs,
             tg_list_dialog_filters,
             tg_list_media,
+            tg_start_folder_stream,
+            tg_cancel_folder_stream,
             tg_upload_file,
             tg_login,
             tg_download_file,

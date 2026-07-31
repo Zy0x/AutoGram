@@ -67,6 +67,18 @@ pub struct ListMediaResult {
     pub cached: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderChunkPayload {
+    pub request_id: String,
+    pub folder_id: Option<i64>,
+    pub topic_id: Option<i64>,
+    pub files: Vec<MediaFileRow>,
+    pub next_offset_id: Option<i64>,
+    pub has_more: bool,
+    pub is_initial_chunk: bool,
+}
+
 pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
     use grammers_client::media::Media;
     let id = msg.id() as i64;
@@ -608,4 +620,51 @@ pub fn list_media_blocking_topic(
         })
         .await
     })
+}
+
+pub fn start_folder_stream_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    limit: usize,
+    offset_id: Option<i64>,
+    topic_id: Option<i64>,
+    request_id: String,
+    channel: &tauri::ipc::Channel<FolderChunkPayload>,
+    cancel_flag: &Arc<AtomicBool>,
+) -> Result<bool, TgError> {
+    if cancel_flag.load(Ordering::SeqCst) {
+        return Ok(false);
+    }
+    let res = list_media_blocking_topic(
+        sessions_dir,
+        identity,
+        chat_id,
+        limit,
+        offset_id,
+        topic_id,
+    )?;
+
+    if cancel_flag.load(Ordering::SeqCst) {
+        return Ok(false);
+    }
+
+    let folder_id: Option<i64> = if chat_id.eq_ignore_ascii_case("me") || chat_id == "0" {
+        None
+    } else {
+        chat_id.parse().ok()
+    };
+
+    let payload = FolderChunkPayload {
+        request_id,
+        folder_id,
+        topic_id,
+        files: res.files,
+        next_offset_id: res.next_offset_id,
+        has_more: res.has_more,
+        is_initial_chunk: offset_id.is_none(),
+    };
+
+    let _ = channel.send(payload);
+    Ok(true)
 }

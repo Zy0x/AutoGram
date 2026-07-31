@@ -323,6 +323,51 @@ pub struct ListMediaRequest {
     pub topic_id: Option<i64>,
 }
 
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex as StdMutex, OnceLock};
+
+static ACTIVE_STREAMS: OnceLock<StdMutex<HashMap<String, Arc<AtomicBool>>>> = OnceLock::new();
+
+fn active_streams_map() -> &'static StdMutex<HashMap<String, Arc<AtomicBool>>> {
+    ACTIVE_STREAMS.get_or_init(|| StdMutex::new(HashMap::new()))
+}
+
+pub fn register_stream(request_id: &str) -> Arc<AtomicBool> {
+    let flag = Arc::new(AtomicBool::new(false));
+    if let Ok(mut map) = active_streams_map().lock() {
+        map.insert(request_id.to_string(), Arc::clone(&flag));
+    }
+    flag
+}
+
+pub fn cancel_stream(request_id: &str) {
+    if let Ok(mut map) = active_streams_map().lock() {
+        if let Some(flag) = map.remove(request_id) {
+            flag.store(true, Ordering::SeqCst);
+        }
+    }
+}
+
+pub fn unregister_stream(request_id: &str) {
+    if let Ok(mut map) = active_streams_map().lock() {
+        map.remove(request_id);
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartFolderStreamRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub chat_id: String,
+    pub request_id: String,
+    pub offset_id: Option<i64>,
+    pub topic_id: Option<i64>,
+    pub limit: Option<usize>,
+}
+
 pub fn tg_list_media(
     req: ListMediaRequest,
 ) -> OpResult<super::grammers_ops::ListMediaResult> {
@@ -344,6 +389,37 @@ pub fn tg_list_media(
         Ok(v) => ok_result("grammers", v),
         Err(e) => {
             tg_log::error("grammers", "list_media", e.to_string());
+            err_result("grammers", e)
+        }
+    }
+}
+
+pub fn tg_start_folder_stream_blocking(
+    req: StartFolderStreamRequest,
+    channel: &tauri::ipc::Channel<super::grammers_ops::FolderChunkPayload>,
+    cancel_flag: &Arc<AtomicBool>,
+) -> OpResult<bool> {
+    let dir = sessions_dir_from_env();
+    let identity = TelegramIdentity {
+        session: req.session,
+        api_id: req.api_id,
+        api_hash: req.api_hash,
+    };
+    let limit = req.limit.unwrap_or(30);
+    match super::grammers_ops::start_folder_stream_blocking(
+        &dir,
+        &identity,
+        &req.chat_id,
+        limit,
+        req.offset_id,
+        req.topic_id,
+        req.request_id,
+        channel,
+        cancel_flag,
+    ) {
+        Ok(v) => ok_result("grammers", v),
+        Err(e) => {
+            tg_log::error("grammers", "start_folder_stream", e.to_string());
             err_result("grammers", e)
         }
     }

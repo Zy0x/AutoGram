@@ -345,6 +345,13 @@ export function DriveExplorer({
   const lastScrollTopRef = useRef(0);
   const lastScrollTimeRef = useRef(0);
   const scrollFlingTimerRef = useRef<number | null>(null);
+  const scrollDirectionRef = useRef<'down' | 'up'>('down');
+  const prefetchedOffsetsRef = useRef<Set<string>>(new Set());
+
+  // Reset prefetched offsets when folder/location changes
+  useEffect(() => {
+    prefetchedOffsetsRef.current.clear();
+  }, [scrollKey, folderId, query]);
 
   useEffect(() => {
     const el = parentRef.current;
@@ -353,11 +360,38 @@ export function DriveExplorer({
       const now = performance.now();
       const dt = now - (lastScrollTimeRef.current || now);
       const dy = Math.abs(el.scrollTop - (lastScrollTopRef.current || 0));
+
+      if (el.scrollTop > (lastScrollTopRef.current || 0)) {
+        scrollDirectionRef.current = 'down';
+      } else if (el.scrollTop < (lastScrollTopRef.current || 0)) {
+        scrollDirectionRef.current = 'up';
+      }
+
       lastScrollTopRef.current = el.scrollTop;
       lastScrollTimeRef.current = now;
 
       if (dt > 0 && dy / dt > 1.2) {
         isFastScrollingRef.current = true;
+      }
+
+      // Proactive prefetch at 65% scroll height when scrolling down
+      if (
+        progressiveReady &&
+        hasMore &&
+        onLoadMore &&
+        !loadingMore &&
+        !loading &&
+        scrollDirectionRef.current === 'down'
+      ) {
+        const viewportHeight = el.clientHeight;
+        const scrollHeight = el.scrollHeight;
+        if (scrollHeight > 0 && el.scrollTop + viewportHeight >= scrollHeight * 0.65) {
+          const prefetchKey = `${scrollKey}_${displayed.length}`;
+          if (!prefetchedOffsetsRef.current.has(prefetchKey)) {
+            prefetchedOffsetsRef.current.add(prefetchKey);
+            onLoadMore();
+          }
+        }
       }
 
       if (scrollFlingTimerRef.current != null) {
@@ -372,7 +406,7 @@ export function DriveExplorer({
       if (scrollFlingTimerRef.current != null) window.clearTimeout(scrollFlingTimerRef.current);
       el.removeEventListener('scroll', onScroll);
     };
-  }, []);
+  }, [progressiveReady, hasMore, onLoadMore, loadingMore, loading, scrollKey, displayed.length]);
 
   // Prefetch thumbs for visible + overscan — rAF-coalesced so fast scroll does
   // not enqueue dozens of batch RPCs per frame (main scroll jank source).

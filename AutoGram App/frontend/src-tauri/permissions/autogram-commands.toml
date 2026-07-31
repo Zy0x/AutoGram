@@ -43,6 +43,8 @@ allow = [
     "tg_list_dialogs",
     "tg_list_dialog_filters",
     "tg_list_media",
+    "tg_start_folder_stream",
+    "tg_cancel_folder_stream",
     "tg_upload_file",
     "tg_login",
     "tg_download_file",
