@@ -2846,6 +2846,8 @@ body.td-dnd-external {
   cursor: pointer;
   outline: none;
   width: 100%;
+  /* Height is fully controlled by the JS virtualizer row container (grid stretch) */
+  height: 100%;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -2853,7 +2855,8 @@ body.td-dnd-external {
   -webkit-user-select: none;
   position: relative;
   z-index: 1;
-  contain: content;
+  /* contain: layout style paint — size containment removed so height:100% flows to inner */
+  contain: layout style paint;
   will-change: transform;
   transform: translate3d(0, 0, 0);
   transition: z-index 0s;
@@ -2883,9 +2886,11 @@ body.td-dnd-external {
 
 .td-file-card-inner {
   position: relative;
-  /* Portrait 2:3 — uniform media tiles */
-  aspect-ratio: 2 / 3;
+  /* Height is set by JS row container (cardHeight = cardWidth * 1.5).
+     DO NOT use aspect-ratio here — it would override JS row height and
+     cause cards to overflow into adjacent rows, hiding the meta footer. */
   width: 100%;
+  height: 100%;
   max-width: 100%;
   min-width: 0;
   border-radius: 12px;
