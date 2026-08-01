@@ -240,7 +240,7 @@ export function clampGridZoom(n: number): DriveGridZoom {
 }
 
 /**
- * Smart column count for portrait 3:4 tiles at a zoom level.
+ * Smart column count for portrait 2:3 tiles at a zoom level.
  * Guarantees columns fit inside `width` (pad + gaps) so cards never overflow
  * the explorer when the window or sidebar resizes.
  */

@@ -101,8 +101,8 @@ type Props = {
   onResumeSync?: () => void;
 };
 
-/** Card aspect width:height = 3:4 → height = width * 4/3 */
-const CARD_ASPECT_H = 4 / 3;
+/** Card aspect width:height = 2:3 → height = width * 3/2 */
+const CARD_ASPECT_H = 3 / 2;
 const GRID_GAP = 10;
 const GRID_PAD_X = 14;
 /** Breathing room under topbar / above last row (virtual rows are absolute) */
@@ -306,8 +306,7 @@ export function DriveExplorer({
     48,
     cols > 0 ? (innerW - GRID_GAP * (cols - 1)) / cols : innerW
   );
-  const cardHeight = Math.round(cardWidth * CARD_ASPECT_H);
-  const rowHeight = cardHeight + GRID_GAP;
+  const rowHeight = Math.round(cardWidth * CARD_ASPECT_H + GRID_GAP);
 
   const perf = getDrivePerfProfile();
   // Slightly higher overscan reduces blank flash while scrolling without
@@ -1214,7 +1213,7 @@ export function DriveExplorer({
                   left: GRID_PAD_X,
                   right: GRID_PAD_X,
                   width: 'auto',
-                  height: cardHeight,
+                  height: vRow.size,
                   display: 'grid',
                   /* minmax(0,1fr) — allow shrink below content min-size (no overflow) */
                   gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
