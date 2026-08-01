@@ -306,7 +306,8 @@ export function DriveExplorer({
     48,
     cols > 0 ? (innerW - GRID_GAP * (cols - 1)) / cols : innerW
   );
-  const rowHeight = Math.round(cardWidth * CARD_ASPECT_H + GRID_GAP);
+  const cardHeight = Math.round(cardWidth * CARD_ASPECT_H);
+  const rowHeight = cardHeight + GRID_GAP;
 
   const perf = getDrivePerfProfile();
   // Slightly higher overscan reduces blank flash while scrolling without
@@ -1213,7 +1214,7 @@ export function DriveExplorer({
                   left: GRID_PAD_X,
                   right: GRID_PAD_X,
                   width: 'auto',
-                  height: vRow.size,
+                  height: cardHeight,
                   display: 'grid',
                   /* minmax(0,1fr) — allow shrink below content min-size (no overflow) */
                   gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
