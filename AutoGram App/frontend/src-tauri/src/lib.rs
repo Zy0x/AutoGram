@@ -124,6 +124,15 @@ fn get_worker_session_lease(
 }
 
 #[tauri::command]
+fn inspect_mp4_layout_cmd(file_path: String) -> Result<core::stream_server::Mp4Layout, String> {
+    let p = PathBuf::from(&file_path);
+    if !p.is_file() {
+        return Err("file not found".into());
+    }
+    Ok(core::stream_server::inspect_mp4_layout(&p))
+}
+
+#[tauri::command]
 fn release_worker_session_lease(
     session_key_hash: String,
     transfer_id: String,
@@ -1575,6 +1584,7 @@ pub fn run() {
             features::topic_media::commands::tg_open_topic_media,
             features::topic_media::commands::tg_load_more_topic_media,
             features::topic_media::commands::tg_thumbs_batch_v2,
+            inspect_mp4_layout_cmd,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env

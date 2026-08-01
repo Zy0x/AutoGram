@@ -1396,7 +1396,17 @@ export function DrivePreviewModal({
                 setHasVideoFrame(true);
                 setPlayerHint(null);
                 setLoading(false);
-              }).catch(() => undefined);
+              }).catch(() => {
+                v.muted = true;
+                setMuted(true);
+                void v.play().then(() => {
+                  hasUserPlayRef.current = true;
+                  userExplicitlyPausedRef.current = false;
+                  setHasVideoFrame(true);
+                  setPlayerHint(null);
+                  setLoading(false);
+                }).catch(() => undefined);
+              });
             }
           }
         }
@@ -3403,6 +3413,25 @@ export function DrivePreviewModal({
                   }
                   resumeAtRef.current = 0;
                   setLoading(false);
+                  if (v && (v.paused || !hasUserPlayRef.current) && !v.ended) {
+                    void v.play().then(() => {
+                      hasUserPlayRef.current = true;
+                      userExplicitlyPausedRef.current = false;
+                      setHasVideoFrame(true);
+                      setPlayerHint(null);
+                      setLoading(false);
+                    }).catch(() => {
+                      v.muted = true;
+                      setMuted(true);
+                      void v.play().then(() => {
+                        hasUserPlayRef.current = true;
+                        userExplicitlyPausedRef.current = false;
+                        setHasVideoFrame(true);
+                        setPlayerHint(null);
+                        setLoading(false);
+                      }).catch(() => undefined);
+                    });
+                  }
                 }}
                 onLoadedData={() => {
                   const v = videoRef.current;

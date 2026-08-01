@@ -304,6 +304,7 @@ if ($needStart) {
   if (-not (Test-Path -LiteralPath $userDataDir)) { New-Item -ItemType Directory -Force -Path $userDataDir | Out-Null }
   $psi.EnvironmentVariables['WEBVIEW2_USER_DATA_FOLDER'] = $userDataDir
   $psi.EnvironmentVariables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9225 --remote-allow-origins=*'
+  $psi.EnvironmentVariables['AUTOGRAM_SESSIONS_DIR'] = 'F:\AutoGram\AutoGram App\worker\sessions'
   try {
     $psi.EnvironmentVariables['PATH'] = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH', 'User')
   } catch {}
