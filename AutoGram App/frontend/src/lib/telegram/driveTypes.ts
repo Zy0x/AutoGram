@@ -271,6 +271,45 @@ export function gridColumnsForWidth(
   return Math.max(1, cols);
 }
 
+export type DriveGridLayoutOptions = {
+  containerWidth: number;
+  density: DriveGridZoom;
+  gap?: number;
+  padX?: number;
+};
+
+export type DriveGridLayoutResult = {
+  columnCount: number;
+  cardWidth: number;
+  cardHeight: number;
+  rowHeight: number;
+};
+
+/**
+ * Pure calculation for grid card dimensions, row height, and column count.
+ * Single source of truth for grid layout regardless of location or topic context.
+ */
+export function computeDriveGridLayout(opts: DriveGridLayoutOptions): DriveGridLayoutResult {
+  const gap = opts.gap ?? 10;
+  const padX = opts.padX ?? 28;
+  const safeWidth = Number.isFinite(opts.containerWidth) && opts.containerWidth > 0 ? opts.containerWidth : 800;
+  const columnCount = gridColumnsForWidth(safeWidth, opts.density, { gap, pad: padX });
+  const innerW = Math.max(0, safeWidth - padX);
+  const cardWidth = Math.max(
+    48,
+    columnCount > 0 ? (innerW - gap * (columnCount - 1)) / columnCount : innerW
+  );
+  const cardHeight = Math.round(cardWidth * (3 / 2));
+  const rowHeight = cardHeight + gap;
+
+  return {
+    columnCount,
+    cardWidth,
+    cardHeight,
+    rowHeight,
+  };
+}
+
 /** Single-select sort presets for Drive media grid/list */
 export type DriveSortMode =
   | 'newest'

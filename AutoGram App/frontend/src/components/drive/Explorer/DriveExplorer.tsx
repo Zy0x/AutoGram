@@ -7,7 +7,7 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import {
   DEFAULT_GRID_ZOOM,
   canShowDriveThumb,
-  gridColumnsForWidth,
+  computeDriveGridLayout,
   type DriveFile,
   type DriveGridZoom,
   type DriveMediaFilter,
@@ -101,8 +101,6 @@ type Props = {
   onResumeSync?: () => void;
 };
 
-/** Card aspect width:height = 2:3 → height = width * 3/2 */
-const CARD_ASPECT_H = 3 / 2;
 const GRID_GAP = 10;
 const GRID_PAD_X = 14;
 /** Breathing room under topbar / above last row (virtual rows are absolute) */
@@ -244,8 +242,13 @@ export function DriveExplorer({
     let raf = 0;
     const apply = () => {
       // clientWidth excludes scrollbar — correct for fitting columns
-      const w = el.clientWidth || el.getBoundingClientRect().width || 800;
-      setWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+      const w = el.clientWidth || el.getBoundingClientRect().width || 0;
+      if (w > 0 && Number.isFinite(w)) {
+        setWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+      } else {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(apply);
+      }
     };
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
@@ -296,17 +299,53 @@ export function DriveExplorer({
   }, [displayedIds, onDisplayedIdsChange]);
 
   // Match JS pad to GRID_PAD_X so column math === laid-out width
-  const cols = gridColumnsForWidth(width || 800, gridZoom, {
+  const layout = computeDriveGridLayout({
+    containerWidth: width,
+    density: gridZoom,
     gap: GRID_GAP,
-    pad: GRID_PAD_X * 2,
+    padX: GRID_PAD_X * 2,
   });
+  const cols = layout.columnCount;
+  const cardWidth = layout.cardWidth;
+  const rowHeight = layout.rowHeight;
   const rowCount = Math.ceil(displayed.length / cols) || 0;
-  const innerW = Math.max(0, (width || 800) - GRID_PAD_X * 2);
-  const cardWidth = Math.max(
-    48,
-    cols > 0 ? (innerW - GRID_GAP * (cols - 1)) / cols : innerW
-  );
-  const rowHeight = Math.round(cardWidth * CARD_ASPECT_H + GRID_GAP);
+
+  useEffect(() => {
+    console.debug('[GRID_DIAG] Explorer Mount', {
+      locationKey: activeScrollKey,
+      peerId: folderId ?? 'me',
+      topicId: topicId ?? 0,
+      viewMode,
+      density: gridZoom,
+      containerWidth: width,
+    });
+    return () => {
+      console.debug('[GRID_DIAG] Explorer Unmount', {
+        locationKey: activeScrollKey,
+        peerId: folderId ?? 'me',
+        topicId: topicId ?? 0,
+      });
+    };
+  }, [activeScrollKey]);
+
+  useEffect(() => {
+    console.debug('[GRID_DIAG]', {
+      locationKey: activeScrollKey,
+      peerId: folderId ?? 'me',
+      topicId: topicId ?? 0,
+      viewMode,
+      density: gridZoom,
+      containerWidth: width,
+      computedCardWidth: cardWidth,
+      computedCardHeight: layout.cardHeight,
+      computedRowHeight: rowHeight,
+      computedColumnCount: cols,
+      itemCount: displayed.length,
+      clientWidth: parentRef.current?.clientWidth,
+      boundingRectWidth: parentRef.current?.getBoundingClientRect().width,
+      fallbackUsed: width === 800 ? 'default 800 fallback' : 'none',
+    });
+  }, [activeScrollKey, viewMode, gridZoom, width, cardWidth, layout.cardHeight, rowHeight, cols, displayed.length]);
 
   const perf = getDrivePerfProfile();
   // Slightly higher overscan reduces blank flash while scrolling without
@@ -334,7 +373,7 @@ export function DriveExplorer({
 
   useEffect(() => {
     gridVirtualizer.measure();
-  }, [rowHeight, cols, rowCount, width, gridVirtualizer]);
+  }, [rowHeight, cols, rowCount, width, activeScrollKey, gridVirtualizer]);
 
   const gridItems = gridVirtualizer.getVirtualItems();
   const listItems = listVirtualizer.getVirtualItems();
@@ -787,31 +826,6 @@ export function DriveExplorer({
     onMarqueeSelect?.(applyLiveMarquee(baseSelected, hits, mode), mode);
   };
 
-  if (loading && files.length === 0) {
-    return (
-      <div className="td-explorer" style={{ padding: '16px', position: 'relative' }}>
-        <div className="ag-loading-overlay">
-          <CenteredGlassmorphicProgress isLoading={true} />
-        </div>
-        {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
-      </div>
-    );
-  }
-
-  if (error && files.length === 0) {
-    return (
-      <div className="td-explorer">
-        <div className="td-empty td-empty-error">
-          <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
-            <AlertTriangle size={48} />
-          </div>
-          <h3>{t('speedtest.load_location_failed')}</h3>
-          <p style={{ maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className={`td-explorer ${dragActive ? 'drag-over is-os-dnd' : ''}${
@@ -836,6 +850,23 @@ export function DriveExplorer({
         onCanvasContextMenu?.(e);
       }}
     >
+      {loading && files.length === 0 ? (
+        <div style={{ padding: '16px', position: 'relative', width: '100%' }}>
+          <div className="ag-loading-overlay">
+            <CenteredGlassmorphicProgress isLoading={true} />
+          </div>
+          {viewMode === 'grid' ? <DriveGridSkeleton count={16} /> : <DriveListSkeleton count={10} />}
+        </div>
+      ) : error && files.length === 0 ? (
+        <div className="td-empty td-empty-error">
+          <div className="td-empty-icon" style={{ opacity: 0.8, color: 'inherit' }}>
+            <AlertTriangle size={48} />
+          </div>
+          <h3>{t('speedtest.load_location_failed')}</h3>
+          <p style={{ maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>{error}</p>
+        </div>
+      ) : (
+        <>
 
       {marqueeBox && (
         <div
@@ -1250,7 +1281,9 @@ export function DriveExplorer({
           })}
         </div>
       )}
-    </div>
+    </>
+  )}
+</div>
   );
 }
 
