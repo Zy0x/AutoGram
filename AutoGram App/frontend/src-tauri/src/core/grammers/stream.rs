@@ -313,15 +313,7 @@ pub struct PreviewStreamResult {
 fn guess_mime(name: &str, media: &Media) -> String {
     if let Media::Document(d) = media {
         if let Some(m) = d.mime_type() {
-            if m != "application/octet-stream" && !m.is_empty() {
-                return m.to_string();
-            }
-        }
-        if d.raw.video {
-            return "video/mp4".into();
-        }
-        if d.raw.voice {
-            return "audio/ogg".into();
+            return m.to_string();
         }
     }
     let ext = Path::new(name)
@@ -756,17 +748,9 @@ fn start_preview_stream_inner(
             || name_lower.ends_with(".ogv")
             || name_lower.ends_with(".3g2")
             || name_lower.ends_with(".f4v");
-        let is_video_attr = match &media {
-            Media::Document(d) => d.raw.video,
-            _ => false,
-        };
-        let is_audio_attr = match &media {
-            Media::Document(d) => d.raw.voice,
-            _ => false,
-        };
         let is_image = (mime.starts_with("image/") || name_lower.ends_with(".jpg") || name_lower.ends_with(".png") || name_lower.ends_with(".webp") || name_lower.ends_with(".jpeg")) && !mime.contains("gif");
-        let is_video = is_video_attr || mime.starts_with("video/") || is_video_ext;
-        let is_audio = is_audio_attr || mime.starts_with("audio/") || name_lower.ends_with(".mp3") || name_lower.ends_with(".flac") || name_lower.ends_with(".ogg") || name_lower.ends_with(".m4a") || name_lower.ends_with(".wav") || name_lower.ends_with(".aac") || name_lower.ends_with(".opus");
+        let is_video = mime.starts_with("video/") || is_video_ext;
+        let is_audio = mime.starts_with("audio/") || name_lower.ends_with(".mp3") || name_lower.ends_with(".flac") || name_lower.ends_with(".ogg") || name_lower.ends_with(".m4a") || name_lower.ends_with(".wav") || name_lower.ends_with(".aac") || name_lower.ends_with(".opus");
         let is_zip = mime.contains("zip") || name_lower.ends_with(".zip");
 
         // Safe logging of raw media info
