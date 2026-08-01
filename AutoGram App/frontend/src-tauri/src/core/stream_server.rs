@@ -136,11 +136,109 @@ pub fn filled_bytes(ranges: &[(u64, u64)]) -> u64 {
     ranges.iter().map(|(s, e)| e.saturating_sub(*s)).sum()
 }
 
-/// Reads a growing sparse preview without materializing the HTTP body in RAM.
-/// Chromium expects a non-Range response's advertised Content-Length to arrive
-/// on the same connection; closing after the current prefix caused a network
-/// error followed by the browser's automatic media reload loop.
-struct ProgressiveFileReader {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Mp4Layout {
+    pub ftyp_offset: Option<u64>,
+    pub ftyp_size: Option<u64>,
+    pub moov_offset: Option<u64>,
+    pub moov_size: Option<u64>,
+    pub mdat_offset: Option<u64>,
+    pub mdat_size: Option<u64>,
+    pub moov_position: String,
+}
+
+pub fn inspect_mp4_layout(path: &Path) -> Mp4Layout {
+    let mut layout = Mp4Layout {
+        ftyp_offset: None,
+        ftyp_size: None,
+        moov_offset: None,
+        moov_size: None,
+        mdat_offset: None,
+        mdat_size: None,
+        moov_position: "unknown".into(),
+    };
+
+    let Ok(mut f) = File::open(path) else {
+        return layout;
+    };
+    let Ok(file_len) = f.metadata().map(|m| m.len()) else {
+        return layout;
+    };
+
+    let mut pos = 0u64;
+    let mut header_buf = [0u8; 16];
+
+    while pos < file_len {
+        if f.seek(SeekFrom::Start(pos)).is_err() {
+            break;
+        }
+        if f.read_exact(&mut header_buf[..8]).is_err() {
+            break;
+        }
+
+        let size32 = u32::from_be_bytes([header_buf[0], header_buf[1], header_buf[2], header_buf[3]]) as u64;
+        let box_type = [header_buf[4], header_buf[5], header_buf[6], header_buf[7]];
+
+        let (header_len, box_size) = if size32 == 1 {
+            if f.read_exact(&mut header_buf[8..16]).is_err() {
+                break;
+            }
+            let size64 = u64::from_be_bytes([
+                header_buf[8], header_buf[9], header_buf[10], header_buf[11],
+                header_buf[12], header_buf[13], header_buf[14], header_buf[15],
+            ]);
+            (16, size64)
+        } else if size32 == 0 {
+            (8, file_len.saturating_sub(pos))
+        } else {
+            (8, size32)
+        };
+
+        if box_size < header_len {
+            break;
+        }
+
+        match &box_type {
+            b"ftyp" => {
+                layout.ftyp_offset = Some(pos);
+                layout.ftyp_size = Some(box_size);
+            }
+            b"moov" => {
+                layout.moov_offset = Some(pos);
+                layout.moov_size = Some(box_size);
+            }
+            b"mdat" => {
+                layout.mdat_offset = Some(pos);
+                layout.mdat_size = Some(box_size);
+            }
+            _ => {}
+        }
+
+        pos = pos.saturating_add(box_size);
+    }
+
+    if let (Some(moov_off), Some(mdat_off)) = (layout.moov_offset, layout.mdat_offset) {
+        if moov_off < mdat_off {
+            layout.moov_position = "head".into();
+        } else {
+            layout.moov_position = "tail".into();
+        }
+    }
+
+    log::info!(
+        "[MP4_LAYOUT] ftyp={:?} moov={:?} mdat={:?} pos={}",
+        layout.ftyp_offset,
+        layout.moov_offset,
+        layout.mdat_offset,
+        layout.moov_position
+    );
+
+    layout
+}
+
+/// DemandRangeReader: reads requested sparse ranges on-demand from disk file without downloading full file to 100%.
+struct DemandRangeReader {
     file: File,
     stream_id: String,
     position: u64,
@@ -148,16 +246,21 @@ struct ProgressiveFileReader {
     wait_for_growth: bool,
 }
 
-impl Read for ProgressiveFileReader {
+impl Read for DemandRangeReader {
     fn read(&mut self, output: &mut [u8]) -> std::io::Result<usize> {
         if output.is_empty() || self.position >= self.end_exclusive {
             return Ok(0);
         }
 
+        let mut waited = 0;
         loop {
             let Some(entry) = get_entry(&self.stream_id) else {
                 return Ok(0);
             };
+            if entry.cancelled || entry.paused || entry.error.is_some() {
+                return Ok(0);
+            }
+
             let ranges = merge_ranges(&entry.ranges);
             let available_end = contiguous_end_from(&ranges, self.position).min(self.end_exclusive);
             if available_end > self.position {
@@ -168,11 +271,15 @@ impl Read for ProgressiveFileReader {
                 return Ok(read);
             }
 
-            if !self.wait_for_growth || entry.done || entry.cancelled || entry.error.is_some() {
+            if !self.wait_for_growth || entry.done || waited > 30_000 {
                 return Ok(0);
             }
-            // Only this dedicated HTTP range thread waits; Tokio and Tauri stay responsive.
+
+            // Signal progressive demand to backend fill task for this position
+            let _ = crate::core::grammers::stream::request_progressive_range(&self.stream_id, self.position);
+
             thread::sleep(Duration::from_millis(30));
+            waited += 30;
         }
     }
 }
@@ -242,19 +349,33 @@ pub fn upsert_entry(mut entry: StreamEntry) -> StreamEntry {
     entry.ranges = merge_ranges(&entry.ranges);
     entry.updated_at_ms = now_ms();
 
-    // Inherit moov_ready_cached from the existing live entry so the cache is
-    // never lost between fill-loop iterations.  Every chunk update rebuilds a
-    // fresh StreamEntry literal with moov_ready_cached: false, so without this
-    // inheritance the cache resets on every call — making it useless.
-    if !entry.moov_ready_cached {
-        if let Some(existing) = live_map().read().get(&entry.stream_id).cloned() {
-            if existing.moov_ready_cached {
-                entry.moov_ready_cached = true;
-            }
-            // Also inherit moov_tail_fetching so the flag isn't reset by fill-loop upserts.
-            if existing.moov_tail_fetching && !entry.moov_tail_fetching {
-                entry.moov_tail_fetching = true;
-            }
+    // Read existing entry ONCE to avoid repeated lock acquisitions.
+    let existing_opt = live_map().read().get(&entry.stream_id).cloned();
+
+    if let Some(ref existing) = existing_opt {
+        // BUG-FIX: PRESERVE TAIL-FETCH RANGES.
+        // The fill loop passes only its own sequential ranges, which would silently
+        // overwrite any tail-fetch ranges already stored in the global entry.
+        // After the tail-fetch task writes the last ~1 MB (containing the MOOV atom),
+        // the very next fill-loop upsert_entry call would erase those tail ranges,
+        // making the MOOV bytes invisible to handle_stream when the browser issues a
+        // suffix range request. Merging here ensures tail bytes are never discarded.
+        if !entry.cancelled {
+            let mut all = entry.ranges.clone();
+            all.extend(existing.ranges.iter().copied());
+            entry.ranges = merge_ranges(&all);
+        }
+
+        // Inherit moov_ready_cached from the existing live entry so the cache is
+        // never lost between fill-loop iterations.  Every chunk update rebuilds a
+        // fresh StreamEntry literal with moov_ready_cached: false, so without this
+        // inheritance the cache resets on every call — making it useless.
+        if !entry.moov_ready_cached && existing.moov_ready_cached {
+            entry.moov_ready_cached = true;
+        }
+        // Also inherit moov_tail_fetching so the flag isn't reset by fill-loop upserts.
+        if existing.moov_tail_fetching && !entry.moov_tail_fetching {
+            entry.moov_tail_fetching = true;
         }
     }
 
@@ -614,21 +735,40 @@ fn handle_stream(request: Request, sid: &str) {
 
     let is_head = request.method() == &Method::Head;
 
+    // BUG-FIX: Cap each HTTP response to 16 MB using bounded_response_end.
+    //
+    // Previously, a bare `Range: bytes=0-` caused the server to promise the
+    // ENTIRE file in a single 206 response (e.g. Content-Range: bytes 0-379899999/379900000).
+    // Chrome then held open one huge streaming read and never made a separate
+    // suffix range request to fetch the MOOV atom from the tail.
+    //
+    // With the 16 MB cap:
+    //  • Chrome receives `Content-Range: bytes 0-16777215/379900000`.
+    //  • After parsing ftyp + the start of mdat with no moov in sight, Chrome
+    //    issues a suffix request (e.g. `Range: bytes=-2097152`) to locate moov.
+    //  • The tail-fetch task has already written those bytes (and they are now
+    //    preserved thanks to the range-merge fix in upsert_entry).
+    //  • Chrome gets moov, begins decoding, and playback starts within seconds.
     let (start, end_incl, status) = if let Some((rs, re)) = req_range {
         let start = rs;
-        let end_incl = match re {
-            Some(e) => e.min(total.saturating_sub(1)),
-            None => total.saturating_sub(1),
-        };
+        // bounded_response_end caps to start + 16 MB, honouring an explicit
+        // end if it is smaller. Returns an exclusive endpoint.
+        let end_excl = bounded_response_end(start, re, total);
+        let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
         (start, end_incl, 206)
     } else {
-        (0, total.saturating_sub(1), 200)
+        // No Range header: serve first 16 MB as 206 so browsers can
+        // immediately follow up with a suffix request when needed.
+        let end_excl = bounded_response_end(0, None, total);
+        let end_incl = end_excl.saturating_sub(1).min(total.saturating_sub(1));
+        let st = if end_excl >= total { 200 } else { 206 };
+        (0, end_incl, st)
     };
 
     let length = end_incl.saturating_sub(start).saturating_add(1);
 
     log::info!(
-        "[STREAM_DIAG][RANGE] sid={sid} req={:?} -> status={status} cr=bytes {start}-{end_incl}/{total} len={length} done={}",
+        "[REAL_HTTP_RANGE][CAP16] sid={sid} req={:?} -> status={status} cr=bytes {start}-{end_incl}/{total} len={length} done={}",
         range_hdr,
         entry.done
     );
@@ -681,13 +821,27 @@ fn handle_stream(request: Request, sid: &str) {
         return;
     }
 
-    let reader = ProgressiveFileReader {
+    let reader = DemandRangeReader {
         file,
         stream_id: sid.to_string(),
         position: start,
         end_exclusive: end_incl.saturating_add(1),
         wait_for_growth: !entry.done,
     };
+
+    let cr_str = if status == 206 {
+        format!("bytes {start}-{end_incl}/{total}")
+    } else {
+        format!("bytes 0-{}/{total}", total.saturating_sub(1))
+    };
+
+    log::info!(
+        "[REAL_HTTP_RANGE] ts={} sid={sid} req={:?} status={status} cr=\"{cr_str}\" len={length} tg_downloaded={filled} intervals_count={}",
+        now_ms(),
+        range_hdr,
+        ranges.len()
+    );
+
     let mut res = Response::new(
         StatusCode(status),
         Vec::new(),
@@ -704,8 +858,7 @@ fn handle_stream(request: Request, sid: &str) {
     }
     res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
     if status == 206 {
-        let cr = format!("bytes {start}-{end_incl}/{total}");
-        if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
+        if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr_str.as_bytes()) {
             res.add_header(h);
         }
     }
