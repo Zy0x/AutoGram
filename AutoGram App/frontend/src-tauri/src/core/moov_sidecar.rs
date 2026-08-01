@@ -47,8 +47,10 @@ impl MoovSidecarManager {
     /// Save MOOV atom bytes to sidecar file and record in SQLite.
     pub fn save(&self, file_id: &str, moov_data: &[u8]) -> Result<(), String> {
         let sidecar_path = self.cache_dir.join(format!("{file_id}.moov"));
-        let mut file = File::create(&sidecar_path).map_err(|e| format!("create sidecar file: {e}"))?;
-        file.write_all(moov_data).map_err(|e| format!("write sidecar file: {e}"))?;
+        let mut file =
+            File::create(&sidecar_path).map_err(|e| format!("create sidecar file: {e}"))?;
+        file.write_all(moov_data)
+            .map_err(|e| format!("write sidecar file: {e}"))?;
 
         if let Ok(conn) = open_db() {
             let _ = Self::ensure_table(&conn);
@@ -59,7 +61,14 @@ impl MoovSidecarManager {
                 params![file_id, path_str, moov_data.len() as i64],
             );
         }
-        tg_log::info(BACKEND, "save", format!("Saved moov sidecar for {file_id} ({} bytes)", moov_data.len()));
+        tg_log::info(
+            BACKEND,
+            "save",
+            format!(
+                "Saved moov sidecar for {file_id} ({} bytes)",
+                moov_data.len()
+            ),
+        );
         Ok(())
     }
 

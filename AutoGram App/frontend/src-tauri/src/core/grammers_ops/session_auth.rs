@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use grammers_client::message::InputMessage;
 use grammers_client::client::PasswordToken;
+use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::path_policy;
-use crate::core::session_rate;
 use crate::core::session_guard;
+use crate::core::session_rate;
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
 use crate::core::telethon_session_import::{
     grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
     read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
-};
-use crate::core::telegram_ops::{
-    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
 use crate::core::tg_log;
@@ -71,7 +71,12 @@ pub fn runtime() -> Result<&'static Runtime, TgError> {
         return Ok(runtime);
     }
 
-    let worker_count = std::cmp::max(4, std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
+    let worker_count = std::cmp::max(
+        4,
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4),
+    );
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .worker_threads(worker_count)
@@ -189,6 +194,39 @@ pub fn persist_memory_session(session: &MemorySession, path: &Path) -> Result<()
     write_session_data(path, &data)
 }
 
+/// Commit a login session only after Telegram itself confirms authorization.
+/// QR, OTP and 2FA challenges deliberately remain in memory until this gate.
+async fn persist_authorized_session(
+    client: &Client,
+    session: &MemorySession,
+    path: &Path,
+) -> Result<(), TgError> {
+    let mut last_error = None;
+    for attempt in 0..4u64 {
+        match client.is_authorized().await {
+            Ok(true) => return persist_memory_session(session, path),
+            Ok(false) => {}
+            Err(error) => last_error = Some(map_invocation(&error)),
+        }
+        tokio::time::sleep(Duration::from_millis(80 + attempt * 80)).await;
+    }
+    Err(last_error.unwrap_or_else(|| {
+        TgError::new(
+            TgErrorCode::NotAuthorized,
+            "Telegram login completed but authorization was not confirmed",
+        )
+    }))
+}
+
+/// Keep a negotiated MTProto transport key between multi-step login calls when
+/// available. A pending challenge must not fail merely because the sender has
+/// not exposed its key yet.
+fn persist_login_transport_best_effort(session: &MemorySession, path: &Path) {
+    if let Err(error) = persist_memory_session(session, path) {
+        tg_log::debug(BACKEND, "login_transport_pending", error.to_string());
+    }
+}
+
 pub(crate) struct LiveClient {
     pub client: Client,
     pub session: Arc<MemorySession>,
@@ -198,10 +236,7 @@ pub(crate) struct LiveClient {
 }
 
 /// Blocking wrappers for Tauri `spawn_blocking` / sync call sites.
-pub fn probe_sessions_blocking(
-    sessions_dir: &Path,
-    session_name: &str,
-) -> SessionProbeResult {
+pub fn probe_sessions_blocking(sessions_dir: &Path, session_name: &str) -> SessionProbeResult {
     let t = telethon_session_path(sessions_dir, session_name);
     let g = grammers_session_path(sessions_dir, session_name);
     SessionProbeResult {
@@ -261,7 +296,12 @@ pub fn list_native_sessions(sessions_dir: &Path) -> Vec<NativeSessionSummary> {
         .into_iter()
         .map(|(name, (native, legacy))| NativeSessionSummary {
             name,
-            status: if native { "checking" } else { "migration_required" }.into(),
+            status: if native {
+                "checking"
+            } else {
+                "migration_required"
+            }
+            .into(),
             source: match (native, legacy) {
                 (true, true) => "grammers+migration_source",
                 (true, false) => "grammers",
@@ -271,7 +311,11 @@ pub fn list_native_sessions(sessions_dir: &Path) -> Vec<NativeSessionSummary> {
             .into(),
         })
         .collect::<Vec<_>>();
-    result.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase()));
+    result.sort_by(|a, b| {
+        a.name
+            .to_ascii_lowercase()
+            .cmp(&b.name.to_ascii_lowercase())
+    });
     result
 }
 
@@ -311,8 +355,10 @@ pub fn auth_status_blocking(
                 move |client| {
                     let session_name = session_name.clone();
                     Box::pin(async move {
-                        let authorized =
-                            client.is_authorized().await.map_err(|e| map_invocation(&e))?;
+                        let authorized = client
+                            .is_authorized()
+                            .await
+                            .map_err(|e| map_invocation(&e))?;
                         let mut profile = None;
                         if authorized {
                             if let Some(cached) = get_cached_user_profile(&session_name) {
@@ -436,10 +482,7 @@ pub struct LoginResult {
 
 /// Two-phase login: without code → request_login_code (returns needs_code).
 /// With code → sign_in (+ password if needed).
-pub fn login_blocking(
-    sessions_dir: &Path,
-    req: &LoginRequest,
-) -> Result<LoginResult, TgError> {
+pub fn login_blocking(sessions_dir: &Path, req: &LoginRequest) -> Result<LoginResult, TgError> {
     if req.api_id <= 0 || req.api_hash.trim().is_empty() {
         return Err(TgError::new(
             TgErrorCode::NotConfigured,
@@ -452,7 +495,11 @@ pub fn login_blocking(
         api_hash: req.api_hash.clone(),
     };
     let phone = req.phone.trim().to_string();
-    let has_password = req.password.as_deref().map(str::trim).is_some_and(|s| !s.is_empty());
+    let has_password = req
+        .password
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|s| !s.is_empty());
     if phone.is_empty() && !has_password {
         return Err(TgError::new(TgErrorCode::Auth, "phone required"));
     }
@@ -475,9 +522,13 @@ pub fn login_blocking(
         });
         tokio::time::sleep(Duration::from_millis(100)).await;
 
-        if client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+        if client
+            .is_authorized()
+            .await
+            .map_err(|e| map_invocation(&e))?
+        {
             let u = client.get_me().await.map_err(|e| map_invocation(&e))?;
-            let _ = persist_memory_session(&session, &g_path);
+            persist_authorized_session(&client, &session, &g_path).await?;
             client.disconnect();
             return Ok(LoginResult {
                 status: "already_authorized".into(),
@@ -490,19 +541,32 @@ pub fn login_blocking(
             });
         }
 
-
         // Third phase: 2FA password after a previous sign_in/QR response.
         // Keep this independent from phone/code so the UI never has to resend
         // an expired OTP merely to submit the cloud password.
-        if let Some(password) = req.password.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-            if req.code.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_none() {
+        if let Some(password) = req
+            .password
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            if req
+                .code
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .is_none()
+            {
                 let pw_token = take_password_token(&identity.session).ok_or_else(|| {
-                    TgError::new(TgErrorCode::Auth, "2FA challenge expired — start login again")
+                    TgError::new(
+                        TgErrorCode::Auth,
+                        "2FA challenge expired — start login again",
+                    )
                 })?;
                 match client.check_password(pw_token, password.as_bytes()).await {
                     Ok(u) => {
                         let prof = user_profile_from(&u);
-                        persist_memory_session(&session, &g_path)?;
+                        persist_authorized_session(&client, &session, &g_path).await?;
                         client.disconnect();
                         return Ok(LoginResult {
                             status: "authorized".into(),
@@ -530,15 +594,12 @@ pub fn login_blocking(
         let code = req.code.as_deref().map(str::trim).filter(|s| !s.is_empty());
         if code.is_none() {
             // Request code only
-            match client
-                .request_login_code(&phone, &identity.api_hash)
-                .await
-            {
+            match client.request_login_code(&phone, &identity.api_hash).await {
                 Ok(_token) => {
                     // Token cannot be persisted easily across process calls without storing it.
                     // Document: second call must happen soon; we store token in static map.
                     store_login_token(&identity.session, _token);
-                    persist_memory_session(&session, &g_path)?;
+                    persist_login_transport_best_effort(&session, &g_path);
                     client.disconnect();
                     tg_log::info(BACKEND, "login_code_sent", "phone_ok=1");
                     return Ok(LoginResult {
@@ -568,7 +629,7 @@ pub fn login_blocking(
         match client.sign_in(&token, code).await {
             Ok(u) => {
                 let prof = user_profile_from(&u);
-                let _ = persist_memory_session(&session, &g_path);
+                persist_authorized_session(&client, &session, &g_path).await?;
                 client.disconnect();
                 tg_log::info(BACKEND, "login_ok", format!("user_id={}", prof.id));
                 Ok(LoginResult {
@@ -587,7 +648,7 @@ pub fn login_blocking(
                     match client.check_password(pw_token, pw.as_bytes()).await {
                         Ok(u) => {
                             let prof = user_profile_from(&u);
-                            let _ = persist_memory_session(&session, &g_path);
+                            persist_authorized_session(&client, &session, &g_path).await?;
                             client.disconnect();
                             Ok(LoginResult {
                                 status: "authorized".into(),
@@ -605,7 +666,7 @@ pub fn login_blocking(
                         }
                     }
                 } else {
-                    persist_memory_session(&session, &g_path)?;
+                    persist_login_transport_best_effort(&session, &g_path);
                     store_password_token(&identity.session, pw_token);
                     client.disconnect();
                     Ok(LoginResult {
@@ -621,7 +682,7 @@ pub fn login_blocking(
             }
             Err(SignInError::InvalidCode) => {
                 store_login_token(&identity.session, token);
-                persist_memory_session(&session, &g_path)?;
+                persist_login_transport_best_effort(&session, &g_path);
                 client.disconnect();
                 Err(TgError::new(TgErrorCode::Auth, "invalid_otp"))
             }
@@ -643,7 +704,6 @@ pub fn login_blocking(
 }
 
 // --- Login token stash (single pending per session name) ---
-
 
 pub fn login_tokens() -> &'static Mutex<HashMap<String, grammers_client::client::LoginToken>> {
     static MAP: OnceLock<Mutex<HashMap<String, grammers_client::client::LoginToken>>> =
@@ -678,15 +738,18 @@ pub async fn grammers_qr_login(
     api_id: i64,
     api_hash: String,
 ) -> Result<(), TgError> {
-    use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
     use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64_URL;
     use base64::Engine as _;
     use grammers_session::Session;
+    use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
     use tauri::Emitter;
 
     let sessions_dir = resolve_sessions_dir(None);
     let cancel = Arc::new(AtomicBool::new(false));
-    if let Some(previous) = qr_cancel_flags().lock().insert(session_name.clone(), cancel.clone()) {
+    if let Some(previous) = qr_cancel_flags()
+        .lock()
+        .insert(session_name.clone(), cancel.clone())
+    {
         previous.store(true, AtomicOrdering::SeqCst);
     }
     let identity = TelegramIdentity {
@@ -701,7 +764,7 @@ pub async fn grammers_qr_login(
     let live = connect_client(&sessions_dir, &identity, false).await?;
 
     if live.client.is_authorized().await.unwrap_or(false) {
-        let _ = persist_memory_session(&live.session, &live.session_path);
+        persist_authorized_session(&live.client, &live.session, &live.session_path).await?;
         live.client.disconnect();
         qr_cancel_flags().lock().remove(&session_name);
         let _ = app.emit(
@@ -757,7 +820,12 @@ pub async fn grammers_qr_login(
                     match check_res {
                         Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
                             login_success = true;
-                            let _ = persist_memory_session(&live.session, &live.session_path);
+                            persist_authorized_session(
+                                &live.client,
+                                &live.session,
+                                &live.session_path,
+                            )
+                            .await?;
 
                             let _ = app.emit(
                                 "qr-event",
@@ -788,7 +856,9 @@ pub async fn grammers_qr_login(
                             live.session
                                 .set_home_dc_id(migrate.dc_id)
                                 .await
-                                .map_err(|e| TgError::new(TgErrorCode::Auth, format!("QR migrate DC: {e}")))?;
+                                .map_err(|e| {
+                                    TgError::new(TgErrorCode::Auth, format!("QR migrate DC: {e}"))
+                                })?;
                             match live
                                 .client
                                 .invoke(&grammers_client::tl::functions::auth::ImportLoginToken {
@@ -798,7 +868,12 @@ pub async fn grammers_qr_login(
                             {
                                 Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
                                     login_success = true;
-                                    persist_memory_session(&live.session, &live.session_path)?;
+                                    persist_authorized_session(
+                                        &live.client,
+                                        &live.session,
+                                        &live.session_path,
+                                    )
+                                    .await?;
                                     let _ = app.emit(
                                         "qr-event",
                                         serde_json::json!({"status":"success","session":session_name}),
@@ -814,7 +889,9 @@ pub async fn grammers_qr_login(
                             if err_str.contains("SESSION_PASSWORD_NEEDED") {
                                 let password: grammers_client::tl::types::account::Password = live
                                     .client
-                                    .invoke(&grammers_client::tl::functions::account::GetPassword {})
+                                    .invoke(
+                                        &grammers_client::tl::functions::account::GetPassword {},
+                                    )
                                     .await
                                     .map_err(|err| map_invocation(&err))?
                                     .into();
@@ -822,7 +899,10 @@ pub async fn grammers_qr_login(
                                 let hint = token.hint().map(str::to_string);
                                 store_password_token(&session_name, token);
                                 login_success = true;
-                                let _ = persist_memory_session(&live.session, &live.session_path);
+                                persist_login_transport_best_effort(
+                                    &live.session,
+                                    &live.session_path,
+                                );
 
                                 let _ = app.emit(
                                     "qr-event",
@@ -833,7 +913,9 @@ pub async fn grammers_qr_login(
                                     }),
                                 );
                                 break;
-                            } else if err_str.contains("AUTH_TOKEN_EXPIRED") || err_str.contains("AUTH_TOKEN_INVALID") {
+                            } else if err_str.contains("AUTH_TOKEN_EXPIRED")
+                                || err_str.contains("AUTH_TOKEN_INVALID")
+                            {
                                 break;
                             }
                         }
@@ -854,7 +936,8 @@ pub async fn grammers_qr_login(
                 {
                     Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
                         login_success = true;
-                        persist_memory_session(&live.session, &live.session_path)?;
+                        persist_authorized_session(&live.client, &live.session, &live.session_path)
+                            .await?;
                         let _ = app.emit(
                             "qr-event",
                             serde_json::json!({"status":"success","session":session_name}),
@@ -865,7 +948,7 @@ pub async fn grammers_qr_login(
                 }
             }
             Ok(grammers_client::tl::enums::auth::LoginToken::Success(_)) => {
-                let _ = persist_memory_session(&live.session, &live.session_path);
+                persist_authorized_session(&live.client, &live.session, &live.session_path).await?;
 
                 let _ = app.emit(
                     "qr-event",
@@ -888,7 +971,7 @@ pub async fn grammers_qr_login(
                     let token = PasswordToken::new(password);
                     let hint = token.hint().map(str::to_string);
                     store_password_token(&session_name, token);
-                    let _ = persist_memory_session(&live.session, &live.session_path);
+                    persist_login_transport_best_effort(&live.session, &live.session_path);
 
                     let _ = app.emit(
                         "qr-event",
@@ -925,7 +1008,8 @@ pub async fn grammers_qr_login(
 }
 
 pub fn qr_cancel_flags() -> &'static Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>> {
-    static MAP: OnceLock<Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>> = OnceLock::new();
+    static MAP: OnceLock<Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>> =
+        OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -946,7 +1030,12 @@ pub fn delete_grammers_session_files(session_name: &str) -> Result<(), TgError> 
         disconnect_cached_session(&session_name);
         let sessions_dir = resolve_sessions_dir(None);
         let s_name = session_name.trim().trim_end_matches(".session");
-        for ext in &[".session", ".grammers.json", ".session-journal", ".session.lock"] {
+        for ext in &[
+            ".session",
+            ".grammers.json",
+            ".session-journal",
+            ".session.lock",
+        ] {
             let p = sessions_dir.join(format!("{}{}", s_name, ext));
             if p.exists() {
                 for _ in 0..4 {
@@ -993,7 +1082,10 @@ mod tests {
             .expect("fresh in-memory session");
 
         assert_eq!(path, dir.join("Lavender.grammers.json"));
-        assert!(!path.exists(), "session must wait for a negotiated auth key");
+        assert!(
+            !path.exists(),
+            "session must wait for a negotiated auth key"
+        );
         std::fs::remove_dir(&dir).expect("remove temp session dir");
     }
 

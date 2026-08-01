@@ -1,9 +1,9 @@
 //! Progressive Document Thumbnail Resolver orchestration.
 
+use super::super::models::{ThumbnailMode, ThumbnailSource, ThumbnailStatus, TopicMediaItem};
 use super::fallback_icon::get_smart_icon_name;
 use super::format_registry::{get_format_capability, PreviewCapability};
 use super::mode_profile::{get_mode_profile, ModeProfile};
-use super::super::models::{ThumbnailMode, ThumbnailSource, ThumbnailStatus, TopicMediaItem};
 
 pub struct ThumbnailResolutionResult {
     pub source: ThumbnailSource,

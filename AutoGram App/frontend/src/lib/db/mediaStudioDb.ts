@@ -4,10 +4,10 @@ export interface MediaRecord extends DriveFile {
   folderId: number;      // composite folder/chat id
   lastAccessed: number;
   accessCount: number;
-  accountId?: string;
-  peerId?: string;
-  scopeKind?: MediaScopeKind;
-  topicIdNormalized?: number;
+  accountId: string;
+  peerId: string;
+  scopeKind: MediaScopeKind;
+  topicIdNormalized: number;
 }
 
 export interface ThumbnailCacheRecord {
@@ -74,7 +74,7 @@ export interface SyncState {
 }
 
 const DB_NAME = 'autogram-media-studio-v4';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -86,43 +86,70 @@ export function normalizeTopicId(
   return topicId ?? 0;
 }
 
+export function buildDriveMediaContext(
+  accountId: string,
+  peerId: number | string | null,
+  topicId: number | null | undefined
+): DriveMediaContext {
+  const scopeKind: MediaScopeKind = topicId == null ? 'all' : topicId === 0 ? 'general' : 'topic';
+  return {
+    accountId: String(accountId || '').trim(),
+    peerId: peerId == null ? 'me' : String(peerId),
+    scopeKind,
+    topicId: topicId ?? null,
+  };
+}
+
+function createMediaStore(db: IDBDatabase): IDBObjectStore {
+  const store = db.createObjectStore('media', {
+    keyPath: ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'id'],
+  });
+  store.createIndex(
+    'byContextDate',
+    ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'created_at'],
+    { unique: false }
+  );
+  store.createIndex(
+    'byContextSize',
+    ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'size'],
+    { unique: false }
+  );
+  store.createIndex(
+    'byContextName',
+    ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'name'],
+    { unique: false }
+  );
+  store.createIndex(
+    'byContextAccess',
+    ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'lastAccessed'],
+    { unique: false }
+  );
+  store.createIndex(
+    'byContextMessage',
+    ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'id'],
+    { unique: true }
+  );
+  return store;
+}
+
 export function initDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
 
   dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (event) => {
       const db = req.result;
+      const oldVersion = (event as IDBVersionChangeEvent).oldVersion;
 
-      // 1. Media store with composite keys and indices
-      let mediaStore: IDBObjectStore;
-      if (!db.objectStoreNames.contains('media')) {
-        mediaStore = db.createObjectStore('media', { keyPath: ['folderId', 'id'] });
-        mediaStore.createIndex('byFolder', 'folderId', { unique: false });
-        mediaStore.createIndex('byFolder_Date', ['folderId', 'created_at'], { unique: false });
-        mediaStore.createIndex('byFolder_Size', ['folderId', 'size'], { unique: false });
-        mediaStore.createIndex('byFolder_Name', ['folderId', 'name'], { unique: false });
-        mediaStore.createIndex('byFolder_Access', ['folderId', 'lastAccessed'], { unique: false });
-      } else {
-        mediaStore = req.transaction!.objectStore('media');
+      // v4 used [folderId, messageId] as the primary key. Saved Messages used
+      // folderId=0 for every account, so records could overwrite each other.
+      // Media metadata is only an acceleration cache: discard the unsafe store
+      // once and rebuild it with a fully account/peer/topic-scoped key.
+      if (oldVersion < 5 && db.objectStoreNames.contains('media')) {
+        db.deleteObjectStore('media');
       }
-
-      if (!mediaStore.indexNames.contains('byContextDate')) {
-        mediaStore.createIndex(
-          'byContextDate',
-          ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'created_at'],
-          { unique: false }
-        );
-      }
-
-      if (!mediaStore.indexNames.contains('byContextMessage')) {
-        mediaStore.createIndex(
-          'byContextMessage',
-          ['accountId', 'peerId', 'scopeKind', 'topicIdNormalized', 'id'],
-          { unique: false }
-        );
-      }
+      if (!db.objectStoreNames.contains('media')) createMediaStore(db);
 
       // 2. Thumbnails store
       if (!db.objectStoreNames.contains('thumbnails')) {
@@ -175,14 +202,33 @@ export async function getMediaPageByContext(
       return;
     }
 
-    const index = store.index('byContextDate');
+    let indexName = 'byContextDate';
     let direction: IDBCursorDirection = 'prev';
-    if (sortMode === 'oldest' || sortMode === 'oldest_first') {
-      direction = 'next';
+    switch (sortMode) {
+      case 'oldest':
+      case 'oldest_first':
+        direction = 'next';
+        break;
+      case 'size_desc':
+        indexName = 'byContextSize';
+        break;
+      case 'size_asc':
+        indexName = 'byContextSize';
+        direction = 'next';
+        break;
+      case 'name_desc':
+        indexName = 'byContextName';
+        break;
+      case 'name_asc':
+        indexName = 'byContextName';
+        direction = 'next';
+        break;
     }
 
-    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, ''];
-    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, '\uffff'];
+    const index = store.index(indexName);
+    const isNumeric = indexName === 'byContextSize';
+    const minKey = [context.accountId, context.peerId, context.scopeKind, normTopic, isNumeric ? 0 : ''];
+    const maxKey = [context.accountId, context.peerId, context.scopeKind, normTopic, isNumeric ? Number.MAX_SAFE_INTEGER : '\uffff'];
     const range = IDBKeyRange.bound(minKey, maxKey);
 
     const results: MediaRecord[] = [];
@@ -234,6 +280,7 @@ export async function saveMediaRecords(records: Omit<MediaRecord, 'lastAccessed'
     tx.onerror = () => reject(tx.error || new Error('Transaction failed'));
 
     for (const rec of records) {
+      if (!rec.accountId || !rec.peerId || !rec.scopeKind) continue;
       const fullRecord: MediaRecord = {
         ...rec,
         name: (rec.name || '').trim().toLowerCase(),
@@ -245,166 +292,88 @@ export async function saveMediaRecords(records: Omit<MediaRecord, 'lastAccessed'
   });
 }
 
-export async function deleteMediaRecord(folderId: number, id: number): Promise<void> {
+export function scopeMediaRecords(
+  records: DriveFile[],
+  context: DriveMediaContext,
+  folderId: number
+): Omit<MediaRecord, 'lastAccessed' | 'accessCount'>[] {
+  const topicIdNormalized = normalizeTopicId(context.scopeKind, context.topicId);
+  return records.map((record) => ({
+    ...record,
+    folderId,
+    accountId: context.accountId,
+    peerId: context.peerId,
+    scopeKind: context.scopeKind,
+    topicIdNormalized,
+  }));
+}
+
+export async function deleteMediaRecordByContext(
+  context: DriveMediaContext,
+  id: number
+): Promise<void> {
   const db = await initDb();
   const tx = db.transaction('media', 'readwrite');
-  await requestToPromise(tx.objectStore('media').delete([folderId, id]));
+  await requestToPromise(tx.objectStore('media').delete([
+    context.accountId,
+    context.peerId,
+    context.scopeKind,
+    normalizeTopicId(context.scopeKind, context.topicId),
+    id,
+  ]));
 }
 
-export async function deleteMediaRecordsBatch(folderId: number, ids: number[]): Promise<void> {
-  if (!ids || !ids.length) return;
+export async function deleteMediaRecordsBatchByContext(
+  context: DriveMediaContext,
+  ids: number[]
+): Promise<void> {
+  if (!ids?.length) return;
   const db = await initDb();
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction('media', 'readwrite');
     const store = tx.objectStore('media');
+    const topic = normalizeTopicId(context.scopeKind, context.topicId);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('Failed to delete media records batch'));
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete scoped media records'));
     for (const id of ids) {
-      store.delete([folderId, id]);
+      store.delete([context.accountId, context.peerId, context.scopeKind, topic, id]);
     }
   });
 }
 
-export async function clearFolderMedia(folderId: number): Promise<void> {
+export async function deleteMediaRecordsForPeer(
+  accountId: string,
+  peerId: string,
+  ids: number[]
+): Promise<void> {
+  if (!ids?.length) return;
+  const idSet = new Set(ids.map(Number));
   const db = await initDb();
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction('media', 'readwrite');
     const store = tx.objectStore('media');
-    const index = store.index('byFolder');
-    const keyRange = IDBKeyRange.only(folderId);
-
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error || new Error('Failed to clear folder media'));
-
-    index.openCursor(keyRange).onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
-      if (cursor) {
+    tx.onerror = () => reject(tx.error || new Error('Failed to delete peer media records'));
+    const request = store.openCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      const record = cursor.value as MediaRecord;
+      if (record.accountId === accountId && record.peerId === peerId && idSet.has(Number(record.id))) {
         cursor.delete();
-        cursor.continue();
       }
+      cursor.continue();
     };
   });
 }
 
-export async function getFolderMediaCount(folderId: number): Promise<number> {
+export async function clearMediaCache(): Promise<void> {
   const db = await initDb();
-  const tx = db.transaction('media', 'readonly');
-  const store = tx.objectStore('media');
-  const index = store.index('byFolder');
-  return requestToPromise(index.count(IDBKeyRange.only(folderId)));
-}
-
-export async function getMediaRecords(
-  folderId: number,
-  sortMode: string,
-  offset: number,
-  limit: number
-): Promise<MediaRecord[]> {
-  const db = await initDb();
-  return new Promise<MediaRecord[]>((resolve, reject) => {
-    const tx = db.transaction('media', 'readonly');
-    const store = tx.objectStore('media');
-
-    let indexName = 'byFolder_Date';
-    let direction: IDBCursorDirection = 'prev'; // default newest first
-
-    switch (sortMode) {
-      case 'oldest':
-      case 'oldest_first':
-        indexName = 'byFolder_Date';
-        direction = 'next';
-        break;
-      case 'newest':
-      case 'newest_first':
-        indexName = 'byFolder_Date';
-        direction = 'prev';
-        break;
-      case 'size_desc':
-        indexName = 'byFolder_Size';
-        direction = 'prev';
-        break;
-      case 'size_asc':
-        indexName = 'byFolder_Size';
-        direction = 'next';
-        break;
-      case 'name_desc':
-        indexName = 'byFolder_Name';
-        direction = 'prev';
-        break;
-      case 'name_asc':
-        indexName = 'byFolder_Name';
-        direction = 'next';
-        break;
-      default:
-        indexName = 'byFolder_Date';
-        direction = 'prev';
-    }
-
-    const index = store.index(indexName);
-    let range: IDBKeyRange;
-    if (indexName === 'byFolder_Size') {
-      range = IDBKeyRange.bound([folderId, -Infinity], [folderId, Infinity]);
-    } else {
-      range = IDBKeyRange.bound([folderId, ''], [folderId, '\uffff']);
-    }
-
-    const results: MediaRecord[] = [];
-    let advanced = false;
-
-    const request = index.openCursor(range, direction);
-    request.onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
-      if (!cursor) {
-        resolve(results);
-        return;
-      }
-
-      if (offset > 0 && !advanced) {
-        advanced = true;
-        cursor.advance(offset);
-        return;
-      }
-
-      results.push(cursor.value);
-      if (results.length < limit) {
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-
-    request.onerror = () => reject(request.error || new Error('Query failed'));
-  });
+  const tx = db.transaction('media', 'readwrite');
+  await requestToPromise(tx.objectStore('media').clear());
 }
 
 // ── LRU EVICTION ──
-
-export async function pruneFolderMedia(folderId: number, maxEntries = 5000): Promise<number> {
-  const count = await getFolderMediaCount(folderId);
-  if (count <= maxEntries) return 0;
-
-  const db = await initDb();
-  const toEvict = count - maxEntries;
-  return new Promise<number>((resolve, reject) => {
-    const tx = db.transaction('media', 'readwrite');
-    const store = tx.objectStore('media');
-    const index = store.index('byFolder_Access'); // evict least recently accessed first
-    const range = IDBKeyRange.bound([folderId, -Infinity], [folderId, Infinity]);
-    let evictedCount = 0;
-
-    tx.oncomplete = () => resolve(evictedCount);
-    tx.onerror = () => reject(tx.error || new Error('LRU pruning transaction failed'));
-
-    index.openCursor(range, 'next').onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
-      if (cursor && evictedCount < toEvict) {
-        cursor.delete();
-        evictedCount++;
-        cursor.continue();
-      }
-    };
-  });
-}
 
 // ── THUMBNAILS API ──
 

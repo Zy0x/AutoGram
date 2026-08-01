@@ -146,7 +146,10 @@ pub fn export_stats_csv() -> Result<String, String> {
         .map_err(|e| e.to_string())?;
 
     let mut lines = Vec::new();
-    lines.push("job_id,source_msg_id,dest_msg_id,telegram_unique_id,sha256,filename,size,created_at".to_string());
+    lines.push(
+        "job_id,source_msg_id,dest_msg_id,telegram_unique_id,sha256,filename,size,created_at"
+            .to_string(),
+    );
     for r in rows {
         if let Ok(line) = r {
             lines.push(line);

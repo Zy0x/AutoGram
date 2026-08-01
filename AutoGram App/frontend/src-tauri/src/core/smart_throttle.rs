@@ -87,7 +87,8 @@ impl SmartThrottle {
 
             self.messages_in_burst.store(0, Ordering::Relaxed);
             let next_limit = Self::calc_burst_limit(mode);
-            self.current_burst_limit.store(next_limit, Ordering::Relaxed);
+            self.current_burst_limit
+                .store(next_limit, Ordering::Relaxed);
         }
     }
 
@@ -103,14 +104,15 @@ impl SmartThrottle {
         tg_log::warn(
             BACKEND,
             "flood_wait",
-            format!("FloodWait {wait_secs}s. Sleeping total {}s", total_sleep_ms / 1000),
+            format!(
+                "FloodWait {wait_secs}s. Sleeping total {}s",
+                total_sleep_ms / 1000
+            ),
         );
 
         // Backoff base delays
-        self.base_delay_min_ms
-            .fetch_add(1000, Ordering::Relaxed);
-        self.base_delay_max_ms
-            .fetch_add(2000, Ordering::Relaxed);
+        self.base_delay_min_ms.fetch_add(1000, Ordering::Relaxed);
+        self.base_delay_max_ms.fetch_add(2000, Ordering::Relaxed);
 
         sleep(Duration::from_millis(total_sleep_ms)).await;
     }

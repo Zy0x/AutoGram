@@ -71,7 +71,11 @@ impl TransferStateManager {
         )
         .map_err(|e| format!("create transfer_state: {e}"))?;
 
-        tg_log::info(BACKEND, "create", format!("Created transfer_state for job {}", self.job_id));
+        tg_log::info(
+            BACKEND,
+            "create",
+            format!("Created transfer_state for job {}", self.job_id),
+        );
         Ok(())
     }
 

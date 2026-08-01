@@ -4,6 +4,7 @@
 //! - Never log api_hash, auth_key, session file bytes, phone codes, or passwords.
 //! - Prefer machine-parseable key=value fragments for support.
 
+use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -21,10 +22,7 @@ pub fn redact(s: &str) -> String {
     let mut out = s.to_string();
     // Long hex blobs (api_hash-ish / auth material)
     if out.len() > 24 {
-        let re_hex = out
-            .chars()
-            .filter(|c| c.is_ascii_hexdigit())
-            .count();
+        let re_hex = out.chars().filter(|c| c.is_ascii_hexdigit()).count();
         if re_hex > 40 && re_hash_ratio(&out) > 0.7 {
             return "[redacted_blob]".into();
         }
@@ -49,9 +47,7 @@ pub fn redact(s: &str) -> String {
             .split_whitespace()
             .map(|tok| {
                 if tok.contains(".session") {
-                    tok.rsplit(['/', '\\'])
-                        .next()
-                        .unwrap_or("[session]")
+                    tok.rsplit(['/', '\\']).next().unwrap_or("[session]")
                 } else {
                     tok
                 }
@@ -70,11 +66,7 @@ fn re_hash_ratio(s: &str) -> f32 {
 
 /// Safe session label for logs (name only, no path contents).
 pub fn session_label(session: &str) -> String {
-    let base = session
-        .rsplit(['/', '\\'])
-        .next()
-        .unwrap_or(session)
-        .trim();
+    let base = session.rsplit(['/', '\\']).next().unwrap_or(session).trim();
     if base.is_empty() {
         return "session:empty".into();
     }
@@ -92,6 +84,13 @@ pub enum TgLevel {
     Warn,
     Error,
     Debug,
+}
+
+fn write_stderr_lossy(line: &str) {
+    // GUI launchers may close their inherited stderr pipe. Logging must never
+    // panic and abort a Grammers task when that happens on Windows.
+    let mut stderr = std::io::stderr().lock();
+    let _ = writeln!(stderr, "{line}");
 }
 
 /// Debug gate for verbose Rust logs (mirrors worker flag / env).
@@ -130,26 +129,24 @@ pub fn emit(level: TgLevel, backend: &str, op: &str, detail: &str) {
     let seq = SEQ.fetch_add(1, Ordering::Relaxed);
     let ms = now_ms();
     let safe = redact(detail);
-    let line = format!(
-        "[autogram:tg] t={ms} seq={seq} backend={backend} op={op} {safe}"
-    );
+    let line = format!("[autogram:tg] t={ms} seq={seq} backend={backend} op={op} {safe}");
     match level {
         TgLevel::Info => {
             log::info!("{line}");
-            eprintln!("{line}");
+            write_stderr_lossy(&line);
         }
         TgLevel::Warn => {
             log::warn!("{line}");
-            eprintln!("{line}");
+            write_stderr_lossy(&line);
         }
         TgLevel::Error => {
             log::error!("{line}");
-            eprintln!("{line}");
+            write_stderr_lossy(&line);
         }
         TgLevel::Debug => {
             log::debug!("{line}");
             if verbose {
-                eprintln!("{line}");
+                write_stderr_lossy(&line);
             }
         }
     }

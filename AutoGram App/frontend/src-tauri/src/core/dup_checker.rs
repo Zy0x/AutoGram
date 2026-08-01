@@ -1,6 +1,6 @@
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use rusqlite::{params, Connection, OptionalExtension};
 
 use super::fingerprint::MediaFingerprint;
 use super::jobs_db::resolve_migrator_db;
@@ -32,8 +32,9 @@ fn open_db() -> Result<Connection, String> {
     conn.execute_batch(
         "PRAGMA foreign_keys=ON;
          PRAGMA busy_timeout=60000;
-         PRAGMA journal_mode=WAL;"
-    ).map_err(|e| format!("dup_checker PRAGMA: {e}"))?;
+         PRAGMA journal_mode=WAL;",
+    )
+    .map_err(|e| format!("dup_checker PRAGMA: {e}"))?;
     ensure_tables(&conn)?;
     Ok(conn)
 }
@@ -81,11 +82,18 @@ fn ensure_tables(conn: &Connection) -> Result<(), String> {
 }
 
 fn now_unix() -> i64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 impl DuplicateChecker {
-    pub fn new(target_entity_id: impl Into<String>, guardrail_enabled: bool, guardrail_threshold_days: u32) -> Self {
+    pub fn new(
+        target_entity_id: impl Into<String>,
+        guardrail_enabled: bool,
+        guardrail_threshold_days: u32,
+    ) -> Self {
         Self {
             target_entity_id: target_entity_id.into(),
             guardrail_enabled,
@@ -97,21 +105,27 @@ impl DuplicateChecker {
         format!("msgid:{}:{}", source_entity_id, source_message_id)
     }
 
-    pub fn get_duplicate_message_id(&self, file_unique_id: Option<&str>, file_hash: Option<&str>, file_name: Option<&str>, file_size: Option<i64>) -> Result<Option<i64>, String> {
+    pub fn get_duplicate_message_id(
+        &self,
+        file_unique_id: Option<&str>,
+        file_hash: Option<&str>,
+        file_name: Option<&str>,
+        file_size: Option<i64>,
+    ) -> Result<Option<i64>, String> {
         let conn = open_db()?;
-        
+
         if let Some(uid) = file_unique_id {
             let mid: Option<i64> = conn.query_row(
                 "SELECT target_message_id FROM duplicate_history WHERE file_unique_id=? AND target_entity_id=?",
                 params![uid, self.target_entity_id],
                 |row| row.get(0)
             ).optional().map_err(|e| format!("DB error: {}", e))?;
-            
+
             if mid.is_some() {
                 return Ok(mid);
             }
         }
-        
+
         if let Some(fh) = file_hash {
             let uid = format!("hash:{}", fh);
             let mid: Option<i64> = conn.query_row(
@@ -119,12 +133,12 @@ impl DuplicateChecker {
                 params![uid, self.target_entity_id],
                 |row| row.get(0)
             ).optional().map_err(|e| format!("DB error: {}", e))?;
-            
+
             if mid.is_some() {
                 return Ok(mid);
             }
         }
-        
+
         if let (Some(fnm), Some(fsz)) = (file_name, file_size) {
             let uid = format!("name:{}|{}", fnm, fsz);
             let mid: Option<i64> = conn.query_row(
@@ -132,59 +146,67 @@ impl DuplicateChecker {
                 params![uid, self.target_entity_id],
                 |row| row.get(0)
             ).optional().map_err(|e| format!("DB error: {}", e))?;
-            
+
             if mid.is_some() {
                 return Ok(mid);
             }
         }
-        
+
         Ok(None)
     }
 
-    pub fn get_duplicate_message_ids_batch(&self, keys: &[String]) -> Result<HashMap<String, i64>, String> {
+    pub fn get_duplicate_message_ids_batch(
+        &self,
+        keys: &[String],
+    ) -> Result<HashMap<String, i64>, String> {
         let conn = open_db()?;
         let mut map = HashMap::new();
-        
+
         for chunk in keys.chunks(400) {
             let placeholders = vec!["?"; chunk.len()].join(",");
             let sql = format!("SELECT file_unique_id, target_message_id FROM duplicate_history WHERE target_entity_id=? AND file_unique_id IN ({})", placeholders);
-            
-            let mut params: Vec<rusqlite::types::ToSqlOutput> = vec![self.target_entity_id.clone().into()];
+
+            let mut params: Vec<rusqlite::types::ToSqlOutput> =
+                vec![self.target_entity_id.clone().into()];
             for k in chunk {
                 params.push(k.clone().into());
             }
-            
-            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare error: {}", e))?;
-            let rows = stmt.query_map(rusqlite::params_from_iter(params), |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-            }).map_err(|e| format!("Query error: {}", e))?;
-            
+
+            let mut stmt = conn
+                .prepare(&sql)
+                .map_err(|e| format!("Prepare error: {}", e))?;
+            let rows = stmt
+                .query_map(rusqlite::params_from_iter(params), |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })
+                .map_err(|e| format!("Query error: {}", e))?;
+
             for row in rows {
                 if let Ok((k, v)) = row {
                     map.insert(k, v);
                 }
             }
         }
-        
+
         Ok(map)
     }
 
     pub fn log_duplicate(
-        &self, 
-        file_unique_id: &str, 
-        target_message_id: i64, 
-        file_hash: Option<&str>, 
-        file_name: Option<&str>, 
-        file_size: Option<i64>, 
-        fingerprint_hash: Option<&str>, 
-        media_type: Option<&str>, 
-        target_topic_id: Option<i64>, 
-        first_uploaded_at: Option<i64>
+        &self,
+        file_unique_id: &str,
+        target_message_id: i64,
+        file_hash: Option<&str>,
+        file_name: Option<&str>,
+        file_size: Option<i64>,
+        fingerprint_hash: Option<&str>,
+        media_type: Option<&str>,
+        target_topic_id: Option<i64>,
+        first_uploaded_at: Option<i64>,
     ) -> Result<(), String> {
         let conn = open_db()?;
-        
+
         let mut uids = vec![file_unique_id.to_string()];
-        
+
         if let Some(fh) = file_hash {
             uids.push(format!("hash:{}", fh));
         }
@@ -194,19 +216,19 @@ impl DuplicateChecker {
         if let Some(fph) = fingerprint_hash {
             uids.push(format!("fp:{}", fph));
         }
-        
+
         for uid in uids {
             conn.execute(
                 "INSERT OR IGNORE INTO duplicate_history (file_unique_id, target_entity_id, target_message_id) VALUES (?, ?, ?)",
                 params![uid, self.target_entity_id, target_message_id]
             ).map_err(|e| format!("Insert error: {}", e))?;
         }
-        
+
         conn.execute(
             "UPDATE duplicate_history SET fingerprint_hash = COALESCE(?, fingerprint_hash), media_type = COALESCE(?, media_type), target_topic_id = COALESCE(?, target_topic_id), first_uploaded_at = COALESCE(?, first_uploaded_at) WHERE target_entity_id=? AND target_message_id=?",
             params![fingerprint_hash, media_type, target_topic_id, first_uploaded_at, self.target_entity_id, target_message_id]
         ).map_err(|e| format!("Update error: {}", e))?;
-        
+
         Ok(())
     }
 
@@ -214,34 +236,38 @@ impl DuplicateChecker {
         let conn = open_db()?;
         conn.execute(
             "DELETE FROM duplicate_history WHERE target_entity_id=? AND target_message_id=?",
-            params![self.target_entity_id, target_message_id]
-        ).map_err(|e| format!("Delete error: {}", e))?;
+            params![self.target_entity_id, target_message_id],
+        )
+        .map_err(|e| format!("Delete error: {}", e))?;
         Ok(())
     }
 
     pub fn purge_deleted_messages(&self, message_ids: &[i64]) -> Result<i64, String> {
         let conn = open_db()?;
         let mut total_deleted = 0;
-        
+
         for chunk in message_ids.chunks(400) {
             let placeholders = vec!["?"; chunk.len()].join(",");
             let sql = format!("DELETE FROM duplicate_history WHERE target_entity_id=? AND target_message_id IN ({})", placeholders);
-            
-            let mut params: Vec<rusqlite::types::ToSqlOutput> = vec![self.target_entity_id.clone().into()];
+
+            let mut params: Vec<rusqlite::types::ToSqlOutput> =
+                vec![self.target_entity_id.clone().into()];
             for mid in chunk {
                 params.push((*mid).into());
             }
-            
-            total_deleted += conn.execute(&sql, rusqlite::params_from_iter(params)).map_err(|e| format!("Delete chunk error: {}", e))?;
+
+            total_deleted += conn
+                .execute(&sql, rusqlite::params_from_iter(params))
+                .map_err(|e| format!("Delete chunk error: {}", e))?;
         }
-        
+
         Ok(total_deleted as i64)
     }
 
     pub fn upsert_scan_cache(&self, entries: &[ScanCacheEntry]) -> Result<(), String> {
         let mut conn = open_db()?;
         let tx = conn.transaction().map_err(|e| format!("Tx error: {}", e))?;
-        
+
         {
             let mut stmt = tx.prepare(
                 "INSERT INTO destination_scan_cache (
@@ -252,7 +278,7 @@ impl DuplicateChecker {
                     is_alive=1, 
                     delete_detected_at=NULL"
             ).map_err(|e| format!("Prepare error: {}", e))?;
-            
+
             for entry in entries {
                 stmt.execute(params![
                     entry.target_entity_id,
@@ -272,38 +298,45 @@ impl DuplicateChecker {
                     entry.verified_at,
                     entry.is_alive,
                     entry.delete_detected_at
-                ]).map_err(|e| format!("Upsert error: {}", e))?;
+                ])
+                .map_err(|e| format!("Upsert error: {}", e))?;
             }
         }
-        
+
         tx.commit().map_err(|e| format!("Commit error: {}", e))?;
         Ok(())
     }
 
     pub fn load_scan_cache(&self, topic_id: Option<i64>) -> Result<Vec<ScanCacheEntry>, String> {
         let conn = open_db()?;
-        
+
         let sql = if topic_id.is_some() {
             "SELECT target_entity_id, topic_id, file_unique_id, file_name, file_size, media_type, fingerprint_tier, fingerprint_hash, width, height, duration, mime_type, message_id, scanned_at, verified_at, is_alive, delete_detected_at FROM destination_scan_cache WHERE target_entity_id=? AND is_alive=1 AND (topic_id=? OR topic_id IS NULL)"
         } else {
             "SELECT target_entity_id, topic_id, file_unique_id, file_name, file_size, media_type, fingerprint_tier, fingerprint_hash, width, height, duration, mime_type, message_id, scanned_at, verified_at, is_alive, delete_detected_at FROM destination_scan_cache WHERE target_entity_id=? AND is_alive=1 AND topic_id IS NULL"
         };
-        
-        let mut stmt = conn.prepare(sql).map_err(|e| format!("Prepare error: {}", e))?;
-        
+
+        let mut stmt = conn
+            .prepare(sql)
+            .map_err(|e| format!("Prepare error: {}", e))?;
+
         let rows = if let Some(tid) = topic_id {
-            stmt.query_map(params![self.target_entity_id, tid], Self::map_scan_cache_row)
+            stmt.query_map(
+                params![self.target_entity_id, tid],
+                Self::map_scan_cache_row,
+            )
         } else {
             stmt.query_map(params![self.target_entity_id], Self::map_scan_cache_row)
-        }.map_err(|e| format!("Query error: {}", e))?;
-        
+        }
+        .map_err(|e| format!("Query error: {}", e))?;
+
         let mut result = Vec::new();
         for row in rows {
             if let Ok(entry) = row {
                 result.push(entry);
             }
         }
-        
+
         Ok(result)
     }
 
@@ -329,9 +362,12 @@ impl DuplicateChecker {
         })
     }
 
-    pub fn lookup_scan_cache(&self, fp: &MediaFingerprint) -> Result<Option<(i64, ScanCacheEntry)>, String> {
+    pub fn lookup_scan_cache(
+        &self,
+        fp: &MediaFingerprint,
+    ) -> Result<Option<(i64, ScanCacheEntry)>, String> {
         let conn = open_db()?;
-        
+
         let mut hashes = Vec::new();
         if let Some(ph) = &fp.primary_hash {
             hashes.push(ph.clone());
@@ -339,35 +375,44 @@ impl DuplicateChecker {
         for sh in &fp.secondary_hashes {
             hashes.push(sh.clone());
         }
-        
+
         if !hashes.is_empty() {
             let placeholders = vec!["?"; hashes.len()].join(",");
             let sql = format!("SELECT target_entity_id, topic_id, file_unique_id, file_name, file_size, media_type, fingerprint_tier, fingerprint_hash, width, height, duration, mime_type, message_id, scanned_at, verified_at, is_alive, delete_detected_at FROM destination_scan_cache WHERE target_entity_id=? AND is_alive=1 AND fingerprint_hash IN ({}) LIMIT 1", placeholders);
-            
-            let mut p_vec: Vec<rusqlite::types::ToSqlOutput> = vec![self.target_entity_id.clone().into()];
+
+            let mut p_vec: Vec<rusqlite::types::ToSqlOutput> =
+                vec![self.target_entity_id.clone().into()];
             for h in hashes {
                 p_vec.push(h.into());
             }
-            
-            let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare error: {}", e))?;
-            let mut rows = stmt.query(rusqlite::params_from_iter(p_vec)).map_err(|e| format!("Query error: {}", e))?;
-            
+
+            let mut stmt = conn
+                .prepare(&sql)
+                .map_err(|e| format!("Prepare error: {}", e))?;
+            let mut rows = stmt
+                .query(rusqlite::params_from_iter(p_vec))
+                .map_err(|e| format!("Query error: {}", e))?;
+
             if let Some(row) = rows.next().map_err(|e| format!("Row error: {}", e))? {
-                let entry = Self::map_scan_cache_row(row).map_err(|e| format!("Map error: {}", e))?;
+                let entry =
+                    Self::map_scan_cache_row(row).map_err(|e| format!("Map error: {}", e))?;
                 return Ok(Some((entry.message_id, entry)));
             }
         }
-        
+
         if let (Some(fnm), Some(fsz)) = (&fp.file_name, fp.file_size) {
             let mut stmt = conn.prepare("SELECT target_entity_id, topic_id, file_unique_id, file_name, file_size, media_type, fingerprint_tier, fingerprint_hash, width, height, duration, mime_type, message_id, scanned_at, verified_at, is_alive, delete_detected_at FROM destination_scan_cache WHERE target_entity_id=? AND is_alive=1 AND file_name=? AND file_size=? LIMIT 1").map_err(|e| format!("Prepare error: {}", e))?;
-            let mut rows = stmt.query(params![self.target_entity_id, fnm, fsz]).map_err(|e| format!("Query error: {}", e))?;
-            
+            let mut rows = stmt
+                .query(params![self.target_entity_id, fnm, fsz])
+                .map_err(|e| format!("Query error: {}", e))?;
+
             if let Some(row) = rows.next().map_err(|e| format!("Row error: {}", e))? {
-                let entry = Self::map_scan_cache_row(row).map_err(|e| format!("Map error: {}", e))?;
+                let entry =
+                    Self::map_scan_cache_row(row).map_err(|e| format!("Map error: {}", e))?;
                 return Ok(Some((entry.message_id, entry)));
             }
         }
-        
+
         Ok(None)
     }
 
@@ -389,14 +434,30 @@ impl DuplicateChecker {
         Ok(())
     }
 
-    pub fn decide_reupload(&self, deleted_at: i64, orig_mid: i64) -> (CheckResult, Option<i64>, String) {
+    pub fn decide_reupload(
+        &self,
+        deleted_at: i64,
+        orig_mid: i64,
+    ) -> (CheckResult, Option<i64>, String) {
         let now = now_unix();
-        let age_days = if now > deleted_at { (now - deleted_at) / 86400 } else { 0 };
-        
-        if !self.guardrail_enabled || age_days as u32 > self.guardrail_threshold_days {
-            (CheckResult::ReuploadAuto, Some(orig_mid), "old_deletion_auto_reupload".to_string())
+        let age_days = if now > deleted_at {
+            (now - deleted_at) / 86400
         } else {
-            (CheckResult::ReuploadGuard, Some(orig_mid), "recent_deletion_guardrail".to_string())
+            0
+        };
+
+        if !self.guardrail_enabled || age_days as u32 > self.guardrail_threshold_days {
+            (
+                CheckResult::ReuploadAuto,
+                Some(orig_mid),
+                "old_deletion_auto_reupload".to_string(),
+            )
+        } else {
+            (
+                CheckResult::ReuploadGuard,
+                Some(orig_mid),
+                "recent_deletion_guardrail".to_string(),
+            )
         }
     }
 }

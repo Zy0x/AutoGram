@@ -1,3 +1,23 @@
+## v2.7.0 Canonical Media Identity Architecture, Peer Propagation, Guard Engine & Vite Warning Fix
+
+### Canonical MediaIdentity Contract & Peer Propagation (`mediaIdentity.ts`, `driveTypes.ts`, `media_list.rs`, `DriveFileCard.tsx`, `DriveExplorer.tsx`)
+- **Canonical `MediaIdentity`**: Memproduksi tipe kanonis `MediaIdentity` (`{ accountId, peerId, topicId, messageId }`) yang dibawa secara konsisten dari Rust MTProto hingga UI React, membasmi fenomena kebocoran identitas peer (*peer identity bleed*).
+- **Prohibition of Default `"me"` Fallback**: Mengeliminasi seluruh fallback implisit `peerId ?? "me"` atau `folderId == null ? "me"`. Peer ID `"me"` kini secara ketat HANYA diperbolehkan jika `locationType === "saved_messages"`.
+- **Strict Guard `INVALID_SELF_PEER_USAGE`**: Menambahkan validasi guard di Rust (`telegram_ops.rs`) dan TypeScript (`mediaIdentity.ts`, `thumbBatcher.ts`, `driveStreamZipApi.ts`). Setiap upaya pengiriman `peerId = "me"` untuk lokasi non-Saved Messages (seperti `#Gudang`) akan langsung ditolak sebelum menembakkan RPC MTProto.
+
+### Request Correlation & Multi-Layer Cache Key Audit (`thumbBatcher.ts`, `previewCache.ts`, `thumbPersistentCache.ts`, `mediaStudioDb.ts`)
+- **Canonical Thumbnail Request ID**: Mengubah format `requestId` batch thumbnail dari `thumb:me:41178:g1` menjadi `thumb:<account_id>:<peer_id>:<topic_id>:<message_id>:g<generation>` (contoh: `thumb:session1:-1004468191168:73:41178:g1`).
+- **Composite Cache Keying**: Memperbarui `cacheKey` di `thumbBatcher.ts` dan `previewCacheKey` di `previewCache.ts` agar menyertakan `peerId` dan `topicId`, mencegah tumbukan cache (*cache key collision*) saat pesan dengan `messageId` yang sama ada di dua saluran/topik berbeda.
+- **Legacy Cache Auto-Purge**: Fungsi `purgeStaleLegacyCaches()` di `thumbPersistentCache.ts` secara otomatis membersihkan kunci cache usang yang menggunakan `peer_id` `"me"` untuk lokasi grup/saluran.
+
+### Validated Message Refetch & Fail-Fast Refusal (`stream.rs`, `thumbs.rs`)
+- **Peer-Specific Message Refetch**: Rust `stream.rs` dan `thumbs.rs` kini merefetch pesan via `client.get_messages_by_id(resolved_peer, &[message_id])` menggunakan peer yang tepat dari media tersebut (`#Gudang`).
+- **Zero-Retry `MEDIA_NOT_FOUND_IN_PEER`**: Jika pesan tidak ditemukan pada peer tersebut (`None`), backend Rust langsung mengembalikan error `MEDIA_NOT_FOUND_IN_PEER` (0 retries, 0 `upload.getFile` call), mencegah timeout RPC -503 berulang.
+- **Structured Boundary Logging**: Mencatat log boundary terstruktur mencakup `account_id`, `active_location_peer`, `item_peer_id`, `request_peer_id`, `resolved_peer_id`, `topic_id`, `message_id`, `cache_key`, `request_id`, `context_generation`, `source`, `media_variant`, `preview_source`, dan `attempt` tanpa membocorkan data sensitif/base64.
+
+### Developer Experience & Vite Warning Fix (`DriveToolsPanel`)
+- **Vite HMR Export Fix**: Memindahkan ekspor `TOOL_GROUPS` dari modul komponen React `DriveToolsPanel/index.tsx` ke modul non-komponen `toolsUtils.ts`, mengeliminasi warning Vite Fast Refresh `"TOOL_GROUPS export is incompatible"`.
+
 ## v2.6.1 Media Preview Modal Sizing, Degraded State Warning Badge, Metadata Audit & Resilient Retry Engine
 
 ### Audit Image Source Metadata & UI Sizing Semantics (`stream.rs`, `telegramBackend.ts`, `driveStreamZipApi.ts`, `previewCache.ts`, `DrivePreviewModal`, `App.css`)

@@ -290,7 +290,10 @@ pub fn tg_auth_status(identity: TelegramIdentity) -> OpResult<AuthStatus> {
     }
 }
 
-pub fn tg_list_dialogs(identity: TelegramIdentity, limit: Option<usize>) -> OpResult<Vec<DialogEntry>> {
+pub fn tg_list_dialogs(
+    identity: TelegramIdentity,
+    limit: Option<usize>,
+) -> OpResult<Vec<DialogEntry>> {
     let dir = sessions_dir_from_env();
     let limit = limit.unwrap_or(100);
     match super::grammers_ops::list_dialogs_blocking(&dir, &identity, limit) {
@@ -368,9 +371,7 @@ pub struct StartFolderStreamRequest {
     pub limit: Option<usize>,
 }
 
-pub fn tg_list_media(
-    req: ListMediaRequest,
-) -> OpResult<super::grammers_ops::ListMediaResult> {
+pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::ListMediaResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
         session: req.session,
@@ -464,7 +465,9 @@ pub fn tg_upload_file(req: UploadFileRequest) -> OpResult<UploadStepResult> {
     }
 }
 
-pub fn tg_login(req: super::grammers_ops::LoginRequest) -> OpResult<super::grammers_ops::LoginResult> {
+pub fn tg_login(
+    req: super::grammers_ops::LoginRequest,
+) -> OpResult<super::grammers_ops::LoginResult> {
     let dir = sessions_dir_from_env();
     match super::grammers_ops::login_blocking(&dir, &req) {
         Ok(r) => ok_result("grammers", r),
@@ -519,9 +522,7 @@ pub struct ListTopicsRequest {
     pub chat_id: i64,
 }
 
-pub fn tg_list_topics(
-    req: ListTopicsRequest,
-) -> OpResult<super::grammers_media::ListTopicsResult> {
+pub fn tg_list_topics(req: ListTopicsRequest) -> OpResult<super::grammers_media::ListTopicsResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
         session: req.session,
@@ -584,13 +585,7 @@ pub fn tg_thumbs_batch_app(
     };
     let q = req.quality.as_deref().unwrap_or("balanced");
 
-    match super::grammers_media::thumbs_batch_items_blocking_app(
-        &dir,
-        &identity,
-        &req,
-        q,
-        app,
-    ) {
+    match super::grammers_media::thumbs_batch_items_blocking_app(&dir, &identity, &req, q, app) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => {
             tg_log::error("grammers", "thumbs_batch", e.to_string());
@@ -622,9 +617,7 @@ pub struct DebugGetMessageResult {
     pub text_preview: Option<String>,
 }
 
-pub fn tg_debug_get_message(
-    req: DebugGetMessageRequest,
-) -> OpResult<DebugGetMessageResult> {
+pub fn tg_debug_get_message(req: DebugGetMessageRequest) -> OpResult<DebugGetMessageResult> {
     use crate::core::grammers_ops::{resolve_peer, runtime, with_client, with_pool_retry};
     use crate::core::tg_error::map_invocation;
     let dir = sessions_dir_from_env();
@@ -647,15 +640,24 @@ pub fn tg_debug_get_message(
                 let chat = chat.clone();
                 Box::pin(async move {
                     let peer = resolve_peer(client, &chat).await?;
-                    let msgs = client.get_messages_by_id(peer, &[mid]).await.map_err(|e| map_invocation(&e))?;
+                    let msgs = client
+                        .get_messages_by_id(peer, &[mid])
+                        .await
+                        .map_err(|e| map_invocation(&e))?;
                     if let Some(Some(msg)) = msgs.first() {
                         let returned_id = msg.id() as i64;
                         let maybe_media = msg.media();
                         let has_media = maybe_media.is_some();
                         let (media_type, doc_id, photo_id) = match &maybe_media {
-                            Some(grammers_client::media::Media::Photo(p)) => (Some("photo".into()), None, Some(p.id())),
-                            Some(grammers_client::media::Media::Document(d)) => (Some("document".into()), Some(d.id()), None),
-                            Some(grammers_client::media::Media::Sticker(s)) => (Some("sticker".into()), Some(s.document.id()), None),
+                            Some(grammers_client::media::Media::Photo(p)) => {
+                                (Some("photo".into()), None, Some(p.id()))
+                            }
+                            Some(grammers_client::media::Media::Document(d)) => {
+                                (Some("document".into()), Some(d.id()), None)
+                            }
+                            Some(grammers_client::media::Media::Sticker(s)) => {
+                                (Some("sticker".into()), Some(s.document.id()), None)
+                            }
                             _ => (None, None, None),
                         };
                         let text_prev = if !msg.text().is_empty() {
@@ -705,11 +707,28 @@ pub struct PreviewStreamRequest {
     pub api_hash: String,
     pub chat_id: String,
     pub message_id: i64,
+    #[serde(default)]
+    pub topic_id: Option<i64>,
+    #[serde(default)]
+    pub location_type: Option<String>,
+    #[serde(default)]
+    pub account_id: Option<String>,
 }
 
 pub fn tg_preview_stream(
     req: PreviewStreamRequest,
 ) -> OpResult<super::grammers_media::PreviewStreamResult> {
+    let loc_type = req.location_type.as_deref().unwrap_or("").to_lowercase();
+    if req.chat_id == "me" && !loc_type.is_empty() && loc_type != "saved_messages" {
+        let err = TgError::new(
+            TgErrorCode::InvalidIdentity,
+            format!(
+                "INVALID_SELF_PEER_USAGE: peer 'me' cannot be used for location_type '{loc_type}'"
+            ),
+        );
+        tg_log::error("grammers", "preview_stream", err.to_string());
+        return err_result("grammers", err);
+    }
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
         session: req.session,
@@ -954,8 +973,7 @@ pub fn tg_rename_topic(req: TopicMutRequest) -> OpResult<super::drive_rpc::Topic
     let identity = identity_from(req.session, req.api_id, req.api_hash);
     let topic_id = req.topic_id.unwrap_or(0);
     let title = req.title.unwrap_or_default();
-    match super::drive_rpc::rename_topic_blocking(&dir, &identity, req.chat_id, topic_id, &title)
-    {
+    match super::drive_rpc::rename_topic_blocking(&dir, &identity, req.chat_id, topic_id, &title) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => err_result("grammers", e),
     }
@@ -980,7 +998,9 @@ pub struct AvatarsBatchRequest {
     pub peer_ids: Vec<i64>,
 }
 
-pub fn tg_avatars_batch(req: AvatarsBatchRequest) -> OpResult<super::drive_rpc::AvatarsBatchResult> {
+pub fn tg_avatars_batch(
+    req: AvatarsBatchRequest,
+) -> OpResult<super::drive_rpc::AvatarsBatchResult> {
     let dir = sessions_dir_from_env();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
     match super::drive_rpc::avatars_batch_blocking(&dir, &identity, &req.peer_ids) {
@@ -1001,7 +1021,9 @@ pub struct MoveMessagesRequest {
     pub delete_source: Option<bool>,
 }
 
-pub fn tg_move_messages(req: MoveMessagesRequest) -> OpResult<super::drive_rpc::MoveMessagesResult> {
+pub fn tg_move_messages(
+    req: MoveMessagesRequest,
+) -> OpResult<super::drive_rpc::MoveMessagesResult> {
     let dir = sessions_dir_from_env();
     let identity = identity_from(req.session, req.api_id, req.api_hash);
     match super::drive_rpc::move_messages_blocking(

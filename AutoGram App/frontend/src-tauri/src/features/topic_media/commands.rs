@@ -10,7 +10,7 @@ use super::models::{
 };
 use super::repository::get_cached_page;
 use super::service::TopicMediaService;
-use crate::core::telegram_ops::{ok_result, err_result, OpResult, TelegramIdentity};
+use crate::core::telegram_ops::{err_result, ok_result, OpResult, TelegramIdentity};
 
 pub static TOPIC_MEDIA_SERVICE: OnceLock<TopicMediaService> = OnceLock::new();
 
@@ -47,7 +47,9 @@ pub async fn tg_open_topic_media(
         api_hash: payload.api_hash,
     };
 
-    let scope_kind = payload.scope_kind.unwrap_or(super::models::MediaScopeKind::All);
+    let scope_kind = payload
+        .scope_kind
+        .unwrap_or(super::models::MediaScopeKind::All);
 
     let req = OpenTopicMediaRequest {
         window_label: payload.window_label,
@@ -64,10 +66,13 @@ pub async fn tg_open_topic_media(
 
     match service.open_topic_media(app, req, identity).await {
         Ok(res) => Ok(ok_result("grammers", res)),
-        Err(e) => Ok(err_result("grammers", crate::core::tg_error::TgError::new(
-            crate::core::tg_error::TgErrorCode::Internal,
-            e.to_string(),
-        ))),
+        Err(e) => Ok(err_result(
+            "grammers",
+            crate::core::tg_error::TgError::new(
+                crate::core::tg_error::TgErrorCode::Internal,
+                e.to_string(),
+            ),
+        )),
     }
 }
 
@@ -89,10 +94,13 @@ pub async fn tg_load_more_topic_media(
 
     match get_cached_page(&ctx, &[], cursor, page_size.unwrap_or(40)) {
         Ok(items) => Ok(ok_result("grammers", items)),
-        Err(e) => Ok(err_result("grammers", crate::core::tg_error::TgError::new(
-            crate::core::tg_error::TgErrorCode::Internal,
-            e.to_string(),
-        ))),
+        Err(e) => Ok(err_result(
+            "grammers",
+            crate::core::tg_error::TgError::new(
+                crate::core::tg_error::TgErrorCode::Internal,
+                e.to_string(),
+            ),
+        )),
     }
 }
 
@@ -109,7 +117,10 @@ pub async fn tg_thumbs_batch_v2(
     let rejected_ids = Vec::new();
 
     for item in &request.items {
-        let file_name = format!("{}_{}_{}.webp", item.message_id, request.context.peer_id, request.quality);
+        let file_name = format!(
+            "{}_{}_{}.webp",
+            item.message_id, request.context.peer_id, request.quality
+        );
         let file_path = cache_dir.join(&file_name);
 
         if file_path.exists() {
@@ -131,4 +142,3 @@ pub async fn tg_thumbs_batch_v2(
 
     Ok(ok_result("grammers", accepted))
 }
-

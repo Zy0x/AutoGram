@@ -45,7 +45,9 @@ pub fn plan_encode_budget(
     min_video_bps: Option<u64>,
     min_audio_bps: Option<u64>,
 ) -> EncodeBudgetPlan {
-    let s_factor = safety_factor.unwrap_or(ENCODE_SAFETY_FACTOR).clamp(0.50, 0.98);
+    let s_factor = safety_factor
+        .unwrap_or(ENCODE_SAFETY_FACTOR)
+        .clamp(0.50, 0.98);
     let a_bps = audio_bps.unwrap_or(ENCODE_AUDIO_BPS);
     let min_a_bps = min_audio_bps.unwrap_or(ENCODE_MIN_AUDIO_BPS);
     let min_v_bps = min_video_bps.unwrap_or(ENCODE_MIN_USABLE_VIDEO_BPS);

@@ -153,9 +153,9 @@ pub fn create_transfer(req: CreateTransferRequest) -> Result<TransferRecord, Str
         }
         // Path policy
         crate::core::path_policy::assert_safe_transfer_path(&path)?;
-        let size = f.size.unwrap_or_else(|| {
-            fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
-        });
+        let size = f
+            .size
+            .unwrap_or_else(|| fs::metadata(&path).map(|m| m.len()).unwrap_or(0));
         items.push(QueueItem {
             index: i,
             path: path.clone(),

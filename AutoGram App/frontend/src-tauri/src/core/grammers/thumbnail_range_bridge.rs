@@ -72,7 +72,10 @@ pub fn spawn_range_bridge(
     let url_log = url.clone();
 
     std::thread::spawn(move || {
-        let range_cache = Arc::new(parking_lot::Mutex::new(std::collections::HashMap::<(u64, usize), Vec<u8>>::new()));
+        let range_cache = Arc::new(parking_lot::Mutex::new(std::collections::HashMap::<
+            (u64, usize),
+            Vec<u8>,
+        >::new()));
         while !stop_ref.load(Ordering::Relaxed) {
             let req = match server.recv_timeout(Duration::from_millis(250)) {
                 Ok(Some(r)) => r,
@@ -87,8 +90,14 @@ pub fn spawn_range_bridge(
             if req.method() == &Method::Head {
                 let mut res = Response::empty(StatusCode(200));
                 res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
-                res.add_header(Header::from_bytes(&b"Content-Length"[..], total_size.to_string().as_bytes()).unwrap());
-                res.add_header(Header::from_bytes(&b"Content-Type"[..], &b"video/mp4"[..]).unwrap());
+                res.add_header(Header::from_bytes(&b"Connection"[..], &b"close"[..]).unwrap());
+                res.add_header(
+                    Header::from_bytes(&b"Content-Length"[..], total_size.to_string().as_bytes())
+                        .unwrap(),
+                );
+                res.add_header(
+                    Header::from_bytes(&b"Content-Type"[..], &b"video/mp4"[..]).unwrap(),
+                );
                 let _ = req.respond(res);
                 continue;
             }
@@ -140,7 +149,9 @@ pub fn spawn_range_bridge(
 
             let max_fetch = 2 * 1024 * 1024u64;
             let req_end = req_end_opt.unwrap_or(total_size.saturating_sub(1));
-            let actual_end = req_end.min(req_start + max_fetch - 1).min(total_size.saturating_sub(1));
+            let actual_end = req_end
+                .min(req_start + max_fetch - 1)
+                .min(total_size.saturating_sub(1));
             let fetch_len = (actual_end - req_start + 1) as usize;
 
             tg_log::info(
@@ -163,7 +174,15 @@ pub fn spawn_range_bridge(
                 Ok(bytes)
             } else {
                 let res = rt_handle.block_on(async move {
-                    fetch_range_bytes(&client_cloned, &media_cloned, req_start, fetch_len, total_size, &session_cloned).await
+                    fetch_range_bytes(
+                        &client_cloned,
+                        &media_cloned,
+                        req_start,
+                        fetch_len,
+                        total_size,
+                        &session_cloned,
+                    )
+                    .await
                 });
                 if let Ok(ref bytes) = res {
                     let mut guard = range_cache.lock();
@@ -187,7 +206,13 @@ pub fn spawn_range_bridge(
 
                     let resp_end = req_start + body_len.saturating_sub(1);
                     let mut res = Response::from_data(bytes).with_status_code(StatusCode(206));
-                    res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
+                    res.add_header(
+                        Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap(),
+                    );
+                    // tiny_http otherwise keeps the short partial response alive.
+                    // FFmpeg waits for the keep-alive socket before issuing its
+                    // tail/moov seek, which made every thumbnail hit the deadline.
+                    res.add_header(Header::from_bytes(&b"Connection"[..], &b"close"[..]).unwrap());
                     res.add_header(
                         Header::from_bytes(
                             &b"Content-Range"[..],
@@ -195,8 +220,13 @@ pub fn spawn_range_bridge(
                         )
                         .unwrap(),
                     );
-                    res.add_header(Header::from_bytes(&b"Content-Length"[..], body_len.to_string().as_bytes()).unwrap());
-                    res.add_header(Header::from_bytes(&b"Content-Type"[..], &b"video/mp4"[..]).unwrap());
+                    res.add_header(
+                        Header::from_bytes(&b"Content-Length"[..], body_len.to_string().as_bytes())
+                            .unwrap(),
+                    );
+                    res.add_header(
+                        Header::from_bytes(&b"Content-Type"[..], &b"video/mp4"[..]).unwrap(),
+                    );
                     let _ = req.respond(res);
                 }
                 Err(e) => {
@@ -237,7 +267,7 @@ fn parse_range(header: Option<&str>) -> Option<(u64, Option<u64>)> {
 }
 
 /// Fetches target range [offset, offset + length) from Telegram MTProto using Grammers `iter_download`.
-async fn fetch_range_bytes(
+pub(crate) async fn fetch_range_bytes(
     client: &Client,
     media: &Media,
     offset: u64,

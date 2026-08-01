@@ -28,8 +28,14 @@ pub struct TopicMediaContext {
 
 impl TopicMediaContext {
     pub fn topic_key(&self) -> String {
-        let topic_str = self.topic_id.map(|t| t.to_string()).unwrap_or_else(|| "none".to_string());
-        format!("{}:{}:{:?}:{}", self.account_id, self.peer_id, self.scope_kind, topic_str)
+        let topic_str = self
+            .topic_id
+            .map(|t| t.to_string())
+            .unwrap_or_else(|| "none".to_string());
+        format!(
+            "{}:{}:{:?}:{}",
+            self.account_id, self.peer_id, self.scope_kind, topic_str
+        )
     }
 }
 
@@ -244,4 +250,3 @@ pub struct ThumbReadyBatchEvent {
     pub completed: Vec<ThumbCompletedItemV2>,
     pub failed: Vec<ThumbnailBatchFailedItem>,
 }
-

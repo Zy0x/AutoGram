@@ -72,7 +72,10 @@ impl ProgressTracker {
             self.last_t = now;
         }
 
-        let elapsed = now.duration_since(self.start_time).as_secs_f64().max(0.000001);
+        let elapsed = now
+            .duration_since(self.start_time)
+            .as_secs_f64()
+            .max(0.000001);
         let avg = (self.transferred as f64 / (1024.0 * 1024.0)) / elapsed;
         let pct = if self.total > 0 {
             (self.transferred as f64 / self.total as f64) * 100.0
@@ -100,7 +103,11 @@ impl ProgressTracker {
 
     pub fn finalize(&self) -> BenchResult {
         let elapsed = self.start_time.elapsed().as_secs_f64().max(0.000001);
-        let size = if self.total > 0 { self.total } else { self.transferred };
+        let size = if self.total > 0 {
+            self.total
+        } else {
+            self.transferred
+        };
         let avg = (size as f64 / (1024.0 * 1024.0)) / elapsed;
 
         BenchResult {

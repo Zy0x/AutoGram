@@ -33,4 +33,3 @@ pub fn emit_thumb_ready_batch_event(
     app.emit(EVENT_THUMB_READY_BATCH, payload)
         .map_err(|e| TopicMediaError::Internal(format!("Failed emit thumb ready batch event: {e}")))
 }
-

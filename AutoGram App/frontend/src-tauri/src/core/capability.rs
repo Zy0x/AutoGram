@@ -147,8 +147,9 @@ mod tests {
         let cat = capability_catalog();
         assert!(cat.iter().any(|c| c.owner == BackendOwner::Rust));
         assert!(cat.iter().any(|c| c.id == "local_doc_preview"));
-        assert!(cat.iter().any(|c| c.id == "telegram_drive_serve"
-            && c.owner == BackendOwner::Rust));
+        assert!(cat
+            .iter()
+            .any(|c| c.id == "telegram_drive_serve" && c.owner == BackendOwner::Rust));
         // Telethon runtime domains must not remain Hybrid/Python after force cutover
         assert!(!cat.iter().any(|c| c.id == "telegram_drive_serve"
             && matches!(c.owner, BackendOwner::Python | BackendOwner::Hybrid)));

@@ -21,8 +21,8 @@ pub fn clear_ghost_sessions_disk(app: &AppHandle) -> Result<(), String> {
     if !sessions_dir.exists() {
         return Ok(());
     }
-    let entries = std::fs::read_dir(sessions_dir)
-        .map_err(|e| format!("Failed to read sessions dir: {e}"))?;
+    let entries =
+        std::fs::read_dir(sessions_dir).map_err(|e| format!("Failed to read sessions dir: {e}"))?;
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_file() {
@@ -38,20 +38,14 @@ pub fn clear_ghost_sessions_disk(app: &AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn ensure_ghost_session(
-    app: AppHandle,
-    _session_name: String,
-) -> Result<bool, String> {
+pub async fn ensure_ghost_session(app: AppHandle, _session_name: String) -> Result<bool, String> {
     // Best-effort: clear old ghost files on disk first
     let _ = clear_ghost_sessions_disk(&app);
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn cleanup_ghost_session(
-    app: AppHandle,
-    _session_name: String,
-) -> Result<bool, String> {
+pub async fn cleanup_ghost_session(app: AppHandle, _session_name: String) -> Result<bool, String> {
     let _ = clear_ghost_sessions_disk(&app);
     Ok(true)
 }

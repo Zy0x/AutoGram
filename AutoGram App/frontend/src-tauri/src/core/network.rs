@@ -192,7 +192,9 @@ pub fn worker_env_map() -> Vec<(String, String)> {
     ));
     out.push((
         "AUTOGRAM_RETRY_DELAY".into(),
-        (s.vpn.retry_base_backoff_ms.max(500) / 1000).max(1).to_string(),
+        (s.vpn.retry_base_backoff_ms.max(500) / 1000)
+            .max(1)
+            .to_string(),
     ));
     out.push((
         "AUTOGRAM_KEEPALIVE_SEC".into(),
@@ -202,10 +204,7 @@ pub fn worker_env_map() -> Vec<(String, String)> {
         "AUTOGRAM_FLOOD_RESPECT".into(),
         if s.vpn.flood_wait_respect { "1" } else { "0" }.into(),
     ));
-    out.push((
-        "AUTOGRAM_CHUNK_KB".into(),
-        s.vpn.chunk_size_kb.to_string(),
-    ));
+    out.push(("AUTOGRAM_CHUNK_KB".into(), s.vpn.chunk_size_kb.to_string()));
     out.push((
         "AUTOGRAM_BW_UP_KBS".into(),
         s.vpn.bandwidth_limit_up_kbs.to_string(),

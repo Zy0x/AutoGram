@@ -43,6 +43,11 @@ impl FloodWaitGateController {
     pub async fn record_flood_wait(&self, key: GateKey, seconds: u64) {
         let mut gates = self.gates.lock().await;
         let until = Instant::now() + Duration::from_secs(seconds);
-        gates.insert(key, GateState { blocked_until: until });
+        gates.insert(
+            key,
+            GateState {
+                blocked_until: until,
+            },
+        );
     }
 }

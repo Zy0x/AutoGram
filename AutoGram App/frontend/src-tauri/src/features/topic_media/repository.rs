@@ -23,7 +23,10 @@ pub fn get_cached_page(
     let conn = open_db().map_err(|e| TopicMediaError::Internal(e))?;
 
     // Environment wipe or startup purge of legacy non-media synthesized rows
-    if std::env::var("AUTOGRAM_CLEAR_MEDIA_CACHE").map(|v| v == "1").unwrap_or(false) {
+    if std::env::var("AUTOGRAM_CLEAR_MEDIA_CACHE")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
         let _ = conn.execute("DELETE FROM topic_media_items", []);
         crate::core::tg_log::info(
             "grammers",
@@ -31,9 +34,13 @@ pub fn get_cached_page(
             "op=media_cache_schema database_name=autogram.db store_name=topic_media_items migration_action=clear row_count_after=0",
         );
     } else {
-        let count_before: i64 = conn.query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0)).unwrap_or(0);
+        let count_before: i64 = conn
+            .query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0))
+            .unwrap_or(0);
         let _ = conn.execute("DELETE FROM topic_media_items WHERE media_type = 'url' OR media_type NOT IN ('photo', 'video', 'document', 'audio')", []);
-        let count_after: i64 = conn.query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0)).unwrap_or(0);
+        let count_after: i64 = conn
+            .query_row("SELECT COUNT(*) FROM topic_media_items", [], |r| r.get(0))
+            .unwrap_or(0);
         crate::core::tg_log::info(
             "grammers",
             "media_cache_schema",
@@ -52,10 +59,8 @@ pub fn get_cached_page(
          WHERE account_id = ?1 AND peer_id = ?2 AND is_deleted = 0 AND media_type IN ('photo', 'video', 'document', 'audio')",
     );
 
-    let mut params_vec: Vec<rusqlite::types::Value> = vec![
-        ctx.account_id.clone().into(),
-        ctx.peer_id.clone().into(),
-    ];
+    let mut params_vec: Vec<rusqlite::types::Value> =
+        vec![ctx.account_id.clone().into(), ctx.peer_id.clone().into()];
 
     match ctx.scope_kind {
         super::models::MediaScopeKind::All => {
@@ -64,7 +69,9 @@ pub fn get_cached_page(
         super::models::MediaScopeKind::General => {
             let gen_id = ctx.topic_id.unwrap_or(0);
             let idx = params_vec.len() + 1;
-            sql.push_str(&format!(" AND (topic_id IS NULL OR topic_id = 0 OR topic_id = 1 OR topic_id = ?{idx})"));
+            sql.push_str(&format!(
+                " AND (topic_id IS NULL OR topic_id = 0 OR topic_id = 1 OR topic_id = ?{idx})"
+            ));
             params_vec.push(gen_id.into());
         }
         super::models::MediaScopeKind::Topic => {
@@ -79,7 +86,10 @@ pub fn get_cached_page(
         let type_placeholders: Vec<String> = (0..filter_types.len())
             .map(|i| format!("?{}", params_vec.len() + i + 1))
             .collect();
-        sql.push_str(&format!(" AND media_type IN ({})", type_placeholders.join(", ")));
+        sql.push_str(&format!(
+            " AND media_type IN ({})",
+            type_placeholders.join(", ")
+        ));
         for ft in filter_types {
             params_vec.push(ft.clone().into());
         }
@@ -98,7 +108,9 @@ pub fn get_cached_page(
     }
 
     let limit_idx = params_vec.len() + 1;
-    sql.push_str(&format!(" ORDER BY message_date DESC, message_id DESC LIMIT ?{limit_idx}"));
+    sql.push_str(&format!(
+        " ORDER BY message_date DESC, message_id DESC LIMIT ?{limit_idx}"
+    ));
     params_vec.push((limit as i64).into());
 
     let mut stmt = conn.prepare(&sql)?;
@@ -141,9 +153,7 @@ pub fn get_cached_page(
     Ok(items)
 }
 
-pub fn upsert_topic_media_batch(
-    items: &[TopicMediaItem],
-) -> Result<(), TopicMediaError> {
+pub fn upsert_topic_media_batch(items: &[TopicMediaItem]) -> Result<(), TopicMediaError> {
     if items.is_empty() {
         return Ok(());
     }
@@ -193,7 +203,11 @@ pub fn upsert_topic_media_batch(
                 if item.has_server_thumb { 1 } else { 0 },
                 if item.has_video_thumb { 1 } else { 0 },
                 if item.is_deleted { 1 } else { 0 },
-                if item.created_at > 0 { item.created_at } else { now },
+                if item.created_at > 0 {
+                    item.created_at
+                } else {
+                    now
+                },
                 now,
             ])?;
         }

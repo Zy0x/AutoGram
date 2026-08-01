@@ -97,6 +97,14 @@ export type DriveFile = {
    * Inline stripped mini-thumb from list_media (data:image/…).
    * Lets the grid paint like Telegram without waiting for thumbs_batch.
    */
+  /** Explicit canonical Telegram peer ID (e.g. "-1004468191168" or "me") */
+  peer_id?: string | null;
+  /** Explicit account ID (session name or account identifier) */
+  account_id?: string | null;
+  peer_kind?: 'channel' | 'supergroup' | 'basic_group' | 'user' | 'saved_messages' | 'unknown' | string | null;
+  peer_username?: string | null;
+  grouped_id?: number | string | null;
+  is_saved_messages?: boolean | null;
   thumb_data_url?: string | null;
   thumbDataUrl?: string | null;
 };

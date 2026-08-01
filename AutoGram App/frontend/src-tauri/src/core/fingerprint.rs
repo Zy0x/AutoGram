@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaFingerprint {
-    pub media_type: String,      // "document"|"photo"|"video"|"audio"|"voice"|"unknown"
-    pub tier: u8,                // 1(best)..4(fallback)
+    pub media_type: String, // "document"|"photo"|"video"|"audio"|"voice"|"unknown"
+    pub tier: u8,           // 1(best)..4(fallback)
     pub primary_hash: Option<String>,
     pub secondary_hashes: Vec<String>,
     pub file_unique_id: Option<String>,
@@ -13,9 +13,9 @@ pub struct MediaFingerprint {
     pub file_size: Option<i64>,
     pub width: Option<i32>,
     pub height: Option<i32>,
-    pub duration: Option<i32>,   // seconds
+    pub duration: Option<i32>, // seconds
     pub mime_type: Option<String>,
-    pub sha256: Option<String>,  // local file sha256 (upload only)
+    pub sha256: Option<String>, // local file sha256 (upload only)
 }
 
 impl MediaFingerprint {
@@ -39,7 +39,10 @@ impl MediaFingerprint {
                 media_type: media_type.to_string(),
                 tier: 1,
                 primary_hash: Some(format!("sha256:{}", h)),
-                secondary_hashes: vec![Self::hash_str(&format!("doc:{}:{}", name_lower, file_size))],
+                secondary_hashes: vec![Self::hash_str(&format!(
+                    "doc:{}:{}",
+                    name_lower, file_size
+                ))],
                 file_name: Some(file_name.to_string()),
                 file_size: Some(file_size),
                 sha256: Some(h.to_string()),
@@ -96,7 +99,10 @@ impl MediaFingerprint {
             "video" | "audio" | "voice" => {
                 if let (Some(fuid), Some(dur), Some(sz)) = (file_unique_id, duration, file_size) {
                     fp.tier = 1;
-                    fp.primary_hash = Some(Self::hash_str(&format!("{}:{}:{}:{}", media_type, fuid, dur, sz)));
+                    fp.primary_hash = Some(Self::hash_str(&format!(
+                        "{}:{}:{}:{}",
+                        media_type, fuid, dur, sz
+                    )));
                     fp.secondary_hashes = vec![Self::hash_str(&format!("{}:{}", media_type, fuid))];
                 } else if let Some(fuid) = file_unique_id {
                     fp.tier = 2;
@@ -125,7 +131,11 @@ impl MediaFingerprint {
         fp
     }
 
-    pub fn match_fingerprints(source: &MediaFingerprint, dest: &MediaFingerprint, strict: bool) -> (bool, f32) {
+    pub fn match_fingerprints(
+        source: &MediaFingerprint,
+        dest: &MediaFingerprint,
+        strict: bool,
+    ) -> (bool, f32) {
         if source.primary_hash.is_some() && source.primary_hash == dest.primary_hash {
             let score = if source.tier == 1 { 0.99 } else { 0.90 };
             return (true, score);
@@ -139,20 +149,28 @@ impl MediaFingerprint {
             }
 
             for s_hash in &source.secondary_hashes {
-                if dest.secondary_hashes.contains(s_hash) || (dest.primary_hash.is_some() && dest.primary_hash.as_ref() == Some(s_hash)) {
+                if dest.secondary_hashes.contains(s_hash)
+                    || (dest.primary_hash.is_some() && dest.primary_hash.as_ref() == Some(s_hash))
+                {
                     return (true, 0.87);
                 }
             }
             for d_hash in &dest.secondary_hashes {
-                if source.secondary_hashes.contains(d_hash) || (source.primary_hash.is_some() && source.primary_hash.as_ref() == Some(d_hash)) {
+                if source.secondary_hashes.contains(d_hash)
+                    || (source.primary_hash.is_some()
+                        && source.primary_hash.as_ref() == Some(d_hash))
+                {
                     return (true, 0.87);
                 }
             }
 
             if source.media_type == "photo" && dest.media_type == "photo" {
-                if let (Some(s_fuid), Some(d_fuid)) = (&source.file_unique_id, &dest.file_unique_id) {
+                if let (Some(s_fuid), Some(d_fuid)) = (&source.file_unique_id, &dest.file_unique_id)
+                {
                     if s_fuid == d_fuid {
-                        if let (Some(sw), Some(sh), Some(dw), Some(dh)) = (source.width, source.height, dest.width, dest.height) {
+                        if let (Some(sw), Some(sh), Some(dw), Some(dh)) =
+                            (source.width, source.height, dest.width, dest.height)
+                        {
                             if (sw - dw).abs() <= 10 && (sh - dh).abs() <= 10 {
                                 return (true, 0.85);
                             }
@@ -162,9 +180,15 @@ impl MediaFingerprint {
                 }
             }
 
-            if (source.media_type == "document" || source.media_type == "unknown") 
-                && (dest.media_type == "document" || dest.media_type == "unknown") {
-                if let (Some(s_name), Some(d_name), Some(s_size), Some(d_size)) = (&source.file_name, &dest.file_name, source.file_size, dest.file_size) {
+            if (source.media_type == "document" || source.media_type == "unknown")
+                && (dest.media_type == "document" || dest.media_type == "unknown")
+            {
+                if let (Some(s_name), Some(d_name), Some(s_size), Some(d_size)) = (
+                    &source.file_name,
+                    &dest.file_name,
+                    source.file_size,
+                    dest.file_size,
+                ) {
                     if s_name.to_lowercase() == d_name.to_lowercase() {
                         let size_diff = (s_size - d_size).abs() as f64;
                         let max_size = std::cmp::max(s_size, d_size) as f64;

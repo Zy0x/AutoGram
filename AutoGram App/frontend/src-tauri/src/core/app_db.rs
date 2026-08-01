@@ -20,7 +20,7 @@ pub fn resolve_app_db() -> Result<PathBuf, String> {
 
 pub fn open_db() -> Result<Connection, String> {
     let db_path = resolve_app_db()?;
-    
+
     // Pastikan folder ada
     if let Some(parent) = db_path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -35,11 +35,12 @@ pub fn open_db() -> Result<Connection, String> {
         PRAGMA busy_timeout = 60000;
         PRAGMA journal_mode = WAL;
         PRAGMA synchronous = NORMAL;
-        "
-    ).map_err(|e| format!("Gagal set PRAGMA: {}", e))?;
+        ",
+    )
+    .map_err(|e| format!("Gagal set PRAGMA: {}", e))?;
 
     ensure_schema_extended(&conn)?;
-    
+
     Ok(conn)
 }
 
@@ -255,6 +256,45 @@ pub fn ensure_schema_extended(conn: &Connection) -> Result<(), String> {
             updated_at INTEGER NOT NULL,
             PRIMARY KEY (account_id, peer_id, topic_id, message_id)
         );
+
+        -- 13. media_scan_state (AutoGram v2.7.0)
+        CREATE TABLE IF NOT EXISTS media_scan_state (
+            account_id TEXT NOT NULL,
+            peer_id TEXT NOT NULL,
+            topic_id INTEGER NOT NULL DEFAULT 0,
+            media_filter TEXT NOT NULL DEFAULT 'all',
+            search_query TEXT NOT NULL DEFAULT '',
+
+            scan_generation INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'idle',
+
+            server_total_count INTEGER,
+            server_count_exact INTEGER NOT NULL DEFAULT 0,
+
+            indexed_unique_count INTEGER NOT NULL DEFAULT 0,
+            raw_fetched_count INTEGER NOT NULL DEFAULT 0,
+            duplicate_count INTEGER NOT NULL DEFAULT 0,
+
+            indexed_bytes INTEGER NOT NULL DEFAULT 0,
+            known_size_count INTEGER NOT NULL DEFAULT 0,
+            unknown_size_count INTEGER NOT NULL DEFAULT 0,
+
+            next_offset_id INTEGER,
+            last_successful_offset_id INTEGER,
+
+            failed_page_count INTEGER NOT NULL DEFAULT 0,
+            pending_page_count INTEGER NOT NULL DEFAULT 0,
+
+            last_success_at INTEGER,
+            last_attempt_at INTEGER,
+            retry_after_at INTEGER,
+            completion_verified_at INTEGER,
+
+            last_error_class TEXT,
+            last_error_message TEXT,
+
+            PRIMARY KEY (account_id, peer_id, topic_id, media_filter, search_query)
+        );
         "
     ).map_err(|e| format!("Gagal memastikan skema database (ensure_schema_extended): {}", e))?;
 
@@ -265,7 +305,11 @@ pub fn ensure_schema_extended(conn: &Connection) -> Result<(), String> {
 // DUPLICATE HISTORY
 // -----------------------------------------------------------------------------
 
-pub fn log_duplicate(file_unique_id: &str, target_entity_id: &str, target_message_id: i64) -> Result<(), String> {
+pub fn log_duplicate(
+    file_unique_id: &str,
+    target_entity_id: &str,
+    target_message_id: i64,
+) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
         "INSERT OR IGNORE INTO duplicate_history (file_unique_id, target_entity_id, target_message_id) 
@@ -277,7 +321,9 @@ pub fn log_duplicate(file_unique_id: &str, target_entity_id: &str, target_messag
 
 pub fn log_duplicates_batch(rows: &[(String, String, i64)]) -> Result<(), String> {
     let mut conn = open_db()?;
-    let tx = conn.transaction().map_err(|e| format!("Gagal mulai transaksi: {}", e))?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("Gagal mulai transaksi: {}", e))?;
     {
         let mut stmt = tx.prepare(
             "INSERT OR IGNORE INTO duplicate_history (file_unique_id, target_entity_id, target_message_id) 
@@ -289,7 +335,8 @@ pub fn log_duplicates_batch(rows: &[(String, String, i64)]) -> Result<(), String
                 .map_err(|e| format!("Gagal execute batch log_duplicate: {}", e))?;
         }
     }
-    tx.commit().map_err(|e| format!("Gagal commit log_duplicates_batch: {}", e))?;
+    tx.commit()
+        .map_err(|e| format!("Gagal commit log_duplicates_batch: {}", e))?;
     Ok(())
 }
 
@@ -298,7 +345,7 @@ pub fn get_duplicate_message_id(
     file_unique_id: Option<&str>,
     file_hash: Option<&str>,
     file_name: Option<&str>,
-    file_size: Option<i64>
+    file_size: Option<i64>,
 ) -> Result<Option<i64>, String> {
     let conn = open_db()?;
 
@@ -308,7 +355,9 @@ pub fn get_duplicate_message_id(
             params![target_entity_id, fuid],
             |row| row.get(0)
         ).optional().map_err(|e| format!("Gagal get_duplicate_message_id (fuid): {}", e))?;
-        if msg_id.is_some() { return Ok(msg_id); }
+        if msg_id.is_some() {
+            return Ok(msg_id);
+        }
     }
 
     if let Some(hash) = file_hash {
@@ -317,7 +366,9 @@ pub fn get_duplicate_message_id(
             params![target_entity_id, hash],
             |row| row.get(0)
         ).optional().map_err(|e| format!("Gagal get_duplicate_message_id (hash): {}", e))?;
-        if msg_id.is_some() { return Ok(msg_id); }
+        if msg_id.is_some() {
+            return Ok(msg_id);
+        }
     }
 
     // destination_scan_cache fallback for name + size
@@ -327,7 +378,9 @@ pub fn get_duplicate_message_id(
             params![target_entity_id, name, size],
             |row| row.get(0)
         ).optional().map_err(|e| format!("Gagal get_duplicate_message_id (name+size): {}", e))?;
-        if msg_id.is_some() { return Ok(msg_id); }
+        if msg_id.is_some() {
+            return Ok(msg_id);
+        }
     }
 
     Ok(None)
@@ -335,7 +388,7 @@ pub fn get_duplicate_message_id(
 
 pub fn get_duplicate_message_ids_batch(
     target_entity_id: &str,
-    keys: &[String]
+    keys: &[String],
 ) -> Result<HashMap<String, i64>, String> {
     let conn = open_db()?;
     let mut results = HashMap::new();
@@ -348,13 +401,22 @@ pub fn get_duplicate_message_ids_batch(
             placeholders.join(", ")
         );
 
-        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Gagal prepare get_duplicate_message_ids_batch: {}", e))?;
-        
-        let mut p = vec![&target_entity_id as &dyn rusqlite::ToSql];
-        for k in chunk { p.push(k as &dyn rusqlite::ToSql); }
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| format!("Gagal prepare get_duplicate_message_ids_batch: {}", e))?;
 
-        let mut rows = stmt.query(&*p).map_err(|e| format!("Gagal query get_duplicate_message_ids_batch: {}", e))?;
-        while let Some(row) = rows.next().map_err(|e| format!("Gagal next row get_duplicate_message_ids_batch: {}", e))? {
+        let mut p = vec![&target_entity_id as &dyn rusqlite::ToSql];
+        for k in chunk {
+            p.push(k as &dyn rusqlite::ToSql);
+        }
+
+        let mut rows = stmt
+            .query(&*p)
+            .map_err(|e| format!("Gagal query get_duplicate_message_ids_batch: {}", e))?;
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| format!("Gagal next row get_duplicate_message_ids_batch: {}", e))?
+        {
             let file_uid: String = row.get(0).unwrap_or_default();
             let msg_id: i64 = row.get(1).unwrap_or_default();
             if !file_uid.is_empty() {
@@ -366,37 +428,51 @@ pub fn get_duplicate_message_ids_batch(
     Ok(results)
 }
 
-pub fn delete_duplicate_by_message_id(target_entity_id: &str, target_message_id: i64) -> Result<(), String> {
+pub fn delete_duplicate_by_message_id(
+    target_entity_id: &str,
+    target_message_id: i64,
+) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
         "DELETE FROM duplicate_history WHERE target_entity_id = ?1 AND target_message_id = ?2",
         params![target_entity_id, target_message_id],
-    ).map_err(|e| format!("Gagal delete_duplicate_by_message_id: {}", e))?;
+    )
+    .map_err(|e| format!("Gagal delete_duplicate_by_message_id: {}", e))?;
     Ok(())
 }
 
-pub fn purge_deleted_duplicates_batch(target_entity_id: &str, message_ids: &[i64]) -> Result<i64, String> {
+pub fn purge_deleted_duplicates_batch(
+    target_entity_id: &str,
+    message_ids: &[i64],
+) -> Result<i64, String> {
     let mut conn = open_db()?;
     let mut total_purged = 0;
     let chunk_size = 400;
 
-    let tx = conn.transaction().map_err(|e| format!("Gagal mulai transaksi purge: {}", e))?;
-    
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("Gagal mulai transaksi purge: {}", e))?;
+
     for chunk in message_ids.chunks(chunk_size) {
         let placeholders: Vec<String> = (0..chunk.len()).map(|_| "?".to_string()).collect();
         let sql = format!(
             "DELETE FROM duplicate_history WHERE target_entity_id = ? AND target_message_id IN ({})",
             placeholders.join(", ")
         );
-        
+
         let mut p = vec![&target_entity_id as &dyn rusqlite::ToSql];
-        for id in chunk { p.push(id as &dyn rusqlite::ToSql); }
-        
-        let purged = tx.execute(&sql, &*p).map_err(|e| format!("Gagal execute purge chunk: {}", e))?;
+        for id in chunk {
+            p.push(id as &dyn rusqlite::ToSql);
+        }
+
+        let purged = tx
+            .execute(&sql, &*p)
+            .map_err(|e| format!("Gagal execute purge chunk: {}", e))?;
         total_purged += purged as i64;
     }
-    
-    tx.commit().map_err(|e| format!("Gagal commit purge: {}", e))?;
+
+    tx.commit()
+        .map_err(|e| format!("Gagal commit purge: {}", e))?;
     Ok(total_purged)
 }
 
@@ -405,7 +481,8 @@ pub fn clear_duplicate_history_for_target(target_entity_id: &str) -> Result<(), 
     conn.execute(
         "DELETE FROM duplicate_history WHERE target_entity_id = ?1",
         params![target_entity_id],
-    ).map_err(|e| format!("Gagal clear_duplicate_history_for_target: {}", e))?;
+    )
+    .map_err(|e| format!("Gagal clear_duplicate_history_for_target: {}", e))?;
     Ok(())
 }
 
@@ -459,10 +536,13 @@ pub struct ScanCacheInsert {
 
 pub fn upsert_scan_cache(entries: &[ScanCacheInsert]) -> Result<(), String> {
     let mut conn = open_db()?;
-    let tx = conn.transaction().map_err(|e| format!("Gagal mulai tx upsert scan cache: {}", e))?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("Gagal mulai tx upsert scan cache: {}", e))?;
     {
-        let mut stmt = tx.prepare(
-            "INSERT INTO destination_scan_cache (
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO destination_scan_cache (
                 target_entity_id, topic_id, message_id, fingerprint_hash, 
                 file_unique_id, file_name, file_size, media_type, fingerprint_tier,
                 width, height, duration, mime_type, is_alive, 
@@ -482,8 +562,9 @@ pub fn upsert_scan_cache(entries: &[ScanCacheInsert]) -> Result<(), String> {
                 is_alive = excluded.is_alive,
                 verified_at = excluded.verified_at,
                 delete_detected_at = excluded.delete_detected_at,
-                scanned_at = excluded.scanned_at"
-        ).map_err(|e| format!("Gagal prepare upsert scan cache: {}", e))?;
+                scanned_at = excluded.scanned_at",
+            )
+            .map_err(|e| format!("Gagal prepare upsert scan cache: {}", e))?;
 
         for e in entries {
             stmt.execute(params![
@@ -504,14 +585,19 @@ pub fn upsert_scan_cache(entries: &[ScanCacheInsert]) -> Result<(), String> {
                 e.verified_at,
                 e.delete_detected_at,
                 e.scanned_at
-            ]).map_err(|err| format!("Gagal execute upsert scan cache: {}", err))?;
+            ])
+            .map_err(|err| format!("Gagal execute upsert scan cache: {}", err))?;
         }
     }
-    tx.commit().map_err(|e| format!("Gagal commit upsert scan cache: {}", e))?;
+    tx.commit()
+        .map_err(|e| format!("Gagal commit upsert scan cache: {}", e))?;
     Ok(())
 }
 
-pub fn load_scan_cache(target_entity_id: &str, topic_id: Option<i64>) -> Result<Vec<ScanCacheEntry>, String> {
+pub fn load_scan_cache(
+    target_entity_id: &str,
+    topic_id: Option<i64>,
+) -> Result<Vec<ScanCacheEntry>, String> {
     let conn = open_db()?;
     let mut entries = Vec::new();
 
@@ -525,15 +611,21 @@ pub fn load_scan_cache(target_entity_id: &str, topic_id: Option<i64>) -> Result<
          FROM destination_scan_cache WHERE target_entity_id = ?1 AND topic_id IS NULL AND is_alive = 1"
     };
 
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("Gagal prepare load_scan_cache: {}", e))?;
-    
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| format!("Gagal prepare load_scan_cache: {}", e))?;
+
     let mut rows = if let Some(tid) = topic_id {
         stmt.query(params![target_entity_id, tid])
     } else {
         stmt.query(params![target_entity_id])
-    }.map_err(|e| format!("Gagal execute load_scan_cache: {}", e))?;
+    }
+    .map_err(|e| format!("Gagal execute load_scan_cache: {}", e))?;
 
-    while let Some(row) = rows.next().map_err(|e| format!("Gagal next row load_scan_cache: {}", e))? {
+    while let Some(row) = rows
+        .next()
+        .map_err(|e| format!("Gagal next row load_scan_cache: {}", e))?
+    {
         entries.push(ScanCacheEntry {
             target_entity_id: row.get(0).unwrap_or_default(),
             topic_id: row.get(1).unwrap_or_default(),
@@ -558,7 +650,11 @@ pub fn load_scan_cache(target_entity_id: &str, topic_id: Option<i64>) -> Result<
     Ok(entries)
 }
 
-pub fn mark_dead_in_scan_cache(target_entity_id: &str, message_id: i64, deleted_at: i64) -> Result<(), String> {
+pub fn mark_dead_in_scan_cache(
+    target_entity_id: &str,
+    message_id: i64,
+    deleted_at: i64,
+) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
         "UPDATE destination_scan_cache SET is_alive = 0, delete_detected_at = ?3 WHERE target_entity_id = ?1 AND message_id = ?2",
@@ -567,7 +663,11 @@ pub fn mark_dead_in_scan_cache(target_entity_id: &str, message_id: i64, deleted_
     Ok(())
 }
 
-pub fn update_scan_cache_verified_at(target_entity_id: &str, message_id: i64, verified_at: i64) -> Result<(), String> {
+pub fn update_scan_cache_verified_at(
+    target_entity_id: &str,
+    message_id: i64,
+    verified_at: i64,
+) -> Result<(), String> {
     let conn = open_db()?;
     conn.execute(
         "UPDATE destination_scan_cache SET verified_at = ?3 WHERE target_entity_id = ?1 AND message_id = ?2",
@@ -592,11 +692,14 @@ pub fn save_session(name: &str, session_string: &str, status: &str) -> Result<()
 
 pub fn get_session(name: &str) -> Result<Option<(String, String)>, String> {
     let conn = open_db()?;
-    let res = conn.query_row(
-        "SELECT session_string, status FROM sessions WHERE name = ?1",
-        params![name],
-        |row| Ok((row.get(0)?, row.get(1)?))
-    ).optional().map_err(|e| format!("Gagal get_session: {}", e))?;
+    let res = conn
+        .query_row(
+            "SELECT session_string, status FROM sessions WHERE name = ?1",
+            params![name],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .map_err(|e| format!("Gagal get_session: {}", e))?;
     Ok(res)
 }
 
@@ -627,9 +730,17 @@ pub struct TransferStateRow {
     pub last_activity_at: i64,
 }
 
-pub fn create_transfer_state(job_id: &str, source_path: &str, target_entity_id: &str, total_files: i64) -> Result<(), String> {
+pub fn create_transfer_state(
+    job_id: &str,
+    source_path: &str,
+    target_entity_id: &str,
+    total_files: i64,
+) -> Result<(), String> {
     let conn = open_db()?;
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
     conn.execute(
         "INSERT INTO transfer_state (job_id, source_path, target_entity_id, status, total_files, created_at, last_activity_at) 
          VALUES (?1, ?2, ?3, 'scanning', ?4, ?5, ?5)",
@@ -640,11 +751,15 @@ pub fn create_transfer_state(job_id: &str, source_path: &str, target_entity_id: 
 
 pub fn update_transfer_status(job_id: &str, status: &str) -> Result<(), String> {
     let conn = open_db()?;
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
     conn.execute(
         "UPDATE transfer_state SET status = ?2, last_activity_at = ?3 WHERE job_id = ?1",
         params![job_id, status, now],
-    ).map_err(|e| format!("Gagal update_transfer_status: {}", e))?;
+    )
+    .map_err(|e| format!("Gagal update_transfer_status: {}", e))?;
     Ok(())
 }
 
@@ -654,10 +769,13 @@ pub fn save_transfer_progress(
     completed_json: &str,
     processed: i64,
     uploaded: i64,
-    failed: i64
+    failed: i64,
 ) -> Result<(), String> {
     let conn = open_db()?;
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
     conn.execute(
         "UPDATE transfer_state SET 
          pending_queue_json = ?2, 
@@ -667,8 +785,17 @@ pub fn save_transfer_progress(
          failed_files = ?6,
          last_activity_at = ?7 
          WHERE job_id = ?1",
-        params![job_id, pending_json, completed_json, processed, uploaded, failed, now],
-    ).map_err(|e| format!("Gagal save_transfer_progress: {}", e))?;
+        params![
+            job_id,
+            pending_json,
+            completed_json,
+            processed,
+            uploaded,
+            failed,
+            now
+        ],
+    )
+    .map_err(|e| format!("Gagal save_transfer_progress: {}", e))?;
     Ok(())
 }
 
@@ -707,7 +834,10 @@ pub fn log_transfer_audit(
     details_json: Option<&str>,
 ) -> Result<(), String> {
     let conn = open_db()?;
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as i64;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
     conn.execute(
         "INSERT INTO transfer_audit_log (job_id, timestamp, event_type, file_path, file_name, fingerprint_hash, message_id, details_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",

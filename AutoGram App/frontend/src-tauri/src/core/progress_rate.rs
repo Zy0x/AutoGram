@@ -13,11 +13,7 @@ pub struct ProgressSnapshot {
 }
 
 /// Compute rate and ETA from totals.
-pub fn compute_progress(
-    done_bytes: u64,
-    total_bytes: u64,
-    elapsed_secs: f64,
-) -> ProgressSnapshot {
+pub fn compute_progress(done_bytes: u64, total_bytes: u64, elapsed_secs: f64) -> ProgressSnapshot {
     let remaining = total_bytes.saturating_sub(done_bytes);
     let percent = if total_bytes == 0 {
         0.0

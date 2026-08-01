@@ -11,15 +11,110 @@ use super::path_policy;
 const TEXT_INLINE_MAX: u64 = 2 * 1024 * 1024;
 
 const TEXT_EXTS: &[&str] = &[
-    "txt", "text", "json", "jsonc", "json5", "jsonl", "ndjson", "md", "markdown", "mdx", "rst",
-    "csv", "tsv", "log", "xml", "yaml", "yml", "ini", "cfg", "conf", "config", "properties", "env",
-    "toml", "plist", "lock", "html", "htm", "xhtml", "css", "scss", "sass", "less", "js", "jsx",
-    "mjs", "cjs", "ts", "tsx", "vue", "svelte", "astro", "py", "pyi", "pyw", "rb", "php", "pl",
-    "pm", "sh", "bash", "zsh", "fish", "ps1", "psm1", "bat", "cmd", "lua", "r", "jl", "ex", "exs",
-    "erl", "clj", "cljs", "scala", "kt", "kts", "swift", "dart", "groovy", "gradle", "c", "cc",
-    "cpp", "cxx", "h", "hh", "hpp", "hxx", "m", "mm", "cs", "fs", "fsx", "go", "rs", "java", "sql",
-    "prisma", "graphql", "gql", "proto", "dockerfile", "makefile", "cmake", "tf", "hcl", "nix",
-    "vim", "diff", "patch", "http", "rest",
+    "txt",
+    "text",
+    "json",
+    "jsonc",
+    "json5",
+    "jsonl",
+    "ndjson",
+    "md",
+    "markdown",
+    "mdx",
+    "rst",
+    "csv",
+    "tsv",
+    "log",
+    "xml",
+    "yaml",
+    "yml",
+    "ini",
+    "cfg",
+    "conf",
+    "config",
+    "properties",
+    "env",
+    "toml",
+    "plist",
+    "lock",
+    "html",
+    "htm",
+    "xhtml",
+    "css",
+    "scss",
+    "sass",
+    "less",
+    "js",
+    "jsx",
+    "mjs",
+    "cjs",
+    "ts",
+    "tsx",
+    "vue",
+    "svelte",
+    "astro",
+    "py",
+    "pyi",
+    "pyw",
+    "rb",
+    "php",
+    "pl",
+    "pm",
+    "sh",
+    "bash",
+    "zsh",
+    "fish",
+    "ps1",
+    "psm1",
+    "bat",
+    "cmd",
+    "lua",
+    "r",
+    "jl",
+    "ex",
+    "exs",
+    "erl",
+    "clj",
+    "cljs",
+    "scala",
+    "kt",
+    "kts",
+    "swift",
+    "dart",
+    "groovy",
+    "gradle",
+    "c",
+    "cc",
+    "cpp",
+    "cxx",
+    "h",
+    "hh",
+    "hpp",
+    "hxx",
+    "m",
+    "mm",
+    "cs",
+    "fs",
+    "fsx",
+    "go",
+    "rs",
+    "java",
+    "sql",
+    "prisma",
+    "graphql",
+    "gql",
+    "proto",
+    "dockerfile",
+    "makefile",
+    "cmake",
+    "tf",
+    "hcl",
+    "nix",
+    "vim",
+    "diff",
+    "patch",
+    "http",
+    "rest",
 ];
 
 const OFFICE_EXTS: &[&str] = &["docx", "odt", "rtf", "xlsx", "ods", "pptx", "odp"];
@@ -60,7 +155,9 @@ fn guess_mime(ext: &str) -> String {
         "sql" => "application/sql".into(),
         "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document".into(),
         "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".into(),
-        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation".into(),
+        "pptx" => {
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation".into()
+        }
         "rtf" => "application/rtf".into(),
         _ => {
             if TEXT_EXTS.contains(&ext) {
@@ -76,6 +173,15 @@ fn is_text_ext(ext: &str) -> bool {
     TEXT_EXTS.contains(&ext) || OFFICE_EXTS.contains(&ext)
 }
 
+pub fn is_plain_text_document_name(name: &str) -> bool {
+    let ext = Path::new(name)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    TEXT_EXTS.contains(&ext.as_str()) && !OFFICE_EXTS.contains(&ext.as_str())
+}
+
 fn looks_binary(raw: &[u8]) -> bool {
     if raw.is_empty() {
         return false;
@@ -89,6 +195,36 @@ fn pretty_json(s: &str) -> String {
         Ok(v) => serde_json::to_string_pretty(&v).unwrap_or_else(|_| s.to_string()),
         Err(_) => s.to_string(),
     }
+}
+
+/// Build an inline code/text preview from a bounded MTProto prefix. Large
+/// source files no longer need a full download before the first screen paints.
+pub fn preview_text_sample(name: &str, raw: &[u8], total_size: u64) -> String {
+    if looks_binary(raw) {
+        return format!(
+            "[Binary / non-text file — {total_size} bytes]\nBuka dengan aplikasi sistem atau Download."
+        );
+    }
+
+    let ext = Path::new(name)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let decoded = String::from_utf8_lossy(raw).into_owned();
+    let mut body = if raw.len() as u64 >= total_size && ext == "json" {
+        pretty_json(&decoded)
+    } else {
+        decoded
+    };
+    const MAX_CHARS: usize = 400_000;
+    if body.chars().count() > MAX_CHARS {
+        body = body.chars().take(MAX_CHARS).collect();
+    }
+    if (raw.len() as u64) < total_size {
+        body.push_str("\n\n… (pratinjau awal; gunakan Download untuk file lengkap)");
+    }
+    body
 }
 
 fn extract_rtf_plain(raw: &[u8], max_chars: usize) -> Option<String> {
@@ -185,10 +321,7 @@ fn extract_office_zip(path: &Path, ext: &str, max_chars: usize) -> Option<String
             .into_iter()
             .filter(|n| n == "word/document.xml")
             .collect(),
-        "odt" | "ods" | "odp" => names
-            .into_iter()
-            .filter(|n| n == "content.xml")
-            .collect(),
+        "odt" | "ods" | "odp" => names.into_iter().filter(|n| n == "content.xml").collect(),
         "xlsx" => names
             .into_iter()
             .filter(|n| n.ends_with("sharedStrings.xml") || n.contains("/worksheets/sheet"))
@@ -295,8 +428,12 @@ pub fn preview_local_document(path: &str) -> Result<LocalDocPreview, String> {
             } else {
                 s
             };
-            let s = if s.len() > max_chars {
-                format!("{}{}", &s[..max_chars], "\n\n… (dipotong)")
+            let s = if s.chars().count() > max_chars {
+                format!(
+                    "{}{}",
+                    s.chars().take(max_chars).collect::<String>(),
+                    "\n\n… (dipotong)"
+                )
             } else {
                 s
             };
@@ -329,5 +466,14 @@ mod tests {
         let prev = preview_local_document(path.to_str().unwrap()).unwrap();
         assert_eq!(prev.backend, "rust");
         assert!(prev.text_content.unwrap().contains("\"a\""));
+    }
+
+    #[test]
+    fn bounded_text_sample_is_unicode_safe_and_marks_partial_content() {
+        let sample = "murid 🦀\n".repeat(60_000);
+        let preview = preview_text_sample("notes.mdx", sample.as_bytes(), 9_000_000);
+        assert!(preview.contains("murid 🦀"));
+        assert!(preview.contains("pratinjau awal"));
+        assert!(preview.chars().count() < 401_000);
     }
 }

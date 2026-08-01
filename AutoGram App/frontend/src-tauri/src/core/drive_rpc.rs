@@ -9,9 +9,7 @@ use grammers_client::tl;
 use grammers_client::Client;
 use serde::{Deserialize, Serialize};
 
-use super::grammers_ops::{
-    peer_id_i64, resolve_peer, runtime, with_client, MediaFileRow,
-};
+use super::grammers_ops::{peer_id_i64, resolve_peer, runtime, with_client, MediaFileRow};
 use super::telegram_ops::TelegramIdentity;
 use super::tg_error::{map_invocation, TgError, TgErrorCode};
 use super::tg_log;
@@ -96,12 +94,12 @@ async fn input_channel_from_peer(
     let peer = resolve_peer(client, chat_id).await?;
     let input_peer: tl::enums::InputPeer = peer.into();
     match input_peer {
-        tl::enums::InputPeer::Channel(c) => Ok(tl::enums::InputChannel::Channel(
-            tl::types::InputChannel {
+        tl::enums::InputPeer::Channel(c) => {
+            Ok(tl::enums::InputChannel::Channel(tl::types::InputChannel {
                 channel_id: c.channel_id,
                 access_hash: c.access_hash,
-            },
-        )),
+            }))
+        }
         _ => Err(TgError::new(
             TgErrorCode::PeerNotFound,
             format!("chat {chat_id} is not a channel"),
@@ -155,7 +153,11 @@ pub fn delete_messages_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -225,9 +227,11 @@ pub fn delete_messages_blocking(
                                                             "delete_messages_flood_wait",
                                                             format!("mid={mid} waiting {secs}s"),
                                                         );
-                                                        tokio::time::sleep(std::time::Duration::from_secs(
-                                                            (secs + 1) as u64,
-                                                        ))
+                                                        tokio::time::sleep(
+                                                            std::time::Duration::from_secs(
+                                                                (secs + 1) as u64,
+                                                            ),
+                                                        )
                                                         .await;
                                                         continue;
                                                     }
@@ -313,12 +317,16 @@ pub fn create_folder_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let attempts = [
-                    (true, false),  // broadcast
-                    (false, true),  // megagroup
+                    (true, false), // broadcast
+                    (false, true), // megagroup
                     (true, false),
                     (false, true),
                 ];
@@ -425,7 +433,11 @@ pub fn rename_folder_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let input = input_channel_from_peer(client, &chat).await?;
@@ -470,7 +482,11 @@ pub fn set_folder_parent_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let tl::enums::InputChannel::Channel(c) =
@@ -523,7 +539,11 @@ pub fn delete_folder_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 // Prefer DeleteChannel; fall back to leave + delete dialog
@@ -582,7 +602,11 @@ pub fn scan_folders_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 // Fast path: title-only scan (no GetFullChannel per folder).
@@ -647,7 +671,11 @@ pub fn create_topic_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -715,7 +743,11 @@ pub fn rename_topic_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -754,7 +786,11 @@ pub fn delete_topic_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -801,7 +837,11 @@ pub fn avatars_batch_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let mut want: std::collections::HashSet<i64> = ids.iter().copied().collect();
@@ -814,7 +854,9 @@ pub fn avatars_batch_blocking(
                 // Self avatar (peer_id 0 convention)
                 if want.contains(&0) {
                     if let Ok(me) = client.get_me().await {
-                        let url = download_peer_photo(client, &grammers_client::peer::Peer::User(me)).await;
+                        let url =
+                            download_peer_photo(client, &grammers_client::peer::Peer::User(me))
+                                .await;
                         avatars.insert("0".into(), url);
                         want.remove(&0);
                     }
@@ -848,7 +890,10 @@ pub fn avatars_batch_blocking(
     })
 }
 
-async fn download_peer_photo(client: &Client, peer: &grammers_client::peer::Peer) -> Option<String> {
+async fn download_peer_photo(
+    client: &Client,
+    peer: &grammers_client::peer::Peer,
+) -> Option<String> {
     let photo = peer.photo(false).await.ok().flatten()?;
     let tmp = std::env::temp_dir().join(format!(
         "ag_avatar_{}_{}.jpg",
@@ -909,7 +954,11 @@ pub fn move_messages_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let source = resolve_peer(client, &src).await?;

@@ -3,7 +3,9 @@
 //! Zero full-file download, zero memory allocation bloat, instant listing load (<0.5s).
 
 use std::collections::HashMap;
-use std::io::{Error as IoError, ErrorKind as IoErrorKind, Read, Result as IoResult, Seek, SeekFrom};
+use std::io::{
+    Error as IoError, ErrorKind as IoErrorKind, Read, Result as IoResult, Seek, SeekFrom,
+};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -144,10 +146,14 @@ impl<'a> TelegramSparseReader<'a> {
                         let mapped = map_invocation(&e);
                         if mapped.code() == TgErrorCode::FloodWait {
                             if let Some(secs) = mapped.flood_wait_secs() {
-                                tokio::time::sleep(std::time::Duration::from_secs(u64::from(secs))).await;
+                                tokio::time::sleep(std::time::Duration::from_secs(u64::from(secs)))
+                                    .await;
                             }
                         } else {
-                            tokio::time::sleep(std::time::Duration::from_millis(300 * (1 << retries))).await;
+                            tokio::time::sleep(std::time::Duration::from_millis(
+                                300 * (1 << retries),
+                            ))
+                            .await;
                         }
                         retries += 1;
                         if retries > 3 {
@@ -214,7 +220,10 @@ impl<'a> Seek for TelegramSparseReader<'a> {
         };
 
         if new_pos < 0 {
-            return Err(IoError::new(IoErrorKind::InvalidInput, "negative seek position"));
+            return Err(IoError::new(
+                IoErrorKind::InvalidInput,
+                "negative seek position",
+            ));
         }
 
         self.pos = (new_pos as u64).min(self.doc_size);
@@ -239,49 +248,97 @@ fn parse_central_directory_fast(
 
     let mut eocd_pos = None;
     for i in (0..search_len.saturating_sub(21)).rev() {
-        if tail_buf[i] == 0x50 && tail_buf[i + 1] == 0x4b && tail_buf[i + 2] == 0x05 && tail_buf[i + 3] == 0x06 {
+        if tail_buf[i] == 0x50
+            && tail_buf[i + 1] == 0x4b
+            && tail_buf[i + 2] == 0x05
+            && tail_buf[i + 3] == 0x06
+        {
             eocd_pos = Some(i);
             break;
         }
     }
 
-    let eocd_idx = eocd_pos.ok_or_else(|| IoError::new(IoErrorKind::InvalidData, "Could not find EOCD"))?;
+    let eocd_idx =
+        eocd_pos.ok_or_else(|| IoError::new(IoErrorKind::InvalidData, "Could not find EOCD"))?;
     let eocd_slice = &tail_buf[eocd_idx..];
 
     let mut total_entries = u16::from_le_bytes([eocd_slice[10], eocd_slice[11]]) as usize;
-    let mut cd_size = u32::from_le_bytes([eocd_slice[12], eocd_slice[13], eocd_slice[14], eocd_slice[15]]) as u64;
-    let mut cd_offset = u32::from_le_bytes([eocd_slice[16], eocd_slice[17], eocd_slice[18], eocd_slice[19]]) as u64;
+    let mut cd_size = u32::from_le_bytes([
+        eocd_slice[12],
+        eocd_slice[13],
+        eocd_slice[14],
+        eocd_slice[15],
+    ]) as u64;
+    let mut cd_offset = u32::from_le_bytes([
+        eocd_slice[16],
+        eocd_slice[17],
+        eocd_slice[18],
+        eocd_slice[19],
+    ]) as u64;
 
     // Check for ZIP64 EOCD Locator (PK\x06\x07)
-    if (total_entries == 0xFFFF || cd_offset == 0xFFFFFFFF || cd_size == 0xFFFFFFFF) && eocd_idx >= 20 {
+    if (total_entries == 0xFFFF || cd_offset == 0xFFFFFFFF || cd_size == 0xFFFFFFFF)
+        && eocd_idx >= 20
+    {
         let loc_idx = eocd_idx - 20;
-        if tail_buf[loc_idx] == 0x50 && tail_buf[loc_idx + 1] == 0x4b && tail_buf[loc_idx + 2] == 0x06 && tail_buf[loc_idx + 3] == 0x07 {
+        if tail_buf[loc_idx] == 0x50
+            && tail_buf[loc_idx + 1] == 0x4b
+            && tail_buf[loc_idx + 2] == 0x06
+            && tail_buf[loc_idx + 3] == 0x07
+        {
             let zip64_eocd_off = u64::from_le_bytes([
-                tail_buf[loc_idx + 8], tail_buf[loc_idx + 9], tail_buf[loc_idx + 10], tail_buf[loc_idx + 11],
-                tail_buf[loc_idx + 12], tail_buf[loc_idx + 13], tail_buf[loc_idx + 14], tail_buf[loc_idx + 15],
+                tail_buf[loc_idx + 8],
+                tail_buf[loc_idx + 9],
+                tail_buf[loc_idx + 10],
+                tail_buf[loc_idx + 11],
+                tail_buf[loc_idx + 12],
+                tail_buf[loc_idx + 13],
+                tail_buf[loc_idx + 14],
+                tail_buf[loc_idx + 15],
             ]);
             reader.seek(SeekFrom::Start(zip64_eocd_off))?;
             let mut zip64_buf = [0u8; 56];
             reader.read_exact(&mut zip64_buf)?;
             if &zip64_buf[0..4] == &[0x50, 0x4b, 0x06, 0x06] {
                 total_entries = u64::from_le_bytes([
-                    zip64_buf[32], zip64_buf[33], zip64_buf[34], zip64_buf[35],
-                    zip64_buf[36], zip64_buf[37], zip64_buf[38], zip64_buf[39],
+                    zip64_buf[32],
+                    zip64_buf[33],
+                    zip64_buf[34],
+                    zip64_buf[35],
+                    zip64_buf[36],
+                    zip64_buf[37],
+                    zip64_buf[38],
+                    zip64_buf[39],
                 ]) as usize;
                 cd_size = u64::from_le_bytes([
-                    zip64_buf[40], zip64_buf[41], zip64_buf[42], zip64_buf[43],
-                    zip64_buf[44], zip64_buf[45], zip64_buf[46], zip64_buf[47],
+                    zip64_buf[40],
+                    zip64_buf[41],
+                    zip64_buf[42],
+                    zip64_buf[43],
+                    zip64_buf[44],
+                    zip64_buf[45],
+                    zip64_buf[46],
+                    zip64_buf[47],
                 ]);
                 cd_offset = u64::from_le_bytes([
-                    zip64_buf[48], zip64_buf[49], zip64_buf[50], zip64_buf[51],
-                    zip64_buf[52], zip64_buf[53], zip64_buf[54], zip64_buf[55],
+                    zip64_buf[48],
+                    zip64_buf[49],
+                    zip64_buf[50],
+                    zip64_buf[51],
+                    zip64_buf[52],
+                    zip64_buf[53],
+                    zip64_buf[54],
+                    zip64_buf[55],
                 ]);
             }
         }
     }
 
     if cd_offset + cd_size > doc_size {
-        return Err(IoError::new(IoErrorKind::InvalidData, "invalid central directory offset"));
+        return Err(IoError::new(
+            IoErrorKind::InvalidData,
+            "invalid central directory offset",
+        ));
     }
 
     // Read Central Directory in memory (located at tail end)
@@ -300,13 +357,34 @@ fn parse_central_directory_fast(
         }
 
         let method = u16::from_le_bytes([cd_buf[cursor + 10], cd_buf[cursor + 11]]);
-        let mut comp_sz = u32::from_le_bytes([cd_buf[cursor + 20], cd_buf[cursor + 21], cd_buf[cursor + 22], cd_buf[cursor + 23]]) as u64;
-        let mut uncomp_sz = u32::from_le_bytes([cd_buf[cursor + 24], cd_buf[cursor + 25], cd_buf[cursor + 26], cd_buf[cursor + 27]]) as u64;
+        let flags = u16::from_le_bytes([cd_buf[cursor + 8], cd_buf[cursor + 9]]);
+        let mut comp_sz = u32::from_le_bytes([
+            cd_buf[cursor + 20],
+            cd_buf[cursor + 21],
+            cd_buf[cursor + 22],
+            cd_buf[cursor + 23],
+        ]) as u64;
+        let mut uncomp_sz = u32::from_le_bytes([
+            cd_buf[cursor + 24],
+            cd_buf[cursor + 25],
+            cd_buf[cursor + 26],
+            cd_buf[cursor + 27],
+        ]) as u64;
         let name_len = u16::from_le_bytes([cd_buf[cursor + 28], cd_buf[cursor + 29]]) as usize;
         let extra_len = u16::from_le_bytes([cd_buf[cursor + 30], cd_buf[cursor + 31]]) as usize;
         let comment_len = u16::from_le_bytes([cd_buf[cursor + 32], cd_buf[cursor + 33]]) as usize;
-        let ext_attr = u32::from_le_bytes([cd_buf[cursor + 38], cd_buf[cursor + 39], cd_buf[cursor + 40], cd_buf[cursor + 41]]);
-        let mut local_off = u32::from_le_bytes([cd_buf[cursor + 42], cd_buf[cursor + 43], cd_buf[cursor + 44], cd_buf[cursor + 45]]) as u64;
+        let ext_attr = u32::from_le_bytes([
+            cd_buf[cursor + 38],
+            cd_buf[cursor + 39],
+            cd_buf[cursor + 40],
+            cd_buf[cursor + 41],
+        ]);
+        let mut local_off = u32::from_le_bytes([
+            cd_buf[cursor + 42],
+            cd_buf[cursor + 43],
+            cd_buf[cursor + 44],
+            cd_buf[cursor + 45],
+        ]) as u64;
 
         let header_end = cursor + 46;
         if header_end + name_len + extra_len + comment_len > cd_buf.len() {
@@ -323,19 +401,26 @@ fn parse_central_directory_fast(
             let mut ex_idx = 0;
             while ex_idx + 4 <= extra_bytes.len() {
                 let tag = u16::from_le_bytes([extra_bytes[ex_idx], extra_bytes[ex_idx + 1]]);
-                let sz = u16::from_le_bytes([extra_bytes[ex_idx + 2], extra_bytes[ex_idx + 3]]) as usize;
+                let sz =
+                    u16::from_le_bytes([extra_bytes[ex_idx + 2], extra_bytes[ex_idx + 3]]) as usize;
                 if tag == 0x0001 && ex_idx + 4 + sz <= extra_bytes.len() {
                     let mut data_pos = ex_idx + 4;
                     if uncomp_sz == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
-                        uncomp_sz = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                        uncomp_sz = u64::from_le_bytes(
+                            extra_bytes[data_pos..data_pos + 8].try_into().unwrap(),
+                        );
                         data_pos += 8;
                     }
                     if comp_sz == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
-                        comp_sz = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                        comp_sz = u64::from_le_bytes(
+                            extra_bytes[data_pos..data_pos + 8].try_into().unwrap(),
+                        );
                         data_pos += 8;
                     }
                     if local_off == 0xFFFFFFFF && data_pos + 8 <= extra_bytes.len() {
-                        local_off = u64::from_le_bytes(extra_bytes[data_pos..data_pos + 8].try_into().unwrap());
+                        local_off = u64::from_le_bytes(
+                            extra_bytes[data_pos..data_pos + 8].try_into().unwrap(),
+                        );
                     }
                     break;
                 }
@@ -343,7 +428,10 @@ fn parse_central_directory_fast(
             }
         }
 
-        let is_dir = (ext_attr & 0x10) != 0 || name.ends_with('/') || raw_name.ends_with('/') || ((ext_attr >> 16) & 0o040000 != 0);
+        let is_dir = (ext_attr & 0x10) != 0
+            || name.ends_with('/')
+            || raw_name.ends_with('/')
+            || ((ext_attr >> 16) & 0o040000 != 0);
 
         if !is_dir {
             total_uncompressed = total_uncompressed.saturating_add(uncomp_sz);
@@ -355,6 +443,7 @@ fn parse_central_directory_fast(
             compressed_size: comp_sz,
             is_dir,
             method,
+            encrypted: (flags & 1) != 0,
             local_header_offset: local_off,
         });
 
@@ -390,7 +479,9 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
     };
     session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
     let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
-    let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
+    let sessions_dir = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;
 
@@ -457,6 +548,7 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
                     compressed_size: 0,
                     is_dir,
                     method: 0,
+                    encrypted: false,
                     local_header_offset: 0,
                 });
             }
@@ -476,7 +568,12 @@ pub async fn list_zip_sparse(opts: SparseZipOpts) -> Result<ZipListResult, TgErr
         })
     })
     .await
-    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?;
+    .map_err(|e| {
+        TgError::new(
+            TgErrorCode::Internal,
+            format!("Alur tugas ZIP terputus: {e}"),
+        )
+    })?;
 
     if let Ok(ref valid_res) = res {
         set_cached_catalog(cache_key, valid_res.clone());
@@ -524,7 +621,10 @@ fn preview_zip_entry_direct(
     reader.read_exact(&mut header_buf)?;
 
     if &header_buf[0..4] != &[0x50, 0x4b, 0x03, 0x04] {
-        return Err(IoError::new(IoErrorKind::InvalidData, "Invalid Local Header signature"));
+        return Err(IoError::new(
+            IoErrorKind::InvalidData,
+            "Invalid Local Header signature",
+        ));
     }
 
     let flags = u16::from_le_bytes([header_buf[6], header_buf[7]]);
@@ -591,9 +691,13 @@ pub async fn preview_zip_entry_sparse(
         None => list_zip_sparse(opts.clone()).await?,
     };
 
-    let target_entry = catalog.entries.iter().find(|e| {
-        e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
-    }).cloned();
+    let target_entry = catalog
+        .entries
+        .iter()
+        .find(|e| {
+            e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
+        })
+        .cloned();
 
     let rt = runtime()?;
     let identity = TelegramIdentity {
@@ -603,7 +707,9 @@ pub async fn preview_zip_entry_sparse(
     };
     session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
     let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
-    let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
+    let sessions_dir = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;
 
@@ -639,7 +745,9 @@ pub async fn preview_zip_entry_sparse(
 
         // FAST DIRECT PATH: Read single entry directly from local_header_offset without tail prefetch & without archive re-scan
         if let Some(ref entry) = target_entry {
-            if let Ok(prev) = preview_zip_entry_direct(&mut sparse_reader, entry, password.as_deref()) {
+            if let Ok(prev) =
+                preview_zip_entry_direct(&mut sparse_reader, entry, password.as_deref())
+            {
                 let _ = persist_memory_session(&session, &session_path);
                 return Ok(prev);
             }
@@ -650,7 +758,10 @@ pub async fn preview_zip_entry_sparse(
         let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Could not find EOCD") {
-                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+                TgError::new(
+                    TgErrorCode::Io,
+                    "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.",
+                )
             } else {
                 TgError::new(TgErrorCode::Io, msg)
             }
@@ -668,7 +779,12 @@ pub async fn preview_zip_entry_sparse(
         Ok(prev)
     })
     .await
-    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
+    .map_err(|e| {
+        TgError::new(
+            TgErrorCode::Internal,
+            format!("Alur tugas ZIP terputus: {e}"),
+        )
+    })?
 }
 
 fn extract_zip_entry_direct(
@@ -689,7 +805,10 @@ fn extract_zip_entry_direct(
     reader.read_exact(&mut header_buf)?;
 
     if &header_buf[0..4] != &[0x50, 0x4b, 0x03, 0x04] {
-        return Err(IoError::new(IoErrorKind::InvalidData, "Invalid Local Header signature"));
+        return Err(IoError::new(
+            IoErrorKind::InvalidData,
+            "Invalid Local Header signature",
+        ));
     }
 
     let flags = u16::from_le_bytes([header_buf[6], header_buf[7]]);
@@ -748,9 +867,13 @@ pub async fn extract_zip_entry_sparse(
         None => list_zip_sparse(opts.clone()).await?,
     };
 
-    let target_entry = catalog.entries.iter().find(|e| {
-        e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
-    }).cloned();
+    let target_entry = catalog
+        .entries
+        .iter()
+        .find(|e| {
+            e.name == entry_name || sanitize_zip_path(&e.name) == sanitize_zip_path(&entry_name)
+        })
+        .cloned();
 
     let rt = runtime()?;
     let identity = TelegramIdentity {
@@ -760,7 +883,9 @@ pub async fn extract_zip_entry_sparse(
     };
     session_rate::wait_if_flooded_capped(&opts.session, std::time::Duration::from_secs(35)).await?;
     let _media_slot = session_rate::acquire_media_slot(&opts.session).await?;
-    let sessions_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("sessions");
+    let sessions_dir = std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("sessions");
     let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
     let peer = resolve_peer(&live.client, &opts.chat_id).await?;
 
@@ -796,7 +921,9 @@ pub async fn extract_zip_entry_sparse(
 
         // FAST DIRECT PATH: Extract single entry directly from local_header_offset without tail prefetch
         if let Some(ref entry) = target_entry {
-            if let Ok(bytes_written) = extract_zip_entry_direct(&mut sparse_reader, entry, &dest_path, password.as_deref()) {
+            if let Ok(bytes_written) =
+                extract_zip_entry_direct(&mut sparse_reader, entry, &dest_path, password.as_deref())
+            {
                 let _ = persist_memory_session(&session, &session_path);
                 return Ok(bytes_written);
             }
@@ -807,7 +934,10 @@ pub async fn extract_zip_entry_sparse(
         let archive = zip::ZipArchive::new(&mut sparse_reader).map_err(|e| {
             let msg = e.to_string();
             if msg.contains("Could not find EOCD") {
-                TgError::new(TgErrorCode::Io, "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.")
+                TgError::new(
+                    TgErrorCode::Io,
+                    "Indeks ZIP tidak valid atau penanda EOCD tidak ditemukan.",
+                )
             } else {
                 TgError::new(TgErrorCode::Io, msg)
             }
@@ -825,5 +955,10 @@ pub async fn extract_zip_entry_sparse(
         Ok(bytes_written)
     })
     .await
-    .map_err(|e| TgError::new(TgErrorCode::Internal, format!("Alur tugas ZIP terputus: {e}")))?
+    .map_err(|e| {
+        TgError::new(
+            TgErrorCode::Internal,
+            format!("Alur tugas ZIP terputus: {e}"),
+        )
+    })?
 }

@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use grammers_client::message::InputMessage;
 use grammers_client::client::PasswordToken;
+use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::path_policy;
-use crate::core::session_rate;
 use crate::core::session_guard;
+use crate::core::session_rate;
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
 use crate::core::telethon_session_import::{
     grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
     read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
-};
-use crate::core::telegram_ops::{
-    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
 use crate::core::tg_log;
@@ -80,7 +80,11 @@ pub fn upload_album_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -96,11 +100,8 @@ pub fn upload_album_blocking(
                         .and_then(|s| s.to_str())
                         .unwrap_or("")
                         .to_ascii_lowercase();
-                    let mut im = InputMedia::new().caption(if i == 0 {
-                        cap.clone()
-                    } else {
-                        String::new()
-                    });
+                    let mut im =
+                        InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
                     // Forum topic: only first media carries reply_to
                     if i == 0 {
                         im = im.reply_to(reply_to);
@@ -199,7 +200,10 @@ pub fn upload_file_blocking_topic(
     if !path_buf.is_file() {
         return Err(TgError::new(
             TgErrorCode::Io,
-            format!("file not found: {}", path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")),
+            format!(
+                "file not found: {}",
+                path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+            ),
         ));
     }
     let size = std::fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
@@ -211,7 +215,11 @@ pub fn upload_file_blocking_topic(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
@@ -222,10 +230,7 @@ pub fn upload_file_blocking_topic(
                         "chat={} size={} file={} as_document={} topic={:?}",
                         chat,
                         size,
-                        path_buf
-                            .file_name()
-                            .and_then(|s| s.to_str())
-                            .unwrap_or("?"),
+                        path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?"),
                         as_document,
                         reply_to
                     ),
@@ -262,11 +267,7 @@ pub fn upload_file_blocking_topic(
                         // Auto-retry once on short flood wait
                         if let Some(secs) = mapped.flood_wait_secs() {
                             if secs <= 45 {
-                                tg_log::warn(
-                                    BACKEND,
-                                    "flood_wait_sleep",
-                                    format!("secs={secs}"),
-                                );
+                                tg_log::warn(BACKEND, "flood_wait_sleep", format!("secs={secs}"));
                                 tokio::time::sleep(Duration::from_secs(secs as u64 + 1)).await;
                                 // re-upload not needed — need new upload? Telegram may expire;
                                 // for simplicity fail with flood after wait on second path
@@ -325,9 +326,8 @@ pub fn download_file_blocking(
         .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
     let dest = PathBuf::from(dest_path);
     if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            TgError::new(TgErrorCode::Io, format!("create dest dir: {e}"))
-        })?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| TgError::new(TgErrorCode::Io, format!("create dest dir: {e}")))?;
     }
     let rt = runtime()?;
     let chat = chat_id.to_string();

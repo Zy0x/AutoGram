@@ -38,7 +38,11 @@ pub fn download_remote_url(url: &str) -> Result<PathBuf, String> {
     if !is_remote_url(url) {
         return Err("not a remote URL".into());
     }
-    tg_log::info(BACKEND, "remote_download_start", url.chars().take(80).collect::<String>());
+    tg_log::info(
+        BACKEND,
+        "remote_download_start",
+        url.chars().take(80).collect::<String>(),
+    );
 
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(std::time::Duration::from_secs(15))
@@ -64,7 +68,9 @@ pub fn download_remote_url(url: &str) -> Result<PathBuf, String> {
     let mut buf = [0u8; 64 * 1024];
     let mut written: usize = 0;
     loop {
-        let n = reader.read(&mut buf).map_err(|e| format!("read body: {e}"))?;
+        let n = reader
+            .read(&mut buf)
+            .map_err(|e| format!("read body: {e}"))?;
         if n == 0 {
             break;
         }
@@ -241,7 +247,11 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
             }
         }
         Ok(s) => {
-            tg_log::warn(BACKEND, "reencode_fail", format!("preset={mode} status={s}"));
+            tg_log::warn(
+                BACKEND,
+                "reencode_fail",
+                format!("preset={mode} status={s}"),
+            );
         }
         Err(e) => {
             tg_log::warn(BACKEND, "reencode_spawn", e.to_string());

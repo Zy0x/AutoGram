@@ -13,6 +13,8 @@ import {
   ChevronRight,
   FolderInput,
   X,
+  Archive,
+  CornerUpLeft,
 } from 'lucide-react';
 import { Category } from './zipUtils';
 
@@ -30,6 +32,8 @@ type ZipHeaderToolbarProps = {
   hasNext?: boolean;
   onPrev?: () => void;
   onNext?: () => void;
+  nestedDepth?: number;
+  onBackNested?: () => void;
 };
 
 export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
@@ -46,14 +50,17 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
   hasNext,
   onPrev,
   onNext,
+  nestedDepth = 0,
+  onBackNested,
 }) => {
   const { t } = useTranslation();
 
   const categories: { id: Category; label: string; icon: React.ReactNode }[] = [
-    { id: 'all', label: t('speedtest.zip_cat_all', 'All Files'), icon: <File size={14} /> },
-    { id: 'image', label: t('speedtest.zip_cat_image', 'Images'), icon: <ImageIcon size={14} style={{ color: '#34d399' }} /> },
-    { id: 'media', label: t('speedtest.zip_cat_media', 'Media'), icon: <Film size={14} style={{ color: '#818cf8' }} /> },
-    { id: 'doc', label: t('speedtest.zip_cat_doc', 'Docs & Code'), icon: <FileText size={14} style={{ color: '#fbbf24' }} /> },
+    { id: 'all', label: t('speedtest.zip_cat_all'), icon: <File size={14} /> },
+    { id: 'image', label: t('speedtest.zip_cat_image'), icon: <ImageIcon size={14} /> },
+    { id: 'media', label: t('speedtest.zip_cat_media'), icon: <Film size={14} /> },
+    { id: 'doc', label: t('speedtest.zip_cat_doc'), icon: <FileText size={14} /> },
+    { id: 'archive', label: t('speedtest.zip_cat_archive'), icon: <Archive size={14} /> },
   ];
 
   return (
@@ -69,7 +76,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                   onClick={onPrev}
                   disabled={!hasPrev}
                   className="dzb-nav-btn"
-                  title="Previous Archive"
+                  title={t('speedtest.zip_previous_archive')}
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -80,7 +87,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
                   onClick={onNext}
                   disabled={!hasNext}
                   className="dzb-nav-btn"
-                  title="Next Archive"
+                  title={t('speedtest.zip_next_archive')}
                 >
                   <ChevronRight size={18} />
                 </button>
@@ -88,17 +95,25 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             </div>
           )}
 
-          <h4 className="dzb-archive-name" title={archiveName || 'Archive Explorer'}>
-            {archiveName || 'Archive Explorer'}
+          {onBackNested && (
+            <button type="button" onClick={onBackNested} className="dzb-nav-btn" title={t('speedtest.zip_back_parent')}>
+              <CornerUpLeft size={17} />
+            </button>
+          )}
+
+          <h4 className="dzb-archive-name" title={archiveName || t('speedtest.zip_archive_explorer')}>
+            {archiveName || t('speedtest.zip_archive_explorer')}
           </h4>
+
+          {nestedDepth > 0 && <span className="dzb-depth-badge">{t('speedtest.zip_nested_depth', { count: nestedDepth })}</span>}
 
           {isPasswordProtected ? (
             <span className="dzb-badge-protected">
-              <Lock size={12} /> {t('speedtest.zip_protected', 'Protected')}
+              <Lock size={12} /> {t('speedtest.zip_protected')}
             </span>
           ) : (
             <span className="dzb-badge-unlocked">
-              <Unlock size={12} /> {t('speedtest.zip_unlocked', 'Unlocked')}
+              <Unlock size={12} /> {t('speedtest.zip_unlocked')}
             </span>
           )}
         </div>
@@ -112,7 +127,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               className="dzb-btn-primary"
             >
               <FolderInput size={16} />
-              <span>{t('speedtest.zip_extract_count', { count: selectedCount, defaultValue: `Extract (${selectedCount})` })}</span>
+              <span>{t('speedtest.zip_extract_count', { count: selectedCount })}</span>
             </button>
           )}
 
@@ -123,7 +138,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               className="dzb-btn-secondary"
             >
               <Download size={16} />
-              <span>{t('speedtest.zip_save_archive', 'Save Archive')}</span>
+              <span>{t('speedtest.zip_save_archive')}</span>
             </button>
           )}
         </div>
@@ -137,7 +152,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={t('speedtest.ph_search_zip', 'Search zip entries...')}
+            placeholder={t('speedtest.ph_search_zip')}
             className="dzb-search-input"
           />
           {searchQuery && (
@@ -145,7 +160,7 @@ export const ZipHeaderToolbar: React.FC<ZipHeaderToolbarProps> = ({
               type="button"
               onClick={() => onSearchChange('')}
               className="dzb-search-clear"
-              title="Clear search"
+              title={t('speedtest.zip_clear_search')}
             >
               <X size={14} />
             </button>

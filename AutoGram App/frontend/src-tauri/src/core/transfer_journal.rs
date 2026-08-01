@@ -85,7 +85,11 @@ impl TransferJournal {
 
     fn sanitize_value(key: &str, val: Value) -> Value {
         let low = key.to_lowercase();
-        if low.contains("session") || low.contains("api_hash") || low.contains("auth_key") || low.contains("password") {
+        if low.contains("session")
+            || low.contains("api_hash")
+            || low.contains("auth_key")
+            || low.contains("password")
+        {
             return json!("***");
         }
         if low.contains("caption") || low.contains("thumbnail_data") {
@@ -131,7 +135,11 @@ impl TransferJournal {
         }
 
         if let Ok(line) = serde_json::to_string(&record) {
-            if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&self.path) {
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&self.path)
+            {
                 let _ = writeln!(file, "{line}");
                 let _ = file.flush();
             }

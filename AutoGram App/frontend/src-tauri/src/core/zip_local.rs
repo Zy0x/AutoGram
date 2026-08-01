@@ -1,4 +1,5 @@
-//! Local ZIP list / single-entry extract (Rust). Telegram download stays Python.
+//! Local ZIP list / single-entry extract (Rust).
+//! Remote Telegram range access is provided by the Grammers sparse ZIP engine.
 
 use base64::Engine;
 use serde::Serialize;
@@ -20,6 +21,8 @@ pub struct ZipEntry {
     pub compressed_size: u64,
     pub is_dir: bool,
     pub method: u16,
+    #[serde(default)]
+    pub encrypted: bool,
     #[serde(default)]
     pub local_header_offset: u64,
 }
@@ -124,6 +127,7 @@ pub fn list_zip(path: &str) -> Result<ZipListResult, String> {
                 CompressionMethod::Zstd => 93,
                 _ => 0,
             },
+            encrypted: f.encrypted(),
             local_header_offset: f.header_start(),
         });
     }
@@ -154,18 +158,38 @@ fn detect_media_mime(name: &str) -> Option<(&'static str, &'static str)> {
         Some(("image", "image/svg+xml"))
     } else if lower.ends_with(".bmp") {
         Some(("image", "image/bmp"))
+    } else if lower.ends_with(".avif") {
+        Some(("image", "image/avif"))
+    } else if lower.ends_with(".heic") || lower.ends_with(".heif") {
+        Some(("image", "image/heic"))
     } else if lower.ends_with(".ico") {
         Some(("image", "image/x-icon"))
     } else if lower.ends_with(".mp4") {
         Some(("video", "video/mp4"))
     } else if lower.ends_with(".webm") {
         Some(("video", "video/webm"))
+    } else if lower.ends_with(".mov") {
+        Some(("video", "video/quicktime"))
+    } else if lower.ends_with(".mkv") {
+        Some(("video", "video/x-matroska"))
+    } else if lower.ends_with(".avi") {
+        Some(("video", "video/x-msvideo"))
+    } else if lower.ends_with(".m4v") {
+        Some(("video", "video/x-m4v"))
     } else if lower.ends_with(".mp3") {
         Some(("audio", "audio/mpeg"))
     } else if lower.ends_with(".ogg") {
         Some(("audio", "audio/ogg"))
     } else if lower.ends_with(".wav") {
         Some(("audio", "audio/wav"))
+    } else if lower.ends_with(".m4a") || lower.ends_with(".aac") {
+        Some(("audio", "audio/mp4"))
+    } else if lower.ends_with(".flac") {
+        Some(("audio", "audio/flac"))
+    } else if lower.ends_with(".opus") {
+        Some(("audio", "audio/ogg"))
+    } else if lower.ends_with(".pdf") {
+        Some(("document", "application/pdf"))
     } else {
         None
     }
@@ -310,11 +334,7 @@ pub fn preview_zip_entry_from_archive<R: Read + Seek>(
 
 const MAX_INLINE_MEDIA_BASE64: usize = 15 * 1024 * 1024;
 
-pub fn build_zip_entry_preview(
-    entry_name: &str,
-    size: u64,
-    buf: Vec<u8>,
-) -> ZipEntryPreview {
+pub fn build_zip_entry_preview(entry_name: &str, size: u64, buf: Vec<u8>) -> ZipEntryPreview {
     let media_mime = detect_media_mime(entry_name);
     if let Some((_kind, mime)) = media_mime {
         if buf.len() > MAX_INLINE_MEDIA_BASE64 {
@@ -362,7 +382,11 @@ pub fn build_zip_entry_preview(
         size,
         text_content: text,
         data_url: None,
-        mime_type: if is_binary { None } else { Some("text/plain".into()) },
+        mime_type: if is_binary {
+            None
+        } else {
+            Some("text/plain".into())
+        },
         is_binary,
         encrypted: false,
         backend: "rust".into(),
@@ -430,7 +454,8 @@ pub fn extract_zip_entry_from_archive<R: Read + Seek>(
         let _ = std::fs::create_dir_all(parent);
     }
 
-    let mut out_file = File::create(&dst_p).map_err(|e| format!("Gagal membuat file tujuan: {e}"))?;
+    let mut out_file =
+        File::create(&dst_p).map_err(|e| format!("Gagal membuat file tujuan: {e}"))?;
     let bytes_written = std::io::copy(&mut entry_file, &mut out_file)
         .map_err(|e| format!("Gagal menulis data ekstraksi: {e}"))?;
 
@@ -459,6 +484,7 @@ pub fn extract_zip_entry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
     use std::io::Write;
     use zip::write::SimpleFileOptions;
     use zip::ZipWriter;
@@ -471,7 +497,8 @@ mod tests {
         {
             let f = File::create(&path).unwrap();
             let mut z = ZipWriter::new(f);
-            z.start_file("hi.txt", SimpleFileOptions::default()).unwrap();
+            z.start_file("hi.txt", SimpleFileOptions::default())
+                .unwrap();
             z.write_all(b"hello zip").unwrap();
             z.finish().unwrap();
         }
@@ -491,7 +518,8 @@ mod tests {
         {
             let f = File::create(&zip_path).unwrap();
             let mut z = ZipWriter::new(f);
-            z.start_file("data.txt", SimpleFileOptions::default()).unwrap();
+            z.start_file("data.txt", SimpleFileOptions::default())
+                .unwrap();
             z.write_all(b"extracted content").unwrap();
             z.finish().unwrap();
         }
@@ -505,5 +533,62 @@ mod tests {
         assert_eq!(bytes, 17);
         let read_back = std::fs::read_to_string(&target_path).unwrap();
         assert_eq!(read_back, "extracted content");
+    }
+
+    #[test]
+    fn previews_supported_media_without_a_second_file_read() {
+        let image = build_zip_entry_preview("cover.png", 8, b"\x89PNGdata".to_vec());
+        assert_eq!(image.mime_type.as_deref(), Some("image/png"));
+        assert!(image
+            .data_url
+            .as_deref()
+            .unwrap_or_default()
+            .starts_with("data:image/png;base64,"));
+
+        let pdf = build_zip_entry_preview("manual.pdf", 8, b"%PDF-1.7".to_vec());
+        assert_eq!(pdf.mime_type.as_deref(), Some("application/pdf"));
+        assert!(pdf
+            .data_url
+            .as_deref()
+            .unwrap_or_default()
+            .starts_with("data:application/pdf;base64,"));
+    }
+
+    #[test]
+    fn extracted_nested_zip_can_be_listed_independently() {
+        let mut inner_bytes = Cursor::new(Vec::new());
+        {
+            let mut inner = ZipWriter::new(&mut inner_bytes);
+            inner
+                .start_file("nested/readme.md", SimpleFileOptions::default())
+                .unwrap();
+            inner.write_all(b"nested payload").unwrap();
+            inner.finish().unwrap();
+        }
+
+        let dir = std::env::temp_dir().join("ag_zip_nested_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let outer_path = dir.join("outer.zip");
+        let extracted_path = dir.join("inner.zip");
+        {
+            let output = File::create(&outer_path).unwrap();
+            let mut outer = ZipWriter::new(output);
+            outer
+                .start_file("archives/inner.zip", SimpleFileOptions::default())
+                .unwrap();
+            outer.write_all(inner_bytes.get_ref()).unwrap();
+            outer.finish().unwrap();
+        }
+
+        extract_zip_entry(
+            outer_path.to_str().unwrap(),
+            "archives/inner.zip",
+            extracted_path.to_str().unwrap(),
+            None,
+        )
+        .unwrap();
+        let nested = list_zip(extracted_path.to_str().unwrap()).unwrap();
+        assert_eq!(nested.count, 1);
+        assert_eq!(nested.entries[0].name, "nested/readme.md");
     }
 }

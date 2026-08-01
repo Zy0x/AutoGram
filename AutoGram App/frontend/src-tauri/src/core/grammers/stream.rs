@@ -15,11 +15,14 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
-use super::ffmpeg::{extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg};
+use super::ffmpeg::{
+    extract_ffmpeg_frame_sync, find_ffmpeg_binary, is_fallback_black_card_bytes, unstrip_jpeg,
+};
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use super::thumbs::*;
 use crate::core::grammers_ops::{
-    disconnect_cached_session, obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
+    disconnect_cached_session, obtain_download_clients, obtain_live_client, persist_memory_session,
+    resolve_peer, runtime, with_client, with_pool_retry,
 };
 use crate::core::path_policy;
 use crate::core::session_rate;
@@ -49,7 +52,9 @@ pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
     }
     // 512 KB Alignment Boundary to prevent Telegram CDN offset shift / MP4 box corruption
     let aligned_offset = offset - (offset % (512 * 1024));
-    seek_requests().lock().insert(stream_id.to_string(), aligned_offset);
+    seek_requests()
+        .lock()
+        .insert(stream_id.to_string(), aligned_offset);
     true
 }
 
@@ -98,7 +103,6 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
     }
     hit
 }
-
 
 /// Find an existing full preview file for this chat+message (photo/doc reopen).
 fn find_cached_preview_file(pdir: &Path, chat_safe: &str, message_id: i64) -> Option<PathBuf> {
@@ -226,8 +230,6 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
     }
     None
 }
-
-
 
 fn to_data_url(bytes: &[u8]) -> Option<String> {
     if bytes.is_empty() {
@@ -472,7 +474,10 @@ fn log_raw_media_info(
         Media::Document(d) => {
             let is_vid = d.raw.video;
             let is_img = mime.starts_with("image/");
-            let attrs = format!("is_video_attr: {is_vid}, is_image_mime: {is_img}, name: {:?}", d.name());
+            let attrs = format!(
+                "is_video_attr: {is_vid}, is_image_mime: {is_img}, name: {:?}",
+                d.name()
+            );
             ("Media::Document", attrs)
         }
         _ => ("Media::Unknown", String::new()),
@@ -805,6 +810,69 @@ fn start_preview_stream_inner(
         }
 
         // Documents: download once, parse text/pdf/zip locally — keep shared pool alive.
+        // Code and plain-text preview: fetch a bounded prefix directly from
+        // Grammers. This avoids a full disk download with four long retries
+        // before the first `.txt`, `.md`, `.mdx` or `.json` screen can paint.
+        if !is_image
+            && !is_video
+            && !is_audio
+            && crate::core::doc_preview::is_plain_text_document_name(&name)
+        {
+            const TEXT_PREVIEW_BYTES: usize = 2 * 1024 * 1024;
+            let session_for_rate = session_name.clone();
+            let sample = tokio::time::timeout(Duration::from_secs(15), async {
+                let _slot = session_rate::acquire_media_slot(&session_for_rate).await?;
+                let mut iter = live.client.iter_download(&media).chunk_size(256 * 1024);
+                let mut bytes = Vec::with_capacity(
+                    usize::try_from(size.min(TEXT_PREVIEW_BYTES as u64)).unwrap_or(0),
+                );
+                while bytes.len() < TEXT_PREVIEW_BYTES {
+                    match iter.next().await {
+                        Ok(Some(chunk)) if !chunk.is_empty() => {
+                            let remaining = TEXT_PREVIEW_BYTES - bytes.len();
+                            bytes.extend_from_slice(&chunk[..chunk.len().min(remaining)]);
+                            if bytes.len() as u64 >= size {
+                                break;
+                            }
+                        }
+                        Ok(Some(_)) | Ok(None) => break,
+                        Err(error) => return Err(map_invocation(&error)),
+                    }
+                }
+                Ok::<Vec<u8>, TgError>(bytes)
+            })
+            .await
+            .map_err(|_| {
+                TgError::new(
+                    TgErrorCode::Timeout,
+                    "Telegram text preview timed out after 15 seconds",
+                )
+            })??;
+            let text_content =
+                crate::core::doc_preview::preview_text_sample(&name, &sample, size);
+            let _ = persist_memory_session(&live.session, &live.session_path);
+            return Ok(PreviewStreamResult {
+                status: "success".into(),
+                stream_id: String::new(),
+                stream_url: String::new(),
+                path: String::new(),
+                mime_type: mime,
+                size,
+                data_url: None,
+                text_content: Some(text_content),
+                preview_kind: "text".into(),
+                streaming: false,
+                backend: BACKEND.into(),
+                message: "text preview fetched by bounded Grammers range".into(),
+                source: "text_inline".into(),
+                is_fallback: false,
+                width: None,
+                height: None,
+                byte_size: sample.len() as u64,
+                full_download_error: None,
+            });
+        }
+
         if !is_image && !is_video && !is_audio && size <= max_doc_size {
             let safe_name: String = name
                 .chars()
@@ -1941,7 +2009,11 @@ pub fn warm_preview_head_blocking(
     rt.block_on(async {
         let live = obtain_live_client(&sessions_dir, &identity, true, false).await?;
         let client = &live.client;
-        if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+        if !client
+            .is_authorized()
+            .await
+            .map_err(|e| map_invocation(&e))?
+        {
             return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
         }
         let peer = resolve_peer(client, &chat).await?;
@@ -1953,13 +2025,12 @@ pub fn warm_preview_head_blocking(
                 session_rate::note_error(&identity.session, &err);
                 err
             })?;
-        let msg = msgs
-            .into_iter()
-            .flatten()
-            .next()
-            .ok_or_else(|| {
-                TgError::new(TgErrorCode::PeerNotFound, format!("message {message_id} not found"))
-            })?;
+        let msg = msgs.into_iter().flatten().next().ok_or_else(|| {
+            TgError::new(
+                TgErrorCode::PeerNotFound,
+                format!("message {message_id} not found"),
+            )
+        })?;
         let media = msg
             .media()
             .ok_or_else(|| TgError::new(TgErrorCode::PeerNotFound, "no media"))?;
@@ -2037,7 +2108,10 @@ mod tests {
 
     #[test]
     fn seek_islands_resume_at_first_gap() {
-        assert_eq!(first_missing_offset(&[(0, 512), (1024, 2048)], 2048), Some(512));
+        assert_eq!(
+            first_missing_offset(&[(0, 512), (1024, 2048)], 2048),
+            Some(512)
+        );
         assert_eq!(first_missing_offset(&[(1024, 2048), (0, 1024)], 2048), None);
     }
 }

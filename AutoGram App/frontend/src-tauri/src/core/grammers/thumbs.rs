@@ -15,13 +15,17 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 
-use super::ffmpeg::{extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary, get_ffmpeg_capabilities, is_fallback_black_card_bytes, unstrip_jpeg};
-use super::thumbnail_range_bridge::spawn_range_bridge;
+use super::ffmpeg::{
+    extract_ffmpeg_frame_from_url, extract_ffmpeg_frame_sync, find_ffmpeg_binary,
+    get_ffmpeg_capabilities, is_fallback_black_card_bytes, unstrip_jpeg,
+};
 use super::special_media_thumb;
+use super::thumbnail_range_bridge::spawn_range_bridge;
 
 use super::session::{cache_root, now_ms, preview_dir, thumb_dir, BACKEND};
 use crate::core::grammers_ops::{
-    obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime, with_client, with_pool_retry,
+    obtain_download_clients, obtain_live_client, persist_memory_session, resolve_peer, runtime,
+    with_client, with_pool_retry,
 };
 use crate::core::path_policy;
 use crate::core::session_rate;
@@ -72,10 +76,10 @@ pub fn to_data_url(bytes: &[u8]) -> Option<String> {
     Some(format!("data:{mime};base64,{}", B64.encode(bytes)))
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ThumbSinglePayload {
+    pub session: String,
     pub chat_id: String,
     pub message_id: i64,
     pub quality: String,
@@ -125,27 +129,57 @@ impl MediaPreviewClass {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedThumbRequestId {
+    pub account_id: Option<String>,
     pub peer_id: String,
+    pub topic_id: Option<String>,
     pub message_id: i32,
     pub generation: u64,
 }
 
 pub fn parse_thumb_request_id(req_id: &str) -> Option<ParsedThumbRequestId> {
     let parts: Vec<&str> = req_id.split(':').collect();
-    if parts.len() != 4 || parts[0] != "thumb" {
+    if parts.first().copied() != Some("thumb") {
         return None;
     }
-    let peer_id = parts[1].to_string();
-    let message_id = parts[2].parse::<i32>().ok()?;
-    if !parts[3].starts_with('g') {
+    let (account_id, peer_id, topic_id, message_raw, generation_raw) = match parts.as_slice() {
+        [_, peer, message, generation] => (None, *peer, None, *message, *generation),
+        [_, account, peer, topic, message, generation] => (
+            Some((*account).to_string()),
+            *peer,
+            Some((*topic).to_string()),
+            *message,
+            *generation,
+        ),
+        _ => return None,
+    };
+    let message_id = message_raw.parse::<i32>().ok()?;
+    if !generation_raw.starts_with('g') {
         return None;
     }
-    let generation = parts[3][1..].parse::<u64>().ok()?;
+    let generation = generation_raw[1..].parse::<u64>().ok()?;
     Some(ParsedThumbRequestId {
-        peer_id,
+        account_id,
+        peer_id: peer_id.to_string(),
+        topic_id,
         message_id,
         generation,
     })
+}
+
+fn thumb_item_cache_key(session: &str, peer_id: &str, message_id: i32, quality: &str) -> String {
+    let safe = |value: &str| -> String {
+        value
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect()
+    };
+    format!(
+        "v100_item_{}_{}_{}_{}",
+        safe(session),
+        safe(peer_id),
+        message_id,
+        quality
+    )
 }
 
 pub fn classify_message_media(msg: &grammers_client::message::Message) -> MediaPreviewClass {
@@ -154,48 +188,89 @@ pub fn classify_message_media(msg: &grammers_client::message::Message) -> MediaP
     };
     match media {
         Media::Photo(_) => MediaPreviewClass::TelegramPhoto,
-        Media::Document(ref doc) => {
-            let mime = doc.mime_type().unwrap_or("").to_lowercase();
-            let name = doc.name().unwrap_or("").to_lowercase();
-            let ext = std::path::Path::new(&name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            if mime.starts_with("image/")
-                || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
-            {
-                return MediaPreviewClass::ImageDocument;
+        Media::Document(ref doc) => classify_document_media(doc),
+        Media::WebPage(ref web_page) => match &web_page.raw.webpage {
+            tl::enums::WebPage::Page(page) => {
+                if page.photo.is_some() {
+                    MediaPreviewClass::TelegramPhoto
+                } else if let Some(document) = &page.document {
+                    let media_doc = tl::types::MessageMediaDocument {
+                        nopremium: false,
+                        spoiler: false,
+                        video: false,
+                        round: false,
+                        voice: false,
+                        video_cover: None,
+                        video_timestamp: None,
+                        document: Some(document.clone()),
+                        alt_documents: None,
+                        ttl_seconds: None,
+                    };
+                    let doc = grammers_client::media::Document::from_raw_media(media_doc);
+                    classify_document_media(&doc)
+                } else {
+                    MediaPreviewClass::Unknown
+                }
             }
-            let has_video_attr = doc.raw.video;
-            if has_video_attr {
-                return MediaPreviewClass::TelegramVideo;
-            }
-            if mime.starts_with("video/")
-                || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts")
-            {
-                return MediaPreviewClass::VideoDocument;
-            }
-            if mime == "application/pdf" || ext == "pdf" {
-                return MediaPreviewClass::PdfDocument;
-            }
-            if mime.starts_with("audio/") || matches!(ext.as_str(), "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus") {
-                return MediaPreviewClass::AudioDocument;
-            }
-            if matches!(ext.as_str(), "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz") {
-                return MediaPreviewClass::ArchiveDocument;
-            }
-            if matches!(ext.as_str(), "bin" | "exe" | "iso" | "dat" | "sys" | "dll")
-                || (mime == "application/octet-stream" && ext.is_empty())
-            {
-                return MediaPreviewClass::GenericDocument;
-            }
-            MediaPreviewClass::GenericDocument
-        }
+            _ => MediaPreviewClass::Unknown,
+        },
         Media::Sticker(_) => MediaPreviewClass::ImageDocument,
         _ => MediaPreviewClass::Unknown,
     }
+}
+
+fn classify_document_media(doc: &grammers_client::media::Document) -> MediaPreviewClass {
+    let mime = doc.mime_type().unwrap_or("").to_lowercase();
+    let name = doc.name().unwrap_or("").to_lowercase();
+    let ext = std::path::Path::new(&name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if mime.starts_with("image/")
+        || matches!(
+            ext.as_str(),
+            "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff"
+        )
+    {
+        return MediaPreviewClass::ImageDocument;
+    }
+    let has_video_attr = doc.raw.video;
+    if has_video_attr {
+        return MediaPreviewClass::TelegramVideo;
+    }
+    if mime.starts_with("video/")
+        || matches!(
+            ext.as_str(),
+            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts"
+        )
+    {
+        return MediaPreviewClass::VideoDocument;
+    }
+    if mime == "application/pdf" || ext == "pdf" {
+        return MediaPreviewClass::PdfDocument;
+    }
+    if mime.starts_with("audio/")
+        || matches!(
+            ext.as_str(),
+            "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus"
+        )
+    {
+        return MediaPreviewClass::AudioDocument;
+    }
+    if matches!(
+        ext.as_str(),
+        "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz"
+    ) {
+        return MediaPreviewClass::ArchiveDocument;
+    }
+    if matches!(ext.as_str(), "bin" | "exe" | "iso" | "dat" | "sys" | "dll")
+        || (mime == "application/octet-stream" && ext.is_empty())
+    {
+        return MediaPreviewClass::GenericDocument;
+    }
+    MediaPreviewClass::GenericDocument
 }
 
 pub fn classify_media_preview(mime: Option<&str>, name: Option<&str>) -> MediaPreviewClass {
@@ -208,22 +283,36 @@ pub fn classify_media_preview(mime: Option<&str>, name: Option<&str>) -> MediaPr
         .to_lowercase();
 
     if mime.starts_with("video/")
-        || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts")
+        || matches!(
+            ext.as_str(),
+            "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts"
+        )
     {
         return MediaPreviewClass::VideoDocument;
     }
     if mime.starts_with("image/")
-        || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
+        || matches!(
+            ext.as_str(),
+            "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff"
+        )
     {
         return MediaPreviewClass::ImageDocument;
     }
     if mime == "application/pdf" || ext == "pdf" {
         return MediaPreviewClass::PdfDocument;
     }
-    if mime.starts_with("audio/") || matches!(ext.as_str(), "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus") {
+    if mime.starts_with("audio/")
+        || matches!(
+            ext.as_str(),
+            "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus"
+        )
+    {
         return MediaPreviewClass::AudioDocument;
     }
-    if matches!(ext.as_str(), "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz") {
+    if matches!(
+        ext.as_str(),
+        "zip" | "rar" | "7z" | "tar" | "gz" | "bz2" | "xz"
+    ) {
         return MediaPreviewClass::ArchiveDocument;
     }
     if matches!(ext.as_str(), "bin" | "exe" | "iso" | "dat" | "sys" | "dll")
@@ -234,7 +323,11 @@ pub fn classify_media_preview(mime: Option<&str>, name: Option<&str>) -> MediaPr
     MediaPreviewClass::GenericDocument
 }
 
-pub fn is_ffmpeg_eligible_media(class: &MediaPreviewClass, mime: Option<&str>, name: Option<&str>) -> bool {
+pub fn is_ffmpeg_eligible_media(
+    class: &MediaPreviewClass,
+    mime: Option<&str>,
+    name: Option<&str>,
+) -> bool {
     if !class.is_video() {
         return false;
     }
@@ -250,8 +343,9 @@ pub fn is_ffmpeg_eligible_media(class: &MediaPreviewClass, mime: Option<&str>, n
         || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v")
 }
 
-static THUMB_TERMINAL_CACHE: std::sync::OnceLock<parking_lot::Mutex<std::collections::HashSet<String>>> =
-    std::sync::OnceLock::new();
+static THUMB_TERMINAL_CACHE: std::sync::OnceLock<
+    parking_lot::Mutex<std::collections::HashSet<String>>,
+> = std::sync::OnceLock::new();
 
 fn thumb_terminal_cache() -> &'static parking_lot::Mutex<std::collections::HashSet<String>> {
     THUMB_TERMINAL_CACHE.get_or_init(|| parking_lot::Mutex::new(std::collections::HashSet::new()))
@@ -322,7 +416,9 @@ pub fn prune_thumb_cache(t_dir: &Path) {
     }
     let t_dir_buf = t_dir.to_path_buf();
     std::thread::spawn(move || {
-        let Ok(entries) = std::fs::read_dir(&t_dir_buf) else { return; };
+        let Ok(entries) = std::fs::read_dir(&t_dir_buf) else {
+            return;
+        };
         let mut files: Vec<(PathBuf, SystemTime, u64)> = Vec::new();
 
         for entry in entries.flatten() {
@@ -402,7 +498,11 @@ pub fn pick_thumb(sizes: &[PhotoSize], quality: &str) -> Option<PhotoSize> {
 
     downloadable.sort_by_key(|s| {
         let (w, h) = photo_size_dimensions(s);
-        if w > 0 && h > 0 { w * h } else { s.size() as i32 }
+        if w > 0 && h > 0 {
+            w * h
+        } else {
+            s.size() as i32
+        }
     });
 
     if !downloadable.is_empty() {
@@ -574,7 +674,9 @@ pub fn stripped_thumb_data_url(media: &Media) -> Option<String> {
     None
 }
 
-pub fn tl_stripped_thumb_data_url(media: &grammers_client::tl::enums::MessageMedia) -> Option<String> {
+pub fn tl_stripped_thumb_data_url(
+    media: &grammers_client::tl::enums::MessageMedia,
+) -> Option<String> {
     use grammers_client::tl::enums::MessageMedia;
     match media {
         MessageMedia::Photo(p) => {
@@ -639,7 +741,10 @@ pub fn convert_avcc_to_annexb(raw_data: &[u8]) -> Vec<u8> {
 
 fn render_pdf_first_page_winrt(pdf_bytes: &[u8]) -> Option<Vec<u8>> {
     let temp_dir = std::env::temp_dir();
-    let rand_id = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let rand_id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
     let sample_pdf_path = temp_dir.join(format!("autogram_pdf_{rand_id}.pdf"));
     let out_jpg_path = temp_dir.join(format!("autogram_pdf_thumb_{rand_id}.jpg"));
 
@@ -747,7 +852,8 @@ async fn download_media_thumb(
     for s in downloadable {
         let (w, h) = photo_size_dimensions(s);
         let max_dim = w.max(h);
-        let sharp = quality.to_lowercase().contains("jelas") || quality.to_lowercase().contains("sharp");
+        let sharp =
+            quality.to_lowercase().contains("jelas") || quality.to_lowercase().contains("sharp");
         let is_doc_video = matches!(media, Media::Document(_));
         // For video documents only, skip tiny static layer (< 400px) so FFmpeg HD frame extraction can run
         if sharp && is_doc_video && max_dim > 0 && max_dim < 400 {
@@ -761,21 +867,31 @@ async fn download_media_thumb(
         }
     }
 
-    // Tier 4: Fallback for photos (download full photo payload up to 2MB)
-    if let Media::Photo(p) = media {
-        let max_bytes = 2048 * 1024;
-        let mut out = Vec::new();
-        let mut iter = client.iter_download(p).chunk_size(256 * 1024);
-        while let Some(chunk) = iter.next().await.map_err(|e| map_invocation(&e))? {
-            out.extend_from_slice(&chunk);
-            if out.len() >= max_bytes {
-                break;
-            }
-        }
-        if !out.is_empty() {
-            return Ok(out);
+    // Known video documents without a Telegram-native thumbnail must never run
+    // FFmpeg inline in the card batch. The background special-media queue owns
+    // bounded range extraction so the Tauri command can return immediately and
+    // scrolling/session switching remain responsive.
+    if let Media::Document(d) = media {
+        let mime = d.mime_type().unwrap_or("").to_ascii_lowercase();
+        let name = d.name().unwrap_or("").to_ascii_lowercase();
+        let known_video = d.raw.video
+            || mime.starts_with("video/")
+            || [
+                ".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".3gp", ".ts", ".flv", ".wmv",
+                ".m2ts", ".vob", ".ogv", ".3g2", ".f4v",
+            ]
+            .iter()
+            .any(|ext| name.ends_with(ext));
+        if known_video {
+            return Err(TgError::new(
+                TgErrorCode::Internal,
+                "VideoThumbnailDeferred",
+            ));
         }
     }
+
+    // Photos without a Telegram thumbnail deliberately stay on their smart
+    // placeholder. A card thumbnail must never trigger a full-photo download.
 
     // Tier 5: Fallback for Documents (videos/photos uploaded "as file" without Telegram static thumbs, PDFs, or custom documents like /-1004468191168/73)
     if let Media::Document(d) = media {
@@ -816,7 +932,8 @@ async fn download_media_thumb(
             || name.ends_with(".ico")
             || name.ends_with(".jfif");
 
-        let mut is_pdf = mime == "application/pdf" || mime.contains("pdf") || name.ends_with(".pdf");
+        let mut is_pdf =
+            mime == "application/pdf" || mime.contains("pdf") || name.ends_with(".pdf");
 
         let mut sample_bytes = Vec::new();
         let mut iter = client.iter_download(d).chunk_size(256 * 1024);
@@ -829,19 +946,29 @@ async fn download_media_thumb(
                 // Image magic bytes: JPEG (0xFF 0xD8), PNG (\x89PNG), WebP (RIFF...WEBP), GIF (GIF8), BMP (BM), HEIC/HEIF/AVIF
                 if (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8)
                     || (sample_bytes.starts_with(b"\x89PNG"))
-                    || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"WEBP")
+                    || (sample_bytes.starts_with(b"RIFF")
+                        && sample_bytes.len() >= 12
+                        && &sample_bytes[8..12] == b"WEBP")
                     || (sample_bytes.starts_with(b"GIF8"))
                     || (sample_bytes.starts_with(b"BM"))
-                    || (sample_bytes.len() >= 12 && &sample_bytes[4..8] == b"ftyp" && (
-                        &sample_bytes[8..12] == b"heic" || &sample_bytes[8..12] == b"heif" || &sample_bytes[8..12] == b"mif1" || &sample_bytes[8..12] == b"avif"
-                    ))
+                    || (sample_bytes.len() >= 12
+                        && &sample_bytes[4..8] == b"ftyp"
+                        && (&sample_bytes[8..12] == b"heic"
+                            || &sample_bytes[8..12] == b"heif"
+                            || &sample_bytes[8..12] == b"mif1"
+                            || &sample_bytes[8..12] == b"avif"))
                 {
                     is_image = true;
                 }
                 // Video magic bytes: MP4/MOV (ftyp/moov/mdat at offset 4), MKV/WebM (0x1A 0x45 0xDF 0xA3), AVI (RIFF...AVI ), TS (0x47), FLV (FLV), OGV (OggS), WMV (\x30\x26\xB2\x75)
-                else if (sample_bytes.len() >= 8 && (&sample_bytes[4..8] == b"ftyp" || &sample_bytes[4..8] == b"moov" || &sample_bytes[4..8] == b"mdat"))
+                else if (sample_bytes.len() >= 8
+                    && (&sample_bytes[4..8] == b"ftyp"
+                        || &sample_bytes[4..8] == b"moov"
+                        || &sample_bytes[4..8] == b"mdat"))
                     || (sample_bytes.starts_with(&[0x1A, 0x45, 0xDF, 0xA3]))
-                    || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"AVI ")
+                    || (sample_bytes.starts_with(b"RIFF")
+                        && sample_bytes.len() >= 12
+                        && &sample_bytes[8..12] == b"AVI ")
                     || (sample_bytes.starts_with(b"FLV"))
                     || (sample_bytes.starts_with(b"OggS"))
                     || (sample_bytes.starts_with(&[0x30, 0x26, 0xB2, 0x75]))
@@ -857,10 +984,11 @@ async fn download_media_thumb(
 
             if is_image {
                 let doc_size = d.size().unwrap_or(0) as usize;
-                let max_bytes = if doc_size > 0 && doc_size <= 8 * 1024 * 1024 {
+                const MAX_IMAGE_THUMB_SAMPLE: usize = 768 * 1024;
+                let max_bytes = if doc_size > 0 && doc_size <= MAX_IMAGE_THUMB_SAMPLE {
                     doc_size
                 } else {
-                    2048 * 1024
+                    MAX_IMAGE_THUMB_SAMPLE
                 };
                 while sample_bytes.len() < max_bytes {
                     if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
@@ -871,33 +999,43 @@ async fn download_media_thumb(
                 }
 
                 // Check if image format is a standard web image format (JPEG, PNG, WebP, GIF)
-                let is_standard_web_image = sample_bytes.len() >= 4 && (
-                    (sample_bytes[0] == 0xff && sample_bytes[1] == 0xd8 && sample_bytes[2] == 0xff)
+                let is_standard_web_image = sample_bytes.len() >= 4
+                    && ((sample_bytes[0] == 0xff
+                        && sample_bytes[1] == 0xd8
+                        && sample_bytes[2] == 0xff)
                         || sample_bytes.starts_with(b"\x89PNG")
-                        || (sample_bytes.starts_with(b"RIFF") && sample_bytes.len() >= 12 && &sample_bytes[8..12] == b"WEBP")
-                        || sample_bytes.starts_with(b"GIF8")
-                );
+                        || (sample_bytes.starts_with(b"RIFF")
+                            && sample_bytes.len() >= 12
+                            && &sample_bytes[8..12] == b"WEBP")
+                        || sample_bytes.starts_with(b"GIF8"));
 
-                if is_standard_web_image {
+                let sample_is_complete = doc_size > 0 && sample_bytes.len() >= doc_size;
+                if is_standard_web_image && sample_is_complete {
                     return Ok(sample_bytes);
                 }
 
                 // If sample_bytes is text/json (e.g. daemon file-json test.jpg), reject immediately without wasting CPU/FFmpeg
-                let is_text_or_json = sample_bytes.len() > 0 && (
-                    sample_bytes.starts_with(b"{") || sample_bytes.starts_with(b"[") || sample_bytes.starts_with(b"<!--") || sample_bytes.starts_with(b"http")
-                );
+                let is_text_or_json = sample_bytes.len() > 0
+                    && (sample_bytes.starts_with(b"{")
+                        || sample_bytes.starts_with(b"[")
+                        || sample_bytes.starts_with(b"<!--")
+                        || sample_bytes.starts_with(b"http"));
                 if is_text_or_json {
-                    let err_msg = format!("file '{name}' is text/json data despite image extension");
+                    let err_msg =
+                        format!("file '{name}' is text/json data despite image extension");
                     return Err(TgError::new(TgErrorCode::Internal, err_msg));
                 }
 
-                // Non-web image format (HEIC, TIFF, BMP, PSD, etc.): transcode to JPEG frame via FFmpeg
+                // Partial standard images and non-web formats get one bounded
+                // decode attempt; never continue downloading the full document.
                 let ext_hint = if name.contains('.') {
                     name.rsplit('.').next().unwrap_or("jpg")
                 } else {
                     "jpg"
                 };
-                if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint) {
+                if let Some(frame_bytes) =
+                    extract_ffmpeg_frame_sync(&sample_bytes, quality, ext_hint)
+                {
                     return Ok(frame_bytes);
                 }
 
@@ -944,15 +1082,24 @@ async fn download_media_thumb(
                         tg_log::warn(
                             BACKEND,
                             "thumb_result",
-                            format!("status=fallback reason=http_protocol_unavailable path='{}'", c.path.display()),
+                            format!(
+                                "status=fallback reason=http_protocol_unavailable path='{}'",
+                                c.path.display()
+                            ),
                         );
-                        return Err(TgError::new(TgErrorCode::Internal, "HttpProtocolUnavailable"));
+                        return Err(TgError::new(
+                            TgErrorCode::Internal,
+                            "HttpProtocolUnavailable",
+                        ));
                     }
                     if is_av1_video && c.av1_decoder.is_none() {
                         tg_log::warn(
                             BACKEND,
                             "thumb_result",
-                            format!("status=fallback reason=decoder_unavailable path='{}'", c.path.display()),
+                            format!(
+                                "status=fallback reason=decoder_unavailable path='{}'",
+                                c.path.display()
+                            ),
                         );
                         return Err(TgError::new(TgErrorCode::Internal, "DecoderUnavailable"));
                     }
@@ -966,17 +1113,45 @@ async fn download_media_thumb(
                 }
 
                 // Level 3 primary path: Seekable Local HTTP Range Bridge for FFmpeg
-                let saver = quality.to_lowercase().contains("hemat") || quality.to_lowercase().contains("saver");
-                let max_budget = if saver { 3 * 1024 * 1024 } else { 6 * 1024 * 1024 };
+                let saver = quality.to_lowercase().contains("hemat")
+                    || quality.to_lowercase().contains("saver");
+                let max_budget = if saver {
+                    3 * 1024 * 1024
+                } else {
+                    6 * 1024 * 1024
+                };
 
                 if doc_size > 0 {
                     if let Ok(rt) = tokio::runtime::Handle::try_current() {
-                        if let Some(bridge) = spawn_range_bridge(&rt, client.clone(), media.clone(), doc_size as u64, max_budget, "drive") {
-                            if let Some(frame_bytes) = extract_ffmpeg_frame_from_url(&bridge.url, quality, is_av1_video) {
+                        if let Some(bridge) = spawn_range_bridge(
+                            &rt,
+                            client.clone(),
+                            media.clone(),
+                            doc_size as u64,
+                            max_budget,
+                            "drive",
+                        ) {
+                            let probe_url = bridge.url.clone();
+                            let quality_owned = quality.to_string();
+                            let frame_result = tokio::time::timeout(
+                                Duration::from_secs(10),
+                                tokio::task::spawn_blocking(move || {
+                                    extract_ffmpeg_frame_from_url(
+                                        &probe_url,
+                                        &quality_owned,
+                                        is_av1_video,
+                                    )
+                                }),
+                            )
+                            .await;
+                            if let Ok(Ok(Some(frame_bytes))) = frame_result {
                                 tg_log::info(
                                     BACKEND,
                                     "thumb_result",
-                                    format!("status=ready source=ffmpeg_range bytes={}", frame_bytes.len()),
+                                    format!(
+                                        "status=ready source=ffmpeg_range bytes={}",
+                                        frame_bytes.len()
+                                    ),
                                 );
                                 return Ok(frame_bytes);
                             }
@@ -991,7 +1166,6 @@ async fn download_media_thumb(
                     "status=fallback reason=range_bridge_failed",
                 );
                 return Err(TgError::new(TgErrorCode::Internal, "RangeBridgeFailed"));
-
             } else {
                 // Check Office document embedded thumbnail (docProps/thumbnail.jpeg inside ZIP container)
                 if let Some(office_thumb) = extract_office_zip_thumbnail(&sample_bytes) {
@@ -1011,24 +1185,47 @@ async fn download_media_thumb(
 
                 let is_known_media_ext = matches!(
                     ext_hint,
-                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv" | "wmv"
-                        | "jpg" | "jpeg" | "png" | "webp" | "bmp" | "gif" | "heic" | "heif" | "avif" | "tiff"
+                    "mp4"
+                        | "mov"
+                        | "mkv"
+                        | "webm"
+                        | "avi"
+                        | "m4v"
+                        | "3gp"
+                        | "ts"
+                        | "flv"
+                        | "wmv"
+                        | "jpg"
+                        | "jpeg"
+                        | "png"
+                        | "webp"
+                        | "bmp"
+                        | "gif"
+                        | "heic"
+                        | "heif"
+                        | "avif"
+                        | "tiff"
                 );
 
-                let is_binary_archive_or_text = sample_bytes.len() > 0 && (
-                    sample_bytes.starts_with(b"{")
+                let is_binary_archive_or_text = sample_bytes.len() > 0
+                    && (sample_bytes.starts_with(b"{")
                         || sample_bytes.starts_with(b"[")
                         || sample_bytes.starts_with(b"<!--")
                         || sample_bytes.starts_with(b"http")
                         || sample_bytes.starts_with(b"PK\x03\x04")
                         || sample_bytes.starts_with(b"Rar!\x1a\x07")
                         || sample_bytes.starts_with(b"7z\xbc\xaf\x27\x1c")
-                        || !is_known_media_ext
-                );
+                        || !is_known_media_ext);
 
                 if !is_binary_archive_or_text {
-                    let test_ext = if ext_hint == "bin" || ext_hint == "dat" { "mp4" } else { ext_hint };
-                    if let Some(frame_bytes) = extract_ffmpeg_frame_sync(&sample_bytes, quality, test_ext) {
+                    let test_ext = if ext_hint == "bin" || ext_hint == "dat" {
+                        "mp4"
+                    } else {
+                        ext_hint
+                    };
+                    if let Some(frame_bytes) =
+                        extract_ffmpeg_frame_sync(&sample_bytes, quality, test_ext)
+                    {
                         return Ok(frame_bytes);
                     }
                 }
@@ -1051,7 +1248,9 @@ async fn download_media_thumb(
                             2048 * 1024
                         };
                         while sample_bytes.len() < max_bytes {
-                            if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
+                            if let Ok(Some(chunk)) =
+                                iter.next().await.map_err(|e| map_invocation(&e))
+                            {
                                 sample_bytes.extend_from_slice(&chunk);
                             } else {
                                 break;
@@ -1066,7 +1265,10 @@ async fn download_media_thumb(
 
     // Tier 6: Try downloading ANY available static thumbnail layer from Telegram (no dimension/quality restriction)
     for s in &sizes {
-        if matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_) | PhotoSize::Cached(_)) {
+        if matches!(
+            s,
+            PhotoSize::Size(_) | PhotoSize::Progressive(_) | PhotoSize::Cached(_)
+        ) {
             if let Ok(bytes) = download_thumb_bytes(client, s).await {
                 if bytes.len() >= 64 {
                     return Ok(bytes);
@@ -1084,8 +1286,6 @@ async fn download_media_thumb(
             }
         }
     }
-
-
 
     let (media_kind, mime, name, size) = match media {
         Media::Photo(_) => ("Photo", String::new(), String::new(), 0),
@@ -1105,8 +1305,8 @@ async fn download_media_thumb(
         sizes.len()
     );
 
-    let is_video_doc = media_kind == "Document" && (
-        mime.starts_with("video/")
+    let is_video_doc = media_kind == "Document"
+        && (mime.starts_with("video/")
             || name.ends_with(".mp4")
             || name.ends_with(".mov")
             || name.ends_with(".mkv")
@@ -1116,11 +1316,14 @@ async fn download_media_thumb(
             || name.ends_with(".3gp")
             || name.ends_with(".ts")
             || name.ends_with(".flv")
-            || name.ends_with(".wmv")
-    );
+            || name.ends_with(".wmv"));
 
     if is_video_doc {
-        tg_log::info(BACKEND, "thumb_miss_fallback", &format!("Video document '{name}' had no extractable frame; returning miss"));
+        tg_log::info(
+            BACKEND,
+            "thumb_miss_fallback",
+            &format!("Video document '{name}' had no extractable frame; returning miss"),
+        );
     }
 
     if media_kind == "Document" && !mime.starts_with("video/") && !mime.starts_with("image/") {
@@ -1140,7 +1343,10 @@ fn extract_embedded_pdf_image(pdf_bytes: &[u8]) -> Option<Vec<u8>> {
     for i in 0..max_len {
         if pdf_bytes[i] == 0xff && pdf_bytes[i + 1] == 0xd8 && pdf_bytes[i + 2] == 0xff {
             // Find end of JPEG marker \xFF\xD9
-            if let Some(end_rel) = pdf_bytes[i + 3..].windows(2).position(|w| w == [0xff, 0xd9]) {
+            if let Some(end_rel) = pdf_bytes[i + 3..]
+                .windows(2)
+                .position(|w| w == [0xff, 0xd9])
+            {
                 let end_pos = i + 3 + end_rel + 2;
                 let jpeg_data = &pdf_bytes[i..end_pos];
                 if jpeg_data.len() >= 512 {
@@ -1314,7 +1520,8 @@ fn locate_valid_moov_atom(buf: &[u8]) -> Option<(usize, usize)> {
     for i in (4..=buf.len() - 4).rev() {
         if &buf[i..i + 4] == b"moov" {
             let pos = i - 4;
-            let raw_sz = u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as usize;
+            let raw_sz =
+                u32::from_be_bytes([buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]]) as usize;
             let moov_size = if raw_sz == 1 && pos + 16 <= buf.len() {
                 u64::from_be_bytes([
                     buf[pos + 8],
@@ -1336,9 +1543,9 @@ fn locate_valid_moov_atom(buf: &[u8]) -> Option<(usize, usize)> {
             // This prevents false positives when the 4 bytes 'moov' occur inside raw mdat video bitstream.
             let check_len = moov_size.min(buf.len().saturating_sub(pos));
             if check_len >= 8 {
-                let is_valid = buf[pos..pos + check_len]
-                    .windows(4)
-                    .any(|w| w == b"mvhd" || w == b"trak" || w == b"cmov" || w == b"meta" || w == b"udta");
+                let is_valid = buf[pos..pos + check_len].windows(4).any(|w| {
+                    w == b"mvhd" || w == b"trak" || w == b"cmov" || w == b"meta" || w == b"udta"
+                });
                 if is_valid {
                     return Some((pos, moov_size));
                 }
@@ -1348,7 +1555,7 @@ fn locate_valid_moov_atom(buf: &[u8]) -> Option<(usize, usize)> {
     None
 }
 
-fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn make_faststart_mp4(sample_bytes: &[u8], tail_bytes: &[u8]) -> Option<Vec<u8>> {
     if sample_bytes.len() < 16 || tail_bytes.is_empty() {
         return None;
     }
@@ -1429,7 +1636,10 @@ async fn make_smart_target_mp4(
     let chunk_start_byte = (target_chunk as u64) * chunk_size;
 
     let mut target_frame_bytes = Vec::new();
-    let mut iter = client.iter_download(d).chunk_size(chunk_size as i32).skip_chunks(target_chunk);
+    let mut iter = client
+        .iter_download(d)
+        .chunk_size(chunk_size as i32)
+        .skip_chunks(target_chunk);
     // Fetch 16 chunks (4 MB) starting at target_chunk to provide enough keyframes for 1s-3s seeking
     for _ in 0..16 {
         if let Ok(Some(chunk)) = iter.next().await.map_err(|e| map_invocation(&e)) {
@@ -1454,7 +1664,8 @@ async fn make_smart_target_mp4(
     };
     let ftyp_len = ftyp_size.min(sample_bytes.len());
 
-    let new_first_off = (ftyp_len + moov_size) as u64 + (first_off.saturating_sub(chunk_start_byte));
+    let new_first_off =
+        (ftyp_len + moov_size) as u64 + (first_off.saturating_sub(chunk_start_byte));
     let shift_needed = new_first_off.wrapping_sub(first_off);
 
     let mut patched_moov = moov_slice.to_vec();
@@ -1535,7 +1746,9 @@ pub fn thumbs_batch_items_blocking_app(
                 .filter(|&&id| id > 0)
                 .take(64)
                 .map(|&id| {
-                    let request_id = if req_id_prefix.contains(":g") || req_id_prefix.ends_with(&id.to_string()) {
+                    let request_id = if req_id_prefix.contains(":g")
+                        || req_id_prefix.ends_with(&id.to_string())
+                    {
                         req_id_prefix.to_string()
                     } else {
                         format!("{req_id_prefix}:{id}")
@@ -1589,8 +1802,17 @@ pub fn thumbs_batch_items_blocking_app(
 
         // 1. Correlation assertion check (Requirement 1)
         if let Some(gen) = item.generation {
-            let expected_id = format!("thumb:{}:{}:g{}", peer_id, mid, gen);
-            if item_req_id != &expected_id {
+            let parsed = parse_thumb_request_id(item_req_id);
+            let correlation_valid = parsed.as_ref().is_some_and(|request| {
+                request.peer_id == *peer_id
+                    && request.message_id == mid
+                    && request.generation == gen
+                    && request
+                        .account_id
+                        .as_deref()
+                        .map_or(true, |account| account == identity.session)
+            });
+            if !correlation_valid {
                 tg_log::warn(
                     BACKEND,
                     "thumb_invalid_correlation",
@@ -1613,36 +1835,10 @@ pub fn thumbs_batch_items_blocking_app(
             }
         }
 
-        // 2. Terminal fallback cache check (Requirement 6)
-        let term_key = format!("v99_item_{peer_id}_{mid}");
-        if thumb_terminal_cache().lock().contains(&term_key) {
-            tg_log::info(
-                BACKEND,
-                "thumb_terminal_cache_hit",
-                format!(
-                    "op=thumb_terminal_cache_hit batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_id} requested_message_id={mid}"
-                ),
-            );
-            thumbs.insert(key, None);
-            item_results.push(ThumbnailBatchItemResult {
-                request_id: item_req_id.clone(),
-                peer_id: peer_id.clone(),
-                telegram_message_id: mid,
-                status: "fallback".into(),
-                source: Some("file_type_icon".into()),
-                reason: Some("GenericDocumentNoThumbnail".into()),
-                url: None,
-                classification: Some("GenericDocument".into()),
-            });
-            continue;
-        }
-
-        // 3. Disk / memory cache check
-        let peer_safe: String = peer_id
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-            .collect();
-        let cache_key = format!("v99_item_{peer_safe}_{mid}_{q_key}");
+        // 2. Disk / memory cache check. Negative results are deliberately not
+        // cached: a stale/wrong locator must never permanently suppress a real
+        // thumbnail after navigation or a session switch.
+        let cache_key = thumb_item_cache_key(&identity.session, peer_id, mid, q_key);
         let mut found_url: Option<String> = None;
         {
             let mem = thumb_mem_cache().lock();
@@ -1659,7 +1855,9 @@ pub fn thumbs_batch_items_blocking_app(
                 if let Ok(bytes) = std::fs::read(&cache_file) {
                     if bytes.len() >= 64 {
                         if let Some(url) = to_data_url(&bytes) {
-                            thumb_mem_cache().lock().insert(cache_key.clone(), url.clone());
+                            thumb_mem_cache()
+                                .lock()
+                                .insert(cache_key.clone(), url.clone());
                             found_url = Some(url);
                         }
                     }
@@ -1690,6 +1888,7 @@ pub fn thumbs_batch_items_blocking_app(
                 let _ = app_handle.emit(
                     "thumb_single_ready",
                     ThumbSinglePayload {
+                        session: identity.session.clone(),
                         chat_id: peer_id.clone(),
                         message_id: mid as i64,
                         quality: q_key.to_string(),
@@ -1791,6 +1990,7 @@ pub fn thumbs_batch_items_blocking_app(
                             let app_ref = app_ref.clone();
                             let batch_id = batch_id.clone();
                             let peer_str = peer_str.clone();
+                            let session_name = session_name.clone();
                             let msg_opt = msg_by_id.get(&it.telegram_message_id).cloned();
                             let q_key = q_key.to_string();
 
@@ -1798,8 +1998,6 @@ pub fn thumbs_batch_items_blocking_app(
                                 let mid = it.telegram_message_id;
                                 let item_req_id = it.request_id.clone();
                                 let key = mid.to_string();
-                                let term_key = format!("v99_item_{peer_str}_{mid}");
-
                                 let Some(msg) = msg_opt else {
                                     tg_log::warn(
                                         BACKEND,
@@ -1853,7 +2051,6 @@ pub fn thumbs_batch_items_blocking_app(
                                             }),
                                         );
                                     }
-                                    thumb_terminal_cache().lock().insert(term_key);
                                     return (
                                         key,
                                         None,
@@ -1871,41 +2068,6 @@ pub fn thumbs_batch_items_blocking_app(
                                 }
 
                                 let classification = classify_message_media(&msg);
-                                if classification.is_generic_or_non_media() {
-                                    tg_log::info(
-                                        BACKEND,
-                                        "thumb_generic_fallback",
-                                        format!(
-                                            "op=thumb_generic_fallback batch_id={batch_id} item_request_id={item_req_id} requested_peer_id={peer_str} requested_message_id={mid} classification={} status=fallback source=file_type_icon reason=GenericDocumentNoThumbnail",
-                                            classification.as_str()
-                                        ),
-                                    );
-                                    if let Some(ref media) = msg.media() {
-                                        special_media_thumb::enqueue_special_media_item(
-                                            app_ref.clone(),
-                                            client.clone(),
-                                            peer_str.clone(),
-                                            mid,
-                                            q_key.to_string(),
-                                            media.clone(),
-                                        );
-                                    }
-                                    return (
-                                        key,
-                                        None,
-                                        ThumbnailBatchItemResult {
-                                            request_id: item_req_id,
-                                            peer_id: peer_str,
-                                            telegram_message_id: mid,
-                                            status: "fallback".into(),
-                                            source: Some("file_type_icon".into()),
-                                            reason: Some("GenericDocumentNoThumbnail".into()),
-                                            url: None,
-                                            classification: Some(classification.as_str().to_string()),
-                                        },
-                                    );
-                                }
-
                                 let Some(media) = msg.media() else {
                                     return (
                                         key,
@@ -1923,8 +2085,10 @@ pub fn thumbs_batch_items_blocking_app(
                                     );
                                 };
 
-                                let peer_safe: String = peer_str.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '_' }).collect();
-                                let q_cache = format!("v99_item_{peer_safe}_{mid}_{q_key}");
+                                // Keep the write key identical to the session-scoped
+                                // lookup key above. The old v99 write was never read by
+                                // v100, forcing a Telegram re-download on every visit.
+                                let q_cache = thumb_item_cache_key(&session_name, &peer_str, mid, &q_key);
 
                                 let dl_res = download_media_thumb(&client, &media, &q_key).await;
                                 match dl_res {
@@ -1957,7 +2121,7 @@ pub fn thumbs_batch_items_blocking_app(
                                 }
 
                                 if classification.is_video() {
-                                    if let Some(cached_url) = special_media_thumb::get_cached_special_thumb(&peer_str, mid) {
+                                    if let Some(cached_url) = special_media_thumb::get_cached_special_thumb(&session_name, &peer_str, mid) {
                                         return (
                                             key,
                                             Some(cached_url.clone()),
@@ -1982,6 +2146,7 @@ pub fn thumbs_batch_items_blocking_app(
                                     special_media_thumb::enqueue_special_media_item(
                                         app_ref.clone(),
                                         client.clone(),
+                                        session_name.clone(),
                                         peer_str.clone(),
                                         mid,
                                         q_key.to_string(),
@@ -2076,28 +2241,54 @@ mod tests {
     #[test]
     fn test_media_classification_ffmpeg_gating() {
         // Generic bin files must be classified as GenericDocument and reject FFmpeg
-        let bin_class = classify_media_preview(Some("application/octet-stream"), Some("speed_12mb.bin"));
+        let bin_class =
+            classify_media_preview(Some("application/octet-stream"), Some("speed_12mb.bin"));
         assert!(matches!(bin_class, MediaPreviewClass::GenericDocument));
-        assert!(!is_ffmpeg_eligible_media(&bin_class, Some("application/octet-stream"), Some("speed_12mb.bin")));
+        assert!(!is_ffmpeg_eligible_media(
+            &bin_class,
+            Some("application/octet-stream"),
+            Some("speed_12mb.bin")
+        ));
 
         // Archive zip files must reject FFmpeg
         let zip_class = classify_media_preview(Some("application/zip"), Some("data.zip"));
         assert!(matches!(zip_class, MediaPreviewClass::ArchiveDocument));
-        assert!(!is_ffmpeg_eligible_media(&zip_class, Some("application/zip"), Some("data.zip")));
+        assert!(!is_ffmpeg_eligible_media(
+            &zip_class,
+            Some("application/zip"),
+            Some("data.zip")
+        ));
 
         // Video mp4 must accept FFmpeg
         let video_class = classify_media_preview(Some("video/mp4"), Some("clip.mp4"));
-        assert!(matches!(video_class, MediaPreviewClass::TelegramVideo | MediaPreviewClass::VideoDocument));
-        assert!(is_ffmpeg_eligible_media(&video_class, Some("video/mp4"), Some("clip.mp4")));
+        assert!(matches!(
+            video_class,
+            MediaPreviewClass::TelegramVideo | MediaPreviewClass::VideoDocument
+        ));
+        assert!(is_ffmpeg_eligible_media(
+            &video_class,
+            Some("video/mp4"),
+            Some("clip.mp4")
+        ));
     }
 
     #[test]
     fn test_parse_thumb_request_id_valid() {
         let req_id = "thumb:-1004468191168:220:g2";
         let parsed = parse_thumb_request_id(req_id).expect("Should parse valid thumb request ID");
+        assert_eq!(parsed.account_id, None);
         assert_eq!(parsed.peer_id, "-1004468191168");
+        assert_eq!(parsed.topic_id, None);
         assert_eq!(parsed.message_id, 220);
         assert_eq!(parsed.generation, 2);
+
+        let scoped = parse_thumb_request_id("thumb:Lavender:-1004468191168:none:220:g2")
+            .expect("Should parse account and topic scoped thumb request ID");
+        assert_eq!(scoped.account_id.as_deref(), Some("Lavender"));
+        assert_eq!(scoped.peer_id, "-1004468191168");
+        assert_eq!(scoped.topic_id.as_deref(), Some("none"));
+        assert_eq!(scoped.message_id, 220);
+        assert_eq!(scoped.generation, 2);
     }
 
     #[test]
@@ -2124,6 +2315,18 @@ mod tests {
         };
         assert_eq!(formatted, "thumb:-1004468191168:220:g2");
         assert_ne!(formatted, "thumb:-1004468191168:220:g2:220");
+    }
+
+    #[test]
+    fn test_thumb_item_cache_key_is_session_scoped_and_stable() {
+        let lavender = thumb_item_cache_key("Lavender", "-1003214112048", 42140, "seimbang");
+        let other = thumb_item_cache_key("Mantan Gadis", "-1003214112048", 42140, "seimbang");
+        assert_eq!(lavender, "v100_item_Lavender__1003214112048_42140_seimbang");
+        assert_ne!(lavender, other);
+        assert_eq!(
+            thumb_item_cache_key("Mantan Gadis", "-1003214112048", 42140, "seimbang"),
+            other
+        );
     }
 
     #[test]

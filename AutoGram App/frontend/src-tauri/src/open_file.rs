@@ -184,18 +184,17 @@ pub fn open_with_dialog(app: AppHandle, path: String) -> Result<(), String> {
 
         // 2) Classic OpenAs_RunDLL — no DETACHED, no CREATE_NO_WINDOW
         let rundll = windir().join("System32").join("rundll32.exe");
-        if spawn_ui(
-            &rundll,
-            &["shell32.dll,OpenAs_RunDLL", &shell],
-        )
-        .is_ok()
-        {
+        if spawn_ui(&rundll, &["shell32.dll,OpenAs_RunDLL", &shell]).is_ok() {
             return Ok(());
         }
 
         // 3) PowerShell Start-Process (last resort)
         let lit = shell.replace('\'', "''");
-        let ps = windir().join("System32").join("WindowsPowerShell").join("v1.0").join("powershell.exe");
+        let ps = windir()
+            .join("System32")
+            .join("WindowsPowerShell")
+            .join("v1.0")
+            .join("powershell.exe");
         let ps_cmd = if open_with.is_file() {
             format!(
                 "Start-Process -FilePath '{}' -ArgumentList @('{}')",

@@ -83,10 +83,11 @@ import {
   saveCheckpoint,
   getCheckpoint,
   saveMediaRecords,
-  getMediaRecords,
+  getMediaPageByContext,
+  buildDriveMediaContext,
+  scopeMediaRecords,
   type MediaRecord,
-  deleteMediaRecord,
-  deleteMediaRecordsBatch,
+  deleteMediaRecordsForPeer,
   enqueueAction,
   getPendingActions,
   updateActionStatus,
@@ -538,6 +539,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     ) => void
   >(() => {});
   const peerGen = useRef(0);
+  const bootDone = useRef(false);
   const sessionLockRetriesRef = useRef(0);
   const loadMoreLock = useRef(false);
   const topicFilterRef = useRef<DriveTopicFilter>(null);
@@ -622,6 +624,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   const selectionAnchorRef = useRef<number | null>(null);
   /** Latest displayed id order from explorer (filter + sort) */
   const displayedIdsRef = useRef<number[]>([]);
+  const visibleThumbIdsRef = useRef<number[]>([]);
+  const rememberVisibleThumbIds = useCallback((ids: number[]) => {
+    visibleThumbIdsRef.current = ids;
+  }, []);
 
   const [previewFile, setPreviewFile] = useState<DriveFile | null>(null);
   const [contextMenu, setContextMenu] = useState<
@@ -738,6 +744,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   const [mediaDragActive, setMediaDragActive] = useState(false);
   /** Warm drive-serve connected (not just credentials filled) */
   const [driveReady, setDriveReady] = useState(false);
+  const [bootRevision, setBootRevision] = useState(0);
   const nativeDriveReadyRef = useRef(false);
 
   interface PingState {
@@ -868,6 +875,14 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   }, [folders.length]);
 
   const peerId = locationKind === 'saved' ? null : activePeerId;
+  const thumbLocationOptions = useMemo(
+    () => ({
+      peerId: peerId == null ? 'me' : String(peerId),
+      topicId: topicFilter,
+      locationType: locationKind === 'saved' ? 'saved_messages' : locationKind,
+    }),
+    [peerId, topicFilter, locationKind]
+  );
   const activePeerRef = useRef<number | null>(peerId);
   activePeerRef.current = peerId;
   const topicsRequestSeqRef = useRef(0);
@@ -922,11 +937,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     invalidateThumbFailures();
     // Force re-fetch for seimbang/jelas — do not reuse hemat stripped blur.
     if (creds) {
-      const ids = files
-        .filter((f) => canShowDriveThumb(f))
-        .slice(0, 96)
-        .map((f) => f.id);
-      refreshVisibleThumbsForQuality(creds, peerId, ids);
+      const ids = visibleThumbIdsRef.current.slice(0, 96);
+      refreshVisibleThumbsForQuality(creds, peerId, ids, thumbLocationOptions);
     }
     setStatusText(
       q === 'saver'
@@ -1037,7 +1049,12 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     // Mark boot as already switched with cache painted — boot effect should NOT
     // wipe again (double-clear caused lag and empty flash).
     lastBootSessionRef.current = next;
-    pendingRestorePeerRef.current = loadDrivePeer(next);
+    // An explicit account switch must have an unambiguous, cheap landing page.
+    // Restoring a previously huge peer here made the selector appear stalled
+    // and could briefly re-expose stale location state. Persist Saved Messages
+    // as the new account's authoritative location before React changes session.
+    pendingRestorePeerRef.current = null;
+    saveDrivePeer(next, { kind: 'saved', id: null });
     lastRecentKeyRef.current = '';
 
     setError(null);
@@ -1379,7 +1396,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     async (opts?: { force?: boolean }) => {
       if (!creds) return;
       const tid = topicFilterRef.current;
-      const cacheKey = `${peerId}_${tid || ''}`;
+      const cacheKey = getDriveCacheKey(creds.session, peerId, tid);
       // Never start a second concurrent walk for the same location
       if (mediaStatsLockRef.current.has(cacheKey)) return;
       mediaStatsLockRef.current.add(cacheKey);
@@ -1503,7 +1520,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         if (gen === peerGen.current) setStatsLoading(false);
       }
     },
-    [creds, peerId]
+    [creds, peerId, getDriveCacheKey]
   );
 
   /** Defer media_stats so list_topics + first list_files win the Telethon pipe.
@@ -1561,7 +1578,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     setError(null);
     const gen = ++peerGen.current;
     const tid = topicFilterRef.current;
-    const bootKey = `${peerId}_${tid || ''}`;
+    const bootKey = getDriveCacheKey(creds.session, peerId, tid);
     setSelectedIds([]);
     selectionAnchorRef.current = null;
     let nChats = 0;
@@ -1612,16 +1629,16 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           // then strip payloads so React state stays light (instant re-render).
           let filesForUi = page;
           if (creds && page.length) {
-            primeThumbsFromFileList(creds, peerId, page);
+            primeThumbsFromFileList(creds, peerId, page, thumbLocationOptions);
             // Fill any missing thumbs immediately (one batch) — no wait for scroll.
             const missing = page
               .filter(
                 (f) =>
-                  canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null
+                  canShowDriveThumb(f) && getCachedThumb(peerId, f.id, thumbLocationOptions) == null
               )
               .map((f) => f.id);
             if (missing.length) {
-              requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+              requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
             }
             filesForUi = stripInlineThumbsFromFiles(page);
           }
@@ -2022,7 +2039,15 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         setLoadingFiles(false);
       }
     }
-  }, [creds, peerId, loadTopicsForPeer, scheduleMediaStats, recoverInvalidPeerLocation]);
+  }, [
+    creds,
+    peerId,
+    loadTopicsForPeer,
+    scheduleMediaStats,
+    recoverInvalidPeerLocation,
+    getDriveCacheKey,
+    thumbLocationOptions,
+  ]);
 
   const selectChatFolder = useCallback(async (folderId: number, force = false) => {
     const previousFolderId = activeChatFolderIdRef.current;
@@ -2223,6 +2248,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   useEffect(() => {
     const pending = pendingRestorePeerRef.current;
     if (!pending || !creds) return;
+    // Restoring a peer while the Saved Messages bootstrap is still running
+    // leaves the new peer selected with the old root rows. Wait until boot has
+    // completed, then the peer-change effect can clear and fetch atomically.
+    if (!bootDone.current) return;
     if (pending.kind === 'saved' || pending.id == null) {
       pendingRestorePeerRef.current = null;
       return;
@@ -2241,7 +2270,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     }
     setLocationKind(pending.kind);
     setActivePeerId(id);
-  }, [creds, chats, folders, loadingChats]);
+  }, [creds, chats, folders, loadingChats, bootRevision]);
 
   const refreshFiles = useCallback(async (retryCount = 0, opts?: { preserveError?: boolean }) => {
     if (!creds) return;
@@ -2301,8 +2330,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       setFilesHasMore(false);
       setNextOffsetId(null);
       // Fast Stale-While-Revalidate: load IndexedDB records immediately for 0ms paint
-      const folderKey = peerId || 0;
-      void getMediaRecords(folderKey, String(sortMode), 0, 100)
+      const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+      void getMediaPageByContext(mediaContext, String(sortMode), 0, 100)
         .then((dbRecords: MediaRecord[]) => {
           if (gen === peerGen.current && activeFilesCacheKeyRef.current === cacheKey && dbRecords && dbRecords.length > 0) {
             let filtered = dbRecords;
@@ -2384,19 +2413,17 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       // Instant grid thumbs from list response (no second thumbs_batch wait).
       if (page.length) {
-        primeThumbsFromFileList(creds, peerId, page);
+        primeThumbsFromFileList(creds, peerId, page, thumbLocationOptions);
         const missing = page
-          .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null)
+          .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id, thumbLocationOptions) == null)
           .map((f) => f.id);
-        if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+        if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
         page = stripInlineThumbsFromFiles(page);
       }
       if (res.status === 'success' && !res.cached && page.length > 0) {
-        const folderKey = peerId || 0;
-        void saveMediaRecords(page.map(f => ({
-          ...f,
-          folderId: folderKey
-        }))).catch(err => console.warn('[Cache] Failed to warm cache:', err));
+        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+        void saveMediaRecords(scopeMediaRecords(page, mediaContext, peerId || 0))
+          .catch(err => console.warn('[Cache] Failed to warm cache:', err));
       }
 
       // Update cache — only apply totals that belong to this peer+topic key
@@ -2520,11 +2547,11 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
             if (syncRes?.status === 'success' && syncRes.files && syncRes.files.length > 0) {
               let freshPage = dedupeByMsgId(syncRes.files);
-              primeThumbsFromFileList(creds, peerId, freshPage);
+              primeThumbsFromFileList(creds, peerId, freshPage, thumbLocationOptions);
               const missing = freshPage
-                .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id) == null)
+                .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id, thumbLocationOptions) == null)
                 .map((f) => f.id);
-              if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48));
+              if (missing.length) requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
               freshPage = stripInlineThumbsFromFiles(freshPage);
 
               setFiles((prev) => {
@@ -2533,8 +2560,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
                 filesCacheRef.current.set(cacheKey, merged);
                 return merged;
               });
-              const folderKey = peerId || 0;
-              void saveMediaRecords(freshPage.map((f) => ({ ...f, folderId: folderKey }))).catch(() => undefined);
+              const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+              void saveMediaRecords(scopeMediaRecords(freshPage, mediaContext, peerId || 0)).catch(() => undefined);
             }
           } catch (err) {
             console.warn('[RealtimeSync] Background top-page sync failed:', err);
@@ -2568,7 +2595,16 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         }, getDrivePerfProfile().thumbResumeMs);
       }
     }
-  }, [creds, peerId, scheduleMediaStats, loadTopicsForPeer, recoverInvalidPeerLocation, sortMode]);
+  }, [
+    creds,
+    peerId,
+    scheduleMediaStats,
+    loadTopicsForPeer,
+    recoverInvalidPeerLocation,
+    sortMode,
+    getDriveCacheKey,
+    thumbLocationOptions,
+  ]);
 
   useEffect(() => {
     refreshFilesRef.current = refreshFiles;
@@ -2581,10 +2617,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       if (evt.type === 'index_progress') {
         const folderKey = evt.folderId || 0;
         if (Array.isArray(evt.items)) {
-          await saveMediaRecords(evt.items.map((f: any) => ({
-            ...f,
-            folderId: folderKey
-          }))).catch(err => console.error('[Index] Save failed:', err));
+          const context = buildDriveMediaContext(creds.session, folderKey || null, null);
+          await saveMediaRecords(scopeMediaRecords(evt.items, context, folderKey))
+            .catch(err => console.error('[Index] Save failed:', err));
         }
         setIndexingJob({
           active: true,
@@ -2611,9 +2646,12 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       } else if (evt.type === 'update') {
         const folderKey = evt.folder_id || 0;
         const currentActiveFolder = peerId || 0;
+        const eventPeerId = folderKey || null;
+        const eventTopicId = folderKey === currentActiveFolder ? topicFilterRef.current : null;
+        const eventContext = buildDriveMediaContext(creds.session, eventPeerId, eventTopicId);
         
         if (evt.action === 'new' && evt.file) {
-          await saveMediaRecords([{ ...evt.file, folderId: folderKey }]).catch(() => null);
+          await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey)).catch(() => null);
           if (folderKey === currentActiveFolder) {
             setFiles(prev => {
               if (prev.some(f => f.id === evt.file.id)) return prev;
@@ -2623,15 +2661,17 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             });
           }
         } else if (evt.action === 'delete' && Array.isArray(evt.message_ids)) {
-          for (const mid of evt.message_ids) {
-            await deleteMediaRecord(folderKey, mid).catch(() => null);
-          }
+          await deleteMediaRecordsForPeer(
+            creds.session,
+            eventPeerId == null ? 'me' : String(eventPeerId),
+            evt.message_ids
+          ).catch(() => null);
           if (folderKey === currentActiveFolder) {
             const idsToDelete = new Set(evt.message_ids);
             setFiles(prev => prev.filter(f => !idsToDelete.has(f.id)));
           }
         } else if (evt.action === 'edit' && evt.file) {
-          await saveMediaRecords([{ ...evt.file, folderId: folderKey }]).catch(() => null);
+          await saveMediaRecords(scopeMediaRecords([evt.file], eventContext, folderKey)).catch(() => null);
           if (folderKey === currentActiveFolder) {
             setFiles(prev => prev.map(f => f.id === evt.file.id ? evt.file : f));
           }
@@ -2760,15 +2800,13 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       if (gen !== peerGen.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       let page: DriveFile[] = res.files || [];
       if (page.length) {
-        primeThumbsFromFileList(creds, peerId, page);
+        primeThumbsFromFileList(creds, peerId, page, thumbLocationOptions);
         page = stripInlineThumbsFromFiles(page);
       }
       if (res.status === 'success' && !res.cached && page.length > 0) {
-        const folderKey = peerId || 0;
-        void saveMediaRecords(page.map(f => ({
-          ...f,
-          folderId: folderKey
-        }))).catch(err => console.warn('[Cache] Failed to warm cache:', err));
+        const mediaContext = buildDriveMediaContext(creds.session, peerId, tid);
+        void saveMediaRecords(scopeMediaRecords(page, mediaContext, peerId || 0))
+          .catch(err => console.warn('[Cache] Failed to warm cache:', err));
       }
       // Avoid stuck pagination if API returned empty but claimed has_more
       if (!page.length) {
@@ -2825,7 +2863,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       if (!res.has_more) {
         setFiles((prev) => {
           const exactBytes = prev.reduce((s, f) => s + (f.size || 0), 0);
-          const cacheKey = `${peerId}_${tid || ''}`;
+          const cacheKey = getDriveCacheKey(creds.session, peerId, tid);
           // Every filter is exhausted: the merged ID set and its metadata are
           // now the authoritative location-wide totals.
           setTotalFileCount(prev.length);
@@ -2862,24 +2900,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     statsAccurate,
     sortMode,
     files,
-  ]);
-
-  // Proactive background streaming: pre-fetches next pages when hasMore is true
-  useEffect(() => {
-    if (!creds || !filesHasMore || loadingFiles || loadingMoreFiles || loadMoreLock.current) return;
-    if (nextOffsetId == null) return;
-    const tier = getDrivePerfProfile().tier;
-    const timer = window.setTimeout(() => {
-      void loadMoreFiles();
-    }, tier === 'high' ? 50 : tier === 'mid' ? 150 : 300);
-    return () => window.clearTimeout(timer);
-  }, [
-    creds,
-    filesHasMore,
-    loadingFiles,
-    loadingMoreFiles,
-    nextOffsetId,
-    loadMoreFiles,
+    getDriveCacheKey,
+    thumbLocationOptions,
   ]);
 
   const syncActiveLocationLive = useCallback(
@@ -3060,8 +3082,6 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     return () => setThumbBootstrapMode(false);
   }, []);
 
-  const bootDone = useRef(false);
-
   // Boot: warm session + bootstrap. Uses last session immediately (no wait for list-sessions).
   useEffect(() => {
     if (!creds) {
@@ -3131,9 +3151,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         // Only paint Saved Messages root cache for the NEW session
         const location = loadDriveLocationSnapshot(localStorage, creds.session, null, null);
         if (location) {
-          const key = `null_`;
+          const key = getDriveCacheKey(creds.session, null, null);
           const dedupedBootFiles = dedupeByMsgId(location.files);
           filesCacheRef.current.set(key, dedupedBootFiles);
+          activeFilesCacheKeyRef.current = key;
           setFiles(dedupedBootFiles);
           setFilesHasMore(location.hasMore);
           setNextOffsetId(location.nextOffsetId);
@@ -3221,6 +3242,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
         }
         if (!cancelled) {
           bootDone.current = true;
+          setBootRevision((value) => value + 1);
           setDriveReady(isDriveSessionReady() || ok);
           const perfHint = perfStatusHint();
           setStatusText(
@@ -5044,9 +5066,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           liveFilesRef.current = liveFilesRef.current.filter((f) => !deletedSet.has(f.id));
 
           // 1. Purge all cache keys associated with this peer/chat
-          const prefix = `${peerId}_`;
+          const prefix = `${creds.session}::${peerId == null ? 'saved' : peerId}::`;
           for (const key of Array.from(filesCacheRef.current.keys())) {
-            if (key.startsWith(prefix) || key === String(peerId)) {
+            if (key.startsWith(prefix)) {
               filesCacheRef.current.delete(key);
               filesTotalCountRef.current.delete(key);
               filesTotalBytesRef.current.delete(key);
@@ -5054,11 +5076,11 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           }
 
           // 2. Synchronize local IndexedDB store in background
-          if (peerId) {
-            void deleteMediaRecordsBatch(peerId, deletedIds).catch((e: any) =>
-              console.warn('deleteMediaRecordsBatch sync warning:', e)
-            );
-          }
+          void deleteMediaRecordsForPeer(
+            creds.session,
+            peerId == null ? 'me' : String(peerId),
+            deletedIds
+          ).catch((e: any) => console.warn('deleteMediaRecordsForPeer sync warning:', e));
         }
 
         setSelectedIds([]);
@@ -5090,9 +5112,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
           const idsSet = new Set(ids);
           setFiles(prev => prev.filter(f => !idsSet.has(f.id)));
           liveFilesRef.current = liveFilesRef.current.filter((f) => !idsSet.has(f.id));
-          const prefix = `${peerId}_`;
+          const prefix = `${creds.session}::${peerId == null ? 'saved' : peerId}::`;
           for (const key of Array.from(filesCacheRef.current.keys())) {
-            if (key.startsWith(prefix) || key === String(peerId)) {
+            if (key.startsWith(prefix)) {
               filesCacheRef.current.delete(key);
               filesTotalCountRef.current.delete(key);
               filesTotalBytesRef.current.delete(key);
@@ -7574,6 +7596,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               </div>
             )}
             <DriveExplorer
+              key={`${session}::${explorerScrollKey}`}
               files={files}
               loading={loadingFiles}
               loadingMore={loadingMoreFiles}
@@ -7594,6 +7617,8 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               gridZoom={gridZoom}
               onGridZoom={handleGridZoom}
               folderId={peerId}
+              topicId={topicFilter}
+              locationType={locationKind === 'saved' ? 'saved_messages' : locationKind}
               creds={creds}
               onSelect={handleSelect}
               onToggleSelection={handleToggleSelection}
@@ -7602,6 +7627,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               onDisplayedIdsChange={(ids) => {
                 displayedIdsRef.current = ids;
               }}
+              onVisibleIdsChange={rememberVisibleThumbIds}
               onOpen={(f) => {
                 if (f.icon_type === 'link') {
                   const url = f.original_name || f.name || '';

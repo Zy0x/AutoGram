@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use grammers_client::message::InputMessage;
 use grammers_client::client::PasswordToken;
+use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::path_policy;
-use crate::core::session_rate;
 use crate::core::session_guard;
+use crate::core::session_rate;
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
 use crate::core::telethon_session_import::{
     grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
     read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
-};
-use crate::core::telegram_ops::{
-    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
 use crate::core::tg_log;
@@ -42,7 +42,9 @@ pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
     }
 }
 
-async fn peer_to_ref(peer: &grammers_client::peer::Peer) -> Result<grammers_session::types::PeerRef, TgError> {
+async fn peer_to_ref(
+    peer: &grammers_client::peer::Peer,
+) -> Result<grammers_session::types::PeerRef, TgError> {
     peer.to_ref()
         .await
         .map_err(|e| TgError::new(TgErrorCode::PeerNotFound, format!("peer.to_ref: {e}")))?
@@ -54,7 +56,9 @@ async fn peer_to_ref(peer: &grammers_client::peer::Peer) -> Result<grammers_sess
         })
 }
 
-async fn user_to_ref(user: &grammers_client::peer::User) -> Result<grammers_session::types::PeerRef, TgError> {
+async fn user_to_ref(
+    user: &grammers_client::peer::User,
+) -> Result<grammers_session::types::PeerRef, TgError> {
     if let Some(r) = user
         .to_ref()
         .await
@@ -192,9 +196,13 @@ pub fn list_dialog_filters_blocking(
     })
 }
 
-static PEER_RESOLVE_CACHE: std::sync::OnceLock<std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>>> = std::sync::OnceLock::new();
+static PEER_RESOLVE_CACHE: std::sync::OnceLock<
+    std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>>,
+> = std::sync::OnceLock::new();
 
-pub fn peer_cache() -> &'static std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>> {
+pub fn peer_cache(
+) -> &'static std::sync::RwLock<std::collections::HashMap<String, grammers_session::types::PeerRef>>
+{
     PEER_RESOLVE_CACHE.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
 }
 
@@ -227,7 +235,11 @@ pub(crate) async fn resolve_peer(
         return Err(TgError::new(TgErrorCode::PeerNotFound, "chat_id empty"));
     }
 
-    let owner_id = client.get_me().await.map(|u| peer_id_i64(u.id())).unwrap_or(0);
+    let owner_id = client
+        .get_me()
+        .await
+        .map(|u| peer_id_i64(u.id()))
+        .unwrap_or(0);
     let ckey = |k: &str| format!("{owner_id}:{k}");
 
     if s.eq_ignore_ascii_case("me") || s.eq_ignore_ascii_case("self") || s == "0" {
@@ -242,7 +254,10 @@ pub(crate) async fn resolve_peer(
         }
         return res;
     }
-    if s.starts_with('@') || (s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') && s.chars().any(|c| c.is_ascii_alphabetic())) {
+    if s.starts_with('@')
+        || (s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+            && s.chars().any(|c| c.is_ascii_alphabetic()))
+    {
         let uname = s.trim_start_matches('@');
         if let Some(peer) = client
             .resolve_username(uname)
@@ -303,7 +318,10 @@ pub(crate) async fn resolve_peer(
         let pid = peer_id_i64(peer.id());
         let bid = peer.id().bare_id();
 
-        if pid == want || pid == -want || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs())) {
+        if pid == want
+            || pid == -want
+            || (bid.is_some() && (bid.unwrap() == want_bare || bid.unwrap() == want.abs()))
+        {
             let res = peer_to_ref(&peer).await;
             if let Ok(ref pref) = res {
                 let peer_type_str = match &peer {
@@ -340,8 +358,6 @@ pub(crate) async fn resolve_peer(
     );
     Err(TgError::new(
         TgErrorCode::PeerNotFound,
-        format!(
-            "peer {want} not in dialogs — open the chat in Telegram once, then retry"
-        ),
+        format!("peer {want} not in dialogs — open the chat in Telegram once, then retry"),
     ))
 }

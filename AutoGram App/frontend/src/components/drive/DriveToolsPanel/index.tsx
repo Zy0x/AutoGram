@@ -8,16 +8,11 @@ import { createPortal } from 'react-dom';
 import {
   X,
   Copy,
-  HardDrive,
-  Layers,
-  Type,
-  Filter,
   Trash2,
   Check,
   AlertTriangle,
   Loader2,
   Play,
-  Settings2,
   SlidersHorizontal,
   Upload,
   Download,
@@ -47,6 +42,8 @@ import {
 } from '../../../lib/telegram';
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
+import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
+export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
 function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
@@ -70,7 +67,36 @@ function preferredKeepId(g: DupGroup, keepNewest: boolean): number | null {
   return ordered[0]?.id ?? null;
 }
 
-export type DriveToolsTab = 'dups' | 'space' | 'rename' | 'copy' | 'filter' | 'transfer';
+function ToolTabIntro({
+  tab,
+  locationLabel,
+  fileCount,
+  selectedCount,
+}: {
+  tab: DriveToolsTab;
+  locationLabel: string;
+  fileCount: number;
+  selectedCount: number;
+}) {
+  const { t } = useTranslation();
+  const item = TOOL_GROUPS.flatMap((group) => group.tabs).find((candidate) => candidate.id === tab);
+  const Icon = item?.icon || SlidersHorizontal;
+  const key = tab === 'transfer' ? 'settings' : tab;
+  return (
+    <section className="td-tools-tab-intro">
+      <div className="td-tools-tab-intro-icon"><Icon size={20} /></div>
+      <div className="td-tools-tab-intro-copy">
+        <h3>{t(`speedtest.tools_tab_${key}`)}</h3>
+        <p>{t(`speedtest.tools_tab_${key}_desc`)}</p>
+      </div>
+      <div className="td-tools-tab-intro-meta">
+        <span title={locationLabel}>{locationLabel}</span>
+        <span>{t('speedtest.tools_file_count', { count: fileCount })}</span>
+        {selectedCount > 0 && <span className="accent">{t('speedtest.tools_selected_count', { count: selectedCount })}</span>}
+      </div>
+    </section>
+  );
+}
 
 type Props = {
   open: boolean;
@@ -115,28 +141,6 @@ type Props = {
     skipDuplicates: boolean;
   }) => void;
 };
-
-export const TOOL_GROUPS: {
-  title: string;
-  tabs: { id: DriveToolsTab; label: string; icon: any }[];
-}[] = [
-  {
-    title: 'speedtest.tools_sec_tools',
-    tabs: [
-      { id: 'copy', label: 'Salin batch', icon: Copy },
-      { id: 'dups', label: 'Duplikat', icon: Layers },
-      { id: 'rename', label: 'Bulk rename', icon: Type },
-      { id: 'space', label: 'Storage', icon: HardDrive },
-      { id: 'filter', label: 'Filter+', icon: Filter },
-    ],
-  },
-  {
-    title: 'speedtest.tools_sec_config',
-    tabs: [
-      { id: 'transfer', label: 'Pengaturan Transfer', icon: Settings2 },
-    ],
-  },
-];
 
 export function DriveToolsPanel({
   open,
@@ -229,10 +233,10 @@ export function DriveToolsPanel({
       : space.totalBytes;
   const scopeLabel =
     isForum && topicFilter != null
-      ? 'topik ini'
+      ? t('speedtest.tools_scope_topic')
       : isForum
-        ? 'semua topik di grup'
-        : 'lokasi ini';
+        ? t('speedtest.tools_scope_forum')
+        : t('speedtest.tools_scope_location');
   const typeRows =
     locationStatsAccurate && locationByType && locationByType.length > 0
       ? locationByType
@@ -257,11 +261,11 @@ export function DriveToolsPanel({
       const kind = driveItemKind(f);
       opts.push({
         value: String(f.id),
-        label: `${kind === 'drive' ? 'Drive' : 'Folder'}: ${f.name}`,
+        label: `${kind === 'drive' ? t('speedtest.zip_dest_drive') : t('speedtest.folder_label')}: ${f.name}`,
       });
     }
     for (const c of chats.slice(0, 80)) {
-      opts.push({ value: `c:${c.id}`, label: `Chat: ${c.name}` });
+      opts.push({ value: `c:${c.id}`, label: `${t('speedtest.zip_dest_chat')}: ${c.name}` });
     }
     return opts;
   }, [folders, chats]);
@@ -307,8 +311,8 @@ export function DriveToolsPanel({
         <div className="td-tools-layout">
           <aside className="td-tools-sidebar" aria-label={t("speedtest.categories_aria")}>
             {TOOL_GROUPS.map((group) => (
-              <div key={group.title} className="td-tools-sidebar-group">
-                <span className="td-tools-sidebar-header">{t(group.title)}</span>
+              <div key={group.titleKey} className="td-tools-sidebar-group">
+                <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
@@ -329,6 +333,12 @@ export function DriveToolsPanel({
           </aside>
 
           <main className="td-tools-main">
+          <ToolTabIntro
+            tab={tab}
+            locationLabel={locationLabel}
+            fileCount={displayCount}
+            selectedCount={selectedFiles.length}
+          />
           {tab === 'dups' && (
             <DupTab
               groups={groups}
@@ -355,7 +365,7 @@ export function DriveToolsPanel({
                   {locationStatsAccurate ? (
                     <span className="td-tools-badge-ok">{t('speedtest.accurate_metadata')}</span>
                   ) : locationStatsLoading ? (
-                    <span className="td-tools-badge-busy">Menghitung…</span>
+                    <span className="td-tools-badge-busy">{t('speedtest.tools_counting')}</span>
                   ) : (
                     <span className="td-tools-badge-est">{t('speedtest.approx_loaded')}</span>
                   )}
@@ -374,9 +384,11 @@ export function DriveToolsPanel({
 
               {space.fileCount > 0 && (
                 <p className="td-tools-muted">
-                  Grid dimuat: {space.fileCount.toLocaleString('id-ID')} file ·{' '}
-                  {formatDriveBytes(space.totalBytes)}
-                  {filesHasMore ? ' (+ scroll untuk lebih banyak)' : ''}
+                  {t('speedtest.tools_grid_loaded', {
+                    count: space.fileCount.toLocaleString(),
+                    size: formatDriveBytes(space.totalBytes),
+                    more: filesHasMore ? t('speedtest.tools_scroll_more') : '',
+                  })}
                 </p>
               )}
 
@@ -387,8 +399,8 @@ export function DriveToolsPanel({
                 {typeRows.length === 0 && (
                   <p className="td-tools-muted">
                     {locationStatsLoading
-                      ? 'Menunggu hasil penghitungan…'
-                      : 'Belum ada data. Tunggu hitung selesai atau muat grid.'}
+                      ? t('speedtest.tools_waiting_count')
+                      : t('speedtest.tools_no_usage_data')}
                   </p>
                 )}
                 {typeRows.map((row: any) => {
@@ -426,7 +438,7 @@ export function DriveToolsPanel({
                             type="button"
                             className="td-tools-linkrow"
                             onClick={() => onPreviewFile(f)}
-                            title={`Pratinjau: ${f.name}`}
+                            title={t('speedtest.tools_preview_file', { name: f.name })}
                           >
                             <span className="td-tools-fname" title={f.name}>
                               {f.name}
@@ -531,11 +543,11 @@ export function DriveToolsPanel({
               </p>
               <div className="td-tools-form-stack">
                 <label className="td-tools-field">
-                  Scope
+                  {t('speedtest.tools_scope_label')}
                   <MediaSelect
                     value={copyScope}
                     onChange={(value: any) => setCopyScope(value as 'selected' | 'all')}
-                    ariaLabel="Scope salin"
+                    ariaLabel={t('speedtest.tools_copy_scope_aria')}
                     options={[
                       { value: 'selected', label: t('speedtest.selected_count', { count: selectedFiles.length || 0 }) },
                       { value: 'all', label: t('speedtest.all_in_view_count', { count: files.length }) },
@@ -543,11 +555,11 @@ export function DriveToolsPanel({
                   />
                 </label>
                 <label className="td-tools-field">
-                  Tujuan
+                  {t('speedtest.tools_destination_label')}
                   <MediaSelect
                     value={copyDest}
                     onChange={setCopyDest}
-                    ariaLabel="Tujuan salin"
+                    ariaLabel={t('speedtest.tools_copy_destination_aria')}
                     options={destOptions.map((option) => ({ value: option.value, label: option.label }))}
                   />
                 </label>
@@ -575,17 +587,17 @@ export function DriveToolsPanel({
                     const pool = copyScope === 'selected' ? selectedFiles : files;
                     const ids = pool.map((f: any) => f.id);
                     let toFolderId: number | null = null;
-                    let targetLabel = 'Saved Messages';
+                    let targetLabel = t('speedtest.saved_messages');
                     if (copyDest === 'me') {
                       toFolderId = null;
                     } else if (copyDest.startsWith('c:')) {
                       toFolderId = Number(copyDest.slice(2));
                       targetLabel =
-                        chats.find((c) => c.id === toFolderId)?.name || `Chat ${toFolderId}`;
+                        chats.find((c) => c.id === toFolderId)?.name || t('speedtest.tools_chat_fallback', { id: toFolderId });
                     } else {
                       toFolderId = Number(copyDest);
                       targetLabel =
-                        folders.find((f: any) => f.id === toFolderId)?.name || `Folder ${toFolderId}`;
+                        folders.find((f: any) => f.id === toFolderId)?.name || t('speedtest.tools_folder_fallback', { id: toFolderId });
                     }
                     onSmartCopy({
                       messageIds: ids,
@@ -675,7 +687,7 @@ export function DriveToolsPanel({
                         ext: e.target.value.replace(/^\./, '') || null,
                       })
                     }
-                    placeholder="pdf, mp4, …"
+                    placeholder={t('speedtest.filter_extension_ph')}
                     spellCheck={false}
                   />
                 </label>
@@ -759,7 +771,7 @@ function TransferTabContent({
   const { t } = useTranslation();
   return (
     <div className="td-tools-xfer-container">
-      <div className="td-xfer-settings-tabs" role="tablist" aria-label="Bagian pengaturan">
+      <div className="td-xfer-settings-tabs" role="tablist" aria-label={t('speedtest.settings_sections_aria')}>
         <button
           type="button"
           role="tab"
@@ -768,7 +780,7 @@ function TransferTabContent({
           onClick={() => onSubTab('upload')}
         >
           <Upload size={15} />
-          Upload
+          {t('speedtest.upload_tab')}
         </button>
         <button
           type="button"
@@ -778,14 +790,14 @@ function TransferTabContent({
           onClick={() => onSubTab('download')}
         >
           <Download size={15} />
-          Download
+          {t('speedtest.download_tab')}
         </button>
       </div>
 
       <div className="td-xfer-settings-body">
         {subTab === 'upload' && (
           <section className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
-            <h3>{t('speedtest.upload_quality_header', 'UPLOAD QUALITY')}</h3>
+            <h3>{t('speedtest.upload_quality_header')}</h3>
             <p className="td-xfer-hint">
               {t("speedtest.upload_quality_hint")}
             </p>
@@ -809,8 +821,8 @@ function TransferTabContent({
                     }}
                   />
                   <span>
-                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`, opt.label))}</strong>
-                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`, opt.description))}</small>
+                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`))}</strong>
+                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`))}</small>
                   </span>
                 </label>
               ))}
@@ -828,10 +840,10 @@ function TransferTabContent({
                 ariaLabel={t("speedtest.hardware_reencode_header")}
                 options={[
                   { value: 'auto', label: String(t('speedtest.gpu_auto_label')), description: String(t('speedtest.gpu_auto_desc')) },
-                  { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
-                  { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
-                  { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
-                  { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
+                  { value: 'nvidia', label: String(t('speedtest.gpu_nvidia_label')), description: String(t('speedtest.gpu_nvidia_desc')) },
+                  { value: 'amd', label: String(t('speedtest.gpu_amd_label')), description: String(t('speedtest.gpu_amd_desc')) },
+                  { value: 'intel', label: String(t('speedtest.gpu_intel_label')), description: String(t('speedtest.gpu_intel_desc')) },
+                  { value: 'cpu', label: String(t('speedtest.gpu_cpu_label')), description: String(t('speedtest.gpu_cpu_desc')) },
                 ]}
               />
             </label>
@@ -956,10 +968,10 @@ function TransferTabContent({
         )}
 
         {subTab === 'download' && (
-          <section className="td-xfer-section" aria-label="Pengaturan download">
+          <section className="td-xfer-section" aria-label={t('speedtest.download_settings_aria')}>
             <h3>{t('speedtest.download_parallel')}</h3>
             <p className="td-xfer-hint">
-              Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch).
+              {t('speedtest.download_parallel_desc')}
             </p>
             <label className="td-xfer-range-row">
               <input
@@ -969,7 +981,7 @@ function TransferTabContent({
                 value={draft.downloadConcurrency}
                 disabled={!!transferActive}
                 onChange={(e) => onChange({ downloadConcurrency: Number(e.target.value) })}
-                aria-label="Paralel download"
+                aria-label={t('speedtest.download_parallel_header')}
               />
               <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
             </label>
@@ -1001,7 +1013,7 @@ function TransferTabContent({
           title={t("speedtest.restore_defaults")}
         >
           <RotateCcw size={14} />
-          Reset Default
+          {t('speedtest.btn_reset_default')}
         </button>
         <button
           type="button"
@@ -1010,7 +1022,7 @@ function TransferTabContent({
           title={t('speedtest.save_transfer_settings')}
         >
           <Check size={14} />
-          Simpan Pengaturan
+          {t('speedtest.save_transfer_settings')}
         </button>
       </footer>
     </div>
@@ -1219,9 +1231,8 @@ function DupTab({
           t('speedtest.dup_none_detected')
         ) : (
           <>
-            <strong>{groups.length}</strong> grup · hemat potensial max{' '}
-            <strong>{formatDriveBytes(wasteTotal)}</strong>
-            <br />
+          {t('speedtest.dup_lead_summary', { groups: groups.length, size: formatDriveBytes(wasteTotal) })}
+          <br />
             <span className="td-tools-dup-lead-hint">
               {t('speedtest.dup_lead_hint')}
             </span>
@@ -1262,7 +1273,7 @@ function DupTab({
             className="btn btn-ghost"
             disabled={busy}
             onClick={applySmartAll}
-            title={t('speedtest.per_group_keep_one') || "Per group: keep 1"}
+            title={t('speedtest.per_group_keep_one')}
           >
             <Check size={14} /> {t('speedtest.smart_selection_btn')}
           </button>
@@ -1271,9 +1282,9 @@ function DupTab({
             className="btn btn-ghost"
             disabled={busy}
             onClick={clearAllMarks}
-            title={t('speedtest.keep_all_groups') || "Keep all files"}
+            title={t('speedtest.keep_all_groups')}
           >
-            Simpan semua
+            {t('speedtest.keep_all_groups')}
           </button>
           <span className="td-tools-dup-summary">
             {t('speedtest.dup_stats_summary', { keep: keepCount, delete: idsToDelete.length })}
@@ -1289,8 +1300,7 @@ function DupTab({
 
       {groupsWithAllMarked > 0 && (
         <p className="td-tools-dup-warn" role="status">
-          <AlertTriangle size={13} /> {groupsWithAllMarked} grup mencentang semua item — tidak ada
-          yang disimpan di grup itu.
+          <AlertTriangle size={13} /> {t('speedtest.dup_all_marked_warning', { count: groupsWithAllMarked })}
         </p>
       )}
 
@@ -1315,8 +1325,8 @@ function DupTab({
               <div className="td-tools-dup-head">
                 <AlertTriangle size={12} />
                 <span className="td-tools-dup-head-main">
-                  {g.reason === 'name_size' ? 'Nama+size' : 'Size only'} · {g.files.length} file ·
-                  simpan {keepInGroup} / hapus {markedInGroup}
+                  {t(g.reason === 'name_size' ? 'speedtest.dup_reason_name_size' : 'speedtest.dup_reason_size_only')}
+                  {' · '}{t('speedtest.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
                 </span>
                 <span className="td-tools-dup-head-actions">
                   <button
@@ -1324,18 +1334,18 @@ function DupTab({
                     className="td-tools-dup-mini"
                     disabled={busy}
                     onClick={() => markGroupExtras(g)}
-                    title={t('speedtest.keep_one_check_rest') || "Keep 1, check rest"}
+                    title={t('speedtest.keep_one_check_rest')}
                   >
-                    Cerdas
+                    {t('speedtest.smart_selection_btn')}
                   </button>
                   <button
                     type="button"
                     className="td-tools-dup-mini"
                     disabled={busy}
                     onClick={() => clearGroupMarks(g)}
-                    title={t('speedtest.keep_all_in_group') || "Keep all in group"}
+                    title={t('speedtest.keep_all_in_group')}
                   >
-                    Simpan semua
+                    {t('speedtest.keep_all_in_group')}
                   </button>
                 </span>
               </div>
@@ -1369,7 +1379,7 @@ function DupTab({
                         className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
                         onClick={() => onPreviewFile?.(f)}
                         disabled={!canPreview}
-                        title={canPreview ? `Pratinjau: ${label}` : label}
+                        title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}
                         aria-label={canPreview ? `Pratinjau ${label}` : label}
                       >
                         <DupFileThumb file={f} creds={creds} folderId={folderId} />

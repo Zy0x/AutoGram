@@ -11,6 +11,7 @@ import { getDrivePerfProfile } from '../utils/devicePerformance';
 import { isDriveSessionReady } from '../telegram';
 import {
   loadPersistentThumb,
+  loadPersistentThumbs,
   savePersistentThumb,
 } from './thumbPersistentCache';
 
@@ -22,12 +23,32 @@ type Task = {
   generation: number;
   creds: DriveCredentials;
   folderId: number | null;
+  peerId: string;
+  topicId: number | null;
+  locationType: string;
   messageId: number;
   quality: DriveThumbQuality;
   priority: number;
   sequence: number;
   waiters: Waiter[];
 };
+
+export function buildThumbItemRequest(
+  accountId: string,
+  peerId: string,
+  topicId: number | null,
+  messageId: number,
+  generation: number,
+  quality: DriveThumbQuality
+) {
+  return {
+    requestId: `thumb:${accountId}:${peerId}:${topicId ?? 'none'}:${messageId}:g${generation}`,
+    peerId,
+    telegramMessageId: messageId,
+    quality,
+    generation,
+  };
+}
 
 export type ThumbSchedulerMetrics = {
   queued: number;
@@ -77,15 +98,6 @@ class LRUThumbnailCache {
       this.cache.delete(key);
     }
     this.cache.set(key, url);
-  }
-
-  findSuffix(suffix: string): string | undefined {
-    for (const [key, val] of this.cache.entries()) {
-      if (key.endsWith(suffix) && val && val !== 'NOT_FOUND') {
-        return val;
-      }
-    }
-    return undefined;
   }
 
   has(key: string): boolean {
@@ -139,6 +151,7 @@ let activeQuality: DriveThumbQuality = DEFAULT_THUMB_QUALITY;
 let activeContextKey = 'unscoped';
 let activeSession = 'unscoped';
 let contextGeneration = 0;
+let viewportRequestGeneration = 0;
 let taskSequence = 0;
 const metrics: ThumbSchedulerMetrics = {
   queued: 0,
@@ -193,7 +206,11 @@ if (typeof window !== 'undefined') {
       }>('thumb_single_ready', (event) => {
         const p = event.payload;
         if (!p || !p.messageId || !p.url) return;
-        const targetSession = p.session ? String(p.session).trim() : activeSession;
+        // Legacy event payloads without a session cannot be correlated safely
+        // after a fast account switch. The scoped batch response remains the
+        // authoritative path for those backend versions.
+        if (!p.session) return;
+        const targetSession = String(p.session).trim();
         if (targetSession && targetSession !== 'unscoped' && activeSession !== 'unscoped' && targetSession !== activeSession) {
           return;
         }
@@ -204,7 +221,8 @@ if (typeof window !== 'undefined') {
         const folderId =
           !chat || chat === 'me' || chat === 'saved' ? null : Number(chat);
         const folderPart = Number.isFinite(folderId as number) ? (folderId as number) : null;
-        const k = cacheKey(folderPart, mid, quality, targetSession);
+        const eventPeer = !chat || chat === 'saved' ? 'me' : chat;
+        const k = cacheKey(folderPart, mid, quality, targetSession, eventPeer, null);
 
         if (p.isPlaceholder) {
           // Blur placeholder (32x32 stripped).
@@ -227,7 +245,12 @@ if (typeof window !== 'undefined') {
         notifyThumbReady(k, p.url, false);
 
         for (const [taskKey, task] of queue.entries()) {
-          if (task.messageId !== mid || task.creds.session !== targetSession) continue;
+          if (
+            task.messageId !== mid ||
+            task.creds.session !== targetSession ||
+            task.peerId !== eventPeer ||
+            task.contextKey !== activeContextKey
+          ) continue;
           memCache.set(taskKey, p.url);
           softFailAt.delete(taskKey);
           errorFailAt.delete(taskKey);
@@ -237,22 +260,37 @@ if (typeof window !== 'undefined') {
         }
       }).catch(() => {});
 
-      listen<any>('topic-media://thumb-ready-batch', (event) => {
+      listen<{
+        accountId?: string;
+        peerId?: string;
+        topicId?: number | null;
+        generation?: number;
+        completed?: Array<{ localPath?: string; quality?: string; messageId?: number }>;
+      }>('topic-media://thumb-ready-batch', (event) => {
         const p = event.payload;
         if (!p || !Array.isArray(p.completed)) return;
+        if (!p.accountId || p.accountId !== activeSession || !p.peerId) return;
+        const eventContext = `${p.accountId}:${p.peerId === 'me' ? 'home' : p.peerId}:${p.topicId ?? 'all'}`;
+        if (eventContext !== activeContextKey) return;
         for (const item of p.completed) {
-          if (!item.localPath) continue;
+          if (!item.localPath || !item.messageId) continue;
           const fileUrl = item.localPath.startsWith('http') || item.localPath.startsWith('asset:')
             ? item.localPath
             : 'file:///' + item.localPath.replace(/\\/g, '/');
           const quality = mapRustThumbQuality(item.quality);
-          const folderPart = p.topicId ?? null;
-          const k = cacheKey(folderPart, Number(item.messageId), quality, activeSession);
+          const folderPart = p.peerId === 'me' ? null : Number(p.peerId);
+          const k = cacheKey(folderPart, Number(item.messageId), quality, p.accountId, p.peerId, p.topicId);
           memCache.set(k, fileUrl);
           notifyThumbReady(k, fileUrl, false);
 
           for (const [taskKey, task] of queue.entries()) {
-            if (task.messageId === Number(item.messageId)) {
+            if (
+              task.messageId === Number(item.messageId) &&
+              task.creds.session === p.accountId &&
+              task.peerId === p.peerId &&
+              task.topicId === (p.topicId ?? null) &&
+              task.contextKey === activeContextKey
+            ) {
               memCache.set(taskKey, fileUrl);
               softFailAt.delete(taskKey);
               errorFailAt.delete(taskKey);
@@ -263,14 +301,6 @@ if (typeof window !== 'undefined') {
         }
       }).catch(() => {});
 
-      listen<{ peerId?: string; telegramMessageId?: number; url?: string }>('special-thumb-resolved', (event) => {
-        const p = event.payload;
-        if (!p || !p.telegramMessageId || !p.url) return;
-        const mid = Number(p.telegramMessageId);
-        const folderId = !p.peerId || p.peerId === 'me' || p.peerId === 'saved' ? null : Number(p.peerId);
-        const folderPart = Number.isFinite(folderId as number) ? (folderId as number) : null;
-        cacheCapturedThumb(folderPart, mid, p.url);
-      }).catch(() => {});
     })
     .catch(() => {});
 }
@@ -305,13 +335,28 @@ function maxConcurrent(): number {
   return Math.max(1, getDrivePerfProfile().thumbConcurrent || 4);
 }
 
+export function buildThumbCacheKey(
+  folderId: number | null,
+  messageId: number,
+  quality: DriveThumbQuality,
+  session: string,
+  peerId?: string | null,
+  topicId?: number | null
+) {
+  const peer = peerId || (folderId != null && folderId !== 0 ? String(folderId) : 'me');
+  const topic = topicId != null ? String(topicId) : 'none';
+  return `v2:${session}:${quality}:${peer}:${topic}:${messageId}`;
+}
+
 function cacheKey(
   folderId: number | null,
   messageId: number,
   quality: DriveThumbQuality,
-  session = activeSession
+  session = activeSession,
+  peerId?: string | null,
+  topicId?: number | null
 ) {
-  return `${session}:${quality}:${folderId ?? 'home'}:${messageId}`;
+  return buildThumbCacheKey(folderId, messageId, quality, session, peerId, topicId);
 }
 
 function priorityValue(priority: ThumbPriority | undefined): number {
@@ -399,14 +444,42 @@ export function requestVisibleThumbs(
   creds: DriveCredentials,
   folderId: number | null,
   messageIds: number[],
-  opts?: { bypassCache?: boolean }
+  opts?: {
+    bypassCache?: boolean;
+    peerId?: string | null;
+    topicId?: number | null;
+    locationType?: string;
+    /** Replace queued work from the previous virtual viewport. */
+    replaceViewport?: boolean;
+  }
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
-  const missing: number[] = [];
+  const ownedViewportGeneration = opts?.replaceViewport
+    ? ++viewportRequestGeneration
+    : viewportRequestGeneration;
+  if (opts?.replaceViewport) {
+    const visibleKeys = new Set(ids.map((mid) =>
+      cacheKey(folderId, mid, activeQuality, creds.session, opts?.peerId, opts?.topicId)
+    ));
+    for (const [key, task] of queue) {
+      if (
+        task.contextKey === activeContextKey
+        && task.generation === contextGeneration
+        && !visibleKeys.has(key)
+      ) {
+        queue.delete(key);
+        inflightByKey.delete(key);
+        resolveTask(task, null);
+        metrics.staleCancelled += 1;
+      }
+    }
+    metrics.queued = queue.size;
+  }
+  const missing: Array<{ mid: number; key: string }> = [];
 
   for (const mid of ids) {
-    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    const k = cacheKey(folderId, mid, activeQuality, creds.session, opts?.peerId, opts?.topicId);
     if (!opts?.bypassCache && memCache.has(k)) continue;
 
     // Clear soft-fail for visible items so they try cleanly when scrolled into view
@@ -418,30 +491,50 @@ export function requestVisibleThumbs(
       existing.priority = priorityValue('visible');
       existing.sequence = taskSequence++;
     } else {
-      missing.push(mid);
+      missing.push({ mid, key: k });
     }
   }
 
-  for (const mid of missing) {
-    void requestThumb(creds, folderId, mid, {
-      priority: 'visible',
-      contextKey: activeContextKey,
-      bypassCache: opts?.bypassCache,
-    });
-  }
-  const n = maxConcurrent();
-  for (let i = 0; i < n; i++) scheduleFlush(true);
+  if (!missing.length) return;
+  const ownedContext = activeContextKey;
+  const ownedGeneration = contextGeneration;
+  void (async () => {
+    if (!opts?.bypassCache) {
+      const persisted = await loadPersistentThumbs(missing.map((item) => item.key));
+      if (ownedContext !== activeContextKey || ownedGeneration !== contextGeneration) return;
+      if (opts?.replaceViewport && ownedViewportGeneration !== viewportRequestGeneration) return;
+      for (const [key, url] of persisted) {
+        memCache.set(key, url);
+        metrics.cacheHitIndexedDb += 1;
+        notifyThumbReady(key, url, false);
+      }
+    }
+    if (ownedContext !== activeContextKey || ownedGeneration !== contextGeneration) return;
+    if (opts?.replaceViewport && ownedViewportGeneration !== viewportRequestGeneration) return;
+    for (const { mid, key } of missing) {
+      if (!opts?.bypassCache && memCache.has(key)) continue;
+      void requestThumb(creds, folderId, mid, {
+        priority: 'visible',
+        contextKey: ownedContext,
+        bypassCache: opts?.bypassCache,
+        skipPersistentCache: true,
+        peerId: opts?.peerId,
+        topicId: opts?.topicId,
+        locationType: opts?.locationType,
+      });
+    }
+    const n = maxConcurrent();
+    for (let i = 0; i < n; i++) scheduleFlush(true);
+  })();
 }
 
 export function getCachedThumb(
   folderId: number | null,
-  messageId: number
+  messageId: number,
+  opts?: { peerId?: string | null; topicId?: number | null }
 ): string | null | undefined {
-  const k = cacheKey(folderId, messageId, activeQuality);
+  const k = cacheKey(folderId, messageId, activeQuality, activeSession, opts?.peerId, opts?.topicId);
   if (memCache.has(k)) return memCache.get(k)!;
-  const suffix = `:${activeQuality}:${folderId ?? 'home'}:${messageId}`;
-  const found = memCache.findSuffix(suffix);
-  if (found) return found;
   return undefined;
 }
 
@@ -454,17 +547,16 @@ export function getCachedThumb(
 export function getCachedSaverThumb(
   folderId: number | null,
   messageId: number,
-  session = activeSession
+  session = activeSession,
+  opts?: { peerId?: string | null; topicId?: number | null }
 ): string | null {
   if (activeQuality === 'saver') return null; // already handled by getCachedThumb
-  const k = cacheKey(folderId, messageId, 'saver', session);
+  const k = cacheKey(folderId, messageId, 'saver', session, opts?.peerId, opts?.topicId);
   if (memCache.has(k)) {
     const val = memCache.get(k)!;
     if (val && val !== 'NOT_FOUND') return val;
   }
-  const suffix = `:saver:${folderId ?? 'home'}:${messageId}`;
-  const found = memCache.findSuffix(suffix);
-  return found || null;
+  return null;
 }
 
 /** Seed a just-committed thumbnail without opening another Telegram worker. */
@@ -472,13 +564,14 @@ export function primeThumbCache(
   creds: DriveCredentials,
   folderId: number | null,
   messageId: number,
-  dataUrl: string
+  dataUrl: string,
+  opts?: { peerId?: string | null; topicId?: number | null }
 ): void {
   if (!dataUrl || !dataUrl.startsWith('data:image/')) return;
   const session = creds.session;
   // ONLY prime "saver" (stripped). Never poison balanced/jelas keys with blur
   // mini-thumbs — that made quality switch look like a no-op.
-  const saverKey = cacheKey(folderId, messageId, 'saver', session);
+  const saverKey = cacheKey(folderId, messageId, 'saver', session, opts?.peerId, opts?.topicId);
   memCache.set(saverKey, dataUrl);
   softFailAt.delete(saverKey);
   errorFailAt.delete(saverKey);
@@ -488,7 +581,7 @@ export function primeThumbCache(
     notifyThumbReady(saverKey, dataUrl, false);
   } else {
     // Paint instant blur placeholder on non-saver modes while high-res thumb downloads (Telegram progressive loading parity)
-    const activeKey = cacheKey(folderId, messageId, activeQuality, session);
+    const activeKey = cacheKey(folderId, messageId, activeQuality, session, opts?.peerId, opts?.topicId);
     notifyThumbReady(activeKey, dataUrl, true);
   }
 }
@@ -520,14 +613,15 @@ export function cacheCapturedThumb(
 export function refreshVisibleThumbsForQuality(
   creds: DriveCredentials,
   folderId: number | null,
-  messageIds: number[]
+  messageIds: number[],
+  opts?: { peerId?: string | null; topicId?: number | null; locationType?: string }
 ): void {
   if (!messageIds.length || !isDriveSessionReady()) return;
   softFailAt.clear();
   errorFailAt.clear();
   const ids = [...new Set(messageIds.filter(Number.isFinite))].slice(0, queueMax());
   for (const mid of ids) {
-    const k = cacheKey(folderId, mid, activeQuality, creds.session);
+    const k = cacheKey(folderId, mid, activeQuality, creds.session, opts?.peerId, opts?.topicId);
     inflightByKey.delete(k);
     if (activeQuality !== 'saver') {
       memCache.delete(k);
@@ -536,6 +630,9 @@ export function refreshVisibleThumbsForQuality(
       priority: 'visible',
       contextKey: activeContextKey,
       bypassCache: activeQuality !== 'saver',
+      peerId: opts?.peerId,
+      topicId: opts?.topicId,
+      locationType: opts?.locationType,
     });
   }
   const n = maxConcurrent();
@@ -551,13 +648,17 @@ export function refreshVisibleThumbsForQuality(
 export function primeThumbsFromFileList(
   creds: DriveCredentials,
   folderId: number | null,
-  files: Array<{ id: number; thumb_data_url?: string | null; thumbDataUrl?: string | null }>
+  files: Array<{ id: number; peer_id?: string | null; topic_id?: number | null; thumb_data_url?: string | null; thumbDataUrl?: string | null }>,
+  opts?: { peerId?: string | null; topicId?: number | null }
 ): number {
   let n = 0;
   for (const f of files) {
     const url = f.thumb_data_url || f.thumbDataUrl;
     if (!url || !f.id) continue;
-    primeThumbCache(creds, folderId, f.id, url);
+    primeThumbCache(creds, folderId, f.id, url, {
+      peerId: f.peer_id || opts?.peerId,
+      topicId: opts?.topicId !== undefined ? opts.topicId : f.topic_id,
+    });
     n += 1;
   }
   return n;
@@ -609,9 +710,17 @@ export function invalidateThumbFailures() {
 export function invalidateThumb(
   folderId: number | null,
   messageId: number,
-  session?: string
+  session?: string,
+  opts?: { peerId?: string | null; topicId?: number | null }
 ): void {
-  const k = cacheKey(folderId, messageId, activeQuality, session || activeSession);
+  const k = cacheKey(
+    folderId,
+    messageId,
+    activeQuality,
+    session || activeSession,
+    opts?.peerId,
+    opts?.topicId
+  );
   memCache.delete(k);
   softFailAt.delete(k);
   errorFailAt.delete(k);
@@ -681,11 +790,14 @@ export function isThumbsPaused(): boolean {
 
 function scheduleFlush(immediate = false) {
   if (immediate && !thumbsPaused) {
-    if (timer) {
-      clearTimeout(timer);
+    // Coalesce all visible cards mounted in the same React/virtualizer turn.
+    // Calling flush synchronously created one native RPC per card and let old
+    // overscan work occupy every Grammers lane before the new viewport queued.
+    if (timer) return;
+    timer = setTimeout(() => {
       timer = null;
-    }
-    void flushQueue();
+      void flushQueue();
+    }, 0);
     return;
   }
   if (timer) return;
@@ -743,21 +855,26 @@ async function flushQueue() {
   flushInFlight++;
   lastFlushStartMs = Date.now();
 
+  let activeTasks: Task[] = [];
   try {
     const creds = first.creds;
     const folderId = first.folderId;
+    const peerId = first.peerId;
+    const topicId = first.topicId;
     const quality = first.quality;
     const limit = batchLimit(quality);
     const tasks = [...queue.values()]
       .filter(
         (task) =>
           task.contextKey === first.contextKey &&
-          task.folderId === folderId &&
+          task.peerId === peerId &&
+          task.topicId === topicId &&
           task.quality === quality &&
           task.creds.session === creds.session
       )
       .sort((a, b) => b.priority - a.priority || b.sequence - a.sequence)
       .slice(0, limit);
+    activeTasks = tasks;
     const ids = tasks.map((task) => task.messageId);
     for (const task of tasks) queue.delete(task.key);
     metrics.queued = queue.size;
@@ -770,18 +887,22 @@ async function flushQueue() {
     const started = performance.now();
     const batchUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     const realBatchId = `thumb-batch:${batchUuid}`;
-    const batchRequestId = first ? `thumb:${folderId ?? 'me'}:${first.messageId}:g${first.generation}` : `thumb:batch:${Date.now()}`;
-    const itemRequests = tasks.map((t) => ({
-      requestId: `thumb:${folderId ?? 'me'}:${t.messageId}:g${t.generation}`,
-      peerId: folderId == null ? 'me' : String(folderId),
-      telegramMessageId: t.messageId,
-      quality: t.quality,
-      generation: t.generation,
-    }));
+    const batchRequestId = first ? `thumb:${peerId}:${first.messageId}:g${first.generation}` : `thumb:batch:${Date.now()}`;
+    const itemRequests = tasks.map((task) =>
+      buildThumbItemRequest(
+        task.creds.session,
+        task.peerId,
+        task.topicId,
+        task.messageId,
+        task.generation,
+        task.quality
+      )
+    );
     debugLog('thumbBatcher', 'op=thumb_frontend_invoke', {
       batchId: realBatchId,
       requestId: batchRequestId,
-      peerId: folderId == null ? 'me' : String(folderId),
+      peerId,
+      topicId,
       telegramMessageIds: ids,
       count: ids.length,
     });
@@ -792,7 +913,7 @@ async function flushQueue() {
       requestId: batchRequestId,
       batchId: realBatchId,
       items: itemRequests,
-      telegramPeerId: folderId == null ? 'me' : String(folderId),
+      telegramPeerId: peerId,
       telegramMessageIds: ids,
     });
 
@@ -834,17 +955,14 @@ async function flushQueue() {
         resolveTask(task, url);
       } else if (deferred) {
         // Deferred (session not ready / native cold) — requeue without soft-fail
-        if (task.generation === contextGeneration && task.contextKey === activeContextKey) {
-          queue.set(k, task);
-          metrics.retries += 1;
-        } else {
-          resolveTask(task, null);
-        }
+        softFailAt.set(k, Date.now());
+        metrics.temporaryFailureCount += 1;
+        resolveTask(task, null);
       } else {
         // Miss: short soft-fail so visible cards can re-request soon without hammering.
         debugLog('thumbBatcher', 'op=thumb_frontend_result', {
-          requestId: `thumb:${folderId ?? 'me'}:${mid}:g${task.generation}`,
-          peerId: folderId == null ? 'me' : String(folderId),
+          requestId: `thumb:${task.peerId}:${mid}:g${task.generation}`,
+          peerId: task.peerId,
           telegramMessageId: mid,
           status: 'miss',
         });
@@ -864,6 +982,11 @@ async function flushQueue() {
         setThumbsPaused(false);
       }, Math.min(waitSecs, 60) * 1000);
     }
+    for (const task of activeTasks) {
+      errorFailAt.set(task.key, Date.now());
+      metrics.temporaryFailureCount += 1;
+      resolveTask(task, null);
+    }
   } finally {
     flushInFlight = Math.max(0, flushInFlight - 1);
     if (queue.size) scheduleFlush(flushInFlight === 0);
@@ -875,20 +998,46 @@ export async function requestThumb(
   creds: DriveCredentials,
   folderId: number | null,
   messageId: number,
-  opts?: { priority?: ThumbPriority; contextKey?: string; signal?: AbortSignal; bypassCache?: boolean }
+  opts?: {
+    priority?: ThumbPriority;
+    contextKey?: string;
+    signal?: AbortSignal;
+    bypassCache?: boolean;
+    peerId?: string | null;
+    topicId?: number | null;
+    locationType?: string;
+    skipPersistentCache?: boolean;
+  }
 ): Promise<string | null> {
   if (opts?.signal?.aborted) return null;
   const contextKey = opts?.contextKey || activeContextKey;
   const generation = contextGeneration;
-  const k = cacheKey(folderId, messageId, activeQuality, creds.session);
-  const peerId = folderId == null ? 'me' : String(folderId);
+
+  const rawPeer = opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : null);
+  const locationType = opts?.locationType || (rawPeer === 'me' ? 'saved_messages' : 'group');
+
+  // Guard rule 18:
+  if (rawPeer === 'me' && locationType !== 'saved_messages') {
+    debugLog('thumbBatcher', 'op=thumb_request_rejected_invalid_self_peer', { folderId, messageId, locationType });
+    return null;
+  }
+
+  const peerId = rawPeer || (locationType === 'saved_messages' ? 'me' : null);
+  if (!peerId) {
+    debugLog('thumbBatcher', 'op=thumb_request_rejected_missing_peer', { folderId, messageId, locationType });
+    return null;
+  }
+
   const telegramMessageId = Number(messageId);
-  if (!Number.isInteger(telegramMessageId) || telegramMessageId <= 0 || !peerId) {
+  if (!Number.isInteger(telegramMessageId) || telegramMessageId <= 0) {
     debugLog('thumbBatcher', 'op=thumb_request_rejected_invalid_locator', { folderId, messageId, peerId, telegramMessageId });
     return null;
   }
 
-  const requestId = `thumb:${peerId}:${telegramMessageId}:g${generation}`;
+  const accId = creds.session || 'default';
+  const topicId = opts?.topicId != null ? opts.topicId : 'none';
+  const requestId = `thumb:${accId}:${peerId}:${topicId}:${telegramMessageId}:g${generation}`;
+  const k = cacheKey(folderId, messageId, activeQuality, creds.session, peerId, opts?.topicId);
 
   if (opts?.priority === 'visible' || opts?.bypassCache) {
     softFailAt.delete(k);
@@ -925,7 +1074,8 @@ export async function requestThumb(
     const again = memCache.get(k);
     if (again) return again;
 
-    const persisted = await loadPersistentThumb(k);
+    const persisted = opts?.skipPersistentCache ? null : await loadPersistentThumb(k);
+    if (generation !== contextGeneration || contextKey !== activeContextKey) return null;
     if (persisted) {
       memCache.set(k, persisted);
       softFailAt.delete(k);
@@ -936,6 +1086,7 @@ export async function requestThumb(
     // Re-check after async gap — another caller may have filled mem or queue.
     const afterPersist = memCache.get(k);
     if (afterPersist) return afterPersist;
+    if (generation !== contextGeneration || contextKey !== activeContextKey) return null;
 
     return new Promise<string | null>((resolve) => {
       if (opts?.signal?.aborted) {
@@ -946,7 +1097,20 @@ export async function requestThumb(
       if (existing) {
         existing.priority = Math.max(existing.priority, priorityValue(opts?.priority));
         existing.sequence = taskSequence++;
-        existing.waiters.push({ resolve, signal: opts?.signal });
+        const waiter = { resolve, signal: opts?.signal };
+        existing.waiters.push(waiter);
+        opts?.signal?.addEventListener('abort', () => {
+          const queued = queue.get(k);
+          if (queued) {
+            queued.waiters = queued.waiters.filter((item) => item !== waiter);
+            if (queued.waiters.length === 0) {
+              queue.delete(k);
+              metrics.staleCancelled += 1;
+              metrics.queued = queue.size;
+            }
+          }
+          resolve(null);
+        }, { once: true });
         scheduleFlush(opts?.priority === 'visible');
         return;
       }
@@ -962,18 +1126,34 @@ export async function requestThumb(
         metrics.evictedPrefetch += 1;
         resolveTask(evictable, null);
       }
+      const waiter = { resolve, signal: opts?.signal };
       queue.set(k, {
         key: k,
         contextKey,
         generation,
         creds,
         folderId,
+        peerId,
+        topicId: opts?.topicId ?? null,
+        locationType,
         messageId,
         quality: activeQuality,
         priority: priorityValue(opts?.priority),
         sequence: taskSequence++,
-        waiters: [{ resolve, signal: opts?.signal }],
+        waiters: [waiter],
       });
+      opts?.signal?.addEventListener('abort', () => {
+        const queued = queue.get(k);
+        if (queued) {
+          queued.waiters = queued.waiters.filter((item) => item !== waiter);
+          if (queued.waiters.length === 0) {
+            queue.delete(k);
+            metrics.staleCancelled += 1;
+            metrics.queued = queue.size;
+          }
+        }
+        resolve(null);
+      }, { once: true });
       metrics.queued = queue.size;
       const isVisible = opts?.priority === 'visible';
       scheduleFlush(isVisible || (!bootstrapMode && getDrivePerfProfile().tier === 'high'));
@@ -995,7 +1175,8 @@ export async function requestThumb(
 export function prefetchThumbs(
   creds: DriveCredentials,
   folderId: number | null,
-  messageIds: number[]
+  messageIds: number[],
+  opts?: { peerId?: string | null; topicId?: number | null; locationType?: string }
 ): void {
   if (thumbsPaused || !isDriveSessionReady()) return;
   const ids = [...new Set(messageIds.filter(Number.isFinite))];
@@ -1003,11 +1184,14 @@ export function prefetchThumbs(
 
   for (const mid of ids) {
     if (queue.size >= cap) break;
-    const key = cacheKey(folderId, mid, activeQuality, creds.session);
+    const key = cacheKey(folderId, mid, activeQuality, creds.session, opts?.peerId, opts?.topicId);
     if (memCache.has(key) || queue.has(key)) continue;
     void requestThumb(creds, folderId, mid, {
       priority: 'prefetch',
       contextKey: activeContextKey,
+      peerId: opts?.peerId,
+      topicId: opts?.topicId,
+      locationType: opts?.locationType,
     });
   }
 }

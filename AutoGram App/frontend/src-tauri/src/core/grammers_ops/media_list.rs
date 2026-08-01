@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use grammers_client::message::InputMessage;
 use grammers_client::client::PasswordToken;
+use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::path_policy;
-use crate::core::session_rate;
 use crate::core::session_guard;
+use crate::core::session_rate;
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
 use crate::core::telethon_session_import::{
     grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
     read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
-};
-use crate::core::telegram_ops::{
-    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
 use crate::core::tg_log;
@@ -55,6 +55,18 @@ pub struct MediaFileRow {
     pub topic_id: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub identity_source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub peer_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub peer_kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub peer_username: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grouped_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_saved_messages: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,7 +97,10 @@ pub struct FolderChunkPayload {
     pub total_count: Option<usize>,
 }
 
-pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
+pub fn media_to_row(
+    msg: &grammers_client::message::Message,
+    folder_id: Option<i64>,
+) -> Option<MediaFileRow> {
     use grammers_client::media::Media;
     let id = msg.id() as i64;
     let created = Some(msg.date().to_rfc3339());
@@ -94,7 +109,11 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
         crate::core::tg_log::info(
             BACKEND,
             "MediaListingRejectedNoMedia",
-            format!("op=MediaListingRejectedNoMedia peer_id={} telegram_message_id={}", folder_id.unwrap_or(0), id),
+            format!(
+                "op=MediaListingRejectedNoMedia peer_id={} telegram_message_id={}",
+                folder_id.unwrap_or(0),
+                id
+            ),
         );
         return None;
     };
@@ -102,7 +121,12 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
     let mut size = media.size().unwrap_or(0) as u64;
     if size == 0 {
         if let Media::Photo(ref p) = media {
-            size = p.thumbs().iter().map(|s| s.size() as u64).max().unwrap_or(0);
+            size = p
+                .thumbs()
+                .iter()
+                .map(|s| s.size() as u64)
+                .max()
+                .unwrap_or(0);
         }
     }
     let thumb_data_url = crate::core::grammers_media::stripped_thumb_data_url(&media);
@@ -146,6 +170,20 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                 thumb_data_url,
                 topic_id: message_topic_id(msg),
                 identity_source: Some("telegram_search".into()),
+                peer_id: folder_id
+                    .map(|fid| {
+                        if fid == 0 {
+                            "me".into()
+                        } else {
+                            fid.to_string()
+                        }
+                    })
+                    .or_else(|| Some("me".into())),
+                account_id: None,
+                peer_kind: None,
+                peer_username: None,
+                grouped_id: msg.grouped_id(),
+                is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -244,6 +282,20 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
                 thumb_data_url,
                 topic_id: message_topic_id(msg),
                 identity_source: Some("telegram_search".into()),
+                peer_id: folder_id
+                    .map(|fid| {
+                        if fid == 0 {
+                            "me".into()
+                        } else {
+                            fid.to_string()
+                        }
+                    })
+                    .or_else(|| Some("me".into())),
+                account_id: None,
+                peer_kind: None,
+                peer_username: None,
+                grouped_id: msg.grouped_id(),
+                is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -266,12 +318,29 @@ pub fn media_to_row(msg: &grammers_client::message::Message, folder_id: Option<i
             thumb_data_url,
             topic_id: message_topic_id(msg),
             identity_source: Some("telegram_search".into()),
+            peer_id: folder_id
+                .map(|fid| {
+                    if fid == 0 {
+                        "me".into()
+                    } else {
+                        fid.to_string()
+                    }
+                })
+                .or_else(|| Some("me".into())),
+            account_id: None,
+            peer_kind: None,
+            peer_username: None,
+            grouped_id: msg.grouped_id(),
+            is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
         }),
         _ => None,
     }
 }
 
-pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: Option<i64>) -> Option<MediaFileRow> {
+pub fn tl_message_to_row(
+    msg: &grammers_client::tl::enums::Message,
+    folder_id: Option<i64>,
+) -> Option<MediaFileRow> {
     let m = match msg {
         grammers_client::tl::enums::Message::Message(m) => m,
         _ => return None,
@@ -281,9 +350,10 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
     let created = chrono::DateTime::from_timestamp(m.date as i64, 0).map(|dt| dt.to_rfc3339());
     let caption = m.message.trim();
     let topic_id = match &m.reply_to {
-        Some(grammers_client::tl::enums::MessageReplyHeader::Header(h)) => {
-            h.reply_to_top_id.or(h.reply_to_msg_id).map(|top| top as i64)
-        }
+        Some(grammers_client::tl::enums::MessageReplyHeader::Header(h)) => h
+            .reply_to_top_id
+            .or(h.reply_to_msg_id)
+            .map(|top| top as i64),
         _ => None,
     };
 
@@ -326,6 +396,20 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     thumb_data_url,
                     topic_id,
                     identity_source: Some("telegram_search".into()),
+                    peer_id: folder_id
+                        .map(|fid| {
+                            if fid == 0 {
+                                "me".into()
+                            } else {
+                                fid.to_string()
+                            }
+                        })
+                        .or_else(|| Some("me".into())),
+                    account_id: None,
+                    peer_kind: None,
+                    peer_username: None,
+                    grouped_id: m.grouped_id,
+                    is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -340,7 +424,13 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     }
                 }
                 let name = raw_name
-                    .or_else(|| if caption.is_empty() { None } else { Some(caption.to_string()) })
+                    .or_else(|| {
+                        if caption.is_empty() {
+                            None
+                        } else {
+                            Some(caption.to_string())
+                        }
+                    })
                     .unwrap_or_else(|| format!("file_{id}"));
                 let mime = doc.mime_type.clone();
                 let mime_l = mime.to_ascii_lowercase();
@@ -384,12 +474,29 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     mime_type: Some(mime),
                     icon_type,
                     created_at: created,
-                    has_thumb: is_video || mime_l.starts_with("image/") || thumb_data_url.is_some() || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
+                    has_thumb: is_video
+                        || mime_l.starts_with("image/")
+                        || thumb_data_url.is_some()
+                        || doc.thumbs.as_ref().map(|t| !t.is_empty()).unwrap_or(false),
                     as_document: true,
                     backend: BACKEND.to_string(),
                     thumb_data_url,
                     topic_id,
                     identity_source: Some("telegram_search".into()),
+                    peer_id: folder_id
+                        .map(|fid| {
+                            if fid == 0 {
+                                "me".into()
+                            } else {
+                                fid.to_string()
+                            }
+                        })
+                        .or_else(|| Some("me".into())),
+                    account_id: None,
+                    peer_kind: None,
+                    peer_username: None,
+                    grouped_id: m.grouped_id,
+                    is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
                 })
             }
             _ => None,
@@ -422,7 +529,11 @@ pub fn forward_messages_blocking(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             Box::pin(async move {
-                if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                if !client
+                    .is_authorized()
+                    .await
+                    .map_err(|e| map_invocation(&e))?
+                {
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let source = resolve_peer(client, &src).await?;
@@ -675,14 +786,8 @@ pub fn start_folder_stream_blocking(
     if cancel_flag.load(Ordering::SeqCst) {
         return Ok(false);
     }
-    let res = list_media_blocking_topic(
-        sessions_dir,
-        identity,
-        chat_id,
-        limit,
-        offset_id,
-        topic_id,
-    )?;
+    let res =
+        list_media_blocking_topic(sessions_dir, identity, chat_id, limit, offset_id, topic_id)?;
 
     if cancel_flag.load(Ordering::SeqCst) {
         return Ok(false);

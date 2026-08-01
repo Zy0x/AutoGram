@@ -41,7 +41,8 @@ impl SmartPreviewTranscoder {
         duration: u32,
         start_at: f64,
     ) -> Result<String, String> {
-        let exe = Self::find_ffmpeg().ok_or_else(|| "FFmpeg binary not found on system".to_string())?;
+        let exe =
+            Self::find_ffmpeg().ok_or_else(|| "FFmpeg binary not found on system".to_string())?;
         let input_path_buf = input_path.to_string();
         let output_path_buf = output_path.to_string();
         let max_h = self.max_height;

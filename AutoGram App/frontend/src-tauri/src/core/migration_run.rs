@@ -115,16 +115,21 @@ fn run_forward(
     };
 
     let owner_id = format!("migration-job-{job_id}-exec-{exec_id}");
-    let _guard = session_guard::SessionGuardToken::acquire(
-        &session,
-        &owner_id,
-        SessionPurpose::Migration,
-    )
-    .map_err(|e| e.user_message())?;
+    let _guard =
+        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
+            .map_err(|e| e.user_message())?;
 
     let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
-    let batch_size = if max_messages > 0 { max_messages.clamp(1, 200) } else { 100 };
-    let max_total = if max_messages > 0 { max_messages } else { usize::MAX };
+    let batch_size = if max_messages > 0 {
+        max_messages.clamp(1, 200)
+    } else {
+        100
+    };
+    let max_total = if max_messages > 0 {
+        max_messages
+    } else {
+        usize::MAX
+    };
 
     let result = (|| -> Result<(i64, i64), String> {
         let mut forwarded = 0i64;
@@ -177,11 +182,7 @@ fn run_forward(
                 loop {
                     attempt += 1;
                     match grammers_ops::forward_messages_blocking(
-                        &sessions,
-                        &identity,
-                        &source,
-                        &dest,
-                        &fresh,
+                        &sessions, &identity, &source, &dest, &fresh,
                     ) {
                         Ok(n) => {
                             forwarded += n as i64;
@@ -264,20 +265,29 @@ fn run_clean_copy(
     };
 
     let owner_id = format!("migration-job-{job_id}-exec-{exec_id}");
-    let _guard = session_guard::SessionGuardToken::acquire(
-        &session,
-        &owner_id,
-        SessionPurpose::Migration,
-    )
-    .map_err(|e| e.user_message())?;
+    let _guard =
+        session_guard::SessionGuardToken::acquire(&session, &owner_id, SessionPurpose::Migration)
+            .map_err(|e| e.user_message())?;
 
     let mut current_offset = jobs_db::last_resumable_msg_id(job_id).ok().flatten();
-    let batch_size = if max_messages > 0 { max_messages.clamp(1, 200) } else { 100 };
-    let max_total = if max_messages > 0 { max_messages } else { usize::MAX };
+    let batch_size = if max_messages > 0 {
+        max_messages.clamp(1, 200)
+    } else {
+        100
+    };
+    let max_total = if max_messages > 0 {
+        max_messages
+    } else {
+        usize::MAX
+    };
 
     let work_dir = sessions
         .parent()
-        .map(|p| p.join("cache").join("clean_copy").join(format!("job_{job_id}")))
+        .map(|p| {
+            p.join("cache")
+                .join("clean_copy")
+                .join(format!("job_{job_id}"))
+        })
         .unwrap_or_else(|| PathBuf::from(format!("clean_copy_job_{job_id}")));
     let _ = std::fs::create_dir_all(&work_dir);
 
@@ -341,11 +351,8 @@ fn run_clean_copy(
                     continue;
                 }
 
-                let dest_path = work_dir.join(format!(
-                    "{}_{}",
-                    source_msg_id,
-                    sanitize_name(&filename)
-                ));
+                let dest_path =
+                    work_dir.join(format!("{}_{}", source_msg_id, sanitize_name(&filename)));
                 let dest_str = dest_path.to_string_lossy().to_string();
 
                 // Download with FloodWait retry

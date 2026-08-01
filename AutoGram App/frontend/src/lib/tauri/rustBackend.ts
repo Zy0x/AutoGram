@@ -118,6 +118,7 @@ export type ZipEntry = {
   compressedSize: number;
   isDir: boolean;
   method: number;
+  encrypted?: boolean;
 };
 
 export type ZipListResult = {

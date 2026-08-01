@@ -69,8 +69,7 @@ impl<'a> BoundedRangeReader<'a> {
             }
         };
 
-        self.bytes_read
-            .fetch_add(bytes.len(), Ordering::Relaxed);
+        self.bytes_read.fetch_add(bytes.len(), Ordering::Relaxed);
 
         let vec_bytes = bytes.to_vec();
         {
@@ -81,7 +80,10 @@ impl<'a> BoundedRangeReader<'a> {
         Ok(vec_bytes)
     }
 
-    pub async fn locate_mp4_moov(&self, head_bytes: &[u8]) -> Result<Option<Vec<u8>>, TopicMediaError> {
+    pub async fn locate_mp4_moov(
+        &self,
+        head_bytes: &[u8],
+    ) -> Result<Option<Vec<u8>>, TopicMediaError> {
         // Search for 'moov' atom in head
         if head_bytes.windows(4).any(|w| w == b"moov") {
             return Ok(Some(head_bytes.to_vec()));

@@ -53,10 +53,14 @@ export function previewCacheKey(
   folderId: number | null,
   messageId: number,
   quality: string,
-  session = 'unscoped'
+  session = 'unscoped',
+  peerId?: string | null,
+  topicId?: number | null
 ): string {
   const s = String(session || '').trim() || 'unscoped';
-  return `${s}:${folderId ?? 'home'}:${messageId}:${quality || 'auto'}`;
+  const peer = peerId || (folderId != null && folderId !== 0 ? String(folderId) : 'root');
+  const topic = topicId != null ? String(topicId) : 'root';
+  return `${s}:${peer}:${topic}:${messageId}:${quality || 'auto'}`;
 }
 
 function touch(key: string, val: CachedPreview) {
@@ -73,9 +77,11 @@ export function getCachedPreview(
   folderId: number | null,
   messageId: number,
   quality: string,
-  session = 'unscoped'
+  session = 'unscoped',
+  peerId?: string | null,
+  topicId?: number | null
 ): CachedPreview | null {
-  const key = previewCacheKey(folderId, messageId, quality, session);
+  const key = previewCacheKey(folderId, messageId, quality, session, peerId, topicId);
   const hit = cache.get(key);
   if (!hit) return null;
   if (Date.now() - hit.cachedAt > TTL_MS) {
@@ -92,11 +98,25 @@ export function setCachedPreview(
   messageId: number,
   quality: string,
   res: Omit<CachedPreview, 'cachedAt'>,
-  session = 'unscoped'
+  session = 'unscoped',
+  peerId?: string | null,
+  topicId?: number | null
 ): CachedPreview {
   const entry: CachedPreview = { ...res, cachedAt: Date.now() };
-  touch(previewCacheKey(folderId, messageId, quality, session), entry);
+  touch(previewCacheKey(folderId, messageId, quality, session, peerId, topicId), entry);
   return entry;
+}
+
+export function invalidatePreview(
+  folderId: number | null,
+  messageId: number,
+  session = 'unscoped',
+  peerId?: string | null,
+  topicId?: number | null
+): void {
+  for (const q of ['auto', 'saver', 'balanced', 'sharp', '480p', '720p', '1080p', 'native']) {
+    cache.delete(previewCacheKey(folderId, messageId, q, session, peerId, topicId));
+  }
 }
 
 /** Incomplete progressive files are not a solid cache hit (need live stream_url). */
@@ -142,11 +162,20 @@ export async function loadPreviewCached(
   messageId: number,
   folderId: number | null,
   quality: string,
-  opts?: { force?: boolean }
+  opts?: {
+    force?: boolean;
+    peerId?: string | null;
+    topicId?: number | null;
+    locationType?: string;
+    accountId?: string;
+  }
 ): Promise<CachedPreview> {
   const q = quality || 'auto';
   const session = creds.session || 'unscoped';
-  const hit = getCachedPreview(folderId, messageId, q, session);
+  const peerId = opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : null);
+  const topicId = opts?.topicId ?? null;
+
+  const hit = getCachedPreview(folderId, messageId, q, session, peerId, topicId);
   // Complete local only (full file / faststart) — never trust hollow .stream. alone
   if (!opts?.force && hit && isSolidLocalHit(hit)) {
     return hit;
@@ -156,7 +185,7 @@ export async function loadPreviewCached(
     return hit;
   }
 
-  const key = previewCacheKey(folderId, messageId, q, session);
+  const key = previewCacheKey(folderId, messageId, q, session, peerId, topicId);
   const existing = inflight.get(key);
   if (existing && !opts?.force) return existing;
 
@@ -167,8 +196,11 @@ export async function loadPreviewCached(
       }
       const res = await drivePreview(creds, messageId, folderId, {
         quality: q,
-        // Backend: skip blocking poster (grid thumb is enough for instant UI)
         skipPoster: true,
+        peerId,
+        topicId,
+        locationType: opts?.locationType,
+        accountId: opts?.accountId || creds.session,
       });
       // Drop hollow progressive results that have no usable stream_url —
       // caching them causes endless "reload" when opening many videos.
@@ -182,7 +214,7 @@ export async function loadPreviewCached(
       ) {
         return r;
       }
-      return setCachedPreview(folderId, messageId, q, r, session);
+      return setCachedPreview(folderId, messageId, q, r, session, peerId, topicId);
     } catch (e) {
       noteFloodFromError(e);
       throw e;
@@ -325,21 +357,4 @@ export function clearPreviewCache(): void {
   inflight.clear();
   warmInflight.clear();
   warmDone.clear();
-}
-
-/** Drop one entry (e.g. after failed render / stale stream URL). */
-export function invalidatePreview(
-  folderId: number | null,
-  messageId: number,
-  quality?: string,
-  session = 'unscoped'
-): void {
-  if (quality) {
-    cache.delete(previewCacheKey(folderId, messageId, quality, session));
-    return;
-  }
-  const prefix = `${session}:${folderId ?? 'home'}:${messageId}:`;
-  for (const k of [...cache.keys()]) {
-    if (k.startsWith(prefix)) cache.delete(k);
-  }
 }

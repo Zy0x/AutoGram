@@ -259,7 +259,7 @@ export function DriveTopBar({
           title={t("speedtest.topbar_deselect_all_tooltip")}
         >
           <SquareX size={15} strokeWidth={2} aria-hidden />
-          <span className="td-chip-label">Batal</span>
+          <span className="td-chip-label">{t('speedtest.topbar_cancel', 'Batal')}</span>
         </button>
         {onInvertSelection && (
           <button
@@ -646,6 +646,7 @@ export function DriveTopBar({
               <button
                 key={tp.id}
                 type="button"
+                data-topic-id={tp.id}
                 className={`td-topic-pill ${topicFilter === tp.id ? 'active' : ''} ${tp.closed ? 'is-closed' : ''}`}
                 onClick={() => onTopicFilter?.(tp.id)}
                 onContextMenu={(e) => {

@@ -1013,8 +1013,16 @@ export function DrivePreviewModal({
       }
 
       try {
+        const itemPeerId = file.peer_id || (folderId != null && folderId !== 0 ? String(folderId) : null);
+        const itemTopicId = file.topic_id ?? null;
+        const itemAccountId = file.account_id || creds.session;
+        const locationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
         const res = await loadPreviewCached(creds, file.id, folderId, qNorm, {
           force,
+          peerId: itemPeerId,
+          topicId: itemTopicId,
+          locationType,
+          accountId: itemAccountId,
         });
         if (mountGenRef.current !== activeMountGen) return;
         if (seq !== loadSeq.current) return;
@@ -1193,7 +1201,7 @@ export function DrivePreviewModal({
   useEffect(() => {
     if (!streamId || streamDone) return;
     let alive = true;
-    let intervalMs = 250; // cold start — fast initial nudge (was 600ms)
+    let intervalMs = 300;
     let timer: any = null;
 
     const schedule = (ms: number) => {
@@ -1253,7 +1261,12 @@ export function DrivePreviewModal({
         setBufferPct(Math.min(100, Math.round(displayPct)));
 
         // If pipeline was paused (autoplay→pause race), resume while user is on preview
-        if (st.paused === true && streamUrl && streamId) {
+        if (
+          st.paused === true &&
+          !userExplicitlyPausedRef.current &&
+          streamUrl &&
+          streamId
+        ) {
           try {
             const idx = streamUrl.indexOf('/stream/');
             if (idx >= 0) {
@@ -1270,7 +1283,9 @@ export function DrivePreviewModal({
           (!!v && !v.paused && browserHasData) ||
           st.stream_ready === true ||
           prefix >= 1024 * 1024;
-        const wantMs = healthy ? 800 : 60; // 60ms initial fast poll for instant start
+        // Avoid saturating the Tauri command loop while Drive thumbnails and
+        // list RPCs are active. This still reacts within one third of a second.
+        const wantMs = healthy ? 1000 : 300;
         if (wantMs !== intervalMs) schedule(wantMs);
 
         if (st.status === 'done' || (total > 0 && prefix >= total * 0.98)) {
@@ -1374,20 +1389,7 @@ export function DrivePreviewModal({
             v.currentTime >= v.duration - 0.35;
           if (!nearEnd) {
             playNudgeAtRef.current = now;
-            // Media error freezes the element — rebind same URL to clear error state,
-            // then let onLoadedMetadata restore currentTime once metadata is loaded (readyState >= 1).
-            if (v.error && streamUrl && isHttpStreamUrl(streamUrl)) {
-              const t = v.currentTime || resumeAtRef.current || 0;
-              if (t > 0.25) resumeAtRef.current = t;
-              try {
-                const sticky = streamUrl;
-                v.removeAttribute('src');
-                v.load();
-                v.src = sticky;
-              } catch {
-                /* ignore */
-              }
-            } else if (!userExplicitlyPausedRef.current) {
+            if (!v.error && !userExplicitlyPausedRef.current) {
               void v.play().then(() => {
                 hasUserPlayRef.current = true;
                 userExplicitlyPausedRef.current = false;
@@ -1408,27 +1410,14 @@ export function DrivePreviewModal({
           } else if (now - lastTimeAdvanceAtRef.current > 1600 && now - playNudgeAtRef.current > 1000) {
             playNudgeAtRef.current = now;
             const stuckMs = now - lastTimeAdvanceAtRef.current;
-            if (stuckMs > 3200 && streamUrl && isHttpStreamUrl(streamUrl)) {
-              // Frozen > 3.2s: perform clean rebind to wake Chromium media engine
-              lastTimeAdvanceAtRef.current = now;
-              const t = cur > 0.25 ? cur : 0;
-              if (t > 0) resumeAtRef.current = t;
-              try {
-                const sticky = streamUrl;
-                v.removeAttribute('src');
-                v.load();
-                v.src = sticky;
-              } catch {
-                /* ignore */
-              }
-            } else {
-              // Micro-nudge
-              try {
-                ignoreSeekEventsRef.current += 1;
-                v.currentTime = cur;
-              } catch {
-                /* ignore */
-              }
+            // Keep Chromium's TimeRanges intact. Calling load() here discarded
+            // the entire browser buffer and created an endless reload loop.
+            if (stuckMs > 3200) lastTimeAdvanceAtRef.current = now;
+            try {
+              ignoreSeekEventsRef.current += 1;
+              v.currentTime = cur;
+            } catch {
+              ignoreSeekEventsRef.current = Math.max(0, ignoreSeekEventsRef.current - 1);
             }
           }
         }
@@ -1881,9 +1870,21 @@ export function DrivePreviewModal({
     return null;
   }, [isPdf, streamUrl, path, dataUrl, streamDone, bufferPct]);
 
-  // Load text body — hybrid: Rust local path first, then Python stream/HTTP fallback.
+  // Load text body from the bounded Rust result, local cache, or Rust HTTP stream.
   useEffect(() => {
     if (!isText) {
+      return;
+    }
+    // The cached card can paint before the cold native preview command returns.
+    // Do not manufacture an error while there is no source result to evaluate;
+    // loadPreview owns terminal command errors and clears this state on success.
+    if (
+      previewState === 'loading' &&
+      textBody == null &&
+      !streamUrl &&
+      !path &&
+      !dataUrl
+    ) {
       return;
     }
     // Already set from applyResult(text_content)
@@ -1971,7 +1972,7 @@ export function DrivePreviewModal({
             /* fall through to stream */
           }
         }
-        // 3) HTTP stream (Python media_stream) — fallback only
+        // 3) Rust progressive HTTP stream — fallback only
         if (streamUrl && /^https?:\/\//i.test(streamUrl)) {
           try {
             const text = await tryFetch(streamUrl);
@@ -2006,7 +2007,7 @@ export function DrivePreviewModal({
     return () => {
       cancelled = true;
     };
-  }, [isText, textBody, streamUrl, path, dataUrl, file.name, mime, previewKind]);
+  }, [isText, textBody, streamUrl, path, dataUrl, file.name, mime, previewKind, previewState]);
 
   /** Always offer resolution menu for video (Telegram-style) */
   const resolutionOptions =
@@ -3560,7 +3561,13 @@ export function DrivePreviewModal({
                     // MEDIA_ERR_DECODE (3) or SRC_NOT_SUPPORTED (4): the element itself is
                     // broken. A src rebind can clear it without restarting Telegram download.
                     const n = mediaErrorCountRef.current;
-                    if (v && streamUrl && n <= 4 && !softReloadInFlightRef.current) {
+                    if (
+                      v &&
+                      streamUrl &&
+                      nativeStreamReadyRef.current &&
+                      n === 1 &&
+                      !softReloadInFlightRef.current
+                    ) {
                       softReloadInFlightRef.current = true;
                       setPlayerHint('Buffering… menyambung putar');
                       const t = v.currentTime || 0;

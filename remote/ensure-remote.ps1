@@ -59,7 +59,12 @@ function Set-Progress([string]$phase, [string]$hint = '') {
 function Test-TcpPort([string]$HostName, [int]$Port, [int]$TimeoutMs = 400) {
   $client = $null
   try {
-    $client = New-Object System.Net.Sockets.TcpClient
+    $family = if ($HostName -match ':') {
+      [System.Net.Sockets.AddressFamily]::InterNetworkV6
+    } else {
+      [System.Net.Sockets.AddressFamily]::InterNetwork
+    }
+    $client = [System.Net.Sockets.TcpClient]::new($family)
     $iar = $client.BeginConnect($HostName, $Port, $null, $null)
     if (-not $iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
       return $false
@@ -92,11 +97,12 @@ function Test-CdpUp {
   foreach ($hName in @('::1', '127.0.0.1')) {
     if (-not (Test-TcpPort $hName 9222 350)) { continue }
     try {
-      $url = if ($hName -eq '::1') { 'http://[::1]:9222/json' } else { 'http://127.0.0.1:9222/json' }
-      $resp = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 2
-      if ($resp.StatusCode -ne 200) { continue }
+      $url = if ($hName -eq '::1') { 'http://[::1]:9222/json/list' } else { 'http://127.0.0.1:9222/json/list' }
+      # Invoke-WebRequest intermittently fails for bracketed IPv6 URLs on Windows.
+      # curl's -g keeps [::1] literal and avoids the false 45-second CDP timeout.
+      $json = (& curl.exe -g -sS --max-time 2 $url 2>$null) -join "`n"
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { continue }
       # Check that one of the targets is actually AutoGram (localhost:1420 or tauri)
-      $json = $resp.Content
       if ($json -match 'localhost:1420' -or $json -match 'tauri') {
         # Store the working CDP URL globally for heal-remote.mjs
         $script:ResolvedCdpUrl = $url
@@ -342,7 +348,7 @@ if ($needStart) {
 
 # CDP: WebView2 cold after reboot can take a bit; adaptive early exit
 Set-Progress 'CDP' 'waiting :9222'
-$cdpOk = Wait-Until { Test-CdpUp } 20000 'CDP_WAIT'
+$cdpOk = Wait-Until { Test-CdpUp } 60000 'CDP_WAIT'
 if (-not $cdpOk) {
   Write-EnsureLog 'ERROR CDP not up'
   Set-Status 'FAIL CDP :9222 not ready'

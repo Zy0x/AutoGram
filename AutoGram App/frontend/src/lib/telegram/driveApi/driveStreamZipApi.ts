@@ -4,26 +4,57 @@ import {
   DriveCredentials,
   driveSessionCallFor
 } from './driveApiUtils';
+
 export async function drivePreview(
   creds: DriveCredentials,
   messageId: number,
   folderId: number | null,
-  _opts?: { quality?: string; skipPoster?: boolean }
+  opts?: {
+    quality?: string;
+    skipPoster?: boolean;
+    peerId?: string | null;
+    topicId?: number | null;
+    locationType?: string;
+    accountId?: string;
+  }
 ) {
   if (!detectTauriRuntime()) {
     throw new Error('Preview membutuhkan desktop Rust + Grammers.');
   }
   try {
     const { tgPreviewStream } = await import('../core/telegramBackend');
-    const chatId = folderId == null ? 'me' : String(folderId);
+    const rawPeer = (opts?.peerId || (folderId != null && folderId !== 0 ? String(folderId) : '') || '').trim();
+    const locationType = opts?.locationType || (rawPeer === 'me' ? 'saved_messages' : 'group');
+
+    // Guard rule 18:
+    if (rawPeer === 'me' && locationType !== 'saved_messages') {
+      throw new Error(`INVALID_SELF_PEER_USAGE: peerId 'me' cannot be used for locationType '${locationType}'`);
+    }
+
+    const chatId = rawPeer || (locationType === 'saved_messages' ? 'me' : 'me');
+    if (!chatId || (chatId === 'me' && locationType !== 'saved_messages' && !rawPeer)) {
+      throw new Error(`INVALID_PEER_IDENTITY: Cannot resolve peerId for message ${messageId}. Defaulting to 'me' is strictly forbidden.`);
+    }
+
     const apiId = Number(creds.apiId) || 0;
-    const gr = await tgPreviewStream({
+    const request = {
       session: creds.session,
       apiId,
       apiHash: creds.apiHash,
       chatId,
       messageId,
-    });
+      topicId: opts?.topicId ?? null,
+      locationType,
+      accountId: opts?.accountId || creds.session,
+    };
+    // WebView can paint the cached grid a few hundred milliseconds before the
+    // cold Grammers command bridge is ready. Retry only a missing invoke result;
+    // real Telegram/file errors must surface immediately.
+    let gr = await tgPreviewStream(request);
+    for (let attempt = 0; gr == null && attempt < 3; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+      gr = await tgPreviewStream(request);
+    }
     if (gr?.ok && gr.data) {
       const d = gr.data;
       return {
@@ -41,6 +72,12 @@ export async function drivePreview(
         too_large: false,
         backend: 'grammers',
         message: d.message,
+        source: d.source || 'full',
+        is_fallback: d.isFallback || false,
+        width: d.width,
+        height: d.height,
+        byte_size: d.byteSize || d.size,
+        full_download_error: d.fullDownloadError,
       };
     }
     throw new Error(gr?.userMessage || gr?.error?.message || 'Preview native tidak tersedia.');
@@ -58,7 +95,6 @@ export async function drivePreviewWarm(
 ) {
   if (!detectTauriRuntime()) return { status: 'no_session' };
   try {
-    // Kick progressive without blocking UI long — fire-and-forget style
     void drivePreview(creds, messageId, folderId).catch(() => undefined);
     return { status: 'warming', backend: 'grammers' };
   } catch {
@@ -110,10 +146,7 @@ export async function driveStopStream(
   opts?: { stopAll?: boolean; incompleteOnly?: boolean; deletePartial?: boolean }
 ) {
   if (!opts?.stopAll && !streamId) return { status: 'missing' };
-  // Keep partial files by default so reopen/resume can continue buffer growth.
-  // Deleting partial was zeroing progress and left buffer stuck at 0–1%.
   const deletePartial = opts?.deletePartial === true;
-  // Grammers progressive cancel (local)
   if (streamId && detectTauriRuntime() && !opts?.stopAll) {
     try {
       const { tgStopStream } = await import('../core/telegramBackend');
@@ -192,8 +225,6 @@ export async function driveStreamSeek(
   }
 }
 
-
-
 /** In-memory session cache for extracted ZIP entry previews to prevent duplicate MTProto fetches on re-open */
 const zipEntryCacheMap = new Map<string, Map<string, any>>();
 
@@ -243,6 +274,7 @@ export async function driveZipList(
         compressed_size: Number(e.compressedSize || 0),
         is_dir: !!e.isDir,
         method: e.method || 0,
+        encrypted: !!e.encrypted,
       })),
       archive_size: res?.archiveSize,
       total_uncompressed: res?.totalUncompressed,
@@ -321,7 +353,9 @@ export async function driveZipReadEntry(
 
       let kind = 'meta';
       const mime = (res?.mimeType || '').toLowerCase();
-      if (mime.startsWith('video/')) {
+      if (mime === 'application/pdf') {
+        kind = 'pdf';
+      } else if (mime.startsWith('video/')) {
         kind = 'video';
       } else if (mime.startsWith('audio/')) {
         kind = 'audio';
@@ -400,4 +434,4 @@ export async function driveZipExtractEntry(
   const { zipExtractEntrySparse } = await import('../../tauri/rustBackend');
   const bytesWritten = await zipExtractEntrySparse(sparseOpts, entryName, destPath, password);
   return { status: 'success', bytesWritten };
-}
+}

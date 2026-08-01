@@ -48,6 +48,32 @@ function isFallbackDataUrl(dataUrl: string): boolean {
   return false;
 }
 
+export async function purgeStaleLegacyCaches(): Promise<number> {
+  const db = await openDb();
+  if (!db) return 0;
+  try {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAllKeys();
+    const keys = (await requestResult(req)) as string[] | null;
+    if (!keys || !keys.length) return 0;
+
+    let purged = 0;
+    for (const key of keys) {
+      if (!key.startsWith('v2:')) {
+        store.delete(key);
+        purged++;
+      }
+    }
+    if (purged > 0) {
+      console.log(`[thumbPersistentCache] Purged ${purged} stale legacy cache entries`);
+    }
+    return purged;
+  } catch {
+    return 0;
+  }
+}
+
 export async function loadPersistentThumb(key: string, now = Date.now()): Promise<string | null> {
   const db = await openDb();
   if (!db) return null;

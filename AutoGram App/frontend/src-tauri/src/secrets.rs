@@ -52,7 +52,10 @@ fn protect_file_acl(path: &Path) {
                 path.to_string_lossy().as_ref(),
                 "/inheritance:r",
                 "/grant:r",
-                &format!("{}:F", std::env::var("USERNAME").unwrap_or_else(|_| "User".into())),
+                &format!(
+                    "{}:F",
+                    std::env::var("USERNAME").unwrap_or_else(|_| "User".into())
+                ),
             ])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
@@ -424,7 +427,15 @@ pub async fn seed_api_credentials_from_env(app: AppHandle) -> Result<bool, Strin
 #[tauri::command]
 pub fn ensure_secure_dirs(app: AppHandle) -> Result<String, String> {
     let worker = resolve_worker_root(&app)?;
-    for sub in ["sessions", "cache", "cache/open", "cache/thumbs", "cache/previews", "temp", "logs"] {
+    for sub in [
+        "sessions",
+        "cache",
+        "cache/open",
+        "cache/thumbs",
+        "cache/previews",
+        "temp",
+        "logs",
+    ] {
         let p = worker.join(sub);
         fs::create_dir_all(&p).map_err(|e| format!("mkdir {}: {e}", p.display()))?;
         #[cfg(windows)]
@@ -645,5 +656,3 @@ pub fn validate_worker_args(args: &[String]) -> Result<(), String> {
     }
     Ok(())
 }
-
-

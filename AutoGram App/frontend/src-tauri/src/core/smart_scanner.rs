@@ -85,7 +85,10 @@ impl SmartScanner {
         tg_log::info(
             BACKEND,
             "warmup_from_db_cache",
-            format!("Loaded {count} cached entries for entity={}", self.entity_id),
+            format!(
+                "Loaded {count} cached entries for entity={}",
+                self.entity_id
+            ),
         );
         Ok(count)
     }

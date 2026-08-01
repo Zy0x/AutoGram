@@ -304,6 +304,7 @@ function DropRow({
 }: DropRowProps) {
 
   const anyDrag = dragLive || !!folderDragLive;
+  const [locationKind, locationPeerId] = dropKeyStr.split(':', 2);
   const allow = (e: React.DragEvent) =>
     dragLive || !!folderDragLive || acceptDrop(e) || isFolderReparentDragActive();
 
@@ -313,6 +314,8 @@ function DropRow({
       tabIndex={0}
       data-drop-key={dropKeyStr}
       data-drop-invalid={invalidTarget ? '1' : '0'}
+      data-location-kind={locationKind}
+      data-peer-id={locationPeerId}
       draggable={!!folderDragSource}
       className={`${className}${isOver && !invalidTarget ? ' is-drop-over' : ''}${
         isOver && invalidTarget ? ' is-drop-invalid' : ''

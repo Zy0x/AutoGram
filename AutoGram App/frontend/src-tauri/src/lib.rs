@@ -9,23 +9,22 @@ mod session_clone;
 use serde::Serialize;
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{ChildStdin, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::thread;
 use tauri::{AppHandle, Emitter, Manager};
 
 /// job_id → OS process id for hard-kill cancel
+#[cfg(any())]
 fn worker_pids() -> &'static Mutex<HashMap<i64, u32>> {
     static MAP: OnceLock<Mutex<HashMap<i64, u32>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 /// job_id → stdin for long-lived workers (drive-serve RPC)
-fn worker_stdins() -> &'static Mutex<HashMap<i64, ChildStdin>> {
-    static MAP: OnceLock<Mutex<HashMap<i64, ChildStdin>>> = OnceLock::new();
+#[cfg(any())]
+fn worker_stdins() -> &'static Mutex<HashMap<i64, std::process::ChildStdin>> {
+    static MAP: OnceLock<Mutex<HashMap<i64, std::process::ChildStdin>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -115,7 +114,9 @@ fn acquire_worker_session_lease(
 }
 
 #[tauri::command]
-fn get_worker_session_lease(session_key_hash: String) -> Result<Option<WorkerSessionLease>, String> {
+fn get_worker_session_lease(
+    session_key_hash: String,
+) -> Result<Option<WorkerSessionLease>, String> {
     let leases = worker_session_leases()
         .lock()
         .map_err(|e| format!("session lease lock: {e}"))?;
@@ -123,12 +124,16 @@ fn get_worker_session_lease(session_key_hash: String) -> Result<Option<WorkerSes
 }
 
 #[tauri::command]
-fn release_worker_session_lease(session_key_hash: String, transfer_id: String) -> Result<bool, String> {
+fn release_worker_session_lease(
+    session_key_hash: String,
+    transfer_id: String,
+) -> Result<bool, String> {
     Ok(release_session_lease_inner(&session_key_hash, &transfer_id))
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(any())]
 struct WorkerLinePayload {
     job_id: i64,
     line: String,
@@ -137,6 +142,7 @@ struct WorkerLinePayload {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(any())]
 struct WorkerExitPayload {
     job_id: i64,
     code: i32,
@@ -144,6 +150,7 @@ struct WorkerExitPayload {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg(any())]
 struct WorkerOnceResult {
     code: i32,
     stdout: String,
@@ -167,7 +174,11 @@ fn resolve_daemon_script(app: &AppHandle) -> Result<PathBuf, String> {
         cwd.join("..").join("..").join("worker").join("daemon.py"),
         // AutoGram App/frontend -> ../worker
         cwd.join("..").join("worker").join("daemon.py"),
-        cwd.join("..").join("..").join("..").join("worker").join("daemon.py"),
+        cwd.join("..")
+            .join("..")
+            .join("..")
+            .join("worker")
+            .join("daemon.py"),
     ];
     for p in candidates {
         if let Ok(canon) = p.canonicalize() {
@@ -195,6 +206,7 @@ fn resolve_daemon_script(app: &AppHandle) -> Result<PathBuf, String> {
     ))
 }
 
+#[cfg(any())]
 fn resolve_python_bin(daemon: &Path) -> PathBuf {
     // Prefer worker/venv for deps (cryptg, telethon) — critical for upload speed
     if let Some(parent) = daemon.parent() {
@@ -217,11 +229,19 @@ fn resolve_python_bin(daemon: &Path) -> PathBuf {
     PathBuf::from("python")
 }
 
-fn build_python_command(daemon: &Path, args: &[String]) -> Command {
+#[cfg(any())]
+fn build_python_command(daemon: &Path, args: &[String]) -> std::process::Command {
     build_python_command_with_stdin(daemon, args, false)
 }
 
-fn build_python_command_with_stdin(daemon: &Path, args: &[String], pipe_stdin: bool) -> Command {
+#[cfg(any())]
+fn build_python_command_with_stdin(
+    daemon: &Path,
+    args: &[String],
+    pipe_stdin: bool,
+) -> std::process::Command {
+    use std::io::{BufRead, BufReader, Write};
+    use std::process::{Command, Stdio};
     let py = resolve_python_bin(daemon);
     let mut cmd = Command::new(&py);
     cmd.arg("-u");
@@ -307,6 +327,7 @@ fn build_python_command_with_stdin(daemon: &Path, args: &[String], pipe_stdin: b
 }
 
 /// Hard-kill PID (and children on Windows) without removing maps.
+#[cfg(any())]
 fn kill_pid_tree(pid: u32) {
     #[cfg(windows)]
     {
@@ -318,9 +339,7 @@ fn kill_pid_tree(pid: u32) {
     }
     #[cfg(not(windows))]
     {
-        let _ = Command::new("kill")
-            .args(["-9", &pid.to_string()])
-            .status();
+        let _ = Command::new("kill").args(["-9", &pid.to_string()]).status();
     }
 }
 
@@ -329,6 +348,7 @@ fn kill_pid_tree(pid: u32) {
 /// Set `pipe_stdin` true for interactive workers (drive-serve RPC).
 /// If the same job_id is already running, kills it first (kill-before-respawn).
 #[tauri::command]
+#[cfg(any())]
 async fn start_worker_job(
     app: AppHandle,
     job_id: i64,
@@ -436,13 +456,7 @@ async fn start_worker_job(
         release_session_leases_for_job(job_id);
         // Small delay so last stdout lines flush through the other threads
         thread::sleep(std::time::Duration::from_millis(80));
-        let _ = app_wait.emit(
-            "worker-exit",
-            WorkerExitPayload {
-                job_id,
-                code,
-            },
-        );
+        let _ = app_wait.emit("worker-exit", WorkerExitPayload { job_id, code });
     });
 
     Ok(())
@@ -458,13 +472,8 @@ async fn start_rust_qr_login(
 ) -> Result<(), String> {
     tokio::spawn(async move {
         let session_for_error = session.clone();
-        if let Err(error) = core::grammers_ops::grammers_qr_login(
-            app.clone(),
-            session,
-            api_id,
-            api_hash,
-        )
-        .await
+        if let Err(error) =
+            core::grammers_ops::grammers_qr_login(app.clone(), session, api_id, api_hash).await
         {
             let _ = app.emit(
                 "qr-event",
@@ -482,8 +491,7 @@ async fn start_rust_qr_login(
 /// Delete native and legacy migration-source session files locally.
 #[tauri::command]
 fn delete_session_rust(session: String) -> Result<(), String> {
-    core::grammers_ops::delete_grammers_session_files(&session)
-        .map_err(|e| e.to_string())
+    core::grammers_ops::delete_grammers_session_files(&session).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -493,10 +501,9 @@ fn cancel_rust_qr_login(session: String) -> bool {
 
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
+#[cfg(any())]
 fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
-    let mut map = worker_stdins()
-        .lock()
-        .map_err(|e| format!("lock: {e}"))?;
+    let mut map = worker_stdins().lock().map_err(|e| format!("lock: {e}"))?;
     let stdin = map
         .get_mut(&job_id)
         .ok_or_else(|| format!("No stdin for job {job_id} (is drive-serve running?)"))?;
@@ -507,7 +514,9 @@ fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
     stdin
         .write_all(payload.as_bytes())
         .map_err(|e| format!("stdin write failed: {e}"))?;
-    stdin.flush().map_err(|e| format!("stdin flush failed: {e}"))?;
+    stdin
+        .flush()
+        .map_err(|e| format!("stdin flush failed: {e}"))?;
     Ok(())
 }
 
@@ -525,11 +534,10 @@ pub(crate) fn resolve_worker_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let daemon = resolve_daemon_script(app)?;
     let parent = daemon
         .parent()
-        .ok_or_else(|| "daemon has no parent".to_string())?
+        .ok_or_else(|| "storage root has no parent".to_string())?
         .to_path_buf();
     Ok(parent.canonicalize().unwrap_or(parent))
 }
-
 
 fn download_allowed_roots(app: &AppHandle) -> Vec<PathBuf> {
     let mut roots: Vec<PathBuf> = Vec::new();
@@ -647,9 +655,10 @@ fn cleanup_partial_downloads(
         let check = if p.exists() {
             p.canonicalize().unwrap_or(p.clone())
         } else if let Some(parent) = p.parent() {
-            parent.canonicalize().unwrap_or(parent.to_path_buf()).join(
-                p.file_name().unwrap_or_default(),
-            )
+            parent
+                .canonicalize()
+                .unwrap_or(parent.to_path_buf())
+                .join(p.file_name().unwrap_or_default())
         } else {
             p.clone()
         };
@@ -678,14 +687,13 @@ fn cleanup_partial_downloads(
 
 /// Hard-kill a running worker started via start_worker_job (Cancel).
 #[tauri::command]
+#[cfg(any())]
 fn kill_worker_job(job_id: i64) -> Result<bool, String> {
     if let Ok(mut map) = worker_stdins().lock() {
         map.remove(&job_id);
     }
     let pid = {
-        let mut map = worker_pids()
-            .lock()
-            .map_err(|e| format!("lock: {e}"))?;
+        let mut map = worker_pids().lock().map_err(|e| format!("lock: {e}"))?;
         map.remove(&job_id)
     };
     let Some(pid) = pid else {
@@ -697,6 +705,7 @@ fn kill_worker_job(job_id: i64) -> Result<bool, String> {
 
 /// One-shot daemon call (list-jobs, set-status, create-job, etc.)
 #[tauri::command]
+#[cfg(any())]
 async fn run_worker_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnceResult, String> {
     if let Err(e) = secrets::validate_worker_args(&args) {
         return Ok(WorkerOnceResult {
@@ -772,12 +781,7 @@ fn jobs_run_migration(
     max_messages: Option<usize>,
 ) -> Result<core::migration_run::MigrationRunResult, String> {
     ensure_sessions_dir_env(&app);
-    core::migration_run::run_job_forward_mvp(
-        job_id,
-        api_id,
-        &api_hash,
-        max_messages.unwrap_or(100),
-    )
+    core::migration_run::run_job_forward_mvp(job_id, api_id, &api_hash, max_messages.unwrap_or(100))
 }
 
 #[tauri::command]
@@ -1050,39 +1054,17 @@ fn studio_get_transfer(transfer_id: String) -> Option<core::job_queue::TransferR
     core::job_queue::get_transfer(&transfer_id)
 }
 
-/// Phase 3: Rust orchestrates queue; Python studio-serve runs Telethon upload_one steps.
+/// Rust orchestrates the queue and Grammers performs every upload step.
 #[tauri::command]
 async fn studio_run_orchestrated(
     app: AppHandle,
     request: core::job_queue::CreateTransferRequest,
 ) -> Result<core::studio_orch::OrchStartResult, String> {
-    let daemon = resolve_daemon_script(&app)?;
-    let py = resolve_python_bin(&daemon);
-    let mut env_extra = core::network::worker_env_map();
-    if let Some(parent) = daemon.parent() {
-        let reg = parent.join("cache").join("stream_registry");
-        let port = core::stream_server::stream_port();
-        if port > 0 {
-            env_extra.push(("AUTOGRAM_STREAM_PORT".into(), port.to_string()));
-            env_extra.push((
-                "AUTOGRAM_STREAM_REGISTRY".into(),
-                reg.display().to_string(),
-            ));
-        }
-        // Grammers / dual-path session root
-        let sessions = parent.join("sessions");
-        env_extra.push((
-            "AUTOGRAM_SESSIONS_DIR".into(),
-            sessions.display().to_string(),
-        ));
-        std::env::set_var("AUTOGRAM_SESSIONS_DIR", sessions.display().to_string());
-    }
+    ensure_sessions_dir_env(&app);
     let req = request;
-    tauri::async_runtime::spawn_blocking(move || {
-        core::studio_orch::run_orchestrated_blocking(&req, &daemon, &py, &env_extra)
-    })
-    .await
-    .map_err(|e| format!("orch join: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || core::studio_orch::run_orchestrated_blocking(&req))
+        .await
+        .map_err(|e| format!("orch join: {e}"))?
 }
 
 // ── Phase 4 Grammers / dual-path Telegram ops ─────────────────────────────
@@ -1106,7 +1088,10 @@ fn tg_backend_status(app: AppHandle) -> core::telegram_ops::BackendStatus {
 }
 
 #[tauri::command]
-fn tg_set_backend(app: AppHandle, backend: String) -> core::telegram_ops::OpResult<core::telegram_ops::BackendStatus> {
+fn tg_set_backend(
+    app: AppHandle,
+    backend: String,
+) -> core::telegram_ops::OpResult<core::telegram_ops::BackendStatus> {
     ensure_sessions_dir_env(&app);
     core::telegram_ops::tg_set_backend(backend)
 }
@@ -1154,9 +1139,11 @@ async fn tg_import_telethon_session(
     session: String,
 ) -> Result<core::telegram_ops::OpResult<String>, String> {
     ensure_sessions_dir_env(&app);
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_import_telethon_session(session))
-        .await
-        .map_err(|e| format!("native session import task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_import_telethon_session(session)
+    })
+    .await
+    .map_err(|e| format!("native session import task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1177,9 +1164,11 @@ async fn tg_list_dialogs(
     limit: Option<usize>,
 ) -> Result<core::telegram_ops::OpResult<Vec<core::telegram_ops::DialogEntry>>, String> {
     ensure_sessions_dir_env(&app);
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_dialogs(identity, limit))
-        .await
-        .map_err(|e| format!("native dialog task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_list_dialogs(identity, limit)
+    })
+    .await
+    .map_err(|e| format!("native dialog task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1188,9 +1177,11 @@ async fn tg_list_dialog_filters(
     identity: core::telegram_ops::TelegramIdentity,
 ) -> Result<core::telegram_ops::OpResult<Vec<core::grammers_ops::DialogFilterRow>>, String> {
     ensure_sessions_dir_env(&app);
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_list_dialog_filters(identity))
-        .await
-        .map_err(|e| format!("native dialog filter task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_list_dialog_filters(identity)
+    })
+    .await
+    .map_err(|e| format!("native dialog filter task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1215,7 +1206,8 @@ async fn tg_start_folder_stream(
     let cancel_flag = core::telegram_ops::register_stream(&req_id);
 
     tauri::async_runtime::spawn_blocking(move || {
-        let res = core::telegram_ops::tg_start_folder_stream_blocking(request, &channel, &cancel_flag);
+        let res =
+            core::telegram_ops::tg_start_folder_stream_blocking(request, &channel, &cancel_flag);
         core::telegram_ops::unregister_stream(&req_id);
         res
     })
@@ -1291,9 +1283,11 @@ async fn tg_thumbs_batch(
 ) -> Result<core::telegram_ops::OpResult<core::grammers_media::ThumbsBatchResult>, String> {
     ensure_sessions_dir_env(&app);
     let app_handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_thumbs_batch_app(request, Some(&app_handle)))
-        .await
-        .map_err(|e| format!("native thumbnail task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_thumbs_batch_app(request, Some(&app_handle))
+    })
+    .await
+    .map_err(|e| format!("native thumbnail task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1324,10 +1318,7 @@ async fn tg_preview_stream(
 }
 
 #[tauri::command]
-fn tg_stop_stream(
-    app: AppHandle,
-    stream_id: String,
-) -> core::telegram_ops::OpResult<bool> {
+fn tg_stop_stream(app: AppHandle, stream_id: String) -> core::telegram_ops::OpResult<bool> {
     ensure_sessions_dir_env(&app);
     core::telegram_ops::tg_stop_stream(stream_id)
 }
@@ -1559,17 +1550,10 @@ pub fn run() {
             automations_delete,
             stats_get,
             stats_export_csv,
-            start_worker_job,
-            kill_worker_job,
-            acquire_worker_session_lease,
-            get_worker_session_lease,
-            release_worker_session_lease,
             session_guard_acquire,
             session_guard_release,
             session_guard_snapshot,
             cleanup_partial_downloads,
-            write_worker_stdin,
-            run_worker_once,
             start_rust_qr_login,
             delete_session_rust,
             cancel_rust_qr_login,
@@ -1602,7 +1586,11 @@ pub fn run() {
                 let reg = worker.join("cache").join("stream_registry");
                 let port = core::stream_server::ensure_started(reg);
                 if port > 0 {
-                    eprintln!("[autogram] rust stream server on 127.0.0.1:{port}");
+                    crate::core::tg_log::info(
+                        "stream_server",
+                        "listening",
+                        format!("host=127.0.0.1 port={port}"),
+                    );
                 }
             }
             // Network (proxy/VPN) config under app data

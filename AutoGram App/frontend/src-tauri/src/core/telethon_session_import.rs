@@ -241,9 +241,8 @@ pub fn write_session_data(path: &Path, data: &SessionData) -> Result<(), TgError
         ipv4: dc.ipv4.ip().to_string(),
         port: dc.ipv4.port(),
     };
-    let json = serde_json::to_string_pretty(&file).map_err(|e| {
-        TgError::new(TgErrorCode::SessionImportFailed, format!("serialize: {e}"))
-    })?;
+    let json = serde_json::to_string_pretty(&file)
+        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("serialize: {e}")))?;
     std::fs::write(path, json)
         .map_err(|e| TgError::new(TgErrorCode::Io, format!("write grammers session: {e}")))?;
     Ok(())
@@ -318,20 +317,34 @@ pub fn export_grammers_to_telethon_file(
     telethon_path: &Path,
 ) -> Result<(), TgError> {
     let file: GrammersSessionFile = {
-        let raw = std::fs::read_to_string(grammers_path)
-            .map_err(|e| TgError::new(TgErrorCode::SessionMissing, format!("read grammers session: {e}")))?;
-        serde_json::from_str(&raw).map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("parse json: {e}")))?
+        let raw = std::fs::read_to_string(grammers_path).map_err(|e| {
+            TgError::new(
+                TgErrorCode::SessionMissing,
+                format!("read grammers session: {e}"),
+            )
+        })?;
+        serde_json::from_str(&raw).map_err(|e| {
+            TgError::new(TgErrorCode::SessionImportFailed, format!("parse json: {e}"))
+        })?
     };
 
-    let key = hex::decode(file.auth_key_hex.trim())
-        .map_err(|e| TgError::new(TgErrorCode::SessionImportFailed, format!("auth_key hex: {e}")))?;
+    let key = hex::decode(file.auth_key_hex.trim()).map_err(|e| {
+        TgError::new(
+            TgErrorCode::SessionImportFailed,
+            format!("auth_key hex: {e}"),
+        )
+    })?;
 
     if let Some(parent) = telethon_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
 
-    let conn = Connection::open(telethon_path)
-        .map_err(|e| TgError::new(TgErrorCode::Io, format!("open sqlite telethon session: {e}")))?;
+    let conn = Connection::open(telethon_path).map_err(|e| {
+        TgError::new(
+            TgErrorCode::Io,
+            format!("open sqlite telethon session: {e}"),
+        )
+    })?;
 
     let _ = conn.execute_batch("PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL;");
 
@@ -343,20 +356,23 @@ pub fn export_grammers_to_telethon_file(
             auth_key BLOB
         )",
         [],
-    ).map_err(|e| TgError::new(TgErrorCode::Io, format!("create sessions table: {e}")))?;
+    )
+    .map_err(|e| TgError::new(TgErrorCode::Io, format!("create sessions table: {e}")))?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS version (
             version INTEGER PRIMARY KEY
         )",
         [],
-    ).map_err(|e| TgError::new(TgErrorCode::Io, format!("create version table: {e}")))?;
+    )
+    .map_err(|e| TgError::new(TgErrorCode::Io, format!("create version table: {e}")))?;
 
     let _ = conn.execute("DELETE FROM sessions", []);
     conn.execute(
         "INSERT INTO sessions (dc_id, server_address, port, auth_key) VALUES (?1, ?2, ?3, ?4)",
         rusqlite::params![file.home_dc, file.ipv4, file.port, key],
-    ).map_err(|e| TgError::new(TgErrorCode::Io, format!("insert sessions row: {e}")))?;
+    )
+    .map_err(|e| TgError::new(TgErrorCode::Io, format!("insert sessions row: {e}")))?;
 
     let _ = conn.execute("DELETE FROM version", []);
     let _ = conn.execute("INSERT INTO version (version) VALUES (7)", []);

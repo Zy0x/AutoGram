@@ -58,7 +58,8 @@ pub fn quick_fingerprint(path: &str) -> Result<FileHashResult, String> {
     let mut tail = vec![0u8; 64 * 1024];
     use std::io::{Read, Seek, SeekFrom};
     file.read_exact(&mut head).map_err(|e| e.to_string())?;
-    file.seek(SeekFrom::End(-(64 * 1024))).map_err(|e| e.to_string())?;
+    file.seek(SeekFrom::End(-(64 * 1024)))
+        .map_err(|e| e.to_string())?;
     file.read_exact(&mut tail).map_err(|e| e.to_string())?;
     let mut hasher = Sha256::new();
     hasher.update(&(size.to_le_bytes()));

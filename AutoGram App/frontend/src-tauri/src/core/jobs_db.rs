@@ -113,10 +113,7 @@ pub struct LedgerHit {
 
 impl LedgerHit {
     pub fn is_duplicate(&self) -> bool {
-        self.by_source_msg
-            || self.by_telegram_unique
-            || self.by_sha256
-            || self.by_name_size
+        self.by_source_msg || self.by_telegram_unique || self.by_sha256 || self.by_name_size
     }
 }
 
@@ -328,10 +325,7 @@ pub struct CreateJobRequest {
 
 pub fn create_job(req: &CreateJobRequest) -> Result<i64, String> {
     let conn = open_db()?;
-    let mode = req
-        .mode
-        .clone()
-        .unwrap_or_else(|| "Clean Copy".into());
+    let mode = req.mode.clone().unwrap_or_else(|| "Clean Copy".into());
     let config = req.config_json.clone().unwrap_or_else(|| "{}".into());
     conn.execute(
         "INSERT INTO jobs (name, profile_name, source_entity_id, target_entity_id, transfer_mode, config_json)
@@ -365,10 +359,7 @@ pub struct EditJobRequest {
 
 pub fn edit_job(req: &EditJobRequest) -> Result<(), String> {
     let conn = open_db()?;
-    let mode = req
-        .mode
-        .clone()
-        .unwrap_or_else(|| "Clean Copy".into());
+    let mode = req.mode.clone().unwrap_or_else(|| "Clean Copy".into());
     let config = req.config_json.clone().unwrap_or_else(|| "{}".into());
     let n = conn
         .execute(
@@ -616,7 +607,9 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
     let mut current_total: u64 = 0;
 
     fn collect(dir: &Path, files: &mut Vec<FileEntry>, total: &mut u64) {
-        let Ok(rd) = std::fs::read_dir(dir) else { return; };
+        let Ok(rd) = std::fs::read_dir(dir) else {
+            return;
+        };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
@@ -625,7 +618,11 @@ pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
                 let sz = m.len();
                 let mod_time = m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
                 *total = total.saturating_add(sz);
-                files.push(FileEntry { path: p, size: sz, modified: mod_time });
+                files.push(FileEntry {
+                    path: p,
+                    size: sz,
+                    modified: mod_time,
+                });
             }
         }
     }
@@ -695,4 +692,3 @@ pub fn is_execution_cancelled(exec_id: i64) -> bool {
         Some("CANCELLED") | Some("PAUSED") | Some("STOPPED")
     )
 }
-

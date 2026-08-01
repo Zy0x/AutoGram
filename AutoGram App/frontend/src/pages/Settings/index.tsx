@@ -33,6 +33,7 @@ import {
   clearPersistentThumbs,
   getPersistentThumbsSize,
 } from '../../lib/media/thumbPersistentCache';
+import { clearMediaCache } from '../../lib/db/mediaStudioDb';
 import {
   bootstrapSecureCredentials,
   setApiCredentials,
@@ -206,6 +207,7 @@ export function Settings() {
 
       // 2. IndexedDB
       await clearPersistentThumbs();
+      await clearMediaCache();
 
       // 3. LocalStorage
       const keysToRemove: string[] = [];
@@ -214,7 +216,10 @@ export function Settings() {
         if (key && (
           key.startsWith('autogram_drive_locations_v1_') ||
           key.startsWith('autogram_drive_sidebar_v1_') ||
-          key.startsWith('autogram_drive_topics_v1_')
+          key.startsWith('autogram_drive_topics_v1_') ||
+          key.startsWith('autogram_drive_scroll_v1_') ||
+          key.startsWith('autogram_drive_peer_v2_') ||
+          key === 'autogram_drive_peer'
         )) {
           keysToRemove.push(key);
         }
@@ -222,6 +227,12 @@ export function Settings() {
       for (const key of keysToRemove) {
         localStorage.removeItem(key);
       }
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key?.startsWith('drive_root_files_')) sessionKeysToRemove.push(key);
+      }
+      for (const key of sessionKeysToRemove) sessionStorage.removeItem(key);
 
       // 4. Disk Cache Backend (Rust)
       try {

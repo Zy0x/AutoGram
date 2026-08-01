@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use grammers_client::message::InputMessage;
 use grammers_client::client::PasswordToken;
+use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::MemorySession;
@@ -17,14 +17,14 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use crate::core::path_policy;
-use crate::core::session_rate;
 use crate::core::session_guard;
+use crate::core::session_rate;
+use crate::core::telegram_ops::{
+    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
+};
 use crate::core::telethon_session_import::{
     grammers_session_path, import_telethon_to_grammers_file, probe_telethon_session,
     read_session_data, telethon_session_path, write_session_data, TelethonSessionProbe,
-};
-use crate::core::telegram_ops::{
-    AuthStatus, DialogEntry, TelegramIdentity, UploadStepResult, UserProfile,
 };
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode, TgErrorPublic};
 use crate::core::tg_log;
@@ -38,14 +38,11 @@ pub const BACKEND: &str = "grammers";
 
 /// Convert grammers PeerId → stable i64 for UI (Bot API dialog id preferred).
 pub fn peer_id_i64(id: grammers_session::types::PeerId) -> i64 {
-    id.bot_api_dialog_id()
-        .or_else(|| id.bare_id())
-        .unwrap_or(0)
+    id.bot_api_dialog_id().or_else(|| id.bare_id()).unwrap_or(0)
 }
 
 pub fn session_operation_lock(session_name: &str) -> Arc<tokio::sync::RwLock<()>> {
-    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::RwLock<()>>>>> =
-        OnceLock::new();
+    static LOCKS: OnceLock<Mutex<HashMap<String, Arc<tokio::sync::RwLock<()>>>>> = OnceLock::new();
     let locks = LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut guard = locks.lock();
     Arc::clone(
@@ -107,11 +104,14 @@ pub struct CachedLiveClient {
     api_id: i64,
     live: Arc<LiveClient>,
     pub user_profile: Option<UserProfile>,
+    last_used: Instant,
 }
 
 pub fn get_cached_user_profile(session_name: &str) -> Option<UserProfile> {
     let clients = live_clients().lock();
-    clients.get(session_name).and_then(|c| c.user_profile.clone())
+    clients
+        .get(session_name)
+        .and_then(|c| c.user_profile.clone())
 }
 
 /// True if this session already proved authorized (skip extra is_authorized RPCs).
@@ -123,7 +123,11 @@ pub async fn ensure_authorized(client: &Client, session_name: &str) -> Result<()
     if session_known_authorized(session_name) {
         return Ok(());
     }
-    if client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+    if client
+        .is_authorized()
+        .await
+        .map_err(|e| map_invocation(&e))?
+    {
         // Soft-mark: profile may still be empty; insert placeholder so next calls skip
         // full is_authorized until get_me fills real profile.
         if get_cached_user_profile(session_name).is_none() {
@@ -145,6 +149,7 @@ pub fn set_cached_user_profile(session_name: &str, profile: UserProfile) {
     let mut clients = live_clients().lock();
     if let Some(c) = clients.get_mut(session_name) {
         c.user_profile = Some(profile);
+        c.last_used = Instant::now();
     }
 }
 
@@ -160,13 +165,35 @@ pub fn disconnect_cached_session(session_name: &str) {
 }
 
 pub fn purge_inactive_sessions(active_session: &str) {
+    const MAX_WARM_SESSIONS: usize = 3;
     let active = active_session.trim();
     let mut map = live_clients().lock();
-    let to_remove: Vec<String> = map
-        .keys()
-        .filter(|s| *s != active && !s.is_empty())
-        .cloned()
-        .collect();
+    if map.len() < MAX_WARM_SESSIONS {
+        return;
+    }
+
+    // Keep the selected account and the most recently used pools warm. A
+    // session with a live Studio/Job/preview/transfer lease must never be
+    // disconnected by an unrelated account switch.
+    let mut candidates = map
+        .iter()
+        .filter(|(session, _)| {
+            session.as_str() != active
+                && !session.is_empty()
+                && session_guard::snapshot(session).activities.is_empty()
+        })
+        .map(|(session, entry)| (session.clone(), entry.last_used))
+        .collect::<Vec<_>>();
+    candidates.sort_by_key(|(_, last_used)| *last_used);
+    let remove_count = map
+        .len()
+        .saturating_add(1)
+        .saturating_sub(MAX_WARM_SESSIONS);
+    let to_remove = candidates
+        .into_iter()
+        .take(remove_count)
+        .map(|(session, _)| session)
+        .collect::<Vec<_>>();
     for s in to_remove {
         if let Some(entry) = map.remove(&s) {
             entry.live.client.disconnect();
@@ -185,19 +212,14 @@ pub(crate) async fn connect_client(
     import_if_missing: bool,
 ) -> Result<LiveClient, TgError> {
     if identity.api_id <= 0 {
-        return Err(TgError::new(
-            TgErrorCode::NotConfigured,
-            "api_id invalid",
-        ));
+        return Err(TgError::new(TgErrorCode::NotConfigured, "api_id invalid"));
     }
     if identity.api_hash.trim().is_empty() {
-        return Err(TgError::new(
-            TgErrorCode::NotConfigured,
-            "api_hash missing",
-        ));
+        return Err(TgError::new(TgErrorCode::NotConfigured, "api_hash missing"));
     }
 
-    let g_path = ensure_grammers_session(sessions_dir, &identity.session, import_if_missing).await?;
+    let g_path =
+        ensure_grammers_session(sessions_dir, &identity.session, import_if_missing).await?;
     tg_log::info(
         BACKEND,
         "connect_start",
@@ -288,10 +310,7 @@ where
 ///
 /// Each `op` invocation must call `with_client` fresh so a rebuilt pool is used.
 /// Captures that are not `Copy` must be `.clone()`d inside the `FnMut` body.
-pub(crate) async fn with_pool_retry<T, Fut, F>(
-    session_name: &str,
-    mut op: F,
-) -> Result<T, TgError>
+pub(crate) async fn with_pool_retry<T, Fut, F>(session_name: &str, mut op: F) -> Result<T, TgError>
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = Result<T, TgError>>,
@@ -350,11 +369,14 @@ pub(crate) async fn obtain_live_client(
         disconnect_cached_session(&identity.session);
     } else {
         let cached = {
-            let clients = live_clients().lock();
+            let mut clients = live_clients().lock();
             clients
-                .get(&identity.session)
+                .get_mut(&identity.session)
                 .filter(|entry| entry.api_id == identity.api_id)
-                .map(|entry| Arc::clone(&entry.live))
+                .map(|entry| {
+                    entry.last_used = Instant::now();
+                    Arc::clone(&entry.live)
+                })
         };
         if let Some(live) = cached {
             return Ok(live);
@@ -368,11 +390,14 @@ pub(crate) async fn obtain_live_client(
     // already rebuilt the pool while we queued).
     if !force_fresh {
         let cached = {
-            let clients = live_clients().lock();
+            let mut clients = live_clients().lock();
             clients
-                .get(&identity.session)
+                .get_mut(&identity.session)
                 .filter(|entry| entry.api_id == identity.api_id)
-                .map(|entry| Arc::clone(&entry.live))
+                .map(|entry| {
+                    entry.last_used = Instant::now();
+                    Arc::clone(&entry.live)
+                })
         };
         if let Some(live) = cached {
             return Ok(live);
@@ -381,11 +406,14 @@ pub(crate) async fn obtain_live_client(
         // Still force-fresh after lock: another reconnect may have inserted a
         // brand-new pool — prefer that over dual-open.
         let cached = {
-            let clients = live_clients().lock();
+            let mut clients = live_clients().lock();
             clients
-                .get(&identity.session)
+                .get_mut(&identity.session)
                 .filter(|entry| entry.api_id == identity.api_id)
-                .map(|entry| Arc::clone(&entry.live))
+                .map(|entry| {
+                    entry.last_used = Instant::now();
+                    Arc::clone(&entry.live)
+                })
         };
         if let Some(live) = cached {
             // Only reuse if it was inserted after our disconnect (race-safe enough
@@ -402,6 +430,7 @@ pub(crate) async fn obtain_live_client(
             api_id: identity.api_id,
             live: Arc::clone(&live),
             user_profile: None,
+            last_used: Instant::now(),
         },
     );
     Ok(live)

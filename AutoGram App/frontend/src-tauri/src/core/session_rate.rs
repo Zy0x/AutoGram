@@ -37,15 +37,17 @@ fn rates() -> &'static Mutex<HashMap<String, SessionRate>> {
 
 fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
     let mut map = rates().lock();
-    let e = map.entry(session.to_string()).or_insert_with(|| SessionRate {
-        flood_until: None,
-        media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
-        preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
-        fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
-        video_sem: std::sync::Arc::new(Semaphore::new(MAX_VIDEO_THUMB_CONCURRENCY)),
-        active_streams: Vec::new(),
-        inflight_preview: HashMap::new(),
-    });
+    let e = map
+        .entry(session.to_string())
+        .or_insert_with(|| SessionRate {
+            flood_until: None,
+            media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
+            preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
+            fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
+            video_sem: std::sync::Arc::new(Semaphore::new(MAX_VIDEO_THUMB_CONCURRENCY)),
+            active_streams: Vec::new(),
+            inflight_preview: HashMap::new(),
+        });
     f(e)
 }
 
@@ -64,7 +66,11 @@ pub fn note_flood_wait(session: &str, secs: u32) {
 /// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.
 pub fn parse_flood_secs(err: &str) -> Option<u32> {
     let low = err.to_ascii_lowercase();
-    if !low.contains("flood") && !low.contains("a wait of") && !low.contains("wait") && !low.contains("420") {
+    if !low.contains("flood")
+        && !low.contains("a wait of")
+        && !low.contains("wait")
+        && !low.contains("420")
+    {
         return None;
     }
     // 1. Check for value: X or (value: X) in FLOOD_PREMIUM_WAIT

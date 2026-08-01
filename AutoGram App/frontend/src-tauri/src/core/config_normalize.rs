@@ -40,10 +40,7 @@ pub fn normalize_job_config(raw: Value) -> Value {
 
     let limit = as_i64(&get("limit"), 0).max(0);
     let delay = as_f64(&get("delay"), 0.0).max(0.0);
-    let mode = get("mode")
-        .as_str()
-        .unwrap_or("copy")
-        .to_ascii_lowercase();
+    let mode = get("mode").as_str().unwrap_or("copy").to_ascii_lowercase();
     let mode = if matches!(mode.as_str(), "copy" | "forward" | "sync") {
         mode
     } else {

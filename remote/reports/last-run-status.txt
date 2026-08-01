@@ -1,1 +1,1 @@
-﻿FAIL CDP :9222 not ready
+OK suite

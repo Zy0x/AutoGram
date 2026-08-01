@@ -27,7 +27,17 @@ if (-not (Test-Path (Join-Path $frontendRoot 'node_modules\vite\bin\vite.js'))) 
 Push-Location $tauriDir
 try {
   Log 'cargo build (debug frontend.exe) — first run can take several minutes'
+  # Cargo writes normal progress and warnings to stderr. PowerShell 5 turns
+  # those records into NativeCommandError when Stop is active, causing a false
+  # wrapper failure before Cargo has finished.
+  $ErrorActionPreference = 'Continue'
   cargo build 2>&1 | Tee-Object -FilePath (Join-Path $logDir 'cargo-build.log')
+  $cargoExit = $LASTEXITCODE
+  $ErrorActionPreference = 'Stop'
+  if ($cargoExit -ne 0) {
+    Log "FAIL cargo build exit=$cargoExit"
+    exit $cargoExit
+  }
   $exe = Join-Path $tauriDir 'target\debug\frontend.exe'
   if (-not (Test-Path $exe)) {
     Log "FAIL missing $exe"

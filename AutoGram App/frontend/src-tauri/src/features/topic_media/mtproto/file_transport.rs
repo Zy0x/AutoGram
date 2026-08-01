@@ -11,11 +11,7 @@ pub const MAX_CHUNK_SIZE: usize = 1024 * 1024; // 1MB max chunk limit per Telegr
 
 #[async_trait]
 pub trait TelegramRangeReader: Send + Sync {
-    async fn read_range(
-        &self,
-        offset: u64,
-        length: usize,
-    ) -> Result<Bytes, TopicMediaError>;
+    async fn read_range(&self, offset: u64, length: usize) -> Result<Bytes, TopicMediaError>;
 
     fn file_size(&self) -> u64;
 
@@ -47,11 +43,7 @@ impl MTProtoRangeReader {
 
 #[async_trait]
 impl TelegramRangeReader for MTProtoRangeReader {
-    async fn read_range(
-        &self,
-        offset: u64,
-        length: usize,
-    ) -> Result<Bytes, TopicMediaError> {
+    async fn read_range(&self, offset: u64, length: usize) -> Result<Bytes, TopicMediaError> {
         let chunk_len = length.min(MAX_CHUNK_SIZE);
         let req = tl::functions::upload::GetFile {
             precise: true,

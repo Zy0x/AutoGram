@@ -14,6 +14,12 @@
   "permissions": [
     "core:default",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://t.me/**" }
+      ]
+    },
     "shell:default",
     "dialog:default",
     "fs:default",

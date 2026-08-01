@@ -1,10 +1,6 @@
 //! Studio orchestrator — Rust owns queue order.
 //!
-//! Upload steps (dual-path):
-//! 1. **Grammers** (default when not forced off) — pure Rust MTProto upload
-//! 2. **Python studio-serve** (Telethon) — fallback if Grammers fails / env=telethon
-//!
-//! UI may still fall back further to legacy media-studio spawn.
+//! Upload steps use Grammers only. There is no Python/Telethon runtime fallback.
 
 use serde::Serialize;
 use serde_json::json;
@@ -334,13 +330,7 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                     }
                     _ => ItemState::Failed,
                 };
-                let _ = job_queue::update_item(
-                    &tid,
-                    item.index,
-                    st,
-                    r.message_id,
-                    r.error.clone(),
-                );
+                let _ = job_queue::update_item(&tid, item.index, st, r.message_id, r.error.clone());
                 if r.error.is_some() && first_fatal.is_none() {
                     first_fatal = r.error;
                 }
@@ -393,12 +383,7 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
 }
 
 /// Run orchestrated transfer — **Grammers only** (Telethon studio-serve removed).
-pub fn run_orchestrated_blocking(
-    req: &CreateTransferRequest,
-    _daemon: &std::path::Path,
-    _python: &std::path::Path,
-    _env_extra: &[(String, String)],
-) -> Result<OrchStartResult, String> {
+pub fn run_orchestrated_blocking(req: &CreateTransferRequest) -> Result<OrchStartResult, String> {
     match run_orchestrated_grammers(req) {
         Ok(r) => {
             tg_log::info("studio_orch", "done", format!("mode={}", r.mode));
@@ -413,7 +398,8 @@ pub fn run_orchestrated_blocking(
     }
 }
 
-/// Python studio-serve Telethon steps (fallback / forced).
+#[cfg(any())]
+/// Historical source retained outside the compiled runtime for migration archaeology only.
 fn run_orchestrated_telethon_blocking(
     req: &CreateTransferRequest,
     daemon: &std::path::Path,
@@ -594,13 +580,7 @@ fn run_orchestrated_telethon_blocking(
                 let _ = job_queue::update_item(&tid, item.index, st, mid, err);
             }
             Err(e) => {
-                let _ = job_queue::update_item(
-                    &tid,
-                    item.index,
-                    ItemState::Failed,
-                    None,
-                    Some(e),
-                );
+                let _ = job_queue::update_item(&tid, item.index, ItemState::Failed, None, Some(e));
             }
         }
     }

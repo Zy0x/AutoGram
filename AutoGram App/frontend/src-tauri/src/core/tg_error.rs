@@ -24,6 +24,7 @@ pub enum TgErrorCode {
     Timeout,
     Cancelled,
     Internal,
+    InvalidIdentity,
     TelethonFallbackRequired,
 }
 
@@ -101,7 +102,9 @@ impl TgError {
 
     pub fn flood_wait_secs(&self) -> Option<u32> {
         match self {
-            Self::Structured { flood_wait_secs, .. } => *flood_wait_secs,
+            Self::Structured {
+                flood_wait_secs, ..
+            } => *flood_wait_secs,
         }
     }
 
@@ -185,7 +188,10 @@ pub fn map_invocation(err: &grammers_client::InvocationError) -> TgError {
     match err {
         InvocationError::Rpc(rpc) => {
             let name = rpc.name.clone();
-            if name.contains("AUTH_KEY_UNREGISTERED") || name.contains("SESSION_REVOKED") || name.contains("USER_DEACTIVATED") {
+            if name.contains("AUTH_KEY_UNREGISTERED")
+                || name.contains("SESSION_REVOKED")
+                || name.contains("USER_DEACTIVATED")
+            {
                 return TgError::new(
                     TgErrorCode::NotAuthorized,
                     "Sesi Telegram telah kedaluwarsa atau dicabut oleh Telegram (AUTH_KEY_UNREGISTERED). Silakan login ulang akun ini di menu Akun.",
@@ -196,11 +202,7 @@ pub fn map_invocation(err: &grammers_client::InvocationError) -> TgError {
                 let secs = rpc
                     .value
                     .filter(|v| *v > 0)
-                    .or_else(|| {
-                        name.rsplit('_')
-                            .next()
-                            .and_then(|s| s.parse().ok())
-                    })
+                    .or_else(|| name.rsplit('_').next().and_then(|s| s.parse().ok()))
                     .unwrap_or(30);
                 return TgError::with_flood(secs, name);
             }

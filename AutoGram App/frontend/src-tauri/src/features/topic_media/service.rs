@@ -58,12 +58,7 @@ impl TopicMediaService {
         }
 
         // 1. Local-First: Load SQLite Cache instantly
-        let cached_items = get_cached_page(
-            &req.context,
-            &req.filter_types,
-            None,
-            req.page_size,
-        )?;
+        let cached_items = get_cached_page(&req.context, &req.filter_types, None, req.page_size)?;
 
         let has_cached = !cached_items.is_empty();
         let last_cursor = cached_items.last().map(|item| TopicMediaCursor {
@@ -87,24 +82,25 @@ impl TopicMediaService {
             }
 
             // Perform MTProto server search via Grammers
-            let search_res = crate::core::grammers_ops::with_client(
-                &sessions_dir,
-                &identity,
-                true,
-                |client| {
+            let search_res =
+                crate::core::grammers_ops::with_client(&sessions_dir, &identity, true, |client| {
                     let ctx = service_ctx.clone();
-                    let filter = filter_types.first().cloned().unwrap_or_else(|| "all".to_string());
+                    let filter = filter_types
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "all".to_string());
                     Box::pin(async move {
                         search_topic_media(client, &ctx, &filter, None, page_size)
                             .await
-                            .map_err(|e| crate::core::tg_error::TgError::new(
-                                crate::core::tg_error::TgErrorCode::Internal,
-                                e.to_string(),
-                            ))
+                            .map_err(|e| {
+                                crate::core::tg_error::TgError::new(
+                                    crate::core::tg_error::TgErrorCode::Internal,
+                                    e.to_string(),
+                                )
+                            })
                     })
-                },
-            )
-            .await;
+                })
+                .await;
 
             if cancel_token.is_cancelled() {
                 return;

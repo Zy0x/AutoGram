@@ -24,23 +24,23 @@ export function preferredKeepId(g: DupGroup, keepNewest: boolean): number | null
 }
 
 export const TOOL_GROUPS: {
-  title: string;
-  tabs: { id: DriveToolsTab; label: string; icon: any }[];
+  titleKey: string;
+  tabs: { id: DriveToolsTab; icon: any }[];
 }[] = [
   {
-    title: 'ALAT DRIVE',
+    titleKey: 'speedtest.tools_group_drive',
     tabs: [
-      { id: 'copy', label: 'Salin batch', icon: Copy },
-      { id: 'dups', label: 'Duplikat', icon: Layers },
-      { id: 'rename', label: 'Bulk rename', icon: Type },
-      { id: 'space', label: 'Storage', icon: HardDrive },
-      { id: 'filter', label: 'Filter+', icon: Filter },
+      { id: 'copy', icon: Copy },
+      { id: 'dups', icon: Layers },
+      { id: 'rename', icon: Type },
+      { id: 'space', icon: HardDrive },
+      { id: 'filter', icon: Filter },
     ],
   },
   {
-    title: 'KONFIGURASI',
+    titleKey: 'speedtest.tools_group_settings',
     tabs: [
-      { id: 'transfer', label: 'Pengaturan Transfer', icon: Settings2 },
+      { id: 'transfer', icon: Settings2 },
     ],
   },
 ];

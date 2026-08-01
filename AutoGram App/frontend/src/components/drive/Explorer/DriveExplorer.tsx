@@ -13,14 +13,15 @@ import {
   type DriveMediaFilter,
   type DriveSortMode,
   type DriveViewMode,
+  formatDriveBytes,
 } from '../../../lib/telegram/driveTypes';
 import {
   filterAndSortDriveFilesPower,
   type DriveAdvFilter,
 } from '../../../lib/telegram';
+import { formatMediaScanHeaderInfo, type MediaScanState } from '../../../lib/telegram/mediaScanStateMachine';
 import { getDrivePerfProfile } from '../../../lib/utils/devicePerformance';
-import { isThumbsPaused, prefetchThumbs, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext, getLastCacheClearTimestamp } from '../../../lib/media/thumbBatcher';
-import { loadPersistentThumbs } from '../../../lib/media/thumbPersistentCache';
+import { isThumbsPaused, primeThumbsFromFileList, requestVisibleThumbs, switchThumbContext, getLastCacheClearTimestamp } from '../../../lib/media/thumbBatcher';
 import {
   applyLiveMarquee,
   clientPointToContent,
@@ -57,6 +58,8 @@ type Props = {
   gridZoom?: DriveGridZoom;
   onGridZoom?: (z: DriveGridZoom) => void;
   folderId: number | null;
+  topicId?: number | null;
+  locationType?: string;
   creds: DriveCredentials | null;
   /** Click selection — parent applies filter/sort-aware logic */
   onSelect: (e: React.MouseEvent, id: number) => void;
@@ -92,6 +95,10 @@ type Props = {
   thumbQuality?: string;
   /** Notify parent of displayed id order (for shift/Ctrl+A) */
   onDisplayedIdsChange?: (ids: number[]) => void;
+  /** Notify parent of the current virtual viewport for priority thumbnail work. */
+  onVisibleIdsChange?: (ids: number[]) => void;
+  scanState?: MediaScanState | null;
+  onResumeSync?: () => void;
 };
 
 /** Card aspect width:height = 2:3 → height = width * 3/2 */
@@ -127,6 +134,8 @@ export function DriveExplorer({
   gridZoom = DEFAULT_GRID_ZOOM,
   onGridZoom,
   folderId,
+  topicId = null,
+  locationType = folderId == null ? 'saved_messages' : 'group',
   creds,
   onSelect,
   onToggleSelection,
@@ -150,6 +159,9 @@ export function DriveExplorer({
   thumbQuality,
   scrollKey,
   onDisplayedIdsChange,
+  onVisibleIdsChange,
+  scanState,
+  onResumeSync,
 }: Props) {
   const { t } = useTranslation();
   const draggingSet = useMemo(() => new Set(draggingIds || []), [draggingIds]);
@@ -165,6 +177,29 @@ export function DriveExplorer({
     };
   }
   const [width, setWidth] = useState(800);
+  const thumbPeerId = folderId == null ? 'me' : String(folderId);
+  const thumbContextOptions = useMemo(
+    () => ({ peerId: thumbPeerId, topicId, locationType }),
+    [thumbPeerId, topicId, locationType]
+  );
+  const contextFiles = useMemo(() => {
+    const accountId = creds?.session;
+    return files.filter((file: any) => {
+      const fileAccount = file.account_id ?? file.accountId;
+      if (accountId && fileAccount && String(fileAccount) !== accountId) return false;
+      const filePeer = file.peer_id ?? file.peerId ?? (
+        file.folder_id == null && file.folderId == null
+          ? undefined
+          : String(file.folder_id ?? file.folderId)
+      );
+      if (filePeer != null && String(filePeer) !== thumbPeerId) return false;
+      if (topicId != null && topicId > 0) {
+        const fileTopic = file.topic_id ?? file.topicId;
+        if (Number(fileTopic) !== Number(topicId)) return false;
+      }
+      return true;
+    });
+  }, [files, creds?.session, thumbPeerId, topicId]);
 
   /**
    * Marquee state — start is fixed in **content** space so scroll mid-drag
@@ -196,19 +231,12 @@ export function DriveExplorer({
 
   useEffect(() => {
     if (creds) {
-      switchThumbContext(creds, folderId);
+      switchThumbContext(creds, folderId, topicId);
     }
-    if (creds && files.length) {
-      primeThumbsFromFileList(creds, folderId, files);
-      const initialKeys = files
-        .slice(0, 48)
-        .filter(canShowDriveThumb)
-        .map((f) => `${creds.session}:${thumbQuality || 'balanced'}:${folderId ?? 'home'}:${f.id}`);
-      if (initialKeys.length) {
-        void loadPersistentThumbs(initialKeys);
-      }
+    if (creds && contextFiles.length) {
+      primeThumbsFromFileList(creds, folderId, contextFiles, thumbContextOptions);
     }
-  }, [creds, folderId, files, thumbQuality]);
+  }, [creds, folderId, contextFiles, thumbQuality, thumbPeerId, topicId, thumbContextOptions]);
 
   useEffect(() => {
     const el = parentRef.current;
@@ -249,15 +277,19 @@ export function DriveExplorer({
 
   // Must use filterAndSortDriveFilesPower (includes adv filters) — never bare filterAndSortDriveFiles
   const displayed = useMemo(() => {
-    return filterAndSortDriveFilesPower(files, {
+    return filterAndSortDriveFilesPower(contextFiles, {
       query,
       mediaFilter,
       sortMode,
       adv: advFilter ?? null,
     });
-  }, [files, query, mediaFilter, sortMode, advFilter]);
+  }, [contextFiles, query, mediaFilter, sortMode, advFilter]);
 
   const displayedIds = useMemo(() => displayed.map((f: any) => f.id), [displayed]);
+  const thumbableDisplayedIds = useMemo(
+    () => new Set(displayed.filter(canShowDriveThumb).map((file) => String(file.id))),
+    [displayed]
+  );
 
   useEffect(() => {
     onDisplayedIdsChange?.(displayedIds);
@@ -347,6 +379,7 @@ export function DriveExplorer({
   const scrollFlingTimerRef = useRef<number | null>(null);
   const scrollDirectionRef = useRef<'down' | 'up'>('down');
   const prefetchedOffsetsRef = useRef<Set<string>>(new Set());
+  const lastRequestedViewportRef = useRef('');
 
   // Reset prefetched offsets when folder/location changes
   useEffect(() => {
@@ -410,7 +443,10 @@ export function DriveExplorer({
     if (!el) return;
     const viewportHeight = el.clientHeight;
     const scrollHeight = el.scrollHeight;
-    if (scrollHeight === 0 || scrollHeight <= viewportHeight + 400 || el.scrollTop + viewportHeight >= scrollHeight * 0.6) {
+    // Only fill an actually short viewport. Near-bottom pagination is owned by
+    // the scroll event above; including it here cascaded one user scroll into
+    // dozens of pages and re-rendered the grid continuously.
+    if (scrollHeight === 0 || scrollHeight <= viewportHeight + 400) {
       onLoadMore();
     }
   }, [progressiveReady, hasMore, onLoadMore, loadingMore, loading, displayed.length]);
@@ -429,36 +465,28 @@ export function DriveExplorer({
       lastRun = now;
       if (cancelled) return;
 
-      const prefetchRows = Math.max(perf.thumbPrefetchRows, perf.tier === 'low' ? 1 : 2);
-      let startIdx = 0;
-      let endIdx = Math.min(displayed.length, cols * 6);
-      let visStart = 0;
-      let visEnd = Math.min(displayed.length, cols * 3);
-      if (viewMode === 'grid' && gridItems.length) {
-        const first = gridItems[0].index;
-        const last = gridItems[gridItems.length - 1].index;
-        visStart = Math.max(0, first * cols);
-        visEnd = Math.min(displayed.length, (last + 1) * cols);
-        startIdx = Math.max(0, first * cols - cols); // 1 row above
-        endIdx = Math.min(displayed.length, (last + 1 + prefetchRows + 1) * cols);
-      } else if (viewMode === 'list' && listItems.length) {
-        visStart = Math.max(0, listItems[0].index);
-        visEnd = Math.min(displayed.length, listItems[listItems.length - 1].index + 1);
-        startIdx = Math.max(0, visStart - cols);
-        endIdx = Math.min(displayed.length, visEnd + prefetchRows * cols);
+      const scroller = parentRef.current;
+      if (!scroller || viewMode !== 'grid') return;
+      const viewportRect = scroller.getBoundingClientRect();
+      const visibleIds = [...scroller.querySelectorAll<HTMLElement>('[data-drive-file="1"][data-msg-id]')]
+        .filter((card) => {
+          const id = card.dataset.msgId;
+          if (!id || !thumbableDisplayedIds.has(id)) return false;
+          const rect = card.getBoundingClientRect();
+          return rect.bottom > viewportRect.top && rect.top < viewportRect.bottom;
+        })
+        .map((card) => Number(card.dataset.msgId))
+        .filter(Number.isFinite);
+      const viewportSignature = `${creds.session}:${thumbPeerId}:${topicId ?? 'all'}:${thumbQuality ?? ''}:${visibleIds.join(',')}`;
+      const viewportChanged = viewportSignature !== lastRequestedViewportRef.current;
+      if (visibleIds.length && viewportChanged) {
+        lastRequestedViewportRef.current = viewportSignature;
+        requestVisibleThumbs(creds, folderId, visibleIds, {
+          ...thumbContextOptions,
+          replaceViewport: true,
+        });
       }
-      const visibleIds: number[] = [];
-      const nearIds: number[] = [];
-      for (let i = startIdx; i < endIdx; i++) {
-        const f = displayed[i];
-        if (!f) continue;
-        if (canShowDriveThumb(f)) {
-          if (i >= visStart && i < visEnd) visibleIds.push(f.id);
-          else nearIds.push(f.id);
-        }
-      }
-      if (visibleIds.length) requestVisibleThumbs(creds, folderId, visibleIds);
-      if (nearIds.length && !isFastScrollingRef.current) prefetchThumbs(creds, folderId, nearIds);
+      onVisibleIdsChange?.(visibleIds);
     };
     raf = requestAnimationFrame(run);
     return () => {
@@ -468,28 +496,40 @@ export function DriveExplorer({
   }, [
     creds,
     folderId,
-    displayed,
     gridItems,
     listItems,
     viewMode,
-    cols,
     loading,
     progressiveReady,
-    perf.thumbPrefetchRows,
     perf.tier,
+    thumbQuality,
+    thumbableDisplayedIds,
+    thumbContextOptions,
+    onVisibleIdsChange,
   ]);
 
   useEffect(() => {
     const handleCacheCleared = () => {
       if (!creds || !displayed.length) return;
-      const visEnd = Math.min(displayed.length, 40);
-      const visibleIds: number[] = [];
-      for (let i = 0; i < visEnd; i++) {
-        const f = displayed[i];
-        if (f && canShowDriveThumb(f)) visibleIds.push(f.id);
-      }
+      lastRequestedViewportRef.current = '';
+      const scroller = parentRef.current;
+      if (!scroller || viewMode !== 'grid') return;
+      const viewportRect = scroller.getBoundingClientRect();
+      const visibleIds = [...scroller.querySelectorAll<HTMLElement>('[data-drive-file="1"][data-msg-id]')]
+        .filter((card) => {
+          const id = card.dataset.msgId;
+          if (!id || !thumbableDisplayedIds.has(id)) return false;
+          const rect = card.getBoundingClientRect();
+          return rect.bottom > viewportRect.top && rect.top < viewportRect.bottom;
+        })
+        .map((card) => Number(card.dataset.msgId))
+        .filter(Number.isFinite);
       if (visibleIds.length) {
-        requestVisibleThumbs(creds, folderId, visibleIds, { bypassCache: true });
+        requestVisibleThumbs(creds, folderId, visibleIds, {
+          ...thumbContextOptions,
+          bypassCache: true,
+          replaceViewport: true,
+        });
       }
     };
     const lastWipe = getLastCacheClearTimestamp();
@@ -498,7 +538,7 @@ export function DriveExplorer({
     }
     window.addEventListener('autogram-cache-cleared', handleCacheCleared);
     return () => window.removeEventListener('autogram-cache-cleared', handleCacheCleared);
-  }, [creds, folderId, displayed]);
+  }, [creds, folderId, displayed.length, viewMode, thumbContextOptions, thumbableDisplayedIds]);
 
   const warmFile = useCallback(
     (_file: DriveFile) => {
@@ -879,76 +919,116 @@ export function DriveExplorer({
                     textAlign: 'center',
                   }}
                 >
-                  {loadingMore ? (
-                    <div
-                      className="td-loading-more-badge"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        background: 'rgba(59, 130, 246, 0.15)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        color: '#60a5fa',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      <Loader2 size={16} className="spin text-blue-400" />
-                      <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
-                    </div>
-                  ) : hasMore ? (
-                    <div
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
-                    </div>
-                  ) : (
-                    <div
-                      className="td-end-of-list-badge"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        background: 'rgba(16, 185, 129, 0.12)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#34d399',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span>
-                        {t('speedtest.all_media_loaded', {
-                          count: displayed.length,
-                          defaultValue: `Semua ${displayed.length} media telah dimuat`,
-                        })}
-                      </span>
-                    </div>
-                  )}
+                  {(() => {
+                    if (loadingMore) {
+                      return (
+                        <div
+                          className="td-loading-more-badge"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 20px',
+                            borderRadius: 20,
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60a5fa',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            backdropFilter: 'blur(8px)',
+                          }}
+                        >
+                          <Loader2 size={16} className="spin text-blue-400" />
+                          <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
+                        </div>
+                      );
+                    }
+                    if (hasMore) {
+                      return (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 20px',
+                            borderRadius: 20,
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                        </div>
+                      );
+                    }
+                    // Section B8 rule: ONLY show verified badge if status === 'complete_verified' or scanState absent
+                    if (!scanState || scanState.status === 'complete_verified') {
+                      return (
+                        <div
+                          className="td-end-of-list-badge"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 20px',
+                            borderRadius: 20,
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                            color: '#34d399',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            backdropFilter: 'blur(8px)',
+                          }}
+                        >
+                          <CheckCircle2 size={16} className="text-emerald-400" />
+                          <span>Semua {displayed.length} media terverifikasi</span>
+                        </div>
+                      );
+                    }
+                    const info = formatMediaScanHeaderInfo(scanState, formatDriveBytes);
+                    return (
+                      <div
+                        className="td-sync-status-badge"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 20px',
+                          borderRadius: 20,
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          color: '#fbbf24',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          backdropFilter: 'blur(8px)',
+                        }}
+                      >
+                        <AlertTriangle size={16} className="text-amber-400" />
+                        <span>{info.statusText}</span>
+                        {info.canResume && onResumeSync && (
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 text-xs font-semibold text-amber-950 bg-amber-400 rounded-md hover:bg-amber-300 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onResumeSync();
+                            }}
+                          >
+                            Lanjutkan
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             }
             const f = displayed[v.index];
             return (
               <div
-                key={f.id}
+                key={`${activeScrollKey}:${f.peer_id || thumbPeerId}:${f.topic_id ?? topicId ?? 'none'}:${f.id}`}
                 data-file-id={f.id}
                 data-display-index={v.index}
                 style={{
@@ -1007,76 +1087,121 @@ export function DriveExplorer({
                     textAlign: 'center',
                   }}
                 >
-                  {loadingMore ? (
-                    <div
-                      className="td-loading-more-badge"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        background: 'rgba(59, 130, 246, 0.15)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        color: '#60a5fa',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      <Loader2 size={16} className="spin text-blue-400" />
-                      <span>{t('speedtest.loading_more', 'Memuat media dari Telegram…')}</span>
-                    </div>
-                  ) : hasMore ? (
-                    <div
-                      className="td-load-more-btn"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '10px 22px',
-                        borderRadius: 20,
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid rgba(255, 255, 255, 0.12)',
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
-                    </div>
-                  ) : (
-                    <div
-                      className="td-end-of-list-badge"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 20px',
-                        borderRadius: 20,
-                        background: 'rgba(16, 185, 129, 0.12)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#34d399',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span>
-                        {t('speedtest.all_media_loaded', {
-                          count: displayed.length,
-                          defaultValue: `Semua ${displayed.length} media telah dimuat`,
-                        })}
-                      </span>
-                    </div>
-                  )}
+                  {(() => {
+                    if (loadingMore) {
+                      return (
+                        <div
+                          className="td-loading-more-badge"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 22px',
+                            borderRadius: 20,
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60a5fa',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            backdropFilter: 'blur(8px)',
+                          }}
+                        >
+                          <Loader2 size={16} className="spin text-blue-400" />
+                          <span>{t('speedtest.loading_more', 'Memuat media lagi…')}</span>
+                        </div>
+                      );
+                    }
+                    if (hasMore) {
+                      return (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '10px 22px',
+                            borderRadius: 20,
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <span>{t('speedtest.scroll_to_load_more', 'Gulir atau klik untuk memuat lebih banyak…')}</span>
+                        </div>
+                      );
+                    }
+                    if (!scanState || scanState.status === 'complete_verified') {
+                      return (
+                        <div
+                          className="td-end-of-list-badge"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 20px',
+                            borderRadius: 20,
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                            color: '#34d399',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            backdropFilter: 'blur(8px)',
+                          }}
+                        >
+                          <CheckCircle2 size={16} className="text-emerald-400" />
+                          <span>Semua {displayed.length} media terverifikasi</span>
+                        </div>
+                      );
+                    }
+                    const info = formatMediaScanHeaderInfo(scanState, formatDriveBytes);
+                    return (
+                      <div
+                        className="td-sync-status-badge"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '8px 20px',
+                          borderRadius: 20,
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          color: '#fbbf24',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          backdropFilter: 'blur(8px)',
+                        }}
+                      >
+                        <AlertTriangle size={16} className="text-amber-400" />
+                        <span>{info.statusText}</span>
+                        {info.canResume && onResumeSync && (
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 text-xs font-semibold text-amber-950 bg-amber-400 rounded-md hover:bg-amber-300 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onResumeSync();
+                            }}
+                          >
+                            Lanjutkan
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             }
             const start = vRow.index * cols;
             const rowFiles = displayed.slice(start, start + cols);
+            const viewportTop = gridVirtualizer.scrollOffset ?? parentRef.current?.scrollTop ?? 0;
+            const viewportBottom = viewportTop + (
+              gridVirtualizer.scrollRect?.height ?? parentRef.current?.clientHeight ?? 0
+            );
+            const rowVisible =
+              vRow.start + vRow.size + GRID_PAD_TOP > viewportTop
+              && vRow.start + GRID_PAD_TOP < viewportBottom;
             return (
               <div
                 key={vRow.key}
@@ -1104,7 +1229,10 @@ export function DriveExplorer({
                   draggingSet={draggingSet}
                   creds={creds}
                   folderId={folderId}
+                  renderContextKey={`${activeScrollKey}:${thumbPeerId}:${topicId ?? 'none'}`}
+                  topicId={topicId}
                   thumbQuality={thumbQuality}
+                  visible={rowVisible}
                   onSelect={onSelect}
                   onOpen={onOpen}
                   onContextMenu={onContextMenu}
@@ -1132,7 +1260,10 @@ type DriveGridRowProps = {
   draggingSet: Set<number>;
   creds: DriveCredentials | null;
   folderId: number | null;
+  renderContextKey: string;
+  topicId: number | null;
   thumbQuality?: string;
+  visible: boolean;
   onSelect: (e: React.MouseEvent, id: number) => void;
   onOpen: (file: DriveFile) => void;
   onContextMenu: (e: React.MouseEvent, file: DriveFile) => void;
@@ -1152,7 +1283,10 @@ const DriveGridRow = memo(function DriveGridRow({
   draggingSet,
   creds,
   folderId,
+  renderContextKey,
+  topicId,
   thumbQuality,
+  visible,
   onSelect,
   onOpen,
   onContextMenu,
@@ -1169,11 +1303,11 @@ const DriveGridRow = memo(function DriveGridRow({
     <>
       {rowFiles.map((f: any) => (
         <DriveFileCard
-          key={f.id}
+          key={`${renderContextKey}:${f.peer_id || 'peer'}:${f.topic_id ?? 'none'}:${f.id}`}
           file={f}
           selected={selectedSet.has(f.id)}
           isDragSource={draggingSet.has(f.id)}
-          visible
+          visible={visible}
           onClick={(e) => onSelect(e, f.id)}
           onDoubleClick={() => onOpen(f)}
           onContextMenu={(e) => onContextMenu(e, f)}
@@ -1187,6 +1321,7 @@ const DriveGridRow = memo(function DriveGridRow({
           onMediaDragPrime={onMediaDragPrime}
           creds={creds}
           folderId={folderId}
+          contextTopicId={topicId}
           thumbQuality={thumbQuality}
         />
       ))}
@@ -1195,6 +1330,9 @@ const DriveGridRow = memo(function DriveGridRow({
 }, (prev: DriveGridRowProps, next: DriveGridRowProps) => {
   if (prev.rowFiles.length !== next.rowFiles.length) return false;
   if (prev.folderId !== next.folderId || prev.thumbQuality !== next.thumbQuality) return false;
+  if (prev.renderContextKey !== next.renderContextKey) return false;
+  if (prev.topicId !== next.topicId) return false;
+  if (prev.visible !== next.visible) return false;
   if (prev.creds?.session !== next.creds?.session) return false;
   for (let i = 0; i < prev.rowFiles.length; i++) {
     const pf = prev.rowFiles[i];

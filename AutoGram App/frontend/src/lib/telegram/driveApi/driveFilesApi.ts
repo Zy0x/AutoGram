@@ -106,7 +106,7 @@ export async function driveAvatarsBatch(
 }
 
 import type { DriveMediaContext } from '../driveTypes';
-import { getMediaPageByContext, getMediaRecords } from '../../db/mediaStudioDb';
+import { buildDriveMediaContext } from '../../db/mediaStudioDb';
 
 const inFlightPages = new Map<string, Promise<any>>();
 
@@ -131,50 +131,16 @@ export async function driveListFiles(
   const offsetId = opts?.offsetId ?? null;
   const localOffset = opts?.localOffset ?? 0;
 
-  const contextKey = opts?.context
-    ? `${opts.context.accountId}:${opts.context.peerId}:${opts.context.scopeKind}:${opts.context.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}`
-    : `${folderId ?? 'me'}:${topicId ?? 'all'}:${offsetId ?? 0}:${localOffset}`;
+  const mediaContext = opts?.context ?? buildDriveMediaContext(creds.session, folderId, topicId);
+  const contextKey = `${mediaContext.accountId}:${mediaContext.peerId}:${mediaContext.scopeKind}:${mediaContext.topicId ?? 'none'}:${offsetId ?? 0}:${localOffset}`;
 
   if (inFlightPages.has(contextKey)) {
     return inFlightPages.get(contextKey)!;
   }
 
   const work = (async () => {
-    // 1. Try serving from local IndexedDB warm cache (initial page only, no offsetId)
-    const folderKey = folderId || 0;
-    if (!opts?.bypassCache && opts?.offsetId == null) {
-      try {
-        let records = opts?.context
-          ? await getMediaPageByContext(opts.context, sortMode, localOffset, pageSize)
-          : await getMediaRecords(folderKey, sortMode, localOffset, pageSize);
-
-        if (!opts?.context && topicId != null && topicId > 0) {
-          records = records.filter((r: any) => Number(r.topic_id ?? r.topicId) === Number(topicId));
-        }
-        if (records.length > 0) {
-          const nextOffsetId = records[records.length - 1].id;
-          return {
-            status: 'success',
-            folder_id: folderId,
-            topic_id: topicId,
-            files: records,
-            total: records.length,
-            page_size: pageSize,
-            has_more: true,
-            next_offset_id: nextOffsetId,
-            total_count: null,
-            total_bytes: null,
-            stats_accurate: false,
-            stats_pending: true,
-            cached: true,
-          };
-        }
-      } catch (e) {
-        console.warn('[driveListFiles] Local cache query failed, falling back to network:', e);
-      }
-    }
-
-    // 2. Grammers only (topic/sort client-side gaps handled as newest network page).
+    // Grammers is authoritative. Callers may paint a scoped IndexedDB snapshot
+    // first, but this API always revalidates it against Telegram.
     if (!detectTauriRuntime()) {
       throw new Error('Daftar media membutuhkan desktop Rust + Grammers.');
     }
@@ -202,7 +168,12 @@ export async function driveListFiles(
           created_at: f.createdAt ?? undefined,
           has_thumb: !!f.hasThumb,
           as_document: !!f.asDocument,
-          topic_id: topicId,
+          topic_id: f.topicId ?? topicId,
+          peer_id: f.peerId ?? f.peer_id ?? (folderId == null ? 'me' : String(folderId)),
+          peer_kind: f.peerKind ?? f.peer_kind ?? (folderId != null && folderId !== 0 ? 'channel' : undefined),
+          peer_username: f.peerUsername ?? f.peer_username ?? undefined,
+          grouped_id: f.groupedId ?? f.grouped_id ?? undefined,
+          is_saved_messages: f.isSavedMessages ?? f.is_saved_messages ?? (folderId == null || folderId === 0),
         }));
         // Client-side sort for non-newest modes (network page is newest-first).
         if (sortMode === 'oldest') {

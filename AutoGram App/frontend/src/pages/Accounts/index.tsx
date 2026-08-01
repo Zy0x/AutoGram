@@ -161,7 +161,6 @@ export function Accounts() {
   const [loginMethod, setLoginMethod] = useState<'qr' | 'phone'>('qr');
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrExpiresIn, setQrExpiresIn] = useState<number>(0);
-  const QR_JOB_ID = 888888;
   const unlistenQrRef = useRef<(() => void) | null>(null);
   const qrCountdownTimerRef = useRef<any>(null);
 
@@ -174,9 +173,6 @@ export function Accounts() {
       clearInterval(qrCountdownTimerRef.current);
       qrCountdownTimerRef.current = null;
     }
-    try {
-      await invoke('kill_worker_job', { jobId: QR_JOB_ID });
-    } catch {}
     if (sessionName) {
       try {
         await invoke('cancel_rust_qr_login', { session: sessionName });

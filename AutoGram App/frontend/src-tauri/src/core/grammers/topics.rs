@@ -1,8 +1,8 @@
 //! Telegram Forum topics listing & chat metadata RPC queries.
 
-use std::path::Path;
 use grammers_client::tl;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 use super::session::BACKEND;
 use crate::core::grammers_ops::{resolve_peer, runtime, with_client, with_pool_retry};
@@ -41,7 +41,11 @@ pub fn list_topics_blocking(
             let chat = chat.clone();
             with_client(sessions_dir, identity, true, |client| {
                 Box::pin(async move {
-                    if !client.is_authorized().await.map_err(|e| map_invocation(&e))? {
+                    if !client
+                        .is_authorized()
+                        .await
+                        .map_err(|e| map_invocation(&e))?
+                    {
                         return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                     }
                     let peer = resolve_peer(client, &chat).await?;
@@ -88,8 +92,11 @@ pub fn list_topics_blocking(
                             topics.sort_by(|a, b| {
                                 let ao = if a.id == 1 { 0 } else { 1 };
                                 let bo = if b.id == 1 { 0 } else { 1 };
-                                ao.cmp(&bo)
-                                    .then_with(|| a.title.to_ascii_lowercase().cmp(&b.title.to_ascii_lowercase()))
+                                ao.cmp(&bo).then_with(|| {
+                                    a.title
+                                        .to_ascii_lowercase()
+                                        .cmp(&b.title.to_ascii_lowercase())
+                                })
                             });
                             tg_log::info(
                                 BACKEND,

@@ -17,7 +17,24 @@ export type ZipEntry = {
   is_dir?: boolean;
   isDir?: boolean;
   method?: number;
+  encrypted?: boolean;
 };
+
+export type ZipPreviewResult = {
+  status: 'success' | 'encrypted' | 'bad_password' | 'error';
+  kind?: 'image' | 'video' | 'audio' | 'pdf' | 'text' | 'binary' | 'meta';
+  text?: string | null;
+  data_url?: string | null;
+  mime?: string | null;
+  size?: number;
+  message?: string;
+  error?: string;
+  cached?: boolean;
+};
+
+export type ZipArchiveSource =
+  | { kind: 'telegram'; label: string }
+  | { kind: 'local'; label: string; path: string; parentEntry: string };
 
 export function isZipEntryDir(e: ZipEntry | null | undefined): boolean {
   if (!e) return false;
@@ -43,7 +60,19 @@ export type ZipBrowserProps = {
   onEnqueueUploadPaths?: (paths: string[], opts?: any) => Promise<void>;
 };
 
-export type Category = 'all' | 'image' | 'doc' | 'media';
+export type Category = 'all' | 'image' | 'doc' | 'media' | 'archive';
+
+export function isZipArchiveName(name: string): boolean {
+  return /\.(zip|zipx)$/i.test(name);
+}
+
+export function safeZipEntryPath(name: string): string {
+  return name
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((part) => part && part !== '.' && part !== '..')
+    .join('/');
+}
 
 export function parentPath(pathStr: string): string {
   const s = pathStr.replace(/\/+$/, '');
@@ -69,7 +98,10 @@ export function matchesCategory(name: string | null | undefined, cat: Category):
     return /\.(mp4|mkv|avi|mov|webm|mp3|m4a|aac|flac|ogg|wav|opus)$/.test(lower);
   }
   if (cat === 'doc') {
-    return /\.(pdf|doc|docx|txt|json|md|py|rs|ts|tsx|js|jsx|css|html|log|sh|zip)$/.test(lower);
+    return /\.(pdf|doc|docx|txt|json|md|mdx|py|rs|ts|tsx|js|jsx|css|html|log|sh|csv|xml|yaml|yml|toml|ini|sql)$/.test(lower);
+  }
+  if (cat === 'archive') {
+    return /\.(zip|zipx)$/.test(lower);
   }
   return true;
 }

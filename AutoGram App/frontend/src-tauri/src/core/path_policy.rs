@@ -40,7 +40,10 @@ fn has_blocked_substr(s: &str) -> bool {
     if MARKERS.iter().any(|m| s.contains(m)) {
         return true;
     }
-    if s.contains("/sessions/") && !s.contains("/sessions/preview/") && !s.contains("/sessions/cache/") {
+    if s.contains("/sessions/")
+        && !s.contains("/sessions/preview/")
+        && !s.contains("/sessions/cache/")
+    {
         return true;
     }
     false
@@ -90,7 +93,9 @@ mod tests {
 
     #[test]
     fn blocks_session_files() {
-        assert!(is_blocked_path(Path::new("C:/app/sessions/Lavender.session")));
+        assert!(is_blocked_path(Path::new(
+            "C:/app/sessions/Lavender.session"
+        )));
         assert!(is_blocked_path(Path::new("/home/u/.env")));
     }
 
