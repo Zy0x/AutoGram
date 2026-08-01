@@ -124,9 +124,15 @@ pub fn message_to_topic_media_item(
                 let mut raw_name: Option<String> = None;
                 let mut mime: Option<String> = Some(doc.mime_type.clone());
 
+                let mut is_video_attr = false;
+                let mut is_audio_attr = false;
+
                 for attr in &doc.attributes {
-                    if let tl::enums::DocumentAttribute::Filename(f) = attr {
-                        raw_name = Some(f.file_name.clone());
+                    match attr {
+                        tl::enums::DocumentAttribute::Filename(f) => raw_name = Some(f.file_name.clone()),
+                        tl::enums::DocumentAttribute::Video(_) => is_video_attr = true,
+                        tl::enums::DocumentAttribute::Audio(_) => is_audio_attr = true,
+                        _ => {}
                     }
                 }
 
@@ -137,14 +143,16 @@ pub fn message_to_topic_media_item(
                 let mime_l = mime.as_deref().unwrap_or("").to_ascii_lowercase();
                 let name_l = file_name.to_ascii_lowercase();
 
-                let is_video = mime_l.starts_with("video/")
+                let is_video = is_video_attr
+                    || mime_l.starts_with("video/")
                     || name_l.ends_with(".mp4")
                     || name_l.ends_with(".mov")
                     || name_l.ends_with(".mkv")
                     || name_l.ends_with(".webm")
                     || name_l.ends_with(".avi");
 
-                let is_audio = mime_l.starts_with("audio/")
+                let is_audio = is_audio_attr
+                    || mime_l.starts_with("audio/")
                     || name_l.ends_with(".mp3")
                     || name_l.ends_with(".wav")
                     || name_l.ends_with(".flac")

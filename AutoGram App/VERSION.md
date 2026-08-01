@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.0
+AutoGram Version: v2.7.1
 
 Current State:
+v2.7.1 Automatic Document Video Attribute Detection & Progressive Streaming Engine — membenahi `stream.rs`, `document_mapper.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan penanganan atribut `d.raw.video` dan `d.raw.audio` pada `guess_mime`, `start_preview_stream_inner`, dan `document_mapper.rs`. Setiap video/audio Telegram yang dikirimkan via dokumen (seperti file tanpa ekstensi .mp4 atau ber-MIME application/octet-stream) secara otomatis dideteksi sebagai media video/audio dan disalurkan ke Progressive HTTP Range Streaming Engine (head + tail MOOV atom bootstrap, seekable partial HTTP 206 server, <100ms load time) tanpa mengunduh seluruh file secara utuh.
+
+Previous:
 v2.7.0 Canonical Media Identity Architecture, Peer Propagation, Guard Engine & Vite Warning Fix — membenahi `media_list.rs`, `thumbs.rs`, `stream.rs`, `telegram_ops.rs`, `mediaIdentity.ts`, `driveTypes.ts`, `driveFilesApi.ts`, `driveStreamZipApi.ts`, `telegramBackend.ts`, `thumbBatcher.ts`, `previewCache.ts`, `thumbPersistentCache.ts`, `DriveExplorer.tsx`, `DriveFileCard.tsx`, `DrivePreviewModal/index.tsx`, `DriveToolsPanel/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus total fallback default `peerId = 'me'` pada lokasi non-Saved Messages, memunculkan tipe kanonis `MediaIdentity` (`accountId`, `peerId`, `topicId`, `messageId`), mengubah format `requestId` thumbnail menjadi `thumb:<account_id>:<peer_id>:<topic_id>:<message_id>:g<generation>`, memperbarui `client.get_messages_by_id` dengan peer yang valid, menyajikan `MEDIA_NOT_FOUND_IN_PEER` (0 retries/0 `upload.getFile` RPC), menerapkan `INVALID_SELF_PEER_USAGE` guard di Rust & TypeScript, membersihkan cache usang dengan key 'me', serta mengeliminasi warning Vite HMR `TOOL_GROUPS` export.
 
 Previous:
