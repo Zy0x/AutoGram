@@ -1,3 +1,17 @@
+## v2.6.0 High-Priority Preview Resilience Engine & Media Classification Architecture
+
+### Audit Media Classification & UI Formatting (`media_list.rs`, `thumbs.rs`, `DrivePreviewModal`)
+- **Strict Media Classification**: Memperbaiki misklasifikasi file gambar/foto sebagai video media. Pengecekan MIME type `image/*` dan ekstensi `.jpg`/`.png`/`.webp` kini memprioritaskan klasifikasi gambar sebelum atribut dokumen.
+- **Dynamic Delivery Labeling**: Menambahkan key lokalisasi `deliv_photo_comp` (`Media Foto (Kompresi)` / `Photo Media (Compressed)`) di UI `DrivePreviewModal` agar foto native Telegram tidak lagi keliru ditampilkan sebagai `Video Media (Compressed)`.
+
+### High-Priority Preview Engine (`session_rate.rs`, `stream.rs`, `tg_error.rs`)
+- **Dedicated `preview_sem` Semaphore**: Menambahkan semaphore `preview_sem` khusus berkapasitas 2 permit paralel untuk pratinjau media. Pemuatan pratinjau kini memiliki jalur prioritas tinggi dan tidak akan pernah tertahan oleh antrean thumbnail di latar belakang.
+- **Fresh Message Refetch & Media Object Invalidation**: Setiap kali pratinjau dimuat, backend Rust secara otomatis melakukan refetch pesan terbaru dari Telegram (`get_messages_by_id`) untuk mengambil objek media dan file locator paling segar, mengeliminasi error `FILE_REFERENCE_EXPIRED`.
+- **Jittered Exponential Backoff & Reconnect Engine**: Mengimplementasikan kebijakan *retry* 4 attempt dengan backoff bertahap dan *jitter* acak (~750ms, ~2000ms, ~5000ms), pemutusan koneksi socket mati (`disconnect_cached_session`), dan pengunduhan ulang otomatis pada fresh client.
+- **Atomic `.part` Temp File Download**: Seluruh pengunduhan pratinjau ditulis ke berkas temporer `.part` dan di-rename secara atomik setelah pengunduhan berhasil 100%, mencegah korupsi berkas parsial saat terjadi timeout/cancel.
+- **PhotoSize Fallback Ladder**: Jika pengunduhan foto resolusi penuh gagal, sistem secara bertahap mencoba mengunduh `PhotoSize` alternatif ('x', 'm') atau menyajikan `PhotoSize::Stripped` mini-thumb instan sebelum menampilkan error UI.
+- **User-Friendly Clean Error Text**: Membasmi teks error mentah yang bersarang (`"request error: request error..."`) dan menyajikan pesan pengguna yang bersih dan intuitif: `"Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat."`. Detail teknis lengkap tetap dicatat secara aman di `tg_log`.
+
 ## v2.5.10 Active Socket Invalidation & Fresh MTProto Reconnect Engine
 
 ### Backend Pratinjau Grammers (`stream.rs`)

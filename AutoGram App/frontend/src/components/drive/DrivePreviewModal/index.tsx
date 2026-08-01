@@ -4101,7 +4101,14 @@ export function DrivePreviewModal({
                 </div>
               )}
               <div>
-                <strong>{t('speedtest.delivery_label')}</strong> {file.as_document ? t('speedtest.deliv_doc_orig') : t('speedtest.deliv_video_comp')}
+                <strong>{t('speedtest.delivery_label')}</strong>{' '}
+                {file.as_document
+                  ? t('speedtest.deliv_doc_orig')
+                  : isVideo
+                  ? t('speedtest.deliv_video_comp')
+                  : isImage
+                  ? t('speedtest.deliv_photo_comp')
+                  : t('speedtest.deliv_video_comp')}
               </div>
               {isVideo && (
                 <div>

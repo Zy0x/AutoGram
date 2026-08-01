@@ -352,6 +352,15 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
                     || name_l.ends_with(".mkv")
                     || name_l.ends_with(".webm");
 
+                let is_image = mime_l.starts_with("image/")
+                    || name_l.ends_with(".jpg")
+                    || name_l.ends_with(".jpeg")
+                    || name_l.ends_with(".png")
+                    || name_l.ends_with(".webp")
+                    || name_l.ends_with(".gif")
+                    || name_l.ends_with(".bmp")
+                    || name_l.ends_with(".heic");
+
                 let is_audio = mime_l.starts_with("audio/")
                     || name_l.ends_with(".mp3")
                     || name_l.ends_with(".wav")
@@ -359,6 +368,8 @@ pub fn tl_message_to_row(msg: &grammers_client::tl::enums::Message, folder_id: O
 
                 let icon_type = if is_video {
                     "video".to_string()
+                } else if is_image {
+                    "photo".to_string()
                 } else if is_audio {
                     "audio".to_string()
                 } else {

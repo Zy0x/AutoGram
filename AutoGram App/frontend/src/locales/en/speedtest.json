@@ -434,6 +434,7 @@
   "date_label": "Date",
   "delivery_label": "Delivery",
   "deliv_doc_orig": "Document/File (Original)",
+  "deliv_photo_comp": "Photo Media (Compressed)",
   "deliv_video_comp": "Video Media (Compressed)",
   "quality_label": "Quality",
   "zoom_label": "Zoom",

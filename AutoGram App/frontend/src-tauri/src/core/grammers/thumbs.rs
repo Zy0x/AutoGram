@@ -163,8 +163,12 @@ pub fn classify_message_media(msg: &grammers_client::message::Message) -> MediaP
                 .unwrap_or("")
                 .to_lowercase();
 
+            if mime.starts_with("image/")
+                || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
+            {
+                return MediaPreviewClass::ImageDocument;
+            }
             let has_video_attr = doc.raw.video;
-
             if has_video_attr {
                 return MediaPreviewClass::TelegramVideo;
             }
@@ -172,11 +176,6 @@ pub fn classify_message_media(msg: &grammers_client::message::Message) -> MediaP
                 || matches!(ext.as_str(), "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "wmv" | "ts")
             {
                 return MediaPreviewClass::VideoDocument;
-            }
-            if mime.starts_with("image/")
-                || matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "heic" | "tiff")
-            {
-                return MediaPreviewClass::ImageDocument;
             }
             if mime == "application/pdf" || ext == "pdf" {
                 return MediaPreviewClass::PdfDocument;

@@ -159,6 +159,9 @@ impl TgError {
                     "Chat/peer tidak ditemukan. Buka chat di Telegram resmi dulu, atau pilih dari daftar dialog."
                         .into()
                 }
+                TgErrorCode::Timeout => {
+                    "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.".into()
+                }
                 TgErrorCode::TelethonFallbackRequired => message.clone(),
                 _ => message.clone(),
             },

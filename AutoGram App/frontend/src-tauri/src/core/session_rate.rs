@@ -16,10 +16,16 @@ use super::tg_error::{TgError, TgErrorCode};
 /// Concurrent GetFile pipelines per session. 2 allows bootstrap of a new
 /// preview while the previous fill is cancelling (was 1 → open stuck "Memuat").
 const MAX_MEDIA_DOWNLOADS: usize = 2;
+const MAX_PREVIEW_CONCURRENCY: usize = 2;
+const MAX_FAST_THUMB_CONCURRENCY: usize = 12;
+const MAX_VIDEO_THUMB_CONCURRENCY: usize = 4;
 
 struct SessionRate {
     flood_until: Option<Instant>,
     media_sem: std::sync::Arc<Semaphore>,
+    preview_sem: std::sync::Arc<Semaphore>,
+    fast_sem: std::sync::Arc<Semaphore>,
+    video_sem: std::sync::Arc<Semaphore>,
     active_streams: Vec<String>,
     inflight_preview: HashMap<String, Instant>,
 }
@@ -34,6 +40,9 @@ fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
     let e = map.entry(session.to_string()).or_insert_with(|| SessionRate {
         flood_until: None,
         media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
+        preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
+        fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
+        video_sem: std::sync::Arc::new(Semaphore::new(MAX_VIDEO_THUMB_CONCURRENCY)),
         active_streams: Vec::new(),
         inflight_preview: HashMap::new(),
     });
@@ -200,6 +209,44 @@ pub fn try_acquire_media_slot(session: &str) -> Option<OwnedSemaphorePermit> {
         return None;
     }
     let sem = with_rate(session, |e| e.media_sem.clone());
+    sem.try_acquire_owned().ok()
+}
+
+/// Acquire high-priority preview slot (2 permits, never blocked by thumbnail batches).
+pub async fn acquire_preview_slot(session: &str) -> Result<OwnedSemaphorePermit, TgError> {
+    ensure_not_flooded(session)?;
+    let sem = with_rate(session, |e| e.preview_sem.clone());
+    match sem.clone().try_acquire_owned() {
+        Ok(p) => Ok(p),
+        Err(_) => match tokio::time::timeout(Duration::from_secs(10), sem.acquire_owned()).await {
+            Ok(Ok(p)) => Ok(p),
+            Ok(Err(_)) => Err(TgError::new(
+                TgErrorCode::Internal,
+                "preview semaphore closed",
+            )),
+            Err(_) => Err(TgError::new(
+                TgErrorCode::Timeout,
+                "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.",
+            )),
+        },
+    }
+}
+
+/// Acquire fast thumbnail slot (12 permits for fast image/stripped thumbs).
+pub fn try_acquire_fast_thumb_slot(session: &str) -> Option<OwnedSemaphorePermit> {
+    if flood_remaining_secs(session).unwrap_or(0) > 0 {
+        return None;
+    }
+    let sem = with_rate(session, |e| e.fast_sem.clone());
+    sem.try_acquire_owned().ok()
+}
+
+/// Acquire video thumbnail slot (4 permits for video FFmpeg frame extraction).
+pub fn try_acquire_video_thumb_slot(session: &str) -> Option<OwnedSemaphorePermit> {
+    if flood_remaining_secs(session).unwrap_or(0) > 0 {
+        return None;
+    }
+    let sem = with_rate(session, |e| e.video_sem.clone());
     sem.try_acquire_owned().ok()
 }
 

@@ -398,6 +398,35 @@ fn usable_live_preview(r: &PreviewStreamResult) -> bool {
     false
 }
 
+fn log_raw_media_info(
+    op: &str,
+    peer_id: &str,
+    message_id: i32,
+    media: &Media,
+    mime: &str,
+    attempt: u32,
+    elapsed: Duration,
+) {
+    let (media_kind, doc_attrs) = match media {
+        Media::Photo(p) => ("Media::Photo", format!("thumbs: {}", p.thumbs().len())),
+        Media::Document(d) => {
+            let is_vid = d.raw.video;
+            let is_img = mime.starts_with("image/");
+            let attrs = format!("is_video_attr: {is_vid}, is_image_mime: {is_img}, name: {:?}", d.name());
+            ("Media::Document", attrs)
+        }
+        _ => ("Media::Unknown", String::new()),
+    };
+    tg_log::info(
+        BACKEND,
+        op,
+        format!(
+            "peer_id={peer_id}, message_id={message_id}, type={media_kind}, attrs=[{doc_attrs}], mime={mime}, attempt={attempt}, elapsed_ms={}",
+            elapsed.as_millis()
+        ),
+    );
+}
+
 /// Section
 /// Section
 pub fn start_preview_stream_blocking(
@@ -536,6 +565,9 @@ fn start_preview_stream_inner(
 
     // Shared Grammers pool — never dual-open / disconnect the live Studio client.
     rt.block_on(async {
+        // High priority preview permit (2 permits, never blocked by thumbnail batches)
+        let _preview_permit = session_rate::acquire_preview_slot(&session_name).await?;
+
         // Smart wait if flood duration is short (<= 35s), otherwise fail fast
         session_rate::wait_if_flooded_capped(&session_name, Duration::from_secs(35)).await?;
 
@@ -656,6 +688,9 @@ fn start_preview_stream_inner(
         let is_audio = mime.starts_with("audio/") || name_lower.ends_with(".mp3") || name_lower.ends_with(".flac") || name_lower.ends_with(".ogg") || name_lower.ends_with(".m4a") || name_lower.ends_with(".wav") || name_lower.ends_with(".aac") || name_lower.ends_with(".opus");
         let is_zip = mime.contains("zip") || name_lower.ends_with(".zip");
 
+        // Safe logging of raw media info
+        log_raw_media_info("preview_stream_classified", &chat_safe, mid, &media, &mime, 1, Duration::ZERO);
+
         // ZIP files: 100% MTProto Sparse Reader — zero full-file download for ZIPs of ANY size (1 MB to 5 GB)
         if is_zip {
             let _ = persist_memory_session(&live.session, &live.session_path);
@@ -710,32 +745,98 @@ fn start_preview_stream_inner(
             if !(dest.is_file()
                 && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) == size)
             {
-                let mut dl_retry = 0;
-                loop {
-                    match current_live.client.download_media(&media, &dest).await {
-                        Ok(_) => break,
-                        Err(e) => {
-                            let err_str = e.to_string();
-                            let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
-                            if is_timeout && dl_retry < 2 {
-                                dl_retry += 1;
-                                tg_log::warn(
-                                    BACKEND,
-                                    "preview_stream_retry",
-                                    format!("RPC Timeout (-503) during document download (retry {dl_retry}/2). Reconnecting fresh socket..."),
-                                );
-                                let _ = std::fs::remove_file(&dest);
-                                disconnect_cached_session(&session_name);
-                                tokio::time::sleep(Duration::from_millis(300)).await;
-                                if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
-                                    current_live = fresh_live;
-                                }
-                                continue;
-                            }
-                            let _ = std::fs::remove_file(&dest);
-                            return Err(TgError::new(TgErrorCode::Io, format!("download document: {e}")));
+                let mut dl_success = false;
+                let max_attempts = 4;
+                for attempt in 1..=max_attempts {
+                    let start_t = std::time::Instant::now();
+                    if attempt > 1 {
+                        let backoff_ms = match attempt {
+                            2 => 750 + (now_ms() % 150),
+                            3 => 2000 + (now_ms() % 300),
+                            _ => 5000 + (now_ms() % 500),
+                        };
+                        tg_log::info(
+                            BACKEND,
+                            "preview_stream_backoff",
+                            format!("Attempt {attempt}/{max_attempts} for doc {message_id}: backoff {backoff_ms}ms, reconnecting..."),
+                        );
+                        disconnect_cached_session(&session_name);
+                        tokio::time::sleep(Duration::from_millis(backoff_ms as u64)).await;
+                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                            current_live = fresh_live;
                         }
                     }
+
+                    // Refetch fresh message & media
+                    let fresh_msgs = match current_live.client.get_messages_by_id(peer, &[mid]).await {
+                        Ok(m) => m,
+                        Err(e) => {
+                            let mapped = map_invocation(&e);
+                            if mapped.code() == TgErrorCode::FloodWait {
+                                if let Some(secs) = mapped.flood_wait_secs() {
+                                    if secs <= 35 {
+                                        tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                    } else {
+                                        return Err(mapped);
+                                    }
+                                }
+                            }
+                            continue;
+                        }
+                    };
+                    let fresh_msg = match fresh_msgs.into_iter().flatten().next() {
+                        Some(m) => m,
+                        None => continue,
+                    };
+                    let fresh_media = match fresh_msg.media() {
+                        Some(m) => m,
+                        None => continue,
+                    };
+
+                    log_raw_media_info("preview_stream_download_attempt", &chat_safe, mid, &fresh_media, &mime, attempt, start_t.elapsed());
+
+                    let part_dest = pdir.join(format!("{chat_safe}_{message_id}_{safe_name}.att{attempt}.part"));
+                    let _ = std::fs::remove_file(&part_dest);
+
+                    let dl_res = tokio::time::timeout(
+                        Duration::from_secs(30),
+                        current_live.client.download_media(&fresh_media, &part_dest)
+                    ).await;
+
+                    match dl_res {
+                        Ok(Ok(_)) => {
+                            let _ = std::fs::rename(&part_dest, &dest);
+                            dl_success = true;
+                            break;
+                        }
+                        Ok(Err(e)) => {
+                            let _ = std::fs::remove_file(&part_dest);
+                            let err_str = e.to_string();
+                            let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_retry",
+                                format!("Attempt {attempt}/{max_attempts} failed for doc {message_id}: {err_str}"),
+                            );
+                            if !is_timeout && (err_str.contains("CHANNEL_PRIVATE") || err_str.contains("PEER_ID_INVALID")) {
+                                return Err(TgError::new(TgErrorCode::PeerNotFound, "Akses chat ditolak atau tidak valid"));
+                            }
+                        }
+                        Err(_) => {
+                            let _ = std::fs::remove_file(&part_dest);
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_timeout",
+                                format!("Attempt {attempt}/{max_attempts} timed out (30s) for doc {message_id}"),
+                            );
+                        }
+                    }
+                }
+                if !dl_success && !dest.is_file() {
+                    return Err(TgError::new(
+                        TgErrorCode::Timeout,
+                        "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.",
+                    ));
                 }
             }
             let _ = persist_memory_session(&live.session, &live.session_path);
@@ -761,7 +862,7 @@ fn start_preview_stream_inner(
             });
         }
 
-        // Photos: reuse disk cache; never disconnect shared pool.
+        // Photos: reuse disk cache; fallback ladder PhotoSize x -> PhotoSize m -> stripped thumb
         if is_image && size <= 12 * 1024 * 1024 {
             let dest = pdir.join(format!(
                 "{chat_safe}_{message_id}.{}",
@@ -775,32 +876,142 @@ fn start_preview_stream_inner(
             if !(dest.is_file()
                 && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10)
             {
-                let mut dl_retry = 0;
-                loop {
-                    match current_live.client.download_media(&media, &dest).await {
-                        Ok(_) => break,
-                        Err(e) => {
-                            let err_str = e.to_string();
-                            let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
-                            if is_timeout && dl_retry < 2 {
-                                dl_retry += 1;
-                                tg_log::warn(
-                                    BACKEND,
-                                    "preview_stream_retry",
-                                    format!("RPC Timeout (-503) during photo download (retry {dl_retry}/2). Reconnecting fresh socket..."),
-                                );
-                                let _ = std::fs::remove_file(&dest);
-                                disconnect_cached_session(&session_name);
-                                tokio::time::sleep(Duration::from_millis(300)).await;
-                                if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
-                                    current_live = fresh_live;
-                                }
-                                continue;
-                            }
-                            let _ = std::fs::remove_file(&dest);
-                            return Err(TgError::new(TgErrorCode::Io, format!("download: {e}")));
+                let mut dl_success = false;
+                let max_attempts = 4;
+                for attempt in 1..=max_attempts {
+                    let start_t = std::time::Instant::now();
+                    if attempt > 1 {
+                        let backoff_ms = match attempt {
+                            2 => 750 + (now_ms() % 150),
+                            3 => 2000 + (now_ms() % 300),
+                            _ => 5000 + (now_ms() % 500),
+                        };
+                        tg_log::info(
+                            BACKEND,
+                            "preview_stream_backoff",
+                            format!("Attempt {attempt}/{max_attempts} for photo {message_id}: backoff {backoff_ms}ms, reconnecting..."),
+                        );
+                        disconnect_cached_session(&session_name);
+                        tokio::time::sleep(Duration::from_millis(backoff_ms as u64)).await;
+                        if let Ok(fresh_live) = obtain_live_client(sessions_dir, identity, true, true).await {
+                            current_live = fresh_live;
                         }
                     }
+
+                    // Refetch fresh message & media
+                    let fresh_msgs = match current_live.client.get_messages_by_id(peer, &[mid]).await {
+                        Ok(m) => m,
+                        Err(e) => {
+                            let mapped = map_invocation(&e);
+                            if mapped.code() == TgErrorCode::FloodWait {
+                                if let Some(secs) = mapped.flood_wait_secs() {
+                                    if secs <= 35 {
+                                        tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                    } else {
+                                        return Err(mapped);
+                                    }
+                                }
+                            }
+                            continue;
+                        }
+                    };
+                    let fresh_msg = match fresh_msgs.into_iter().flatten().next() {
+                        Some(m) => m,
+                        None => continue,
+                    };
+                    let fresh_media = match fresh_msg.media() {
+                        Some(m) => m,
+                        None => continue,
+                    };
+
+                    log_raw_media_info("preview_stream_download_attempt", &chat_safe, mid, &fresh_media, &mime, attempt, start_t.elapsed());
+
+                    let part_dest = pdir.join(format!("{chat_safe}_{message_id}.att{attempt}.part"));
+                    let _ = std::fs::remove_file(&part_dest);
+
+                    let dl_res = tokio::time::timeout(
+                        Duration::from_secs(20),
+                        current_live.client.download_media(&fresh_media, &part_dest)
+                    ).await;
+
+                    match dl_res {
+                        Ok(Ok(_)) => {
+                            let _ = std::fs::rename(&part_dest, &dest);
+                            dl_success = true;
+                            break;
+                        }
+                        Ok(Err(e)) => {
+                            let _ = std::fs::remove_file(&part_dest);
+                            let err_str = e.to_string();
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_retry",
+                                format!("Attempt {attempt}/{max_attempts} failed for photo {message_id}: {err_str}"),
+                            );
+                        }
+                        Err(_) => {
+                            let _ = std::fs::remove_file(&part_dest);
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_timeout",
+                                format!("Attempt {attempt}/{max_attempts} timed out (20s) for photo {message_id}"),
+                            );
+                        }
+                    }
+                }
+
+                // Photo Fallback Ladder (Task 12):
+                // If full photo download failed, try PhotoSize 'x' / 'm' / stripped thumb
+                if !dl_success && !dest.is_file() {
+                    tg_log::info(BACKEND, "preview_stream_fallback", format!("Full photo download failed for {message_id}. Trying PhotoSize fallback ladder..."));
+                    if let Ok(msgs) = current_live.client.get_messages_by_id(peer, &[mid]).await {
+                        if let Some(fresh_msg) = msgs.into_iter().flatten().next() {
+                            if let Some(Media::Photo(photo)) = fresh_msg.media() {
+                                let sizes = photo.thumbs();
+                                let downloadable: Vec<&PhotoSize> = sizes
+                                    .iter()
+                                    .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)) && s.size() > 0)
+                                    .collect();
+                                if let Some(best_sz) = downloadable.last() {
+                                    let part_fallback = pdir.join(format!("{chat_safe}_{message_id}_fb.part"));
+                                    let _ = std::fs::remove_file(&part_fallback);
+                                    if let Ok(Ok(_)) = tokio::time::timeout(
+                                        Duration::from_secs(10),
+                                        current_live.client.download_media(*best_sz, &part_fallback)
+                                    ).await {
+                                        let _ = std::fs::rename(&part_fallback, &dest);
+                                        dl_success = true;
+                                    } else {
+                                        let _ = std::fs::remove_file(&part_fallback);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !dl_success && !dest.is_file() {
+                    // Fallback to Stripped Mini-Thumb if available
+                    if let Some(stripped_url) = stripped_thumb_data_url(&media) {
+                        return Ok(PreviewStreamResult {
+                            status: "success".into(),
+                            stream_id: String::new(),
+                            stream_url: String::new(),
+                            path: String::new(),
+                            mime_type: mime,
+                            size,
+                            data_url: Some(stripped_url),
+                            text_content: None,
+                            preview_kind: "image".into(),
+                            streaming: false,
+                            backend: BACKEND.into(),
+                            message: "stripped thumbnail fallback".into(),
+                        });
+                    }
+                    return Err(TgError::new(
+                        TgErrorCode::Timeout,
+                        "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.",
+                    ));
                 }
             }
             let _ = persist_memory_session(&live.session, &live.session_path);
