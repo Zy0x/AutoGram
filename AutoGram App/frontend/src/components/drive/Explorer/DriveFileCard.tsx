@@ -135,9 +135,19 @@ function DriveFileCardInner({
     (file.thumb_data_url || file.thumbDataUrl || '') as string;
   // The mounted explorer context is authoritative. A stale row must never be
   // allowed to redirect a thumbnail request into another account/location.
-  const itemPeerId = folderId != null && folderId !== 0 ? String(folderId) : 'me';
-  const itemTopicId = contextTopicId;
-  const itemLocationType = itemPeerId === 'me' ? 'saved_messages' : 'group';
+  const itemPeerId =
+    folderId != null && folderId !== 0
+      ? String(folderId)
+      : file.peer_id
+      ? String(file.peer_id)
+      : 'me';
+  const itemTopicId = contextTopicId ?? (file.topic_id ?? null);
+  const itemLocationType =
+    file.peer_kind === 'channel'
+      ? 'channel'
+      : itemPeerId === 'me'
+      ? 'saved_messages'
+      : 'group';
   const thumbLocator = { peerId: itemPeerId, topicId: itemTopicId };
   const cached = canThumb ? getCachedThumb(folderId, file.id, thumbLocator) : undefined;
   // Saver fallback: blurred placeholder shown immediately in balanced/sharp mode
