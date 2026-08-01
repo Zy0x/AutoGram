@@ -2886,7 +2886,7 @@ body.td-dnd-external {
 
 .td-file-card-inner {
   position: relative;
-  /* Height is set by JS row container (cardHeight = cardWidth * 1.5).
+  /* Height is set by JS row container (cardHeight = cardWidth * 4 / 3 for 3:4 ratio).
      DO NOT use aspect-ratio here — it would override JS row height and
      cause cards to overflow into adjacent rows, hiding the meta footer. */
   width: 100%;
