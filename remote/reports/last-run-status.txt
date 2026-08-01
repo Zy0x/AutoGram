@@ -1,1 +1,1 @@
-OK suite
+﻿OK remote ready 2026-08-01T21:01:20.9117531+08:00 pid=16148 vite=http://127.0.0.1:1420/ total=9061ms

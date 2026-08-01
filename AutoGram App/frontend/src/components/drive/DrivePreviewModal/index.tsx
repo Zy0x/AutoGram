@@ -1409,10 +1409,6 @@ export function DrivePreviewModal({
             lastTimeAdvanceAtRef.current = now;
           } else if (now - lastTimeAdvanceAtRef.current > 1600 && now - playNudgeAtRef.current > 1000) {
             playNudgeAtRef.current = now;
-            const stuckMs = now - lastTimeAdvanceAtRef.current;
-            // Keep Chromium's TimeRanges intact. Calling load() here discarded
-            // the entire browser buffer and created an endless reload loop.
-            if (stuckMs > 3200) lastTimeAdvanceAtRef.current = now;
             try {
               ignoreSeekEventsRef.current += 1;
               v.currentTime = cur;
@@ -3299,7 +3295,7 @@ export function DrivePreviewModal({
                 style={{
                   transform: mediaTransform,
                   transformOrigin: 'center center',
-                  pointerEvents: 'none', // all gestures on wrap — avoids img eating events
+                  pointerEvents: 'none',
                 }}
                 onLoad={(e) => {
                   const img = e.currentTarget;
@@ -3330,8 +3326,6 @@ export function DrivePreviewModal({
               }`}
               style={{
                 overflow: 'hidden',
-                // Transform the wrap, never the <video> node — otherwise WebView2
-                // misaligns native control hit-testing and seek/scrub stops working.
                 ...(needsMediaTransform
                   ? { transform: mediaTransform, transformOrigin: 'center center' }
                   : undefined),
@@ -3340,7 +3334,6 @@ export function DrivePreviewModal({
               onPointerUp={onPointerUpLocal}
               onPointerCancel={onPointerUpLocal}
               onDoubleClick={(e) => {
-                // Don't zoom when double-clicking control chrome
                 const v = videoRef.current;
                 if (v) {
                   const rect = v.getBoundingClientRect();
@@ -3355,7 +3348,6 @@ export function DrivePreviewModal({
                 onWheelStage(e);
               }}
             >
-              {/* Poster under video until first frame — avoids pure black stage */}
               {!hasVideoFrame && (poster || gridThumb) && (
                 <img
                   src={poster || gridThumb || ''}
@@ -3366,8 +3358,6 @@ export function DrivePreviewModal({
               )}
               <video
                 ref={videoRef}
-                // Stable key: remount only on file/quality — never on stream URL
-                // churn (that was restarting buffer load in a loop).
                 key={`vid-${file.id}-${quality}`}
                 src={activeSrc!}
                 poster={poster || gridThumb || undefined}
@@ -3381,7 +3371,6 @@ export function DrivePreviewModal({
                   hasVideoFrame ? ' is-ready' : ' is-booting'
                 }`}
                 style={{
-                  // Identity only — transforms live on the wrap (see above)
                   transform: 'none',
                   transformOrigin: 'center center',
                 }}
@@ -3389,6 +3378,14 @@ export function DrivePreviewModal({
                   const v = videoRef.current;
                   const t = resumeAtRef.current;
                   if (v) {
+                    console.debug('[STREAM_DIAG][MODAL]', {
+                      event: 'loadedmetadata',
+                      fileId: file.id,
+                      fileName: file.name,
+                      duration: v.duration,
+                      readyState: v.readyState,
+                      networkState: v.networkState,
+                    });
                     v.playbackRate = playbackRate;
                     v.muted = muted;
                     v.loop = loopVideo;
@@ -3397,7 +3394,6 @@ export function DrivePreviewModal({
                   }
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
-                      // Resume time — do not treat as user scrub
                       ignoreSeekEventsRef.current += 1;
                       userSeekPendingRef.current = false;
                       v.currentTime = t;
@@ -3409,6 +3405,15 @@ export function DrivePreviewModal({
                   setLoading(false);
                 }}
                 onLoadedData={() => {
+                  const v = videoRef.current;
+                  if (v) {
+                    console.debug('[STREAM_DIAG][MODAL]', {
+                      event: 'loadeddata',
+                      fileId: file.id,
+                      readyState: v.readyState,
+                      currentTime: v.currentTime,
+                    });
+                  }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -3417,7 +3422,6 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   captureVideoFrame();
-                  const v = videoRef.current;
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
@@ -3431,6 +3435,15 @@ export function DrivePreviewModal({
                   }
                 }}
                 onCanPlay={() => {
+                  const v = videoRef.current;
+                  if (v) {
+                    console.debug('[STREAM_DIAG][MODAL]', {
+                      event: 'canplay',
+                      fileId: file.id,
+                      readyState: v.readyState,
+                      currentTime: v.currentTime,
+                    });
+                  }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -3439,7 +3452,6 @@ export function DrivePreviewModal({
                   setLoading(false);
                   setPlayerHint(null);
                   captureVideoFrame();
-                  const v = videoRef.current;
                   if (v && v.paused && !v.ended) {
                     void v.play().then(() => {
                       hasUserPlayRef.current = true;
@@ -3457,7 +3469,6 @@ export function DrivePreviewModal({
                 }}
                 onSeeking={() => {
                   if (ignoreSeekEventsRef.current > 0) return;
-                  // Mark + kick early: seeked may never fire until Range data exists
                   userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
@@ -3468,12 +3479,10 @@ export function DrivePreviewModal({
                     userSeekPendingRef.current = false;
                     return;
                   }
-                  // Confirm after scrub settles (debounced kick may already be in flight)
                   userSeekPendingRef.current = true;
                   handleSeekJump();
                 }}
                 onEnded={() => {
-                  // Fallback if browser ignores loop attribute on some progressive streams
                   if (!loopVideo) return;
                   const v = videoRef.current;
                   if (!v) return;

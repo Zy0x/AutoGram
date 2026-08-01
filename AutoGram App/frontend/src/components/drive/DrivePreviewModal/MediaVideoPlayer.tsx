@@ -40,11 +40,33 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
   const [browserBufferedPct, setBrowserBufferedPct] = useState(0);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const logStreamDiag = useCallback((event: string) => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      console.debug('[STREAM_DIAG][PLAYER]', {
+        event,
+        src,
+        readyState: v.readyState,
+        networkState: v.networkState,
+        currentTime: v.currentTime,
+        duration: v.duration,
+        buffered: Array.from({ length: v.buffered.length }, (_, i) => ({
+          start: v.buffered.start(i),
+          end: v.buffered.end(i),
+        })),
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [src]);
+
   useEffect(() => {
     if (videoRef.current && autoPlay) {
+      logStreamDiag('autoPlay');
       videoRef.current.play().catch(() => setIsPlaying(false));
     }
-  }, [src, autoPlay]);
+  }, [src, autoPlay, logStreamDiag]);
 
   const handleProgress = useCallback(() => {
     const v = videoRef.current;
@@ -80,6 +102,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
   };
 
   const handleLoadedMetadata = () => {
+    logStreamDiag('loadedmetadata');
     const v = videoRef.current;
     if (!v) return;
     setDuration(v.duration);
@@ -90,14 +113,17 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
     const v = videoRef.current;
     if (!v) return;
     if (isPlaying) {
+      logStreamDiag('pause');
       v.pause();
     } else {
+      logStreamDiag('play');
       v.play();
     }
   };
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetTime = parseFloat(e.target.value);
+    logStreamDiag(`seeking_to_${targetTime}`);
     setCurrentTime(targetTime);
     if (videoRef.current) {
       videoRef.current.currentTime = targetTime;
@@ -162,12 +188,18 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
         ref={videoRef}
         src={src}
         poster={posterSrc || undefined}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => { logStreamDiag('play'); setIsPlaying(true); }}
+        onPause={() => { logStreamDiag('pause'); setIsPlaying(false); }}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
+        onLoadedData={() => logStreamDiag('loadeddata')}
+        onCanPlay={() => logStreamDiag('canplay')}
+        onCanPlayThrough={() => logStreamDiag('canplaythrough')}
+        onWaiting={() => logStreamDiag('waiting')}
+        onStalled={() => logStreamDiag('stalled')}
+        onError={() => logStreamDiag('error')}
         onProgress={handleProgress}
-        onEnded={onEnded}
+        onEnded={() => { logStreamDiag('ended'); if (onEnded) onEnded(); }}
         onClick={togglePlay}
         className="max-w-full max-h-full object-contain cursor-pointer"
       />

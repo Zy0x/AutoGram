@@ -92,24 +92,21 @@ function Test-ViteUp {
 }
 
 function Test-CdpUp {
-  # BUG-5 FIX: Try IPv6 first (AutoGram WebView2), then IPv4 as fallback.
-  # Verify the page is actually AutoGram, not GoogleDriveFS (which also uses :9222 on IPv4).
-  foreach ($hName in @('::1', '127.0.0.1')) {
-    if (-not (Test-TcpPort $hName 9222 350)) { continue }
-    try {
-      $url = if ($hName -eq '::1') { 'http://[::1]:9222/json/list' } else { 'http://127.0.0.1:9222/json/list' }
-      # Invoke-WebRequest intermittently fails for bracketed IPv6 URLs on Windows.
-      # curl's -g keeps [::1] literal and avoids the false 45-second CDP timeout.
-      $json = (& curl.exe -g -sS --max-time 2 $url 2>$null) -join "`n"
-      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { continue }
-      # Check that one of the targets is actually AutoGram (localhost:1420 or tauri)
-      if ($json -match 'localhost:1420' -or $json -match 'tauri') {
-        # Store the working CDP URL globally for heal-remote.mjs
-        $script:ResolvedCdpUrl = $url
-        Write-EnsureLog "CDP resolved: $url (host=$hName)"
-        return $true
-      }
-    } catch {}
+  # Try port 9225 first (dedicated for AutoGram to avoid GoogleDriveFS on 9222), then 9222.
+  foreach ($port in @(9225, 9222)) {
+    foreach ($hName in @('127.0.0.1', '::1')) {
+      if (-not (Test-TcpPort $hName $port 350)) { continue }
+      try {
+        $url = if ($hName -eq '::1') { "http://[::1]:$port/json/list" } else { "http://127.0.0.1:$port/json/list" }
+        $json = (& curl.exe -g -sS --max-time 2 $url 2>$null) -join "`n"
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { continue }
+        if ($json -match 'localhost:1420' -or $json -match 'tauri') {
+          $script:ResolvedCdpUrl = $url
+          Write-EnsureLog "CDP resolved: $url (host=$hName port=$port)"
+          return $true
+        }
+      } catch {}
+    }
   }
   return $false
 }
@@ -303,7 +300,10 @@ if ($needStart) {
   $psi.WorkingDirectory = $tauriDir
   $psi.UseShellExecute = $false
   $psi.CreateNoWindow = $false
-  $psi.EnvironmentVariables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9222 --remote-allow-origins=*'
+  $userDataDir = Join-Path $suiteRoot '.webview2_data'
+  if (-not (Test-Path -LiteralPath $userDataDir)) { New-Item -ItemType Directory -Force -Path $userDataDir | Out-Null }
+  $psi.EnvironmentVariables['WEBVIEW2_USER_DATA_FOLDER'] = $userDataDir
+  $psi.EnvironmentVariables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9225 --remote-allow-origins=*'
   try {
     $psi.EnvironmentVariables['PATH'] = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('PATH', 'User')
   } catch {}

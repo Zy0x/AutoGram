@@ -397,20 +397,30 @@ fn parse_stream_id(url: &str) -> Option<String> {
     parts.next().map(|s| s.to_string())
 }
 
-fn parse_range(header: Option<&str>) -> Option<(u64, Option<u64>)> {
+fn parse_range(header: Option<&str>, total_size: u64) -> Option<(u64, Option<u64>)> {
     let h = header?;
+    let h = h.trim();
     if !h.starts_with("bytes=") {
         return None;
     }
     let spec = h[6..].split(',').next()?.trim();
     let (a, b) = spec.split_once('-')?;
-    let start: u64 = if a.is_empty() { 0 } else { a.parse().ok()? };
-    let end: Option<u64> = if b.is_empty() {
-        None
+    if a.is_empty() {
+        let suffix: u64 = b.parse().ok()?;
+        if suffix == 0 || total_size == 0 {
+            return None;
+        }
+        let start = total_size.saturating_sub(suffix);
+        Some((start, Some(total_size.saturating_sub(1))))
     } else {
-        Some(b.parse().ok()?)
-    };
-    Some((start, end))
+        let start: u64 = a.parse().ok()?;
+        let end: Option<u64> = if b.is_empty() {
+            None
+        } else {
+            Some(b.parse().ok()?)
+        };
+        Some((start, end))
+    }
 }
 
 fn bounded_response_end(start: u64, requested_end: Option<u64>, solid_end: u64) -> u64 {
@@ -495,8 +505,6 @@ fn handle_stream(request: Request, sid: &str) {
     let mut entry = match get_entry(sid) {
         Some(e) if !e.cancelled => e,
         Some(e) if e.cancelled => {
-            // If entry was marked cancelled but file on disk exists and has data,
-            // allow serving existing bytes (or recover if whole partial is usable)
             let p = PathBuf::from(&e.path);
             if p.is_file() && fs::metadata(&p).map(|m| m.len()).unwrap_or(0) > 0 {
                 e
@@ -516,7 +524,6 @@ fn handle_stream(request: Request, sid: &str) {
             }
         }
         _ => {
-            // BUG-1 FIX: Before giving up with 404, try recovering from orphaned .partial
             match try_recover_partial(sid) {
                 Some(recovered) => recovered,
                 None => {
@@ -541,6 +548,11 @@ fn handle_stream(request: Request, sid: &str) {
         let _ = request.respond(res);
         return;
     }
+    let total = if entry.total_size > 0 {
+        entry.total_size
+    } else {
+        fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
+    };
 
     let range_hdr = request
         .headers()
@@ -548,83 +560,37 @@ fn handle_stream(request: Request, sid: &str) {
         .find(|h| h.field.equiv("Range") || h.field.equiv("range"))
         .map(|h| h.value.as_str().to_string());
 
-    let req_start = parse_range(range_hdr.as_deref())
-        .map(|(s, _)| s)
-        .unwrap_or(0);
+    let req_range = parse_range(range_hdr.as_deref(), total);
+    let req_start = req_range.map(|(s, _)| s).unwrap_or(0);
 
-    // If stream is still filling, wait briefly for data at requested start
-    if !entry.done {
-        let mut waited = 0;
-        while waited < 1500 {
-            let r = if entry.ranges.is_empty() {
-                vec![]
-            } else {
-                entry.ranges.clone()
-            };
-            let have = contiguous_end_from(&r, req_start);
-            if have > req_start || entry.done {
-                break;
-            }
-            thread::sleep(Duration::from_millis(50));
-            waited += 50;
-            if let Some(updated) = get_entry(sid) {
-                entry = updated;
-            } else {
-                break;
-            }
+    // If start is beyond total size, return RFC 7233 416 Range Not Satisfiable
+    if req_start >= total && total > 0 {
+        let mut res = Response::from_string("Range Not Satisfiable").with_status_code(StatusCode(416));
+        for h in cors_headers() {
+            res.add_header(h);
         }
+        if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], format!("bytes */{total}").as_bytes()) {
+            res.add_header(h);
+        }
+        let _ = request.respond(res);
+        return;
     }
 
-    let total = if entry.total_size > 0 {
-        entry.total_size
-    } else {
-        fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
-    };
-
-    let ranges = if entry.done && entry.ranges.is_empty() {
-        vec![(0, total)]
-    } else {
-        entry.ranges.clone()
-    };
-    let prefix = contiguous_from_zero(&ranges);
-    let filled = filled_bytes(&ranges);
-
-    // Default: first solid slice (fast start)
-    let (start, end_incl, status) = if let Some((rs, re)) = parse_range(range_hdr.as_deref()) {
-        let start = rs;
-        let mut have_end = contiguous_end_from(&ranges, start);
-
-        // Require at least 128 KiB (or remaining total) before serving Range when download is in progress.
-        // Returning micro-chunks (e.g. 12 bytes) closes HTTP 206 responses prematurely, causing
-        // Chromium's demuxer to freeze while video.paused remains false.
-        let min_chunk: u64 = if total > start {
-            (128 * 1024).min(total - start)
-        } else {
-            1
-        };
-        let want_end = (start + min_chunk).min(total);
-
-        if have_end < want_end && !entry.done {
-            // Tell the Grammers fill loop to jump here before we wait. This is
-            // the critical path for scrub/seek on a partially downloaded file.
-            let _ = super::grammers_media::request_progressive_range(sid, start);
-            // Auto-resume download if it was paused by a browser pause event
+    // If stream is still filling, trigger upstream fetch and wait for start bytes
+    if !entry.done {
+        let ranges_snapshot = entry.ranges.clone();
+        let have = contiguous_end_from(&ranges_snapshot, req_start);
+        if have <= req_start {
+            let _ = super::grammers_media::request_progressive_range(sid, req_start);
             if entry.paused {
                 entry.paused = false;
                 upsert_entry(entry.clone());
             }
-
-            // Wait up to 45 seconds (with fast 30ms ticks) for Telegram download to reach want_end
             let mut waited = 0;
             while waited < 45000 {
-                let r = if entry.ranges.is_empty() {
-                    vec![]
-                } else {
-                    entry.ranges.clone()
-                };
-                let have = contiguous_end_from(&r, start);
-                if have >= want_end || have >= start + 65536 || entry.done {
-                    have_end = have;
+                let r = if entry.ranges.is_empty() { vec![] } else { entry.ranges.clone() };
+                let h_now = contiguous_end_from(&r, req_start);
+                if h_now > req_start || entry.done {
                     break;
                 }
                 thread::sleep(Duration::from_millis(30));
@@ -635,69 +601,66 @@ fn handle_stream(request: Request, sid: &str) {
                     break;
                 }
             }
+        }
+    }
 
-            if have_end <= start && !entry.done {
-                if start >= total {
-                    // RFC 7233 Sec 4.4: 416 Range Not Satisfiable is for start >= total
-                    let mut res = Response::from_string("Range Not Satisfiable")
-                        .with_status_code(StatusCode(416));
-                    for h in cors_headers() {
-                        res.add_header(h);
-                    }
-                    if let Ok(h) = Header::from_bytes(
-                        &b"Content-Range"[..],
-                        format!("bytes */{total}").as_bytes(),
-                    ) {
-                        res.add_header(h);
-                    }
-                    let _ = request.respond(res);
-                    return;
-                }
-                // Data still buffering for start < total — Return 503 Service Unavailable
-                // so Chromium media engine retries cleanly without corrupting its demuxer with 1 byte responses.
-                let mut res = Response::from_string("Media range still buffering")
-                    .with_status_code(StatusCode(503));
-                for h in cors_headers() {
-                    res.add_header(h);
-                }
-                if let Ok(h) = Header::from_bytes(&b"Retry-After"[..], b"1") {
-                    res.add_header(h);
-                }
-                let _ = request.respond(res);
-                return;
-            }
-        }
-        let solid_end = if entry.done { total } else { have_end };
-        // Never send bytes beyond the client's requested end. The previous
-        // `max(..., 16 MB)` returned 16 MB for `bytes=0-1048575`, an invalid
-        // Content-Range that Chromium rejected with MEDIA_ERR_SRC_NOT_SUPPORTED.
-        // Open-ended ranges are capped to keep one response bounded.
-        let mut end = bounded_response_end(start, re, solid_end);
-        if end <= start && solid_end > start {
-            end = solid_end;
-        }
-        if end <= start {
-            let mut res =
-                Response::from_string("range not satisfiable").with_status_code(StatusCode(416));
-            for h in cors_headers() {
-                res.add_header(h);
-            }
-            let _ = request.respond(res);
-            return;
-        }
-        (start, end - 1, 206)
+    let ranges = if entry.done && entry.ranges.is_empty() {
+        vec![(0, total)]
     } else {
-        // Non-Range GET request: RFC 7233 Sec 4.1 forbids sending 206 Partial Content
-        // unless Range header was provided in request. Returning 206 without Range causes
-        // Chromium MEDIA_ELEMENT_ERROR: Format error (Code 4).
-        // Return 200 OK with available bytes + Accept-Ranges header so player can probe & Range seek.
-        // IMPORTANT: Use total size as Content-Length (not prefix) for non-faststart MP4 files,
-        // so Chromium media engine knows the full file size and will issue a Range request to
-        // the MOOV tail. Without this, browser thinks file = prefix bytes and can't seek to MOOV.
+        entry.ranges.clone()
+    };
+    let prefix = contiguous_from_zero(&ranges);
+    let filled = filled_bytes(&ranges);
+
+    let is_head = request.method() == &Method::Head;
+
+    let (start, end_incl, status) = if let Some((rs, re)) = req_range {
+        let start = rs;
+        let end_incl = match re {
+            Some(e) => e.min(total.saturating_sub(1)),
+            None => total.saturating_sub(1),
+        };
+        (start, end_incl, 206)
+    } else {
         (0, total.saturating_sub(1), 200)
     };
 
     let length = end_incl.saturating_sub(start).saturating_add(1);
+
+    log::info!(
+        "[STREAM_DIAG][RANGE] sid={sid} req={:?} -> status={status} cr=bytes {start}-{end_incl}/{total} len={length} done={}",
+        range_hdr,
+        entry.done
+    );
+
+    let mime = if entry.mime.is_empty() {
+        "application/octet-stream"
+    } else {
+        &entry.mime
+    };
+
+    if is_head {
+        let mut res = Response::empty(StatusCode(status));
+        for h in cors_headers() {
+            res.add_header(h);
+        }
+        if let Ok(h) = Header::from_bytes(&b"Content-Type"[..], mime.as_bytes()) {
+            res.add_header(h);
+        }
+        res.add_header(Header::from_bytes(&b"Accept-Ranges"[..], &b"bytes"[..]).unwrap());
+        if status == 206 {
+            let cr = format!("bytes {start}-{end_incl}/{total}");
+            if let Ok(h) = Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()) {
+                res.add_header(h);
+            }
+        }
+        if let Ok(h) = Header::from_bytes(&b"Content-Length"[..], format!("{length}").as_bytes()) {
+            res.add_header(h);
+        }
+        let _ = request.respond(res);
+        return;
+    }
+
     let mut file = match File::open(&path) {
         Ok(f) => f,
         Err(_) => {
@@ -718,18 +681,12 @@ fn handle_stream(request: Request, sid: &str) {
         return;
     }
 
-    let mime = if entry.mime.is_empty() {
-        "application/octet-stream"
-    } else {
-        &entry.mime
-    };
-
     let reader = ProgressiveFileReader {
         file,
         stream_id: sid.to_string(),
         position: start,
         end_exclusive: end_incl.saturating_add(1),
-        wait_for_growth: status == 200 && !entry.done,
+        wait_for_growth: !entry.done,
     };
     let mut res = Response::new(
         StatusCode(status),
