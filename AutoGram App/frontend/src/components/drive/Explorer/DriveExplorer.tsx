@@ -101,8 +101,8 @@ type Props = {
   onResumeSync?: () => void;
 };
 
-/** Card aspect width:height = 2:3 → height = width * 3/2 */
-const CARD_ASPECT_H = 3 / 2;
+/** Card aspect width:height = 3:4 → height = width * 4/3 */
+const CARD_ASPECT_H = 4 / 3;
 const GRID_GAP = 10;
 const GRID_PAD_X = 14;
 /** Breathing room under topbar / above last row (virtual rows are absolute) */

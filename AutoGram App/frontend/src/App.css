@@ -2883,8 +2883,9 @@ body.td-dnd-external {
 
 .td-file-card-inner {
   position: relative;
-  /* Portrait 2:3 — uniform media tiles */
-  aspect-ratio: 2 / 3;
+  /* Portrait 3:4 — uniform media tiles with balanced height */
+  aspect-ratio: 3 / 4;
+  max-height: 340px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -3157,13 +3158,15 @@ body.td-dnd-external {
 .td-file-thumb-grad {
   position: absolute;
   inset: 0;
-  /* Covers duration row + name + size without washing out the frame */
+  /* Covers duration row + name + size with strong contrast against light media */
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.45) 28%,
-    transparent 58%
+    rgba(15, 23, 42, 0.95) 0%,
+    rgba(15, 23, 42, 0.6) 38%,
+    transparent 68%
   );
+  z-index: 1;
+  pointer-events: none;
 }
 
 .td-file-card-meta {
@@ -3172,7 +3175,8 @@ body.td-dnd-external {
   right: 0;
   bottom: 0;
   padding: 8px 10px 9px;
-  z-index: 2;
+  z-index: 5;
+  pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: stretch;

@@ -872,16 +872,20 @@ export function driveFileExt(file: DriveFile): string {
  * Fixes stale caption extensions (webm caption + mp4 document → show .mp4).
  */
 export function driveFileDisplayName(file: DriveFile): string {
-  const raw = (file.name || file.original_name || '').trim() || 'file';
+  let raw = (file.name || file.original_name || '').trim();
+  if (!raw || raw.toLowerCase() === 'file' || raw.toLowerCase() === 'unknown') {
+    const kind = formatDriveKindLabel(file);
+    raw = file.id ? `Media #${file.id}` : (kind ? `Media ${kind}` : 'File');
+  }
   const trueExt = driveFileExt(file);
   if (!trueExt) return raw;
   const nameExt = _extFromString(raw);
   if (!nameExt) {
     // Caption without extension — append real one for clarity
-    if (MEDIA_EXT_HINTS.has(trueExt)) return `${raw}.${trueExt}`;
+    if (MEDIA_EXT_HINTS.has(trueExt) || trueExt.length <= 5) return `${raw}.${trueExt}`;
     return raw;
   }
-  if (nameExt === trueExt || nameExt === 'jpeg' && trueExt === 'jpg') return raw;
+  if (nameExt === trueExt || (nameExt === 'jpeg' && trueExt === 'jpg')) return raw;
   // Both media-ish and disagree → replace trailing extension
   if (MEDIA_EXT_HINTS.has(nameExt) && MEDIA_EXT_HINTS.has(trueExt)) {
     const i = raw.lastIndexOf('.');
