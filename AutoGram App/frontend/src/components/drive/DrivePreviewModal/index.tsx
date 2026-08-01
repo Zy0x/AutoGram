@@ -434,6 +434,13 @@ export function DrivePreviewModal({
   const [hint, setHint] = useState<string | null>(null);
   const [previewKind, setPreviewKind] = useState<string | null>(null);
   const [textBody, setTextBody] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<'loading' | 'full' | 'degraded' | 'failed'>('loading');
+  const [previewSource, setPreviewSource] = useState<string | null>(null);
+  const [previewIsFallback, setPreviewIsFallback] = useState<boolean>(false);
+  const [previewWidth, setPreviewWidth] = useState<number | null>(null);
+  const [previewHeight, setPreviewHeight] = useState<number | null>(null);
+  const [previewByteSize, setPreviewByteSize] = useState<number | null>(null);
+  const [previewErrorDetail, setPreviewErrorDetail] = useState<string | null>(null);
   const [openingSystem, setOpeningSystem] = useState(false);
   const [openProgressMsg, setOpenProgressMsg] = useState<string | null>(null);
   /** User cancelled open/print progress strip */
@@ -728,6 +735,13 @@ export function DrivePreviewModal({
     setStreamDone(false);
     setPlayerHint(null);
     setSeekWarn(null);
+    setPreviewState('loading');
+    setPreviewSource(null);
+    setPreviewIsFallback(false);
+    setPreviewWidth(null);
+    setPreviewHeight(null);
+    setPreviewByteSize(null);
+    setPreviewErrorDetail(null);
   }
 
   const durationLabel = formatDriveDuration(driveFileDurationSeconds(file));
@@ -833,8 +847,40 @@ export function DrivePreviewModal({
       }
       setFromCache(cachedHit);
       setHasVideoFrame(false);
-      setMediaWidth(res.video_width || null);
-      setMediaHeight(res.video_height || null);
+      setMediaWidth(res.width || res.video_width || null);
+      setMediaHeight(res.height || res.video_height || null);
+
+      const src = res.source || (res.is_fallback ? 'stripped_thumb' : 'full_photo');
+      const isFb = !!res.is_fallback;
+      const w = res.width ?? res.video_width ?? null;
+      const h = res.height ?? res.video_height ?? null;
+      const bSize = res.byte_size ?? res.size ?? 0;
+      const fullErr = res.full_download_error ?? null;
+
+      setPreviewSource(src);
+      setPreviewIsFallback(isFb);
+      setPreviewWidth(w);
+      setPreviewHeight(h);
+      setPreviewByteSize(bSize);
+      setPreviewErrorDetail(fullErr);
+
+      if (isFb) {
+        setPreviewState('degraded');
+      } else if (usable) {
+        setPreviewState('full');
+      }
+
+      console.log('[DrivePreviewModal] mount_preview:', {
+        message_id: file.id,
+        filename: file.name,
+        preview_source: src,
+        source_width: w,
+        source_height: h,
+        byte_size: bSize,
+        is_fallback: isFb,
+        full_download_error: fullErr,
+      });
+
       if (res.qualities && res.qualities.length) {
         setQualities(normalizePlayQualities(res.qualities as PlayQuality[]));
       }
@@ -2515,17 +2561,22 @@ export function DrivePreviewModal({
           <div className="drive-preview-title">
             <strong title={displayName}>{displayName}</strong>
             <span className="drive-muted" title={[
-              formatDriveBytes(file.size),
+              formatDriveBytes(previewByteSize || file.size),
+              previewWidth && previewHeight ? `${previewWidth}×${previewHeight}px` : '',
+              previewState === 'degraded' ? 'degraded fallback' : '',
               durationLabel,
               kindLabel,
               isVideo && activeQuality ? activeQuality.label : '',
               fromCache && !loading ? 'cache' : '',
+              previewErrorDetail ? `err: ${previewErrorDetail}` : '',
             ].filter(Boolean).join(' · ')}>
-              {formatDriveBytes(file.size)}
+              {formatDriveBytes(previewByteSize || file.size)}
+              {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
               {durationLabel ? ` · ${durationLabel}` : ''}
               {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
               {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
               {fromCache && !loading ? ' · cache' : ''}
+              {previewState === 'degraded' ? ' · Degraded' : ''}
             </span>
           </div>
           <button
@@ -3145,6 +3196,79 @@ export function DrivePreviewModal({
               <div className="drive-preview-loading-chip">
                 <Loader2 size={14} className="spin" /> Memuat…
               </div>
+            </div>
+          )}
+
+          {previewIsFallback && !error && (
+            <div
+              className="drive-preview-degraded-banner"
+              style={{
+                position: 'absolute',
+                top: '68px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 16px',
+                background: 'rgba(234, 179, 8, 0.94)',
+                backdropFilter: 'blur(8px)',
+                color: '#000',
+                borderRadius: '24px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+                fontSize: '13px',
+                fontWeight: 600,
+                pointerEvents: 'auto',
+                maxWidth: '90%',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#000',
+                  color: '#eab308',
+                  padding: '3px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Pratinjau Kualitas Rendah
+              </span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                File asli belum berhasil diunduh. Menampilkan {previewSource ? previewSource.replace(/_/g, ' ') : 'thumbnail fallback'}.
+              </span>
+              <button
+                type="button"
+                className="td-btn-secondary"
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '12px',
+                  borderRadius: '16px',
+                  background: '#000',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                }}
+                onClick={() => {
+                  invalidatePreview(folderId, file.id);
+                  setSrcOverride(null);
+                  setError(null);
+                  setLoading(true);
+                  loadPreview('auto', { force: true });
+                }}
+              >
+                <RefreshCw size={13} /> Muat Ulang File Asli
+              </button>
             </div>
           )}
 

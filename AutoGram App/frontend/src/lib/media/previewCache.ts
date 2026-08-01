@@ -33,6 +33,12 @@ export type CachedPreview = {
   video_width?: number | null;
   video_height?: number | null;
   status?: string;
+  source?: string;
+  is_fallback?: boolean;
+  width?: number | null;
+  height?: number | null;
+  byte_size?: number;
+  full_download_error?: string | null;
   /** wall clock when cached */
   cachedAt: number;
 };

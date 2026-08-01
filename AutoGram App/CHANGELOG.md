@@ -1,3 +1,12 @@
+## v2.6.1 Media Preview Modal Sizing, Degraded State Warning Badge, Metadata Audit & Resilient Retry Engine
+
+### Audit Image Source Metadata & UI Sizing Semantics (`stream.rs`, `telegramBackend.ts`, `driveStreamZipApi.ts`, `previewCache.ts`, `DrivePreviewModal`, `App.css`)
+- **Complete `PreviewStreamResult` Metadata**: Memperbarui struktur hasil pratinjau media untuk mengembalikan metadata lengkap (`source`, `is_fallback`, `width`, `height`, `byte_size`, `full_download_error`). UI mencatat log `mount_preview` terstruktur tanpa membocorkan data sensitif/base64.
+- **Viewport Fit Sizing & Zoom Semantics**: Memperbaiki aturan CSS `max-width: none` / `max-height: none` yang sebelumnya menyebabkan thumbnail 30px menyusut menjadi 22.5px saat zoom 75%. Skala `100%` kini 100% Fit-to-Viewport, dan `75%` adalah 75% dari Fit-to-Viewport.
+- **Degraded State Warning Badge & Force Reload**: Saat pengunduhan foto asli mengalami timeout Telegram dan sistem menyajikan thumbnail cadangan (`stripped_thumb` / `medium_thumb`), UI menampilkan badge peringatan **"Pratinjau Kualitas Rendah"** beserta penjelasan dan tombol **"Muat Ulang File Asli"** untuk mencoba ulang pengunduhan foto resolusi tinggi.
+- **Retry Loop Log Completeness & Attempt 3 Fix**: Mengoreksi `stream.rs` agar setiap percobaan dari attempt 1 hingga 4 mencatat log `preview_stream_attempt_start` dan `preview_stream_attempt_failed` / `success` secara lengkap, mengeliminasi masalah hilangnya log pada attempt 3 saat refetch pesan mengalami timeout.
+- **Multi-Tier Photo Fallback Ladder**: Menyempurnakan hierarki fallback pengunduhan foto: `full_photo` -> `telegram_large_thumb` -> `telegram_medium_thumb` -> `stripped_thumb` -> `failed`.
+
 ## v2.6.0 High-Priority Preview Resilience Engine & Media Classification Architecture
 
 ### Audit Media Classification & UI Formatting (`media_list.rs`, `thumbs.rs`, `DrivePreviewModal`)

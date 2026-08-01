@@ -157,6 +157,8 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
         if bytes.len() > 16 * 1024 * 1024 {
             return None;
         }
+        let (width, height) = image_dimensions_from_bytes(&bytes);
+        let b_len = bytes.len() as u64;
         return Some(PreviewStreamResult {
             status: "success".into(),
             stream_id: String::new(),
@@ -170,6 +172,12 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
             streaming: false,
             backend: BACKEND.into(),
             message: "image cache hit".into(),
+            source: "cached_preview".into(),
+            is_fallback: false,
+            width,
+            height,
+            byte_size: b_len,
+            full_download_error: None,
         });
     }
     if let Ok(local) = crate::core::doc_preview::preview_local_document(&path_str) {
@@ -186,6 +194,12 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
             streaming: false,
             backend: BACKEND.into(),
             message: "document cache hit".into(),
+            source: "doc_local".into(),
+            is_fallback: false,
+            width: None,
+            height: None,
+            byte_size: size,
+            full_download_error: None,
         });
     }
     if mime == "application/pdf" {
@@ -202,6 +216,12 @@ fn try_local_preview_fast(path: &Path) -> Option<PreviewStreamResult> {
             streaming: false,
             backend: BACKEND.into(),
             message: "pdf cache hit".into(),
+            source: "doc_local".into(),
+            is_fallback: false,
+            width: None,
+            height: None,
+            byte_size: size,
+            full_download_error: None,
         });
     }
     None
@@ -231,6 +251,40 @@ fn to_data_url(bytes: &[u8]) -> Option<String> {
     Some(format!("data:{mime};base64,{}", B64.encode(bytes)))
 }
 
+fn image_dimensions_from_bytes(bytes: &[u8]) -> (Option<u32>, Option<u32>) {
+    if bytes.len() < 10 {
+        return (None, None);
+    }
+    // PNG
+    if bytes.starts_with(&[137, 80, 78, 71, 13, 10, 26, 10]) && bytes.len() >= 24 {
+        let w = u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]);
+        let h = u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]);
+        return (Some(w), Some(h));
+    }
+    // JPEG SOF parser
+    if bytes.starts_with(&[0xFF, 0xD8]) {
+        let mut i = 2;
+        while i + 8 < bytes.len() {
+            if bytes[i] != 0xFF {
+                i += 1;
+                continue;
+            }
+            let marker = bytes[i + 1];
+            if marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3 {
+                let h = u32::from(u16::from_be_bytes([bytes[i + 5], bytes[i + 6]]));
+                let w = u32::from(u16::from_be_bytes([bytes[i + 7], bytes[i + 8]]));
+                return (Some(w), Some(h));
+            }
+            let len = u16::from_be_bytes([bytes[i + 2], bytes[i + 3]]) as usize;
+            if len < 2 {
+                break;
+            }
+            i += 2 + len;
+        }
+    }
+    (None, None)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PreviewStreamResult {
@@ -246,6 +300,12 @@ pub struct PreviewStreamResult {
     pub streaming: bool,
     pub backend: String,
     pub message: String,
+    pub source: String,
+    pub is_fallback: bool,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub byte_size: u64,
+    pub full_download_error: Option<String>,
 }
 
 fn guess_mime(name: &str, media: &Media) -> String {
@@ -707,6 +767,12 @@ fn start_preview_stream_inner(
                 streaming: false,
                 backend: BACKEND.into(),
                 message: "Sparse ZIP Range Reader".into(),
+                source: "zip_stream".into(),
+                is_fallback: false,
+                width: None,
+                height: None,
+                byte_size: size,
+                full_download_error: None,
             });
         }
 
@@ -729,6 +795,12 @@ fn start_preview_stream_inner(
                 streaming: false,
                 backend: BACKEND.into(),
                 message: "File besar — gunakan Download / Buka dengan…".into(),
+                source: "file".into(),
+                is_fallback: false,
+                width: None,
+                height: None,
+                byte_size: size,
+                full_download_error: None,
             });
         }
 
@@ -747,8 +819,14 @@ fn start_preview_stream_inner(
             {
                 let mut dl_success = false;
                 let max_attempts = 4;
+                let mut doc_last_err: Option<String> = None;
                 for attempt in 1..=max_attempts {
                     let start_t = std::time::Instant::now();
+                    tg_log::info(
+                        BACKEND,
+                        "preview_stream_attempt_start",
+                        format!("Attempt {attempt}/{max_attempts} start for doc {message_id}"),
+                    );
                     if attempt > 1 {
                         let backoff_ms = match attempt {
                             2 => 750 + (now_ms() % 150),
@@ -772,6 +850,13 @@ fn start_preview_stream_inner(
                         Ok(m) => m,
                         Err(e) => {
                             let mapped = map_invocation(&e);
+                            let emsg = mapped.to_string();
+                            doc_last_err = Some(emsg.clone());
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} get_messages_by_id failed for doc {message_id}: {emsg}"),
+                            );
                             if mapped.code() == TgErrorCode::FloodWait {
                                 if let Some(secs) = mapped.flood_wait_secs() {
                                     if secs <= 35 {
@@ -786,11 +871,27 @@ fn start_preview_stream_inner(
                     };
                     let fresh_msg = match fresh_msgs.into_iter().flatten().next() {
                         Some(m) => m,
-                        None => continue,
+                        None => {
+                            doc_last_err = Some(format!("message {message_id} not found"));
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} message {message_id} not found"),
+                            );
+                            continue;
+                        }
                     };
                     let fresh_media = match fresh_msg.media() {
                         Some(m) => m,
-                        None => continue,
+                        None => {
+                            doc_last_err = Some("message has no media".into());
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} message {message_id} has no media"),
+                            );
+                            continue;
+                        }
                     };
 
                     log_raw_media_info("preview_stream_download_attempt", &chat_safe, mid, &fresh_media, &mime, attempt, start_t.elapsed());
@@ -807,15 +908,21 @@ fn start_preview_stream_inner(
                         Ok(Ok(_)) => {
                             let _ = std::fs::rename(&part_dest, &dest);
                             dl_success = true;
+                            tg_log::info(
+                                BACKEND,
+                                "preview_stream_attempt_success",
+                                format!("Attempt {attempt}/{max_attempts} succeeded for doc {message_id} in {}ms", start_t.elapsed().as_millis()),
+                            );
                             break;
                         }
                         Ok(Err(e)) => {
                             let _ = std::fs::remove_file(&part_dest);
                             let err_str = e.to_string();
+                            doc_last_err = Some(err_str.clone());
                             let is_timeout = err_str.contains("-503") || err_str.to_ascii_lowercase().contains("timeout");
                             tg_log::warn(
                                 BACKEND,
-                                "preview_stream_retry",
+                                "preview_stream_attempt_failed",
                                 format!("Attempt {attempt}/{max_attempts} failed for doc {message_id}: {err_str}"),
                             );
                             if !is_timeout && (err_str.contains("CHANNEL_PRIVATE") || err_str.contains("PEER_ID_INVALID")) {
@@ -824,9 +931,10 @@ fn start_preview_stream_inner(
                         }
                         Err(_) => {
                             let _ = std::fs::remove_file(&part_dest);
+                            doc_last_err = Some("Timeout 30s".into());
                             tg_log::warn(
                                 BACKEND,
-                                "preview_stream_timeout",
+                                "preview_stream_attempt_failed",
                                 format!("Attempt {attempt}/{max_attempts} timed out (30s) for doc {message_id}"),
                             );
                         }
@@ -846,19 +954,26 @@ fn start_preview_stream_inner(
                 Err(_) if mime == "application/pdf" => ("pdf".into(), None),
                 Err(_) => ("file".into(), None),
             };
+            let b_size = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(size);
             return Ok(PreviewStreamResult {
                 status: "success".into(),
                 stream_id: String::new(),
                 stream_url: String::new(),
                 path: dest.display().to_string(),
                 mime_type: mime,
-                size,
+                size: b_size,
                 data_url: None,
                 text_content,
                 preview_kind: kind,
                 streaming: false,
                 backend: BACKEND.into(),
                 message: "document downloaded and parsed by Rust".into(),
+                source: "doc_local".into(),
+                is_fallback: false,
+                width: None,
+                height: None,
+                byte_size: b_size,
+                full_download_error: None,
             });
         }
 
@@ -873,13 +988,24 @@ fn start_preview_stream_inner(
             ));
             path_policy::assert_safe_transfer_path(dest.to_str().unwrap_or(""))
                 .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
-            if !(dest.is_file()
-                && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10)
+
+            let mut dl_success = false;
+            let mut used_fallback_source: Option<String> = None;
+            let mut photo_last_err: Option<String> = None;
+
+            if dest.is_file()
+                && std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) >= size.saturating_mul(9) / 10
             {
-                let mut dl_success = false;
+                dl_success = true;
+            } else {
                 let max_attempts = 4;
                 for attempt in 1..=max_attempts {
                     let start_t = std::time::Instant::now();
+                    tg_log::info(
+                        BACKEND,
+                        "preview_stream_attempt_start",
+                        format!("Attempt {attempt}/{max_attempts} start for photo {message_id}"),
+                    );
                     if attempt > 1 {
                         let backoff_ms = match attempt {
                             2 => 750 + (now_ms() % 150),
@@ -903,6 +1029,13 @@ fn start_preview_stream_inner(
                         Ok(m) => m,
                         Err(e) => {
                             let mapped = map_invocation(&e);
+                            let emsg = mapped.to_string();
+                            photo_last_err = Some(emsg.clone());
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} get_messages_by_id failed for photo {message_id}: {emsg}"),
+                            );
                             if mapped.code() == TgErrorCode::FloodWait {
                                 if let Some(secs) = mapped.flood_wait_secs() {
                                     if secs <= 35 {
@@ -917,11 +1050,27 @@ fn start_preview_stream_inner(
                     };
                     let fresh_msg = match fresh_msgs.into_iter().flatten().next() {
                         Some(m) => m,
-                        None => continue,
+                        None => {
+                            photo_last_err = Some(format!("message {message_id} not found"));
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} message {message_id} not found"),
+                            );
+                            continue;
+                        }
                     };
                     let fresh_media = match fresh_msg.media() {
                         Some(m) => m,
-                        None => continue,
+                        None => {
+                            photo_last_err = Some("message has no media".into());
+                            tg_log::warn(
+                                BACKEND,
+                                "preview_stream_attempt_failed",
+                                format!("Attempt {attempt}/{max_attempts} message {message_id} has no media"),
+                            );
+                            continue;
+                        }
                     };
 
                     log_raw_media_info("preview_stream_download_attempt", &chat_safe, mid, &fresh_media, &mime, attempt, start_t.elapsed());
@@ -938,30 +1087,37 @@ fn start_preview_stream_inner(
                         Ok(Ok(_)) => {
                             let _ = std::fs::rename(&part_dest, &dest);
                             dl_success = true;
+                            tg_log::info(
+                                BACKEND,
+                                "preview_stream_attempt_success",
+                                format!("Attempt {attempt}/{max_attempts} succeeded for photo {message_id} in {}ms", start_t.elapsed().as_millis()),
+                            );
                             break;
                         }
                         Ok(Err(e)) => {
                             let _ = std::fs::remove_file(&part_dest);
                             let err_str = e.to_string();
+                            photo_last_err = Some(err_str.clone());
                             tg_log::warn(
                                 BACKEND,
-                                "preview_stream_retry",
+                                "preview_stream_attempt_failed",
                                 format!("Attempt {attempt}/{max_attempts} failed for photo {message_id}: {err_str}"),
                             );
                         }
                         Err(_) => {
                             let _ = std::fs::remove_file(&part_dest);
+                            photo_last_err = Some("Timeout 20s".into());
                             tg_log::warn(
                                 BACKEND,
-                                "preview_stream_timeout",
+                                "preview_stream_attempt_failed",
                                 format!("Attempt {attempt}/{max_attempts} timed out (20s) for photo {message_id}"),
                             );
                         }
                     }
                 }
 
-                // Photo Fallback Ladder (Task 12):
-                // If full photo download failed, try PhotoSize 'x' / 'm' / stripped thumb
+                // Photo Fallback Ladder (Task 6):
+                // Step 2 & 3: Large / Medium PhotoSize fallback
                 if !dl_success && !dest.is_file() {
                     tg_log::info(BACKEND, "preview_stream_fallback", format!("Full photo download failed for {message_id}. Trying PhotoSize fallback ladder..."));
                     if let Ok(msgs) = current_live.client.get_messages_by_id(peer, &[mid]).await {
@@ -972,8 +1128,10 @@ fn start_preview_stream_inner(
                                     .iter()
                                     .filter(|s| matches!(s, PhotoSize::Size(_) | PhotoSize::Progressive(_)) && s.size() > 0)
                                     .collect();
+
+                                // Step 2: Try largest downloadable photo size
                                 if let Some(best_sz) = downloadable.last() {
-                                    let part_fallback = pdir.join(format!("{chat_safe}_{message_id}_fb.part"));
+                                    let part_fallback = pdir.join(format!("{chat_safe}_{message_id}_fb_large.part"));
                                     let _ = std::fs::remove_file(&part_fallback);
                                     if let Ok(Ok(_)) = tokio::time::timeout(
                                         Duration::from_secs(10),
@@ -981,6 +1139,24 @@ fn start_preview_stream_inner(
                                     ).await {
                                         let _ = std::fs::rename(&part_fallback, &dest);
                                         dl_success = true;
+                                        used_fallback_source = Some("telegram_large_thumb".into());
+                                    } else {
+                                        let _ = std::fs::remove_file(&part_fallback);
+                                    }
+                                }
+
+                                // Step 3: Try medium downloadable photo size if large failed
+                                if !dl_success && downloadable.len() >= 2 {
+                                    let med_sz = downloadable[0];
+                                    let part_fallback = pdir.join(format!("{chat_safe}_{message_id}_fb_med.part"));
+                                    let _ = std::fs::remove_file(&part_fallback);
+                                    if let Ok(Ok(_)) = tokio::time::timeout(
+                                        Duration::from_secs(8),
+                                        current_live.client.download_media(med_sz, &part_fallback)
+                                    ).await {
+                                        let _ = std::fs::rename(&part_fallback, &dest);
+                                        dl_success = true;
+                                        used_fallback_source = Some("telegram_medium_thumb".into());
                                     } else {
                                         let _ = std::fs::remove_file(&part_fallback);
                                     }
@@ -990,9 +1166,10 @@ fn start_preview_stream_inner(
                     }
                 }
 
+                // Step 4: Stripped Mini-Thumb fallback
                 if !dl_success && !dest.is_file() {
-                    // Fallback to Stripped Mini-Thumb if available
                     if let Some(stripped_url) = stripped_thumb_data_url(&media) {
+                        tg_log::info(BACKEND, "preview_stream_fallback", format!("Using Stripped Mini-Thumb fallback for photo {message_id}"));
                         return Ok(PreviewStreamResult {
                             status: "success".into(),
                             stream_id: String::new(),
@@ -1006,18 +1183,31 @@ fn start_preview_stream_inner(
                             streaming: false,
                             backend: BACKEND.into(),
                             message: "stripped thumbnail fallback".into(),
+                            source: "stripped_thumb".into(),
+                            is_fallback: true,
+                            width: Some(40),
+                            height: Some(40),
+                            byte_size: size,
+                            full_download_error: photo_last_err,
                         });
                     }
+
+                    // Step 5: Failure
                     return Err(TgError::new(
                         TgErrorCode::Timeout,
                         "Telegram belum merespons saat mengambil file. AutoGram telah mencoba ulang. Coba lagi beberapa saat.",
                     ));
                 }
             }
+
             let _ = persist_memory_session(&live.session, &live.session_path);
             let final_size = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(size);
             let bytes = std::fs::read(&dest).unwrap_or_default();
             let data_url = to_data_url(&bytes);
+            let (width, height) = image_dimensions_from_bytes(&bytes);
+            let is_fb = used_fallback_source.is_some();
+            let src_name = used_fallback_source.unwrap_or_else(|| "full_photo".into());
+
             return Ok(PreviewStreamResult {
                 status: "success".into(),
                 stream_id: String::new(),
@@ -1031,6 +1221,12 @@ fn start_preview_stream_inner(
                 streaming: false,
                 backend: BACKEND.into(),
                 message: "image ready".into(),
+                source: src_name,
+                is_fallback: is_fb,
+                width,
+                height,
+                byte_size: bytes.len() as u64,
+                full_download_error: if is_fb { photo_last_err } else { None },
             });
         }
 
@@ -1655,6 +1851,12 @@ fn start_preview_stream_inner(
             streaming: true,
             backend: BACKEND.into(),
             message: "streaming (head ready)".into(),
+            source: "video_stream".into(),
+            is_fallback: false,
+            width: None,
+            height: None,
+            byte_size: size,
+            full_download_error: None,
         })
     })
 }
@@ -1688,6 +1890,12 @@ pub fn warm_preview_head_blocking(
             streaming: false,
             backend: BACKEND.into(),
             message: "warm skipped — media slot busy".into(),
+            source: "warm_busy".into(),
+            is_fallback: false,
+            width: None,
+            height: None,
+            byte_size: 0,
+            full_download_error: None,
         });
     };
 
@@ -1704,19 +1912,26 @@ pub fn warm_preview_head_blocking(
     if warm_path.is_file() {
         if let Ok(meta) = std::fs::metadata(&warm_path) {
             if meta.len() >= head_bytes / 2 {
+                let m_len = meta.len();
                 return Ok(PreviewStreamResult {
                     status: "ok".into(),
                     stream_id: String::new(),
                     stream_url: String::new(),
                     path: warm_path.display().to_string(),
                     mime_type: String::new(),
-                    size: meta.len(),
+                    size: m_len,
                     data_url: None,
                     text_content: None,
                     preview_kind: "warm".into(),
                     streaming: false,
                     backend: BACKEND.into(),
                     message: "warm cache hit".into(),
+                    source: "warm_cache".into(),
+                    is_fallback: false,
+                    width: None,
+                    height: None,
+                    byte_size: m_len,
+                    full_download_error: None,
                 });
             }
         }
@@ -1789,6 +2004,12 @@ pub fn warm_preview_head_blocking(
             streaming: false,
             backend: BACKEND.into(),
             message: format!("warmed {got} bytes"),
+            source: "warm".into(),
+            is_fallback: false,
+            width: None,
+            height: None,
+            byte_size: got,
+            full_download_error: None,
         })
     })
 }

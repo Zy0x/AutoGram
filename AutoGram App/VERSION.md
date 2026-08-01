@@ -1,6 +1,9 @@
-AutoGram Version: v2.6.0
+AutoGram Version: v2.6.1
 
 Current State:
+v2.6.1 Media Preview Modal Sizing, Degraded State Warning Badge, Metadata Audit & Resilient Retry Engine — membenahi `stream.rs`, `telegramBackend.ts`, `driveStreamZipApi.ts`, `previewCache.ts`, `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui penanganan `PreviewStreamResult` dengan pengembalian metadata lengkap (`source`, `is_fallback`, `width`, `height`, `byte_size`, `full_download_error`), memperbaiki bug CSS `max-width: none` / `max-height: none` agar zoom 100% selalu berarti 100% Fit-to-Viewport dan 75% berarti 75% Fit-to-Viewport (bukan 75% dari dimensi thumbnail 30px), menambahkan badge peringatan degraded UI "Pratinjau Kualitas Rendah" beserta tombol "Muat Ulang File Asli", mengaudit loop retry (1..4) di `stream.rs` agar setiap percobaan mencatat log start dan result secara konsisten, serta menyempurnakan Photo Fallback Ladder (full photo -> large thumb -> medium thumb -> stripped mini-thumb).
+
+Previous:
 v2.6.0 High-Priority Preview Resilience Engine & Media Classification Architecture — membenahi `media_list.rs`, `thumbs.rs`, `session_rate.rs`, `stream.rs`, `tg_error.rs`, `DrivePreviewModal/index.tsx`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki misklasifikasi foto sebagai video pada pengiriman native & dokumen, menambahkan semaphore prioritas tinggi `preview_sem` (2 permit) agar pratinjau media tidak pernah terblokir antrean thumbnail, menerapkan refetch pesan & media secara fresh sebelum pengunduhan, backoff bertahap dengan jitter acak pada retry (4 attempt), pengunduhan atomik file `.part`,PhotoSize fallback ladder (`x` -> `m` -> stripped mini-thumb), safe logging media info tanpa kebocoran rahasia, serta format pesan error UI yang bersih dan intuitif.
 
 Previous:
