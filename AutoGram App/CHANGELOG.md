@@ -1,4 +1,10 @@
-## v2.7.3 Transfer Manager Realtime Progress Engine & Settings Modal Scrollability Fix
+## v2.7.4 Transfer Progress Sync & Overall Percent Reducer Fix
+
+### Perbaikan Konflik Visual Header Transfer Manager (`transferProgress.ts`)
+- **Byte-Proportional Overall Percent**: Memperbarui fungsi `recomputeOverall` agar menghitung `overallPercent` dari rasio total bytes yang telah di-transfer (`(transferred / total) * 100`) untuk seluruh mode transfer (upload & download). Mengeliminasi bug di mana header menampilkan `0.0%` sementara sub-text/bar menampilkan `69.97 MB / 139.93 MB` dan item `50%`.
+
+### Eliminasi Fake Static Mockup Progress (`studio_orch.rs`)
+- **Initial Upload Progress Reset**: Mengganti payload `StudioProgress` di `studio_orch.rs` yang sebelumnya memancarkan static mockup `percent: 40.0` dan `transferred: item.size / 2` menjadi `percent: 0.0` dan `transferred: 0` saat upload dimulai.
 
 ### Perbaikan Realtime Progress Transfer Manager (`media_prep.rs`, `studio_orch.rs`, `lib.rs`, `MediaStudio/index.tsx`)
 - **Realtime FFmpeg Re-encode Streaming Progress**: Spawns FFmpeg dengan opsi `-progress pipe:1 -nostats`, membaca stdout secara async real-time, mengalkulasi persentase re-encode dari `out_time_us`, `fps`, dan `speed`, lalu memancarkan Tauri event `StudioReencodeProgress` ke frontend UI (`DriveTransferManager.tsx`).

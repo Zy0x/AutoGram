@@ -86,32 +86,15 @@ export function recomputeOverall(session: TransferSession): TransferSession {
   let overall = session.overallPercent;
 
   if (n > 0) {
+    const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
+    if (itemTransferred > transferred) transferred = itemTransferred;
+
+    const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
+    if (itemTotals > total) total = itemTotals;
+
     if (total > 0) {
-      // Selalu gunakan progres berbasis byte jika total ukuran sesi diketahui.
-      // Sinkronkan transferred & total dari data aktual item.
-      const itemTransferred = items.reduce((s, i) => s + (i.transferred || 0), 0);
-      if (itemTransferred > transferred) transferred = itemTransferred;
-
-      const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
-      if (itemTotals > total) total = itemTotals;
-
-      // Upload bytes and ordered commit are intentionally separate.  A batch
-      // is only complete as items become terminal; uploaded bytes alone must
-      // never produce the old misleading 99%/5-of-51 state.
-      if (session.direction === 'upload') {
-        const terminal = items.filter((i) =>
-          i.status === 'done' ||
-          i.status === 'failed' ||
-          i.status === 'cancelled' ||
-          i.status === 'skipped' ||
-          i.status === 'needs_verification'
-        ).length;
-        overall = (terminal / n) * 100;
-      } else {
-        overall = Math.min(100, (transferred / total) * 100);
-      }
+      overall = Math.min(100, (transferred / total) * 100);
     } else {
-      // Fallback: gunakan rata-rata progres item jika total ukuran sesi = 0.
       const sumPct = items.reduce((s, i) => {
         if (
           i.status === 'done' ||
@@ -120,14 +103,9 @@ export function recomputeOverall(session: TransferSession): TransferSession {
           i.status === 'cancelled' ||
           i.status === 'needs_verification'
         ) return s + 100;
-        return s;
+        return s + (i.percent || 0);
       }, 0);
       overall = sumPct / n;
-
-      const itemBytes = items.reduce((s, i) => s + (i.transferred || 0), 0);
-      if (itemBytes > transferred) transferred = itemBytes;
-      const itemTotals = items.reduce((s, i) => s + (i.total || 0), 0);
-      if (itemTotals > total) total = itemTotals;
     }
   }
 

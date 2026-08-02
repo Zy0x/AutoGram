@@ -350,8 +350,8 @@ fn run_orchestrated_grammers(
             let _ = app.emit("transfer-event", serde_json::json!({
                 "type": "StudioProgress",
                 "index": item.index,
-                "percent": 40.0,
-                "transferred": item.size / 2,
+                "percent": 0.0,
+                "transferred": 0,
                 "total": item.size,
                 "phase": "upload"
             }));
