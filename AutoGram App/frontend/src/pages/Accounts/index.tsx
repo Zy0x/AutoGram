@@ -189,8 +189,14 @@ export function Accounts() {
   const [qrExpiresIn, setQrExpiresIn] = useState<number>(0);
   const unlistenQrRef = useRef<(() => void) | null>(null);
   const qrCountdownTimerRef = useRef<any>(null);
+  const pendingQrSessionRef = useRef<{
+    sessionName: string;
+    qrDataUrl: string;
+    expiresAt: number;
+  } | null>(null);
+  const lastQrRequestTimeRef = useRef<number>(0);
 
-  const stopQrTimers = async () => {
+  const stopQrTimers = async (forceCancel = false) => {
     if (unlistenQrRef.current) {
       unlistenQrRef.current();
       unlistenQrRef.current = null;
@@ -199,10 +205,13 @@ export function Accounts() {
       clearInterval(qrCountdownTimerRef.current);
       qrCountdownTimerRef.current = null;
     }
-    if (sessionName) {
-      try {
-        await invoke('cancel_rust_qr_login', { session: sessionName });
-      } catch {}
+    if (forceCancel) {
+      if (sessionName) {
+        try {
+          await invoke('cancel_rust_qr_login', { session: sessionName });
+        } catch {}
+      }
+      pendingQrSessionRef.current = null;
     }
   };
 
@@ -216,10 +225,36 @@ export function Accounts() {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    if (isWizardOpen && step === 1 && loginMethod === 'qr' && !qrDataUrl && !isProcessing && !errorMsg) {
-      handleStartQrLogin();
+    if (isWizardOpen && step === 1 && loginMethod === 'qr') {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const cached = pendingQrSessionRef.current;
+
+      // REUSE active pending QR session if still valid (prevents Telegram MTProto FLOOD_WAIT on rapid open/close)
+      if (cached && cached.expiresAt > nowSec + 5 && cached.qrDataUrl) {
+        setSessionName(cached.sessionName);
+        setQrDataUrl(cached.qrDataUrl);
+        const rem = cached.expiresAt - nowSec;
+        setQrExpiresIn(rem);
+        setIsProcessing(false);
+
+        if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+        qrCountdownTimerRef.current = setInterval(() => {
+          const remaining = cached.expiresAt - Math.floor(Date.now() / 1000);
+          if (remaining <= 0) {
+            setQrExpiresIn(0);
+            if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
+          } else {
+            setQrExpiresIn(remaining);
+          }
+        }, 1000);
+        return;
+      }
+
+      if (!qrDataUrl && !isProcessing && !errorMsg) {
+        handleStartQrLogin();
+      }
     }
-  }, [isWizardOpen, step, loginMethod, qrDataUrl]);
+  }, [isWizardOpen, step, loginMethod]);
 
   const loadSessions = async () => {
     setIsLoading(true);
@@ -297,13 +332,19 @@ export function Accounts() {
 
   const closeWizard = async () => {
     if (isProcessing) return;
-    await stopQrTimers();
-    if (sessionName) {
-      const current = sessions.find((s) => s.name === sessionName);
-      if (!current || current.status !== 'connected') {
-        try {
-          await invoke('delete_session_rust', { session: sessionName });
-        } catch {}
+    const nowSec = Math.floor(Date.now() / 1000);
+    const cached = pendingQrSessionRef.current;
+
+    // Only cancel and delete session if QR has expired or is invalid
+    if (!cached || cached.expiresAt <= nowSec) {
+      await stopQrTimers(true);
+      if (sessionName) {
+        const current = sessions.find((s) => s.name === sessionName);
+        if (!current || current.status !== 'connected') {
+          try {
+            await invoke('delete_session_rust', { session: sessionName });
+          } catch {}
+        }
       }
     }
     setIsWizardOpen(false);
@@ -311,12 +352,23 @@ export function Accounts() {
   };
 
   const openWizard = () => {
-    stopQrTimers();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const cached = pendingQrSessionRef.current;
+    
     setStep(1);
     setLoginMethod("qr");
-    setQrDataUrl(null);
-    setQrExpiresIn(0);
-    setSessionName("");
+
+    if (cached && cached.expiresAt > nowSec + 5) {
+      setSessionName(cached.sessionName);
+      setQrDataUrl(cached.qrDataUrl);
+      setQrExpiresIn(cached.expiresAt - nowSec);
+    } else {
+      stopQrTimers(true);
+      setQrDataUrl(null);
+      setQrExpiresIn(0);
+      setSessionName("");
+    }
+
     setPhone("");
     setCode("");
     setPassword("");
@@ -362,16 +414,23 @@ export function Accounts() {
     return true;
   };
 
-  const handleStartQrLogin = async () => {
+  const handleStartQrLogin = async (forceNew = false) => {
+    const now = Date.now();
+    // Cooldown protection: minimum 3 seconds between fresh request triggers
+    if (!forceNew && now - lastQrRequestTimeRef.current < 3000) {
+      return;
+    }
+    lastQrRequestTimeRef.current = now;
+
     let activeSessionName = sessionName.trim();
-    if (!activeSessionName) {
+    if (!activeSessionName || forceNew) {
       activeSessionName = `session_${Math.floor(Date.now() / 1000)}`;
       setSessionName(activeSessionName);
     }
 
     if (!(await checkApiCredentials())) return;
 
-    await stopQrTimers();
+    await stopQrTimers(true);
     setIsProcessing(true);
     setErrorMsg('');
     setQrDataUrl(null);
@@ -382,10 +441,11 @@ export function Accounts() {
       if (isTauri()) {
         const unlisten = await listen<any>('qr-event', async (event) => {
           const payload = event.payload || {};
-          if (payload.session && payload.session !== sessionName) return;
+          if (payload.session && payload.session !== activeSessionName) return;
 
           if (payload.status === 'already_authorized') {
-            await finishAuthorization(sessionName);
+            pendingQrSessionRef.current = null;
+            await finishAuthorization(activeSessionName);
           } else if (payload.status === 'qr_code' && payload.url) {
             const dataUrl = await QRCode.toDataURL(payload.url, { margin: 2, width: 240 });
             setQrDataUrl(dataUrl);
@@ -396,20 +456,41 @@ export function Accounts() {
             setQrExpiresIn(rem);
             setIsProcessing(false);
 
+            // Cache active QR session so rapid open/close doesn't spam Telegram MTProto API
+            pendingQrSessionRef.current = {
+              sessionName: activeSessionName,
+              qrDataUrl: dataUrl,
+              expiresAt: exp > 0 ? exp : nowSec + rem,
+            };
+
             if (qrCountdownTimerRef.current) clearInterval(qrCountdownTimerRef.current);
             qrCountdownTimerRef.current = setInterval(() => {
-              setQrExpiresIn((prev) => Math.max(0, prev - 1));
+              setQrExpiresIn((prev) => {
+                const next = Math.max(0, prev - 1);
+                if (next === 0 && qrCountdownTimerRef.current) {
+                  clearInterval(qrCountdownTimerRef.current);
+                }
+                return next;
+              });
             }, 1000);
           } else if (payload.status === 'success') {
-            await finishAuthorization(sessionName);
+            pendingQrSessionRef.current = null;
+            await finishAuthorization(activeSessionName);
           } else if (payload.status === '2fa_required') {
             await stopQrTimers();
             setPasswordHint(String(payload.password_hint || ''));
             setStep(3);
             setIsProcessing(false);
           } else if (payload.status === 'error') {
-            await stopQrTimers();
-            setErrorMsg(payload.error || 'Gagal login via QR code');
+            await stopQrTimers(true);
+            const rawErr = String(payload.error || 'Gagal login via QR code');
+            const floodMatch = rawErr.match(/FLOOD_WAIT_?(\d+)/i) || rawErr.match(/wait (?:for )?(\d+) sec/i);
+            if (floodMatch) {
+              const waitSec = floodMatch[1];
+              setErrorMsg(t('accounts.flood_wait_notice', { seconds: waitSec }));
+            } else {
+              setErrorMsg(rawErr);
+            }
             setIsProcessing(false);
           }
         });
@@ -417,7 +498,7 @@ export function Accounts() {
         unlistenQrRef.current = unlisten;
 
         await invoke('start_rust_qr_login', {
-          session: sessionName,
+          session: activeSessionName,
           apiId: Number(apiId),
           apiHash: apiHash || '',
         });
@@ -425,7 +506,14 @@ export function Accounts() {
         throw new Error('Login Telegram hanya tersedia di aplikasi desktop AutoGram.');
       }
     } catch (e: any) {
-      setErrorMsg(String(e?.message || e));
+      const rawErr = String(e?.message || e);
+      const floodMatch = rawErr.match(/FLOOD_WAIT_?(\d+)/i) || rawErr.match(/wait (?:for )?(\d+) sec/i);
+      if (floodMatch) {
+        const waitSec = floodMatch[1];
+        setErrorMsg(t('accounts.flood_wait_notice', { seconds: waitSec }));
+      } else {
+        setErrorMsg(rawErr);
+      }
       setIsProcessing(false);
     }
   };
@@ -793,7 +881,7 @@ export function Accounts() {
                   <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     <button
                       type="button"
-                      onClick={() => { setLoginMethod('qr'); stopQrTimers(); setQrDataUrl(null); }}
+                      onClick={() => { setLoginMethod('qr'); }}
                       style={{
                         flex: 1,
                         padding: '8px 12px',
@@ -815,7 +903,7 @@ export function Accounts() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setLoginMethod('phone'); stopQrTimers(); setQrDataUrl(null); }}
+                      onClick={() => { setLoginMethod('phone'); }}
                       style={{
                         flex: 1,
                         padding: '8px 12px',
@@ -848,7 +936,7 @@ export function Accounts() {
                             </span>
                           </div>
                         ) : (
-                          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleStartQrLogin}>
+                          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
                             <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
                           </button>
                         )
@@ -868,7 +956,7 @@ export function Accounts() {
                           </div>
 
                           {qrExpiresIn === 0 && (
-                            <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleStartQrLogin}>
+                            <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
                               <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
                             </button>
                           )}
