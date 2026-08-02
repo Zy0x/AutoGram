@@ -225,9 +225,9 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { loadSelectableSessions } = await import('../../../lib/telegram');
+        const { loadSelectableSessions, getSessionDisplayName } = await import('../../../lib/telegram');
         const activeSess = await loadSelectableSessions({ autoSeedActive: true });
-        setSessions(activeSess.map((s) => ({ name: s.name, status: s.status })));
+        setSessions(activeSess.map((s) => ({ name: s.name, label: getSessionDisplayName(s.name), status: s.status })));
         if (activeSess.length > 0) {
           setSelectedSession((prev) =>
             prev && activeSess.some((s) => s.name === prev) ? prev : activeSess[0].name
@@ -694,7 +694,7 @@ export function JobEditor({ onCancel, onStart, initialJob}: { onCancel: () => vo
                 <Select 
                   options={[
                     {value: '', label: '-- Select Active Session --'},
-                    ...sessions.map(s => ({value: s.name, label: `${s.name} (${s.status})`}))
+                    ...sessions.map(s => ({value: s.name, label: `${(s as any).label || s.name} (${s.status})`}))
                   ]}
                   value={selectedSession}
                   onChange={(val: any) => {

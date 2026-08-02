@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, X, RefreshCw, HardDrive } from 'lucide-react';
+import { getSessionDisplayName } from '../../lib/telegram';
 
 export interface MediaStudioHeaderProps {
   searchQuery: string;
@@ -42,7 +43,7 @@ export const MediaStudioHeader: React.FC<MediaStudioHeaderProps> = ({
             >
               {sessions.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {getSessionDisplayName(s)}
                 </option>
               ))}
             </select>

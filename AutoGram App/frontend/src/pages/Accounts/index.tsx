@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin } from '../../lib/telegram';
+import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
@@ -299,6 +299,13 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
+          if (connected || user) {
+            saveSessionMetadata(saved.name, {
+              userFullName,
+              username: user?.username || undefined,
+              photoBase64: user?.photoBase64 || undefined,
+            });
+          }
           // Check disk/memory avatar cache first (peer 0 = self)
           const cachedAvatar = getCachedAvatar(0, saved.name);
           const photoBase64 = user?.photoBase64 || cachedAvatar || undefined;
@@ -319,7 +326,7 @@ export function Accounts() {
 
           // Fast avatar fetch via avatarBatcher (peer 0 = self), fallback to tgDownloadProfilePhoto
           if (connected) {
-            requestAvatar({ session: saved.name, apiId: Number(apiId), apiHash }, 0)
+            requestAvatar({ session: saved.name, apiId: String(apiId), apiHash }, 0)
               .then((avatarUrl) => {
                 if (avatarUrl) {
                   setSessions((current) =>

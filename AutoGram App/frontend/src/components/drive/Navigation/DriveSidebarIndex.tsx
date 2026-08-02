@@ -25,13 +25,12 @@ import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveChatFolder, DriveFolder } from '../../../lib/telegram/driveTypes';
 import type { DriveDropTarget } from '../../../lib/telegram';
 import type { DriveRecent } from '../../../lib/telegram';
-import { recentDisplayLabel } from '../../../lib/telegram';
 import {
+  recentDisplayLabel,
   isDriveSessionCircuitTripped,
   getDriveSessionError,
   resetDriveSessionCircuit,
-} from '../../../lib/telegram';
-import {
+  getSessionDisplayName,
   applyDropEffect,
   beginFolderDrag,
   canAcceptDriveDrop,
@@ -1493,7 +1492,7 @@ export function DriveSidebar({
           ariaLabel="Telegram session"
           compact
           options={sessions.length
-            ? sessions.map((name) => ({ value: name, label: name }))
+            ? sessions.map((name) => ({ value: name, label: getSessionDisplayName(name) }))
             : [{ value: '', label: 'Belum ada session', disabled: true }]}
         />
         <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>

@@ -3,6 +3,7 @@ import React from 'react';
 import { RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import { MediaSelect } from './MediaSelect';
+import { getSessionDisplayName } from '../../../lib/telegram';
 
 export interface SidebarSessionHeaderProps {
   creds: DriveCredentials | null;
@@ -46,7 +47,7 @@ export const SidebarSessionHeader: React.FC<SidebarSessionHeaderProps> = ({
           onChange={onSelectSession}
           options={sessions.map((s) => ({
             value: s.session,
-            label: s.label || s.phone || s.session,
+            label: s.label || getSessionDisplayName(s.session) || s.phone || s.session,
           }))}
           ariaLabel="Pilih Sesi Telegram"
         />

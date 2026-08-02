@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { DriveFolder, DriveChat, DriveTopic } from '../../lib/telegram/driveTypes';
+import { getSessionDisplayName } from '../../lib/telegram';
 
 type MediaStudioSidebarProps = {
   sessions: string[];
@@ -85,7 +86,7 @@ export const MediaStudioSidebar: React.FC<MediaStudioSidebarProps> = ({
             {sessions.length === 0 && <option value="">No Active Account</option>}
             {sessions.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {getSessionDisplayName(s)}
               </option>
             ))}
           </select>
