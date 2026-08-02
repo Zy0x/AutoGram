@@ -118,7 +118,8 @@ export function Accounts() {
   const [sessions, setSessions] = useState<{
     name: string;
     status?: string;
-    userLabel?: string;
+    userFullName?: string;
+    username?: string;
     latencyMs?: number;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -226,18 +227,16 @@ export function Accounts() {
           const latencyMs = Math.max(0, Math.round(performance.now() - started));
           const connected = !!result?.ok && !!result.data?.authorized;
           const user = result?.data?.user;
-          const userLabel = user
-            ? user.username
-              ? `${user.firstName ? `${user.firstName} ` : ''}(@${user.username})`
-              : user.firstName || undefined
-            : undefined;
+          const userFullName = user?.firstName || undefined;
+          const username = user?.username ? `@${user.username}` : undefined;
           setSessions((current) =>
             current.map((row) =>
               row.name === saved.name
                 ? {
                     ...row,
                     status: connected ? 'connected' : result?.error ? 'error' : 'expired',
-                    userLabel,
+                    userFullName,
+                    username,
                     latencyMs,
                   }
                 : row
@@ -309,7 +308,9 @@ export function Accounts() {
       if (status?.ok && status.data?.authorized) {
         verified = true;
         const user = status.data.user;
-        userLabel = user?.username ? `@${user.username}` : user?.firstName || '';
+        userLabel = user?.username
+          ? `${user.firstName ? `${user.firstName} ` : ''}(@${user.username})`
+          : user?.firstName || '';
         break;
       }
       await new Promise((resolve) => window.setTimeout(resolve, 350 + attempt * 150));
@@ -614,11 +615,16 @@ export function Accounts() {
                     <div className="avatar-circle">
                       <Users size={20} color="var(--primary)" aria-hidden />
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <span>{s.userLabel || s.name}</span>
-                        {s.userLabel && s.userLabel !== s.name && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                    <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {s.username && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600', letterSpacing: '0.02em' }}>
+                          {s.username}
+                        </span>
+                      )}
+                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', fontSize: '1rem', fontWeight: '600' }}>
+                        <span>{s.userFullName || s.name}</span>
+                        {s.userFullName && s.name !== s.userFullName && s.name !== s.username?.replace('@', '') && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '6px' }}>
                             ({s.name})
                           </span>
                         )}
