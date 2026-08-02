@@ -35,6 +35,7 @@
   "step_verify": "2. Verify Code",
   "step_2fa": "3. 2FA Verification",
   "session_name": "Telegram Session Name",
+  "session_name_ph": "Optional — Auto from Profile / Username",
   "search_country_ph": "Search country…",
   "account_name_ph": "MyAccount",
   "qr_login_title": "Generate QR Code Login",

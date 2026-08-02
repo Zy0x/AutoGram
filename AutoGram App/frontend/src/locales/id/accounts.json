@@ -35,6 +35,7 @@
   "step_verify": "2. Verifikasi Kode",
   "step_2fa": "3. Verifikasi 2FA",
   "session_name": "Nama Sesi Telegram",
+  "session_name_ph": "Opsional — Otomatis dari Profil / Username",
   "search_country_ph": "Cari negara…",
   "account_name_ph": "AkunSaya",
   "qr_login_title": "Buat QR Code Login",

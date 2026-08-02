@@ -228,7 +228,7 @@ export function Accounts() {
           const user = result?.data?.user;
           const userLabel = user
             ? user.username
-              ? `@${user.username}`
+              ? `${user.firstName ? `${user.firstName} ` : ''}(@${user.username})`
               : user.firstName || undefined
             : undefined;
           setSessions((current) =>
@@ -331,9 +331,10 @@ export function Accounts() {
   };
 
   const handleStartQrLogin = async () => {
-    if (!sessionName) {
-      setErrorMsg(t('accounts.session_name_required'));
-      return;
+    let activeSessionName = sessionName.trim();
+    if (!activeSessionName) {
+      activeSessionName = `session_${Math.floor(Date.now() / 1000)}`;
+      setSessionName(activeSessionName);
     }
 
     if (!(await checkApiCredentials())) return;
@@ -462,9 +463,16 @@ export function Accounts() {
   };
 
   const handleSendCode = async () => {
-    if (!sessionName || !phone) {
+    if (!phone) {
       setErrorMsg(t('accounts.error_fields_required'));
       return;
+    }
+
+    let targetSession = sessionName.trim();
+    if (!targetSession) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      targetSession = cleanPhone ? `tg_${cleanPhone}` : `session_${Math.floor(Date.now() / 1000)}`;
+      setSessionName(targetSession);
     }
 
     if (!(await checkApiCredentials())) return;
@@ -607,12 +615,17 @@ export function Accounts() {
                       <Users size={20} color="var(--primary)" aria-hidden />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word' }}>
-                        {s.name}
+                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span>{s.userLabel || s.name}</span>
+                        {s.userLabel && s.userLabel !== s.name && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                            ({s.name})
+                          </span>
+                        )}
                       </h4>
                       <span className={`session-status status-${s.status || 'ok'}`}>
                         {s.status === 'connected'
-                          ? `${t('accounts.status_connected')}${s.userLabel ? ` · ${s.userLabel}` : ''}${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ''}`
+                          ? `${t('accounts.status_connected')}${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ''}`
                           : s.status === 'checking' || s.status === 'migration_required'
                             ? t('accounts.status_checking')
                             : s.status === 'expired'
@@ -769,13 +782,13 @@ export function Accounts() {
 
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label className="input-label">{t('accounts.session_name', 'Nama Sesi Telegram')}</label>
-                    <input id="session-name-input" type="text" className="input-field" placeholder="MyAccount" value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" disabled={isProcessing} />
+                    <input id="session-name-input" type="text" className="input-field" placeholder={t('accounts.session_name_ph', 'Opsional — Otomatis dari Profil / Username')} value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" disabled={isProcessing} />
                   </div>
 
                   {loginMethod === 'qr' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
                       {!qrDataUrl ? (
-                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleStartQrLogin} disabled={isProcessing || !sessionName}>
+                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleStartQrLogin} disabled={isProcessing}>
                           {isProcessing ? <RefreshCcw className="spin" size={18} /> : <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><QrCode size={18} /> Buat QR Code Login</span>}
                         </button>
                       ) : (
