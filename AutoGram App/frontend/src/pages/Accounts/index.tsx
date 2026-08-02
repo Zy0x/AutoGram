@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata } from '../../lib/telegram';
+import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
@@ -174,6 +174,8 @@ export function Accounts() {
     }
     setSessionAliases(updated);
     localStorage.setItem('CUSTOM_SESSION_ALIASES', JSON.stringify(updated));
+    invalidateSessionListCache();
+    notifySessionMetadataChanged();
     setRenameTarget(null);
   };
 

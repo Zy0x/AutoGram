@@ -505,6 +505,12 @@ export function DriveSidebar({
   };
 
   const [overKey, setOverKey] = useState<string | null>(null);
+  const [, setMetaTick] = useState(0);
+  useEffect(() => {
+    const handleUpdate = () => setMetaTick((t) => t + 1);
+    window.addEventListener('autogram_session_metadata_updated', handleUpdate);
+    return () => window.removeEventListener('autogram_session_metadata_updated', handleUpdate);
+  }, []);
   /** Immediate flag — does not wait for React setState after dragstart */
   const [liveInternalDrag, setLiveInternalDrag] = useState(() => isInternalMediaDragActive());
   const [liveFolderDrag, setLiveFolderDrag] = useState(() => isFolderReparentDragActive());

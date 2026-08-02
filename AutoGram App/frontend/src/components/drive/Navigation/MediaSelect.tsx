@@ -36,6 +36,12 @@ export function MediaSelect({
   compact,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [, setMetaTick] = useState(0);
+  useEffect(() => {
+    const handleUpdate = () => setMetaTick((t) => t + 1);
+    window.addEventListener('autogram_session_metadata_updated', handleUpdate);
+    return () => window.removeEventListener('autogram_session_metadata_updated', handleUpdate);
+  }, []);
   const [activeIndex, setActiveIndex] = useState(0);
   const [style, setStyle] = useState<CSSProperties>({});
   const triggerRef = useRef<HTMLButtonElement | null>(null);
