@@ -25,7 +25,7 @@ import {
   FolderArchive,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type {
   DriveGridZoom,
@@ -201,6 +201,15 @@ export function DriveTopBar({
 }: Props) {
   const { t } = useTranslation();
   const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
+  const effectiveTotalCount = useMemo(() => {
+    if (hasMore === false && fileCount > 0) {
+      return fileCount;
+    }
+    if (totalCount != null && totalCount > fileCount) {
+      return totalCount;
+    }
+    return null;
+  }, [hasMore, fileCount, totalCount]);
   const hasTopicSegment = breadcrumbSegs?.some((s) => s.kind === 'topic');
   const showTopics =
     !!isForum ||
@@ -463,13 +472,16 @@ export function DriveTopBar({
                   })
             }
           >
-            {totalCount && totalCount > 0
+            {effectiveTotalCount && effectiveTotalCount > fileCount
               ? t('speedtest.items_loaded_total', {
-                  loaded: fileCount,
-                  total: totalCount,
-                  defaultValue: `${fileCount} / ${totalCount} Item`,
+                  loaded: fileCount.toLocaleString(),
+                  total: effectiveTotalCount.toLocaleString(),
+                  defaultValue: `${fileCount.toLocaleString()} / ${effectiveTotalCount.toLocaleString()} Item`,
                 })
-              : fileCount}
+              : t('speedtest.items_total_simple', {
+                  count: fileCount.toLocaleString(),
+                  defaultValue: `${fileCount.toLocaleString()} Items`,
+                })}
             {statsLoading && !isFinal ? (
               <span className="td-count-ellip" aria-hidden>
                 …
