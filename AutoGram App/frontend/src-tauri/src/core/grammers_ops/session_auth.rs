@@ -455,6 +455,22 @@ pub fn download_profile_photo_blocking(
             Box::pin(async move {
                 use grammers_client::tl;
 
+                // ── Strategy 0: Check get_me() raw user profile photo stripped_thumb ──
+                if let Ok(me) = client.get_me().await {
+                    if let grammers_client::tl::enums::User::User(raw_user) = &me.raw {
+                        if let Some(tl::enums::UserProfilePhoto::Photo(p)) = &raw_user.photo {
+                            if let Some(st) = &p.stripped_thumb {
+                                if let Some(jpeg) = crate::core::grammers::ffmpeg::unstrip_jpeg(st) {
+                                    if let Some(url) = crate::core::grammers::thumbs::to_data_url(&jpeg) {
+                                        tg_log::info(BACKEND, "profile_photo", "using get_me() stripped_thumb");
+                                        return Ok(Some(url));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Request the 1 most recent profile photo for the current user
                 let result = client
                     .invoke(&tl::functions::photos::GetUserPhotos {
