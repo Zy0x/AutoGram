@@ -10018,6 +10018,41 @@ body:has(.td-page),
   background: linear-gradient(90deg, #0ea5e9, #38bdf8 60%, #7dd3fc);
   transition: width 0.28s ease;
 }
+.tm-bar-fill.stage-encode, .tm-mini-fill.stage-encode {
+  background: linear-gradient(90deg, #f97316, #a855f7 70%, #d8b4fe) !important;
+}
+.tm-bar-fill.stage-upload, .tm-mini-fill.stage-upload {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6 70%, #60a5fa) !important;
+}
+.tm-bar-fill.stage-download, .tm-mini-fill.stage-download {
+  background: linear-gradient(90deg, #10b981, #22c55e 70%, #4ade80) !important;
+}
+.tm-stage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tm-stage-badge.stage-encode {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+.tm-stage-badge.stage-upload {
+  background: rgba(6, 182, 212, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+.tm-stage-badge.stage-download {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
 .tm-panel.down .tm-bar-fill {
   background: linear-gradient(90deg, #7c3aed, #a78bfa 60%, #c4b5fd);
 }

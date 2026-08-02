@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
  * Surfaces every transfer option supported by the desktop worker UI path.
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -21,6 +21,7 @@ import {
   clampConcurrency,
 } from '../../../lib/telegram/driveTypes';
 import { MediaSelect } from '../Navigation/MediaSelect';
+import { useTransferProgressStore } from '../../../stores/transferProgressStore';
 
 type Tab = 'upload' | 'download';
 
@@ -48,6 +49,8 @@ export function DriveTransferSettings({
     ...settings,
   }));
 
+  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferProgressStore();
+
   useEffect(() => {
     if (open) {
       setDraft({
@@ -55,8 +58,9 @@ export function DriveTransferSettings({
         ...settings,
       });
       setTab('upload');
+      fetchHardwareCapabilities();
     }
-  }, [open, settings]);
+  }, [open, settings, fetchHardwareCapabilities]);
 
   useEffect(() => {
     if (!open) return;
@@ -95,6 +99,46 @@ export function DriveTransferSettings({
   const reset = () => {
     setDraft({ ...DEFAULT_TRANSFER_SETTINGS });
   };
+
+  const hardwareOptions = useMemo(() => {
+    const opts: { value: string; label: string; description: string }[] = [];
+
+    const autoDesc = hardwareCapabilities?.best_encoder
+      ? `Otomatis memilih encoder terbaik (${hardwareCapabilities.best_encoder.encoder_backend.toUpperCase()} - ${hardwareCapabilities.best_encoder.device_name})`
+      : String(t('speedtest.gpu_auto_desc'));
+
+    opts.push({
+      value: 'auto',
+      label: String(t('speedtest.gpu_auto_label')),
+      description: autoDesc,
+    });
+
+    if (hardwareCapabilities) {
+      for (const gpu of hardwareCapabilities.gpu) {
+        if (gpu.supported) {
+          opts.push({
+            value: gpu.backend_id,
+            label: `✓ ${gpu.name} (${gpu.backend_id.toUpperCase()})`,
+            description: `Encoder: ${gpu.encoder_codec} · Prioritas #${gpu.priority_rank}`,
+          });
+        }
+      }
+      const cpu = hardwareCapabilities.cpu;
+      opts.push({
+        value: 'cpu',
+        label: `CPU x264 (${cpu.processor_name})`,
+        description: `${cpu.cores} Cores / ${cpu.threads} Threads · Software Encoding`,
+      });
+    } else {
+      opts.push(
+        { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
+        { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
+        { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
+        { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
+      );
+    }
+    return opts;
+  }, [hardwareCapabilities, t]);
 
   const node = (
     <div
@@ -197,13 +241,7 @@ export function DriveTransferSettings({
                   disabled={!!transferActive}
                   onChange={(value) => patch({ reencodeHardware: value as any })}
                   ariaLabel={t("speedtest.hardware_reencode_header")}
-                  options={[
-                    { value: 'auto', label: String(t('speedtest.gpu_auto_label')), description: String(t('speedtest.gpu_auto_desc')) },
-                    { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
-                    { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
-                    { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
-                    { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
-                  ]}
+                  options={hardwareOptions}
                 />
               </label>
 

@@ -357,7 +357,7 @@ fn run_orchestrated_grammers(
             }));
         }
 
-        match grammers_ops::upload_file_blocking_topic(
+        match grammers_ops::upload_file_blocking_topic_with_app(
             &sessions,
             &identity,
             &rec.chat_id,
@@ -367,6 +367,7 @@ fn run_orchestrated_grammers(
             silent,
             item.index,
             topic_id,
+            app.cloned(),
         ) {
             Ok(r) => {
                 let st = match r.status.as_str() {

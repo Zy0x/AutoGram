@@ -227,10 +227,19 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>, app: 
     let out = unique_name("reenc", "mp4");
     let input_size = fs::metadata(p).map(|m| m.len()).unwrap_or(0);
 
+    let selected = super::hardware_capability::select_best_encoder_internal();
+    let (v_codec, encoder_display) = match selected.encoder.as_str() {
+        "NVENC" => ("h264_nvenc", "NVIDIA NVENC"),
+        "AMF" => ("h264_amf", "AMD AMF"),
+        "Quick Sync" => ("h264_qsv", "Intel Quick Sync"),
+        _ => ("libx264", "CPU x264"),
+    };
+
     emit_transfer_event(app, "StudioReencodeStarted", serde_json::json!({
         "index": item_index,
-        "backend": "GPU",
-        "encoder": "H.264",
+        "backend": selected.encoder,
+        "encoder": encoder_display,
+        "device": selected.device,
         "planned_target_bytes": input_size
     }));
 
@@ -252,7 +261,7 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>, app: 
         "-vf",
         preset.vf_scale,
         "-c:v",
-        "libx264",
+        v_codec,
         "-preset",
         "veryfast",
         "-crf",
@@ -285,7 +294,6 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>, app: 
     let stdout = child.stdout.take();
     if let Some(stdout) = stdout {
         let reader = std::io::BufReader::new(stdout);
-        // Estimate video duration from file size (assuming ~2Mbps average bitrate) or standard 60s
         let est_duration_us = if input_size > 0 {
             ((input_size as f64 * 8.0) / 2_000_000.0 * 1_000_000.0).max(5_000_000.0)
         } else {
@@ -313,15 +321,32 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>, app: 
                 } else {
                     0.0
                 };
+                let processed_bytes = (pct / 100.0 * input_size as f64) as u64;
+
                 emit_transfer_event(app, "StudioReencodeProgress", serde_json::json!({
                     "index": item_index,
                     "percent": pct,
                     "fps": fps,
                     "speed_x": speed_x,
                     "eta_s": eta_s,
-                    "backend": "GPU",
-                    "encoder": "H.264"
+                    "backend": selected.encoder,
+                    "encoder": encoder_display,
+                    "device": selected.device
                 }));
+
+                if let Some(app) = app {
+                    use tauri::Emitter;
+                    let _ = app.emit("transfer-progress", serde_json::json!({
+                        "jobId": format!("item-{}", item_index),
+                        "stage": "encode",
+                        "currentBytes": processed_bytes,
+                        "totalBytes": input_size,
+                        "speed": speed_x,
+                        "percentage": pct,
+                        "fps": fps,
+                        "eta": eta_s as u64
+                    }));
+                }
             }
         }
     }
