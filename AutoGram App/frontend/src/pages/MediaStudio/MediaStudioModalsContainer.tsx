@@ -5,10 +5,15 @@ import { DriveConfirmDialog } from '../../components/drive/Modals/DriveConfirmDi
 import { DriveInputDialog } from '../../components/drive/Modals/DriveInputDialog';
 import { DriveDestinationPicker } from '../../components/drive/Modals/DriveDestinationPicker';
 import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadModal';
+import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
 
 export interface MediaStudioModalsContainerProps {
+  relogModalOpen?: boolean;
+  setRelogModalOpen?: (open: boolean) => void;
+  sessionName?: string;
+  onNavigateToAccounts?: () => void;
   previewFile: DriveFile | null;
   setPreviewFile: (f: DriveFile | null) => void;
   peerId: number | null;
@@ -67,6 +72,10 @@ export interface MediaStudioModalsContainerProps {
 }
 
 export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProps> = ({
+  relogModalOpen,
+  setRelogModalOpen,
+  sessionName,
+  onNavigateToAccounts,
   previewFile,
   setPreviewFile,
   peerId,
@@ -354,6 +363,13 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           .filter((c) => c.is_drive_folder || c.title_raw?.includes('[TD]') || c.name?.includes('[TD]'))
           .map((c) => ({ id: c.id, name: c.title_raw || c.name }))}
         onUpload={handleRemoteUpload}
+      />
+      <SessionRelogModal
+        open={!!relogModalOpen}
+        sessionName={sessionName || creds?.session || 'Lavender'}
+        onClose={() => setRelogModalOpen?.(false)}
+        onNavigateToAccounts={onNavigateToAccounts}
+        onSuccess={() => void refreshFiles()}
       />
     </>
   );

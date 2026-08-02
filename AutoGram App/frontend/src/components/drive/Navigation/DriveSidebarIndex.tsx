@@ -139,6 +139,7 @@ type Props = {
   chatsLoadingMore?: boolean;
   onLoadMoreChats?: () => void;
   onExitToApp?: () => void;
+  onOpenRelogModal?: () => void;
   onDropOnLocation?: (target: DriveDropTarget, e: React.DragEvent) => void;
   mediaDragActive?: boolean;
   /**
@@ -472,6 +473,7 @@ export function DriveSidebar({
   chatsLoadingMore,
   onLoadMoreChats,
   onExitToApp,
+  onOpenRelogModal,
   onDropOnLocation,
   mediaDragActive,
   dragSourceFolderId,
@@ -1496,15 +1498,37 @@ export function DriveSidebar({
         />
         <div className={`td-conn-indicator status-${pingState?.status || (connected ? 'excellent' : 'disconnected')}`}>
           <span className={`td-conn-dot ${pingState?.status || (connected ? 'excellent' : 'disconnected')} pulse`} />
-          <span className="td-conn-text">
-            {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
-            {pingState?.status === 'disconnected' && 'Terputus'}
-            {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
-            {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
-            {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
-            {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
-            {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
-            {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
+          <span className="td-conn-text" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span>
+              {pingState?.status === 'offline' && 'Internet Terputus (Device Offline)'}
+              {pingState?.status === 'disconnected' && 'Terputus'}
+              {pingState?.status === 'transferring' && 'Sedang mentransfer...'}
+              {pingState?.status === 'excellent' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_excellent')}`}
+              {pingState?.status === 'good' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_good')}`}
+              {pingState?.status === 'fair' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_fair')}`}
+              {pingState?.status === 'poor' && `${pingState.ms != null ? `${pingState.ms} ms · ` : ''}${t('speedtest.ping_poor')}`}
+              {!pingState && (connected ? t('speedtest.ping_drive_connected') : t('speedtest.ping_not_connected'))}
+            </span>
+            {(!connected || pingState?.status === 'disconnected') && onOpenRelogModal && (
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={onOpenRelogModal}
+                style={{
+                  background: 'var(--primary, #3b82f6)',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '0.68rem',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  marginLeft: '4px',
+                }}
+              >
+                {t('accounts.btn_relog', 'Login Ulang')}
+              </button>
+            )}
           </span>
         </div>
       </div>

@@ -1,5 +1,6 @@
 export interface MediaStudioProps {
   onExitToApp?: () => void;
+  onNavigateToAccounts?: () => void;
 }
 
 export const LS_SESSION = 'autogram_drive_session';

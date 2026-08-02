@@ -328,7 +328,7 @@ interface QueueTask {
 
 type LocationKind = 'saved' | 'drive' | 'chat';
 
-export function MediaStudio({ onExitToApp }: MediaStudioProps = {}) {
+export function MediaStudio({ onExitToApp, onNavigateToAccounts }: MediaStudioProps = {}) {
   if (!canUseLocalTelegramWorker()) {
     return (
       <main className="main-content page-stack">
@@ -353,10 +353,10 @@ export function MediaStudio({ onExitToApp }: MediaStudioProps = {}) {
       </main>
     );
   }
-  return <MediaDriveDesktop onExitToApp={onExitToApp} />;
+  return <MediaDriveDesktop onExitToApp={onExitToApp} onNavigateToAccounts={onNavigateToAccounts} />;
 }
 
-function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
+function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioProps) {
   const { t } = useTranslation();
   // Instant restore from cache — avoids waiting list-sessions before first paint boot
   const [sessions, setSessions] = useState<string[]>(() => readSessionsCache());
@@ -367,6 +367,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       return '';
     }
   });
+  const [relogModalOpen, setRelogModalOpen] = useState(false);
   // Peer is ALWAYS session-scoped — never restore another account's channel id.
   const initial = (() => {
     try {
@@ -7254,6 +7255,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               : undefined
           }
           creds={creds}
+          onOpenRelogModal={() => setRelogModalOpen(true)}
         />
 
         <div className="td-main">
@@ -7541,6 +7543,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             driveCircuitTripped={creds ? isDriveSessionCircuitTripped(creds) : false}
             retrySec={0}
             onResetCircuit={() => creds && resetDriveSessionCircuit(creds)}
+            onOpenRelogModal={() => setRelogModalOpen(true)}
           />
 
           {hasPersistedQueue && (
@@ -7747,6 +7750,10 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       </div>
 
       <MediaStudioModalsContainer
+        relogModalOpen={relogModalOpen}
+        setRelogModalOpen={setRelogModalOpen}
+        sessionName={session}
+        onNavigateToAccounts={onNavigateToAccounts}
         previewFile={previewFile}
         setPreviewFile={setPreviewFile}
         peerId={typeof peerId === 'number' ? peerId : null}

@@ -41,5 +41,13 @@
   "ph_account_name": "AkunSaya",
   "ph_phone_short": "62878xxxx",
   "delete_session_title": "Konfirmasi Hapus Sesi",
-  "delete_confirm": "Apakah Anda yakin ingin menghapus sesi \"{{name}}\" dari penyimpanan lokal?"
+  "delete_confirm": "Apakah Anda yakin ingin menghapus sesi \"{{name}}\" dari penyimpanan lokal?",
+  "btn_relog": "Login Ulang",
+  "relog_modal_title": "Login Ulang Sesi Telegram",
+  "relog_modal_subtitle": "Sesi \"{{session}}\" belum terotentikasi atau telah terputus. Silakan lakukan impor otomatis atau login ulang akun.",
+  "relog_auto_import": "Coba Impor Otomatis dari Telethon",
+  "relog_go_to_accounts": "Buka Menu Akun (Login QR / HP)",
+  "relog_in_progress": "Memproses impor sesi...",
+  "relog_import_success": "Sesi \"{{session}}\" berhasil diimpor & dihubungkan!",
+  "relog_import_failed": "Gagal mengimpor sesi. Silakan login ulang via menu Akun."
 }

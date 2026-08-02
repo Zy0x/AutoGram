@@ -94,7 +94,10 @@ function App() {
               </main>
             }
           >
-            <MediaStudio onExitToApp={() => setActiveTab('dashboard')} />
+            <MediaStudio
+              onExitToApp={() => setActiveTab('dashboard')}
+              onNavigateToAccounts={() => setActiveTab('accounts')}
+            />
           </Suspense>
         )}
         {activeTab === 'settings' && <Settings />}

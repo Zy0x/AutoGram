@@ -41,5 +41,13 @@
   "ph_account_name": "MyAccount",
   "ph_phone_short": "62878xxxx",
   "delete_session_title": "Confirm Delete Session",
-  "delete_confirm": "Are you sure you want to delete session \"{{name}}\" from local storage?"
+  "delete_confirm": "Are you sure you want to delete session \"{{name}}\" from local storage?",
+  "btn_relog": "Re-login",
+  "relog_modal_title": "Re-authenticate Telegram Session",
+  "relog_modal_subtitle": "Session \"{{session}}\" is not authenticated or has disconnected. Please attempt auto-import or re-login.",
+  "relog_auto_import": "Try Auto-import from Telethon",
+  "relog_go_to_accounts": "Open Accounts Menu (QR / Phone Login)",
+  "relog_in_progress": "Processing session import...",
+  "relog_import_success": "Session \"{{session}}\" successfully imported & connected!",
+  "relog_import_failed": "Failed to import session. Please re-login via Accounts menu."
 }
