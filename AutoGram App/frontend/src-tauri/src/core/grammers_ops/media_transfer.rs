@@ -10,6 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncRead, ReadBuf};
 
 use grammers_client::client::PasswordToken;
+use grammers_client::media::{Attribute, InputMedia};
 use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
@@ -19,6 +20,7 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
+use crate::core::media_prep::{extract_video_thumbnail, probe_video_metadata};
 use crate::core::path_policy;
 use crate::core::session_guard;
 use crate::core::session_rate;
@@ -91,7 +93,6 @@ pub fn upload_album_blocking(
                     return Err(TgError::new(TgErrorCode::NotAuthorized, "not authorized"));
                 }
                 let peer = resolve_peer(client, &chat).await?;
-                use grammers_client::media::InputMedia;
                 let mut medias = Vec::with_capacity(items.len());
                 for (i, (path_buf, cap)) in items.iter().enumerate() {
                     let uploaded = client
@@ -103,6 +104,10 @@ pub fn upload_album_blocking(
                         .and_then(|s| s.to_str())
                         .unwrap_or("")
                         .to_ascii_lowercase();
+                    let is_video = matches!(
+                        ext.as_str(),
+                        "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts"
+                    );
                     let mut im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
                     // Forum topic: only first media carries reply_to
@@ -113,6 +118,33 @@ pub fn upload_album_blocking(
                         im.document(uploaded)
                     } else if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp") {
                         im.photo(uploaded)
+                    } else if is_video {
+                        // Video: send as document with thumbnail + video attributes for Telegram preview
+                        let path_str = path_buf.to_str().unwrap_or("");
+                        let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
+                        let mut video_im = im.mime_type("video/mp4").document(uploaded);
+                        // Add DocumentAttributeVideo for Telegram to show as video (not generic doc)
+                        video_im = video_im.attribute(Attribute::Video {
+                            round_message: false,
+                            supports_streaming: true,
+                            duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
+                            w: vid_w as i32,
+                            h: vid_h as i32,
+                        });
+                        // Upload & attach thumbnail if available
+                        let thumb_path = extract_video_thumbnail(path_str);
+                        if let Some(ref tp) = thumb_path {
+                            if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                                video_im = video_im.thumbnail(thumb_uploaded);
+                                tg_log::info(
+                                    BACKEND,
+                                    "album_thumb_attached",
+                                    format!("i={} thumb={}", i, tp.display()),
+                                );
+                            }
+                            let _ = std::fs::remove_file(tp);
+                        }
+                        video_im
                     } else {
                         im.document(uploaded)
                     };
@@ -365,24 +397,54 @@ pub fn upload_file_blocking_topic_with_app(
                         .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?
                 };
 
+                let ext = path_buf
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
+                let is_video = matches!(
+                    ext.as_str(),
+                    "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts"
+                );
+
                 let mut msg = InputMessage::new()
                     .text(cap)
                     .silent(silent)
                     .reply_to(reply_to);
-                // Prefer document for fidelity (matches Studio force-document / ORIGINAL)
+                // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
                     msg.document(uploaded)
-                } else {
-                    let ext = path_buf
-                        .extension()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("")
-                        .to_ascii_lowercase();
-                    if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp") {
-                        msg.photo(uploaded)
-                    } else {
-                        msg.document(uploaded)
+                } else if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp") {
+                    msg.photo(uploaded)
+                } else if is_video {
+                    // Video: send as document with thumbnail + video attributes for Telegram preview
+                    let path_str = path_buf.to_str().unwrap_or("");
+                    let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
+                    let mut video_msg = msg.mime_type("video/mp4").document(uploaded);
+                    // Add DocumentAttributeVideo so Telegram shows it as a video (not generic document)
+                    video_msg = video_msg.attribute(Attribute::Video {
+                        round_message: false,
+                        supports_streaming: true,
+                        duration: std::time::Duration::from_secs_f64(vid_dur.max(0.0)),
+                        w: vid_w as i32,
+                        h: vid_h as i32,
+                    });
+                    // Generate and upload thumbnail for video preview
+                    let thumb_path = extract_video_thumbnail(path_str);
+                    if let Some(ref tp) = thumb_path {
+                        if let Ok(thumb_uploaded) = client.upload_file(tp).await {
+                            video_msg = video_msg.thumbnail(thumb_uploaded);
+                            tg_log::info(
+                                BACKEND,
+                                "upload_thumb_attached",
+                                format!("index={index} thumb={}", tp.display()),
+                            );
+                        }
+                        let _ = std::fs::remove_file(tp);
                     }
+                    video_msg
+                } else {
+                    msg.document(uploaded)
                 };
 
                 let sent = match client.send_message(peer, msg).await {

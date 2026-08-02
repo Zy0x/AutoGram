@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.5
+AutoGram Version: v2.7.6
 
 Current State:
+v2.7.6 Video Thumbnail Generation & Smart Hardware GPU Allocation Engine — membenahi `media_transfer.rs`, `hardware_capability.rs`, `media_prep.rs`, `studio_orch.rs`, `transferProgressStore.ts`, `DriveTransferSettings.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki 3 masalah utama: (1) Otomatis mengekstrak frame thumbnail video JPEG dan mengunggahnya sebagai video document attribute (bukan generic document) sehingga thumbnail video terpancar di Telegram; (2) Menyelaraskan struct `HardwareCapabilities` antara Rust dan TypeScript sehingga deteksi GPU nyata (NVIDIA, AMD, Intel, CPU) dan `best_encoder` tampil akurat di Transfer Settings; (3) Menerapkan pengalokasikan GPU dinamis dan parameter optimasi FFmpeg GPU khusus (`-rc vbr` untuk NVENC, `-quality speed` untuk AMF, `-global_quality` untuk QSV, `-threads 0`) sesuai dengan opsi preferensi hardware pengguna.
+
+Previous:
 v2.7.5 Smart Thumbnail Auto-Reload System — membenahi `thumbBatcher.ts` dan `MediaStudio/index.tsx`. Thumbnail langsung muncul setelah transfer selesai tanpa perlu refresh manual. Menambahkan debounced batch accumulator untuk mencegah thundering herd saat transfer massal, smart retry dengan exponential backoff (1.5s/3s/6s), fungsi `requestNewlyUploadedThumbs` yang bypass semua fail-cooldown untuk file baru, fix `forceRetryThumb` dengan dukungan peerId/topicId, dan event broadcast `autogram-transfer-batch-done`.
 
 Previous:

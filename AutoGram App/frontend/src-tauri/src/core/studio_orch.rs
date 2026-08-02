@@ -293,6 +293,14 @@ fn run_orchestrated_grammers(
         .or_else(|| rec.options.get("qualityMode").and_then(|v| v.as_str()))
         .map(|s| s.to_string());
 
+    // Read user GPU/hardware preference from Transfer Settings UI
+    let hardware_override = rec
+        .options
+        .get("reencodeHardware")
+        .and_then(|v| v.as_str())
+        .or_else(|| rec.options.get("hardware_override").and_then(|v| v.as_str()))
+        .map(|s| s.to_string());
+
     let mut any_ok = false;
     let mut first_fatal: Option<String> = None;
 
@@ -314,9 +322,9 @@ fn run_orchestrated_grammers(
         }
 
         let _ = job_queue::update_item(&tid, item.index, ItemState::Preparing, None, None);
-        // Remote URL download + optional ffmpeg reencode (no Telethon)
+        // Remote URL download + optional ffmpeg reencode (no Telethon), pass user hardware preference
         let (local_path, temp_cleanup) =
-            match media_prep::prepare_upload_path(&item.path, quality_mode.as_deref(), app, item.index) {
+            match media_prep::prepare_upload_path(&item.path, quality_mode.as_deref(), hardware_override.as_deref(), app, item.index) {
                 Ok(v) => v,
                 Err(e) => {
                     let msg = format!("prepare: {e}");

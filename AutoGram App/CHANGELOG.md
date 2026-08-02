@@ -1,3 +1,17 @@
+## v2.7.6 Video Thumbnail Generation & Smart Hardware GPU Allocation Engine
+
+### Generasi Thumbnail Video Otomatis (`media_transfer.rs`, `media_prep.rs`)
+- **Video Thumbnail Extractor**: Menggunakan FFmpeg untuk mengambil frame visual JPEG dari video (pada posisi 10% durasi video atau max 10s) sebelum pengunggahan.
+- **`DocumentAttributeVideo`**: Mengirim file video dengan atribut `Attribute::Video` (duration, width, height, supports_streaming) serta melampirkan file thumbnail JPEG (`.thumbnail()`), sehingga Telegram menampilkan video dengan thumbnail visual yang akurat.
+
+### Realtime Hardware GPU Detection Alignment (`hardware_capability.rs`, `transferProgressStore.ts`)
+- **Rust ↔ TypeScript Interface Alignment**: Menyelaraskan nama field struct `HardwareCapabilities` (`processor_name`, `cores`, `threads`, `x264_supported`, `backend_id`, `encoder_codec`, `priority_rank`, `best_encoder`).
+- **Dynamic Hardware Query**: Mengquery nama prosessor, jumlah fisik core/threads, dan pengontrol video fisik (NVIDIA, AMD, Intel, CPU) melalui WMI/CIM, menggantikan daftar GPU statis.
+
+### Optimasi Performa GPU & Pengalokasian Resource (`media_prep.rs`, `studio_orch.rs`)
+- **User Preference Passing**: Menyalurkan pilihan GPU pengguna dari modal Transfer Settings ke antrean re-encode backend.
+- **GPU-Specific Tuning**: Menerapkan parameter VBR & AQ untuk NVIDIA NVENC (`-rc vbr -b:v 0 -cq`), quality preset untuk AMD AMF (`-quality speed`), lookahead untuk Intel QSV (`-global_quality`), serta `-threads 0` untuk alokasi thread optimal.
+
 ## v2.7.5 Smart Thumbnail Auto-Reload System
 
 ### Thumbnail Langsung Muncul Tanpa Refresh Manual (`thumbBatcher.ts`, `MediaStudio/index.tsx`)
