@@ -762,13 +762,8 @@ export function Accounts() {
                 <div key={idx} className="list-row">
                   <div className="list-row-main">
                     {(() => {
-                        const customAliasForAvatar = sessionAliases[s.name];
-                        const displayForAvatar = customAliasForAvatar || s.userFullName || s.name;
-                        const initials = displayForAvatar
-                          .split(/\s+/).map((w: string) => w[0]).join('').substring(0, 2).toUpperCase() || '?';
-                        const AVATAR_COLORS = ['#6366f1','#7c3aed','#db2777','#0891b2','#059669','#d97706','#dc2626'];
-                        const avatarBg = `linear-gradient(135deg, ${AVATAR_COLORS[s.name.charCodeAt(0) % AVATAR_COLORS.length]}, ${AVATAR_COLORS[(s.name.charCodeAt(0) + 3) % AVATAR_COLORS.length]})`;
                         const showPhoto = !!s.photoBase64 && !avatarErrors.has(s.name);
+                        const displayForAvatar = sessionAliases[s.name] || s.userFullName || s.name;
                         return (
                           <div
                             className="avatar-circle"
@@ -778,7 +773,6 @@ export function Accounts() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              background: showPhoto ? 'transparent' : avatarBg,
                               flexShrink: 0,
                               position: 'relative',
                             }}
@@ -791,9 +785,7 @@ export function Accounts() {
                                 onError={() => setAvatarErrors(prev => new Set([...prev, s.name]))}
                               />
                             ) : (
-                              <span style={{ color: '#fff', fontWeight: '700', fontSize: '13px', letterSpacing: '0.5px', lineHeight: 1, pointerEvents: 'none' }}>
-                                {initials}
-                              </span>
+                              <Users size={20} color="var(--primary)" aria-hidden />
                             )}
                           </div>
                         );

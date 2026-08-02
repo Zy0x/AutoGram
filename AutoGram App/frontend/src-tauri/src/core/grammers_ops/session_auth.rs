@@ -439,6 +439,11 @@ pub fn auth_status_blocking(
 
 /// Download the actual Telegram profile photo for the current session user.
 /// Returns a base64 data-URL string (JPEG), or None if unavailable.
+///
+/// Strategy (same as Drive thumbnail pipeline):
+///  1. PhotoCachedSize   → inline bytes, zero network (fastest)
+///  2. PhotoStrippedSize → unstrip JPEG, zero network
+///  3. PhotoSize         → download via upload.GetFile (fallback)
 pub fn download_profile_photo_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -449,7 +454,7 @@ pub fn download_profile_photo_blocking(
             Box::pin(async move {
                 use grammers_client::tl;
 
-                // Request the 1 most recent profile photo for the current user (InputUserSelf)
+                // Request the 1 most recent profile photo for the current user
                 let result = client
                     .invoke(&tl::functions::photos::GetUserPhotos {
                         user_id: tl::enums::InputUser::UserSelf,
@@ -473,34 +478,55 @@ pub fn download_profile_photo_blocking(
                     return Ok(None);
                 };
 
-                // Pick smallest non-stripped downloadable size
-                // Prefer 's' (160px), then 'a', 'b', 'c', etc.
-                let sizes = &photo.sizes;
-                let preferred_types = ["s", "a", "b", "c", "d", "e"];
+                // ── Strategy 1 & 2: Check for inline bytes (Cached / Stripped) via Grammers PhotoSize helper ──
+                for size in &photo.sizes {
+                    let helper = grammers_client::media::PhotoSize::from(size.clone());
+                    if let Some(data) = helper.to_data() {
+                        if !data.is_empty() {
+                            let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(&data).unwrap_or(data);
+                            tg_log::info(BACKEND, "profile_photo", "using inline photo bytes");
+                            return Ok(crate::core::grammers::thumbs::to_data_url(&jpeg));
+                        }
+                    }
+                }
+
+                // ── Strategy 3: Download smallest non-stripped PhotoSize ──
+                let preferred_types = ["s", "m", "a", "b", "c"];
                 let chosen_type = preferred_types.iter().find_map(|&t| {
-                    sizes.iter().find_map(|s| match s {
+                    photo.sizes.iter().find_map(|s| match s {
                         tl::enums::PhotoSize::Size(sz) if sz.r#type == t && sz.size > 0 => {
-                            Some(t)
+                            Some(t.to_string())
                         }
                         _ => None,
                     })
                 });
 
-                let size_type = chosen_type.unwrap_or("s");
+                let size_type = match chosen_type {
+                    Some(t) => t,
+                    None => {
+                        tg_log::warn(BACKEND, "profile_photo", "no downloadable size found");
+                        return Ok(None);
+                    }
+                };
 
-                // Use upload::GetFile with InputPhotoFileLocation to download the photo
+                tg_log::info(
+                    BACKEND,
+                    "profile_photo",
+                    format!("downloading via GetFile size_type={size_type}"),
+                );
+
                 let location = tl::enums::InputFileLocation::InputPhotoFileLocation(
                     tl::types::InputPhotoFileLocation {
                         id: photo.id,
                         access_hash: photo.access_hash,
                         file_reference: photo.file_reference.clone(),
-                        thumb_size: size_type.to_string(),
+                        thumb_size: size_type,
                     },
                 );
 
                 let mut bytes = Vec::new();
                 let mut offset = 0i64;
-                let chunk_size = 128 * 1024i32; // 128 KB chunks for small photos
+                let chunk_size = 128 * 1024i32;
 
                 loop {
                     let res = client
@@ -537,6 +563,7 @@ pub fn download_profile_photo_blocking(
         .await
     })
 }
+
 
 
 
