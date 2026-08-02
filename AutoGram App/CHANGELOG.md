@@ -1,3 +1,9 @@
+## v2.7.3 Tauri IPC ACL Allowlist Fix — `acquire_worker_session_lease` Fix
+
+### Perbaikan Permission Custom Commands (`autogram-commands.toml`)
+- **Tauri IPC ACL Command Fix**: Menambahkan `acquire_worker_session_lease`, `get_worker_session_lease`, `release_worker_session_lease`, `session_guard_acquire`, `session_guard_release`, `session_guard_snapshot`, `jobs_fresh_start`, `jobs_export_json`, `jobs_import_json`, `jobs_cancel_migration`, `profiles_list`, `profiles_save`, `profiles_delete`, `automations_list`, `automations_save`, `automations_delete`, `stats_get`, `stats_export_csv`, `tg_disconnect_session`, `tg_get_media_statistics`, `tg_purge_inactive_sessions`, `tg_open_topic_media`, `tg_load_more_topic_media`, `tg_thumbs_batch_v2`, dan `inspect_mp4_layout_cmd` ke dalam `permission.commands.allow` di `permissions/autogram-commands.toml`.
+- **Eliminasi Error Upload Transfer Manager**: Membasmi kesalahan `"acquire_worker_session_lease not allowed. Command not found"` saat melakukan proses upload file/job di Transfer Manager AutoGram Desktop.
+
 ## v2.7.2 Video Seek Buffer Fix — 5 Bug Race Condition Streaming Engine
 
 ### Perbaikan Seek Video Stuck (`stream_server.rs`, `stream.rs`)
