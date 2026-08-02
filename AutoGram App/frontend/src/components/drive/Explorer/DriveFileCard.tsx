@@ -395,6 +395,22 @@ function DriveFileCardInner({
     >
       <div className="td-file-card-inner">
         {recentlyUploaded && <span className="td-new-upload-badge">{t('speedtest.badge_recently_uploaded')}</span>}
+        {(() => {
+          const tgCat = (file.telegram_category || (file.as_document ? 'file' : file.icon_type === 'image' || file.icon_type === 'video' ? 'media' : file.icon_type || 'file')).toLowerCase();
+          const drFmt = (file.drive_format || file.file_ext || '').toUpperCase();
+          return (
+            <div className="td-file-perspective-badges">
+              <span className={`td-tag-badge tg-${tgCat}`}>
+                {tgCat.toUpperCase()}
+              </span>
+              {drFmt && drFmt !== tgCat.toUpperCase() ? (
+                <span className="td-tag-badge drive-fmt">
+                  {drFmt}
+                </span>
+              ) : null}
+            </div>
+          );
+        })()}
         {thumb && !imgError ? (
           <div className="td-file-thumb-full">
             <img

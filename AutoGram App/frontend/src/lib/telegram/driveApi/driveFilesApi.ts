@@ -414,3 +414,32 @@ export async function driveMove(
     backend: 'grammers',
   };
 }
+
+export async function driveGetMediaStats(
+  creds: DriveCredentials,
+  folderId: number | null,
+  topicId?: number | null,
+  loadedCount?: number
+) {
+  if (!detectTauriRuntime()) return null;
+  try {
+    const { tgGetMediaStatistics } = await import('../core/telegramBackend');
+    const chatId = folderId == null ? 'me' : String(folderId);
+    const gr = await tgGetMediaStatistics({
+      session: creds.session,
+      apiId: Number(creds.apiId) || 0,
+      apiHash: creds.apiHash,
+      chatId,
+      topicId: topicId ?? null,
+      loadedCount: loadedCount ?? 0,
+    });
+    if (gr?.ok && gr.data) {
+      return gr.data;
+    }
+    return null;
+  } catch (e) {
+    console.warn('[driveGetMediaStats] Grammers statistics failed', e);
+    return null;
+  }
+}
+

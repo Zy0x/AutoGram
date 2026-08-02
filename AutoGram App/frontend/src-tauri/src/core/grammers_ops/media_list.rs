@@ -67,6 +67,14 @@ pub struct MediaFileRow {
     pub grouped_id: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_saved_messages: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub telegram_category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub telegram_subtype: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drive_category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drive_format: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,6 +164,7 @@ pub fn media_to_row(
             } else {
                 format!("photo_{id}.jpg")
             };
+            let cls = crate::core::media_classifier::classify_media_item(&name, Some("image/jpeg"), false, true, false);
             let row = MediaFileRow {
                 id,
                 folder_id,
@@ -184,6 +193,10 @@ pub fn media_to_row(
                 peer_username: None,
                 grouped_id: msg.grouped_id(),
                 is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                telegram_category: Some(cls.telegram_category),
+                telegram_subtype: Some(cls.telegram_subtype),
+                drive_category: Some(cls.drive_category),
+                drive_format: Some(cls.drive_format),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -267,6 +280,13 @@ pub fn media_to_row(
             };
 
             let doc_has_thumb = has_thumb || !doc.thumbs().is_empty();
+            let cls = crate::core::media_classifier::classify_media_item(
+                &n,
+                final_mime.as_deref(),
+                true,
+                false,
+                false,
+            );
 
             let row = MediaFileRow {
                 id,
@@ -296,6 +316,10 @@ pub fn media_to_row(
                 peer_username: None,
                 grouped_id: msg.grouped_id(),
                 is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                telegram_category: Some(cls.telegram_category),
+                telegram_subtype: Some(cls.telegram_subtype),
+                drive_category: Some(cls.drive_category),
+                drive_format: Some(cls.drive_format),
             };
             crate::core::tg_log::info(
                 BACKEND,
@@ -304,35 +328,49 @@ pub fn media_to_row(
             );
             Some(row)
         }
-        Media::Sticker(_) => Some(MediaFileRow {
-            id,
-            folder_id,
-            name: format!("sticker_{id}.webp"),
-            size,
-            mime_type: Some("image/webp".into()),
-            icon_type: "image".into(),
-            created_at: created,
-            has_thumb,
-            as_document: true,
-            backend: BACKEND.into(),
-            thumb_data_url,
-            topic_id: message_topic_id(msg),
-            identity_source: Some("telegram_search".into()),
-            peer_id: folder_id
-                .map(|fid| {
-                    if fid == 0 {
-                        "me".into()
-                    } else {
-                        fid.to_string()
-                    }
-                })
-                .or_else(|| Some("me".into())),
-            account_id: None,
-            peer_kind: None,
-            peer_username: None,
-            grouped_id: msg.grouped_id(),
-            is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
-        }),
+        Media::Sticker(_) => {
+            let sticker_name = format!("sticker_{id}.webp");
+            let cls = crate::core::media_classifier::classify_media_item(
+                &sticker_name,
+                Some("image/webp"),
+                true,
+                false,
+                true,
+            );
+            Some(MediaFileRow {
+                id,
+                folder_id,
+                name: sticker_name,
+                size,
+                mime_type: Some("image/webp".into()),
+                icon_type: "image".into(),
+                created_at: created,
+                has_thumb,
+                as_document: true,
+                backend: BACKEND.into(),
+                thumb_data_url,
+                topic_id: message_topic_id(msg),
+                identity_source: Some("telegram_search".into()),
+                peer_id: folder_id
+                    .map(|fid| {
+                        if fid == 0 {
+                            "me".into()
+                        } else {
+                            fid.to_string()
+                        }
+                    })
+                    .or_else(|| Some("me".into())),
+                account_id: None,
+                peer_kind: None,
+                peer_username: None,
+                grouped_id: msg.grouped_id(),
+                is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                telegram_category: Some(cls.telegram_category),
+                telegram_subtype: Some(cls.telegram_subtype),
+                drive_category: Some(cls.drive_category),
+                drive_format: Some(cls.drive_format),
+            })
+        }
         _ => None,
     }
 }
@@ -382,6 +420,7 @@ pub fn tl_message_to_row(
                         }
                     }
                 }
+                let cls = crate::core::media_classifier::classify_media_item(&name, Some("image/jpeg"), false, true, false);
                 Some(MediaFileRow {
                     id,
                     folder_id,
@@ -410,6 +449,10 @@ pub fn tl_message_to_row(
                     peer_username: None,
                     grouped_id: m.grouped_id,
                     is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                    telegram_category: Some(cls.telegram_category),
+                    telegram_subtype: Some(cls.telegram_subtype),
+                    drive_category: Some(cls.drive_category),
+                    drive_format: Some(cls.drive_format),
                 })
             }
             grammers_client::tl::enums::MessageMedia::Document(doc_media) => {
@@ -466,6 +509,13 @@ pub fn tl_message_to_row(
                     "file".to_string()
                 };
 
+                let cls = crate::core::media_classifier::classify_media_item(
+                    &name,
+                    Some(&mime),
+                    true,
+                    false,
+                    false,
+                );
                 Some(MediaFileRow {
                     id,
                     folder_id,
@@ -497,6 +547,10 @@ pub fn tl_message_to_row(
                     peer_username: None,
                     grouped_id: m.grouped_id,
                     is_saved_messages: Some(folder_id.map_or(true, |fid| fid == 0)),
+                    telegram_category: Some(cls.telegram_category),
+                    telegram_subtype: Some(cls.telegram_subtype),
+                    drive_category: Some(cls.drive_category),
+                    drive_format: Some(cls.drive_format),
                 })
             }
             _ => None,

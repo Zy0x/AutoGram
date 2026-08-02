@@ -1194,6 +1194,17 @@ async fn tg_list_dialog_filters(
 }
 
 #[tauri::command]
+async fn tg_get_media_statistics(
+    app: AppHandle,
+    request: core::telegram_ops::GetMediaStatisticsRequest,
+) -> Result<core::telegram_ops::OpResult<core::media_statistics::MediaStatisticsResult>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_get_media_statistics(request))
+        .await
+        .map_err(|e| format!("native media statistics task failed: {e}"))
+}
+
+#[tauri::command]
 async fn tg_list_media(
     app: AppHandle,
     request: core::telegram_ops::ListMediaRequest,
@@ -1514,6 +1525,7 @@ pub fn run() {
             tg_auth_status,
             tg_list_dialogs,
             tg_list_dialog_filters,
+            tg_get_media_statistics,
             tg_list_media,
             tg_start_folder_stream,
             tg_cancel_folder_stream,

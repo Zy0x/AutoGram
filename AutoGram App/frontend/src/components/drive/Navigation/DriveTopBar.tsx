@@ -128,6 +128,11 @@ type Props = {
   hasMore?: boolean;
   /** Optional background calculation hint text */
   scaleHint?: string | null;
+  /** Dual perspective mode: 'telegram' (Nekogram/Telegram style) vs 'drive' (MIME/file style) */
+  viewPerspective?: 'telegram' | 'drive';
+  onViewPerspective?: (perspective: 'telegram' | 'drive') => void;
+  /** Total item count from Telegram query metadata */
+  totalCount?: number | null;
 };
 
 export function DriveTopBar({
@@ -190,6 +195,9 @@ export function DriveTopBar({
   statsAccurate,
   hasMore,
   scaleHint: _scaleHint,
+  viewPerspective = 'telegram',
+  onViewPerspective,
+  totalCount,
 }: Props) {
   const { t } = useTranslation();
   const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
@@ -455,7 +463,13 @@ export function DriveTopBar({
                   })
             }
           >
-            {fileCount}
+            {totalCount && totalCount > 0
+              ? t('speedtest.items_loaded_total', {
+                  loaded: fileCount,
+                  total: totalCount,
+                  defaultValue: `${fileCount} / ${totalCount} Item`,
+                })
+              : fileCount}
             {statsLoading && !isFinal ? (
               <span className="td-count-ellip" aria-hidden>
                 …
@@ -702,25 +716,59 @@ export function DriveTopBar({
       {/* Row 3: filters/sort/thumb — labeled groups so controls stay self-explanatory */}
       <div className="td-topbar-row td-topbar-row-tools">
         <div className="td-topbar-tools" role="toolbar" aria-label={t("speedtest.topbar_tools_aria")}>
+          {/* Perspective View Switcher */}
+          {onViewPerspective && (
+            <div className="td-tool-group" role="group" aria-label={t("speedtest.perspective_telegram")}>
+              <div className="td-perspective-switcher">
+                <button
+                  type="button"
+                  className={`td-perspective-btn ${viewPerspective === 'telegram' ? 'active' : ''}`}
+                  onClick={() => onViewPerspective('telegram')}
+                  title={t("speedtest.perspective_telegram")}
+                >
+                  {t("speedtest.perspective_telegram_short", "Telegram")}
+                </button>
+                <button
+                  type="button"
+                  className={`td-perspective-btn ${viewPerspective === 'drive' ? 'active' : ''}`}
+                  onClick={() => onViewPerspective('drive')}
+                  title={t("speedtest.perspective_drive")}
+                >
+                  {t("speedtest.perspective_drive_short", "Drive")}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="td-tool-group" role="group" aria-labelledby="td-label-filter">
             <span id="td-label-filter" className="td-tool-label" title={t("speedtest.topbar_filter_media_type")}>
               {t("speedtest.topbar_label_filter", "Filter")}
             </span>
             <div className="td-filter-pills">
               {(
-                [
-                  ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua tipe media")],
-                  ['image', t("speedtest.filter_image", "Gambar"), t("speedtest.filter_image_tip", "Hanya gambar")],
-                  ['video', t("speedtest.filter_video", "Video"), t("speedtest.filter_video_tip", "Hanya video")],
-                  ['document', t("speedtest.filter_document", "Dokumen"), t("speedtest.filter_document_tip", "Hanya dokumen")],
-                  ['link', t("speedtest.filter_link", "Link"), t("speedtest.filter_link_tip", "Hanya link / URL")],
-                ] as const
+                viewPerspective === 'telegram'
+                  ? [
+                      ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua media")],
+                      ['media', t("speedtest.tab_telegram_media", "Media"), t("speedtest.tab_telegram_media")],
+                      ['files', t("speedtest.tab_telegram_files", "Berkas"), t("speedtest.tab_telegram_files")],
+                      ['links', t("speedtest.tab_telegram_links", "Tautan"), t("speedtest.tab_telegram_links")],
+                      ['gifs', t("speedtest.tab_telegram_gifs", "GIF"), t("speedtest.tab_telegram_gifs")],
+                      ['audio', t("speedtest.tab_telegram_audio", "Audio"), t("speedtest.tab_telegram_audio")],
+                    ]
+                  : [
+                      ['all', t("speedtest.filter_all", "Semua"), t("speedtest.filter_all_tip", "Semua media")],
+                      ['images', t("speedtest.tab_drive_images", "Gambar"), t("speedtest.tab_drive_images")],
+                      ['videos', t("speedtest.tab_drive_videos", "Video"), t("speedtest.tab_drive_videos")],
+                      ['audio', t("speedtest.tab_drive_audio", "Audio"), t("speedtest.tab_drive_audio")],
+                      ['documents', t("speedtest.tab_drive_documents", "Dokumen"), t("speedtest.tab_drive_documents")],
+                      ['archives', t("speedtest.tab_drive_archives", "Arsip"), t("speedtest.tab_drive_archives")],
+                    ]
               ).map(([id, label, tip]) => (
                 <button
                   key={id}
                   type="button"
                   className={`td-pill ${mediaFilter === id ? 'active' : ''}`}
-                  onClick={() => onMediaFilter(id)}
+                  onClick={() => onMediaFilter(id as DriveMediaFilter)}
                   title={tip}
                   aria-label={`${t("speedtest.topbar_label_filter", "Filter")}: ${tip}`}
                   aria-pressed={mediaFilter === id}

@@ -107,7 +107,17 @@ export type DriveFile = {
   is_saved_messages?: boolean | null;
   thumb_data_url?: string | null;
   thumbDataUrl?: string | null;
+  telegram_category?: string | null;
+  telegram_subtype?: string | null;
+  telegramCategory?: string | null;
+  telegramSubtype?: string | null;
+  drive_category?: string | null;
+  drive_format?: string | null;
+  driveCategory?: string | null;
+  driveFormat?: string | null;
 };
+
+export type ViewPerspective = 'telegram' | 'drive';
 
 export type DriveFolder = {
   id: number;
@@ -394,12 +404,14 @@ export function filterAndSortDriveFiles(
     query?: string;
     mediaFilter?: DriveMediaFilter;
     sortMode?: DriveSortMode;
+    perspective?: ViewPerspective;
   }
 ): DriveFile[] {
   const q = (opts.query || '').trim().toLowerCase();
   const mediaFilter = opts.mediaFilter ?? 'all';
   const sortMode = opts.sortMode ?? DEFAULT_DRIVE_SORT;
-  let list = files.filter((f) => matchesMediaFilter(f, mediaFilter));
+  const perspective = opts.perspective ?? 'telegram';
+  let list = files.filter((f) => matchesMediaFilter(f, mediaFilter, perspective));
   if (q) {
     // Multi-token AND over name + type/mime/ext (current-location file search)
     const tokens = q.split(/\s+/).filter(Boolean);
@@ -454,7 +466,101 @@ export function compareDriveFiles(a: DriveFile, b: DriveFile, mode: DriveSortMod
   }
 }
 
-export type DriveMediaFilter = 'all' | 'image' | 'video' | 'document' | 'link';
+export type DriveMediaFilter =
+  | 'all'
+  | 'media'
+  | 'files'
+  | 'links'
+  | 'gifs'
+  | 'audio'
+  | 'image'
+  | 'video'
+  | 'document'
+  | 'link'
+  | 'images'
+  | 'videos'
+  | 'documents'
+  | 'archives';
+
+export function matchesMediaFilter(
+  f: DriveFile,
+  filter: DriveMediaFilter | string,
+  perspective: ViewPerspective = 'telegram'
+): boolean {
+  if (!filter || filter === 'all') return true;
+
+  const mime = (f.mime_type || '').toLowerCase();
+  const name = (f.name || '').toLowerCase();
+  const ext = (f.file_ext || name.split('.').pop() || '').toLowerCase();
+  const icon = (f.icon_type || '').toLowerCase();
+  const tgCat = (f.telegram_category || f.telegramCategory || '').toLowerCase();
+  const drCat = (f.drive_category || f.driveCategory || '').toLowerCase();
+
+  if (perspective === 'telegram') {
+    switch (filter) {
+      case 'media':
+        return (
+          tgCat === 'media' ||
+          (!f.as_document && (icon === 'image' || icon === 'photo' || icon === 'video'))
+        );
+      case 'files':
+        return tgCat === 'file' || f.as_document === true || icon === 'file' || icon === 'document';
+      case 'links':
+        return tgCat === 'link' || mime === 'text/x-url' || name.startsWith('http');
+      case 'gifs':
+        return tgCat === 'gif' || mime === 'image/gif' || ext === 'gif';
+      case 'audio':
+        return tgCat === 'audio' || icon === 'audio' || icon === 'voice' || mime.startsWith('audio/');
+      default:
+        if (filter === 'image') return icon === 'image' || icon === 'photo';
+        if (filter === 'video') return icon === 'video';
+        if (filter === 'document') return icon === 'document' || icon === 'file';
+        if (filter === 'link') return mime === 'text/x-url';
+        return true;
+    }
+  } else {
+    switch (filter) {
+      case 'images':
+      case 'image':
+        return (
+          drCat === 'image' ||
+          mime.startsWith('image/') ||
+          ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'heic'].includes(ext)
+        );
+      case 'videos':
+      case 'video':
+        return (
+          drCat === 'video' ||
+          mime.startsWith('video/') ||
+          ['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v', '3gp', 'flv', 'wmv', 'ts'].includes(ext)
+        );
+      case 'audio':
+        return (
+          drCat === 'audio' ||
+          mime.startsWith('audio/') ||
+          ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'opus'].includes(ext)
+        );
+      case 'documents':
+      case 'document':
+        return (
+          drCat === 'document' ||
+          ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'txt', 'csv'].includes(ext)
+        );
+      case 'archives':
+        return (
+          drCat === 'archive' ||
+          ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'iso'].includes(ext) ||
+          mime.includes('zip') ||
+          mime.includes('compressed')
+        );
+      case 'web':
+        return drCat === 'web' || mime === 'text/x-url' || name.startsWith('http');
+      default:
+        return true;
+    }
+  }
+}
+
 export type QualityMode = 'HIGH_QUALITY' | 'SMART' | 'ORIGINAL';
 export type ReencodeHardware = 'auto' | 'nvidia' | 'amd' | 'intel' | 'cpu';
 export type ReencodePreset = 'speed' | 'balanced' | 'quality';
@@ -1179,22 +1285,6 @@ export function canShowDriveThumb(file: DriveFile): boolean {
   // Document/file items (e.g. photos/videos sent as files, PDFs, custom media, or msg 73 without static thumbs):
   // allow backend sample chunk extraction unless text/zip
   return !!(file.as_document || file.icon_type === 'document' || file.icon_type === 'file');
-}
-
-export function matchesMediaFilter(file: DriveFile, filter: DriveMediaFilter): boolean {
-  // Links should only match the 'link' filter, never show up under 'all' or others
-  if (file.icon_type === 'link') {
-    return filter === 'link';
-  }
-  if (filter === 'link') {
-    return false;
-  }
-
-  if (filter === 'all') return true;
-  if (filter === 'image') return isImageDriveFile(file);
-  if (filter === 'video') return isVideoDriveFile(file);
-  // document = non image/video/link
-  return !isImageDriveFile(file) && !isVideoDriveFile(file);
 }
 
 /**

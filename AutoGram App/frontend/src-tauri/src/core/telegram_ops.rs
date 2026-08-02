@@ -371,6 +371,39 @@ pub struct StartFolderStreamRequest {
     pub limit: Option<usize>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMediaStatisticsRequest {
+    pub session: String,
+    pub api_id: i64,
+    pub api_hash: String,
+    pub chat_id: String,
+    pub topic_id: Option<i64>,
+    pub loaded_count: Option<usize>,
+}
+
+pub fn tg_get_media_statistics(
+    req: GetMediaStatisticsRequest,
+) -> OpResult<super::media_statistics::MediaStatisticsResult> {
+    let dir = sessions_dir_from_env();
+    let identity = TelegramIdentity {
+        session: req.session,
+        api_id: req.api_id,
+        api_hash: req.api_hash,
+    };
+    let loaded = req.loaded_count.unwrap_or(0);
+    match super::media_counter::get_media_statistics_blocking(
+        &dir,
+        &identity,
+        &req.chat_id,
+        req.topic_id,
+        loaded,
+    ) {
+        Ok(stats) => ok_result("grammers", stats),
+        Err(e) => err_result("grammers", e),
+    }
+}
+
 pub fn tg_list_media(req: ListMediaRequest) -> OpResult<super::grammers_ops::ListMediaResult> {
     let dir = sessions_dir_from_env();
     let identity = TelegramIdentity {
