@@ -215,6 +215,12 @@ export function Accounts() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    if (isWizardOpen && step === 1 && loginMethod === 'qr' && !qrDataUrl && !isProcessing && !errorMsg) {
+      handleStartQrLogin();
+    }
+  }, [isWizardOpen, step, loginMethod, qrDataUrl]);
+
   const loadSessions = async () => {
     setIsLoading(true);
     setErrorMsg('');
@@ -832,21 +838,40 @@ export function Accounts() {
                   </div>
 
                   {loginMethod === 'qr' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px', width: '100%' }}>
                       {!qrDataUrl ? (
-                        <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleStartQrLogin} disabled={isProcessing}>
-                          {isProcessing ? <RefreshCcw className="spin" size={18} /> : <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><QrCode size={18} /> Buat QR Code Login</span>}
-                        </button>
+                        isProcessing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '12px', width: '100%' }}>
+                            <RefreshCcw className="spin" size={32} color="var(--primary)" />
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                              {t('accounts.qr_generating', 'Membuat QR Code Login Telegram...')}
+                            </span>
+                          </div>
+                        ) : (
+                          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleStartQrLogin}>
+                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
+                          </button>
+                        )
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
                           <div style={{ background: '#ffffff', padding: '12px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <img src={qrDataUrl} alt="Telegram Login QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
-                            {qrExpiresIn > 0 && (
+                            {qrExpiresIn > 0 ? (
                               <span style={{ fontSize: '0.75rem', color: '#333', fontWeight: '600', marginTop: '6px' }}>
                                 Masa berlaku: {qrExpiresIn}s
                               </span>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginTop: '6px' }}>
+                                Kedaluwarsa
+                              </span>
                             )}
                           </div>
+
+                          {qrExpiresIn === 0 && (
+                            <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={handleStartQrLogin}>
+                              <RefreshCcw size={18} /> {t('accounts.btn_reload_qr', 'Reload QR Code')}
+                            </button>
+                          )}
 
                           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-muted)', width: '100%' }}>
                             <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>

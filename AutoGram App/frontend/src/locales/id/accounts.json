@@ -87,5 +87,8 @@
   "custom_alias_ph": "Misal: Akun Kerja Utama",
   "edit_alias_title": "Ubah Alias Sesi",
   "save": "Simpan Alias",
-  "cancel": "Batal"
+  "cancel": "Batal",
+  "qr_generating": "Membuat QR Code Login Telegram...",
+  "btn_reload_qr": "Reload QR Code",
+  "qr_expired_hint": "QR Code telah kedaluwarsa. Klik Reload QR Code di bawah untuk memperbarui."
 }

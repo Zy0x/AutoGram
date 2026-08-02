@@ -87,5 +87,8 @@
   "custom_alias_ph": "E.g., Primary Work Account",
   "edit_alias_title": "Edit Session Alias",
   "save": "Save Alias",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "qr_generating": "Generating Telegram Login QR Code...",
+  "btn_reload_qr": "Reload QR Code",
+  "qr_expired_hint": "QR Code expired. Click Reload QR Code below to refresh."
 }
