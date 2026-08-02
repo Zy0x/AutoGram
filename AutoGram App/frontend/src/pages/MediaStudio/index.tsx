@@ -120,6 +120,7 @@ import {
   reconcileDriveLiveHead,
   dedupeByMsgId,
   purgeDeletedMsgIds,
+  driveGetMediaStats,
 } from '../../lib/telegram';
 import {
   driveScrollLocationKey,
@@ -145,6 +146,7 @@ import type {
   DriveTopic,
   DriveTopicFilter,
   DriveViewMode,
+  ViewPerspective,
   TransferSession,
 } from '../../lib/telegram/driveTypes';
 import {
@@ -594,6 +596,7 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
   const [query, setQuery] = useState('');
   const [chatQuery, setChatQuery] = useState('');
   const [mediaFilter, setMediaFilter] = useState<DriveMediaFilter>('all');
+  const [viewPerspective, setViewPerspective] = useState<ViewPerspective>('telegram');
   const [sortMode, setSortMode] = useState<DriveSortMode>(() => {
     try {
       const raw = localStorage.getItem(LS_SORT);
@@ -1473,6 +1476,22 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       let firstPoll: number | undefined;
       let pollInFlight = false;
       try {
+        try {
+          const fastStats = await driveGetMediaStats(creds, peerId, tid, liveFilesRef.current.length);
+          if (fastStats && gen === peerGen.current && statsGen === topicGenRef.current) {
+            if (fastStats.totalCount > 0) {
+              setTotalFileCount(fastStats.totalCount);
+              filesTotalCountRef.current.set(cacheKey, fastStats.totalCount);
+            }
+            if (fastStats.totalBytes > 0) {
+              setTotalBytes(fastStats.totalBytes);
+              filesTotalBytesRef.current.set(cacheKey, fastStats.totalBytes);
+            }
+          }
+        } catch {
+          /* ignore fast stats error */
+        }
+
         const walkPromise = driveMediaStats(creds, peerId, {
           topicId: tid,
           force: opts?.force !== false,
@@ -7270,13 +7289,13 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
             transferBadgeKind={transferBadge(transfer).kind}
             onOpenLocations={openDrawer}
             loading={loadingFiles}
-            fileCount={
-              topicFilter != null || mediaFilter !== 'all' || query
-                ? files.length
-                : statsAccurate && totalFileCount != null
-                ? totalFileCount
-                : files.length
-            }
+            fileCount={files.length}
+            totalCount={totalFileCount}
+            viewPerspective={viewPerspective}
+            onViewPerspective={(p) => {
+              setViewPerspective(p);
+              setMediaFilter('all');
+            }}
             isForum={isForumChat}
             topics={topics}
             topicFilter={topicFilter}
@@ -7612,6 +7631,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
               selectedIds={selectedIds}
               query={query}
               mediaFilter={mediaFilter}
+              viewPerspective={viewPerspective}
+              onViewPerspective={setViewPerspective}
+              totalCount={totalFileCount}
               sortMode={sortMode}
               advFilter={advFilter}
               gridZoom={gridZoom}

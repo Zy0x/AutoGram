@@ -13,6 +13,7 @@ import {
   type DriveMediaFilter,
   type DriveSortMode,
   type DriveViewMode,
+  type ViewPerspective,
   formatDriveBytes,
 } from '../../../lib/telegram/driveTypes';
 import {
@@ -99,6 +100,9 @@ type Props = {
   onVisibleIdsChange?: (ids: number[]) => void;
   scanState?: MediaScanState | null;
   onResumeSync?: () => void;
+  viewPerspective?: ViewPerspective;
+  onViewPerspective?: (perspective: ViewPerspective) => void;
+  totalCount?: number | null;
 };
 
 const GRID_GAP = 10;
