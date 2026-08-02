@@ -2452,20 +2452,18 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       if (res.total_count != null) {
         const n = clampMediaTotal(res.total_count, page);
         if (n != null) {
-          // Topic-scoped lower bound from server; never carry all-media count here
           filesTotalCountRef.current.set(cacheKey, n);
-          setTotalFileCount(n);
+          setTotalFileCount((prev) => (prev != null ? Math.max(prev, n) : n));
         }
       } else if (tid != null) {
-        // Prefer null over stale all-media number while topic stats load
         const known = filesTotalCountRef.current.get(cacheKey);
-        setTotalFileCount(known != null ? known : null);
+        setTotalFileCount((prev) => (prev != null ? prev : known != null ? known : null));
       }
       if (res.total_bytes != null) {
         const b = clampMediaBytes(res.total_bytes, page);
         if (b != null) {
           filesTotalBytesRef.current.set(cacheKey, b);
-          setTotalBytes(b);
+          setTotalBytes((prev) => (prev != null ? Math.max(prev, b) : b));
         }
       }
 
