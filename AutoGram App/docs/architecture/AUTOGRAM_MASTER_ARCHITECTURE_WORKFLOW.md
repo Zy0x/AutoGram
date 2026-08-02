@@ -25,19 +25,29 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
                                          │
 ┌────────────────────────────────────────▼─────────────────────────────────────────┐
 │                      RUST CORE ENGINE (src-tauri/src)                            │
-│ ┌───────────────────────────┐ ┌───────────────────────────┐ ┌──────────────────┐ │
-│ │ Grammers MTProto Engine   │ │ Topic Media Feature Engine│ │ SQLite Repository│ │
-│ │ (client_pool, media_list) │ │ (search, document_mapper) │ │ (app.db)         │ │
-│ └─────────────┬─────────────┘ └─────────────┬─────────────┘ └────────┬─────────┘ │
-│ ┌─────────────▼─────────────┐ ┌─────────────▼─────────────┐          │          │
-│ │ Special Media Thumb Engine│ │ Progressive Stream Engine │          │          │
-│ │ (special_media_thumb.rs)  │ │ (stream.rs + range_bridge)│          │          │
-│ └───────────────────────────┘ └───────────────────────────┘          │          │
-└───────────────┼─────────────────────────────┼────────────────────────┼───────────┘
-                │ MTProto API                 │ MTProto API            │ SQL I/O
-┌───────────────▼─────────────────────────────▼─────────────┐ ┌────────▼──────────┐
-│                   TELEGRAM MTPROTO SERVERS                │ │ LOCAL SQLITE DB   │
-└───────────────────────────────────────────────────────────┘ └───────────────────┘
+│ ┌─────────────────────────┐ ┌─────────────────────────┐ ┌──────────────────────┐ │
+│ │ Grammers MTProto Engine │ │ Topic Media Feature Eng │ │ SQLite Repository    │ │
+│ │ (client_pool, media_   │ │ (search, doc_mapper,    │ │ (app.db WAL Mode)    │ │
+│ │  list, media_transfer) │ │  cache/disk.rs)         │ │                      │ │
+│ └────────────┬────────────┘ └────────────┬────────────┘ └──────────┬───────────┘ │
+│ ┌────────────▼────────────┐ ┌────────────▼────────────┐            │            │
+│ │ Special Media Thumb Eng │ │ Progressive Stream Eng  │            │            │
+│ │ (special_media_thumb.rs │ │ (stream.rs + stream_    │            │            │
+│ │  mpsc::channel(24))     │ │  server.rs + tiny_http) │            │            │
+│ └─────────────────────────┘ └─────────────────────────┘            │            │
+│                              Buffer Layer & Seek Engine:            │            │
+│                         ┌───────────────────────────────┐          │            │
+│                         │ StreamEntry (LIVE RwLock Map) │          │            │
+│                         │ DemandRangeReader             │          │            │
+│                         │ moov_ready_cached / tail_fetch│          │            │
+│                         │ merge_ranges / bounded_16MB   │          │            │
+│                         └───────────────────────────────┘          │            │
+└──────────────┬────────────────────────────────┬─────────────────────┴────────────┘
+               │ MTProto API (Grammers)          │ MTProto API                SQL I/O
+┌──────────────▼────────────────────────────────▼──────────┐ ┌────────────────────┐
+│                   TELEGRAM MTPROTO SERVERS                │ │ LOCAL SQLITE DB    │
+│            (MTProto DC1–DC5, CDN Servers)                 │ │ (app.db WAL Mode)  │
+└───────────────────────────────────────────────────────────┘ └────────────────────┘
 ```
 
 ### 5 Pilar Utama Arsitektur Teknis v2.7.1:
@@ -50,13 +60,13 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 
 ---
 
-## 2. 12 Detail Mikro Teknis & Trik Arsitektur Berdampak Besar (Micro-Technical Nuances & High-Impact Details)
+## 2. 16 Detail Mikro Teknis & Trik Arsitektur Berdampak Besar (Micro-Technical Nuances & High-Impact Details)
 
-Di balik performa AutoGram v2.7.1 yang responsif dan bebas hambatan, terdapat 12 keputusan desain teknis berskala mikro yang tampak sederhana namun memiliki dampak krusial terhadap stabilitas dan penggunaan sumber daya sistem:
+Di balik performa AutoGram v2.7.1 yang responsif dan bebas hambatan, terdapat 16 keputusan desain teknis berskala mikro yang tampak sederhana namun memiliki dampak krusial terhadap stabilitas dan penggunaan sumber daya sistem:
 
 ### 1. 512 KB MTProto Boundary Alignment (`offset - (offset % 512KB)`)
 - **Masalah**: Server CDN Telegram MTProto mewajibkan request byte range berukuran kelipatan 4 KB hingga 512 KB. Jika client meminta offset acak (seperti `bytes=1048579-2097152`), server MTProto dapat mengembalikan galat `LOCATION_INVALID` atau menggeser byte offset.
-- **Solusi & Dampak**: Pada [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs#L49-L58), setiap offset yang diminta oleh HTML5 Video Player diselaraskan secara matematis ke batas kelipatan **512 KB** (`let aligned_offset = offset - (offset % (512 * 1024));`). Hal ini menjamin 0% offset shift dan mencegah melebarnya korupsi struktur MP4 box/atom.
+- **Solusi & Dampak**: Pada [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs#L49-L67), setiap offset yang diminta oleh HTML5 Video Player diselaraskan secara matematis ke batas kelipatan **512 KB** (`let aligned_offset = offset - (offset % (512 * 1024));`). Fungsi `request_progressive_range()` memvalidasi stream aktif via `cancel_flags` dan `stream_server::get_entry()` sebelum menerima seek, mencegah 0% offset shift dan korupsi MP4 box/atom.
 
 ### 2. Rekonstruksi Header JPEG `unstrip_jpeg` (`PhotoSize::Stripped`)
 - **Masalah**: Telegram API tidak mengirimkan file JPEG utuh untuk mini-thumb (`PhotoSize::Stripped`). Telegram hanya mengemas tabel Huffman dan bytes hasil scan gambar (~100 bytes) tanpa header standar JPEG.
@@ -96,11 +106,27 @@ Di balik performa AutoGram v2.7.1 yang responsif dan bebas hambatan, terdapat 12
 
 ### 11. Dynamic Loopback Port Binding (`tiny_http` pada `127.0.0.1:0`)
 - **Masalah**: Menggunakan port HTTP statis (seperti `8080`) untuk server streaming lokal akan menyebabkan kegagalan aplikasi jika port tersebut telah digunakan oleh aplikasi lain (*port collision*).
-- **Solusi & Dampak**: Server HTTP lokal di [thumbnail_range_bridge.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/thumbnail_range_bridge.rs) dan [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs) melakukan binding ke port `127.0.0.1:0`. Sistem operasi akan mengalokasikan port loopback bebas secara dinamis, sehingga aplikasi dapat berjalan stabil tanpa konflik port.
+- **Solusi & Dampak**: Server HTTP lokal di [stream_server.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/stream_server.rs) melakukan binding ke port `127.0.0.1:0`. Sistem operasi mengalokasikan port loopback bebas secara dinamis via `AtomicU16 PORT`. Setiap request range dilayani oleh thread terpisah (`autogram-range`) agar request pause/resume/status tetap responsif selama proses download berlangsung.
 
-### 12. Tail `moov` Relocation (`make_faststart_mp4`)
+### 12. Tail `moov` Relocation & Async Tail-Fetch (`need_async_moov_tail`)
 - **Masalah**: Berkas video MP4 yang dibuat oleh kamera HP umumnya meletakkan atom metadata `moov` di bagian paling akhir file. Browser HTML5 tidak dapat memutar video sebelum atom `moov` selesai didownload.
-- **Solusi & Dampak**: Fungsi `find_moov_atom()` membaca beberapa KB terakhir file MP4 via MTProto Range Request. Jika atom `moov` ditemukan di ekor file, `make_faststart_mp4()` memindahkan atom `moov` ke depan atom `mdat` di memori buffer, sehingga pemutar video dapat langsung melakukan *instant fast-start playback*.
+- **Solusi & Dampak**: Saat boot phase streaming, engine mendeteksi apakah `moov` sudah ditemukan dalam 512 KB pertama (`has_moov_head`). Jika tidak (`need_async_moov_tail = true`), engine langsung men-spawn Tokio task terpisah yang mendownload **3 MB terakhir** file secara paralel menggunakan **2 dedicated MTProto client** dengan chunk 512 KB masing-masing. Atom `moov` dari ekor ditulis ke disk dan di-merge ke `StreamEntry.ranges` menggunakan fungsi `merge_ranges()`, sehingga browser dapat langsung memulai `fast-start playback`.
+
+### 13. `StreamEntry` LIVE RwLock Map & Range Merge State Machine
+- **Masalah**: Proses fill-loop sequential dan tail-fetch task berjalan paralel. Jika keduanya menulis `StreamEntry.ranges` secara bersamaan tanpa merge, tail-fetch ranges akan hilang ditimpa oleh fill-loop.
+- **Solusi & Dampak**: `upsert_entry()` di [stream_server.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/stream_server.rs#L353-L403) selalu membaca `existing.ranges` dari `LIVE RwLock Map`, melakukan **merge** dengan ranges baru sebelum menulis kembali. Flag `moov_ready_cached` dan `moov_tail_fetching` juga diwariskan dari entry lama sehingga status tidak pernah ter-reset oleh iterasi fill-loop berikutnya.
+
+### 14. `DemandRangeReader` & 16 MB HTTP Response Cap
+- **Masalah**: Browser Chrome/WebView mengirimkan `Range: bytes=0-` (tanpa batas akhir) saat pertama membuka video. Server yang merespons dengan `Content-Range: bytes 0-379899999/379900000` membuat browser hanya membuat **satu koneksi HTTP** untuk seluruh file, sehingga tidak pernah membuat suffix range request untuk mengambil atom `moov` di ekor.
+- **Solusi & Dampak**: Fungsi `bounded_response_end()` membatasi setiap HTTP response menjadi **maksimal 16 MB** (`start + 16 MB`). Setelah browser menerima 16 MB pertama dan tidak menemukan `moov`, browser otomatis membuat suffix request (contoh: `Range: bytes=-2097152`) untuk mengambil ekor file. Tail-fetch task sudah menuliskan bytes tersebut, sehingga `DemandRangeReader` dapat langsung melayaninya tanpa menunggu download sequential.
+
+### 15. `SharedPreviewFlight` Single-Flight Deduplication
+- **Masalah**: Saat video dibuka dari berbagai tempat secara bersamaan (warm prefetch + user click + background open), sistem dapat mengeksekusi beberapa MTProto `get_messages_by_id` call untuk message yang sama secara paralel, memboroskan bandwidth dan meningkatkan risiko FloodWait.
+- **Soludi & Dampak**: Struktur `SharedPreviewFlight` di [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs#L469-L644) mengimplementasikan **single-flight pattern** menggunakan `Arc<(Mutex<SharedPreviewFlight>, Condvar)>`. Hanya 1 goroutine "leader" yang menjalankan MTProto. Semua goroutine lain menunggu di `condvar.wait_for()` dengan timeout 90 detik. Jika leader stuck >90 detik, waiter meluncurkan request independen sendiri.
+
+### 16. Bounded Parallel Fill-Loop (4 MTProto Client Workers, CHUNK_SIZE 512 KB)
+- **Masalah**: Mengunduh file video secara sequential satu chunk 512 KB per waktu akan sangat lambat untuk file besar. Namun menggunakan terlalu banyak koneksi MTProto paralel akan memicu FloodWait.
+- **Solusi & Dampak**: Fill-loop di [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs#L1563-L1700) menggunakan **4 MTProto client** paralel (`PARALLEL_WORKERS = 4`, `CHUNK_SIZE = 512 KB`) via `tokio::mpsc::channel`. Setiap iterasi: (1) sinkronisasi ranges dari global entry, (2) deteksi seek request dari `take_seek_request()`, (3) cari missing offset dari cursor, (4) batch dispatch 4 chunk via `skip_chunks()`, (5) tulis hasil ke disk dan merge ranges. FloodWait ditangani dengan `tokio::time::sleep()` otomatis.
 
 ---
 
@@ -141,7 +167,7 @@ AutoGram App/
 │   │   │       │   ├── ImageViewer.tsx            # HD Zoomable Image Viewer
 │   │   │       │   ├── MediaAudioPlayer.tsx        # Waveform & Streaming Audio Player
 │   │   │       │   ├── MediaHeaderToolbar.tsx      # Controls & Actions Toolbar
-│   │   │       │   ├── MediaVideoPlayer.tsx        # Progressive Video Stream Player
+│   │   │       │   ├── MediaVideoPlayer.tsx        # Progressive Video Stream Player (HTTP Range Consumer)
 │   │   │       │   └── previewUtils.ts             # Preview Helper & MIME Type Resolvers
 │   │   │       ├── DriveToolsPanel/
 │   │   │       │   └── DriveToolsPanel.tsx         # Panel Batch Operations & Clean-Up Tools
@@ -201,30 +227,33 @@ AutoGram App/
 │   │   ├── App.tsx                                 # React App Root Router
 │   │   └── main.tsx                                # Vite React Entrypoint
 │   └── src-tauri/                                  # Backend Engine Rust Native
-│       ├── Cargo.toml                              # Rust Dependencies (Grammers, Tauri, Rusqlite, Tokio)
+│       ├── Cargo.toml                              # Rust Dependencies (Grammers, Tauri, Rusqlite, Tokio, tiny_http)
 │       └── src/
 │           ├── lib.rs                              # Tauri IPC Command Definitions (`tg_*`)
 │           ├── core/
-│           │   ├── app_db.rs                       # SQLite Database Pool (`app.db`)
+│           │   ├── app_db.rs                       # SQLite Database Pool (`app.db` WAL Mode)
+│           │   ├── doc_preview.rs                  # Document Text/PDF Preview Engine
 │           │   ├── path_policy.rs                  # Path Resolution & Cache Directory Policy
 │           │   ├── session_guard.rs                # Session Guard Engine
-│           │   ├── session_rate.rs                 # Smart Rate Limit Controller per Session
-│           │   ├── stream_server.rs                # Stream Registry & Progressive Token Engine
+│           │   ├── session_rate.rs                 # Smart Rate Limit Controller per Session + Preview Slot + Stream Tracking
+│           │   ├── stream_server.rs                # tiny_http Stream Registry, DemandRangeReader, LIVE RwLock Map, MP4 Layout Inspector
+│           │   ├── streaming_policy.rs             # first_play_bytes() Dynamic Threshold Policy
 │           │   ├── telegram_ops.rs                 # Tauri Commands & Router Dispatcher
-│           │   ├── tg_error.rs                     # Standardized Error Mapping & FloodWait
+│           │   ├── tg_error.rs                     # Standardized Error Mapping & FloodWait Handler
+│           │   ├── tg_log.rs                       # Structured Logging Engine
 │           │   ├── grammers_ops/
-│           │   │   ├── client_pool.rs              # Grammers MTProto Client Connection Pool
+│           │   │   ├── client_pool.rs              # Grammers MTProto Client Connection Pool (Multi-DC)
 │           │   │   ├── media_list.rs               # Topic & Channel Media Query Engine
-│           │   │   ├── media_transfer.rs           # Chunked Upload & Download Transfer Core
+│           │   │   ├── media_transfer.rs           # Chunked Upload & Download Transfer Core (4-part parallel)
 │           │   │   ├── peer_resolver.rs            # Peer ID Resolver & LRU Entity Cache
-│           │   │   └── session_auth.rs             # Auth, 2FA, OTP & Session Storage
+│           │   │   └── session_auth.rs             # Auth, 2FA, OTP & Encrypted Session Storage
 │           │   └── grammers/                       # Grammers Processing Modules
-│           │       ├── ffmpeg.rs                   # FFmpeg Subprocess Frame Extraction & Probe
-│           │       ├── session.rs                  # Session Path & Cache Policy
-│           │       ├── special_media_thumb.rs      # Async Background Keyframe Processor (`mpsc(24)`)
-│           │       ├── stream.rs                   # Progressive Streaming, 512KB Boundary Seek, & Zip Engine
-│           │       ├── thumbnail_range_bridge.rs   # Seekable Local HTTP Range Bridge Server (`tiny_http`)
-│           │       ├── thumbs.rs                   # Tier 1–5 Thumbnail Extraction & Request Correlation
+│           │       ├── ffmpeg.rs                   # FFmpeg Subprocess Frame Extraction, Probe, unstrip_jpeg, is_fallback_black_card_bytes
+│           │       ├── session.rs                  # Session Path & Cache Policy (cache_root, thumb_dir, preview_dir)
+│           │       ├── special_media_thumb.rs      # Async Background Keyframe Processor (`mpsc(24)`) + WinRT PDF
+│           │       ├── stream.rs                   # Progressive Streaming: Boot Phase, Async Tail-Fetch, 4-Worker Fill-Loop, 512KB Seek, SharedPreviewFlight, moov Fast-Start
+│           │       ├── thumbnail_range_bridge.rs   # Seekable Local HTTP Range Bridge Server (tiny_http for FFmpeg)
+│           │       ├── thumbs.rs                   # Tier 1–5 Thumbnail Extraction & Dual-Track Semaphore Scheduler
 │           │       └── topics.rs                   # Forum Topic Resolver Engine
 │           └── features/
 │               └── topic_media/                    # Topic Media Local-First Engine
@@ -243,7 +272,7 @@ AutoGram App/
 │                       ├── frame_selector.rs       # Keyframe Selection Engine
 │                       ├── image_extractor.rs      # Fast Image Resizer
 │                       ├── mode_profile.rs         # Thumbnail Quality Profile
-│                       ├── pdf_extractor.rs        # PDF First-Page Renderer
+│                       ├── pdf_extractor.rs        # PDF First-Page Renderer (WinRT on Windows)
 │                       ├── range_reader.rs         # Partial Byte Range Reader
 │                       └── resolver.rs             # Strategy Resolver Thumbnail
 ```
@@ -296,13 +325,14 @@ AutoGram App/
 ---
 
 ### Kategori 5: Progressive Range HTTP Streaming & Seekable Local Bridge Engine
-* **Modul Terkait**: [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs), [thumbnail_range_bridge.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/thumbnail_range_bridge.rs), [MediaVideoPlayer.tsx](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx).
-* **Alur Kerja Teknis**:
-  1. Saat pemutar video/audio `DrivePreviewModal` dibuka, `register_stream()` mendaftarkan sesi stream tokenized dan mengembalikan URL server HTTP lokal (`http://127.0.0.1:port/stream/sid`).
-  2. Component HTML5 Video Player mengirimkan request HTTP `206 Partial Content` dengan Range Header.
-  3. Server `tiny_http` menyelaraskan offset request ke batas kelipatan **512 KB** (`offset - (offset % 512KB)`) dan mengunduh byte chunk dari Telegram MTProto.
-  4. Fungsi `make_faststart_mp4()` memindahkan atom metadata `moov` dari ekor file ke bagian depan buffer memori untuk mendukung *instant fast-start playback*.
-  5. Penggeseran slider timeline video mengabaikan antrean lama via `cancel_progressive()` dan secara instan mendownload byte range baru.
+* **Modul Terkait**: [stream.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/grammers/stream.rs), [stream_server.rs](file:///f:/AutoGram/AutoGram%20App/frontend/src-tauri/src/core/stream_server.rs), [MediaVideoPlayer.tsx](file:///f:/AutoGram/AutoGram%20App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx).
+* **Alur Kerja Teknis (6 Phase)**:
+  1. **Single-Flight Dedup**: `start_preview_stream_blocking()` menggunakan `SharedPreviewFlight` (Mutex+Condvar) untuk memastikan hanya 1 MTProto request per message. Concurrent open menunggu di condvar (timeout 90s).
+  2. **Disk Cache Hit Check**: Sebelum MTProto, cek `preview_dir` untuk file cache. Jika ada dan ukuran valid, langsung serve via `try_local_preview_fast()` tanpa network.
+  3. **Boot Phase (512 KB Head)**: Mengunduh 1 chunk pertama (512 KB) via `iter_download()`. Mendeteksi `has_moov_head` dengan membaca header 4 bytes. Jika `moov` tidak ditemukan → trigger `need_async_moov_tail = true`. StreamEntry didaftarkan ke `stream_server` sebelum boot selesai (UI dapat langsung memuat URL).
+  4. **Async Tail-Fetch (Last 3 MB)**: Jika `need_async_moov_tail`, spawn Tokio task dengan **2 dedicated MTProto clients**. Download 3 MB terakhir dalam chunk 512 KB paralel via `skip_chunks()`. Bytes ditulis ke disk dan `moov_tail_fetching = true` agar `status_of()` melaporkan `moov_ready = true` sebelum bytes tiba. Setelah selesai, ranges di-merge ke StreamEntry.
+  5. **Fill-Loop (4 Workers, Demand-Driven)**: Spawn background Tokio task dengan 4 MTProto clients. Loop: sinkronisasi ranges → cek seek request → cari missing offset → batch fetch 4×512KB → tulis ke disk → merge ranges. FloodWait ditangani otomatis. Seek request dari browser menggeser `cursor` ke posisi baru.
+  6. **HTTP Range Serving**: `tiny_http` server melayani request `206 Partial Content`. `bounded_response_end()` membatasi setiap response ke 16 MB. `DemandRangeReader` membaca dari disk partial file, menunggu bytes via polling 30ms jika belum tersedia. Browser Chrome mengikuti dengan suffix request untuk mengambil atom `moov` dari ekor.
 
 ---
 
@@ -331,7 +361,7 @@ AutoGram App/
 * **Alur Kerja Teknis**:
   1. `client_pool.rs` mengelola pool koneksi Grammers MTProto paralel untuk mencegah kemacetan satu jalur RPC.
   2. Otentikasi nomor HP, OTP, dan password 2FA dikelola aman di Rust via `session_auth.rs`. Key dan token disimpan terenkripsi di penyimpanan lokal.
-  3. Evaluasi rate limit dikontrol oleh `session_rate.rs`. Jika Telegram mengembalikan galat `FloodWaitError(seconds)`, sistem secara otomatis menghentikan request sesi tersebut (*smart backoff*) dan menyiarkan sisa waktu tunggu ke UI.
+  3. Evaluasi rate limit dikontrol oleh `session_rate.rs`. Jika Telegram mengembalikan galat `FloodWaitError(seconds)`, sistem secara otomatis menghentikan request sesi tersebut (*smart backoff*) dan menyiarkan sisa waktu tunggu ke UI. `session_rate.rs` juga mengelola **preview slots** (2 permit high-priority) dan **tracking stream aktif per sesi** untuk membatalkan stream lama saat stream baru diminta.
   4. `sessionGuard.ts` di frontend secara kontinu memantau status keaktifan sesi dan menampilkan modal relogin jika token kadaluarsa.
 
 ---
@@ -356,7 +386,162 @@ AutoGram App/
 
 ---
 
-## 5. Matriks Perbandingan Detail Per Versi (Version Evolution & Feature Matrix)
+## 5. Spesifikasi Buffer, Stream, Seek & moov Engine (Deep Technical Spec)
+
+### 5.1 Arsitektur Buffer & Stream State Machine
+
+Sistem streaming video AutoGram menggunakan model **sparse partial-file buffer** berbasis disk. File video tidak pernah diunduh penuh sebelum diputar. Sebaliknya, data disimpan ke file `.partial` di disk lokal dalam *island ranges* yang tidak berurutan, dan HTTP server (`tiny_http`) melayani byte langsung dari disk via `DemandRangeReader`.
+
+```
+[Telegram MTProto DC]
+        │ 4 × 512KB parallel chunks (fill-loop)
+        │ 2 × 512KB parallel chunks (tail-fetch)
+        ▼
+[stream.rs fill-loop + tail-fetch task]
+        │ f.seek(SeekFrom::Start(offset)) + f.write_all(&bytes)
+        ▼
+[Disk: {stream_id}.partial  (pre-allocated via set_len(size))]
+        │
+        │ ranges: [(0,524288), (6291456,6815744), ...] ← LIVE RwLock Map
+        │
+        ▼
+[stream_server.rs: DemandRangeReader]
+        │ contiguous_end_from(ranges, position)
+        │ self.file.seek(SeekFrom::Start(position))
+        │ self.file.read(&mut output[..count])
+        ▼
+[HTML5 Video Player: HTTP 206 Partial Content]
+        │ Content-Range: bytes 0-16777215/379900000 (capped 16 MB)
+        │ Range: bytes=-2097152 (suffix request for moov)
+        ▼
+[Browser: Decode + Playback]
+```
+
+### 5.2 Tabel Fungsi Buffer & Stream Kritis
+
+| Fungsi / Struct | Lokasi | Tujuan Teknis |
+| :--- | :--- | :--- |
+| `request_progressive_range(sid, offset)` | `stream.rs:49-67` | Menerima seek request dari browser, align ke 512KB boundary, tulis ke `seek_requests` HashMap |
+| `take_seek_request(sid)` | `stream.rs:69-71` | Mengambil (dan menghapus) seek request untuk satu iterasi fill-loop |
+| `cancel_progressive(sid)` | `stream.rs:117-131` | Membatalkan stream: set cancel flag, mark paused+cancelled di StreamEntry |
+| `first_missing_offset(ranges, total)` | `stream.rs:73-87` | Mencari byte pertama yang belum terunduh dari urutan range |
+| `find_missing_offset_from(ranges, from, total)` | `stream.rs:89-105` | Mencari byte pertama yang belum terunduh mulai dari posisi `from` (used by fill-loop cursor) |
+| `start_preview_stream_blocking()` | `stream.rs:531-644` | Entry point streaming: FloodWait check → live cache → SingleFlight → inner stream |
+| `start_preview_stream_inner()` | `stream.rs:646-end` | Boot phase (512KB head) → tail-fetch spawn → fill-loop spawn → return stream URL |
+| `StreamEntry` | `stream_server.rs:27-49` | State struct: `stream_id`, `path`, `total_size`, `ranges: Vec<(u64,u64)>`, `moov_ready_cached`, `moov_tail_fetching` |
+| `upsert_entry(entry)` | `stream_server.rs:353-403` | Thread-safe upsert dengan range-merge + moov flag inheritance dari existing entry |
+| `DemandRangeReader` | `stream_server.rs:239-290` | Impl `Read` trait: cek byte tersedia di disk, kirim seek signal sekali jika belum ada, poll 30ms |
+| `handle_stream(request, sid)` | `stream_server.rs:630-883` | HTTP handler: parse Range header → wait buffer → `bounded_response_end()` → DemandRangeReader |
+| `bounded_response_end(start, end, total)` | `stream_server.rs:552-558` | Cap response ke 16 MB agar browser membuat suffix request untuk moov |
+| `merge_ranges(ranges)` | `stream_server.rs:98-114` | Merge overlapping/adjacent range intervals menjadi minimum set |
+| `contiguous_from_zero(ranges)` | `stream_server.rs:116-121` | Menghitung bytes yang telah terunduh secara kontinu dari byte 0 |
+| `contiguous_end_from(ranges, start)` | `stream_server.rs:123-131` | End byte tersedia dari posisi start (untuk stream-ready check & DemandRangeReader) |
+| `inspect_mp4_layout(path)` | `stream_server.rs:149-236` | Scan MP4 box headers (ftyp/moov/mdat): deteksi posisi head/tail atom moov |
+| `try_recover_partial(sid)` | `stream_server.rs:588-628` | Recovery otomatis dari file `.partial` jika StreamEntry hilang dari registry |
+| `range_contains_atom(path, ranges, atom)` | `stream_server.rs:292-322` | Scan island ranges (hingga 8MB per island) untuk mendeteksi atom b"moov" |
+| `status_of(sid)` | `stream_server.rs:423-491` | Menghasilkan `StreamStatusDto`: `stream_ready`, `moov_ready`, `seek_capable`, `percent` |
+| `SharedPreviewFlight` | `stream.rs:469-480` | Mutex+Condvar cell untuk single-flight deduplication concurrent preview opens |
+| `live_preview_map()` | `stream.rs:458-461` | Global OnceLock HashMap: cache PreviewStreamResult aktif per session|chat|msg |
+
+### 5.3 Lifecycle Streaming Video End-to-End
+
+```
+1. User klik thumbnail video
+        │
+2. MediaVideoPlayer.tsx → driveStreamZipApi.ts → tg_preview_stream IPC
+        │
+3. [Rust] start_preview_stream_blocking()
+   ├─ FloodWait check via session_rate
+   ├─ live_preview_map check (instant reuse jika masih aktif)
+   └─ SharedPreviewFlight: hanya 1 leader MTProto
+        │
+4. [Rust] start_preview_stream_inner()
+   ├─ Disk cache check → serve instantly jika ada
+   ├─ acquire_preview_slot (2-permit high priority semaphore)
+   ├─ wait_if_flooded_capped (max 35s wait)
+   ├─ obtain_live_client → peer resolve → get_messages_by_id
+   └─ BOOT PHASE:
+      ├─ create {stream_id}.partial (pre-allocated set_len(size))
+      ├─ iter_download().chunk_size(512KB) → write 512KB to disk
+      ├─ scan has_moov_head (windows(4) scan b"moov")
+      ├─ upsert_entry(StreamEntry{ranges: boot_ranges})
+      └─ return stream_url = "http://127.0.0.1:{port}/stream/{sid}/{name}"
+        │
+5. [Rust async] if need_async_moov_tail → tokio::spawn:
+   ├─ 2 MTProto clients: download last 3MB in 512KB chunks (skip_chunks)
+   ├─ write to disk: f.seek(chunk_off) + write_all(bytes)
+   ├─ detect has_moov_tail via bytes_buf.windows(4)
+   ├─ upsert_entry: merge tail_ranges + moov_ready_cached = true
+   └─ moov_tail_fetching = false
+        │
+6. [Rust async] tokio::spawn fill-loop (4 MTProto workers):
+   Loop per iteration:
+   ├─ sync ranges from LIVE map
+   ├─ take_seek_request(sid) → update cursor
+   ├─ find_missing_offset_from(ranges, cursor) → next_offset
+   ├─ batch dispatch 4 × iter_download().skip_chunks(n)
+   ├─ recv results via tokio::mpsc → write to disk → merge ranges
+   ├─ upsert_entry(updated ranges)
+   └─ FloodWait: tokio::time::sleep(secs)
+        │
+7. [HTTP] HTML5 Video Player → GET /stream/{sid}/{name}
+   ├─ Range: bytes=0- (no end)
+   ├─ handle_stream: wait for req_start bytes available (poll 25ms, max 45s)
+   ├─ bounded_response_end: cap to start+16MB
+   ├─ DemandRangeReader: read from disk, signal fill-loop if missing
+   └─ HTTP 206: Content-Range: bytes 0-16777215/total_size
+        │
+8. [Browser] Chrome parses ftyp + mdat head, no moov found
+   └─ Suffix request: Range: bytes=-2097152
+   ├─ handle_stream: req_start = total-2MB
+   ├─ DemandRangeReader: tail bytes already written by tail-fetch task
+   └─ HTTP 206: Content-Range: bytes (total-2MB)-total/total
+        │
+9. [Browser] moov atom found → decode headers → instant playback starts
+        │
+10. [User Seek] user drags timeline to position P
+    ├─ HTML5 video → cancel current HTTP connection
+    ├─ GET /stream/{sid} Range: bytes={P_aligned}-
+    ├─ handle_stream: request_progressive_range(sid, P_aligned)
+    ├─ fill-loop detects seek via take_seek_request → cursor = P_aligned
+    ├─ DemandRangeReader: signal fill-loop (sekali) jika bytes belum ada
+    └─ HTTP 206: resume from P_aligned
+```
+
+### 5.4 HTTP Endpoint Stream Server (`tiny_http` pada `127.0.0.1:{dynamic_port}`)
+
+| Endpoint | Method | Fungsi |
+| :--- | :--- | :--- |
+| `/stream/{sid}/{name}` | `GET / HEAD` | Serve partial content dengan 16MB cap & DemandRangeReader |
+| `/stream/{sid}/pause` | `POST` | Set `StreamEntry.paused = true`, fill-loop idle 100ms/iter |
+| `/stream/{sid}/resume` | `POST` | Set `paused = false`; return 410 jika cancelled/expired |
+| `/status/{sid}` | `GET` | Return `StreamStatusDto` JSON (stream_ready, moov_ready, percent, dll) |
+| `/register` | `POST` | Register `StreamEntry` baru atau update existing |
+| `/unregister/{sid}` | `POST` | Hapus StreamEntry dari LIVE map & disk registry |
+| `/health` | `GET` | Health check: `{"ok":true,"backend":"rust"}` |
+
+### 5.5 Tabel Konstanta Kritis Streaming Engine
+
+| Konstanta | Nilai | Lokasi | Dampak |
+| :--- | :--- | :--- | :--- |
+| `CHUNK_SIZE` (fill-loop) | `512 * 1024` bytes | `stream.rs:1571` | Sinkronisasi dengan MTProto CDN alignment requirement |
+| `PARALLEL_WORKERS` (fill-loop) | `4` | `stream.rs:1572` | Max 4 MTProto TCP sockets untuk download paralel |
+| `BOOT_CHUNK` / `BOOT_TARGET` | `512 * 1024` bytes | `stream.rs:1394-1395` | Minimum bytes untuk stream URL dikembalikan ke frontend |
+| `Tail-Fetch Range` | Last `3 * 1024 * 1024` bytes | `stream.rs:1494` | Cukup besar untuk mencakup moov atom di akhir MP4 |
+| `Tail-Fetch Alignment` | `(offset / 512KB) * 512KB` | `stream.rs:1495` | Align ke 512KB boundary untuk tail-fetch chunks |
+| `Tail-Fetch Workers` | `2` MTProto clients | `stream.rs:1497` | Dedicated tail-fetch pool terpisah dari fill-loop pool |
+| `PROGRESSIVE_MAX` | `4 * 1024 * 1024 * 1024` (4 GB) | `stream.rs:34` | Batas ukuran file yang dapat di-stream progressif |
+| `HTTP Response Cap` | `start + 16 * 1024 * 1024` | `stream_server.rs:553` | Memaksa Chrome membuat suffix request untuk moov |
+| `DemandRangeReader Poll` | `30` ms | `stream_server.rs:286` | Interval polling menunggu bytes tersedia di disk |
+| `DemandRangeReader Timeout` | `30_000` ms (30s) | `stream_server.rs:276` | Batas maksimum menunggu bytes sebelum return 0 |
+| `handle_stream Wait` | `25` ms poll, `45_000` ms max | `stream_server.rs:720-733` | Tunggu req_start bytes sebelum membuka DemandRangeReader |
+| `SharedPreviewFlight Timeout` | `90` detik | `stream.rs:583` | Batas tunggu waiter; setelah itu launch independent attempt |
+| `moov scan per island` | Max `8 * 1024 * 1024` bytes | `stream_server.rs:301` | Scan hingga 8MB per range island untuk deteksi atom moov |
+| `THUMB_TARGET_MAX` | `96 * 1024` bytes | `stream.rs:35` | Max ukuran thumbnail yang dikembalikan ke frontend |
+
+---
+
+## 6. Matriks Perbandingan Detail Per Versi (Version Evolution & Feature Matrix)
 
 Berikut adalah matriks perbandingan komprehensif dari evolusi arsitektur AutoGram mulai dari v2.1.x hingga versi produksi master saat ini **v2.7.1**:
 
@@ -370,8 +555,14 @@ Berikut adalah matriks perbandingan komprehensif dari evolusi arsitektur AutoGra
 | **Request Correlation** | Positional Array Index Matching (Risiko Pergeseran Index) | Basic Request Hash | Request ID Correlation (`requestId`) | **4-Flight Parallel Correlation** (`thumb:peerId:msgId:gGen`) + Non-Positional Result Dispatch |
 | **Resource Semaphore** | Global Mutex Lock (Blocking UI) | Single Semaphore (6 Permits) | Dual-Track Semaphore (8 Fast / 2 Video) | **Dual-Track Semaphore** (`fast_sem`: 12 permits / `video_sem`: 4 permits) + Low Power Limiter |
 | **Special Media Engine** | Synchronous Full Video Download before Thumb | Basic Video Seek Probe | Basic Subprocess FFmpeg | **`special_media_thumb.rs`** Latar Belakang `mpsc(24)` Async Queue + WinRT PDF Page 1 Dekoder + Canvas Fallback |
-| **Progressive Streaming** | Full File Download to Temp Disk before Play | Basic HTTP Stream Server | HTTP Stream dengan Random Byte Range | **512KB Aligned Boundary Stream Engine** + Seekable Range Bridge (`tiny_http`) + Tail `moov` Fast-Start |
+| **Progressive Streaming** | Full File Download to Temp Disk before Play | Basic HTTP Stream Server | HTTP Stream dengan Random Byte Range | **Boot Phase 512KB + Async Tail-Fetch (3MB Last) + 4-Worker Fill-Loop + 16MB HTTP Cap + DemandRangeReader + Seek Engine** |
 | **MTProto Byte Alignment** | Offset Unaligned (Sering Off-by-One / Error) | 4 KB Alignment | 64 KB Alignment | **Strict 512 KB Alignment Boundary** (`offset - (offset % 512KB)`) Mencegah Korupsi Atom MP4 |
+| **moov Atom Handling** | Tidak ada; browser menunggu full download | Basic head scan saja | Head scan + manual relocation | **Head scan + Async Tail-Fetch (3MB, 2 clients) + `moov_ready_cached` flag + `moov_tail_fetching` flag + `range_contains_atom()` scan** |
+| **Buffer State Machine** | Single-thread blocking download | Sequential download to temp file | Basic range registry | **LIVE RwLock HashMap (`StreamEntry`) + merge_ranges() + `moov_ready_cached` inheritance + range-merge bug fix + 16MB HTTP Cap + DemandRangeReader** |
+| **Seek Handling** | Tidak support seek (full download only) | Basic seek: restart download | Seek dengan cancel dan restart | **Demand-driven seek: `request_progressive_range()` → `take_seek_request()` → cursor jump dalam fill-loop; DemandRangeReader signal sekali saja** |
+| **Stream Deduplication** | None (multiple duplicate MTProto opens) | Basic flag check | Session-level single-open | **`SharedPreviewFlight` (Mutex+Condvar, 90s timeout) + `live_preview_map()` instant cache hit** |
+| **HTTP Range Serving** | Static file serve | aiohttp Python serve | basic tiny_http serve | **`bounded_response_end()` 16MB cap + DemandRangeReader + CORS headers + X-AutoGram-Available/Filled + pause/resume endpoints + 410 re-RPC signal** |
+| **Partial File Recovery** | None | None | None | **`try_recover_partial()`: auto-recover dari orphaned `.partial` file jika StreamEntry hilang dari registry** |
 | **Remote Zip Browsing** | Download Entire ZIP Archive to Local Disk | Single Byte Range Download | Basic ZIP Central Directory Reader | **Sparse Remote ZIP Engine** (Central Directory Tail Fetching + Single File Partial Extraction) |
 | **Generation Protection** | None (Sering Terjadi Media Bleed saat Ganti Folder) | Basic Location ID Check | Atomic `peerGen.current` Check | **Fail-Closed `peerGen.current` Guard** + Auto Abort Deferred Callbacks + Negative `.nothumb` Caching |
 | **Black Card Cleanup** | Manual Clear Cache Only | None | Basic File Deletion | **Auto-Prune Solid Black Cards** (`is_fallback_black_card_bytes`) dari Disk & IndexedDB Cache |
@@ -380,9 +571,9 @@ Berikut adalah matriks perbandingan komprehensif dari evolusi arsitektur AutoGra
 
 ---
 
-## 6. Diagram Sequence Workflows Komprehensif (Mermaid)
+## 7. Diagram Sequence Workflows Komprehensif (Mermaid)
 
-### 6.1 Alur Kerja SWR Warm Fetch & Head Sync
+### 7.1 Alur Kerja SWR Warm Fetch & Head Sync
 
 ```mermaid
 sequenceDiagram
@@ -408,7 +599,7 @@ sequenceDiagram
 
 ---
 
-### 6.2 Alur Kerja Thumbnail 4-Flight Correlation Pipeline
+### 7.2 Alur Kerja Thumbnail 4-Flight Correlation Pipeline
 
 ```mermaid
 sequenceDiagram
@@ -444,7 +635,7 @@ sequenceDiagram
 
 ---
 
-### 6.3 Alur Kerja Special Media Async Keyframe Background Engine
+### 7.3 Alur Kerja Special Media Async Keyframe Background Engine
 
 ```mermaid
 sequenceDiagram
@@ -478,36 +669,69 @@ sequenceDiagram
 
 ---
 
-### 6.4 Alur Kerja 512KB Aligned Range Streaming & Seek Engine
+### 7.4 Alur Kerja 512KB Aligned Range Streaming, Boot Phase, Tail-Fetch & Seek Engine
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Player as MediaVideoPlayer Component
-    participant StreamReg as Rust stream.rs Server
+    participant StreamReg as stream.rs (Boot + Fill-Loop)
+    participant TailTask as Async Tail-Fetch Task (tokio::spawn)
+    participant FillLoop as Fill-Loop (4 MTProto Workers)
+    participant Server as stream_server.rs (tiny_http)
     participant TG as Telegram DC Server
 
-    Player->>StreamReg: register_stream(folderId, messageId)
-    StreamReg-->>Player: Return Progressive Stream URL ("http://127.0.0.1:port/stream/sid")
-    
-    Player->>StreamReg: HTTP GET /stream/sid (Range: bytes=0-524287)
-    StreamReg->>TG: Download 512KB Aligned MTProto Chunk (offset % 512KB)
-    TG-->>StreamReg: Return Chunk Bytes
-    StreamReg-->>Player: Stream HTTP 206 Partial Content Response
+    Player->>StreamReg: tg_preview_stream(folderId, messageId)
+    StreamReg->>StreamReg: SharedPreviewFlight: single-leader check
+    StreamReg->>StreamReg: BOOT: download 512KB head chunk
+    StreamReg->>TG: iter_download().chunk_size(512KB)
+    TG-->>StreamReg: 512KB bytes
+    StreamReg->>StreamReg: write to {stream_id}.partial disk
+    StreamReg->>StreamReg: scan has_moov_head (windows(4) b"moov")
+    StreamReg->>Server: upsert_entry(StreamEntry{ranges:[(0,512KB)]})
+    StreamReg-->>Player: Return stream_url "http://127.0.0.1:{port}/stream/{sid}/{name}"
+
+    par Async Tail-Fetch (if need_async_moov_tail)
+        StreamReg->>TailTask: tokio::spawn (2 MTProto clients)
+        TailTask->>TG: download last 3MB in 512KB chunks (skip_chunks)
+        TG-->>TailTask: tail byte chunks
+        TailTask->>TailTask: write to disk, detect has_moov_tail
+        TailTask->>Server: upsert_entry (merge tail_ranges, moov_ready_cached=true)
+    and Fill-Loop (4 MTProto Workers)
+        StreamReg->>FillLoop: tokio::spawn (4 MTProto clients)
+        loop Demand-driven fill
+            FillLoop->>FillLoop: take_seek_request(sid) → update cursor
+            FillLoop->>FillLoop: find_missing_offset_from(ranges, cursor)
+            FillLoop->>TG: 4x iter_download().skip_chunks(n)
+            TG-->>FillLoop: 4x 512KB chunks
+            FillLoop->>FillLoop: write to disk, merge ranges
+            FillLoop->>Server: upsert_entry(updated ranges)
+        end
+    end
+
+    Player->>Server: HTTP GET /stream/{sid} Range: bytes=0-
+    Server->>Server: bounded_response_end: cap to 16MB
+    Server->>Server: DemandRangeReader: read from disk
+    Server-->>Player: HTTP 206: Content-Range bytes 0-16777215/total
+
+    Note over Player,Server: Chrome: no moov in first 16MB → suffix request
+    Player->>Server: HTTP GET /stream/{sid} Range: bytes=-2097152
+    Server->>Server: DemandRangeReader: tail bytes available (tail-fetch wrote them)
+    Server-->>Player: HTTP 206: Content-Range bytes (total-2MB)-(total-1)/total
+    Player->>Player: moov found → decode → instant playback starts
 
     opt User Seeks Video Timeline to Offset 50,000,000
-        Player->>StreamReg: HTTP GET /stream/sid (Range: bytes=50000000-...)
-        StreamReg->>StreamReg: Align Offset to 512KB Boundary (49,807,360)
-        StreamReg->>StreamReg: cancel_progressive(previous_chunk_tasks)
-        StreamReg->>TG: Download New Aligned MTProto Byte Range
-        TG-->>StreamReg: Byte Chunks
-        StreamReg-->>Player: Stream Requested Range Bytes
+        Player->>Server: HTTP GET /stream/{sid} Range: bytes=50000000-
+        Server->>Server: request_progressive_range(sid, 50000000) → align to 49807360
+        FillLoop->>FillLoop: take_seek_request → cursor = 49807360
+        Server->>Server: DemandRangeReader: signal fill-loop once if missing
+        Server-->>Player: HTTP 206: resume from 49807360
     end
 ```
 
 ---
 
-### 6.5 Alur Kerja Sparse Remote ZIP Central Directory Extraction
+### 7.5 Alur Kerja Sparse Remote ZIP Central Directory Extraction
 
 ```mermaid
 sequenceDiagram
@@ -541,7 +765,7 @@ sequenceDiagram
 
 ---
 
-## 7. Spesifikasi Database & Storage (SQLite `app.db` & IndexedDB `mediaStudioDb`)
+## 8. Spesifikasi Database & Storage (SQLite `app.db` & IndexedDB `mediaStudioDb`)
 
 ### A. Tabel SQLite Desktop Offline (`database/schema.sql` & `app.db`)
 
@@ -558,9 +782,37 @@ sequenceDiagram
 | `mime_type` | `TEXT` | `NULLABLE` | Tipe MIME berkas (e.g. `video/mp4`, `image/webp`). | - |
 | `thumb_data` | `TEXT` | `NULLABLE` | Base64 string thumbnail / mini-thumb. | - |
 
+### B. Tabel Stream Registry (In-Memory + Disk JSON)
+
+#### `StreamEntry` (LIVE RwLock HashMap + `{stream_id}.json` di disk)
+| Field | Tipe | Fungsi |
+| :--- | :--- | :--- |
+| `stream_id` | `String` | ID unik stream (format: `g{msg_id}-{ms}-{hash}`) |
+| `path` | `String` | Path absolut file `.partial` di disk |
+| `total_size` | `u64` | Ukuran total file dalam bytes (dari Telegram metadata) |
+| `mime` | `String` | MIME type (e.g. `video/mp4`) |
+| `label` | `String` | Nama file asli (untuk URL path dan recovery) |
+| `done` | `bool` | True jika seluruh file sudah terunduh |
+| `ranges` | `Vec<(u64, u64)>` | Sparse byte ranges yang sudah tersimpan di disk (half-open: `[start, end)`) |
+| `cancelled` | `bool` | True jika stream dibatalkan (trigger DemandRangeReader return 0) |
+| `error` | `Option<String>` | Pesan error fatal jika fill-loop gagal |
+| `paused` | `bool` | True saat stream dijeda; fill-loop idle 100ms/iter |
+| `updated_at_ms` | `u128` | Unix millisecond timestamp terakhir update |
+| `moov_ready_cached` | `bool` | Cache flag: true jika atom `moov` sudah ditemukan; tidak pernah direset oleh fill-loop |
+| `moov_tail_fetching` | `bool` | True selama tail-fetch task berjalan; UI treat moov sebagai ready |
+
+### C. IndexedDB (`mediaStudioDb` & `thumbPersistentCache`)
+
+| Store Name | Key | Value | Fungsi |
+| :--- | :--- | :--- | :--- |
+| `mediaFiles` | `peerId:topicId` | `DriveFile[]` | SWR warm cache berkas media per lokasi |
+| `scrollPositions` | `peerId:topicId` | `number` | Posisi scroll terakhir per lokasi |
+| `thumbnails` | `folderId:messageId` | `string (WebP Base64)` | Cache thumbnail kartu persistent |
+| `previewCache` | `session:chat:msgId` | `Blob` | Memory cache blob file preview |
+
 ---
 
-## 8. Matriks Hubungan & Panggilan Inter-Module (Call Graph Matrix)
+## 9. Matriks Hubungan & Panggilan Inter-Module (Call Graph Matrix)
 
 | Modul Pemanggil (Caller) | Modul Dipanggil (Callee) | Mekanisme Komunikasi | Tujuan & Hasil Interaksi |
 | :--- | :--- | :--- | :--- |
@@ -572,15 +824,19 @@ sequenceDiagram
 | `driveFilesApi.ts` | `telegramBackend.ts` | Async Function Call | Abstraksi API frontend ke Tauri IPC wrapper. |
 | `telegramBackend.ts` | `lib.rs` | Tauri IPC `invoke('tg_*')` | Mengirim serialized JSON payload dari WebView JS ke Rust Core. |
 | `telegram_ops.rs` | `thumbs.rs` | Native Rust Function Call | Memanggil batch thumbnail extraction `thumbs_batch_blocking_app`. |
-| `thumbs.rs` | `special_media_thumb.rs` | Function Call | Mengirim video dokumen tanpa thumbnail ke background queue `mpsc(24)`. |
+| `thumbs.rs` | `special_media_thumb.rs` | `mpsc::channel(24)` Send | Mengirim video dokumen tanpa thumbnail ke background queue. |
 | `special_media_thumb.rs` | `thumbnail_range_bridge.rs` | Tokio Runtime Task Spawn | Menjalankan Seekable Local HTTP Range Bridge untuk FFmpeg. |
 | `special_media_thumb.rs` | `ffmpeg.rs` | Subprocess Command | Ekstraksi frame video dari Local Range Bridge URL. |
-| `MediaVideoPlayer.tsx` | `stream.rs` | HTTP Range Request (`206`) | Progressive video streaming dengan 512KB boundary alignment. |
+| `MediaVideoPlayer.tsx` | `stream.rs` | Tauri IPC `tg_preview_stream` | Mendaftarkan stream baru, menerima stream URL & SharedPreviewFlight. |
+| `stream.rs` | `stream_server.rs` | Direct Rust Call | `upsert_entry()`, `get_entry()`, `merge_ranges()`, `status_of()`. |
+| `stream.rs` | `session_rate.rs` | Direct Rust Call | `acquire_preview_slot()`, `wait_if_flooded_capped()`, `track_stream()`, `cancel_streams()`. |
+| `stream_server.rs` | `stream.rs` | Direct Rust Call | `request_progressive_range()` dari DemandRangeReader saat bytes belum tersedia. |
+| `HTML5 Video Player` | `stream_server.rs` | HTTP Range Request (`206`) | Progressive video streaming: `DemandRangeReader` + `bounded_response_end()`. |
 | `DriveZipBrowser.tsx` | `driveStreamZipApi.ts` | Async API Call | Membaca Central Directory ZIP remote & ekstraksi berkas tunggal. |
 
 ---
 
-## 9. Standar Agent Governance & Ekosistem Skill Pack
+## 10. Standar Agent Governance & Ekosistem Skill Pack
 
 ### A. Mandat Otonomi Agent (End-to-End Problem Solver)
 Seluruh pengerjaan fitur, refactoring, dan perbaikan bug wajib mengikuti standar eksekutor otonom cerdas:
@@ -594,4 +850,4 @@ Matriks 16 Skill spesialisasi aktif yang wajib dikonsumsi Agent dalam siklus pen
 
 ---
 
-*Dokumen master ini disahkan sebagai pedoman teknis utama definitif v2.7.1 paling lengkap, komprehensif, mencakup 100% seluruh berkas proyek, 12 Detail Mikro Teknis Berdampak Besar, 10 Kategori Fitur Utama, 16 Skill Pack, Standar Agent, 5 Diagram Sequence Mermaid, Operational Workflows, Pipeline Thumbnail Tier 1–5, Special Media Background Engine, Progressive Stream 512KB Seek Bridge, Zip Remote Browser, dan Matriks Perbandingan Detail Per Versi AutoGram App.*
+*Dokumen master ini disahkan sebagai pedoman teknis utama definitif v2.7.1 paling lengkap, komprehensif, mencakup 100% seluruh berkas proyek, 16 Detail Mikro Teknis Berdampak Besar, Spesifikasi Buffer/Stream/Seek/moov Engine lengkap (boot phase, tail-fetch, fill-loop, DemandRangeReader, SharedPreviewFlight, bounded 16MB cap, 512KB alignment), 10 Kategori Fitur Utama, 16 Skill Pack, Standar Agent, 5 Diagram Sequence Mermaid, Operational Workflows, Pipeline Thumbnail Tier 1–5, Special Media Background Engine, Progressive Stream 512KB Seek Bridge, Zip Remote Browser, Matriks Perbandingan Detail Per Versi, dan Tabel Konstanta Kritis AutoGram App.*
