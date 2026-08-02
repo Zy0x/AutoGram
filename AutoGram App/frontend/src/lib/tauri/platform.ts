@@ -27,6 +27,9 @@ export function detectTauriRuntime(): boolean {
   } catch {
     /* fall through to the IPC marker */
   }
+  if (typeof localStorage !== 'undefined' && (localStorage.getItem('AUTOGRAM_FORCE_RUNTIME') === 'desktop' || localStorage.getItem('forceDesktop') === 'true')) {
+    return true;
+  }
   const root = globalThis as typeof globalThis & {
     __TAURI_INTERNALS__?: { invoke?: unknown };
   };

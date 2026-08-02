@@ -1,0 +1,285 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/Jobs/Modals/JobDetailsModal.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a6508b91"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+import i18n from "/node_modules/.vite/deps/i18next.js?v=a6508b91";
+import __vite__cjsImport4_reactDom from "/node_modules/.vite/deps/react-dom.js?v=a6508b91"; const createPortal = __vite__cjsImport4_reactDom["createPortal"];
+import { X, Settings, Database, Filter, Sliders, Shield } from "/node_modules/.vite/deps/lucide-react.js?v=a6508b91";
+export function JobDetailsModal({ job, fallbackTriggered, onClose }) {
+  let config = {};
+  try {
+    if (typeof job.config_json === "string") {
+      config = JSON.parse(job.config_json);
+    } else if (typeof job.config_json === "object") {
+      config = job.config_json;
+    }
+  } catch (e) {
+    console.error("Failed to parse config_json", e);
+  }
+  const DetailItem = ({ label, value }) => /* @__PURE__ */ jsxDEV("div", { className: "detail-item-row", children: [
+    /* @__PURE__ */ jsxDEV("span", { className: "detail-item-label", children: label }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+      lineNumber: 44,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("span", { className: "detail-item-value", children: value === null || value === void 0 || value === "" ? "-" : typeof value === "string" || typeof value === "number" ? String(value) : value }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+      lineNumber: 45,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+    lineNumber: 43,
+    columnNumber: 3
+  }, this);
+  const node = /* @__PURE__ */ jsxDEV("div", { className: "modal-overlay", style: { zIndex: 1100 }, onClick: onClose, role: "presentation", children: /* @__PURE__ */ jsxDEV("div", { className: "modal-panel glass-panel", style: { display: "flex", flexDirection: "column", maxHeight: "min(90dvh, 90vh)" }, onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "modal-header", children: [
+      /* @__PURE__ */ jsxDEV("h3", { style: { margin: 0, color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flexWrap: "wrap" }, children: [
+        /* @__PURE__ */ jsxDEV(Settings, { size: 20, color: "var(--primary)", style: { flexShrink: 0 } }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 56,
+          columnNumber: 13
+        }, this),
+        "Job Configuration Details"
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 55,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: onClose, className: "btn-tertiary", "aria-label": "Close", children: /* @__PURE__ */ jsxDEV(X, { size: 20 }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 60,
+        columnNumber: 13
+      }, this) }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 59,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+      lineNumber: 54,
+      columnNumber: 9
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "modal-body", style: { padding: "clamp(1rem, 3vw, 1.5rem)" }, children: [
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "24px" }, children: [
+        /* @__PURE__ */ jsxDEV("h4", { style: { color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px", margin: "0 0 12px 0" }, children: [
+          /* @__PURE__ */ jsxDEV(Database, { size: 16 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 67,
+            columnNumber: 15
+          }, this),
+          " General Info"
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 66,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { background: "rgba(255,255,255,0.02)", padding: "0 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }, children: [
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Job ID", value: job.id }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 70,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Job Name", value: job.job_name }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 71,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Profile / Session", value: job.profile_name || config.session }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 72,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Mode", value: fallbackTriggered ? /* @__PURE__ */ jsxDEV("span", { style: { color: "var(--warning)", display: "flex", alignItems: "center", gap: "4px" }, title: i18n.t("jobs.chat_restrictions_fallback"), children: [
+            /* @__PURE__ */ jsxDEV(Shield, { size: 14 }, void 0, false, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+              lineNumber: 75,
+              columnNumber: 156
+            }, this),
+            " ",
+            i18n.t("jobs.fallback_clean_copy_label")
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 75,
+            columnNumber: 13
+          }, this) : job.transfer_mode || config.mode }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 73,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Created At", value: job.created_at }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 78,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 69,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 65,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "24px" }, children: [
+        /* @__PURE__ */ jsxDEV("h4", { style: { color: "var(--success)", display: "flex", alignItems: "center", gap: "6px", margin: "0 0 12px 0" }, children: [
+          /* @__PURE__ */ jsxDEV(Sliders, { size: 16 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 84,
+            columnNumber: 15
+          }, this),
+          " Transfer Settings"
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 83,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { background: "rgba(255,255,255,0.02)", padding: "0 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }, children: [
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Fetch Direction", value: config.fetchDirection || config.fetch_direction || "Newest First" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 87,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Limit", value: config.limit === 0 ? "Unlimited" : config.limit }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 88,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Duplicate Action", value: config.dupAction || config.duplicate_action || "Skip" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 89,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Delay Range (Seconds)", value: `${config.delayMin || config.delay_min || 2} - ${config.delayMax || config.delay_max || 5}` }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 90,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Album Handling", value: config.albumHandling || config.album_handling || "Follow Source" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 91,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Auto Fallback", value: config.autoFallback !== false ? "Enabled" : "Disabled" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 92,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 86,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 82,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { style: { marginBottom: "24px" }, children: [
+        /* @__PURE__ */ jsxDEV("h4", { style: { color: "var(--warning)", display: "flex", alignItems: "center", gap: "6px", margin: "0 0 12px 0" }, children: [
+          /* @__PURE__ */ jsxDEV(Filter, { size: 16 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 98,
+            columnNumber: 15
+          }, this),
+          " Filters & Rules"
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 97,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { style: { background: "rgba(255,255,255,0.02)", padding: "0 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }, children: [
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Media Type", value: config.media || config.media_filter || "All" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 101,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Min Size (MB)", value: config.size_min || config.size_min_mb || 0 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 102,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Max Size (MB)", value: config.size_max || config.size_max_mb || "Unlimited" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 103,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(DetailItem, { label: "Caption Rule", value: config.captionRule || config.caption_rule || "Keep Original" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 104,
+            columnNumber: 15
+          }, this),
+          config.customCaption && /* @__PURE__ */ jsxDEV(DetailItem, { label: "Custom Caption", value: config.customCaption }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 105,
+            columnNumber: 40
+          }, this),
+          (config.startDate || config.start_date) && /* @__PURE__ */ jsxDEV(DetailItem, { label: "Start Date", value: config.startDate || config.start_date }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 106,
+            columnNumber: 59
+          }, this),
+          (config.endDate || config.end_date) && /* @__PURE__ */ jsxDEV(DetailItem, { label: "End Date", value: config.endDate || config.end_date }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+            lineNumber: 107,
+            columnNumber: 55
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+          lineNumber: 100,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+        lineNumber: 96,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+      lineNumber: 64,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+    lineNumber: 53,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx",
+    lineNumber: 52,
+    columnNumber: 3
+  }, this);
+  if (typeof document === "undefined") return null;
+  return createPortal(node, document.body);
+}
+_c = JobDetailsModal;
+var _c;
+$RefreshReg$(_c, "JobDetailsModal");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("F:/AutoGram/AutoGram App/frontend/src/components/Jobs/Modals/JobDetailsModal.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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aUJBQTRFO0FBQUEsV0FDdEg1RCxPQUFPNkQsV0FBVzdELE9BQU84RCxhQUFhLHVCQUFDLGNBQVcsT0FBTSxZQUFXLE9BQU85RCxPQUFPNkQsV0FBVzdELE9BQU84RCxZQUE3RDtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFzRTtBQUFBLGFBUGhIO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFRQTtBQUFBLFdBWkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQWFBO0FBQUEsU0E3Q0Y7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQStDQTtBQUFBLE9BMURGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0EyREEsS0E1REY7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQTZEQTtBQUdGLE1BQUksT0FBT0MsYUFBYSxZQUFhLFFBQU87QUFDNUMsU0FBTzFFLGFBQWF1QixNQUFNbUQsU0FBU0MsSUFBSTtBQUN6QztBQUFDQyxLQXhGZXJFO0FBQWUsSUFBQXFFO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbImkxOG4iLCJjcmVhdGVQb3J0YWwiLCJYIiwiU2V0dGluZ3MiLCJEYXRhYmFzZSIsIkZpbHRlciIsIlNsaWRlcnMiLCJTaGllbGQiLCJKb2JEZXRhaWxzTW9kYWwiLCJqb2IiLCJmYWxsYmFja1RyaWdnZXJlZCIsIm9uQ2xvc2UiLCJjb25maWciLCJjb25maWdfanNvbiIsIkpTT04iLCJwYXJzZSIsImUiLCJjb25zb2xlIiwiZXJyb3IiLCJEZXRhaWxJdGVtIiwibGFiZWwiLCJ2YWx1ZSIsInVuZGVmaW5lZCIsIlN0cmluZyIsIm5vZGUiLCJ6SW5kZXgiLCJkaXNwbGF5IiwiZmxleERpcmVjdGlvbiIsIm1heEhlaWdodCIsInN0b3BQcm9wYWdhdGlvbiIsIm1hcmdpbiIsImNvbG9yIiwiYWxpZ25JdGVtcyIsImdhcCIsIm1pbldpZHRoIiwiZmxleFdyYXAiLCJmbGV4U2hyaW5rIiwicGFkZGluZyIsIm1hcmdpbkJvdHRvbSIsImJhY2tncm91bmQiLCJib3JkZXJSYWRpdXMiLCJib3JkZXIiLCJpZCIsImpvYl9uYW1lIiwicHJvZmlsZV9uYW1lIiwic2Vzc2lvbiIsInQiLCJ0cmFuc2Zlcl9tb2RlIiwibW9kZSIsImNyZWF0ZWRfYXQiLCJmZXRjaERpcmVjdGlvbiIsImZldGNoX2RpcmVjdGlvbiIsImxpbWl0IiwiZHVwQWN0aW9uIiwiZHVwbGljYXRlX2FjdGlvbiIsImRlbGF5TWluIiwiZGVsYXlfbWluIiwiZGVsYXlNYXgiLCJkZWxheV9tYXgiLCJhbGJ1bUhhbmRsaW5nIiwiYWxidW1faGFuZGxpbmciLCJhdXRvRmFsbGJhY2siLCJtZWRpYSIsIm1lZGlhX2ZpbHRlciIsInNpemVfbWluIiwic2l6ZV9taW5fbWIiLCJzaXplX21heCIsInNpemVfbWF4X21iIiwiY2FwdGlvblJ1bGUiLCJjYXB0aW9uX3J1bGUiLCJjdXN0b21DYXB0aW9uIiwic3RhcnREYXRlIiwic3RhcnRfZGF0ZSIsImVuZERhdGUiLCJlbmRfZGF0ZSIsImRvY3VtZW50IiwiYm9keSIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIkpvYkRldGFpbHNNb2RhbC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGkxOG4gZnJvbSAnaTE4bmV4dCc7XG5pbXBvcnQgeyBjcmVhdGVQb3J0YWwgfSBmcm9tICdyZWFjdC1kb20nO1xyXG5pbXBvcnQgeyBYLCBTZXR0aW5ncywgRGF0YWJhc2UsIEZpbHRlciwgU2xpZGVycywgU2hpZWxkIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcclxuXHJcbmludGVyZmFjZSBKb2JEZXRhaWxzTW9kYWxQcm9wcyB7XHJcbiAgam9iOiBhbnk7XHJcbiAgZmFsbGJhY2tUcmlnZ2VyZWQ/OiBib29sZWFuO1xyXG4gIG9uQ2xvc2U6ICgpID0+IHZvaWQ7XHJcbn1cclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBKb2JEZXRhaWxzTW9kYWwoeyBqb2IsIGZhbGxiYWNrVHJpZ2dlcmVkLCBvbkNsb3NlIH06IEpvYkRldGFpbHNNb2RhbFByb3BzKSB7XHJcbiAgbGV0IGNvbmZpZzogYW55ID0ge307XHJcbiAgdHJ5IHtcclxuICAgIGlmICh0eXBlb2Ygam9iLmNvbmZpZ19qc29uID09PSAnc3RyaW5nJykge1xyXG4gICAgICBjb25maWcgPSBKU09OLnBhcnNlKGpvYi5jb25maWdfanNvbik7XHJcbiAgICB9IGVsc2UgaWYgKHR5cGVvZiBqb2IuY29uZmlnX2pzb24gPT09ICdvYmplY3QnKSB7XHJcbiAgICAgIGNvbmZpZyA9IGpvYi5jb25maWdfanNvbjtcclxuICAgIH1cclxuICB9IGNhdGNoIChlKSB7XHJcbiAgICBjb25zb2xlLmVycm9yKFwiRmFpbGVkIHRvIHBhcnNlIGNvbmZpZ19qc29uXCIsIGUpO1xyXG4gIH1cclxuXHJcbiAgY29uc3QgRGV0YWlsSXRlbSA9ICh7IGxhYmVsLCB2YWx1ZSB9OiB7IGxhYmVsOiBzdHJpbmcsIHZhbHVlOiBhbnkgfSkgPT4gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJkZXRhaWwtaXRlbS1yb3dcIj5cclxuICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiZGV0YWlsLWl0ZW0tbGFiZWxcIj57bGFiZWx9PC9zcGFuPlxyXG4gICAgICA8c3BhbiBjbGFzc05hbWU9XCJkZXRhaWwtaXRlbS12YWx1ZVwiPlxyXG4gICAgICAgIHt2YWx1ZSA9PT0gbnVsbCB8fCB2YWx1ZSA9PT0gdW5kZWZpbmVkIHx8IHZhbHVlID09PSAnJyA/ICctJyA6ICh0eXBlb2YgdmFsdWUgPT09ICdzdHJpbmcnIHx8IHR5cGVvZiB2YWx1ZSA9PT0gJ251bWJlcicgPyBTdHJpbmcodmFsdWUpIDogdmFsdWUpfVxyXG4gICAgICA8L3NwYW4+XHJcbiAgICA8L2Rpdj5cclxuICApO1xyXG5cclxuICBjb25zdCBub2RlID0gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJtb2RhbC1vdmVybGF5XCIgc3R5bGU9e3sgekluZGV4OiAxMTAwIH19IG9uQ2xpY2s9e29uQ2xvc2V9IHJvbGU9XCJwcmVzZW50YXRpb25cIj5cclxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJtb2RhbC1wYW5lbCBnbGFzcy1wYW5lbFwiIHN0eWxlPXt7IGRpc3BsYXk6ICdmbGV4JywgZmxleERpcmVjdGlvbjogJ2NvbHVtbicsIG1heEhlaWdodDogJ21pbig5MGR2aCwgOTB2aCknIH19IG9uQ2xpY2s9eyhlKSA9PiBlLnN0b3BQcm9wYWdhdGlvbigpfSByb2xlPVwiZGlhbG9nXCIgYXJpYS1tb2RhbD1cInRydWVcIj5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cIm1vZGFsLWhlYWRlclwiPlxyXG4gICAgICAgICAgPGgzIHN0eWxlPXt7IG1hcmdpbjogMCwgY29sb3I6ICd2YXIoLS10ZXh0LW1haW4pJywgZGlzcGxheTogJ2ZsZXgnLCBhbGlnbkl0ZW1zOiAnY2VudGVyJywgZ2FwOiAnOHB4JywgbWluV2lkdGg6IDAsIGZsZXhXcmFwOiAnd3JhcCcgfX0+XHJcbiAgICAgICAgICAgIDxTZXR0aW5ncyBzaXplPXsyMH0gY29sb3I9XCJ2YXIoLS1wcmltYXJ5KVwiIHN0eWxlPXt7IGZsZXhTaHJpbms6IDAgfX0gLz5cclxuICAgICAgICAgICAgSm9iIENvbmZpZ3VyYXRpb24gRGV0YWlsc1xyXG4gICAgICAgICAgPC9oMz5cclxuICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9e29uQ2xvc2V9IGNsYXNzTmFtZT1cImJ0bi10ZXJ0aWFyeVwiIGFyaWEtbGFiZWw9XCJDbG9zZVwiPlxyXG4gICAgICAgICAgICA8WCBzaXplPXsyMH0gLz5cclxuICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICAgIFxyXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwibW9kYWwtYm9keVwiIHN0eWxlPXt7IHBhZGRpbmc6ICdjbGFtcCgxcmVtLCAzdncsIDEuNXJlbSknIH19PlxyXG4gICAgICAgICAgPGRpdiBzdHlsZT17eyBtYXJnaW5Cb3R0b206ICcyNHB4JyB9fT5cclxuICAgICAgICAgICAgPGg0IHN0eWxlPXt7IGNvbG9yOiAndmFyKC0tcHJpbWFyeSknLCBkaXNwbGF5OiAnZmxleCcsIGFsaWduSXRlbXM6ICdjZW50ZXInLCBnYXA6ICc2cHgnLCBtYXJnaW46ICcwIDAgMTJweCAwJyB9fT5cclxuICAgICAgICAgICAgICA8RGF0YWJhc2Ugc2l6ZT17MTZ9IC8+IEdlbmVyYWwgSW5mb1xyXG4gICAgICAgICAgICA8L2g0PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGJhY2tncm91bmQ6ICdyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpJywgcGFkZGluZzogJzAgMTZweCcsIGJvcmRlclJhZGl1czogJzhweCcsIGJvcmRlcjogJzFweCBzb2xpZCByZ2JhKDI1NSwyNTUsMjU1LDAuMDUpJyB9fT5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIkpvYiBJRFwiIHZhbHVlPXtqb2IuaWR9IC8+XHJcbiAgICAgICAgICAgICAgPERldGFpbEl0ZW0gbGFiZWw9XCJKb2IgTmFtZVwiIHZhbHVlPXtqb2Iuam9iX25hbWV9IC8+XHJcbiAgICAgICAgICAgICAgPERldGFpbEl0ZW0gbGFiZWw9XCJQcm9maWxlIC8gU2Vzc2lvblwiIHZhbHVlPXtqb2IucHJvZmlsZV9uYW1lIHx8IGNvbmZpZy5zZXNzaW9ufSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiTW9kZVwiIHZhbHVlPXtcclxuICAgICAgICAgICAgICAgIGZhbGxiYWNrVHJpZ2dlcmVkIFxyXG4gICAgICAgICAgICAgICAgICA/IDxzcGFuIHN0eWxlPXt7IGNvbG9yOiAndmFyKC0td2FybmluZyknLCBkaXNwbGF5OiAnZmxleCcsIGFsaWduSXRlbXM6ICdjZW50ZXInLCBnYXA6ICc0cHgnIH19IHRpdGxlPXtpMThuLnQoXCJqb2JzLmNoYXRfcmVzdHJpY3Rpb25zX2ZhbGxiYWNrXCIpfT48U2hpZWxkIHNpemU9ezE0fSAvPiB7aTE4bi50KFwiam9icy5mYWxsYmFja19jbGVhbl9jb3B5X2xhYmVsXCIpfTwvc3Bhbj5cclxuICAgICAgICAgICAgICAgICAgOiAoam9iLnRyYW5zZmVyX21vZGUgfHwgY29uZmlnLm1vZGUpXHJcbiAgICAgICAgICAgICAgfSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiQ3JlYXRlZCBBdFwiIHZhbHVlPXtqb2IuY3JlYXRlZF9hdH0gLz5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICA8ZGl2IHN0eWxlPXt7IG1hcmdpbkJvdHRvbTogJzI0cHgnIH19PlxyXG4gICAgICAgICAgICA8aDQgc3R5bGU9e3sgY29sb3I6ICd2YXIoLS1zdWNjZXNzKScsIGRpc3BsYXk6ICdmbGV4JywgYWxpZ25JdGVtczogJ2NlbnRlcicsIGdhcDogJzZweCcsIG1hcmdpbjogJzAgMCAxMnB4IDAnIH19PlxyXG4gICAgICAgICAgICAgIDxTbGlkZXJzIHNpemU9ezE2fSAvPiBUcmFuc2ZlciBTZXR0aW5nc1xyXG4gICAgICAgICAgICA8L2g0PlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXt7IGJhY2tncm91bmQ6ICdyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpJywgcGFkZGluZzogJzAgMTZweCcsIGJvcmRlclJhZGl1czogJzhweCcsIGJvcmRlcjogJzFweCBzb2xpZCByZ2JhKDI1NSwyNTUsMjU1LDAuMDUpJyB9fT5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIkZldGNoIERpcmVjdGlvblwiIHZhbHVlPXtjb25maWcuZmV0Y2hEaXJlY3Rpb24gfHwgY29uZmlnLmZldGNoX2RpcmVjdGlvbiB8fCAnTmV3ZXN0IEZpcnN0J30gLz5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIkxpbWl0XCIgdmFsdWU9e2NvbmZpZy5saW1pdCA9PT0gMCA/ICdVbmxpbWl0ZWQnIDogY29uZmlnLmxpbWl0fSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiRHVwbGljYXRlIEFjdGlvblwiIHZhbHVlPXtjb25maWcuZHVwQWN0aW9uIHx8IGNvbmZpZy5kdXBsaWNhdGVfYWN0aW9uIHx8ICdTa2lwJ30gLz5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIkRlbGF5IFJhbmdlIChTZWNvbmRzKVwiIHZhbHVlPXtgJHtjb25maWcuZGVsYXlNaW4gfHwgY29uZmlnLmRlbGF5X21pbiB8fCAyfSAtICR7Y29uZmlnLmRlbGF5TWF4IHx8IGNvbmZpZy5kZWxheV9tYXggfHwgNX1gfSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiQWxidW0gSGFuZGxpbmdcIiB2YWx1ZT17Y29uZmlnLmFsYnVtSGFuZGxpbmcgfHwgY29uZmlnLmFsYnVtX2hhbmRsaW5nIHx8ICdGb2xsb3cgU291cmNlJ30gLz5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIkF1dG8gRmFsbGJhY2tcIiB2YWx1ZT17Y29uZmlnLmF1dG9GYWxsYmFjayAhPT0gZmFsc2UgPyAnRW5hYmxlZCcgOiAnRGlzYWJsZWQnfSAvPlxyXG4gICAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgIDxkaXYgc3R5bGU9e3sgbWFyZ2luQm90dG9tOiAnMjRweCcgfX0+XHJcbiAgICAgICAgICAgIDxoNCBzdHlsZT17eyBjb2xvcjogJ3ZhcigtLXdhcm5pbmcpJywgZGlzcGxheTogJ2ZsZXgnLCBhbGlnbkl0ZW1zOiAnY2VudGVyJywgZ2FwOiAnNnB4JywgbWFyZ2luOiAnMCAwIDEycHggMCcgfX0+XHJcbiAgICAgICAgICAgICAgPEZpbHRlciBzaXplPXsxNn0gLz4gRmlsdGVycyAmIFJ1bGVzXHJcbiAgICAgICAgICAgIDwvaDQ+XHJcbiAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgYmFja2dyb3VuZDogJ3JnYmEoMjU1LDI1NSwyNTUsMC4wMiknLCBwYWRkaW5nOiAnMCAxNnB4JywgYm9yZGVyUmFkaXVzOiAnOHB4JywgYm9yZGVyOiAnMXB4IHNvbGlkIHJnYmEoMjU1LDI1NSwyNTUsMC4wNSknIH19PlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiTWVkaWEgVHlwZVwiIHZhbHVlPXtjb25maWcubWVkaWEgfHwgY29uZmlnLm1lZGlhX2ZpbHRlciB8fCAnQWxsJ30gLz5cclxuICAgICAgICAgICAgICA8RGV0YWlsSXRlbSBsYWJlbD1cIk1pbiBTaXplIChNQilcIiB2YWx1ZT17Y29uZmlnLnNpemVfbWluIHx8IGNvbmZpZy5zaXplX21pbl9tYiB8fCAwfSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiTWF4IFNpemUgKE1CKVwiIHZhbHVlPXtjb25maWcuc2l6ZV9tYXggfHwgY29uZmlnLnNpemVfbWF4X21iIHx8ICdVbmxpbWl0ZWQnfSAvPlxyXG4gICAgICAgICAgICAgIDxEZXRhaWxJdGVtIGxhYmVsPVwiQ2FwdGlvbiBSdWxlXCIgdmFsdWU9e2NvbmZpZy5jYXB0aW9uUnVsZSB8fCBjb25maWcuY2FwdGlvbl9ydWxlIHx8ICdLZWVwIE9yaWdpbmFsJ30gLz5cclxuICAgICAgICAgICAgICB7Y29uZmlnLmN1c3RvbUNhcHRpb24gJiYgPERldGFpbEl0ZW0gbGFiZWw9XCJDdXN0b20gQ2FwdGlvblwiIHZhbHVlPXtjb25maWcuY3VzdG9tQ2FwdGlvbn0gLz59XHJcbiAgICAgICAgICAgICAgeyhjb25maWcuc3RhcnREYXRlIHx8IGNvbmZpZy5zdGFydF9kYXRlKSAmJiA8RGV0YWlsSXRlbSBsYWJlbD1cIlN0YXJ0IERhdGVcIiB2YWx1ZT17Y29uZmlnLnN0YXJ0RGF0ZSB8fCBjb25maWcuc3RhcnRfZGF0ZX0gLz59XHJcbiAgICAgICAgICAgICAgeyhjb25maWcuZW5kRGF0ZSB8fCBjb25maWcuZW5kX2RhdGUpICYmIDxEZXRhaWxJdGVtIGxhYmVsPVwiRW5kIERhdGVcIiB2YWx1ZT17Y29uZmlnLmVuZERhdGUgfHwgY29uZmlnLmVuZF9kYXRlfSAvPn1cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIFxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICA8L2Rpdj5cclxuICAgIDwvZGl2PlxyXG4gICk7XHJcblxyXG4gIGlmICh0eXBlb2YgZG9jdW1lbnQgPT09ICd1bmRlZmluZWQnKSByZXR1cm4gbnVsbDtcclxuICByZXR1cm4gY3JlYXRlUG9ydGFsKG5vZGUsIGRvY3VtZW50LmJvZHkpO1xyXG59XHJcbiJdLCJmaWxlIjoiRjovQXV0b0dyYW0vQXV0b0dyYW0gQXBwL2Zyb250ZW5kL3NyYy9jb21wb25lbnRzL0pvYnMvTW9kYWxzL0pvYkRldGFpbHNNb2RhbC50c3gifQ==

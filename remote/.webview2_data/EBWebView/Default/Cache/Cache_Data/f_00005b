@@ -1,0 +1,366 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a6508b91"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import { useTranslation } from "/node_modules/.vite/deps/react-i18next.js?v=a6508b91";
+import {
+  Search,
+  Download,
+  Lock,
+  Unlock,
+  FileText,
+  Image as ImageIcon,
+  Film,
+  File,
+  ChevronLeft,
+  ChevronRight,
+  FolderInput,
+  X,
+  Archive,
+  CornerUpLeft
+} from "/node_modules/.vite/deps/lucide-react.js?v=a6508b91";
+export const ZipHeaderToolbar = ({
+  archiveName,
+  searchQuery,
+  onSearchChange,
+  category,
+  onCategoryChange,
+  isPasswordProtected,
+  onExtractSelected,
+  selectedCount,
+  onDownloadZip,
+  hasPrev,
+  hasNext,
+  onPrev,
+  onNext,
+  nestedDepth = 0,
+  onBackNested
+}) => {
+  _s();
+  const { t } = useTranslation();
+  const categories = [
+    { id: "all", label: t("speedtest.zip_cat_all"), icon: /* @__PURE__ */ jsxDEV(File, { size: 14 }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 78,
+      columnNumber: 57
+    }, this) },
+    { id: "image", label: t("speedtest.zip_cat_image"), icon: /* @__PURE__ */ jsxDEV(ImageIcon, { size: 14 }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 79,
+      columnNumber: 61
+    }, this) },
+    { id: "media", label: t("speedtest.zip_cat_media"), icon: /* @__PURE__ */ jsxDEV(Film, { size: 14 }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 80,
+      columnNumber: 61
+    }, this) },
+    { id: "doc", label: t("speedtest.zip_cat_doc"), icon: /* @__PURE__ */ jsxDEV(FileText, { size: 14 }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 81,
+      columnNumber: 57
+    }, this) },
+    { id: "archive", label: t("speedtest.zip_cat_archive"), icon: /* @__PURE__ */ jsxDEV(Archive, { size: 14 }, void 0, false, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 82,
+      columnNumber: 65
+    }, this) }
+  ];
+  return /* @__PURE__ */ jsxDEV("header", { className: "dzb-toolbar", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "dzb-toolbar-top", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-title-group", children: [
+        (onPrev || onNext) && /* @__PURE__ */ jsxDEV("div", { className: "dzb-nav-group", children: [
+          onPrev && /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: onPrev,
+              disabled: !hasPrev,
+              className: "dzb-nav-btn",
+              title: t("speedtest.zip_previous_archive"),
+              children: /* @__PURE__ */ jsxDEV(ChevronLeft, { size: 18 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 100,
+                columnNumber: 19
+              }, this)
+            },
+            void 0,
+            false,
+            {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+              lineNumber: 93,
+              columnNumber: 13
+            },
+            this
+          ),
+          onNext && /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              onClick: onNext,
+              disabled: !hasNext,
+              className: "dzb-nav-btn",
+              title: t("speedtest.zip_next_archive"),
+              children: /* @__PURE__ */ jsxDEV(ChevronRight, { size: 18 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 111,
+                columnNumber: 19
+              }, this)
+            },
+            void 0,
+            false,
+            {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+              lineNumber: 104,
+              columnNumber: 13
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 91,
+          columnNumber: 11
+        }, this),
+        onBackNested && /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: onBackNested, className: "dzb-nav-btn", title: t("speedtest.zip_back_parent"), children: /* @__PURE__ */ jsxDEV(CornerUpLeft, { size: 17 }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 119,
+          columnNumber: 15
+        }, this) }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 118,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("h4", { className: "dzb-archive-name", title: archiveName || t("speedtest.zip_archive_explorer"), children: archiveName || t("speedtest.zip_archive_explorer") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 123,
+          columnNumber: 11
+        }, this),
+        nestedDepth > 0 && /* @__PURE__ */ jsxDEV("span", { className: "dzb-depth-badge", children: t("speedtest.zip_nested_depth", { count: nestedDepth }) }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 127,
+          columnNumber: 31
+        }, this),
+        isPasswordProtected ? /* @__PURE__ */ jsxDEV("span", { className: "dzb-badge-protected", children: [
+          /* @__PURE__ */ jsxDEV(Lock, { size: 12 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 131,
+            columnNumber: 15
+          }, this),
+          " ",
+          t("speedtest.zip_protected")
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 130,
+          columnNumber: 11
+        }, this) : /* @__PURE__ */ jsxDEV("span", { className: "dzb-badge-unlocked", children: [
+          /* @__PURE__ */ jsxDEV(Unlock, { size: 12 }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 135,
+            columnNumber: 15
+          }, this),
+          " ",
+          t("speedtest.zip_unlocked")
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 134,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+        lineNumber: 89,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-action-group", children: [
+        selectedCount > 0 && /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            onClick: onExtractSelected,
+            className: "dzb-btn-primary",
+            children: [
+              /* @__PURE__ */ jsxDEV(FolderInput, { size: 16 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 148,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: t("speedtest.zip_extract_count", { count: selectedCount }) }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 149,
+                columnNumber: 15
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 143,
+            columnNumber: 11
+          },
+          this
+        ),
+        onDownloadZip && /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            onClick: onDownloadZip,
+            className: "dzb-btn-secondary",
+            children: [
+              /* @__PURE__ */ jsxDEV(Download, { size: 16 }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 159,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: t("speedtest.zip_save_archive") }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 160,
+                columnNumber: 15
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 154,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+        lineNumber: 141,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 88,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "dzb-toolbar-controls", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-search-box", children: [
+        /* @__PURE__ */ jsxDEV(Search, { className: "dzb-search-icon", size: 16 }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+          lineNumber: 169,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            type: "text",
+            value: searchQuery,
+            onChange: (e) => onSearchChange(e.target.value),
+            placeholder: t("speedtest.ph_search_zip"),
+            className: "dzb-search-input"
+          },
+          void 0,
+          false,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 170,
+            columnNumber: 11
+          },
+          this
+        ),
+        searchQuery && /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            onClick: () => onSearchChange(""),
+            className: "dzb-search-clear",
+            title: t("speedtest.zip_clear_search"),
+            children: /* @__PURE__ */ jsxDEV(X, { size: 14 }, void 0, false, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+              lineNumber: 184,
+              columnNumber: 15
+            }, this)
+          },
+          void 0,
+          false,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 178,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+        lineNumber: 168,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "dzb-categories", children: categories.map(
+        (c) => /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            onClick: () => onCategoryChange(c.id),
+            className: `dzb-cat-tab ${category === c.id ? "active" : ""}`,
+            children: [
+              c.icon,
+              /* @__PURE__ */ jsxDEV("span", { children: c.label }, void 0, false, {
+                fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+                lineNumber: 198,
+                columnNumber: 15
+              }, this)
+            ]
+          },
+          c.id,
+          true,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+            lineNumber: 191,
+            columnNumber: 11
+          },
+          this
+        )
+      ) }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+        lineNumber: 189,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+      lineNumber: 167,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx",
+    lineNumber: 86,
+    columnNumber: 5
+  }, this);
+};
+_s(ZipHeaderToolbar, "zlIdU9EjM2llFt74AbE2KsUJXyM=", false, function() {
+  return [useTranslation];
+});
+_c = ZipHeaderToolbar;
+var _c;
+$RefreshReg$(_c, "ZipHeaderToolbar");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("F:/AutoGram/AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUEsWUFDaEMsV0FBVTtBQUFBLFlBQ1YsT0FBT2MsRUFBRSw0QkFBNEI7QUFBQSxZQUVyQyxpQ0FBQyxLQUFFLE1BQU0sTUFBVDtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFZO0FBQUE7QUFBQSxVQU5kO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQU9BO0FBQUEsV0FqQko7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQW1CQTtBQUFBLE1BRUEsdUJBQUMsU0FBSSxXQUFVLGtCQUNaQyxxQkFBV1E7QUFBQUEsUUFBSSxDQUFDQyxNQUNmO0FBQUEsVUFBQztBQUFBO0FBQUEsWUFFQyxNQUFLO0FBQUEsWUFDTCxTQUFTLE1BQU10QixpQkFBaUJzQixFQUFFUixFQUFFO0FBQUEsWUFDcEMsV0FBVyxlQUFlZixhQUFhdUIsRUFBRVIsS0FBSyxXQUFXLEVBQUU7QUFBQSxZQUUxRFE7QUFBQUEsZ0JBQUVOO0FBQUFBLGNBQ0gsdUJBQUMsVUFBTU0sWUFBRVAsU0FBVDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFlO0FBQUE7QUFBQTtBQUFBLFVBTlZPLEVBQUVSO0FBQUFBLFVBRFQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQVFBO0FBQUEsTUFDRCxLQVhIO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFZQTtBQUFBLFNBbENGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FtQ0E7QUFBQSxPQXBIRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBcUhBO0FBRUo7QUFBRUgsR0FuSldoQixrQkFBaUQ7QUFBQSxVQWlCOUNoQixjQUFjO0FBQUE7QUFBQSxLQWpCakJnQjtBQUFpRCxJQUFBNEI7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlVHJhbnNsYXRpb24iLCJTZWFyY2giLCJEb3dubG9hZCIsIkxvY2siLCJVbmxvY2siLCJGaWxlVGV4dCIsIkltYWdlIiwiSW1hZ2VJY29uIiwiRmlsbSIsIkZpbGUiLCJDaGV2cm9uTGVmdCIsIkNoZXZyb25SaWdodCIsIkZvbGRlcklucHV0IiwiWCIsIkFyY2hpdmUiLCJDb3JuZXJVcExlZnQiLCJaaXBIZWFkZXJUb29sYmFyIiwiYXJjaGl2ZU5hbWUiLCJzZWFyY2hRdWVyeSIsIm9uU2VhcmNoQ2hhbmdlIiwiY2F0ZWdvcnkiLCJvbkNhdGVnb3J5Q2hhbmdlIiwiaXNQYXNzd29yZFByb3RlY3RlZCIsIm9uRXh0cmFjdFNlbGVjdGVkIiwic2VsZWN0ZWRDb3VudCIsIm9uRG93bmxvYWRaaXAiLCJoYXNQcmV2IiwiaGFzTmV4dCIsIm9uUHJldiIsIm9uTmV4dCIsIm5lc3RlZERlcHRoIiwib25CYWNrTmVzdGVkIiwiX3MiLCJ0IiwiY2F0ZWdvcmllcyIsImlkIiwibGFiZWwiLCJpY29uIiwiY291bnQiLCJlIiwidGFyZ2V0IiwidmFsdWUiLCJtYXAiLCJjIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiWmlwSGVhZGVyVG9vbGJhci50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFJlYWN0IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IHVzZVRyYW5zbGF0aW9uIH0gZnJvbSAncmVhY3QtaTE4bmV4dCc7XG5pbXBvcnQge1xuICBTZWFyY2gsXG4gIERvd25sb2FkLFxuICBMb2NrLFxuICBVbmxvY2ssXG4gIEZpbGVUZXh0LFxuICBJbWFnZSBhcyBJbWFnZUljb24sXG4gIEZpbG0sXG4gIEZpbGUsXG4gIENoZXZyb25MZWZ0LFxuICBDaGV2cm9uUmlnaHQsXG4gIEZvbGRlcklucHV0LFxuICBYLFxuICBBcmNoaXZlLFxuICBDb3JuZXJVcExlZnQsXG59IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5pbXBvcnQgeyBDYXRlZ29yeSB9IGZyb20gJy4vemlwVXRpbHMnO1xuXG50eXBlIFppcEhlYWRlclRvb2xiYXJQcm9wcyA9IHtcbiAgYXJjaGl2ZU5hbWU/OiBzdHJpbmc7XG4gIHNlYXJjaFF1ZXJ5OiBzdHJpbmc7XG4gIG9uU2VhcmNoQ2hhbmdlOiAocTogc3RyaW5nKSA9PiB2b2lkO1xuICBjYXRlZ29yeTogQ2F0ZWdvcnk7XG4gIG9uQ2F0ZWdvcnlDaGFuZ2U6IChjYXQ6IENhdGVnb3J5KSA9PiB2b2lkO1xuICBpc1Bhc3N3b3JkUHJvdGVjdGVkPzogYm9vbGVhbjtcbiAgb25FeHRyYWN0U2VsZWN0ZWQ6ICgpID0+IHZvaWQ7XG4gIHNlbGVjdGVkQ291bnQ6IG51bWJlcjtcbiAgb25Eb3dubG9hZFppcD86ICgpID0+IHZvaWQ7XG4gIGhhc1ByZXY/OiBib29sZWFuO1xuICBoYXNOZXh0PzogYm9vbGVhbjtcbiAgb25QcmV2PzogKCkgPT4gdm9pZDtcbiAgb25OZXh0PzogKCkgPT4gdm9pZDtcbiAgbmVzdGVkRGVwdGg/OiBudW1iZXI7XG4gIG9uQmFja05lc3RlZD86ICgpID0+IHZvaWQ7XG59O1xuXG5leHBvcnQgY29uc3QgWmlwSGVhZGVyVG9vbGJhcjogUmVhY3QuRkM8WmlwSGVhZGVyVG9vbGJhclByb3BzPiA9ICh7XG4gIGFyY2hpdmVOYW1lLFxuICBzZWFyY2hRdWVyeSxcbiAgb25TZWFyY2hDaGFuZ2UsXG4gIGNhdGVnb3J5LFxuICBvbkNhdGVnb3J5Q2hhbmdlLFxuICBpc1Bhc3N3b3JkUHJvdGVjdGVkLFxuICBvbkV4dHJhY3RTZWxlY3RlZCxcbiAgc2VsZWN0ZWRDb3VudCxcbiAgb25Eb3dubG9hZFppcCxcbiAgaGFzUHJldixcbiAgaGFzTmV4dCxcbiAgb25QcmV2LFxuICBvbk5leHQsXG4gIG5lc3RlZERlcHRoID0gMCxcbiAgb25CYWNrTmVzdGVkLFxufSkgPT4ge1xuICBjb25zdCB7IHQgfSA9IHVzZVRyYW5zbGF0aW9uKCk7XG5cbiAgY29uc3QgY2F0ZWdvcmllczogeyBpZDogQ2F0ZWdvcnk7IGxhYmVsOiBzdHJpbmc7IGljb246IFJlYWN0LlJlYWN0Tm9kZSB9W10gPSBbXG4gICAgeyBpZDogJ2FsbCcsIGxhYmVsOiB0KCdzcGVlZHRlc3QuemlwX2NhdF9hbGwnKSwgaWNvbjogPEZpbGUgc2l6ZT17MTR9IC8+IH0sXG4gICAgeyBpZDogJ2ltYWdlJywgbGFiZWw6IHQoJ3NwZWVkdGVzdC56aXBfY2F0X2ltYWdlJyksIGljb246IDxJbWFnZUljb24gc2l6ZT17MTR9IC8+IH0sXG4gICAgeyBpZDogJ21lZGlhJywgbGFiZWw6IHQoJ3NwZWVkdGVzdC56aXBfY2F0X21lZGlhJyksIGljb246IDxGaWxtIHNpemU9ezE0fSAvPiB9LFxuICAgIHsgaWQ6ICdkb2MnLCBsYWJlbDogdCgnc3BlZWR0ZXN0LnppcF9jYXRfZG9jJyksIGljb246IDxGaWxlVGV4dCBzaXplPXsxNH0gLz4gfSxcbiAgICB7IGlkOiAnYXJjaGl2ZScsIGxhYmVsOiB0KCdzcGVlZHRlc3QuemlwX2NhdF9hcmNoaXZlJyksIGljb246IDxBcmNoaXZlIHNpemU9ezE0fSAvPiB9LFxuICBdO1xuXG4gIHJldHVybiAoXG4gICAgPGhlYWRlciBjbGFzc05hbWU9XCJkemItdG9vbGJhclwiPlxuICAgICAgey8qIFRvcCByb3c6IEFyY2hpdmUgbmFtZSwgc3RhdHVzIGJhZGdlLCBwcmV2L25leHQgYnV0dG9ucyAqL31cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZHpiLXRvb2xiYXItdG9wXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZHpiLXRpdGxlLWdyb3VwXCI+XG4gICAgICAgICAgeyhvblByZXYgfHwgb25OZXh0KSAmJiAoXG4gICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImR6Yi1uYXYtZ3JvdXBcIj5cbiAgICAgICAgICAgICAge29uUHJldiAmJiAoXG4gICAgICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgICAgICBvbkNsaWNrPXtvblByZXZ9XG4gICAgICAgICAgICAgICAgICBkaXNhYmxlZD17IWhhc1ByZXZ9XG4gICAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJkemItbmF2LWJ0blwiXG4gICAgICAgICAgICAgICAgICB0aXRsZT17dCgnc3BlZWR0ZXN0LnppcF9wcmV2aW91c19hcmNoaXZlJyl9XG4gICAgICAgICAgICAgICAgPlxuICAgICAgICAgICAgICAgICAgPENoZXZyb25MZWZ0IHNpemU9ezE4fSAvPlxuICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgICApfVxuICAgICAgICAgICAgICB7b25OZXh0ICYmIChcbiAgICAgICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9e29uTmV4dH1cbiAgICAgICAgICAgICAgICAgIGRpc2FibGVkPXshaGFzTmV4dH1cbiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cImR6Yi1uYXYtYnRuXCJcbiAgICAgICAgICAgICAgICAgIHRpdGxlPXt0KCdzcGVlZHRlc3QuemlwX25leHRfYXJjaGl2ZScpfVxuICAgICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICAgIDxDaGV2cm9uUmlnaHQgc2l6ZT17MTh9IC8+XG4gICAgICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgICAgICl9XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICApfVxuXG4gICAgICAgICAge29uQmFja05lc3RlZCAmJiAoXG4gICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXtvbkJhY2tOZXN0ZWR9IGNsYXNzTmFtZT1cImR6Yi1uYXYtYnRuXCIgdGl0bGU9e3QoJ3NwZWVkdGVzdC56aXBfYmFja19wYXJlbnQnKX0+XG4gICAgICAgICAgICAgIDxDb3JuZXJVcExlZnQgc2l6ZT17MTd9IC8+XG4gICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICApfVxuXG4gICAgICAgICAgPGg0IGNsYXNzTmFtZT1cImR6Yi1hcmNoaXZlLW5hbWVcIiB0aXRsZT17YXJjaGl2ZU5hbWUgfHwgdCgnc3BlZWR0ZXN0LnppcF9hcmNoaXZlX2V4cGxvcmVyJyl9PlxuICAgICAgICAgICAge2FyY2hpdmVOYW1lIHx8IHQoJ3NwZWVkdGVzdC56aXBfYXJjaGl2ZV9leHBsb3JlcicpfVxuICAgICAgICAgIDwvaDQ+XG5cbiAgICAgICAgICB7bmVzdGVkRGVwdGggPiAwICYmIDxzcGFuIGNsYXNzTmFtZT1cImR6Yi1kZXB0aC1iYWRnZVwiPnt0KCdzcGVlZHRlc3QuemlwX25lc3RlZF9kZXB0aCcsIHsgY291bnQ6IG5lc3RlZERlcHRoIH0pfTwvc3Bhbj59XG5cbiAgICAgICAgICB7aXNQYXNzd29yZFByb3RlY3RlZCA/IChcbiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT1cImR6Yi1iYWRnZS1wcm90ZWN0ZWRcIj5cbiAgICAgICAgICAgICAgPExvY2sgc2l6ZT17MTJ9IC8+IHt0KCdzcGVlZHRlc3QuemlwX3Byb3RlY3RlZCcpfVxuICAgICAgICAgICAgPC9zcGFuPlxuICAgICAgICAgICkgOiAoXG4gICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJkemItYmFkZ2UtdW5sb2NrZWRcIj5cbiAgICAgICAgICAgICAgPFVubG9jayBzaXplPXsxMn0gLz4ge3QoJ3NwZWVkdGVzdC56aXBfdW5sb2NrZWQnKX1cbiAgICAgICAgICAgIDwvc3Bhbj5cbiAgICAgICAgICApfVxuICAgICAgICA8L2Rpdj5cblxuICAgICAgICB7LyogVG9wIGFjdGlvbnMgZm9yIE1vYmlsZSBFeHRyYWN0IC8gRG93bmxvYWQgaWYgbmVlZGVkICovfVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImR6Yi1hY3Rpb24tZ3JvdXBcIj5cbiAgICAgICAgICB7c2VsZWN0ZWRDb3VudCA+IDAgJiYgKFxuICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgb25DbGljaz17b25FeHRyYWN0U2VsZWN0ZWR9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cImR6Yi1idG4tcHJpbWFyeVwiXG4gICAgICAgICAgICA+XG4gICAgICAgICAgICAgIDxGb2xkZXJJbnB1dCBzaXplPXsxNn0gLz5cbiAgICAgICAgICAgICAgPHNwYW4+e3QoJ3NwZWVkdGVzdC56aXBfZXh0cmFjdF9jb3VudCcsIHsgY291bnQ6IHNlbGVjdGVkQ291bnQgfSl9PC9zcGFuPlxuICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgKX1cblxuICAgICAgICAgIHtvbkRvd25sb2FkWmlwICYmIChcbiAgICAgICAgICAgIDxidXR0b25cbiAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgIG9uQ2xpY2s9e29uRG93bmxvYWRaaXB9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cImR6Yi1idG4tc2Vjb25kYXJ5XCJcbiAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgPERvd25sb2FkIHNpemU9ezE2fSAvPlxuICAgICAgICAgICAgICA8c3Bhbj57dCgnc3BlZWR0ZXN0LnppcF9zYXZlX2FyY2hpdmUnKX08L3NwYW4+XG4gICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICApfVxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuXG4gICAgICB7LyogTWFpbiBDb250cm9scyBSb3c6IFNlYXJjaCBJbnB1dCArIFNjcm9sbGFibGUgQ2F0ZWdvcnkgRmlsdGVyIFBpbGxzICovfVxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJkemItdG9vbGJhci1jb250cm9sc1wiPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImR6Yi1zZWFyY2gtYm94XCI+XG4gICAgICAgICAgPFNlYXJjaCBjbGFzc05hbWU9XCJkemItc2VhcmNoLWljb25cIiBzaXplPXsxNn0gLz5cbiAgICAgICAgICA8aW5wdXRcbiAgICAgICAgICAgIHR5cGU9XCJ0ZXh0XCJcbiAgICAgICAgICAgIHZhbHVlPXtzZWFyY2hRdWVyeX1cbiAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gb25TZWFyY2hDaGFuZ2UoZS50YXJnZXQudmFsdWUpfVxuICAgICAgICAgICAgcGxhY2Vob2xkZXI9e3QoJ3NwZWVkdGVzdC5waF9zZWFyY2hfemlwJyl9XG4gICAgICAgICAgICBjbGFzc05hbWU9XCJkemItc2VhcmNoLWlucHV0XCJcbiAgICAgICAgICAvPlxuICAgICAgICAgIHtzZWFyY2hRdWVyeSAmJiAoXG4gICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBvblNlYXJjaENoYW5nZSgnJyl9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cImR6Yi1zZWFyY2gtY2xlYXJcIlxuICAgICAgICAgICAgICB0aXRsZT17dCgnc3BlZWR0ZXN0LnppcF9jbGVhcl9zZWFyY2gnKX1cbiAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgPFggc2l6ZT17MTR9IC8+XG4gICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICApfVxuICAgICAgICA8L2Rpdj5cblxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImR6Yi1jYXRlZ29yaWVzXCI+XG4gICAgICAgICAge2NhdGVnb3JpZXMubWFwKChjKSA9PiAoXG4gICAgICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgICAgIGtleT17Yy5pZH1cbiAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG9uQ2F0ZWdvcnlDaGFuZ2UoYy5pZCl9XG4gICAgICAgICAgICAgIGNsYXNzTmFtZT17YGR6Yi1jYXQtdGFiICR7Y2F0ZWdvcnkgPT09IGMuaWQgPyAnYWN0aXZlJyA6ICcnfWB9XG4gICAgICAgICAgICA+XG4gICAgICAgICAgICAgIHtjLmljb259XG4gICAgICAgICAgICAgIDxzcGFuPntjLmxhYmVsfTwvc3Bhbj5cbiAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgIDwvZGl2PlxuICAgIDwvaGVhZGVyPlxuICApO1xufTtcbiJdLCJmaWxlIjoiRjovQXV0b0dyYW0vQXV0b0dyYW0gQXBwL2Zyb250ZW5kL3NyYy9jb21wb25lbnRzL2RyaXZlL0RyaXZlWmlwQnJvd3Nlci9aaXBIZWFkZXJUb29sYmFyLnRzeCJ9

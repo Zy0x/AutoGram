@@ -1,0 +1,458 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/Dashboard/index.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a6508b91"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import {
+  ArrowRightLeft,
+  HardDrive,
+  Rocket,
+  Users,
+  ShieldCheck,
+  Zap,
+  MonitorSmartphone
+} from "/node_modules/.vite/deps/lucide-react.js?v=a6508b91";
+import { useTranslation } from "/node_modules/.vite/deps/react-i18next.js?v=a6508b91";
+import { isDesktop, canUseLocalTelegramWorker } from "/src/lib/tauri/platform.ts";
+import { isMediaStudioAvailable } from "/src/lib/tauri/capabilities.ts";
+export function Dashboard({ onNavigate }) {
+  _s();
+  const { t } = useTranslation();
+  const desktop = isDesktop() && canUseLocalTelegramWorker();
+  const drivesOk = isMediaStudioAvailable();
+  const go = (tab) => onNavigate?.(tab);
+  return /* @__PURE__ */ jsxDEV("main", { className: "main-content page-stack", children: [
+    /* @__PURE__ */ jsxDEV("header", { className: "page-header", children: [
+      /* @__PURE__ */ jsxDEV("h2", { className: "title title-with-icon", children: [
+        /* @__PURE__ */ jsxDEV(Rocket, { size: 24, color: "var(--primary)", "aria-hidden": true }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 47,
+          columnNumber: 11
+        }, this),
+        "AutoGram"
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 46,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { className: "subtitle", children: t("dashboard.subtitle") }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 50,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+      lineNumber: 45,
+      columnNumber: 7
+    }, this),
+    !desktop && /* @__PURE__ */ jsxDEV("div", { className: "card glass-panel status-hero", children: [
+      /* @__PURE__ */ jsxDEV(MonitorSmartphone, { size: 32, color: "var(--accent)", className: "status-hero-icon", "aria-hidden": true }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 57,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "status-hero-body", children: [
+        /* @__PURE__ */ jsxDEV("h3", { children: t("dashboard.browser_mode") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 59,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: "UI pratinjau saja. Forwarder, Drives, dan Accounts penuh membutuhkan aplikasi desktop AutoGram (Tauri)." }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 60,
+          columnNumber: 13
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 58,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+      lineNumber: 56,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "dash-pillars", "aria-label": t("dashboard.main_workflow"), children: [
+      /* @__PURE__ */ jsxDEV("article", { className: "dash-pillar glass-panel card", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "dash-pillar-icon", style: { background: "rgba(59,130,246,0.15)" }, children: /* @__PURE__ */ jsxDEV(ArrowRightLeft, { size: 28, color: "var(--primary)", "aria-hidden": true }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 71,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 70,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { className: "dash-pillar-title", children: t("dashboard.forwarder_card_title") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 73,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "dash-pillar-desc", children: t("dashboard.forwarder_card_desc") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 74,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("ul", { className: "dash-pillar-list", children: [
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.forwarder_step1") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 78,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.forwarder_step2") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 79,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.forwarder_step3") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 80,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 77,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-primary",
+            onClick: () => go("jobs"),
+            disabled: !desktop,
+            children: t("dashboard.open_forwarder")
+          },
+          void 0,
+          false,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 82,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 69,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("article", { className: "dash-pillar glass-panel card", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "dash-pillar-icon", style: { background: "rgba(16,185,129,0.15)" }, children: /* @__PURE__ */ jsxDEV(HardDrive, { size: 28, color: "#10b981", "aria-hidden": true }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 94,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 93,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { className: "dash-pillar-title", children: t("dashboard.drives_card_title") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 96,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { className: "dash-pillar-desc", children: t("dashboard.drives_card_desc") }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 97,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("ul", { className: "dash-pillar-list", children: [
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.drives_step1") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 101,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.drives_step2") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 102,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("li", { children: t("dashboard.drives_step3") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 103,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 100,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "btn btn-primary",
+            onClick: () => go("media-studio"),
+            disabled: !drivesOk,
+            title: !drivesOk ? "Drives hanya di desktop AutoGram" : void 0,
+            children: t("dashboard.open_drives")
+          },
+          void 0,
+          false,
+          {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 105,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 92,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+      lineNumber: 68,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "dash-steps glass-panel card", "aria-label": t("dashboard.quick_steps"), children: [
+      /* @__PURE__ */ jsxDEV("h3", { className: "dash-section-title", children: t("dashboard.workflow_title") }, void 0, false, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 118,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("ol", { className: "dash-steps-list", children: [
+        /* @__PURE__ */ jsxDEV("li", { children: [
+          /* @__PURE__ */ jsxDEV("button", { type: "button", className: "dash-step-link", onClick: () => go("accounts"), children: [
+            /* @__PURE__ */ jsxDEV(Users, { size: 16, "aria-hidden": true }, void 0, false, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+              lineNumber: 122,
+              columnNumber: 15
+            }, this),
+            " ",
+            t("dashboard.workflow_step1").split(" — ")[0]
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 121,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { children: [
+            " — ",
+            t("dashboard.workflow_step1").split(" — ")[1]
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 124,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 120,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("li", { children: [
+          /* @__PURE__ */ jsxDEV("button", { type: "button", className: "dash-step-link", onClick: () => go("jobs"), children: [
+            /* @__PURE__ */ jsxDEV(ArrowRightLeft, { size: 16, "aria-hidden": true }, void 0, false, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+              lineNumber: 128,
+              columnNumber: 15
+            }, this),
+            " ",
+            t("dashboard.workflow_step2").split(" — ")[0]
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 127,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("span", { children: [
+            " — ",
+            t("dashboard.workflow_step2").split(" — ")[1]
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 130,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 126,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("li", { children: [
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              className: "dash-step-link",
+              onClick: () => go("media-studio"),
+              disabled: !drivesOk,
+              children: [
+                /* @__PURE__ */ jsxDEV(HardDrive, { size: 16, "aria-hidden": true }, void 0, false, {
+                  fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+                  lineNumber: 139,
+                  columnNumber: 15
+                }, this),
+                " ",
+                t("dashboard.workflow_step3").split(" — ")[0]
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+              lineNumber: 133,
+              columnNumber: 13
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV("span", { children: [
+            " — ",
+            t("dashboard.workflow_step3").split(" — ")[1]
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 141,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 132,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 119,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+      lineNumber: 117,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "dash-safety glass-panel card", "aria-label": t("dashboard.parallel_safety"), children: [
+      /* @__PURE__ */ jsxDEV("h3", { className: "dash-section-title title-with-icon", children: [
+        /* @__PURE__ */ jsxDEV(ShieldCheck, { size: 18, color: "var(--primary)", "aria-hidden": true }, void 0, false, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 148,
+          columnNumber: 11
+        }, this),
+        "Kerja paralel aman"
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 147,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "dash-safety-grid", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV(Zap, { size: 16, "aria-hidden": true }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 153,
+            columnNumber: 13
+          }, this),
+          " ",
+          /* @__PURE__ */ jsxDEV("strong", { children: t("dashboard.pool_info") }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 153,
+            columnNumber: 43
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: t("dashboard.parallel_grammers_desc") || "Forwarder & Drives share the same MTProto connection." }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 154,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 152,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV(ShieldCheck, { size: 16, "aria-hidden": true }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 157,
+            columnNumber: 13
+          }, this),
+          " ",
+          /* @__PURE__ */ jsxDEV("strong", { children: "Session guard" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 157,
+            columnNumber: 51
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            "Migration / transfer / studio memakai lease ",
+            /* @__PURE__ */ jsxDEV("em", { children: "shared" }, void 0, false, {
+              fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+              lineNumber: 159,
+              columnNumber: 59
+            }, this),
+            ". Operasi exclusive (login hapus session) menunggu giliran."
+          ] }, void 0, true, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 158,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 156,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV(HardDrive, { size: 16, "aria-hidden": true }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 164,
+            columnNumber: 13
+          }, this),
+          " ",
+          /* @__PURE__ */ jsxDEV("strong", { children: "Ganti akun di Drives" }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 164,
+            columnNumber: 49
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: "UI di-wipe + gen guard agar data akun lama tidak bocor ke akun baru." }, void 0, false, {
+            fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+            lineNumber: 165,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+          lineNumber: 163,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+        lineNumber: 151,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+      lineNumber: 146,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx",
+    lineNumber: 44,
+    columnNumber: 5
+  }, this);
+}
+_s(Dashboard, "zlIdU9EjM2llFt74AbE2KsUJXyM=", false, function() {
+  return [useTranslation];
+});
+_c = Dashboard;
+var _c;
+$RefreshReg$(_c, "Dashboard");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("F:/AutoGram/AutoGram App/frontend/src/pages/Dashboard/index.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsV0FmRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBZ0JBO0FBQUEsU0FyQkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXNCQTtBQUFBLE9BNUhGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0E2SEE7QUFFSjtBQUFDRCxHQXRJZUYsV0FBUztBQUFBLFVBQ1RKLGNBQWM7QUFBQTtBQUFBLEtBRGRJO0FBQVMsSUFBQVc7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsiQXJyb3dSaWdodExlZnQiLCJIYXJkRHJpdmUiLCJSb2NrZXQiLCJVc2VycyIsIlNoaWVsZENoZWNrIiwiWmFwIiwiTW9uaXRvclNtYXJ0cGhvbmUiLCJ1c2VUcmFuc2xhdGlvbiIsImlzRGVza3RvcCIsImNhblVzZUxvY2FsVGVsZWdyYW1Xb3JrZXIiLCJpc01lZGlhU3R1ZGlvQXZhaWxhYmxlIiwiRGFzaGJvYXJkIiwib25OYXZpZ2F0ZSIsIl9zIiwidCIsImRlc2t0b3AiLCJkcml2ZXNPayIsImdvIiwidGFiIiwiYmFja2dyb3VuZCIsInVuZGVmaW5lZCIsInNwbGl0IiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiaW5kZXgudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7XHJcbiAgQXJyb3dSaWdodExlZnQsXHJcbiAgSGFyZERyaXZlLFxyXG4gIFJvY2tldCxcclxuICBVc2VycyxcclxuICBTaGllbGRDaGVjayxcclxuICBaYXAsXHJcbiAgTW9uaXRvclNtYXJ0cGhvbmUsXHJcbn0gZnJvbSAnbHVjaWRlLXJlYWN0JztcclxuaW1wb3J0IHsgdXNlVHJhbnNsYXRpb24gfSBmcm9tICdyZWFjdC1pMThuZXh0JztcclxuaW1wb3J0IHsgaXNEZXNrdG9wLCBjYW5Vc2VMb2NhbFRlbGVncmFtV29ya2VyIH0gZnJvbSAnLi4vLi4vbGliL3RhdXJpL3BsYXRmb3JtJztcclxuaW1wb3J0IHsgaXNNZWRpYVN0dWRpb0F2YWlsYWJsZSB9IGZyb20gJy4uLy4uL2xpYi90YXVyaS9jYXBhYmlsaXRpZXMnO1xyXG5cclxudHlwZSBQcm9wcyA9IHtcclxuICBvbk5hdmlnYXRlPzogKHRhYjogc3RyaW5nKSA9PiB2b2lkO1xyXG59O1xyXG5cclxuZXhwb3J0IGZ1bmN0aW9uIERhc2hib2FyZCh7IG9uTmF2aWdhdGUgfTogUHJvcHMpIHtcclxuICBjb25zdCB7IHQgfSA9IHVzZVRyYW5zbGF0aW9uKCk7XHJcbiAgY29uc3QgZGVza3RvcCA9IGlzRGVza3RvcCgpICYmIGNhblVzZUxvY2FsVGVsZWdyYW1Xb3JrZXIoKTtcclxuICBjb25zdCBkcml2ZXNPayA9IGlzTWVkaWFTdHVkaW9BdmFpbGFibGUoKTtcclxuICBjb25zdCBnbyA9ICh0YWI6IHN0cmluZykgPT4gb25OYXZpZ2F0ZT8uKHRhYik7XHJcblxyXG4gIHJldHVybiAoXHJcbiAgICA8bWFpbiBjbGFzc05hbWU9XCJtYWluLWNvbnRlbnQgcGFnZS1zdGFja1wiPlxyXG4gICAgICA8aGVhZGVyIGNsYXNzTmFtZT1cInBhZ2UtaGVhZGVyXCI+XHJcbiAgICAgICAgPGgyIGNsYXNzTmFtZT1cInRpdGxlIHRpdGxlLXdpdGgtaWNvblwiPlxyXG4gICAgICAgICAgPFJvY2tldCBzaXplPXsyNH0gY29sb3I9XCJ2YXIoLS1wcmltYXJ5KVwiIGFyaWEtaGlkZGVuIC8+XHJcbiAgICAgICAgICBBdXRvR3JhbVxyXG4gICAgICAgIDwvaDI+XHJcbiAgICAgICAgPHAgY2xhc3NOYW1lPVwic3VidGl0bGVcIj5cclxuICAgICAgICAgIHt0KCdkYXNoYm9hcmQuc3VidGl0bGUnKX1cclxuICAgICAgICA8L3A+XHJcbiAgICAgIDwvaGVhZGVyPlxyXG5cclxuICAgICAgeyFkZXNrdG9wICYmIChcclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImNhcmQgZ2xhc3MtcGFuZWwgc3RhdHVzLWhlcm9cIj5cclxuICAgICAgICAgIDxNb25pdG9yU21hcnRwaG9uZSBzaXplPXszMn0gY29sb3I9XCJ2YXIoLS1hY2NlbnQpXCIgY2xhc3NOYW1lPVwic3RhdHVzLWhlcm8taWNvblwiIGFyaWEtaGlkZGVuIC8+XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInN0YXR1cy1oZXJvLWJvZHlcIj5cclxuICAgICAgICAgICAgPGgzPnt0KCdkYXNoYm9hcmQuYnJvd3Nlcl9tb2RlJyl9PC9oMz5cclxuICAgICAgICAgICAgPHA+XHJcbiAgICAgICAgICAgICAgVUkgcHJhdGluamF1IHNhamEuIEZvcndhcmRlciwgRHJpdmVzLCBkYW4gQWNjb3VudHMgcGVudWggbWVtYnV0dWhrYW4gYXBsaWthc2kgZGVza3RvcFxyXG4gICAgICAgICAgICAgIEF1dG9HcmFtIChUYXVyaSkuXHJcbiAgICAgICAgICAgIDwvcD5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICApfVxyXG5cclxuICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPVwiZGFzaC1waWxsYXJzXCIgYXJpYS1sYWJlbD17dChcImRhc2hib2FyZC5tYWluX3dvcmtmbG93XCIpfT5cclxuICAgICAgICA8YXJ0aWNsZSBjbGFzc05hbWU9XCJkYXNoLXBpbGxhciBnbGFzcy1wYW5lbCBjYXJkXCI+XHJcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImRhc2gtcGlsbGFyLWljb25cIiBzdHlsZT17eyBiYWNrZ3JvdW5kOiAncmdiYSg1OSwxMzAsMjQ2LDAuMTUpJyB9fT5cclxuICAgICAgICAgICAgPEFycm93UmlnaHRMZWZ0IHNpemU9ezI4fSBjb2xvcj1cInZhcigtLXByaW1hcnkpXCIgYXJpYS1oaWRkZW4gLz5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPGgzIGNsYXNzTmFtZT1cImRhc2gtcGlsbGFyLXRpdGxlXCI+e3QoJ2Rhc2hib2FyZC5mb3J3YXJkZXJfY2FyZF90aXRsZScpfTwvaDM+XHJcbiAgICAgICAgICA8cCBjbGFzc05hbWU9XCJkYXNoLXBpbGxhci1kZXNjXCI+XHJcbiAgICAgICAgICAgIHt0KCdkYXNoYm9hcmQuZm9yd2FyZGVyX2NhcmRfZGVzYycpfVxyXG4gICAgICAgICAgPC9wPlxyXG4gICAgICAgICAgPHVsIGNsYXNzTmFtZT1cImRhc2gtcGlsbGFyLWxpc3RcIj5cclxuICAgICAgICAgICAgPGxpPnt0KCdkYXNoYm9hcmQuZm9yd2FyZGVyX3N0ZXAxJyl9PC9saT5cclxuICAgICAgICAgICAgPGxpPnt0KCdkYXNoYm9hcmQuZm9yd2FyZGVyX3N0ZXAyJyl9PC9saT5cclxuICAgICAgICAgICAgPGxpPnt0KCdkYXNoYm9hcmQuZm9yd2FyZGVyX3N0ZXAzJyl9PC9saT5cclxuICAgICAgICAgIDwvdWw+XHJcbiAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICBjbGFzc05hbWU9XCJidG4gYnRuLXByaW1hcnlcIlxyXG4gICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBnbygnam9icycpfVxyXG4gICAgICAgICAgICBkaXNhYmxlZD17IWRlc2t0b3B9XHJcbiAgICAgICAgICA+XHJcbiAgICAgICAgICAgIHt0KCdkYXNoYm9hcmQub3Blbl9mb3J3YXJkZXInKX1cclxuICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgIDwvYXJ0aWNsZT5cclxuXHJcbiAgICAgICAgPGFydGljbGUgY2xhc3NOYW1lPVwiZGFzaC1waWxsYXIgZ2xhc3MtcGFuZWwgY2FyZFwiPlxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJkYXNoLXBpbGxhci1pY29uXCIgc3R5bGU9e3sgYmFja2dyb3VuZDogJ3JnYmEoMTYsMTg1LDEyOSwwLjE1KScgfX0+XHJcbiAgICAgICAgICAgIDxIYXJkRHJpdmUgc2l6ZT17Mjh9IGNvbG9yPVwiIzEwYjk4MVwiIGFyaWEtaGlkZGVuIC8+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDxoMyBjbGFzc05hbWU9XCJkYXNoLXBpbGxhci10aXRsZVwiPnt0KCdkYXNoYm9hcmQuZHJpdmVzX2NhcmRfdGl0bGUnKX08L2gzPlxyXG4gICAgICAgICAgPHAgY2xhc3NOYW1lPVwiZGFzaC1waWxsYXItZGVzY1wiPlxyXG4gICAgICAgICAgICB7dCgnZGFzaGJvYXJkLmRyaXZlc19jYXJkX2Rlc2MnKX1cclxuICAgICAgICAgIDwvcD5cclxuICAgICAgICAgIDx1bCBjbGFzc05hbWU9XCJkYXNoLXBpbGxhci1saXN0XCI+XHJcbiAgICAgICAgICAgIDxsaT57dCgnZGFzaGJvYXJkLmRyaXZlc19zdGVwMScpfTwvbGk+XHJcbiAgICAgICAgICAgIDxsaT57dCgnZGFzaGJvYXJkLmRyaXZlc19zdGVwMicpfTwvbGk+XHJcbiAgICAgICAgICAgIDxsaT57dCgnZGFzaGJvYXJkLmRyaXZlc19zdGVwMycpfTwvbGk+XHJcbiAgICAgICAgICA8L3VsPlxyXG4gICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcclxuICAgICAgICAgICAgY2xhc3NOYW1lPVwiYnRuIGJ0bi1wcmltYXJ5XCJcclxuICAgICAgICAgICAgb25DbGljaz17KCkgPT4gZ28oJ21lZGlhLXN0dWRpbycpfVxyXG4gICAgICAgICAgICBkaXNhYmxlZD17IWRyaXZlc09rfVxyXG4gICAgICAgICAgICB0aXRsZT17IWRyaXZlc09rID8gJ0RyaXZlcyBoYW55YSBkaSBkZXNrdG9wIEF1dG9HcmFtJyA6IHVuZGVmaW5lZH1cclxuICAgICAgICAgID5cclxuICAgICAgICAgICAge3QoJ2Rhc2hib2FyZC5vcGVuX2RyaXZlcycpfVxyXG4gICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgPC9hcnRpY2xlPlxyXG4gICAgICA8L3NlY3Rpb24+XHJcblxyXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJkYXNoLXN0ZXBzIGdsYXNzLXBhbmVsIGNhcmRcIiBhcmlhLWxhYmVsPXt0KFwiZGFzaGJvYXJkLnF1aWNrX3N0ZXBzXCIpfT5cclxuICAgICAgICA8aDMgY2xhc3NOYW1lPVwiZGFzaC1zZWN0aW9uLXRpdGxlXCI+e3QoJ2Rhc2hib2FyZC53b3JrZmxvd190aXRsZScpfTwvaDM+XHJcbiAgICAgICAgPG9sIGNsYXNzTmFtZT1cImRhc2gtc3RlcHMtbGlzdFwiPlxyXG4gICAgICAgICAgPGxpPlxyXG4gICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJkYXNoLXN0ZXAtbGlua1wiIG9uQ2xpY2s9eygpID0+IGdvKCdhY2NvdW50cycpfT5cclxuICAgICAgICAgICAgICA8VXNlcnMgc2l6ZT17MTZ9IGFyaWEtaGlkZGVuIC8+IHt0KCdkYXNoYm9hcmQud29ya2Zsb3dfc3RlcDEnKS5zcGxpdCgnIOKAlCAnKVswXX1cclxuICAgICAgICAgICAgPC9idXR0b24+XHJcbiAgICAgICAgICAgIDxzcGFuPiDigJQge3QoJ2Rhc2hib2FyZC53b3JrZmxvd19zdGVwMScpLnNwbGl0KCcg4oCUICcpWzFdfTwvc3Bhbj5cclxuICAgICAgICAgIDwvbGk+XHJcbiAgICAgICAgICA8bGk+XHJcbiAgICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGNsYXNzTmFtZT1cImRhc2gtc3RlcC1saW5rXCIgb25DbGljaz17KCkgPT4gZ28oJ2pvYnMnKX0+XHJcbiAgICAgICAgICAgICAgPEFycm93UmlnaHRMZWZ0IHNpemU9ezE2fSBhcmlhLWhpZGRlbiAvPiB7dCgnZGFzaGJvYXJkLndvcmtmbG93X3N0ZXAyJykuc3BsaXQoJyDigJQgJylbMF19XHJcbiAgICAgICAgICAgIDwvYnV0dG9uPlxyXG4gICAgICAgICAgICA8c3Bhbj4g4oCUIHt0KCdkYXNoYm9hcmQud29ya2Zsb3dfc3RlcDInKS5zcGxpdCgnIOKAlCAnKVsxXX08L3NwYW4+XHJcbiAgICAgICAgICA8L2xpPlxyXG4gICAgICAgICAgPGxpPlxyXG4gICAgICAgICAgICA8YnV0dG9uXHJcbiAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiZGFzaC1zdGVwLWxpbmtcIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IGdvKCdtZWRpYS1zdHVkaW8nKX1cclxuICAgICAgICAgICAgICBkaXNhYmxlZD17IWRyaXZlc09rfVxyXG4gICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgPEhhcmREcml2ZSBzaXplPXsxNn0gYXJpYS1oaWRkZW4gLz4ge3QoJ2Rhc2hib2FyZC53b3JrZmxvd19zdGVwMycpLnNwbGl0KCcg4oCUICcpWzBdfVxyXG4gICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgICAgPHNwYW4+IOKAlCB7dCgnZGFzaGJvYXJkLndvcmtmbG93X3N0ZXAzJykuc3BsaXQoJyDigJQgJylbMV19PC9zcGFuPlxyXG4gICAgICAgICAgPC9saT5cclxuICAgICAgICA8L29sPlxyXG4gICAgICA8L3NlY3Rpb24+XHJcblxyXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJkYXNoLXNhZmV0eSBnbGFzcy1wYW5lbCBjYXJkXCIgYXJpYS1sYWJlbD17dChcImRhc2hib2FyZC5wYXJhbGxlbF9zYWZldHlcIil9PlxyXG4gICAgICAgIDxoMyBjbGFzc05hbWU9XCJkYXNoLXNlY3Rpb24tdGl0bGUgdGl0bGUtd2l0aC1pY29uXCI+XHJcbiAgICAgICAgICA8U2hpZWxkQ2hlY2sgc2l6ZT17MTh9IGNvbG9yPVwidmFyKC0tcHJpbWFyeSlcIiBhcmlhLWhpZGRlbiAvPlxyXG4gICAgICAgICAgS2VyamEgcGFyYWxlbCBhbWFuXHJcbiAgICAgICAgPC9oMz5cclxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImRhc2gtc2FmZXR5LWdyaWRcIj5cclxuICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgIDxaYXAgc2l6ZT17MTZ9IGFyaWEtaGlkZGVuIC8+IDxzdHJvbmc+e3QoJ2Rhc2hib2FyZC5wb29sX2luZm8nKX08L3N0cm9uZz5cclxuICAgICAgICAgICAgPHA+e3QoJ2Rhc2hib2FyZC5wYXJhbGxlbF9ncmFtbWVyc19kZXNjJykgfHwgXCJGb3J3YXJkZXIgJiBEcml2ZXMgc2hhcmUgdGhlIHNhbWUgTVRQcm90byBjb25uZWN0aW9uLlwifTwvcD5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPFNoaWVsZENoZWNrIHNpemU9ezE2fSBhcmlhLWhpZGRlbiAvPiA8c3Ryb25nPlNlc3Npb24gZ3VhcmQ8L3N0cm9uZz5cclxuICAgICAgICAgICAgPHA+XHJcbiAgICAgICAgICAgICAgTWlncmF0aW9uIC8gdHJhbnNmZXIgLyBzdHVkaW8gbWVtYWthaSBsZWFzZSA8ZW0+c2hhcmVkPC9lbT4uIE9wZXJhc2kgZXhjbHVzaXZlIChsb2dpblxyXG4gICAgICAgICAgICAgIGhhcHVzIHNlc3Npb24pIG1lbnVuZ2d1IGdpbGlyYW4uXHJcbiAgICAgICAgICAgIDwvcD5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgPEhhcmREcml2ZSBzaXplPXsxNn0gYXJpYS1oaWRkZW4gLz4gPHN0cm9uZz5HYW50aSBha3VuIGRpIERyaXZlczwvc3Ryb25nPlxyXG4gICAgICAgICAgICA8cD5VSSBkaS13aXBlICsgZ2VuIGd1YXJkIGFnYXIgZGF0YSBha3VuIGxhbWEgdGlkYWsgYm9jb3Iga2UgYWt1biBiYXJ1LjwvcD5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZGl2PlxyXG4gICAgICA8L3NlY3Rpb24+XHJcbiAgICA8L21haW4+XHJcbiAgKTtcclxufVxyXG4iXSwiZmlsZSI6IkY6L0F1dG9HcmFtL0F1dG9HcmFtIEFwcC9mcm9udGVuZC9zcmMvcGFnZXMvRGFzaGJvYXJkL2luZGV4LnRzeCJ9

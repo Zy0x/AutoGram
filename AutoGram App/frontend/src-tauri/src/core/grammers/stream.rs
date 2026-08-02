@@ -47,8 +47,16 @@ fn seek_requests() -> &'static Mutex<HashMap<String, u64>> {
 }
 
 pub fn request_progressive_range(stream_id: &str, offset: u64) -> bool {
-    if !cancel_flags().lock().contains_key(stream_id) {
-        return false;
+    // FIX Bug #5: Jika cancel_flag sudah di-remove (stream selesai fase init)
+    // tetapi StreamEntry masih ada dan belum done, tetap terima seek request.
+    // Sebelumnya seek langsung rejected jika cancel_flag tidak ada.
+    let flag_active = cancel_flags().lock().contains_key(stream_id);
+    if !flag_active {
+        // Cek apakah stream entry masih aktif dan belum done
+        match stream_server::get_entry(stream_id) {
+            Some(e) if !e.done && !e.cancelled => {}
+            _ => return false,
+        }
     }
     // 512 KB Alignment Boundary to prevent Telegram CDN offset shift / MP4 box corruption
     let aligned_offset = offset - (offset % (512 * 1024));
@@ -1655,6 +1663,11 @@ fn start_preview_stream_inner(
                     drop(tx);
 
                     let mut written_any = false;
+                    // FIX Bug #2: Kumpulkan hasil batch dengan timeout agar seek request
+                    // bisa dideteksi lebih cepat. Gunakan tokio::select! untuk interruptible wait.
+                    // Jika seek request masuk saat batch berlangsung, kita masih tunggu
+                    // hasil yang sudah terkirim (tidak membatalkan download), tapi setelah
+                    // batch selesai langsung redirect cursor ke posisi seek.
                     while let Some((chunk_off, res)) = rx.recv().await {
                         match res {
                             Ok(Some(bytes)) if !bytes.is_empty() => {
@@ -1701,7 +1714,24 @@ fn start_preview_stream_inner(
                             moov_tail_fetching: false,
                         });
 
-                        cursor = scan_off;
+                        // FIX Bug #3: Cek seek request SEBELUM maju cursor ke scan_off.
+                        // Bug lama: cursor selalu maju ke scan_off (window_limit) setelah batch,
+                        // mengabaikan seek request yang masuk SELAMA batch berlangsung.
+                        // Akibatnya seek request baru dibaca di iterasi berikutnya tapi cursor
+                        // sudah terlanjur maju ke depan, dan find_missing_offset_from tidak
+                        // kembali ke posisi seek karena ranges sudah ada di depan cursor.
+                        if let Some(fresh_seek) = take_seek_request(&sid) {
+                            let seek_target = fresh_seek.min(size.saturating_sub(1));
+                            cursor = (seek_target / CHUNK_SIZE) * CHUNK_SIZE;
+                            tg_log::info(
+                                BACKEND,
+                                "[STREAM_DIAG][SEEK_BATCH_INTERCEPT]",
+                                format!("sid={sid} seek_during_batch={fresh_seek} cursor_jump={cursor}"),
+                            );
+                        } else {
+                            cursor = scan_off;
+                        }
+
                         if is_done {
                             break;
                         }

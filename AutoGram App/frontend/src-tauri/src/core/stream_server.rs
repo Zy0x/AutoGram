@@ -251,6 +251,10 @@ impl Read for DemandRangeReader {
         }
 
         let mut waited = 0;
+        // FIX Bug #4: Kirim seek request HANYA sekali di awal, bukan setiap 30ms.
+        // Pengiriman ulang setiap 30ms menyebabkan seek yang diminta pengguna
+        // di-overwrite oleh posisi HTTP stream DemandRangeReader yang berbeda.
+        let mut seek_signaled = false;
         loop {
             let Some(entry) = get_entry(&self.stream_id) else {
                 return Ok(0);
@@ -273,8 +277,11 @@ impl Read for DemandRangeReader {
                 return Ok(0);
             }
 
-            // Signal progressive demand to backend fill task for this position
-            let _ = crate::core::grammers::stream::request_progressive_range(&self.stream_id, self.position);
+            // Kirim demand HANYA sekali — jangan overwrite seek request user.
+            if !seek_signaled {
+                let _ = crate::core::grammers::stream::request_progressive_range(&self.stream_id, self.position);
+                seek_signaled = true;
+            }
 
             thread::sleep(Duration::from_millis(30));
             waited += 30;
@@ -695,10 +702,13 @@ fn handle_stream(request: Request, sid: &str) {
         return;
     }
 
-    // If stream is still filling, trigger upstream fetch and wait for start bytes
+    // FIX Bug #1: Jika stream masih mengisi, trigger upstream fetch dan tunggu bytes di req_start.
+    // Bug lama: `r` di-clone dari entry.ranges SEBELUM get_entry() dipanggil di dalam loop,
+    // sehingga contiguous_end_from selalu mengecek snapshot stale yang tidak pernah berubah
+    // → h_now tidak pernah > req_start → timeout 45 detik → buffer stuck.
+    // Fix: hapus clone redundan, cek h_now SETELAH entry di-refresh via get_entry().
     if !entry.done {
-        let ranges_snapshot = entry.ranges.clone();
-        let have = contiguous_end_from(&ranges_snapshot, req_start);
+        let have = contiguous_end_from(&entry.ranges, req_start);
         if have <= req_start {
             let _ = crate::core::grammers::stream::request_progressive_range(sid, req_start);
             if entry.paused {
@@ -706,18 +716,19 @@ fn handle_stream(request: Request, sid: &str) {
                 upsert_entry(entry.clone());
             }
             let mut waited = 0;
-            while waited < 45000 {
-                let r = if entry.ranges.is_empty() { vec![] } else { entry.ranges.clone() };
-                let h_now = contiguous_end_from(&r, req_start);
-                if h_now > req_start || entry.done {
-                    break;
-                }
-                thread::sleep(Duration::from_millis(30));
-                waited += 30;
-                if let Some(updated) = get_entry(sid) {
-                    entry = updated;
-                } else {
-                    break;
+            while waited < 45_000 {
+                thread::sleep(Duration::from_millis(25));
+                waited += 25;
+                match get_entry(sid) {
+                    Some(updated) => {
+                        entry = updated;
+                        // Cek SETELAH refresh entry — bukan snapshot stale
+                        let h_now = contiguous_end_from(&entry.ranges, req_start);
+                        if h_now > req_start || entry.done {
+                            break;
+                        }
+                    }
+                    None => break,
                 }
             }
         }
