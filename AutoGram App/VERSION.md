@@ -1,7 +1,7 @@
-AutoGram Version: v2.7.4
+AutoGram Version: v2.7.5
 
 Current State:
-v2.7.4 Transfer Progress Sync & Overall Percent Reducer Fix — membenahi `transferProgress.ts`, `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug konflik visual di mana header Transfer Manager menampilkan 0.0% sementara sub-bar menampilkan 50% 69.97 MB / 139.93 MB: (1) `recomputeOverall` mengaitkan persentase overall secara proporsional dengan bytes aktual/progress item bukannya mematok 0% hingga item terminal; (2) mengeliminasi payload static mockup 40%/50% di `studio_orch.rs` saat upload dimulai.
+v2.7.5 Smart Thumbnail Auto-Reload System — membenahi `thumbBatcher.ts` dan `MediaStudio/index.tsx`. Thumbnail langsung muncul setelah transfer selesai tanpa perlu refresh manual. Menambahkan debounced batch accumulator untuk mencegah thundering herd saat transfer massal, smart retry dengan exponential backoff (1.5s/3s/6s), fungsi `requestNewlyUploadedThumbs` yang bypass semua fail-cooldown untuk file baru, fix `forceRetryThumb` dengan dukungan peerId/topicId, dan event broadcast `autogram-transfer-batch-done`.
 
 Previous:
 v2.7.3 Transfer Manager Realtime Progress Engine & Settings Modal Scrollability Fix — membenahi `media_prep.rs`, `studio_orch.rs`, `lib.rs`, `App.css`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki 3 masalah utama: (1) Transfer Manager menampilkan progress realtime % re-encode (via FFmpeg stdout progress parsing) dan progress upload secara akurat tanpa terhenti 0%; (2) Modal Transfer Settings di Drive Tools & Settings dapat di-scroll secara penuh di layar kecil/responsif; (3) Grid media dan thumbnail ter-refresh dan ter-prime secara realtime setelah proses upload selesai tanpa perlu refresh manual.

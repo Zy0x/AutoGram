@@ -733,11 +733,13 @@ export function invalidateThumb(
 export function forceRetryThumb(
   creds: DriveCredentials,
   folderId: number | null,
-  messageId: number
+  messageId: number,
+  opts?: { peerId?: string | null; topicId?: number | null; locationType?: string }
 ): void {
-  const k = cacheKey(folderId, messageId, activeQuality, creds.session);
+  const k = cacheKey(folderId, messageId, activeQuality, creds.session, opts?.peerId, opts?.topicId);
   softFailAt.delete(k);
   errorFailAt.delete(k);
+  inflightByKey.delete(k);
   // Only enqueue if not already in cache or queue
   if (!memCache.has(k) && !queue.has(k)) {
     // Fire-and-forget — result is handled by any mounted DriveFileCard
@@ -745,8 +747,46 @@ export function forceRetryThumb(
       priority: 'visible',
       contextKey: activeContextKey,
       bypassCache: true,
+      peerId: opts?.peerId,
+      topicId: opts?.topicId,
+      locationType: opts?.locationType,
     });
   }
+}
+
+/**
+ * Request thumbnails for a batch of newly-uploaded / just-transferred files.
+ * Unconditionally clears all fail-cooldowns and in-flight locks so freshly
+ * committed items are always fetched — even if a previous attempt failed
+ * (e.g. file not yet indexed on Telegram's CDN).
+ * Preserves existing good cached thumbs (does NOT evict memCache).
+ */
+export function requestNewlyUploadedThumbs(
+  creds: DriveCredentials,
+  folderId: number | null,
+  messageIds: number[],
+  opts?: { peerId?: string | null; topicId?: number | null; locationType?: string }
+): void {
+  if (!messageIds.length || !isDriveSessionReady()) return;
+  const ids = [...new Set(messageIds.filter(Number.isFinite))];
+  for (const mid of ids) {
+    const k = cacheKey(folderId, mid, activeQuality, creds.session, opts?.peerId, opts?.topicId);
+    // Clear failure cooldowns so the item is retried immediately
+    softFailAt.delete(k);
+    errorFailAt.delete(k);
+    inflightByKey.delete(k);
+    // Also clear saver-quality cooldowns so progressive blur can paint immediately
+    const saverK = cacheKey(folderId, mid, 'saver', creds.session, opts?.peerId, opts?.topicId);
+    softFailAt.delete(saverK);
+    errorFailAt.delete(saverK);
+    inflightByKey.delete(saverK);
+  }
+  // Request with visible priority; do NOT bypass memCache — if streaming event
+  // already delivered the thumb, there is no need to re-fetch.
+  requestVisibleThumbs(creds, folderId, ids, {
+    ...opts,
+    bypassCache: false,
+  });
 }
 
 let thumbsPaused = false;
@@ -822,6 +862,24 @@ export function notifyMediaUploaded(file: any, folderId: number | null): void {
   window.dispatchEvent(
     new CustomEvent('autogram-media-uploaded', {
       detail: { file, folderId },
+    })
+  );
+}
+
+/**
+ * Broadcast that a batch of message IDs just finished transferring.
+ * DriveFileCard and any other subscriber can listen to 'autogram-transfer-batch-done'
+ * to immediately re-request thumbnails for those items.
+ */
+export function notifyTransferBatchDone(
+  messageIds: number[],
+  folderId: number | null,
+  opts?: { peerId?: string | null; topicId?: number | null }
+): void {
+  if (!messageIds.length || typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent('autogram-transfer-batch-done', {
+      detail: { messageIds, folderId, peerId: opts?.peerId, topicId: opts?.topicId },
     })
   );
 }

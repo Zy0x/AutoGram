@@ -14,6 +14,8 @@ import { bootstrapSecureCredentials } from './lib/tauri/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
 /** Code-split Media Studio — keeps main shell light until tab opens */
 const MediaStudio = lazy(() =>
   import('./pages/MediaStudio').then((m) => ({ default: m.MediaStudio }))
@@ -77,30 +79,32 @@ function App() {
       {!driveFocus && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />}
 
       <div className={`app-content ${driveFocus ? 'app-content-drive' : ''}`} id="app-content">
-        {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
-        {activeTab === 'jobs' && <Jobs />}
-        {activeTab === 'sync' && <Sync />}
-        {activeTab === 'stats' && <Statistics />}
-        {activeTab === 'accounts' && <Accounts />}
-        {activeTab === 'profiles' && <Profiles />}
-        {activeTab === 'automation' && <Automation />}
-        {(activeTab === 'speedtest' || activeTab === 'media-studio') && isMediaStudioAvailable() && (
-          <Suspense
-            fallback={
-              <main className="main-content main-content-fill td-page">
-                <div className="td-boot-fallback" role="status">
-                  Memuat Drives…
-                </div>
-              </main>
-            }
-          >
-            <MediaStudio
-              onExitToApp={() => setActiveTab('dashboard')}
-              onNavigateToAccounts={() => setActiveTab('accounts')}
-            />
-          </Suspense>
-        )}
-        {activeTab === 'settings' && <Settings />}
+        <ErrorBoundary fallbackTitle="Terjadi Kesalahan pada Halaman Ini" onReset={() => setActiveTab('dashboard')}>
+          {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+          {activeTab === 'jobs' && <Jobs />}
+          {activeTab === 'sync' && <Sync />}
+          {activeTab === 'stats' && <Statistics />}
+          {activeTab === 'accounts' && <Accounts />}
+          {activeTab === 'profiles' && <Profiles />}
+          {activeTab === 'automation' && <Automation />}
+          {(activeTab === 'speedtest' || activeTab === 'media-studio') && isMediaStudioAvailable() && (
+            <Suspense
+              fallback={
+                <main className="main-content main-content-fill td-page">
+                  <div className="td-boot-fallback" role="status">
+                    Memuat Drives…
+                  </div>
+                </main>
+              }
+            >
+              <MediaStudio
+                onExitToApp={() => setActiveTab('dashboard')}
+                onNavigateToAccounts={() => setActiveTab('accounts')}
+              />
+            </Suspense>
+          )}
+          {activeTab === 'settings' && <Settings />}
+        </ErrorBoundary>
       </div>
     </div>
   );

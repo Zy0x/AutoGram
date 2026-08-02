@@ -811,13 +811,15 @@ export function applyTransferStdoutLine(
   }
 }
 
-export function sessionVisible(session: TransferSession): boolean {
+export function sessionVisible(session?: TransferSession | null): boolean {
+  if (!session) return false;
   if (session.active) return true;
-  if (session.items.length > 0) return true;
+  if (Array.isArray(session.items) && session.items.length > 0) return true;
   return false;
 }
 
-export function activeItemName(session: TransferSession): string {
+export function activeItemName(session?: TransferSession | null): string {
+  if (!session || !Array.isArray(session.items)) return '';
   const a = session.items.find((i) =>
     i.status === 'active' ||
     i.status === 'preparing' ||
@@ -830,9 +832,10 @@ export function activeItemName(session: TransferSession): string {
   return q?.name || session.label || '';
 }
 
-export function countByStatus(session: TransferSession) {
-  const c = { done: 0, failed: 0, active: 0, queued: 0, skipped: 0, needsVerification: 0, total: session.items.length };
-  for (const it of session.items) {
+export function countByStatus(session?: TransferSession | null) {
+  const items = session && Array.isArray(session.items) ? session.items : [];
+  const c = { done: 0, failed: 0, active: 0, queued: 0, skipped: 0, needsVerification: 0, total: items.length };
+  for (const it of items) {
     if (it.status === 'done') c.done++;
     else if (it.status === 'skipped') c.skipped++;
     else if (it.status === 'needs_verification') c.needsVerification++;

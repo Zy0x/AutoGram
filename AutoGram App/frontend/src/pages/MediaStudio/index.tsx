@@ -209,6 +209,8 @@ import {
   primeThumbsFromFileList,
   stripInlineThumbsFromFiles,
   requestVisibleThumbs,
+  requestNewlyUploadedThumbs,
+  notifyTransferBatchDone,
   getCachedThumb,
   invalidateThumbFailures,
   setThumbContext,
@@ -3541,6 +3543,46 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
   }, [creds, peerId, nextOffsetId, filesHasMore, thumbLocationOptions]);
 
   // Real-time transfer progress and thumbnail synchronization listener
+  // Uses a debounced batch accumulator so rapid StudioItemDone events from
+  // large transfers are coalesced into a single uploadSoftRefresh + thumb retry
+  // instead of firing one API call per completed file (thundering herd prevention).
+  const transferDoneIdsRef = useRef<number[]>([]);
+  const transferDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const thumbRetryTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const flushTransferDone = useCallback(() => {
+    if (!creds) return;
+    const ids = [...transferDoneIdsRef.current];
+    transferDoneIdsRef.current = [];
+    // 1. Refresh file list to include newly uploaded entries
+    void uploadSoftRefresh(true);
+    // 2. Notify broadcast so other subscribers (e.g. DriveFileCard) know
+    if (ids.length > 0) {
+      notifyTransferBatchDone(ids, peerId, thumbLocationOptions);
+    }
+    // 3. Smart retry: if thumbnail still missing after uploadSoftRefresh,
+    //    retry with increasing backoff (1.5s / 3s / 6s) — handles the case
+    //    where Telegram CDN hasn't indexed the file's thumbnail yet.
+    if (ids.length > 0) {
+      const retryDelays = [1500, 3000, 6000];
+      for (const t of thumbRetryTimerRef.current) clearTimeout(t);
+      thumbRetryTimerRef.current = [];
+      let accumulatedDelay = 0;
+      for (const delay of retryDelays) {
+        accumulatedDelay += delay;
+        const t = setTimeout(() => {
+          if (!creds) return;
+          const stillMissing = ids.filter(
+            (mid) => mid > 0 && getCachedThumb(peerId, mid, thumbLocationOptions) == null
+          );
+          if (!stillMissing.length) return;
+          requestNewlyUploadedThumbs(creds, peerId, stillMissing, thumbLocationOptions);
+        }, accumulatedDelay);
+        thumbRetryTimerRef.current.push(t);
+      }
+    }
+  }, [creds, peerId, thumbLocationOptions, uploadSoftRefresh]);
+
   useEffect(() => {
     if (!detectTauriRuntime()) return;
     let unlisten: (() => void) | undefined;
@@ -3548,8 +3590,26 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
       listen<any>('transfer-event', (e) => {
         if (e.payload) {
           setTransfer((t) => applyTransferEvent(t, e.payload));
-          if (e.payload.type === 'StudioItemDone' || e.payload.type === 'StudioFinished') {
-            void uploadSoftRefresh(true);
+
+          if (e.payload.type === 'StudioItemDone') {
+            // Accumulate completed message IDs for batch processing
+            const mid = Number(e.payload.message_id || 0);
+            if (mid > 0) transferDoneIdsRef.current.push(mid);
+
+            // Debounce: wait 600ms of silence before flushing
+            // (coalesces rapid-fire events from batch uploads)
+            if (transferDoneTimerRef.current) clearTimeout(transferDoneTimerRef.current);
+            transferDoneTimerRef.current = setTimeout(() => {
+              transferDoneTimerRef.current = null;
+              flushTransferDone();
+            }, 600);
+          } else if (e.payload.type === 'StudioFinished') {
+            // Session finished: flush immediately (no more events coming)
+            if (transferDoneTimerRef.current) {
+              clearTimeout(transferDoneTimerRef.current);
+              transferDoneTimerRef.current = null;
+            }
+            flushTransferDone();
           }
         }
       }).then((u) => {
@@ -3558,8 +3618,11 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
     });
     return () => {
       if (unlisten) unlisten();
+      if (transferDoneTimerRef.current) clearTimeout(transferDoneTimerRef.current);
+      for (const t of thumbRetryTimerRef.current) clearTimeout(t);
+      thumbRetryTimerRef.current = [];
     };
-  }, [uploadSoftRefresh]);
+  }, [flushTransferDone]);
 
   /**
    * Lightweight sidebar refresh triggered after upload finishes.

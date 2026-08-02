@@ -1,3 +1,13 @@
+## v2.7.5 Smart Thumbnail Auto-Reload System
+
+### Thumbnail Langsung Muncul Tanpa Refresh Manual (`thumbBatcher.ts`, `MediaStudio/index.tsx`)
+- **Debounced Batch Accumulator**: Mengganti pola `uploadSoftRefresh` per-item dengan debounced handler (600ms) yang mengumpulkan semua `StudioItemDone` message ID dalam satu burst, lalu menjalankan satu `uploadSoftRefresh` di akhir — mencegah thundering herd saat transfer massal (50+ file).
+- **Smart Retry dengan Exponential Backoff**: Setelah `uploadSoftRefresh` selesai, sistem otomatis melakukan retry thumbnail dengan jeda bertahap 1.5s → 3s → 6s untuk menangani kasus di mana Telegram CDN belum mengindeks thumbnail file yang baru di-upload.
+- **`requestNewlyUploadedThumbs`** *(baru)*: Fungsi di `thumbBatcher.ts` yang secara penuh membersihkan `softFailAt`, `errorFailAt`, dan `inflightByKey` untuk file yang baru selesai di-transfer, memastikan thumbnail selalu di-request ulang tanpa terhambat cooldown.
+- **`notifyTransferBatchDone`** *(baru)*: Fungsi broadcast event `autogram-transfer-batch-done` ke seluruh subscriber (DriveFileCard, dll.) agar dapat bereaksi terhadap batch transfer yang selesai.
+- **Fix `forceRetryThumb`**: Menambahkan parameter `opts` (peerId, topicId) agar cache key yang digunakan konsisten dengan key yang dipakai DriveFileCard — mencegah mismatch yang menyebabkan re-request tidak efektif.
+- **Cleanup Timeout di Unmount**: Transfer listener kini mem-cancel semua pending debounce dan retry timers saat komponen unmount untuk mencegah memory leak dan stale closure calls.
+
 ## v2.7.4 Transfer Progress Sync & Overall Percent Reducer Fix
 
 ### Perbaikan Konflik Visual Header Transfer Manager (`transferProgress.ts`)
