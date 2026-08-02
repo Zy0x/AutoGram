@@ -121,12 +121,10 @@ fn contiguous_from_zero(ranges: &[(u64, u64)]) -> u64 {
 }
 
 fn contiguous_end_from(ranges: &[(u64, u64)], start: u64) -> u64 {
-    for &(s, e) in ranges {
+    let sorted = merge_ranges(ranges);
+    for &(s, e) in &sorted {
         if s <= start && start < e {
             return e;
-        }
-        if s > start {
-            break;
         }
     }
     start
@@ -702,7 +700,7 @@ fn handle_stream(request: Request, sid: &str) {
         let ranges_snapshot = entry.ranges.clone();
         let have = contiguous_end_from(&ranges_snapshot, req_start);
         if have <= req_start {
-            let _ = super::grammers_media::request_progressive_range(sid, req_start);
+            let _ = crate::core::grammers::stream::request_progressive_range(sid, req_start);
             if entry.paused {
                 entry.paused = false;
                 upsert_entry(entry.clone());

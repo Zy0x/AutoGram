@@ -78,6 +78,24 @@ fn first_missing_offset(ranges: &[(u64, u64)], total: u64) -> Option<u64> {
     (covered < total).then_some(covered)
 }
 
+fn find_missing_offset_from(ranges: &[(u64, u64)], from: u64, total: u64) -> Option<u64> {
+    let sorted = stream_server::merge_ranges(ranges);
+    let mut covered = from;
+    for (start, end) in sorted {
+        if end <= from {
+            continue;
+        }
+        if start > covered {
+            return Some(covered);
+        }
+        covered = covered.max(end);
+        if covered >= total {
+            return None;
+        }
+    }
+    (covered < total).then_some(covered)
+}
+
 fn register_cancel(sid: &str) -> Arc<AtomicBool> {
     let flag = Arc::new(AtomicBool::new(false));
     cancel_flags().lock().insert(sid.to_string(), flag.clone());
@@ -1550,6 +1568,8 @@ fn start_preview_stream_inner(
                     .open(&dest_path)
                     .map_err(|e| format!("open partial: {e}"))?;
 
+                let mut cursor: u64 = 0;
+
                 while !flag.load(Ordering::SeqCst) {
                     let Some(entry) = stream_server::get_entry(&sid) else {
                         break;
@@ -1565,96 +1585,129 @@ fn start_preview_stream_inner(
                         continue;
                     }
 
+                    // 1. Sync local ranges with global entry (picks up tail-fetch ranges and external updates)
+                    for r in &entry.ranges {
+                        ranges.push(*r);
+                    }
+                    ranges = stream_server::merge_ranges(&ranges);
+
+                    // 2. Check for incoming Seek Requests (Demand from browser)
                     let demand = take_seek_request(&sid);
                     if let Some(target) = demand {
                         let target = target.min(size.saturating_sub(1));
-                        let aligned = (target / CHUNK_SIZE) * CHUNK_SIZE;
-                        let fetch_window_end = (aligned + 2 * 1024 * 1024).min(size);
-
+                        cursor = (target / CHUNK_SIZE) * CHUNK_SIZE;
                         tg_log::info(
                             BACKEND,
                             "[STREAM_DIAG][SEEK]",
-                            format!("sid={sid} jump_to_offset={aligned} window_end={fetch_window_end}"),
+                            format!("sid={sid} seek_target={target} cursor_updated={cursor}"),
                         );
+                    }
 
-                        let mut pending_offsets = Vec::new();
-                        let mut scan_off = aligned;
-                        while pending_offsets.len() < PARALLEL_WORKERS && scan_off < fetch_window_end {
-                            let already = ranges.iter().any(|(s, e)| *s <= scan_off && scan_off < *e);
-                            if !already {
-                                pending_offsets.push(scan_off);
+                    // 3. Find next missing offset starting from current cursor position
+                    let next_offset = match find_missing_offset_from(&ranges, cursor, size) {
+                        Some(off) => off,
+                        None => {
+                            match first_missing_offset(&ranges, size) {
+                                Some(off) => off,
+                                None => break, // Entire file downloaded!
                             }
-                            scan_off += CHUNK_SIZE;
                         }
+                    };
 
-                        if !pending_offsets.is_empty() {
-                            let (tx, mut rx) = tokio::sync::mpsc::channel(pending_offsets.len());
-                            for (idx, chunk_off) in pending_offsets.into_iter().enumerate() {
-                                let client = fill_clients[idx % fill_clients.len()].clone();
-                                let media_item = fill_media.clone();
-                                let skip = (chunk_off / CHUNK_SIZE) as i32;
-                                let tx_clone = tx.clone();
-                                tokio::spawn(async move {
-                                    let mut iter = client
-                                        .iter_download(&media_item)
-                                        .chunk_size(CHUNK_SIZE as i32)
-                                        .skip_chunks(skip);
-                                    let res = iter.next().await;
-                                    let _ = tx_clone.send((chunk_off, res)).await;
-                                });
-                            }
-                            drop(tx);
+                    cursor = next_offset;
 
-                            let mut written_any = false;
-                            while let Some((chunk_off, res)) = rx.recv().await {
-                                match res {
-                                    Ok(Some(bytes)) if !bytes.is_empty() => {
-                                        if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&bytes).is_ok() {
-                                            ranges.push((chunk_off, chunk_off + bytes.len() as u64));
-                                            written_any = true;
-                                        }
-                                    }
-                                    Err(e) => {
-                                        let mapped = map_invocation(&e);
-                                        session_rate::note_error(&session_bg, &mapped);
-                                        if mapped.code() == TgErrorCode::FloodWait {
-                                            if let Some(secs) = mapped.flood_wait_secs() {
-                                                tg_log::warn(
-                                                    BACKEND,
-                                                    "progressive_flood",
-                                                    format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
-                                                );
-                                                tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
-                                            }
-                                        }
-                                    }
-                                    _ => {}
+                    // 4. Batch fetch up to PARALLEL_WORKERS chunks starting from cursor
+                    let window_limit = (cursor + (PARALLEL_WORKERS as u64) * CHUNK_SIZE).min(size);
+                    let mut pending_offsets = Vec::new();
+                    let mut scan_off = cursor;
+                    while pending_offsets.len() < PARALLEL_WORKERS && scan_off < window_limit {
+                        let already = ranges.iter().any(|(s, e)| *s <= scan_off && scan_off < *e);
+                        if !already {
+                            pending_offsets.push(scan_off);
+                        }
+                        scan_off += CHUNK_SIZE;
+                    }
+
+                    if pending_offsets.is_empty() {
+                        cursor = window_limit;
+                        if first_missing_offset(&ranges, size).is_none() {
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_millis(20)).await;
+                        continue;
+                    }
+
+                    let (tx, mut rx) = tokio::sync::mpsc::channel(pending_offsets.len());
+                    for (idx, chunk_off) in pending_offsets.into_iter().enumerate() {
+                        let client = fill_clients[idx % fill_clients.len()].clone();
+                        let media_item = fill_media.clone();
+                        let skip = (chunk_off / CHUNK_SIZE) as i32;
+                        let tx_clone = tx.clone();
+                        tokio::spawn(async move {
+                            let mut iter = client
+                                .iter_download(&media_item)
+                                .chunk_size(CHUNK_SIZE as i32)
+                                .skip_chunks(skip);
+                            let res = iter.next().await;
+                            let _ = tx_clone.send((chunk_off, res)).await;
+                        });
+                    }
+                    drop(tx);
+
+                    let mut written_any = false;
+                    while let Some((chunk_off, res)) = rx.recv().await {
+                        match res {
+                            Ok(Some(bytes)) if !bytes.is_empty() => {
+                                if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&bytes).is_ok() {
+                                    ranges.push((chunk_off, chunk_off + bytes.len() as u64));
+                                    written_any = true;
                                 }
                             }
-                            if written_any {
-                                let _ = file.flush();
-                                ranges = stream_server::merge_ranges(&ranges);
-                                stream_server::upsert_entry(StreamEntry {
-                                    stream_id: sid.clone(),
-                                    path: dest_path.display().to_string(),
-                                    total_size: size,
-                                    mime: mime_bg.clone(),
-                                    label: name.clone(),
-                                    done: first_missing_offset(&ranges, size).is_none(),
-                                    ranges: ranges.clone(),
-                                    cancelled: false,
-                                    error: None,
-                                    paused: false,
-                                    updated_at_ms: now_ms(),
-                                    moov_ready_cached: false,
-                                    moov_tail_fetching: false,
-                                });
+                            Err(e) => {
+                                let mapped = map_invocation(&e);
+                                session_rate::note_error(&session_bg, &mapped);
+                                if mapped.code() == TgErrorCode::FloodWait {
+                                    if let Some(secs) = mapped.flood_wait_secs() {
+                                        tg_log::warn(
+                                            BACKEND,
+                                            "progressive_flood",
+                                            format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
+                                        );
+                                        tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                                    }
+                                }
                             }
-                            continue;
+                            _ => {}
                         }
                     }
 
-                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    if written_any {
+                        let _ = file.flush();
+                        ranges = stream_server::merge_ranges(&ranges);
+                        let is_done = first_missing_offset(&ranges, size).is_none();
+                        stream_server::upsert_entry(StreamEntry {
+                            stream_id: sid.clone(),
+                            path: dest_path.display().to_string(),
+                            total_size: size,
+                            mime: mime_bg.clone(),
+                            label: name.clone(),
+                            done: is_done,
+                            ranges: ranges.clone(),
+                            cancelled: false,
+                            error: None,
+                            paused: false,
+                            updated_at_ms: now_ms(),
+                            moov_ready_cached: false,
+                            moov_tail_fetching: false,
+                        });
+
+                        cursor = scan_off;
+                        if is_done {
+                            break;
+                        }
+                    } else {
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                    }
                 }
                 let _ = file.flush();
                 Ok::<(), String>(())
