@@ -120,6 +120,7 @@ export function Accounts() {
     status?: string;
     userFullName?: string;
     username?: string;
+    photoBase64?: string;
     latencyMs?: number;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -295,6 +296,7 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
+          const photoBase64 = user?.photoBase64 || undefined;
           setSessions((current) =>
             current.map((row) =>
               row.name === saved.name
@@ -303,6 +305,7 @@ export function Accounts() {
                     status: connected ? 'connected' : result?.error ? 'error' : 'expired',
                     userFullName,
                     username,
+                    photoBase64,
                     latencyMs,
                   }
                 : row
@@ -731,8 +734,16 @@ export function Accounts() {
               sessions.map((s, idx) => (
                 <div key={idx} className="list-row">
                   <div className="list-row-main">
-                    <div className="avatar-circle">
-                      <Users size={20} color="var(--primary)" aria-hidden />
+                    <div className="avatar-circle" style={{ overflow: 'hidden', padding: s.photoBase64 ? 0 : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {s.photoBase64 ? (
+                        <img
+                          src={s.photoBase64}
+                          alt={s.userFullName || s.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                        />
+                      ) : (
+                        <Users size={20} color="var(--primary)" aria-hidden />
+                      )}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       {(() => {
