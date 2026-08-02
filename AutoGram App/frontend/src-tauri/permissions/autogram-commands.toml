@@ -118,6 +118,7 @@ allow = [
     "cache_calculate_size",
     "drive_calculate_cache_size",
     "cache_clear_disk",
-    "cache_trim_disk"
+    "cache_trim_disk",
+    "tg_download_profile_photo"
 ]
 

@@ -27,8 +27,15 @@ export function Profiles() {
       const lines = result.stdout.split('\n');
       for (const line of lines) {
         if (line.startsWith('[JSON_OUTPUT]')) {
-          const jsonStr = line.substring('[JSON_OUTPUT]'.length);
-          setProfiles(JSON.parse(jsonStr));
+          const jsonStr = line.substring('[JSON_OUTPUT]'.length).trim();
+          if (jsonStr) {
+            try {
+              setProfiles(JSON.parse(jsonStr));
+            } catch (pErr) {
+              console.warn("Failed to parse profiles JSON:", pErr);
+              setProfiles([]);
+            }
+          }
           break;
         }
       }
