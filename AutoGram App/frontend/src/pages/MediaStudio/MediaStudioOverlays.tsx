@@ -1,10 +1,10 @@
 import React from 'react';
-import { Upload, AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 export interface MediaStudioOverlaysProps {
-  dragActive: boolean;
+  dragActive?: boolean;
   mediaDragActive: boolean;
-  breadcrumb: string;
+  breadcrumb?: string;
   error: string | null;
   setError: (err: string | null) => void;
   driveCircuitTripped?: boolean;
@@ -13,9 +13,9 @@ export interface MediaStudioOverlaysProps {
 }
 
 export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
-  dragActive,
+  dragActive: _dragActive,
   mediaDragActive,
-  breadcrumb,
+  breadcrumb: _breadcrumb,
   error,
   setError,
   driveCircuitTripped,
@@ -51,18 +51,6 @@ export const MediaStudioOverlays: React.FC<MediaStudioOverlaysProps> = ({
           <button type="button" className="td-chip-btn" onClick={() => setError(null)}>
             Tutup
           </button>
-        </div>
-      )}
-
-      {dragActive && !mediaDragActive && (
-        <div className="td-drop-overlay" data-dnd="os-upload">
-          <div className="td-drop-overlay-icon">
-            <Upload size={36} strokeWidth={1.75} />
-          </div>
-          <p className="td-drop-overlay-title">
-            Lepas untuk mengunggah ke <strong>{breadcrumb}</strong>
-          </p>
-          <span className="td-drop-overlay-hint">File dari komputer / File Explorer</span>
         </div>
       )}
 

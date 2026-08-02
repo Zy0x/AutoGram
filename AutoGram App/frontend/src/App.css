@@ -2009,7 +2009,8 @@
  * z-index MUST stay above .td-drawer-backdrop (65) and open drawer rail (70).
  * Previously z-index:40 put the rail *under* the 50% black drawer scrim → looked half-dark. */
 .td-sidebar.media-dnd,
-.td-shell.is-media-dnd .td-sidebar {
+.td-shell.is-media-dnd .td-sidebar,
+.td-shell.is-os-dnd .td-sidebar {
   z-index: 80 !important;
   background: var(--td-surface) !important;
   box-shadow: none !important;
@@ -2721,8 +2722,7 @@ body.td-dnd-external {
 }
 
 .td-explorer.drag-over.is-os-dnd {
-  outline: 2px dashed #3b82f6;
-  outline-offset: -10px;
+  outline: none;
 }
 /* Internal drag: do NOT dim whole grid (looks like a bug / dark wash) */
 .td-internal-dnd-tip {
@@ -2771,11 +2771,12 @@ body.td-dnd-external {
 
 .td-drop-overlay {
   position: absolute;
-  inset: 10px;
+  inset: 12px;
   z-index: 20;
   border-radius: 16px;
   border: 2px dashed #3b82f6;
-  background: color-mix(in srgb, #3b82f6 12%, rgba(15, 23, 42, 0.88));
+  background: color-mix(in srgb, #3b82f6 10%, rgba(15, 23, 42, 0.86));
+  backdrop-filter: blur(6px);
   display: flex;
   flex-direction: column;
   align-items: center;
