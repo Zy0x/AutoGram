@@ -437,6 +437,109 @@ pub fn auth_status_blocking(
     })
 }
 
+/// Download the actual Telegram profile photo for the current session user.
+/// Returns a base64 data-URL string (JPEG), or None if unavailable.
+pub fn download_profile_photo_blocking(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+) -> Result<Option<String>, TgError> {
+    let rt = runtime()?;
+    rt.block_on(async {
+        with_client(sessions_dir, identity, false, move |client| {
+            Box::pin(async move {
+                use grammers_client::tl;
+
+                // Request the 1 most recent profile photo for the current user (InputUserSelf)
+                let result = client
+                    .invoke(&tl::functions::photos::GetUserPhotos {
+                        user_id: tl::enums::InputUser::UserSelf,
+                        offset: 0,
+                        max_id: 0,
+                        limit: 1,
+                    })
+                    .await
+                    .map_err(|e| map_invocation(&e))?;
+
+                let (photos, _users) = match result {
+                    tl::enums::photos::Photos::Photos(p) => (p.photos, p.users),
+                    tl::enums::photos::Photos::Slice(s) => (s.photos, s.users),
+                };
+
+                let Some(photo_enum) = photos.into_iter().next() else {
+                    return Ok(None);
+                };
+
+                let tl::enums::Photo::Photo(photo) = photo_enum else {
+                    return Ok(None);
+                };
+
+                // Pick smallest non-stripped downloadable size
+                // Prefer 's' (160px), then 'a', 'b', 'c', etc.
+                let sizes = &photo.sizes;
+                let preferred_types = ["s", "a", "b", "c", "d", "e"];
+                let chosen_type = preferred_types.iter().find_map(|&t| {
+                    sizes.iter().find_map(|s| match s {
+                        tl::enums::PhotoSize::Size(sz) if sz.r#type == t && sz.size > 0 => {
+                            Some(t)
+                        }
+                        _ => None,
+                    })
+                });
+
+                let size_type = chosen_type.unwrap_or("s");
+
+                // Use upload::GetFile with InputPhotoFileLocation to download the photo
+                let location = tl::enums::InputFileLocation::InputPhotoFileLocation(
+                    tl::types::InputPhotoFileLocation {
+                        id: photo.id,
+                        access_hash: photo.access_hash,
+                        file_reference: photo.file_reference.clone(),
+                        thumb_size: size_type.to_string(),
+                    },
+                );
+
+                let mut bytes = Vec::new();
+                let mut offset = 0i64;
+                let chunk_size = 128 * 1024i32; // 128 KB chunks for small photos
+
+                loop {
+                    let res = client
+                        .invoke(&tl::functions::upload::GetFile {
+                            precise: false,
+                            cdn_supported: false,
+                            location: location.clone(),
+                            offset,
+                            limit: chunk_size,
+                        })
+                        .await
+                        .map_err(|e| map_invocation(&e))?;
+
+                    match res {
+                        tl::enums::upload::File::File(f) => {
+                            let is_done = (f.bytes.len() as i32) < chunk_size;
+                            bytes.extend_from_slice(&f.bytes);
+                            if is_done || bytes.len() > 2 * 1024 * 1024 {
+                                break;
+                            }
+                            offset += f.bytes.len() as i64;
+                        }
+                        _ => break,
+                    }
+                }
+
+                if bytes.is_empty() {
+                    return Ok(None);
+                }
+
+                Ok(crate::core::grammers::thumbs::to_data_url(&bytes))
+            })
+        })
+        .await
+    })
+}
+
+
+
 /// Drop live MTProto client for a session (account switch without dual-open).
 pub fn disconnect_session_blocking(session_name: &str) {
     disconnect_cached_session(session_name);

@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgListSessions, tgLogin } from '../../lib/telegram';
+import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin } from '../../lib/telegram';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 
@@ -124,6 +124,8 @@ export function Accounts() {
     latencyMs?: number;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Track sessions where photoBase64 failed to render (show initials instead)
+  const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
   
   // Active Sessions State — multi-account for Media Studio / Jobs pickers.
   // First entry is the default boot target; others remain switchable.
@@ -296,6 +298,7 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
+          // Use stripped_thumb from auth_status as initial placeholder (very fast)
           const photoBase64 = user?.photoBase64 || undefined;
           setSessions((current) =>
             current.map((row) =>
@@ -311,6 +314,30 @@ export function Accounts() {
                 : row
             )
           );
+
+          // Fire-and-forget: download actual high-quality profile photo asynchronously
+          // This updates the avatar progressively without blocking the session list
+          if (connected) {
+            tgDownloadProfilePhoto({
+              session: saved.name,
+              apiId: Number(apiId),
+              apiHash,
+            }).then((realPhoto) => {
+              if (realPhoto) {
+                setSessions((current) =>
+                  current.map((row) =>
+                    row.name === saved.name ? { ...row, photoBase64: realPhoto } : row
+                  )
+                );
+                // Clear any cached error for this session so the photo is shown
+                setAvatarErrors((prev) => {
+                  const next = new Set(prev);
+                  next.delete(saved.name);
+                  return next;
+                });
+              }
+            }).catch(() => { /* Silently ignore photo download errors */ });
+          }
         })
       );
     } catch (e) {
@@ -734,17 +761,43 @@ export function Accounts() {
               sessions.map((s, idx) => (
                 <div key={idx} className="list-row">
                   <div className="list-row-main">
-                    <div className="avatar-circle" style={{ overflow: 'hidden', padding: s.photoBase64 ? 0 : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {s.photoBase64 ? (
-                        <img
-                          src={s.photoBase64}
-                          alt={s.userFullName || s.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                        />
-                      ) : (
-                        <Users size={20} color="var(--primary)" aria-hidden />
-                      )}
-                    </div>
+                    {(() => {
+                        const customAliasForAvatar = sessionAliases[s.name];
+                        const displayForAvatar = customAliasForAvatar || s.userFullName || s.name;
+                        const initials = displayForAvatar
+                          .split(/\s+/).map((w: string) => w[0]).join('').substring(0, 2).toUpperCase() || '?';
+                        const AVATAR_COLORS = ['#6366f1','#7c3aed','#db2777','#0891b2','#059669','#d97706','#dc2626'];
+                        const avatarBg = `linear-gradient(135deg, ${AVATAR_COLORS[s.name.charCodeAt(0) % AVATAR_COLORS.length]}, ${AVATAR_COLORS[(s.name.charCodeAt(0) + 3) % AVATAR_COLORS.length]})`;
+                        const showPhoto = !!s.photoBase64 && !avatarErrors.has(s.name);
+                        return (
+                          <div
+                            className="avatar-circle"
+                            style={{
+                              overflow: 'hidden',
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: showPhoto ? 'transparent' : avatarBg,
+                              flexShrink: 0,
+                              position: 'relative',
+                            }}
+                          >
+                            {showPhoto ? (
+                              <img
+                                src={s.photoBase64}
+                                alt={displayForAvatar}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                                onError={() => setAvatarErrors(prev => new Set([...prev, s.name]))}
+                              />
+                            ) : (
+                              <span style={{ color: '#fff', fontWeight: '700', fontSize: '13px', letterSpacing: '0.5px', lineHeight: 1, pointerEvents: 'none' }}>
+                                {initials}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     <div style={{ minWidth: 0 }}>
                       {(() => {
                         const customAlias = sessionAliases[s.name];

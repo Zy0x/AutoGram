@@ -1168,6 +1168,20 @@ async fn tg_auth_status(
 }
 
 #[tauri::command]
+async fn tg_download_profile_photo(
+    app: AppHandle,
+    identity: core::telegram_ops::TelegramIdentity,
+) -> Result<core::telegram_ops::OpResult<Option<String>>, String> {
+    ensure_sessions_dir_env(&app);
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_download_profile_photo(identity)
+    })
+    .await
+    .map_err(|e| format!("download profile photo task failed: {e}"))
+}
+
+
+#[tauri::command]
 async fn tg_list_dialogs(
     app: AppHandle,
     identity: core::telegram_ops::TelegramIdentity,
@@ -1524,6 +1538,7 @@ pub fn run() {
             tg_list_sessions,
             tg_import_telethon_session,
             tg_auth_status,
+            tg_download_profile_photo,
             tg_list_dialogs,
             tg_list_dialog_filters,
             tg_get_media_statistics,

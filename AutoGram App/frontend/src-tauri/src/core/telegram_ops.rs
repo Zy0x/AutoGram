@@ -291,6 +291,20 @@ pub fn tg_auth_status(identity: TelegramIdentity) -> OpResult<AuthStatus> {
     }
 }
 
+/// Download the actual Telegram profile photo for the session user.
+/// Returns base64 data-URL JPEG or None. Called asynchronously after auth_status.
+pub fn tg_download_profile_photo(identity: TelegramIdentity) -> OpResult<Option<String>> {
+    let dir = sessions_dir_from_env();
+    match super::grammers_ops::download_profile_photo_blocking(&dir, &identity) {
+        Ok(data) => ok_result("grammers", data),
+        Err(e) => {
+            tg_log::warn("grammers", "download_profile_photo", e.to_string());
+            ok_result("grammers", None)
+        }
+    }
+}
+
+
 pub fn tg_list_dialogs(
     identity: TelegramIdentity,
     limit: Option<usize>,
