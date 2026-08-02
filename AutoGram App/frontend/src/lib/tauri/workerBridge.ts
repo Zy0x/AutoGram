@@ -129,27 +129,53 @@ export async function runDaemonOnce(args: string[]): Promise<WorkerResult> {
       return { code: 0, stdout: `[JSON_OUTPUT]\n${out}`, stderr: '' };
     }
 
-    if (action === 'save-automation') {
-      const idStr = getArg('--id');
-      const name = getArg('--name');
+    if (action === 'save-automation' || action === 'add-automation') {
+      const idStr = getArg('--id') || getArg('--job-id');
+      const name = getArg('--name') || getArg('--profile-name') || 'New Automation';
       const cron = getArg('--cron');
-      const actionType = getArg('--type');
-      const config = getArg('--config');
+      const isRealtime = args.includes('--realtime');
+      const actionType = isRealtime ? 'realtime' : (getArg('--type') || 'cron');
+      const source = getArg('--source');
+      const dest = getArg('--destination');
+      let config = getArg('--config');
+      if (!config && (source || dest)) {
+        config = JSON.stringify({ source, destination: dest });
+      }
       const id = idStr ? Number(idStr) : undefined;
       const resId = await invoke<number>('automations_save', {
         request: {
           id,
           name,
           scheduleCron: cron || null,
-          actionType: actionType || 'sync',
+          actionType: actionType || 'cron',
           configJson: config || '{}',
         },
       });
       return { code: 0, stdout: JSON.stringify({ status: 'success', id: resId }), stderr: '' };
     }
 
+    if (action === 'set-automation-status') {
+      const id = Number(getArg('--job-id') || getArg('--id'));
+      const status = getArg('--status') || 'active';
+      const automations = await invoke<any[]>('automations_list');
+      const target = (automations || []).find((a: any) => a.id === id);
+      if (target) {
+        await invoke('automations_save', {
+          request: {
+            id: target.id,
+            name: target.name,
+            scheduleCron: target.scheduleCron || target.schedule_cron || null,
+            actionType: target.actionType || target.action_type || 'cron',
+            configJson: target.configJson || target.config_json || '{}',
+            status,
+          },
+        });
+      }
+      return { code: 0, stdout: JSON.stringify({ status: 'success' }), stderr: '' };
+    }
+
     if (action === 'delete-automation') {
-      const id = Number(getArg('--id'));
+      const id = Number(getArg('--id') || getArg('--job-id'));
       await invoke('automations_delete', { id });
       return { code: 0, stdout: JSON.stringify({ status: 'success' }), stderr: '' };
     }

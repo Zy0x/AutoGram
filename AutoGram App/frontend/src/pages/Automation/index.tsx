@@ -29,8 +29,19 @@ export function Automation() {
       }
 
       if (jsonOutput) {
-        setAutomations(JSON.parse(jsonOutput));
-      } else if (result.code !== 0 && result.stderr && !/requires desktop|requires tauri/i.test(result.stderr)) {
+        const parsed = JSON.parse(jsonOutput);
+        const list = Array.isArray(parsed)
+          ? parsed
+          : Array.isArray(parsed?.automations)
+          ? parsed.automations
+          : Array.isArray(parsed?.jobs)
+          ? parsed.jobs
+          : [];
+        setAutomations(list);
+      } else {
+        setAutomations([]);
+      }
+      if (result.code !== 0 && result.stderr && !/requires desktop|requires tauri/i.test(result.stderr)) {
         console.error('Failed to fetch automations', result.stderr);
       }
     } catch (err) {
@@ -204,42 +215,60 @@ export function Automation() {
                 </tr>
             </thead>
             <tbody>
-                {automations.map((job) => (
+                {automations.map((job) => {
+                  let sourceStr = job.source_entity_id || job.source || '';
+                  let targetStr = job.target_entity_id || job.destination || job.target || '';
+                  const configStr = job.config_json || job.configJson || '';
+                  if ((!sourceStr || !targetStr) && configStr) {
+                    try {
+                      const cfg = typeof configStr === 'string' ? JSON.parse(configStr) : configStr;
+                      sourceStr = sourceStr || cfg.source || cfg.source_entity_id || '';
+                      targetStr = targetStr || cfg.destination || cfg.target || cfg.target_entity_id || '';
+                    } catch {
+                      /* ignore */
+                    }
+                  }
+                  const isRealtime = !!(job.is_realtime || job.action_type === 'realtime' || job.actionType === 'realtime');
+                  const cronExpVal = job.cron_expression || job.schedule_cron || job.scheduleCron || '';
+                  const statusVal = job.status || 'active';
+                  const lastRunVal = job.last_run_at || job.last_run || job.lastRun || 'Never';
+
+                  return (
                     <tr key={job.id}>
                         <td style={{ fontWeight: 600 }}>{job.name}</td>
-                        <td><span style={{color: 'var(--text-muted)', fontSize: '0.85rem'}}>{job.source_entity_id} &rarr; {job.target_entity_id}</span></td>
+                        <td><span style={{color: 'var(--text-muted)', fontSize: '0.85rem'}}>{sourceStr || '-'} &rarr; {targetStr || '-'}</span></td>
                         <td>
-                            {job.is_realtime ? (
+                            {isRealtime ? (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.8rem' }}><Clock size={14}/> Real-Time</span>
                             ) : (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem' }}><Calendar size={14}/> Cron: {job.cron_expression}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontWeight: 600, fontSize: '0.8rem' }}><Calendar size={14}/> Cron: {cronExpVal || '-'}</span>
                             )}
                         </td>
                         <td>
                             <span style={{ 
-                                color: job.status === 'active' ? 'var(--success)' : 'var(--text-muted)', 
+                                color: statusVal === 'active' ? 'var(--success)' : 'var(--text-muted)', 
                                 textTransform: 'uppercase', 
                                 fontSize: '0.75rem', 
                                 fontWeight: 700, 
-                                background: job.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                background: statusVal === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
                                 padding: '4px 8px',
                                 borderRadius: '4px'
                             }}>
-                                {job.status}
+                                {statusVal}
                             </span>
                         </td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {job.last_run_at || 'Never'}
+                            {lastRunVal}
                         </td>
                         <td>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                 <button 
                                     className="btn btn-secondary" 
-                                    style={{ padding: '6px 10px', color: job.status === 'active' ? 'var(--danger)' : 'var(--primary)', borderColor: job.status === 'active' ? 'var(--danger)' : 'var(--primary)' }} 
-                                    onClick={() => toggleStatus(job.id, job.status)} 
-                                    title={job.status === 'active' ? "Pause" : "Resume"}
+                                    style={{ padding: '6px 10px', color: statusVal === 'active' ? 'var(--danger)' : 'var(--primary)', borderColor: statusVal === 'active' ? 'var(--danger)' : 'var(--primary)' }} 
+                                    onClick={() => toggleStatus(job.id, statusVal)} 
+                                    title={statusVal === 'active' ? "Pause" : "Resume"}
                                 >
-                                    {job.status === 'active' ? <Pause size={16} /> : <Play size={16} />}
+                                    {statusVal === 'active' ? <Pause size={16} /> : <Play size={16} />}
                                 </button>
                                 <button className="btn btn-secondary" style={{ padding: '6px 10px', color: 'var(--text-muted)' }} onClick={() => deleteAutomation(job.id)} title="Delete">
                                     <Trash2 size={16} />
@@ -247,7 +276,8 @@ export function Automation() {
                             </div>
                         </td>
                     </tr>
-                ))}
+                  );
+                })}
                 {automations.length === 0 && !isLoading && (
                     <tr>
                         <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
