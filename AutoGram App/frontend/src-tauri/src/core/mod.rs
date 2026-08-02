@@ -2,7 +2,6 @@
 
 pub mod capability;
 pub mod config_normalize;
-pub mod hardware_capability;
 pub mod doc_preview;
 pub mod drive_rpc;
 pub mod grammers;

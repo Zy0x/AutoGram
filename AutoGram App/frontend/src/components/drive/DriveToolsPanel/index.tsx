@@ -43,7 +43,6 @@ import {
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
-import { useTransferProgressStore } from '../../../stores/transferProgressStore';
 export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
@@ -770,52 +769,6 @@ function TransferTabContent({
   onSubTab: (t: 'upload' | 'download') => void;
 }) {
   const { t } = useTranslation();
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferProgressStore();
-
-  useEffect(() => {
-    fetchHardwareCapabilities();
-  }, [fetchHardwareCapabilities]);
-
-  const hardwareOptions = useMemo(() => {
-    const opts: { value: string; label: string; description: string }[] = [];
-
-    const autoDesc = hardwareCapabilities?.best_encoder
-      ? `Otomatis memilih encoder terbaik (${hardwareCapabilities.best_encoder.encoder_backend.toUpperCase()} - ${hardwareCapabilities.best_encoder.device_name})`
-      : String(t('speedtest.gpu_auto_desc'));
-
-    opts.push({
-      value: 'auto',
-      label: String(t('speedtest.gpu_auto_label')),
-      description: autoDesc,
-    });
-
-    if (hardwareCapabilities) {
-      for (const gpu of hardwareCapabilities.gpu) {
-        if (gpu.supported) {
-          opts.push({
-            value: gpu.backend_id,
-            label: `✓ ${gpu.name} (${gpu.backend_id.toUpperCase()})`,
-            description: `Encoder: ${gpu.encoder_codec} · Prioritas #${gpu.priority_rank}`,
-          });
-        }
-      }
-      const cpu = hardwareCapabilities.cpu;
-      opts.push({
-        value: 'cpu',
-        label: `CPU x264 (${cpu.processor_name})`,
-        description: `${cpu.cores} Cores / ${cpu.threads} Threads · Software Encoding`,
-      });
-    } else {
-      opts.push(
-        { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
-        { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
-        { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
-        { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
-      );
-    }
-    return opts;
-  }, [hardwareCapabilities, t]);
-
   return (
     <div className="td-tools-xfer-container">
       <div className="td-xfer-settings-tabs" role="tablist" aria-label={t('speedtest.settings_sections_aria')}>
@@ -868,8 +821,8 @@ function TransferTabContent({
                     }}
                   />
                   <span>
-                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`, opt.label))}</strong>
-                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`, opt.description))}</small>
+                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`))}</strong>
+                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`))}</small>
                   </span>
                 </label>
               ))}
@@ -885,7 +838,13 @@ function TransferTabContent({
                 disabled={!!transferActive}
                 onChange={(value: any) => onChange({ reencodeHardware: value as any })}
                 ariaLabel={t("speedtest.hardware_reencode_header")}
-                options={hardwareOptions}
+                options={[
+                  { value: 'auto', label: String(t('speedtest.gpu_auto_label')), description: String(t('speedtest.gpu_auto_desc')) },
+                  { value: 'nvidia', label: String(t('speedtest.gpu_nvidia_label')), description: String(t('speedtest.gpu_nvidia_desc')) },
+                  { value: 'amd', label: String(t('speedtest.gpu_amd_label')), description: String(t('speedtest.gpu_amd_desc')) },
+                  { value: 'intel', label: String(t('speedtest.gpu_intel_label')), description: String(t('speedtest.gpu_intel_desc')) },
+                  { value: 'cpu', label: String(t('speedtest.gpu_cpu_label')), description: String(t('speedtest.gpu_cpu_desc')) },
+                ]}
               />
             </label>
 

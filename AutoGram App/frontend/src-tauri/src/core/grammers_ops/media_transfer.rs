@@ -2,12 +2,9 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock, RwLock};
-use std::task::{Context, Poll};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use tokio::io::{AsyncRead, ReadBuf};
 
 use grammers_client::client::PasswordToken;
 use grammers_client::message::InputMessage;
@@ -186,81 +183,6 @@ pub fn upload_file_blocking(
     )
 }
 
-pub struct ProgressAsyncReader<R> {
-    pub inner: R,
-    pub stage: String,
-    pub total_bytes: u64,
-    pub current_bytes: u64,
-    pub last_emit_time: Instant,
-    pub last_emit_bytes: u64,
-    pub app_handle: Option<tauri::AppHandle>,
-    pub item_index: usize,
-}
-
-impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut ReadBuf<'_>,
-    ) -> Poll<std::io::Result<()>> {
-        let filled_before = buf.filled().len();
-        let res = Pin::new(&mut self.inner).poll_read(cx, buf);
-        if let Poll::Ready(Ok(())) = &res {
-            let newly_read = buf.filled().len() - filled_before;
-            if newly_read > 0 {
-                let this = &mut *self;
-                this.current_bytes += newly_read as u64;
-
-                let elapsed_ms = this.last_emit_time.elapsed().as_millis();
-                if elapsed_ms >= 150 || this.current_bytes == this.total_bytes {
-                    let elapsed_sec = (elapsed_ms as f64 / 1000.0).max(0.001);
-                    let delta_bytes = this.current_bytes.saturating_sub(this.last_emit_bytes);
-                    let inst_speed = delta_bytes as f64 / elapsed_sec;
-
-                    this.last_emit_time = Instant::now();
-                    this.last_emit_bytes = this.current_bytes;
-
-                    let pct = if this.total_bytes > 0 {
-                        (this.current_bytes as f64 / this.total_bytes as f64 * 100.0).clamp(0.0, 100.0)
-                    } else {
-                        0.0
-                    };
-                    let remaining = this.total_bytes.saturating_sub(this.current_bytes);
-                    let eta = if inst_speed > 10.0 && remaining > 0 {
-                        (remaining as f64 / inst_speed) as u64
-                    } else {
-                        0
-                    };
-
-                    if let Some(app) = &this.app_handle {
-                        use tauri::Emitter;
-                        let _ = app.emit("transfer-progress", serde_json::json!({
-                            "jobId": format!("item-{}", this.item_index),
-                            "stage": &this.stage,
-                            "currentBytes": this.current_bytes,
-                            "totalBytes": this.total_bytes,
-                            "speed": inst_speed,
-                            "percentage": pct,
-                            "eta": eta
-                        }));
-                        let _ = app.emit("transfer-event", serde_json::json!({
-                            "type": "StudioProgress",
-                            "index": this.item_index,
-                            "percent": pct,
-                            "transferred": this.current_bytes,
-                            "total": this.total_bytes,
-                            "speed_mb_s": inst_speed / (1024.0 * 1024.0),
-                            "eta_seconds": eta,
-                            "phase": "upload"
-                        }));
-                    }
-                }
-            }
-        }
-        res
-    }
-}
-
 pub fn upload_file_blocking_topic(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -271,32 +193,6 @@ pub fn upload_file_blocking_topic(
     silent: bool,
     index: usize,
     topic_id: Option<i64>,
-) -> Result<UploadStepResult, TgError> {
-    upload_file_blocking_topic_with_app(
-        sessions_dir,
-        identity,
-        chat_id,
-        path,
-        caption,
-        as_document,
-        silent,
-        index,
-        topic_id,
-        None,
-    )
-}
-
-pub fn upload_file_blocking_topic_with_app(
-    sessions_dir: &Path,
-    identity: &TelegramIdentity,
-    chat_id: &str,
-    path: &str,
-    caption: &str,
-    as_document: bool,
-    silent: bool,
-    index: usize,
-    topic_id: Option<i64>,
-    app_handle: Option<tauri::AppHandle>,
 ) -> Result<UploadStepResult, TgError> {
     path_policy::assert_safe_transfer_path(path)
         .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
@@ -311,12 +207,6 @@ pub fn upload_file_blocking_topic_with_app(
         ));
     }
     let size = std::fs::metadata(&path_buf).map(|m| m.len()).unwrap_or(0);
-    let filename = path_buf
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or("file.dat")
-        .to_string();
-
     let rt = runtime()?;
     let chat = chat_id.to_string();
     let cap = caption.to_string();
@@ -324,7 +214,6 @@ pub fn upload_file_blocking_topic_with_app(
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
-            let app_handle_inner = app_handle.clone();
             Box::pin(async move {
                 if !client
                     .is_authorized()
@@ -339,31 +228,17 @@ pub fn upload_file_blocking_topic_with_app(
                     "upload_start",
                     format!(
                         "chat={} size={} file={} as_document={} topic={:?}",
-                        chat, size, filename, as_document, reply_to
+                        chat,
+                        size,
+                        path_buf.file_name().and_then(|s| s.to_str()).unwrap_or("?"),
+                        as_document,
+                        reply_to
                     ),
                 );
-
-                let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(&path_buf).await {
-                    let mut progress_reader = ProgressAsyncReader {
-                        inner: tokio_file,
-                        stage: "upload".to_string(),
-                        total_bytes: size,
-                        current_bytes: 0,
-                        last_emit_time: Instant::now(),
-                        last_emit_bytes: 0,
-                        app_handle: app_handle_inner,
-                        item_index: index,
-                    };
-                    client
-                        .upload_stream(&mut progress_reader, size as usize, filename)
-                        .await
-                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_stream: {e}")))?
-                } else {
-                    client
-                        .upload_file(&path_buf)
-                        .await
-                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?
-                };
+                let uploaded = client
+                    .upload_file(&path_buf)
+                    .await
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?;
 
                 let mut msg = InputMessage::new()
                     .text(cap)

@@ -1616,8 +1616,6 @@ pub fn run() {
             features::topic_media::commands::tg_load_more_topic_media,
             features::topic_media::commands::tg_thumbs_batch_v2,
             inspect_mp4_layout_cmd,
-            core::hardware_capability::get_hardware_capabilities,
-            core::hardware_capability::select_best_encoder,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env

@@ -1,4 +1,7 @@
 import { useTranslation } from 'react-i18next';
+/**
+ * Floating Transfer Manager — IDM-like expanded panel + Google Drive-style FAB.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import {
   Upload,
@@ -33,15 +36,11 @@ import {
   sessionVisible,
 } from '../../../lib/media/transferProgress';
 import { copyTextWithFallback } from '../../../lib/utils/debugMode';
-import {
-  useTransferProgressStore,
-  formatSpeedBytes,
-  formatEtaSeconds,
-} from '../../../stores/transferProgressStore';
 
 type Props = {
   session: TransferSession;
   minimized: boolean;
+  /** When true and session empty, still show panel shell (opened from topbar). */
   forceShow?: boolean;
   onToggleMinimize: () => void;
   onPause?: () => void;
@@ -49,13 +48,17 @@ type Props = {
   onStop?: () => void;
   onClearDone?: () => void;
   onDismiss?: () => void;
+  /** Open last download folder in system explorer */
   onOpenDownloadFolder?: () => void;
   downloadFolderPath?: string | null;
+  /** Retry failed items (re-run last failed batch if possible) */
   onRetryFailed?: () => void;
   canRetryFailed?: boolean;
 };
 
 function StatusIcon({ status }: { status: string }) {
+
+  // skipped: treated as done visually (green check), badge shows separately
   if (status === 'done' || status === 'skipped') return <Check size={14} className="tm-ico ok" />;
   if (status === 'reuploaded') return <RotateCcw size={14} className="tm-ico reupload" />;
   if (status === 'failed' || status === 'cancelled' || status === 'needs_verification')
@@ -75,6 +78,7 @@ function ProgressRing({
   size?: number;
   stroke?: number;
 }) {
+
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const p = Math.min(100, Math.max(0, percent));
@@ -112,6 +116,7 @@ function ProgressRing({
 }
 
 function encoderLabel(item: TransferSession['items'][number]): string {
+
   const backend = (item.encoderBackend || '').toLowerCase();
   const family = backend === 'nvidia'
     ? 'NVIDIA NVENC'
@@ -152,46 +157,20 @@ export function DriveTransferManager({
     (item: any) => item.phase === 'reencode' && item.status === 'preparing'
   );
   const displayPercent = encodeItem ? encodeItem.percent : session.overallPercent;
-
-  const { jobs } = useTransferProgressStore();
-  const activeJob = jobs.find((j) => j.activeStage !== 'idle' && j.activeStage !== 'done') || jobs[0];
-
-  const currentStage: 'encode' | 'upload' | 'download' = activeJob
-    ? activeJob.activeStage === 'idle' || activeJob.activeStage === 'done'
-      ? isUpload ? 'upload' : 'download'
-      : activeJob.activeStage
-    : isPreparing ? 'encode' : isUpload ? 'upload' : 'download';
-
-  const liveStageProgress = activeJob ? activeJob[currentStage] : null;
-
-  const realTimePercent = liveStageProgress && liveStageProgress.percent > 0
-    ? liveStageProgress.percent
-    : displayPercent;
-
-  const realTimeSpeedStr = liveStageProgress && liveStageProgress.speed > 0
-    ? formatSpeedBytes(liveStageProgress.speed)
-    : session.speed_mb_s > 0.02 ? formatTransferSpeed(session.speed_mb_s) : '';
-
-  const realTimeEtaStr = liveStageProgress && liveStageProgress.eta != null
-    ? formatEtaSeconds(liveStageProgress.eta)
-    : encodeItem?.encodeEtaSeconds != null
-      ? formatTransferEta(encodeItem.encodeEtaSeconds)
-      : session.active && session.etaSeconds != null
-        ? formatTransferEta(session.etaSeconds)
-        : '';
-
-  const phaseLabel = isPreparing || currentStage === 'encode'
+  const phaseLabel = isPreparing
     ? 'Re-encode'
     : isMove
       ? session.label?.startsWith('Salin')
         ? 'Menyalin'
         : 'Memindahkan'
-      : currentStage === 'upload'
-        ? 'Uploading'
-        : 'Downloading';
+      : isUpload
+        ? 'Mengunggah'
+        : 'Mengunduh';
   const activeName = activeItemName(session);
   const hasFinished = counts.done + counts.failed + counts.skipped + counts.needsVerification > 0;
   const isEmptyShell = !hasSession && forceShow;
+  // Soft-pause only holds *next* files. With a single file already running there is
+  // nothing left to hold — mid-file pause is not supported by Telegram/Telethon.
   const remainingAfterActive = session.items.filter(
     (i: any) => i.status === 'queued' || i.status === 'paused'
   ).length;
@@ -209,12 +188,13 @@ export function DriveTransferManager({
         : session.items.length <= 1
           ? 'File tunggal: tidak bisa dijeda di tengah unduhan. Gunakan Stop untuk batalkan.'
           : 'Semua file sudah berjalan / selesai — tidak ada antrean yang bisa dijeda';
-
+  // Move batch: pause not supported (sequential RPC); Stop cancels remaining
   const [showLogs, setShowLogs] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const debugLogs = session.debugLogs || [];
 
   useEffect(() => {
+    // Auto-open log panel when debug lines arrive (Debug Mode / FALLBACK)
     if (debugLogs.length > 0 && debugLogs.some((l: any) => /FALLBACK|ERROR|FAILED/i.test(l))) {
       setShowLogs(true);
     }
@@ -229,9 +209,10 @@ export function DriveTransferManager({
     return () => window.removeEventListener('keydown', onKey);
   }, [visible, minimized, onToggleMinimize]);
 
+  // Minimized: compact Google Drive–style pill
   if (minimized) {
     if (!hasSession) return null;
-    const pct = Math.min(100, Math.max(0, realTimePercent));
+    const pct = Math.min(100, Math.max(0, displayPercent));
     const statusLine = session.active
       ? phaseLabel
       : counts.failed
@@ -304,6 +285,7 @@ export function DriveTransferManager({
       role="dialog"
       aria-label="Transfer Manager"
       aria-live="polite"
+      // Prevent accidental close — no outside-click dismiss
       onMouseDown={(e) => e.stopPropagation()}
     >
       <header className="tm-head">
@@ -319,7 +301,7 @@ export function DriveTransferManager({
                 : session.active
                   ? session.paused
                     ? t("speedtest.tm_status_paused")
-                    : `${currentStage === 'encode' ? 'Re-encode' : currentStage === 'upload' ? 'Uploading' : 'Downloading'}${session.label ? ` → ${session.label}` : ''}`
+                    : phaseLabel
                   : counts.failed
                     ? t("speedtest.tm_status_error")
                     : counts.needsVerification
@@ -331,6 +313,7 @@ export function DriveTransferManager({
                         : counts.done
                           ? 'Selesai'
                           : t("speedtest.tm_status_ready")}
+              {!isEmptyShell && session.label ? ` · ${session.label}` : ''}
             </span>
           </div>
         </div>
@@ -348,6 +331,7 @@ export function DriveTransferManager({
             type="button"
             className="tm-icon-btn"
             onClick={() => {
+              // Always minimize first — never wipe history on X
               onToggleMinimize();
             }}
             title={t('speedtest.minimize_panel')}
@@ -370,7 +354,7 @@ export function DriveTransferManager({
         <>
           <div className="tm-summary">
             <div className="tm-summary-row">
-              <span className="tm-summary-pct">{realTimePercent.toFixed(1)}%</span>
+              <span className="tm-summary-pct">{displayPercent.toFixed(1)}%</span>
               <span className="tm-summary-stats">
                 {counts.total > 0 && (
                   <span>
@@ -392,53 +376,48 @@ export function DriveTransferManager({
                     )}
                   </span>
                 )}
-                {liveStageProgress?.fps != null && (
-                  <span>{liveStageProgress.fps.toFixed(0)} FPS</span>
-                )}
-                {encodeItem && !liveStageProgress?.fps && !!encodeItem.fps && (
-                  <span>{encodeItem.fps.toFixed(0)} FPS</span>
-                )}
                 {encodeItem && !!encodeItem.encodeSpeed && (
                   <span>{encodeItem.encodeSpeed.toFixed(2)}× realtime</span>
                 )}
-                {realTimeSpeedStr && (
-                  <span>{realTimeSpeedStr}</span>
+                {encodeItem && !!encodeItem.fps && <span>{encodeItem.fps.toFixed(0)} FPS</span>}
+                {!encodeItem && session.speed_mb_s > 0.02 && (
+                  <span>{formatTransferSpeed(session.speed_mb_s)}</span>
                 )}
                 {session.peak_mb_s > 0 && session.active && (
-                  <span className="tm-muted">puncak {session.peak_mb_s.toFixed(2)} MB/s</span>
+                  <span className="tm-muted">puncak {session.peak_mb_s.toFixed(2)}</span>
                 )}
-                {realTimeEtaStr && (
-                  <span>ETA {realTimeEtaStr}</span>
+                {encodeItem && encodeItem.encodeEtaSeconds != null && (
+                  <span>ETA {formatTransferEta(encodeItem.encodeEtaSeconds)}</span>
+                )}
+                {!encodeItem && session.active && session.etaSeconds != null && (
+                  <span>ETA {formatTransferEta(session.etaSeconds)}</span>
                 )}
               </span>
             </div>
             <div
               className="tm-bar"
               role="progressbar"
-              aria-valuenow={Math.round(realTimePercent)}
+              aria-valuenow={Math.round(displayPercent)}
               aria-valuemin={0}
               aria-valuemax={100}
             >
               <div
-                className={`tm-bar-fill stage-${currentStage}`}
-                style={{ width: `${Math.min(100, Math.max(0, realTimePercent))}%` }}
+                className="tm-bar-fill"
+                style={{ width: `${Math.min(100, Math.max(0, displayPercent))}%` }}
               />
             </div>
-            {liveStageProgress && liveStageProgress.totalBytes > 0 ? (
-              <div className="tm-bytes">
-                {formatDriveBytes(liveStageProgress.currentBytes)} / {formatDriveBytes(liveStageProgress.totalBytes)}
-              </div>
-            ) : encodeItem?.estimatedOutputBytes ? (
+            {encodeItem?.estimatedOutputBytes ? (
               <div className="tm-bytes">
                 Perkiraan output {formatDriveBytes(encodeItem.estimatedOutputBytes)}
               </div>
-            ) : (session.transferred > 0 || session.total > 0) && (
+            ) : !encodeItem && (session.transferred > 0 || session.total > 0) && (
               <div className="tm-bytes">
                 {formatDriveBytes(session.transferred)}
                 {session.total > 0 ? ` / ${formatDriveBytes(session.total)}` : ''}
               </div>
             )}
             {session.banner && <div className="tm-banner">{session.banner}</div>}
+            {/* Scan progress indicator — shown during SmartScanner pre-scan phase */}
             {(session as any).scanPhase && (session as any).scanPhase !== 'done' && (
               <div className="tm-scan-progress">
                 <Loader2 size={11} className="tm-ico spin" style={{display:'inline',verticalAlign:'middle',marginRight:4}} />
@@ -582,9 +561,9 @@ export function DriveTransferManager({
                     {it.status === 'cancelled' && <span>Dibatalkan</span>}
                     {it.status === 'uploaded' && <span>Media terdaftar</span>}
                     {it.status === 'waiting_commit' && <span>Menunggu urutan commit</span>}
-                    {it.status === 'committing' && <span>Mengirim pesan…</span>}
+                    {it.status === 'committing' && <span>Mengirim pesanâ€¦</span>}
                     {it.status === 'needs_verification' && (
-                      <span className="tm-err-text">Perlu verifikasi — tidak diunggah ulang</span>
+                      <span className="tm-err-text">Perlu verifikasi â€” tidak diunggah ulang</span>
                     )}
                     {it.status === 'queued' && <span>Antre</span>}
                     {it.status === 'paused' && <span>Dijeda</span>}
@@ -621,7 +600,7 @@ export function DriveTransferManager({
                   {(it.status === 'active' || it.status === 'preparing' || it.status === 'uploaded' || it.status === 'waiting_commit' || it.status === 'committing') && (
                     <div className="tm-mini-bar">
                       <div
-                        className={`tm-mini-fill stage-${currentStage}`}
+                        className="tm-mini-fill"
                         style={{ width: `${Math.min(100, Math.max(0, it.percent))}%` }}
                       />
                     </div>
