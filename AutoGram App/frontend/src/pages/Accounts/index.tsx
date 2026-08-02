@@ -785,6 +785,9 @@ export function Accounts() {
                           <div
                             className="avatar-circle"
                             style={{
+                              width: '44px',
+                              height: '44px',
+                              borderRadius: '50%',
                               overflow: 'hidden',
                               padding: 0,
                               display: 'flex',
@@ -792,6 +795,7 @@ export function Accounts() {
                               justifyContent: 'center',
                               flexShrink: 0,
                               position: 'relative',
+                              background: showPhoto ? 'transparent' : 'rgba(255, 174, 0, 0.15)',
                             }}
                           >
                             {showPhoto ? (
