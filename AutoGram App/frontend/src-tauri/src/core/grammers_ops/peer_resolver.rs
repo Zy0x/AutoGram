@@ -35,9 +35,17 @@ use super::media_transfer::*;
 use super::session_auth::*;
 
 pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
+    let first = u.first_name().unwrap_or("").trim();
+    let last = u.last_name().unwrap_or("").trim();
+    let full_name = match (!first.is_empty(), !last.is_empty()) {
+        (true, true) => format!("{} {}", first, last),
+        (true, false) => first.to_string(),
+        (false, true) => last.to_string(),
+        (false, false) => String::new(),
+    };
     UserProfile {
         id: peer_id_i64(u.id()),
-        first_name: u.first_name().map(|s| s.to_string()),
+        first_name: if full_name.is_empty() { None } else { Some(full_name) },
         username: u.username().map(|s| s.to_string()),
     }
 }

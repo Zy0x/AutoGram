@@ -625,11 +625,6 @@ export function Accounts() {
                             ({s.username.startsWith('@') ? s.username : `@${s.username}`})
                           </span>
                         )}
-                        {s.userFullName && s.name !== s.userFullName && s.name !== s.username?.replace('@', '') && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', opacity: 0.7 }}>
-                            ({s.name})
-                          </span>
-                        )}
                       </h4>
                       <span className={`session-status status-${s.status || 'ok'}`}>
                         {s.status === 'connected'
