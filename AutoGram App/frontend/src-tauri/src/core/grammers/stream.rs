@@ -1656,41 +1656,76 @@ fn start_preview_stream_inner(
                                 .iter_download(&media_item)
                                 .chunk_size(CHUNK_SIZE as i32)
                                 .skip_chunks(skip);
-                            let res = iter.next().await;
+                            // SEEK FIX #1: Timeout 15s per-chunk agar worker tidak hang tanpa batas.
+                            // Bug lama: iter.next().await bisa stuck selamanya jika Telegram DC diam
+                            // (silent timeout, bukan FloodWait), menyebabkan rx.recv() fill-loop
+                            // tidak pernah selesai sehingga seek request tidak pernah diproses.
+                            let res = match tokio::time::timeout(
+                                Duration::from_secs(15),
+                                iter.next(),
+                            )
+                            .await
+                            {
+                                Ok(inner) => inner,
+                                Err(_) => Ok(None), // timeout → empty chunk, fill-loop retry next iter
+                            };
                             let _ = tx_clone.send((chunk_off, res)).await;
                         });
                     }
                     drop(tx);
 
                     let mut written_any = false;
-                    // FIX Bug #2: Kumpulkan hasil batch dengan timeout agar seek request
-                    // bisa dideteksi lebih cepat. Gunakan tokio::select! untuk interruptible wait.
-                    // Jika seek request masuk saat batch berlangsung, kita masih tunggu
-                    // hasil yang sudah terkirim (tidak membatalkan download), tapi setelah
-                    // batch selesai langsung redirect cursor ke posisi seek.
-                    while let Some((chunk_off, res)) = rx.recv().await {
-                        match res {
-                            Ok(Some(bytes)) if !bytes.is_empty() => {
-                                if file.seek(SeekFrom::Start(chunk_off)).is_ok() && file.write_all(&bytes).is_ok() {
-                                    ranges.push((chunk_off, chunk_off + bytes.len() as u64));
-                                    written_any = true;
-                                }
-                            }
-                            Err(e) => {
-                                let mapped = map_invocation(&e);
-                                session_rate::note_error(&session_bg, &mapped);
-                                if mapped.code() == TgErrorCode::FloodWait {
-                                    if let Some(secs) = mapped.flood_wait_secs() {
-                                        tg_log::warn(
-                                            BACKEND,
-                                            "progressive_flood",
-                                            format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
-                                        );
-                                        tokio::time::sleep(Duration::from_secs(u64::from(secs))).await;
+                    // SEEK FIX #2: Interruptible 'batch loop dengan timeout 500ms.
+                    // Bug lama: `while let Some(...) = rx.recv().await` memblokir fill-loop sampai
+                    // SEMUA 4 worker selesai sebelum seek request bisa dibaca dari seek_requests.
+                    // Akibat: seek terasa stuck 3-5 detik (durasi satu batch MTProto di posisi lama).
+                    // tanpa ada lalu lintas internet ke posisi baru.
+                    // Fix: setiap 500ms, cek seek_requests. Jika ada seek baru → break lebih awal,
+                    // iterasi luar langsung redirect cursor. Worker yang masih berjalan fail gracefully
+                    // saat tx_clone.send() karena rx sudah di-drop.
+                    'batch: loop {
+                        // Cek seek request mid-batch sebelum timeout berikutnya
+                        if seek_requests().lock().contains_key(&sid) {
+                            tg_log::info(
+                                BACKEND,
+                                "[STREAM_DIAG][SEEK_INTERRUPT]",
+                                format!("sid={sid} seek detected mid-batch, breaking early for fast redirect"),
+                            );
+                            break 'batch;
+                        }
+                        match tokio::time::timeout(Duration::from_millis(500), rx.recv()).await {
+                            Ok(Some((chunk_off, res))) => {
+                                match res {
+                                    Ok(Some(bytes)) if !bytes.is_empty() => {
+                                        if file.seek(SeekFrom::Start(chunk_off)).is_ok()
+                                            && file.write_all(&bytes).is_ok()
+                                        {
+                                            ranges.push((chunk_off, chunk_off + bytes.len() as u64));
+                                            written_any = true;
+                                        }
                                     }
+                                    Err(e) => {
+                                        let mapped = map_invocation(&e);
+                                        session_rate::note_error(&session_bg, &mapped);
+                                        if mapped.code() == TgErrorCode::FloodWait {
+                                            if let Some(secs) = mapped.flood_wait_secs() {
+                                                tg_log::warn(
+                                                    BACKEND,
+                                                    "progressive_flood",
+                                                    format!("sid={sid} FloodWait ({secs}s), auto-waiting..."),
+                                                );
+                                                tokio::time::sleep(Duration::from_secs(
+                                                    u64::from(secs),
+                                                ))
+                                                .await;
+                                            }
+                                        }
+                                    }
+                                    _ => {}
                                 }
                             }
-                            _ => {}
+                            Ok(None) => break 'batch, // channel closed — semua worker selesai
+                            Err(_) => {}              // 500ms timeout — re-check seek_requests
                         }
                     }
 

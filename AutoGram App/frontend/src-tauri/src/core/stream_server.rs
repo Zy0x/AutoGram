@@ -715,10 +715,22 @@ fn handle_stream(request: Request, sid: &str) {
                 entry.paused = false;
                 upsert_entry(entry.clone());
             }
-            let mut waited = 0;
+            let mut waited = 0u32;
+            let mut last_seek_resend_ms = 0u32;
             while waited < 45_000 {
                 thread::sleep(Duration::from_millis(25));
                 waited += 25;
+                // SEEK FIX #3: Re-kirim seek request setiap 2 detik.
+                // Bug lama: seek dikirim hanya 1x di atas. Jika fill-loop sedang di tengah
+                // batch dan interruptible-break terjadi tapi timing menyebabkan seek sudah
+                // di-take dan fill-loop ke posisi yang salah, re-send setiap 2s memastikan
+                // fill-loop akhirnya mendapat seek target yang benar.
+                if waited.saturating_sub(last_seek_resend_ms) >= 2_000 {
+                    let _ = crate::core::grammers::stream::request_progressive_range(
+                        sid, req_start,
+                    );
+                    last_seek_resend_ms = waited;
+                }
                 match get_entry(sid) {
                     Some(updated) => {
                         entry = updated;
