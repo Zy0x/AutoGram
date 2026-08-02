@@ -7,6 +7,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use grammers_client::client::PasswordToken;
+use grammers_client::media::Downloadable;
 use grammers_client::message::InputMessage;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
@@ -474,14 +475,9 @@ pub fn download_profile_photo_blocking(
                     return Ok(None);
                 };
 
-                let tl::enums::Photo::Photo(photo) = photo_enum else {
-                    return Ok(None);
-                };
-
-                // ── Strategy 1 & 2: Check for inline bytes (Cached / Stripped) via Grammers PhotoSize helper ──
-                for size in &photo.sizes {
-                    let helper = grammers_client::media::PhotoSize::from(size.clone());
-                    if let Some(data) = helper.to_data() {
+                let media_photo = grammers_client::media::Photo::from_raw(photo_enum);
+                for thumb in media_photo.thumbs() {
+                    if let Some(data) = thumb.to_data() {
                         if !data.is_empty() {
                             let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(&data).unwrap_or(data);
                             tg_log::info(BACKEND, "profile_photo", "using inline photo bytes");
@@ -489,6 +485,10 @@ pub fn download_profile_photo_blocking(
                         }
                     }
                 }
+
+                let Some(tl::enums::Photo::Photo(photo)) = &media_photo.raw.photo else {
+                    return Ok(None);
+                };
 
                 // ── Strategy 3: Download smallest non-stripped PhotoSize ──
                 let preferred_types = ["s", "m", "a", "b", "c"];
