@@ -615,16 +615,18 @@ export function Accounts() {
                     <div className="avatar-circle">
                       <Users size={20} color="var(--primary)" aria-hidden />
                     </div>
-                    <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      {s.username && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '600', letterSpacing: '0.02em' }}>
-                          {s.username}
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>
+                          {s.userFullName || s.name}
                         </span>
-                      )}
-                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', fontSize: '1rem', fontWeight: '600' }}>
-                        <span>{s.userFullName || s.name}</span>
+                        {s.username && (
+                          <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
+                            ({s.username.startsWith('@') ? s.username : `@${s.username}`})
+                          </span>
+                        )}
                         {s.userFullName && s.name !== s.userFullName && s.name !== s.username?.replace('@', '') && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '6px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', opacity: 0.7 }}>
                             ({s.name})
                           </span>
                         )}
