@@ -361,8 +361,14 @@ pub fn auth_status_blocking(
                             .map_err(|e| map_invocation(&e))?;
                         let mut profile = None;
                         if authorized {
-                            if let Some(cached) = get_cached_user_profile(&session_name) {
-                                profile = Some(cached);
+                            // Skip placeholder profiles (id==0 inserted by client_pool before get_me).
+                            // Also re-fetch if photo is missing so first-run after avatar feature update works.
+                            let cached = get_cached_user_profile(&session_name);
+                            let has_real_profile = cached.as_ref().map_or(false, |p| {
+                                p.id != 0 && p.photo_base64.is_some()
+                            });
+                            if has_real_profile {
+                                profile = cached;
                             } else {
                                 match client.get_me().await {
                                     Ok(u) => {
@@ -376,6 +382,8 @@ pub fn auth_status_blocking(
                                             "get_me",
                                             map_invocation(&e).to_string(),
                                         );
+                                        // Fall back to placeholder if get_me fails
+                                        profile = cached;
                                     }
                                 }
                             }
