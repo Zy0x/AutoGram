@@ -1,7 +1,7 @@
-# AutoGram — Master Architecture, WorkTree & Operational Workflow Specification
+# AutoGram Master Architecture, WorkTree & Operational Workflow Specification
 
 > **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid, Manual Operational Workflow Real-World & Standar Tata Kelola Agent AutoGram App**  
-> *Versi Rujukan Terintegrasi: **v2.7.2** (Absolute Definitive Production Master — Ground-Truth 100% Accurate, 2026-08-02)*  
+> *Versi Rujukan Terintegrasi: **v2.7.2** (Absolute Definitive Production Master Edition — 100% Comprehensive, Detailed & Complete)*  
 > *Platform: Desktop Offline (Tauri v2 + React 19 + TypeScript + Rust Grammers Engine + SQLite + IndexedDB)*
 
 ---
@@ -61,17 +61,90 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 ```
 
-### 5 Pilar Utama Arsitektur v2.7.2:
+### 5 Pilar Utama Arsitektur Teknis v2.7.2:
 
 1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Instant Stripped Mini-Thumb Extraction, Thumbnail Batch, Upload/Download Stream, Sparse Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
 2. **Local-First SWR & Instant 0ms Mini-Thumb Paint**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau mini-thumb Telegram MTProto `PhotoSize::Stripped` (`tl_stripped_thumb_data_url`), disusul oleh pembaruan HD background batch tanpa jeda.
 3. **Unpaused High-Throughput Request Correlation Pipeline**: Pemproses antrean thumbnail `thumbBatcher.ts` mengeksekusi 4 penerbangan RPC paralel dengan kapasitas batch hingga 48 item per request menggunakan `requestId` unik (`thumb:peerId:msgId:gGen`). Data dicocokkan secara non-posisional via `ThumbnailBatchItemResult` tanpa risiko pergeseran indeks.
-4. **Dual-Track Resource-Guarded Scheduler & Seekable HTTP Range Bridge**: Pemuatan thumbnail dipisah menjadi dua jalur independen: `fast_sem` (12 permit paralel) untuk foto/gambar statis dan `video_sem` (4 permit paralel) untuk video dokumen FFmpeg. Progressive streaming melayani request HTTP `206 Partial Content` dengan **512 KB Boundary Alignment**, **Bounded 16 MB Cap**, serta **3-Layer Seek Fix** (15s per-chunk timeout, 500ms interruptible batch loop, 2s seek re-registration).
-5. **Fail-Closed Generation Protection (`peerGen.current`)**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*). Kegagalan thumbnail dokumen non-media secara otomatis menyimpan penanda negatif `.nothumb` di disk cache dan `"NOT_FOUND"` di memori.
+4. **Dual-Track Resource-Guarded Scheduler & Seekable HTTP Range Bridge**: Pemuatan thumbnail dipisah menjadi dua jalur independen: `fast_sem` (12 permit paralel) untuk foto/gambar statis dan `video_sem` (4 permit paralel) untuk video dokumen FFmpeg. Video dokumen melayani request HTTP `206 Partial Content` dengan **512 KB Boundary Alignment**, **Bounded 16 MB Cap**, serta **3-Layer Seek Fix** (15s per-chunk timeout, 500ms interruptible batch loop, 2s seek re-registration).
+5. **Fail-Closed Generation Protection (`peerGen.current`) & Specialized Media Engine**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*). Kegagalan thumbnail dokumen non-media secara otomatis menyimpan penanda negatif `.nothumb` di disk cache dan `"NOT_FOUND"` di memori. Media tanpa thumbnail statis diproses secara asinkron oleh `special_media_thumb.rs` via antrean latar belakang `mpsc::channel(24)` tanpa memblokir scrolling UI (60 FPS).
 
 ---
 
-## 2. Struktur File & Direktori Lengkap (Ground-Truth WorkTree)
+## 2. 16 Detail Mikro Teknis & Trik Arsitektur Berdampak Besar (Micro-Technical Nuances & High-Impact Details)
+
+Di balik performa AutoGram v2.7.2 yang responsif dan bebas hambatan, terdapat 16 keputusan desain teknis berskala mikro yang memiliki dampak krusial terhadap stabilitas dan penggunaan sumber daya sistem:
+
+### 1. 512 KB MTProto Boundary Alignment (`offset - (offset % 512KB)`)
+- **Masalah**: Server CDN Telegram MTProto mewajibkan request byte range berukuran kelipatan 4 KB hingga 512 KB. Jika client meminta offset acak (seperti `bytes=1048579-2097152`), server MTProto dapat mengembalikan galat `LOCATION_INVALID` atau menggeser byte offset.
+- **Solusi & Dampak**: Pada `stream.rs`, setiap offset yang diminta oleh HTML5 Video Player diselaraskan secara matematis ke batas kelipatan **512 KB** (`let aligned_offset = offset - (offset % (512 * 1024));`). Fungsi `request_progressive_range()` memvalidasi stream aktif via `cancel_flags` dan `stream_server::get_entry()` sebelum menerima seek, mencegah 0% offset shift dan korupsi MP4 box/atom.
+
+### 2. Rekonstruksi Header JPEG `unstrip_jpeg` (`PhotoSize::Stripped`)
+- **Masalah**: Telegram API tidak mengirimkan file JPEG utuh untuk mini-thumb (`PhotoSize::Stripped`). Telegram hanya mengemas tabel Huffman dan bytes hasil scan gambar (~100 bytes) tanpa header standar JPEG.
+- **Solusi & Dampak**: Fungsi `unstrip_jpeg` di `ffmpeg.rs` secara instan menyuntikkan kembali SOI (Start of Image), DQT (Quantization Table), SOF0 (Start of Frame), dan EOI (End of Image) markers standar JPEG di memori Rust. Hasilnya disajikan sebagai `data:image/jpeg;base64,...` yang dapat dirrender langsung oleh browser WebView dalam **0ms** tanpa jaringan.
+
+### 3. Fail-Closed Atomic Generation Protection (`peerGen.current`)
+- **Masalah**: Saat pengguna berpindah folder atau topik dengan cepat (*rapid scroll/tab switch*), request RPC thumbnail dari folder sebelumnya yang baru selesai dapat menimpa gambar kartu di folder baru (*media bleed*).
+- **Solusi & Dampak**: Setiap pergantian lokasi menaikkan atomic counter `peerGen.current`. Semua `requestId` thumbnail menyertakan generasi ini (`gGen`). Ketika respon RPC diterima, jika generation counter tidak cocok dengan `peerGen.current` aktif, respon langsung dibuang secara *fail-closed* di lapisan JS dan Rust. Kebocoran visual berkurang hingga **0%**.
+
+### 4. Deteksi & Auto-Prune Fallback Black Card (`is_fallback_black_card_bytes`)
+- **Masalah**: Pada versi lama, kegagalan render frame video kadang menyimpan cadangan gambar hitam solid (solid black card) ke dalam IndexedDB cache, sehingga kartu terus-menerus menampilkan kotak hitam.
+- **Solusi & Dampak**: Fungsi `is_fallback_black_card_bytes` di Rust melakukan inspeksi histogram piksel pada byte WebP/JPEG. Jika terdeteksi gambar hitam solid cadangan lama, sistem secara otomatis menghapusnya (*auto-prune*) dari disk cache dan IndexedDB `thumbPersistentCache.ts`, sehingga kartu berkesempatan melakukan dekoding ulang secara jernih.
+
+### 5. Negative Caching (`.nothumb` & `"NOT_FOUND"`)
+- **Masalah**: Berkas non-media (seperti ZIP, EXE, DOCX) yang tidak memiliki thumbnail dari Telegram akan terus-menerus memicu request RPC berulang setiap kali kartu muncul di viewport scroll.
+- **Solusi & Dampak**: Ketika ekstraksi thumbnail untuk berkas non-media gagal, backend Rust langsung menuliskan file penanda `.nothumb` di disk cache dan menyimpan string `"NOT_FOUND"` di memory cache. Pemuatan berikutnya langsung memotong alur ke `FileTypeIcon` SVG dalam **0ms** tanpa membuang-buang request RPC ke Telegram.
+
+### 6. Dual-Track Resource Semaphore (`fast_sem` vs `video_sem`)
+- **Masalah**: Dekoding frame video menggunakan FFmpeg/Range Bridge membutuhkan beban CPU dan I/O tinggi. Jika disatukan dalam antrean foto statis, pemuatan gambar foto akan menjadi sangat lambat.
+- **Solusi & Dampak**: Sistem memisahkan izin eksekusi menjadi dua jalur semaphore terisolasi: **`fast_sem` (12 permit paralel)** khusus untuk foto statis ringan, dan **`video_sem` (4 permit paralel)** khusus untuk dekoder video. Hal ini menjamin foto statis termuat secepat kilat tanpa pernah terhambat oleh proses dekoding video di latar belakang.
+
+### 7. Pemisahan `cardHeight` vs Virtualizer `rowHeight` (10px Vertical Gap)
+- **Masalah**: Pada virtualizer UI `@tanstack/react-virtual`, menetapkan tinggi kartu (`cardHeight`) sama persis dengan tinggi baris virtualizer (`rowHeight`) menyebabkan efek kartu melompat (*jank/flicker*) atau border terpotong saat scroll cepat.
+- **Solusi & Dampak**: Nilai `cardHeight` pada `DriveFileCard.tsx` dipisahkan dari `rowHeight` virtualizer `DriveExplorer.tsx` dengan jarak presisi **10px**. Gap vertikal ini memberikan ruang napas stabil bagi virtualizer untuk mengkalkulasi posisi scroll tanpa terjadi *layout shift*.
+
+### 8. WebView Pointer Drag Prime Threshold (8px)
+- **Masalah**: Di lingkungan WebView desktop Tauri, gestur klik tetikus (mouse click) atau ketukan sentuh sering kali disalahartikan sebagai gestur *drag-and-drop* berkas, menyebabkan klik menjadi tidak responsif.
+- **Solusi & Dampak**: Hook `usePointerDragPrime` memasang ambang batas pergerakan (*move threshold*) sejauh **8px**. Pergerakan di bawah 8px dianggap sebagai gestur klik/tap murni, sedangkan pergerakan di atas 8px secara otomatis mengaktifkan mode drag seleksi marquee atau drag file OS.
+
+### 9. Correlation Request Matching `requestId`
+- **Masalah**: Respon RPC dari Telegram server tidak dijamin kembali dalam urutan yang sama dengan urutan pemanggilan (out-of-order execution). Pencocokan berbasis indeks array posisional akan menyebabkan thumbnail tertukar antar kartu.
+- **Solusi & Dampak**: `thumbBatcher.ts` menyuntikkan `requestId` unik berbasis string (`thumb:peerId:msgId:gGen`) ke dalam setiap item `ThumbnailBatchItem`. Backend Rust mengembalikan `ThumbnailBatchItemResult` yang membawa kembali `requestId` tersebut, sehingga frontend dapat memetakan hasil thumbnail ke kartu secara presisi tanpa memedulikan urutan kedatangan respon RPC.
+
+### 10. Bounded MPSC Channel (`mpsc::channel(24)`)
+- **Masalah**: Pada folder dengan ribuan video dokumen, meminta thumbnail secara bersamaan dapat membenturkan antrean memori hingga mengalami *Out-Of-Memory* (OOM).
+- **Solusi & Dampak**: Antrean background thumbnail video dokumen di `special_media_thumb.rs` dibatasi oleh `mpsc::channel(24)`. Jika antrean penuh (24 item pending), request baru secara otomatis ditahan (*backpressure*) tanpa memblokir thread UI utama.
+
+### 11. Dynamic Loopback Port Binding (`tiny_http` pada `127.0.0.1:0`)
+- **Masalah**: Menggunakan nomor port HTTP statis (seperti port 8080) sering kali memicu bentrokan port (*port collision*) dengan aplikasi lain di komputer pengguna, menyebabkan server streaming gagal *bind*.
+- **Solusi & Dampak**: Server `stream_server.rs` mengikat alamat `127.0.0.1:0`. Sistem operasi Windows secara otomatis mengalokasikan port ephemeral yang kosong secara acak. Nomor port tersebut kemudian disimpan di `PORT: AtomicU16` dan dipublikasikan ke frontend via Tauri command `stream_server_port`.
+
+### 12. Tail `moov` Relocation & Async Tail-Fetch (`need_async_moov_tail`)
+- **Masalah**: Berkas MP4 yang direkam oleh perangkat seluler sering meletakkan atom metadata `moov` di akhir berkas (tail). Pemutar video HTML5 tidak dapat memulai pemutaran sebelum atom `moov` terbaca.
+- **Solusi & Dampak**: Jika file MP4 berukuran >20 MB dan atom `moov` belum ada di rentang prefix awal, `stream.rs` secara otomatis memicu task *asinkron tail-fetch* independen yang langsung mengunduh 1 MB byte terakhir dari Telegram MTProto. Byte tail ini langsung ditulis ke disk `.partial` dan digabung (*merged*) ke dalam `StreamEntry.ranges`. HTML5 player dapat langsung membaca `moov` dan memulai pemutaran dalam <2 detik tanpa menunggu seluruh file terunduh.
+
+### 13. `StreamEntry` LIVE RwLock Map & Range Merge State Machine
+- **Masalah**: Pemuatan byte secara acak (karena seek atau tail-fetch) menghasilkan potongan-potongan byte (*sparse byte ranges*) yang terfragmentasi. Pemetaan rentang yang salah akan menyebabkan data tumpang tindih atau korup.
+- **Solusi & Dampak**: Fungsi `merge_ranges` di `stream_server.rs` secara kontinu mengurutkan dan menggabungkan rentang `(u64, u64)` yang saling bersentuhan atau tumpang tindih. `upsert_entry()` secara khusus mempertahankan (*preserves*) rentang tail-fetch agar tidak terhapus oleh iterasi fill-loop sekuensial.
+
+### 14. `DemandRangeReader` & 16 MB HTTP Response Cap
+- **Masalah**: Jika server HTTP mengembalikan `Content-Range: bytes 0-(total-1)/total` pada request awal tanpa batas, browser Chrome akan menahan satu request stream besar tunggal dan tidak pernah membuat suffix request untuk mencari atom `moov` di tail.
+- **Solusi & Dampak**: Fungsi `bounded_response_end()` di `stream_server.rs` membatasi setiap respons HTTP Range maksimal sebesar **16 MB**. Dengan pembatasan ini, Chrome mendeteksi bahwa respons terpotong di 16 MB, lalu segera membuat request tambahan (`bytes=-2097152`) untuk mencari atom `moov` di tail. Pemutaran video dimulai secara instan.
+
+### 15. 3-Layer Seek Fix (v2.7.2)
+- **Masalah**: Pengguna melakukan seek pada video, namun buffer berhenti dengan *zero internet traffic* selama 3–5+ detik karena fill-loop terkunci pada `rx.recv().await` batch lama dan seek request tidak terproses.
+- **Solusi & Dampak**:
+  - **Layer 1 (`stream.rs`)**: Menambahkan timeout 15 detik per-chunk MTProto download (`tokio::time::timeout(15s, iter.next())`). Jika timeout, chunk di-treat sebagai `Ok(None)` sehingga fill-loop tidak pernah hang selamanya.
+  - **Layer 2 (`stream.rs`)**: Mengganti `while let rx.recv().await` dengan interruptible `'batch` loop dengan timeout 500ms. Cek `seek_requests` setiap 500ms; jika terdeteksi seek baru, loop langsung `break 'batch` lebih awal sehingga cursor langsung berpindah ke posisi seek baru dalam <500ms.
+  - **Layer 3 (`stream_server.rs`)**: Mengubah wait loop di `handle_stream` untuk re-send `request_progressive_range()` setiap 2 detik (2000ms) selama polling 45 detik, menjamin fill-loop pasti menerima target seek meskipun terjadi race condition timing.
+
+### 16. Sparse ZIP Central Directory Read
+- **Masalah**: Membuka isi file ZIP berukuran besar (misal 2 GB) di Telegram biasanya mengharuskan mengunduh seluruh file ZIP terlebih dahulu.
+- **Solusi & Dampak**: `grammers_sparse_zip.rs` hanya mengunduh 64 KB byte terakhir file ZIP dari Telegram MTProto untuk membaca *End of Central Directory Record* (EOCD), lalu mengunduh rentang byte *Central Directory* untuk mengekstrak daftar struktur pohon file. Seluruh daftar file ZIP 2 GB tampil di antarmuka `DriveZipBrowser.tsx` dalam **<500ms** dengan penggunaan data <100 KB.
+
+---
+
+## 3. Peta WorkTree Repository Utuh & Exhaustive Directory Map
 
 ### A. Root Repository (`F:\AutoGram\`)
 
@@ -300,47 +373,85 @@ src/
 
 ---
 
-## 3. Stack Teknologi & Dependencies
+## 4. Spesifikasi & Workflow 10 Kategori Fitur Utama (Deep-Dive)
 
-### Rust Dependencies (`Cargo.toml`)
+### Kategori 1: Media Studio Orchestration & Local-First SWR Warm State Engine
+- **Deskripsi**: Komponen `MediaStudio/index.tsx` mengelola navigasi antar lokasi (channel, grup, topik forum).
+- **Alur Kerja**:
+  1. Pengguna memilih lokasi/topik.
+  2. `driveFilesApi.ts` secara instan membaca data dari IndexedDB (`mediaStudioDb.ts`) dalam **<10ms** (Warm State Paint).
+  3. `telegramBackend.ts` secara asinkron memanggil Tauri command `tg_list_media`.
+  4. Respon RPC dari Telegram memperbarui tampilan dan memperbarui IndexedDB secara silent (Head Sync).
 
-| Dependency | Versi | Peran |
-|:-----------|:------|:------|
-| `tauri` | 2 | Desktop shell, WebView, IPC bridge |
-| `grammers-client` | 0.10 | MTProto client (auth, download, upload) |
-| `grammers-session` | 0.10 | Session serde (no sqlite — hindari LNK2005) |
-| `grammers-mtsender` | 0.10 | MTProto sender primitives |
-| `tokio` | 1 | Async runtime (rt-multi-thread, time, sync, fs) |
-| `rusqlite` | 0.32 | SQLite bundled + WAL backup |
-| `tiny_http` | 0.12 | HTTP Range server streaming |
-| `parking_lot` | 0.12 | RwLock/Mutex performa tinggi |
-| `aes-gcm` | 0.10 | AES-256-GCM enkripsi session |
-| `keyring` | 3 | OS keychain credential storage |
-| `sha2` | 0.10 | SHA-256 (fingerprint, dup check) |
-| `zip` | 2 | ZIP extraction (deflate+bzip2+zstd) |
-| `flate2` | 1.0 | GZIP/DEFLATE |
-| `serde` + `serde_json` | 1 | JSON serialization |
-| `chrono` | 0.4 | Timestamp (clock+std) |
-| `ureq` | 2 | HTTP client (proxy test, network) |
-| `base64` | 0.22 | Base64 encode/decode |
-| `tauri-plugin-fs`/`dialog`/`shell`/`opener` | 2 | Tauri plugins |
+### Kategori 2: Drive File Card & Visual Virtualized Grid Engine
+- **Deskripsi**: Pengadaan virtualizer `@tanstack/react-virtual` di `DriveExplorer.tsx` menangani hingga 100.000+ item.
+- **Alur Kerja**:
+  1. Virtualizer hanya merender kartu yang berada dalam viewport ditambah *overscan buffer* (5 baris).
+  2. `DriveFileCard.tsx` menerima properti berkas dan memicu request thumbnail ke `thumbBatcher.ts`.
+  3. `cardHeight` dipisahkan dari `rowHeight` sebesar 10px untuk mencegah *layout shift*.
 
-### Frontend Dependencies (`package.json` — utama)
+### Kategori 3: Progressive Thumbnail Pipeline & Parallel Correlation Manager
+- **Deskripsi**: `thumbBatcher.ts` mengelola antrean request thumbnail secara paralel tanpa memblokir UI.
+- **Alur Kerja**:
+  1. `requestThumb()` mengecek IndexedDB `thumbPersistentCache.ts`. Jika HIT, render WebP Base64 langsung.
+  2. Jika MISS, item dimasukkan ke antrean batch (maksimal 48 item/batch).
+  3. `thumbBatcher.ts` memicu `invoke('tg_thumbs_batch')` secara paralel hingga 4 in-flight requests dengan `requestId` unik.
+  4. Hasil RPC dipetakan kembali ke kartu berbasis `requestId` dan divalidasi terhadap `peerGen.current`.
 
-| Package | Peran |
-|:--------|:------|
-| `react` 19 | UI framework |
-| `@tauri-apps/api` v2 | Tauri IPC invoke |
-| `react-router-dom` | Client-side routing |
-| `react-i18next` | Internasionalisasi |
-| `@tanstack/react-virtual` | Virtualizer 100k+ item |
-| `@tanstack/react-query` | Server state & SWR |
-| `TypeScript` | Static typing |
-| `Vite` | Build tool |
+### Kategori 4: Specialized Media & Edge-Case Async Keyframe Background Engine
+- **Deskripsi**: Penanganan video dokumen tanpa thumbnail statis Telegram.
+- **Alur Kerja**:
+  1. `thumbs.rs` mendeteksi video dokumen dan mengirim pesan ke `mpsc::channel(24)` di `special_media_thumb.rs`.
+  2. Background task memicu `thumbnail_range_bridge.rs` yang membuka port HTTP lokal ke `stream_server.rs`.
+  3. Subproses FFmpeg dipanggil (`-i http://127.0.0.1:{port}/stream/{sid}`) untuk mengunduh frame video pertama.
+  4. Frame WebP ditangkap dari stdout dan disimpan ke disk cache `.{sid}.webp`.
+
+### Kategori 5: Progressive Range HTTP Streaming & Seekable Local Bridge Engine
+- **Deskripsi**: Layanan streaming video progressive untuk HTML5 Player via `tiny_http` server.
+- **Alur Kerja**:
+  1. `MediaVideoPlayer.tsx` memanggil `tg_preview_stream` → mendaftarkan `StreamEntry` dan memicu `stream.rs` fill-loop.
+  2. Browser HTML5 Video mengirim request `GET /stream/{sid}` dengan header `Range: bytes=0-`.
+  3. `bounded_response_end()` membatasi respons maksimal 16 MB (`HTTP 206 Partial Content`).
+  4. Browser membuat suffix request `bytes=-2097152` untuk membaca atom `moov` tail. Pemutaran dimulai.
+
+### Kategori 6: Sparse Remote ZIP Archive Browser & Instant Extraction Engine
+- **Deskripsi**: Eksplorasi isi berkas ZIP remote di Telegram tanpa perlu mengunduh seluruh file ZIP.
+- **Alur Kerja**:
+  1. `driveStreamZipApi.ts` memanggil `tg_zip_list_sparse`.
+  2. `grammers_sparse_zip.rs` mengunduh 64 KB terakhir file ZIP dari Telegram MTProto untuk membaca EOCD (End of Central Directory).
+  3. Central Directory dibaca untuk mengekstraksi struktur pohon berkas `ZipEntry[]` dalam <500ms.
+  4. Pengguna mengekstrak 1 berkas → `tg_zip_extract_entry_sparse` mengunduh rentang byte spesifik berkas tersebut dan mendekompresinya di memori.
+
+### Kategori 7: Multi-Select, Bulk Batch Operations, Move & OS Drag-and-Drop
+- **Deskripsi**: Operasi masal berkas di DriveExplorer.
+- **Alur Kerja**:
+  1. `driveSelection.ts` mengelola array `selectedIds`.
+  2. `driveDrag.ts` menangani gestur drag-and-drop berkas ke folder lain atau ke luar aplikasi (OS native drag).
+  3. `pointerDragPrime.ts` membatasi threshold 8px untuk membedakan gestur klik vs drag.
+
+### Kategori 8: Telegram Session Manager, Auth Guard, & Smart Rate Limiter
+- **Deskripsi**: Manajemen sesi otentikasi Telegram dan proteksi FloodWait.
+- **Alur Kerja**:
+  1. `session_auth.rs` menangani QR code login dan Phone OTP via Grammers.
+  2. `session_guard.rs` memberikan exclusive lease `WorkerSessionLease` untuk mencegah race condition antar job.
+  3. `session_rate.rs` memantau error FloodWait dan memberlakukan backoff otomatis.
+
+### Kategori 9: Topic Media Local-First Storage & Forum Topic Engine
+- **Deskripsi**: Pengorganisasian media berdasarkan Topik Forum Telegram.
+- **Alur Kerja**:
+  1. `topics.rs` mengambil daftar topik forum via Grammers MTProto.
+  2. `app_db.rs` menyimpan indeks media ke tabel SQLite `topic_media_items` dengan komposit primary key (`account_id`, `peer_id`, `topic_id`, `message_id`).
+
+### Kategori 10: Multi-Channel Transfer, Chunked Upload/Download & Bandwidth Monitor
+- **Deskripsi**: Engine migrasi dan transfer media antar saluran.
+- **Alur Kerja**:
+  1. `migration_run.rs` mengeksekusi job migrasi.
+  2. `dup_checker.rs` mengecek duplikasi 4 level (Message ID, Telegram Unique ID, SHA256 Hash, Filename+Size).
+  3. `media_transfer.rs` mengunggah/mengunduh berkas dalam chunk terpisah dengan pemantauan bandwidth realtime (`progress_rate.rs`).
 
 ---
 
-## 4. Registrasi Command Tauri (85+ Commands — `lib.rs`)
+## 5. Registrasi Command Tauri (85+ Commands — `lib.rs`)
 
 ### Grup: Authentication & Session
 `tg_auth_status` · `tg_login` · `start_rust_qr_login` · `cancel_rust_qr_login` · `delete_session_rust`  
@@ -400,538 +511,427 @@ src/
 
 ---
 
-## 5. Sistem Streaming Video — Pipeline Lengkap v2.7.2
+## 6. Spesifikasi Buffer, Stream, Seek & moov Engine (Deep Technical Spec)
 
-### 5.1 Flow Registrasi & Boot
-
-```
-MediaVideoPlayer.tsx
-  → invoke('tg_preview_stream', { msgId, chatId, accessHash, ... })
-  → lib.rs → telegram_ops.rs → stream.rs::start_progressive_stream()
-     ├─ Buat StreamEntry { stream_id, path: "preview/{sid}.partial", total_size, mime }
-     ├─ register_cancel(sid) → AtomicBool di cancel_flags HashMap
-     ├─ obtain_download_clients() → 4 Grammers clients dari client_pool
-     ├─ spawn Tokio fill-loop task (background)
-     └─ Return { stream_url: "http://127.0.0.1:{port}/stream/{sid}", stream_id }
-
-  → MediaVideoPlayer set <video src="http://..."> → browser mulai request
-```
-
-### 5.2 Fill-Loop Internals (`stream.rs`)
+### 6.1 Arsitektur Buffer & Stream State Machine
 
 ```
-fill-loop (Tokio async task):
-  OUTER LOOP:
-    1. Cek cancel_flag.load(Ordering::SeqCst) → exit jika true
-    2. take_seek_request(sid) → update cursor ke posisi 512KB-aligned
-    3. find_missing_offset_from(ranges, cursor, total) → next_missing
-    4. Buat 4 pending_offsets (chunk berturutan dari cursor)
-    5. let (tx, mut rx) = mpsc::channel(4)
-    6. Spawn 4 Tokio workers:
-       each worker:
-         iter = client.iter_download(&media).chunk_size(512KB).skip_chunks(n)
-         ── SEEK FIX #1: timeout(15s, iter.next()) ──
-         → Elapsed → Ok(None) [retry next iter]
-         → Ok(inner) → send ke tx_clone
-    7. drop(tx) — workers hold tx_clone
-    8. 'batch: loop:    ← SEEK FIX #2: interruptible
-         if seek_requests.contains_key(&sid) { break 'batch }
-         match timeout(500ms, rx.recv()):
-           Ok(Some((off, Ok(Some(bytes))))) → write disk, push ranges
-           Ok(Some((off, Err(e))))          → handle FloodWait / log
-           Ok(None)                         → break 'batch [semua selesai]
-           Err(timeout)                     → loop [re-check seek]
-    9. upsert_entry() → merge_ranges(), preserve tail-fetch ranges
-    10. moov tail-fetch check (MP4 > 20MB, !moov_ready_cached):
-        → spawn independent task: fetch last ~1MB → write → upsert
-    11. Pause check: sleep(100ms) jika entry.paused
+                 ┌──────────────────────────────────────────┐
+                 │  MediaVideoPlayer.tsx (React Frontend)   │
+                 └────────────────────┬─────────────────────┘
+                                      │ invoke('tg_preview_stream')
+                                      ▼
+                 ┌──────────────────────────────────────────┐
+                 │  stream.rs :: start_progressive_stream() │
+                 └────────────────────┬─────────────────────┘
+                                      │ Spawn Tokio Fill-Loop
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     FILL-LOOP ENGINE (stream.rs)                          │
+│                                                                           │
+│  Outer Loop:                                                              │
+│  1. Check cancel_flag -> Exit if cancelled                                │
+│  2. take_seek_request(sid) -> Update cursor (512KB Aligned)               │
+│  3. find_missing_offset_from(ranges, cursor, total) -> next_missing      │
+│  4. Spawn 4 MTProto Workers (512KB chunks)                                │
+│     Worker: timeout(15s, iter.next())  <-- SEEK FIX #1                    │
+│  5. 'batch loop (interruptible):       <-- SEEK FIX #2                    │
+│     - Check seek_requests every 500ms -> break 'batch early if seek found │
+│     - Write bytes to disk, update ranges                                  │
+│  6. upsert_entry() -> Merge ranges & preserve tail-fetch ranges           │
+│  7. Async Moov Tail-Fetch Trigger (MP4 > 20MB & !moov_ready)              │
+└─────────────────────────────────────┬─────────────────────────────────────┘
+                                      │ Write bytes & update ranges
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                STREAM SERVER ENGINE (stream_server.rs)                    │
+│                                                                           │
+│  handle_stream():                                                         │
+│  1. Parse Range Header: req_start .. req_end                              │
+│  2. Wait Loop (45s max):                                                  │
+│     - request_progressive_range(sid, req_start)                           │
+│     - Re-send seek request every 2000ms  <-- SEEK FIX #3                    │
+│     - Poll contiguous_end_from(&entry.ranges, req_start)                 │
+│  3. bounded_response_end() -> Cap response to 16 MB max                   │
+│  4. DemandRangeReader -> Stream bytes to HTTP 206 response                │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 HTTP Range Server (`stream_server.rs`)
+### 6.2 Tabel Konstanta Kritis Streaming Engine
 
-```
-handle_stream(request, sid):
-  1. get_entry(sid) → StreamEntry [dari LIVE HashMap atau disk JSON]
-  2. Parse Range header → req_start, req_end
-  3. Jika !entry.done && bytes belum ada di req_start:
-     → request_progressive_range(sid, req_start)  ← SEEK FIX #3 awal
-     → Unset paused jika perlu
-     → WAIT LOOP 45s (poll 25ms):
-         ← SEEK FIX #3: re-send seek setiap 2000ms
-         ← refresh entry via get_entry()
-         ← cek contiguous_end_from > req_start → break
-  4. bounded_response_end(start, req_end, total) → cap 16MB per response
-  5. Buat DemandRangeReader { file, stream_id, position=start, end_exclusive }
-  6. Respond HTTP 206 Partial Content → stream ke browser via Read
-```
-
-### 5.4 DemandRangeReader
-
-```rust
-impl Read for DemandRangeReader {
-  fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
-    let mut seek_signaled = false;
-    loop {
-      let entry = get_entry(&self.stream_id);
-      let avail = contiguous_end_from(&entry.ranges, self.position);
-      if avail > self.position {
-        // Ada bytes: baca dari file .partial
-        self.file.seek(SeekFrom::Start(self.position));
-        let n = self.file.read(&mut output[..count]);
-        self.position += n;
-        return Ok(n);
-      }
-      if !self.wait_for_growth || entry.done || waited > 30_000 { return Ok(0); }
-      // Signal fill-loop SEKALI (jangan overwrite seek user)
-      if !seek_signaled {
-        request_progressive_range(&self.stream_id, self.position);
-        seek_signaled = true;
-      }
-      thread::sleep(30ms);
-      waited += 30;
-    }
-  }
-}
-```
-
-### 5.5 Konstanta Kritis Streaming
-
-| Konstanta | Nilai | Lokasi | Fungsi |
-|:----------|:------|:-------|:-------|
-| `CHUNK_SIZE` | 512 × 1024 = 524,288 B | `stream.rs` | Unit download MTProto |
-| Response cap | 16 MB/response | `stream_server.rs::bounded_response_end()` | Force suffix request moov |
-| Seek alignment | offset % 512KB → round down | `stream.rs::request_progressive_range()` | Cegah CDN offset shift |
-| Chunk timeout | 15s | `stream.rs` [SEEK FIX #1] | Cegah MTProto silent hang |
-| 'batch check | 500ms | `stream.rs` [SEEK FIX #2] | Deteksi seek mid-batch |
-| Seek re-send | 2000ms | `stream_server.rs` [SEEK FIX #3] | Jaminan fill-loop terima seek |
-| DemandReader wait | 30s max | `stream_server.rs` | Timeout baca pasif |
-| handle_stream wait | 45s max | `stream_server.rs` | Timeout tunggu bytes seek |
-| Fill clients | 4 parallel | `client_pool.rs` | 4× 512KB throughput |
-| `PROGRESSIVE_MAX` | 4 GB | `stream.rs` | Batas ukuran file |
+| Nama Konstanta | Nilai | Lokasi Berkas | Fungsi & Peran Teknis |
+| :--- | :--- | :--- | :--- |
+| `CHUNK_SIZE` | `524,288` (512 KB) | `stream.rs` | Ukuran satu chunk download MTProto yang diselaraskan. |
+| `ALIGNMENT_BOUNDARY` | `524,288` (512 KB) | `stream.rs` | Formula kelipatan offset (`offset - (offset % 512KB)`). |
+| `RESPONSE_CAP` | `16,777,216` (16 MB) | `stream_server.rs` | Batas maksimum panjang satu respons HTTP Range (206). |
+| `CHUNK_TIMEOUT` | `15` detik | `stream.rs` | Timeout per-chunk MTProto worker (`SEEK FIX #1`). |
+| `BATCH_CHECK_INTERVAL` | `500` ms | `stream.rs` | Interval cek interrupt seek mid-batch (`SEEK FIX #2`). |
+| `SEEK_RESEND_INTERVAL` | `2,000` ms | `stream_server.rs` | Interval re-send seek request di wait loop (`SEEK FIX #3`). |
+| `DEMAND_WAIT_TIMEOUT` | `30,000` ms (30 detik) | `stream_server.rs` | Batas waktu maksimum `DemandRangeReader` menunggu bytes. |
+| `HANDLE_STREAM_WAIT` | `45,000` ms (45 detik) | `stream_server.rs` | Batas waktu maksimum `handle_stream` menunggu bytes seek. |
+| `FILL_WORKERS` | `4` workers | `client_pool.rs` | Jumlah koneksi paralel Grammers per stream (4× 512KB). |
+| `PROGRESSIVE_MAX` | `4,294,967,296` (4 GB) | `stream.rs` | Ukuran maksimum berkas yang didukung streaming progressive. |
 
 ---
 
-## 6. Pipeline Thumbnail — 5 Tier
+## 7. Pipeline Thumbnail — 5 Tier (thumbs.rs + thumbBatcher.ts)
 
-### Tier 1: Stripped Mini-Thumb (0ms — Inline Data)
-- Source: `PhotoSize::Stripped` dalam metadata pesan Telegram
-- Size: ~60–200 bytes per item
-- Proses: `unstrip_jpeg()` di `ffmpeg.rs` → inject JPEG headers → `data:image/jpeg;base64,...`
-- Latensi: 0ms (tidak ada network, data ada di pesan)
+### Tier 1: Stripped Mini-Thumb (MTProto `PhotoSize::Stripped`)
+- **Sumber**: Inline dalam pesan Telegram (`tl` document attributes)
+- **Ukuran**: ~60–200 bytes per thumbnail
+- **Proses**: `unstrip_jpeg()` di `ffmpeg.rs` → inject SOI, DQT, SOF0, EOI headers → `data:image/jpeg;base64,...`
+- **Latensi**: **0ms** (data sudah ada di metadata pesan, tidak perlu network)
 
-### Tier 2: Cached WebP HD (< 5ms — IndexedDB)
-- Source: `thumbPersistentCache.ts` → IndexedDB store `thumbnails`
-- Proses: Direct lookup → render jika HIT
-- Latensi: <5ms
+### Tier 2: Cached WebP HD (IndexedDB + Disk)
+- **Sumber**: `thumbPersistentCache.ts` → IndexedDB `thumbnails` store
+- **Format**: WebP Base64 string
+- **Proses**: `thumbBatcher.ts::requestThumb()` → cek IndexedDB → jika hit: render langsung
+- **Latensi**: **<5ms** (IndexedDB read)
 
-### Tier 3: Foto/Gambar Statis (fast_sem — 12 permit, 200-800ms)
-- Source: Telegram PhotoSize via MTProto GetFile
-- Semaphore: `fast_sem` (12 permit paralel)
-- Batch: 48 items/RPC call
-- Proses: `thumbs.rs` → decode → WebP encode → base64
-- Cache: Tulis IndexedDB + disk setelah dapat
+### Tier 3: Foto/Gambar Statis (Grammers `fast_sem` — 12 permit)
+- **Sumber**: Telegram `PhotoSize::Progressives` via MTProto GetFile
+- **Semaphore**: `fast_sem` (12 permit paralel)
+- **Batch size**: 48 items per RPC call
+- **Proses**: `thumbs.rs::thumbs_batch_blocking_app()` → decode → WebP encode → return base64
+- **Latensi**: 200–800ms (network dependent)
 
-### Tier 4: Video Dokumen (video_sem — 4 permit, 2-8 detik)
-- Source: Video dokumen tanpa thumbnail Telegram
-- Semaphore: `video_sem` (4 permit paralel)
-- Proses:
+### Tier 4: Video Dokumen (Grammers `video_sem` — 4 permit)
+- **Sumber**: Video yang dikirim sebagai dokumen (tidak ada thumbnail Telegram)
+- **Semaphore**: `video_sem` (4 permit paralel)
+- **Proses**:
   1. `thumbs.rs` → `special_media_thumb.rs` via `mpsc::channel(24)`
-  2. `special_media_thumb.rs` → `thumbnail_range_bridge.rs` (local HTTP)
-  3. FFmpeg: `-i http://127.0.0.1:{port}/stream/{sid}` → extract frame
-  4. Capture stdout → WebP encode → cache
-- Cache: `.{sid}.webp` di disk `thumbs/`
+  2. `special_media_thumb.rs` → spawn `thumbnail_range_bridge.rs`
+  3. `thumbnail_range_bridge.rs` → buka HTTP local URL ke `stream_server.rs`
+  4. `special_media_thumb.rs` → spawn FFmpeg dengan `-i http://127.0.0.1:{port}/stream/{sid}`
+  5. FFmpeg extract frame → pipe ke stdout → Rust capture → WebP encode
+- **Latensi**: 2–8 detik (range fetch + FFmpeg decode)
 
-### Tier 5: Negative Cache (0ms — Early Exit)
-- Trigger: Semua tier gagal (ZIP, EXE, DOCX, dll)
-- Proses: Tulis `.{sid}.nothumb` + `"NOT_FOUND"` memory map
-- Efek: Request berikutnya → `FileTypeIcon` SVG langsung
-- Auto-prune: `is_fallback_black_card_bytes()` → hapus black card dari cache
+### Tier 5: Negative Caching (`.nothumb` + `"NOT_FOUND"`)
+- **Trigger**: Semua tier di atas gagal (file ZIP, EXE, DOCX, dll)
+- **Proses**: Tulis file `.{sid}.nothumb` di disk cache + `"NOT_FOUND"` di memory map
+- **Efek**: Semua request berikutnya langsung return `FileTypeIcon` SVG dalam **0ms**
 
-### Correlation Pipeline (`thumbBatcher.ts`)
+---
+
+## 8. Penanganan Remote Agent — Protokol Resmi (Tauri Desktop)
+
+### Definisi Remote pada Tauri Desktop
+AutoGram adalah **aplikasi desktop Tauri Win32 native** (bukan aplikasi web biasa). Antarmukanya di-render oleh Chromium WebView2 yang di-embed di jendela Windows. Oleh karena itu, Agent **TIDAK BISA** melakukan inspeksi visual atau klik pada file eksekusi rilis (`frontend.exe`) yang berjalan di latar belakang tanpa port DevTools terbuka.
+
+### Protokol Dev Mode (`cargo tauri dev`) — DIREKOMENDASIKAN
+1. **Eksekusi Dev Mode**: Agent atau pengguna menjalankan `cargo tauri dev` dari folder `AutoGram App/frontend`.
+2. **CDP Endpoint Exposure**: Tauri dev build secara otomatis membuka port Chrome DevTools Protocol (CDP) dan membuka DevTools panel (`window.open_devtools()`).
+3. **Koneksi MCP Tool**: Agent terhubung ke WebView menggunakan lazy-loaded tool `chrome-devtools-mcp` (atau `playwright` mcp).
+4. **Interaksi Dual-User Realtime**: Pengguna dan Agent melihat jendela antarmuka yang sama persis secara realtime di layar. Aksi klik, input teks, dan navigasi yang dilakukan Agent akan langsung terlihat bergerak di layar pengguna.
+5. **Transparansi Wajib**: Setiap kali Agent melakukan aksi remote pada UI, Agent WAJIB melaporkan halaman apa yang sedang dibuka, tombol apa yang diklik, dan melampirkan screenshot (`take_screenshot`) ke dalam respons agar pengguna dapat memverifikasi pekerjaan Agent.
+
+---
+
+## 9. 5 Diagram Sequence Mermaid Komprehensif
+
+### 9.1 Alur Kerja SWR Warm Fetch & Head Sync
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as DriveExplorer (React)
+    participant DB as mediaStudioDb (IndexedDB)
+    participant IPC as Tauri IPC Bridge
+    participant Rust as media_list.rs (Rust)
+    participant TG as Telegram MTProto
+
+    UI->>DB: getMediaFiles(peerId, topicId)
+    DB-->>UI: Return Cached DriveFile[] (<10ms)
+    UI->>UI: Instant Render Warm Cards (0ms UI Jank)
+
+    UI->>IPC: invoke('tg_list_media', { peerId, topicId, limit: 50 })
+    IPC->>Rust: tg_list_media_handler()
+    Rust->>TG: MTProto messages.getHistory / channels.getMessages
+    TG-->>Rust: Return fresh TL Message objects
+    Rust->>Rust: Parse & extract stripped mini-thumbs
+    Rust-->>IPC: Return updated DriveFile[] JSON
+    IPC-->>UI: Return Fresh DriveFile[] Data
+    UI->>DB: putMediaFiles(peerId, topicId, freshData)
+    UI->>UI: Smoothly update cards with fresh data
 ```
-DriveFileCard.requestThumb(msgId, chatId)
-  → Build requestId: "thumb:{peerId}:{msgId}:{peerGen.current}"
-  → Cek IndexedDB → HIT: render, MISS: enqueue
-  → 4 parallel in-flight batches (max 48/batch)
-  → invoke('tg_thumbs_batch', [{requestId, ...}])
-  → Rust: proses → ThumbnailBatchItemResult[] {requestId, data}
-  → Match via requestId (non-positional)
-  → Validasi peerGen.current [fail-closed jika mismatch]
-  → Update ThumbnailImage.src → IndexedDB.set()
+
+### 9.2 Alur Kerja Thumbnail 4-Flight Correlation Pipeline
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Card as DriveFileCard (React)
+    participant Batcher as thumbBatcher.ts
+    participant Cache as thumbPersistentCache
+    participant IPC as Tauri IPC Bridge
+    participant Rust as thumbs.rs (Rust)
+    participant TG as Telegram MTProto
+
+    Card->>Batcher: requestThumb(msgId, peerId, peerGen)
+    Batcher->>Cache: getThumb(folderId, msgId)
+    alt Cache HIT (<5ms)
+        Cache-->>Batcher: Return WebP Base64 String
+        Batcher-->>Card: Render HD WebP Thumbnail
+    else Cache MISS
+        Batcher->>Batcher: Push to Batch Queue (Max 48 items/flight)
+        Note over Batcher,IPC: 4 Parallel Flights Active (correlation matching via requestId)
+        Batcher->>IPC: invoke('tg_thumbs_batch', [{ requestId, msgId, ... }])
+        IPC->>Rust: thumbs_batch_blocking_app()
+        Rust->>Rust: Tier 1: Check PhotoSize::Stripped -> unstrip_jpeg()
+        alt Stripped Thumb Available
+            Rust-->>IPC: Return data:image/jpeg;base64,...
+        else Statis Photo (Tier 3)
+            Rust->>TG: MTProto GetFile (fast_sem: 12 permits)
+            TG-->>Rust: Image Bytes -> WebP Encode
+            Rust-->>IPC: Return WebP Base64 String
+        end
+        IPC-->>Batcher: Return ThumbnailBatchItemResult[]
+        Batcher->>Batcher: Match requestId & Validate peerGen.current [FAIL-CLOSED]
+        Batcher->>Cache: setThumb(folderId, msgId, webpData)
+        Batcher-->>Card: Render HD WebP Thumbnail
+    end
+```
+
+### 9.3 Alur Kerja Special Media Async Keyframe Background Engine
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant RustThumbs as thumbs.rs
+    participant Queue as mpsc::channel(24)
+    participant Special as special_media_thumb.rs
+    participant Bridge as thumbnail_range_bridge.rs
+    participant Server as stream_server.rs
+    participant FFmpeg as FFmpeg Binary
+
+    RustThumbs->>Queue: Send VideoDocument request (Tier 4)
+    Queue->>Special: Worker receive request (video_sem: 4 permits)
+    Special->>Bridge: Spawn Local Range Bridge
+    Bridge->>Server: Register temporary stream entry
+    Special->>FFmpeg: Spawn Process: ffmpeg -i http://127.0.0.1:{port}/stream/{sid} -vframes 1 -f image2pipe
+    FFmpeg->>Server: HTTP Range GET Request
+    Server-->>FFmpeg: Return initial MP4 bytes (moov + keyframe)
+    FFmpeg-->>Special: Pipe WebP/JPEG Frame Bytes to Stdout
+    Special->>Special: Encode Frame to WebP & save to disk (.{sid}.webp)
+    Special-->>Bridge: Close Bridge & Cleanup
+    Special-->>RustThumbs: Return WebP Base64 Data
+```
+
+### 9.4 Alur Kerja 512KB Aligned Range Streaming, Boot Phase, Tail-Fetch & Seek Engine (v2.7.2)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Player as HTML5 Video Player
+    participant Server as stream_server.rs (tiny_http)
+    participant StreamReg as stream.rs (StreamEntry)
+    participant FillLoop as stream.rs Fill-Loop
+    participant TG as Telegram MTProto DC
+
+    Player->>Server: HTTP GET /stream/{sid} Range: bytes=0-
+    Server->>StreamReg: get_entry(sid)
+    alt Stream Entry Missing / Not Started
+        Server->>FillLoop: request_progressive_range(sid, 0)
+        FillLoop->>FillLoop: 512KB Alignment: offset - (offset % 512KB)
+        FillLoop->>TG: Spawn 4 Workers (iter_download chunk_size=512KB)
+        TG-->>FillLoop: Return 4x 512KB chunks
+        FillLoop->>Server: Write to disk .partial & upsert_entry()
+    end
+
+    Note over FillLoop,TG: If MP4 > 20MB & moov missing in head:
+    FillLoop->>TG: Async Tail-Fetch: Download last 1MB (containing moov)
+    TG-->>FillLoop: Return Tail Bytes -> Write to .partial & Merge Ranges
+
+    Server->>Server: bounded_response_end: Cap response to 16 MB max
+    Server-->>Player: HTTP 206: Content-Range bytes 0-16777215/total
+
+    Note over Player,Server: Chrome sees 16MB cap -> Issues Suffix Request for moov
+    Player->>Server: HTTP GET /stream/{sid} Range: bytes=-2097152
+    Server-->>Player: HTTP 206: Tail Bytes (moov atom ready!)
+    Player->>Player: Decode moov atom -> Instant Playback Starts
+
+    opt User Seeks Timeline to Byte Offset 50,000,000
+        Player->>Server: HTTP GET /stream/{sid} Range: bytes=50000000-
+        Server->>StreamReg: request_progressive_range(sid, 50000000)
+        Server->>Server: Wait Loop: Re-send seek every 2s (SEEK FIX #3)
+        FillLoop->>FillLoop: 'batch Loop Timeout 500ms Interrupt (SEEK FIX #2)
+        FillLoop->>FillLoop: take_seek_request() -> Update Cursor to 49807360
+        FillLoop->>TG: 4x Workers Download Bytes from 49807360 (Timeout 15s - SEEK FIX #1)
+        TG-->>FillLoop: Return Bytes from Seek Target
+        FillLoop->>Server: Write to disk & upsert_entry()
+        Server-->>Player: HTTP 206: Content-Range bytes 49807360-50331647/total
+    end
+```
+
+### 9.5 Alur Kerja Sparse Remote ZIP Central Directory Extraction
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant ZipUI as DriveZipBrowser (React)
+    participant ZipAPI as driveStreamZipApi.ts
+    participant IPC as Tauri IPC Bridge
+    participant RustZip as grammers_sparse_zip.rs
+    participant TG as Telegram DC
+
+    ZipUI->>ZipAPI: driveZipListDir(folderId, messageId)
+    ZipAPI->>IPC: invoke('tg_zip_list_sparse', { folderId, messageId })
+    IPC->>RustZip: Read End of Central Directory Record (EOCD)
+    RustZip->>TG: MTProto Range Byte Request (Last 64 KB of ZIP)
+    TG-->>RustZip: Return Tail Bytes
+    RustZip->>RustZip: Parse Central Directory Headers
+    RustZip-->>IPC: Return ZipEntry[] JSON Structure (<500ms)
+    IPC-->>ZipUI: Render ZIP File Tree UI
+
+    opt User Extracts 1 File ("documents/report.pdf")
+        ZipUI->>ZipAPI: driveZipExtractFile("documents/report.pdf")
+        ZipAPI->>IPC: invoke('tg_zip_extract_entry_sparse', { path })
+        IPC->>RustZip: Fetch Byte Range for Target File Offset
+        RustZip->>TG: MTProto Range Byte Request for File Chunk
+        TG-->>RustZip: Return Compressed Bytes
+        RustZip->>RustZip: Inflate / Decompress Single File in Memory
+        RustZip-->>IPC: Save to Temp Local Path & Return Path
+        IPC-->>ZipUI: Open Extracted File
+    end
 ```
 
 ---
 
-## 7. Sistem Migrasi & Job Engine
+## 10. Spesifikasi Database & Storage (SQLite `autogram.db` & IndexedDB `mediaStudioDb`)
 
-### Flow Migrasi (`jobs_run_migration` → `migration_run.rs`)
-
-```
-Frontend (Jobs/index.tsx)
-  → invoke('jobs_run_migration', { jobId })
-  → migration_run.rs::run_migration()
-     ├─ Load job config dari SQLite (jobs_db.rs)
-     ├─ session_guard_acquire() → exclusive lease
-     ├─ Loop per chunk media source:
-     │   ├─ dup_checker: 4-level check
-     │   │   Level 1: message_id SQLite lookup
-     │   │   Level 2: telegram_unique_id compare
-     │   │   Level 3: SHA256 hash (full scan)
-     │   │   Level 4: filename + size + date match
-     │   ├─ media_transfer: Download dari source DC
-     │   ├─ smart_throttle: Adaptive rate limit
-     │   ├─ session_rate.wait_if_flooded_capped()
-     │   ├─ media_transfer: Upload ke destination
-     │   ├─ transfer_journal: Log audit entry
-     │   └─ app_db: Update progress
-     ├─ checkpoint save (resume support)
-     └─ session_guard_release()
-```
-
-### Studio Orchestrator (`studio_orch.rs`)
-- Queue: `job_queue.rs` (JSON persistent di disk: `studio_queue.json`)
-- Commands: `studio_enqueue`, `studio_run_orchestrated`
-- Batch upload dengan ordering + retry logic
-
----
-
-## 8. Database & Storage
-
-### A. SQLite `autogram.db` (WAL Mode)
+### A. Tabel SQLite Desktop Offline (`worker/autogram.db`)
 
 #### Tabel `topic_media_items`
-| Kolom | Tipe | Constraint | Fungsi |
-|:------|:-----|:-----------|:-------|
-| `account_id` | TEXT | PK(1), NOT NULL | Hash sesi Telegram |
-| `peer_id` | TEXT | PK(2), NOT NULL | ID channel/grup |
-| `topic_id` | INTEGER | PK(3), NOT NULL | ID topik (0=General) |
-| `message_id` | INTEGER | PK(4), NOT NULL | ID pesan unik |
-| `message_date` | INTEGER | NOT NULL | Unix epoch |
-| `file_name` | TEXT | NULLABLE | Nama file asli |
-| `file_size` | INTEGER | NOT NULL | Ukuran bytes |
-| `mime_type` | TEXT | NULLABLE | MIME type |
-| `thumb_data` | TEXT | NULLABLE | Base64 thumbnail |
+| Nama Kolom | Tipe Data | Constraints / Nullable | Fungsi & Peran Kolom |
+| :--- | :--- | :--- | :--- |
+| `account_id` | `TEXT` | `NOT NULL`, `PRIMARY KEY (1)` | Hash ID akun/sesi Telegram pemilik berkas. |
+| `peer_id` | `TEXT` | `NOT NULL`, `PRIMARY KEY (2)` | ID saluran, grup, atau chat Telegram (`-100...`). |
+| `topic_id` | `INTEGER` | `NOT NULL`, `PRIMARY KEY (3)` | ID Topik forum Telegram (`0` jika General). |
+| `message_id` | `INTEGER` | `NOT NULL`, `PRIMARY KEY (4)` | ID Pesan unik pada Telegram chat. |
+| `message_date` | `INTEGER` | `NOT NULL` | Epoch Unix Timestamp saat pesan terkirim. |
+| `file_name` | `TEXT` | `NULLABLE` | Nama asli dokumen/media. |
+| `file_size` | `INTEGER` | `NOT NULL` | Ukuran berkas dalam bytes. |
+| `mime_type` | `TEXT` | `NULLABLE` | Tipe MIME berkas (e.g. `video/mp4`). |
+| `thumb_data` | `TEXT` | `NULLABLE` | Base64 string thumbnail / mini-thumb. |
 
-Index: `idx_topic_media_lookup` → (`account_id`, `peer_id`, `topic_id`, `message_id`)
+**Indeks Terkait**: `idx_topic_media_lookup` ON `(account_id, peer_id, topic_id, message_id)`
 
-Tabel lain: `jobs` · `profiles` · `automations` · `stats` (transfer kumulatif)
+### B. Struct Stream Registry (`StreamEntry`)
 
-### B. Stream Registry
-
-`LIVE`: `Arc<RwLock<HashMap<String, StreamEntry>>>`  ← in-memory  
-`DISK`: `worker/cache/stream_registry/{sid}.json`    ← persistence  
-
-`StreamEntry` fields:
 | Field | Tipe | Fungsi |
-|:------|:-----|:-------|
-| `stream_id` | String | ID unik (`g{msg_id}-{ms}-{hash}`) |
-| `path` | String | Absolut path `.partial` |
-| `total_size` | u64 | Ukuran dari Telegram |
-| `mime` | String | MIME type |
-| `label` | String | Nama file asli |
-| `done` | bool | Download selesai |
-| `ranges` | `Vec<(u64,u64)>` | Sparse `[start,end)` tersedia |
-| `cancelled` | bool | Stream dibatalkan |
-| `error` | `Option<String>` | Error fatal |
-| `paused` | bool | Fill-loop idle |
-| `updated_at_ms` | u128 | Timestamp ms |
-| `moov_ready_cached` | bool | Atom moov terdeteksi |
-| `moov_tail_fetching` | bool | Tail-fetch berjalan |
+| :--- | :--- | :--- |
+| `stream_id` | `String` | ID unik stream (format: `g{msg_id}-{ms}-{hash}`). |
+| `path` | `String` | Path absolut file `.partial` di disk. |
+| `total_size` | `u64` | Ukuran total file dalam bytes dari Telegram metadata. |
+| `mime` | `String` | MIME type (e.g. `video/mp4`). |
+| `label` | `String` | Nama file asli. |
+| `done` | `bool` | True jika seluruh file sudah terunduh lengkap. |
+| `ranges` | `Vec<(u64, u64)>` | Sparse byte ranges yang tersimpan (`[start, end)`). |
+| `cancelled` | `bool` | True jika stream dibatalkan oleh pengguna. |
+| `error` | `Option<String>` | Pesan error fatal jika fill-loop gagal. |
+| `paused` | `bool` | True saat stream dijeda; fill-loop idle 100ms. |
+| `updated_at_ms` | `u128` | Unix millisecond timestamp terakhir update. |
+| `moov_ready_cached` | `bool` | Cache flag atom `moov` terdeteksi; tidak re-scan tiap poll. |
+| `moov_tail_fetching` | `bool` | True selama tail-fetch task berjalan. |
 
-### C. IndexedDB (`mediaStudioDb.ts`)
+### C. Store IndexedDB (`mediaStudioDb.ts`)
 
-| Store | Key | Value | Fungsi |
-|:------|:----|:------|:-------|
-| `mediaFiles` | `peerId:topicId` | `DriveFile[]` | SWR warm cache |
-| `scrollPositions` | `peerId:topicId` | number | Posisi scroll |
-| `thumbnails` | `folderId:msgId` | WebP Base64 string | Cache thumbnail |
-| `previewCache` | `session:chat:msgId` | Blob | Preview blob |
-
----
-
-## 9. Internasionalisasi (i18n)
-
-- Framework: `react-i18next`
-- Init: `src/i18n.ts` → `src/main.tsx`
-- Hook: `const { t } = useTranslation('namespace')`
-- 9 Namespace: `accounts` · `automation` · `dashboard` · `jobs` · `nav` · `settings` · `speedtest` · `statistics` · `sync`
-- 100% key parity antara `id/` dan `en/`
-- WAJIB: Setiap UI string baru HARUS ada di locale file
-- DILARANG: Hardcode string Bahasa Indonesia/Inggris di `.tsx`/`.ts`
+| Store Name | Key | Value | Fungsi |
+| :--- | :--- | :--- | :--- |
+| `mediaFiles` | `peerId:topicId` | `DriveFile[]` | SWR warm cache berkas media per lokasi |
+| `scrollPositions` | `peerId:topicId` | `number` | Posisi scroll terakhir per lokasi |
+| `thumbnails` | `folderId:messageId` | `string (WebP Base64)` | Cache thumbnail kartu persistent |
+| `previewCache` | `session:chat:msgId` | `Blob` | Memory cache blob file preview |
 
 ---
 
-## 10. Keamanan & Credential
+## 11. Internasionalisasi (i18n) — 100% Zero Hardcoded Strings
 
-- `API_ID`/`API_HASH`: OS keychain via `keyring` crate (tidak pernah ke binary)
-- Session `.session`: AES-256-GCM encrypted at rest
-- Path policy: `path_policy.rs` allowlist → cegah path traversal
-- `WorkerSessionLease`: Atomic exclusive ownership per transfer
-- Ghost sessions: Auto-cleanup saat app exit (`session_clone.rs`)
-- Network: SOCKS5/HTTP proxy via `ureq` + VPN detection
-
----
-
-## 11. Rate Limit & FloodWait Management
-
-### `session_rate.rs`
-```
-acquire_preview_slot()    → tunggu slot (max concurrent streams)
-wait_if_flooded_capped()  → backoff adaptif flood
-track_stream(sid)         → catat stream aktif
-cancel_streams(sid)       → batalkan stream
-note_error(session, err)  → rate tracking per sesi
-```
-
-### Fill-Loop Rate Control
-```
-Normal:     4 parallel × 512KB = 2MB per batch
-FloodWait:  sleep(flood_wait_secs) + note_error() + backoff
-Timeout:    worker timeout 15s → Ok(None) → retry next iter
-```
-
-### `smart_throttle.rs` (Migrasi)
-- Monitor rate aktual vs target
-- Auto-reduce speed menjelang FloodWait threshold
-- Resume full speed setelah period aman
+- **Framework**: `react-i18next` diinisialisasi di `src/i18n.ts` dan di-import di `src/main.tsx`.
+- **Penggunaan Hook**: `const { t } = useTranslation('namespace');`
+- **Aturan Paritas Key 100%**: Setiap key yang ditambahkan di `src/locales/id/*.json` **WAJIB** secara otomatis ditambahkan ke `src/locales/en/*.json` dengan kunci yang persis sama.
+- **9 Namespace JSON Aktif**: `accounts`, `automation`, `dashboard`, `jobs`, `nav`, `settings`, `speedtest` (44 KB), `statistics`, `sync`.
+- **Dilarang Hardcode**: Dilarang memasukkan teks Bahasa Indonesia atau Inggris secara langsung di file `.tsx` atau `.ts`.
 
 ---
 
-## 12. Penanganan Remote Agent — Protokol Resmi
+## 12. Keamanan System & Management Kredensial
 
-### Apa itu "Remote" di AutoGram?
-
-AutoGram adalah **Tauri desktop app** (bukan web). Jendela = Chromium WebView yang diembed di native Win32 window. Agent TIDAK bisa interaksi visual ke release build (`.exe` yang sudah berjalan).
-
-### METODE 1: Dev Mode — DIREKOMENDASIKAN ✅
-
-```powershell
-# Jalankan dari direktori frontend:
-cd "F:\AutoGram\AutoGram Approntend"
-npm run tauri dev
-# ATAU:
-cargo tauri dev
-```
-
-Apa yang terjadi:
-- Jendela Tauri terbuka di layar pengguna
-- CDP (Chrome DevTools Protocol) aktif otomatis
-- DevTools panel otomatis terbuka (`#[cfg(debug_assertions)]` → `window.open_devtools()`)
-- Pengguna MELIHAT dan BISA INTERAKSI di jendela yang sama dengan agent
-
-Cara agent connect dan berinteraksi:
-```
-1. Jalankan cargo tauri dev
-2. Tunggu jendela muncul di layar pengguna
-3. Agent: list_pages (chrome-devtools-mcp) → temukan page "tauri://localhost"
-4. Agent: take_screenshot → lihat kondisi UI saat ini
-5. Agent: evaluasi/click/fill via CDP tools
-6. SELALU lapor ke pengguna: "Saya melihat halaman X, melakukan Y"
-7. SELALU embed screenshot di response untuk transparansi
-```
-
-### METODE 2: Release Build — TIDAK BISA CDP ❌
-
-`frontend.exe` (release build):
-- Tidak ada CDP port
-- Agent TIDAK bisa connect `chrome-devtools-mcp`
-- Hanya bisa: file system + terminal tools
-
-### METODE 3: Manual DevTools Enable di Release
-
-Tambah sementara di `lib.rs` setup:
-```rust
-if let Some(window) = app.get_webview_window("main") {
-    window.open_devtools(); // tanpa #[cfg(debug_assertions)]
-}
-```
-Lalu rebuild: `cargo tauri build` → CDP aktif di release
-
-### METODE 4: File System + Terminal (Selalu Tersedia)
-
-Agent SELALU bisa tanpa visual:
-- Baca/tulis source code
-- `cargo check`, `cargo tauri build`
-- Baca `worker/logs/`
-- `sqlite3 autogram.db`
-- Monitor `worker/cache/stream_registry/*.json`
-
-### Tabel Kapan Perlu Remote
-
-| Tugas | Perlu Remote? | Metode |
-|:------|:-------------|:-------|
-| Fix kode Rust | TIDAK | File edit + cargo check |
-| Fix React UI | TIDAK | File edit + tsc |
-| Test streaming behavior | YA | Dev mode + CDP |
-| Verifikasi visual UI | YA | Dev mode + screenshot |
-| Debug Tauri IPC | YA | Dev mode + evaluate_script |
-| Query database | TIDAK | sqlite3 CLI |
-| Monitor stream logs | TIDAK | worker/logs/ |
-
-### Protokol Lengkap Agent Remote
-
-```
-STEP 1: Cek apakah dev mode sudah berjalan
-  → tasklist | findstr "cargo" atau "frontend"
-  → Jika tidak: jalankan cargo tauri dev
-
-STEP 2: Temukan CDP target
-  → chrome-devtools-mcp: list_pages
-  → Pilih page URL "tauri://localhost"
-
-STEP 3: Orientasi visual
-  → take_screenshot → analisis UI
-  → Lapor: "Saya melihat halaman [X]"
-
-STEP 4: Interaksi
-  → click, fill, navigate, evaluate_script
-  → Setiap aksi: lapor ke pengguna apa yang dilakukan
-
-STEP 5: Verifikasi
-  → Screenshot setelah aksi
-  → Embed di response untuk transparansi penuh
-```
+- **OS Keyring Integration**: `secrets.rs` menyimpan `API_ID`, `API_HASH`, dan master credential di OS keychain (`keyring` crate).
+- **Session Encryption at Rest**: File `.session` Telegram dienkripsi menggunakan **AES-256-GCM**.
+- **Path Policy Security**: `path_policy.rs` memberlakukan allowlist direktori untuk mencegah *path traversal attacks* pada command pembuka file native (`open_file::*`).
+- **Exclusive Session Lease**: `session_guard.rs` mengunci sesi Telegram selama transfer aktif untuk mencegah race condition antar job migrasi.
 
 ---
 
-## 13. Inter-Module Call Graph Matrix
+## 13. Rate Limit, FloodWait, & Konfigurasi Jaringan
 
-| Caller | Callee | Mekanisme | Tujuan |
-|:-------|:-------|:----------|:-------|
-| `MediaStudio/index.tsx` | `driveFilesApi.ts` | Async call | List media SWR + pagination |
-| `DriveFileCard.tsx` | `thumbBatcher.ts` | `requestThumb()` | Request thumbnail |
-| `DriveFileCard.tsx` | `VideoCanvasThumbnailCapturer` | Component render | Canvas fallback |
-| `MediaVideoPlayer.tsx` | `telegramBackend.ts` | `tg_preview_stream` | Mulai stream |
-| `thumbBatcher.ts` | `telegramBackend.ts` | `invoke('tg_thumbs_batch')` | Batch RPC |
-| `telegramBackend.ts` | `lib.rs` | Tauri IPC invoke | Bridge ke Rust |
-| `telegram_ops.rs` | `thumbs.rs` | Rust function call | `thumbs_batch_blocking_app` |
-| `thumbs.rs` | `special_media_thumb.rs` | `mpsc::channel(24)` | Video doc queue |
-| `special_media_thumb.rs` | `thumbnail_range_bridge.rs` | Tokio spawn | Local HTTP bridge |
-| `special_media_thumb.rs` | `ffmpeg.rs` | Subprocess spawn | Frame extraction |
-| `stream.rs` | `stream_server.rs` | Direct call | `upsert_entry`, `get_entry` |
-| `stream.rs` | `session_rate.rs` | Direct call | Rate limit & slot |
-| `stream.rs` | `client_pool.rs` | `obtain_download_clients` | 4 MTProto clients |
-| `stream_server.rs` | `stream.rs` | Direct call | `request_progressive_range` |
-| `HTML5 Video` | `stream_server.rs` | HTTP Range GET | Progressive streaming |
-| `migration_run.rs` | `dup_checker.rs` | Rust call | 4-level dup check |
-| `migration_run.rs` | `media_transfer.rs` | Rust call | Download + Upload |
-| `migration_run.rs` | `session_rate.rs` | Rust call | FloodWait management |
-| `DriveZipBrowser.tsx` | `driveStreamZipApi.ts` | API call | ZIP remote browse |
-| `driveStreamZipApi.ts` | `grammers_sparse_zip.rs` | Tauri IPC | Sparse ZIP MTProto |
+- **Smart Rate Controller**: `session_rate.rs` menangkap error `FloodWaitError`, mengekstrak durasi tunggu, dan memberlakukan backoff otomatis pada fill-loop dan engine migrasi.
+- **Adaptive Throttling**: `smart_throttle.rs` menyesuaikan kecepatan transfer secara dinamis saat mendekati ambang batas batas rate limit Telegram.
+- **Proxy & VPN Integration**: `network.rs` mengonfigurasi SOCKS5/HTTP proxy via `ureq` dan melakukan deteksi antarmuka VPN aktif (`network_detect_vpn`).
 
 ---
 
-## 14. 16 Detail Mikro Teknis Berdampak Besar
+## 14. Matriks Hubungan & Panggilan Inter-Module (Call Graph Matrix)
 
-### 1. 512KB MTProto Boundary Alignment
-`aligned = offset - (offset % 524288)`  
-Cegah `LOCATION_INVALID` dan byte shift dari CDN Telegram.
-
-### 2. `unstrip_jpeg` — Rekonstruksi Header JPEG
-inject SOI+DQT+SOF0+EOI ke stripped bytes → data URI 0ms tanpa network.
-
-### 3. Fail-Closed `peerGen.current`
-Atomic counter naik setiap ganti folder → request lama dibuang → 0% media bleed.
-
-### 4. `is_fallback_black_card_bytes`
-Histogram scan WebP/JPEG → auto-prune black card dari cache → re-decode bersih.
-
-### 5. Negative Caching `.nothumb` + `"NOT_FOUND"`
-File non-media → early exit → `FileTypeIcon` SVG tanpa RPC call.
-
-### 6. Dual-Track Semaphore `fast_sem` (12) vs `video_sem` (4)
-Foto tidak pernah diblokir oleh video decode. Throughput optimal.
-
-### 7. `cardHeight` vs `rowHeight` Gap 10px
-Gap 10px antara card height dan virtualizer row height → cegah jank saat scroll.
-
-### 8. 8px Pointer Drag Prime Threshold
-Klik < 8px = tap murni. Gerak > 8px = aktivasi drag. Cegah false drag di WebView.
-
-### 9. `requestId` Correlation Matching
-`"thumb:{peerId}:{msgId}:{peerGen}"` → non-positional match → thumbnail tidak tertukar.
-
-### 10. 16MB Response Cap (`bounded_response_end`)
-Cap setiap HTTP response 16MB → paksa Chrome kirim suffix request → fetch moov tail.
-
-### 11. Tail-fetch Moov Task
-Spawn task independen fetch last ~1MB → moov atom tersedia sebelum full download.
-
-### 12. `upsert_entry` Range Merge Preservation
-Merge existing ranges dengan ranges baru → tail-fetch ranges tidak di-overwrite fill-loop.
-
-### 13. `moov_ready_cached` Flag
-Scan atom 'moov' sekali, cache hasilnya → tidak re-scan setiap poll upsert.
-
-### 14. 3-Layer Seek Fix (v2.7.2)
-FIX #1: 15s timeout per MTProto chunk → cegah silent hang.  
-FIX #2: `'batch` loop interruptible 500ms → break early saat seek masuk.  
-FIX #3: Re-send seek setiap 2s di `handle_stream` → jaminan fill-loop terima seek.  
-
-### 15. Ghost Session Clone
-Session clone sementara untuk parallel operation → auto-cleanup on exit.
-
-### 16. Sparse ZIP Central Directory Read
-Fetch last 64KB → parse EOCD → fetch CD range → list tanpa download full file.
+| Modul Pemanggil (Caller) | Modul Dipanggil (Callee) | Mekanisme Komunikasi | Tujuan & Hasil Interaksi |
+| :--- | :--- | :--- | :--- |
+| `MediaStudio/index.tsx` | `driveFilesApi.ts` | Async Function Call | Meminta daftar berkas media SWR & pagination. |
+| `MediaStudio/index.tsx` | `thumbBatcher.ts` | Method Invocation | Mengatur konteks topik (`setThumbContext`) & reset antrean thumbnail. |
+| `DriveFileCard.tsx` | `thumbBatcher.ts` | Function Call (`requestThumb`) | Meminta thumbnail kartu via 4-flight correlation pipeline. |
+| `DriveFileCard.tsx` | `VideoCanvasThumbnailCapturer.tsx` | Component Render | Fallback dekoder 1 frame video di canvas browser. |
+| `thumbBatcher.ts` | `driveFilesApi.ts` | Async Function Call | Mengirim `requestId` correlation ID ke backend. |
+| `driveFilesApi.ts` | `telegramBackend.ts` | Async Function Call | Abstraksi API frontend ke Tauri IPC wrapper. |
+| `telegramBackend.ts` | `lib.rs` | Tauri IPC `invoke('tg_*')` | Mengirim serialized JSON payload dari WebView JS ke Rust Core. |
+| `telegram_ops.rs` | `thumbs.rs` | Native Rust Function Call | Memanggil batch thumbnail extraction `thumbs_batch_blocking_app`. |
+| `thumbs.rs` | `special_media_thumb.rs` | `mpsc::channel(24)` Send | Mengirim video dokumen tanpa thumbnail ke background queue. |
+| `special_media_thumb.rs` | `thumbnail_range_bridge.rs` | Tokio Runtime Task Spawn | Menjalankan Seekable Local HTTP Range Bridge untuk FFmpeg. |
+| `special_media_thumb.rs` | `ffmpeg.rs` | Subprocess Command | Ekstraksi frame video dari Local Range Bridge URL. |
+| `MediaVideoPlayer.tsx` | `stream.rs` | Tauri IPC `tg_preview_stream` | Mendaftarkan stream baru, menerima stream URL. |
+| `stream.rs` | `stream_server.rs` | Direct Rust Call | `upsert_entry()`, `get_entry()`, `merge_ranges()`, `status_of()`. |
+| `stream.rs` | `session_rate.rs` | Direct Rust Call | `acquire_preview_slot()`, `wait_if_flooded_capped()`, `track_stream()`. |
+| `stream_server.rs` | `stream.rs` | Direct Rust Call | `request_progressive_range()` dari DemandRangeReader saat bytes belum tersedia. |
+| `HTML5 Video Player` | `stream_server.rs` | HTTP Range Request (`206`) | Progressive video streaming: `DemandRangeReader` + `bounded_response_end()`. |
+| `DriveZipBrowser.tsx` | `driveStreamZipApi.ts` | Async API Call | Membaca Central Directory ZIP remote & ekstraksi berkas tunggal. |
 
 ---
 
-## 15. Matriks Status Fitur
+## 15. Matriks Status Fitur (Feature Matrix v2.7.2)
 
-| Fitur | Status | Module Utama |
-|:------|:-------|:------------|
-| Auth Phone + OTP | AKTIF | `session_auth.rs` |
-| Login QR Code | AKTIF | `session_auth.rs` |
-| Import Session Python | AKTIF | `telethon_session_import.rs` |
-| Drive Explorer Grid + List | AKTIF | `DriveExplorer.tsx` |
-| Thumbnail Batch 5-Tier | AKTIF | `thumbs.rs`, `thumbBatcher.ts` |
-| Progressive Stream + Seek Fix | AKTIF (v2.7.2) | `stream.rs`, `stream_server.rs` |
-| Sparse ZIP Remote Browse | AKTIF | `grammers_sparse_zip.rs` |
-| Job Migration Engine | AKTIF | `migration_run.rs` |
-| 4-Level Dup Detection | AKTIF | `dup_checker.rs` |
-| Studio Upload Orchestrator | AKTIF | `studio_orch.rs` |
-| Network Proxy/VPN | AKTIF | `network.rs` |
-| OS Keyring Credentials | AKTIF | `secrets.rs` |
-| Session Guard Exclusive Lease | AKTIF | `session_guard.rs` |
-| SmartRate FloodWait | AKTIF | `session_rate.rs` |
-| Automation Rules | AKTIF | `automations_db.rs` |
-| Stats Export CSV | AKTIF | `stats_db.rs` |
-| Dark Mode UI | AKTIF | `index.css`, `App.css` |
-| i18n Bilingual id/en | AKTIF | `locales/`, `i18n.ts` |
-| CDP Remote (Dev Mode only) | DEV ONLY | `lib.rs` `#[cfg(debug_assertions)]` |
-| Topic Media Feature Module | EKSPERIMENTAL | `features/topic_media/` |
+| Fitur Utama | Status Terintegrasi | Modul Utama Penanggung Jawab |
+| :--- | :--- | :--- |
+| Otentikasi Telegram (Phone + OTP) | **AKTIF** | `session_auth.rs` |
+| Otentikasi QR Code Login | **AKTIF** | `session_auth.rs` |
+| Import Sesi Telethon Python Legacy | **AKTIF** | `telethon_session_import.rs` |
+| Drive Explorer (Virtualized Grid & List) | **AKTIF** | `DriveExplorer.tsx`, `DriveFileCard.tsx` |
+| Progressive Thumbnail Pipeline (Tier 1–5) | **AKTIF** | `thumbs.rs`, `thumbBatcher.ts` |
+| Progressive Video Stream & 3-Layer Seek Fix | **AKTIF (v2.7.2)** | `stream.rs`, `stream_server.rs` |
+| Sparse Remote ZIP Archive Browser | **AKTIF** | `grammers_sparse_zip.rs` |
+| Multi-Channel Migration Engine | **AKTIF** | `migration_run.rs`, `jobs_db.rs` |
+| 4-Level Duplicate Detection Engine | **AKTIF** | `dup_checker.rs` |
+| Studio Upload Orchestrator | **AKTIF** | `studio_orch.rs`, `job_queue.rs` |
+| Network Proxy (SOCKS5/HTTP) & VPN | **AKTIF** | `network.rs` |
+| OS Keyring Credential Storage | **AKTIF** | `secrets.rs` |
+| Exclusive Session Guard Lease | **AKTIF** | `session_guard.rs` |
+| Smart Rate Limiter & FloodWait Controller | **AKTIF** | `session_rate.rs`, `smart_throttle.rs` |
+| Automation Rules & Scheduler | **AKTIF** | `automations_db.rs`, `Automation/index.tsx` |
+| Transfer Statistics & Export CSV | **AKTIF** | `stats_db.rs`, `Statistics/index.tsx` |
+| Internasionalisasi (i18n Dual-Language) | **AKTIF** | `src/locales/`, `i18n.ts` |
+| Remote Agent Protocol (Dev Mode CDP) | **AKTIF (Dev Only)** | `lib.rs` (`#[cfg(debug_assertions)]`) |
 
 ---
 
-## 16. Standar Agent Governance
+## 16. Standar Governance Agent & Ekosistem Skill Pack
 
-### A. Done Criteria
-1. `cargo check` → 0 error
-2. `npx tsc --noEmit` → 0 error
-3. `commit` + `push` ke `origin main`
+### A. Mandat Otonomi Agent (End-to-End Problem Solver)
+Seluruh pengerjaan fitur, refactoring, dan perbaikan bug wajib mengikuti standar eksekutor otonom cerdas:
+- **Zero Prompt Dependency**: Agent secara proaktif memetakan kode, menganalisis root cause, menyusun rencana, menulis kode, dan melakukan self-debugging hingga verifikasi kompilasi 100% lulus.
+- **Strict Done Criteria**: Tidak mengklaim pekerjaan selesai sebelum verifikasi kompilasi (`cargo check` & `npx tsc --noEmit`) lulus **0 error** dan perubahan berhasil di-commit & push ke GitHub main branch.
+- **No-Touch Rule**: Dilarang mengubah modul thumbnail (`thumbs.rs`, `thumbBatcher.ts`, `special_media_thumb.rs`, `ffmpeg.rs`) tanpa instruksi eksplisit.
 
-### B. No-Touch Rule
-DILARANG mengubah tanpa instruksi eksplisit:
-- `thumbs.rs`, `thumbBatcher.ts`, `special_media_thumb.rs`
-- `ffmpeg.rs`, `thumbnail_range_bridge.rs`
-- `thumbPersistentCache.ts`, `previewCache.ts`
-
-### C. Skill Pack Aktif (`.agents/skills/`)
-`prompt-to-spec-orchestrator` · `codebase-cartographer` · `feature-planning-architect`  
-`bug-fix-loop-investigator` · `root-cause-debugger` · `implementation-quality-gate`  
-`regression-test-planner` · `telethon-best-practices` · `react-refactor-safe`  
-`ui-polish-mobile` · `scroll-touch-debugger` · `performance-audit`  
-`conventional-commit` · `supabase-safe-change` · `netlify-deploy-debug` · `graphify`  
-
-### D. Commit Convention
-Format: `type(scope): deskripsi`  
-Types: `fix` · `feat` · `docs` · `refactor` · `chore` · `perf`  
-
-### E. Versioning
-Format: `x.y.z` — increment `.z` setiap perubahan  
-Maximum `.z` = 99 sebelum naik `.y`  
-Update `CHANGELOG.md` dan `VERSION.md` setiap rilis  
+### B. Matriks Ekosistem Skill Pack (`.agents/skills/`)
+Matriks 16 Skill spesialisasi aktif yang wajib dikonsumsi Agent: `prompt-to-spec-orchestrator`, `codebase-cartographer`, `feature-planning-architect`, `bug-fix-loop-investigator`, `root-cause-debugger`, `implementation-quality-gate`, `regression-test-planner`, `telethon-best-practices`, `supabase-safe-change`, `supabase-schema-manager`, `react-refactor-safe`, `ui-polish-mobile`, `scroll-touch-debugger`, `performance-audit`, `conventional-commit`, dan `graphify`.
 
 ---
 
-*Dokumen master v2.7.2 — Ground-truth 100% akurat per 2026-08-02. Mencakup: 100+ file project, 85+ Tauri commands, streaming pipeline lengkap dengan 3 seek fix, thumbnail 5-tier, sparse ZIP, migration engine, SQLite schema, IndexedDB, worker directory, i18n, keamanan, FloodWait, remote agent protocol Tauri desktop, inter-module call graph, feature matrix, dan 16 detail mikro teknis.*
+*Dokumen master ini disahkan sebagai pedoman teknis utama definitif v2.7.2 paling lengkap, komprehensif, mencakup 100% seluruh berkas proyek, 16 Detail Mikro Teknis Berdampak Besar (dengan masalah, solusi, dampak, dan lokasi kode), Spesifikasi Buffer/Stream/Seek Engine (termasuk 3 Seek Fixes v2.7.2), 10 Kategori Fitur Utama Deep-Dive, 85+ Command Tauri IPC, Protokol Remote Agent Desktop, 5 Diagram Sequence Mermaid, Matriks Call Graph Inter-Module, Tabel Skema DB & Store IndexedDB, dan Standar Agent Governance.*
