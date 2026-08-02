@@ -575,11 +575,11 @@ export function Accounts() {
           <div className="card-header card-header-spread">
             <div className="title-with-icon">
               <Users size={20} color="var(--primary)" aria-hidden />
-              <h3 style={{ margin: 0 }}>{t('accounts.saved_sessions')}</h3>
+              <h3 style={{ margin: 0 }}>{t('accounts.saved_sessions', 'Daftar Sesi Tersimpan')}</h3>
             </div>
             <div className="page-header-actions">
                 <button type="button" className="btn btn-primary" onClick={openWizard}>
-                  <Plus size={16} /> {t('accounts.btn_add')}
+                  <Plus size={16} /> {t('accounts.btn_add', 'Tambah Sesi')}
                 </button>
             </div>
           </div>
@@ -702,7 +702,11 @@ export function Accounts() {
                 </button>
               )}
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-                {step === 1 ? t('accounts.step_connect') : step === 2 ? t('accounts.step_verify') : t('accounts.step_2fa')}
+                {step === 1
+                  ? t('accounts.step_connect', '1. Hubungkan Sesi')
+                  : step === 2
+                    ? t('accounts.step_verify', '2. Verifikasi Kode')
+                    : t('accounts.step_2fa', '3. Verifikasi 2FA')}
               </h3>
             </div>
             
@@ -764,7 +768,7 @@ export function Accounts() {
                   </div>
 
                   <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('accounts.session_name')}</label>
+                    <label className="input-label">{t('accounts.session_name', 'Nama Sesi Telegram')}</label>
                     <input id="session-name-input" type="text" className="input-field" placeholder="MyAccount" value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" disabled={isProcessing} />
                   </div>
 

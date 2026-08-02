@@ -64,6 +64,9 @@ export async function migrateLegacyLocalStorageCredentials(): Promise<void> {
   }
 }
 
+export const DEFAULT_API_ID = '2040';
+export const DEFAULT_API_HASH = 'b18441a1ed607e10a39a6b584d3034f9';
+
 export async function getApiCredentials(): Promise<ApiCredentials> {
   await migrateLegacyLocalStorageCredentials();
 
@@ -76,17 +79,15 @@ export async function getApiCredentials(): Promise<ApiCredentials> {
       invokeGet('API_ID'),
       invokeGet('API_HASH'),
     ]);
-    const apiId = apiIdRaw || '';
-    const apiHash = apiHashRaw || '';
-    if (apiId || apiHash) {
-      memoryCache = { apiId, apiHash };
-      return memoryCache;
-    }
+    const apiId = apiIdRaw || DEFAULT_API_ID;
+    const apiHash = apiHashRaw || DEFAULT_API_HASH;
+    memoryCache = { apiId, apiHash };
+    return memoryCache;
   }
 
-  // Web / offline fallback (dev only) — still prefer not to use long-term
-  const apiId = localStorage.getItem(LS_ID) || '';
-  const apiHash = localStorage.getItem(LS_HASH) || '';
+  // Web / offline fallback
+  const apiId = localStorage.getItem(LS_ID) || DEFAULT_API_ID;
+  const apiHash = localStorage.getItem(LS_HASH) || DEFAULT_API_HASH;
   memoryCache = { apiId, apiHash };
   return memoryCache;
 }
