@@ -773,10 +773,10 @@ export function Accounts() {
               )}
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
                 {step === 1
-                  ? t('accounts.step_connect', '1. Hubungkan Sesi')
+                  ? t('accounts.step_connect', 'Hubungkan Sesi Telegram')
                   : step === 2
-                    ? t('accounts.step_verify', '2. Verifikasi Kode')
-                    : t('accounts.step_2fa', '3. Verifikasi 2FA')}
+                    ? t('accounts.step_verify', 'Verifikasi Kode (OTP)')
+                    : t('accounts.step_2fa', 'Verifikasi Dua Langkah (2FA)')}
               </h3>
             </div>
             
@@ -811,7 +811,7 @@ export function Accounts() {
                         transition: 'all 0.2s',
                       }}
                     >
-                      <QrCode size={16} /> Scan QR Code
+                      <QrCode size={16} /> {t('accounts.tab_qr', 'Scan QR Code')}
                     </button>
                     <button
                       type="button"
@@ -833,7 +833,7 @@ export function Accounts() {
                         transition: 'all 0.2s',
                       }}
                     >
-                      <Phone size={16} /> Nomor Telepon & OTP
+                      <Phone size={16} /> {t('accounts.tab_phone', 'Nomor Telepon & OTP')}
                     </button>
                   </div>
 
@@ -858,11 +858,11 @@ export function Accounts() {
                             <img src={qrDataUrl} alt="Telegram Login QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
                             {qrExpiresIn > 0 ? (
                               <span style={{ fontSize: '0.75rem', color: '#333', fontWeight: '600', marginTop: '6px' }}>
-                                Masa berlaku: {qrExpiresIn}s
+                                {t('accounts.valid_for', { seconds: qrExpiresIn })}
                               </span>
                             ) : (
                               <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginTop: '6px' }}>
-                                Kedaluwarsa
+                                {t('accounts.status_expired', 'Kedaluwarsa')}
                               </span>
                             )}
                           </div>
@@ -875,18 +875,18 @@ export function Accounts() {
 
                           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-muted)', width: '100%' }}>
                             <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Smartphone size={16} color="var(--primary)" /> Langkah-langkah scan di HP:
+                              <Smartphone size={16} color="var(--primary)" /> {t('accounts.qr_instructions_title', 'Langkah-langkah scan di HP:')}
                             </div>
                             <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
-                              <li>{t('accounts.open_app')} <strong>Telegram</strong> di Smartphone Anda.</li>
-                              <li>Masuk ke <strong>{t('accounts.qr_step_2')}</strong>.</li>
-                              <li>Ketuk <strong>{t('accounts.qr_step_4')}</strong>.</li>
-                              <li>{t('accounts.qr_step_5')}</li>
+                              <li>{t('accounts.qr_step_1')}</li>
+                              <li>{t('accounts.qr_step_2')}</li>
+                              <li>{t('accounts.qr_step_3')}</li>
+                              <li>{t('accounts.qr_step_4')}</li>
                             </ol>
                           </div>
 
                           <div className="field-hint" role="status" style={{ textAlign: 'center' }}>
-                            QR diperbarui otomatis saat kedaluwarsa. AutoGram sedang menunggu konfirmasi Telegram.
+                            {t('accounts.qr_auto_refresh_hint', 'QR diperbarui otomatis saat kedaluwarsa. AutoGram sedang menunggu konfirmasi Telegram.')}
                           </div>
                         </div>
                       )}
