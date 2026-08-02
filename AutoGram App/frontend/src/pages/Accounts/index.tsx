@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone } from 'lucide-react';
+import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
@@ -147,7 +147,32 @@ export function Accounts() {
       return [name, ...prev.filter((n) => n !== name)].slice(0, 12);
     });
   };
-  
+
+  // Custom Session Aliases state (Post-login rename)
+  const [renameTarget, setRenameTarget] = useState<{ name: string; currentAlias: string } | null>(null);
+  const [aliasInput, setAliasInput] = useState('');
+  const [sessionAliases, setSessionAliases] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('CUSTOM_SESSION_ALIASES') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const handleSaveAlias = () => {
+    if (!renameTarget) return;
+    const updated = { ...sessionAliases };
+    const val = aliasInput.trim();
+    if (val) {
+      updated[renameTarget.name] = val;
+    } else {
+      delete updated[renameTarget.name];
+    }
+    setSessionAliases(updated);
+    localStorage.setItem('CUSTOM_SESSION_ALIASES', JSON.stringify(updated));
+    setRenameTarget(null);
+  };
+
   // Wizard State
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -617,20 +642,19 @@ export function Accounts() {
                     </div>
                     <div style={{ minWidth: 0 }}>
                       {(() => {
-                        const isAutoTemp = /^session_\d+|^tg_\d+/i.test(s.name);
-                        const mainTitle = isAutoTemp && s.userFullName ? s.userFullName : s.name;
-                        const showProfileName = !isAutoTemp && s.userFullName && s.userFullName !== s.name;
+                        const customAlias = sessionAliases[s.name];
+                        const displayTitle = customAlias || s.userFullName || s.name;
                         return (
                           <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                              {mainTitle}
+                              {displayTitle}
                             </span>
                             {s.username && (
                               <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
                                 ({s.username.startsWith('@') ? s.username : `@${s.username}`})
                               </span>
                             )}
-                            {showProfileName && (
+                            {customAlias && s.userFullName && customAlias !== s.userFullName && (
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', opacity: 0.7 }}>
                                 · {s.userFullName}
                               </span>
@@ -658,8 +682,6 @@ export function Accounts() {
                         role="switch"
                         aria-checked={activeSessions.includes(s.name)}
                         tabIndex={0}
-                        // Allow multi-active even while status is still "checking"
-                        // so users can prepare Studio/Jobs targets without waiting.
                         onClick={() =>
                           (s.status === 'connected' ||
                             s.status === 'checking' ||
@@ -687,11 +709,25 @@ export function Accounts() {
                     
                     <button 
                       type="button"
+                      onClick={() => {
+                        setRenameTarget({ name: s.name, currentAlias: sessionAliases[s.name] || '' });
+                        setAliasInput(sessionAliases[s.name] || s.userFullName || '');
+                      }}
+                      className="btn btn-secondary btn-icon"
+                      title={t('accounts.edit_alias_title', 'Ubah Alias Sesi')}
+                      style={{ padding: '6px 8px' }}
+                    >
+                      <Pencil size={16} />
+                    </button>
+
+                    <button 
+                      type="button"
                       onClick={() => handleDeleteSession(s.name)}
                       className="btn btn-secondary btn-icon btn-danger-soft"
                       title={t('accounts.delete_title')}
+                      style={{ padding: '6px 8px' }}
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -793,11 +829,6 @@ export function Accounts() {
                     >
                       <Phone size={16} /> Nomor Telepon & OTP
                     </button>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('accounts.session_name', 'Nama Sesi Telegram')}</label>
-                    <input id="session-name-input" type="text" className="input-field" placeholder={t('accounts.session_name_ph', 'Opsional — Otomatis dari Profil / Username')} value={sessionName} onChange={e => setSessionName(e.target.value)} spellCheck={false} autoComplete="off" disabled={isProcessing} />
                   </div>
 
                   {loginMethod === 'qr' ? (
@@ -920,6 +951,39 @@ export function Accounts() {
         onConfirm={executeDeleteSession}
         onCancel={() => setDeleteTargetSession(null)}
       />
+
+      {renameTarget && (
+        <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '24px', borderRadius: '12px', background: 'var(--bg-secondary, #1a1b23)', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem' }}>{t('accounts.rename_modal_title', 'Ubah Alias / Nama Sesi')}</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 16px', lineHeight: 1.45 }}>
+              {t('accounts.rename_modal_desc', 'Setel alias kustom untuk sesi ini agar mudah dikenali di AutoGram.')}
+            </p>
+            <div className="input-group" style={{ marginBottom: '20px' }}>
+              <label className="input-label">{t('accounts.custom_alias_label', 'Alias Kustom Sesi')}</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder={t('accounts.custom_alias_ph', 'Misal: Akun Kerja Utama')}
+                value={aliasInput}
+                onChange={(e) => setAliasInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveAlias();
+                }}
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setRenameTarget(null)}>
+                {t('accounts.cancel', 'Batal')}
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveAlias}>
+                {t('accounts.save', 'Simpan Alias')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

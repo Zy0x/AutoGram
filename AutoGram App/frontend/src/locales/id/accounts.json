@@ -80,5 +80,12 @@
   "error_api_required": "API ID dan API Hash wajib diisi di Pengaturan sebelum membuat sesi login.",
   "unverified_connection": "Koneksi sesi belum terverifikasi.",
   "session_name_required": "Nama sesi wajib diisi.",
-  "error_fields_required": "Semua kolom wajib diisi."
+  "error_fields_required": "Semua kolom wajib diisi.",
+  "rename_modal_title": "Ubah Alias / Nama Sesi",
+  "rename_modal_desc": "Setel alias kustom untuk sesi ini agar mudah dikenali di AutoGram.",
+  "custom_alias_label": "Alias Kustom Sesi",
+  "custom_alias_ph": "Misal: Akun Kerja Utama",
+  "edit_alias_title": "Ubah Alias Sesi",
+  "save": "Simpan Alias",
+  "cancel": "Batal"
 }

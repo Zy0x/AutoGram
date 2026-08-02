@@ -80,5 +80,12 @@
   "error_api_required": "API ID and API Hash are required in Settings before creating a session.",
   "unverified_connection": "Session connection is unverified.",
   "session_name_required": "Session name is required.",
-  "error_fields_required": "All fields are required."
+  "error_fields_required": "All fields are required.",
+  "rename_modal_title": "Rename / Custom Session Alias",
+  "rename_modal_desc": "Set a custom alias for this session for easy recognition in AutoGram.",
+  "custom_alias_label": "Custom Session Alias",
+  "custom_alias_ph": "E.g., Primary Work Account",
+  "edit_alias_title": "Edit Session Alias",
+  "save": "Save Alias",
+  "cancel": "Cancel"
 }
