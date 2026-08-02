@@ -1,8 +1,14 @@
-## v2.7.3 Tauri IPC ACL Allowlist Fix — `acquire_worker_session_lease` Fix
+## v2.7.3 Transfer Manager Realtime Progress Engine & Settings Modal Scrollability Fix
 
-### Perbaikan Permission Custom Commands (`autogram-commands.toml`)
-- **Tauri IPC ACL Command Fix**: Menambahkan `acquire_worker_session_lease`, `get_worker_session_lease`, `release_worker_session_lease`, `session_guard_acquire`, `session_guard_release`, `session_guard_snapshot`, `jobs_fresh_start`, `jobs_export_json`, `jobs_import_json`, `jobs_cancel_migration`, `profiles_list`, `profiles_save`, `profiles_delete`, `automations_list`, `automations_save`, `automations_delete`, `stats_get`, `stats_export_csv`, `tg_disconnect_session`, `tg_get_media_statistics`, `tg_purge_inactive_sessions`, `tg_open_topic_media`, `tg_load_more_topic_media`, `tg_thumbs_batch_v2`, dan `inspect_mp4_layout_cmd` ke dalam `permission.commands.allow` di `permissions/autogram-commands.toml`.
-- **Eliminasi Error Upload Transfer Manager**: Membasmi kesalahan `"acquire_worker_session_lease not allowed. Command not found"` saat melakukan proses upload file/job di Transfer Manager AutoGram Desktop.
+### Perbaikan Realtime Progress Transfer Manager (`media_prep.rs`, `studio_orch.rs`, `lib.rs`, `MediaStudio/index.tsx`)
+- **Realtime FFmpeg Re-encode Streaming Progress**: Spawns FFmpeg dengan opsi `-progress pipe:1 -nostats`, membaca stdout secara async real-time, mengalkulasi persentase re-encode dari `out_time_us`, `fps`, dan `speed`, lalu memancarkan Tauri event `StudioReencodeProgress` ke frontend UI (`DriveTransferManager.tsx`).
+- **Realtime Upload Progress Dispatcher**: Memancarkan event `StudioItemStarted`, `StudioProgress`, dan `StudioItemDone` via Tauri IPC ke `MediaStudio/index.tsx`, mengeliminasi bug progress stuck di `0%`.
+
+### Perbaikan Modal Scrollability (`App.css`, `DriveToolsPanel`)
+- **Full Modal Scrollability**: Memperbaiki kelas `.td-xfer-settings-modal` dan `.td-xfer-settings-body` dengan pembatasan tinggi `height: min(88vh, 720px) !important`, `flex-shrink: 0` pada header/tabs/footer, serta `overflow-y: auto !important` pada container isi modal sehingga dapat di-scroll penuh pada layar kecil/perangkat mobile.
+
+### Realtime Thumbnail & Grid Synchronization (`MediaStudio/index.tsx`)
+- **Automated Soft Refresh & Thumbnail Priming**: Pasca item upload selesai (`StudioItemDone`), `MediaStudio` secara otomatis memicu `uploadSoftRefresh(true)` untuk me-load pesan baru dari Telegram, memanggil `primeThumbsFromFileList` & `requestVisibleThumbs` tanpa memerlukan refresh manual dari pengguna.
 
 ## v2.7.2 Video Seek Buffer Fix — 5 Bug Race Condition Streaming Engine
 

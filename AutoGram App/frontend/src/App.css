@@ -9420,14 +9420,14 @@ body:has(.td-page),
   background: rgba(0, 0, 0, 0.62);
   box-sizing: border-box;
   writing-mode: horizontal-tb !important;
-  overflow: auto;
+  overflow: hidden;
 }
 .td-xfer-settings-modal {
-  width: min(520px, calc(100vw - 32px)) !important;
+  width: min(560px, calc(100vw - 32px)) !important;
   min-width: min(280px, calc(100vw - 32px)) !important;
-  max-width: min(520px, calc(100vw - 32px)) !important;
-  max-height: min(88vh, 88dvh, 720px);
-  height: auto !important;
+  max-width: min(560px, calc(100vw - 32px)) !important;
+  height: min(88vh, 88dvh, 720px) !important;
+  max-height: min(88vh, 88dvh, 720px) !important;
   display: flex !important;
   flex-direction: column !important;
   border-radius: 14px;
@@ -9435,7 +9435,7 @@ body:has(.td-page),
   background: var(--td-surface, #17212b);
   color: var(--td-text, #f1f5f9);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
+  overflow: hidden !important;
   writing-mode: horizontal-tb !important;
   box-sizing: border-box;
 }
@@ -9446,6 +9446,7 @@ body:has(.td-page),
   gap: 12px;
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--td-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0 !important;
 }
 .td-xfer-settings-title {
   display: flex;
@@ -9467,6 +9468,7 @@ body:has(.td-page),
   display: flex;
   gap: 4px;
   padding: 8px 12px 0;
+  flex-shrink: 0 !important;
 }
 .td-xfer-tab {
   display: inline-flex;
@@ -9490,10 +9492,12 @@ body:has(.td-page),
   border-bottom-color: transparent;
 }
 .td-xfer-settings-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
   padding: 12px 16px 16px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .td-xfer-section h3 {
   margin: 14px 0 6px;
@@ -13821,7 +13825,14 @@ video.drive-zip-img {
 }
 
 .td-tools-panel.is-unified .td-tools-section { padding: 16px; }
-.td-tools-panel.is-unified .td-tools-xfer-container { overflow: hidden; }
+.td-tools-panel.is-unified .td-tools-xfer-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
 
 @media (max-width: 700px) {
   .td-tools-panel.is-unified { height: 94dvh !important; max-height: 94dvh !important; }

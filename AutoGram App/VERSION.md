@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.2
+AutoGram Version: v2.7.3
 
 Current State:
+v2.7.3 Transfer Manager Realtime Progress Engine & Settings Modal Scrollability Fix — membenahi `media_prep.rs`, `studio_orch.rs`, `lib.rs`, `App.css`, `MediaStudio/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki 3 masalah utama: (1) Transfer Manager menampilkan progress realtime % re-encode (via FFmpeg stdout progress parsing) dan progress upload secara akurat tanpa terhenti 0%; (2) Modal Transfer Settings di Drive Tools & Settings dapat di-scroll secara penuh di layar kecil/responsif; (3) Grid media dan thumbnail ter-refresh dan ter-prime secara realtime setelah proses upload selesai tanpa perlu refresh manual.
+
+Previous:
 v2.7.2 Video Seek Buffer Fix — 5 Bug Race Condition Streaming Engine — membenahi `stream_server.rs` dan `stream.rs`. Memperbaiki 5 bug kritis yang menyebabkan buffer seek video selalu stuck tanpa traffic data: (1) `handle_stream` wait loop mengecek `entry.ranges` stale yang tidak pernah ter-update; (2) `DemandRangeReader` mengirim `request_progressive_range` setiap 30ms sehingga seek pengguna di-overwrite; (3) fill loop tidak interruptible — batch 4 chunk harus selesai sebelum seek diproses; (4) `cursor = scan_off` maju tanpa cek seek baru yang masuk selama batch; (5) `request_progressive_range` rejected jika cancel_flag sudah di-remove meski stream belum done.
 
 Previous:

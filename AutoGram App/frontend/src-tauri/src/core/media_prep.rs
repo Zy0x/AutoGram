@@ -32,8 +32,19 @@ pub fn is_remote_url(path: &str) -> bool {
     p.starts_with("http://") || p.starts_with("https://")
 }
 
+fn emit_transfer_event(app: Option<&tauri::AppHandle>, event_type: &str, payload: serde_json::Value) {
+    if let Some(app) = app {
+        use tauri::Emitter;
+        let mut map = payload;
+        if let Some(obj) = map.as_object_mut() {
+            obj.insert("type".to_string(), serde_json::Value::String(event_type.to_string()));
+        }
+        let _ = app.emit("transfer-event", map);
+    }
+}
+
 /// Download remote URL to a temp file under path policy (max ~200MB).
-pub fn download_remote_url(url: &str) -> Result<PathBuf, String> {
+pub fn download_remote_url(url: &str, app: Option<&tauri::AppHandle>, item_index: usize) -> Result<PathBuf, String> {
     let url = url.trim();
     if !is_remote_url(url) {
         return Err("not a remote URL".into());
@@ -58,6 +69,7 @@ pub fn download_remote_url(url: &str) -> Result<PathBuf, String> {
         .header("content-type")
         .unwrap_or("application/octet-stream")
         .to_string();
+    let content_length: Option<u64> = resp.header("content-length").and_then(|l| l.parse().ok());
     let ext = ext_from_url_or_ctype(url, &content_type);
     let dest = unique_name("remote", &ext);
 
@@ -75,6 +87,18 @@ pub fn download_remote_url(url: &str) -> Result<PathBuf, String> {
             break;
         }
         written = written.saturating_add(n);
+        if let Some(total) = content_length {
+            if total > 0 {
+                let pct = (written as f64 / total as f64 * 100.0).min(99.0);
+                emit_transfer_event(app, "StudioProgress", serde_json::json!({
+                    "item_index": item_index,
+                    "percent": pct,
+                    "transferred": written,
+                    "total": total,
+                    "phase": "download"
+                }));
+            }
+        }
         if written > max {
             let _ = fs::remove_file(&dest);
             return Err("remote file > 200MB (limit)".into());
@@ -168,7 +192,7 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
 
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
 /// Returns original path if reencode skipped/failed (best-effort).
-pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> String {
+pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>, app: Option<&tauri::AppHandle>, item_index: usize) -> String {
     let mode = quality_mode.unwrap_or("").to_ascii_uppercase();
     // ORIGINAL / DOCUMENT / empty → skip
     if mode.is_empty()
@@ -201,39 +225,108 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
 
     let preset = resolve_quality_preset(&mode);
     let out = unique_name("reenc", "mp4");
+    let input_size = fs::metadata(p).map(|m| m.len()).unwrap_or(0);
 
-    let status = Command::new(&ff)
-        .args([
-            "-y",
-            "-i",
-            path,
-            "-map",
-            "0:v:0",
-            "-map",
-            "0:a:0?",
-            "-vf",
-            preset.vf_scale,
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            preset.crf,
-            "-maxrate",
-            preset.max_rate,
-            "-bufsize",
-            preset.buf_size,
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-b:a",
-            preset.audio_bitrate,
-            "-movflags",
-            "+faststart",
-            out.to_str().unwrap_or("out.mp4"),
-        ])
-        .status();
+    emit_transfer_event(app, "StudioReencodeStarted", serde_json::json!({
+        "index": item_index,
+        "backend": "GPU",
+        "encoder": "H.264",
+        "planned_target_bytes": input_size
+    }));
+
+    use std::io::BufRead;
+    use std::process::Stdio;
+
+    let mut child_cmd = Command::new(&ff);
+    child_cmd.args([
+        "-y",
+        "-progress",
+        "pipe:1",
+        "-nostats",
+        "-i",
+        path,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0?",
+        "-vf",
+        preset.vf_scale,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        preset.crf,
+        "-maxrate",
+        preset.max_rate,
+        "-bufsize",
+        preset.buf_size,
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        preset.audio_bitrate,
+        "-movflags",
+        "+faststart",
+        out.to_str().unwrap_or("out.mp4"),
+    ])
+    .stdout(Stdio::piped())
+    .stderr(Stdio::null());
+
+    let mut child = match child_cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => {
+            tg_log::warn(BACKEND, "reencode_spawn", e.to_string());
+            return path.to_string();
+        }
+    };
+
+    let stdout = child.stdout.take();
+    if let Some(stdout) = stdout {
+        let reader = std::io::BufReader::new(stdout);
+        // Estimate video duration from file size (assuming ~2Mbps average bitrate) or standard 60s
+        let est_duration_us = if input_size > 0 {
+            ((input_size as f64 * 8.0) / 2_000_000.0 * 1_000_000.0).max(5_000_000.0)
+        } else {
+            60_000_000.0
+        };
+
+        let mut fps = 0.0f64;
+        let mut speed_x = 1.0f64;
+        let mut out_time_us = 0f64;
+
+        for line in reader.lines().map_while(Result::ok) {
+            let line = line.trim();
+            if let Some(val) = line.strip_prefix("fps=") {
+                fps = val.trim().parse().unwrap_or(fps);
+            } else if let Some(val) = line.strip_prefix("speed=") {
+                let s = val.trim().trim_end_matches('x');
+                speed_x = s.parse().unwrap_or(speed_x);
+            } else if let Some(val) = line.strip_prefix("out_time_us=") {
+                out_time_us = val.trim().parse().unwrap_or(out_time_us);
+            } else if line == "progress=continue" || line == "progress=end" {
+                let pct = (out_time_us / est_duration_us * 100.0).clamp(1.0, 99.0);
+                let remain_us = (est_duration_us - out_time_us).max(0.0);
+                let eta_s = if speed_x > 0.05 {
+                    (remain_us / 1_000_000.0 / speed_x).max(0.0)
+                } else {
+                    0.0
+                };
+                emit_transfer_event(app, "StudioReencodeProgress", serde_json::json!({
+                    "index": item_index,
+                    "percent": pct,
+                    "fps": fps,
+                    "speed_x": speed_x,
+                    "eta_s": eta_s,
+                    "backend": "GPU",
+                    "encoder": "H.264"
+                }));
+            }
+        }
+    }
+
+    let status = child.wait();
     match status {
         Ok(s) if s.success() && out.is_file() => {
             let sz = fs::metadata(&out).map(|m| m.len()).unwrap_or(0);
@@ -243,6 +336,12 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
                     "reencode_ok",
                     format!("preset={mode} out={} bytes={sz}", out.display()),
                 );
+                emit_transfer_event(app, "StudioReencodeDone", serde_json::json!({
+                    "index": item_index,
+                    "output_bytes": sz,
+                    "backend": "GPU",
+                    "encoder": "H.264"
+                }));
                 return out.display().to_string();
             }
         }
@@ -266,17 +365,19 @@ pub fn maybe_reencode_for_telegram(path: &str, quality_mode: Option<&str>) -> St
 pub fn prepare_upload_path(
     path: &str,
     quality_mode: Option<&str>,
+    app: Option<&tauri::AppHandle>,
+    item_index: usize,
 ) -> Result<(String, Option<PathBuf>), String> {
     let mut temps: Vec<PathBuf> = Vec::new();
     let local = if is_remote_url(path) {
-        let p = download_remote_url(path)?;
+        let p = download_remote_url(path, app, item_index)?;
         temps.push(p.clone());
         p.display().to_string()
     } else {
         path_policy::assert_safe_transfer_path(path).map_err(|e| e.to_string())?;
         path.to_string()
     };
-    let prepared = maybe_reencode_for_telegram(&local, quality_mode);
+    let prepared = maybe_reencode_for_telegram(&local, quality_mode, app, item_index);
     if prepared != local {
         temps.push(PathBuf::from(&prepared));
     }
@@ -289,3 +390,4 @@ pub fn cleanup_temp(path: Option<PathBuf>) {
         let _ = fs::remove_file(p);
     }
 }
+

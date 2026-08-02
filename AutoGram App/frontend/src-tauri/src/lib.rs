@@ -1071,7 +1071,8 @@ async fn studio_run_orchestrated(
 ) -> Result<core::studio_orch::OrchStartResult, String> {
     ensure_sessions_dir_env(&app);
     let req = request;
-    tauri::async_runtime::spawn_blocking(move || core::studio_orch::run_orchestrated_blocking(&req))
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || core::studio_orch::run_orchestrated_blocking(Some(&app_handle), &req))
         .await
         .map_err(|e| format!("orch join: {e}"))?
 }

@@ -67,11 +67,22 @@ fn finalize_transfer(tid: &str, items_len: usize, mode: &str) -> OrchStartResult
     }
 }
 
-/// Prefer Grammers for each local file; returns Err only if entire batch should try Telethon.
-fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartResult, String> {
+fn run_orchestrated_grammers(
+    app: Option<&tauri::AppHandle>,
+    req: &CreateTransferRequest,
+) -> Result<OrchStartResult, String> {
     let rec = job_queue::create_transfer(req.clone())?;
     let tid = rec.transfer_id.clone();
     job_queue::set_transfer_state(&tid, TransferState::Running)?;
+
+    if let Some(app) = app {
+        use tauri::Emitter;
+        let _ = app.emit("transfer-event", serde_json::json!({
+            "type": "StudioStarted",
+            "items": rec.items.len(),
+            "mode": "upload"
+        }));
+    }
 
     // Shared transfer lease — blocks exclusive Telethon dual-open, coexists with Studio.
     let session_name = req.session.trim();
@@ -286,10 +297,26 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
     let mut first_fatal: Option<String> = None;
 
     for item in &rec.items {
+        let file_name = std::path::Path::new(&item.path)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or(&item.path)
+            .to_string();
+
+        if let Some(app) = app {
+            use tauri::Emitter;
+            let _ = app.emit("transfer-event", serde_json::json!({
+                "type": "StudioItemStarted",
+                "index": item.index,
+                "path": file_name,
+                "size": item.size
+            }));
+        }
+
         let _ = job_queue::update_item(&tid, item.index, ItemState::Preparing, None, None);
         // Remote URL download + optional ffmpeg reencode (no Telethon)
         let (local_path, temp_cleanup) =
-            match media_prep::prepare_upload_path(&item.path, quality_mode.as_deref()) {
+            match media_prep::prepare_upload_path(&item.path, quality_mode.as_deref(), app, item.index) {
                 Ok(v) => v,
                 Err(e) => {
                     let msg = format!("prepare: {e}");
@@ -300,13 +327,36 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                         None,
                         Some(msg.clone()),
                     );
+                    if let Some(app) = app {
+                        use tauri::Emitter;
+                        let _ = app.emit("transfer-event", serde_json::json!({
+                            "type": "StudioItemDone",
+                            "index": item.index,
+                            "status": "failed",
+                            "error": msg,
+                            "path": file_name
+                        }));
+                    }
                     if first_fatal.is_none() {
                         first_fatal = Some(msg);
                     }
                     continue;
                 }
             };
+
         let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
+        if let Some(app) = app {
+            use tauri::Emitter;
+            let _ = app.emit("transfer-event", serde_json::json!({
+                "type": "StudioProgress",
+                "index": item.index,
+                "percent": 40.0,
+                "transferred": item.size / 2,
+                "total": item.size,
+                "phase": "upload"
+            }));
+        }
+
         match grammers_ops::upload_file_blocking_topic(
             &sessions,
             &identity,
@@ -330,7 +380,25 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                     }
                     _ => ItemState::Failed,
                 };
-                let _ = job_queue::update_item(&tid, item.index, st, r.message_id, r.error.clone());
+                let _ = job_queue::update_item(&tid, item.index, st.clone(), r.message_id, r.error.clone());
+                if let Some(app) = app {
+                    use tauri::Emitter;
+                    let status_str = if st == ItemState::Done {
+                        "done"
+                    } else if st == ItemState::Skipped {
+                        "skipped"
+                    } else {
+                        "failed"
+                    };
+                    let _ = app.emit("transfer-event", serde_json::json!({
+                        "type": "StudioItemDone",
+                        "index": item.index,
+                        "status": status_str,
+                        "message_id": r.message_id,
+                        "error": r.error,
+                        "path": file_name
+                    }));
+                }
                 if r.error.is_some() && first_fatal.is_none() {
                     first_fatal = r.error;
                 }
@@ -345,6 +413,16 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                     None,
                     Some(msg.clone()),
                 );
+                if let Some(app) = app {
+                    use tauri::Emitter;
+                    let _ = app.emit("transfer-event", serde_json::json!({
+                        "type": "StudioItemDone",
+                        "index": item.index,
+                        "status": "failed",
+                        "error": msg,
+                        "path": file_name
+                    }));
+                }
                 if first_fatal.is_none() {
                     first_fatal = Some(msg);
                 }
@@ -357,6 +435,13 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
                 ) {
                     media_prep::cleanup_temp(temp_cleanup);
                     let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+                    if let Some(app) = app {
+                        use tauri::Emitter;
+                        let _ = app.emit("transfer-event", serde_json::json!({
+                            "type": "StudioFailed",
+                            "error": first_fatal.clone().unwrap_or_else(|| e.to_string())
+                        }));
+                    }
                     return Err(format!(
                         "grammers unavailable: {}",
                         first_fatal.unwrap_or_else(|| e.to_string())
@@ -369,10 +454,24 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
 
     if !any_ok {
         let _ = job_queue::set_transfer_state(&tid, TransferState::Failed);
+        if let Some(app) = app {
+            use tauri::Emitter;
+            let _ = app.emit("transfer-event", serde_json::json!({
+                "type": "StudioFailed",
+                "error": first_fatal.clone().unwrap_or_else(|| "unknown".into())
+            }));
+        }
         return Err(format!(
             "grammers upload all failed: {}",
             first_fatal.unwrap_or_else(|| "unknown".into())
         ));
+    }
+
+    if let Some(app) = app {
+        use tauri::Emitter;
+        let _ = app.emit("transfer-event", serde_json::json!({
+            "type": "StudioFinished"
+        }));
     }
 
     Ok(finalize_transfer(
@@ -383,8 +482,8 @@ fn run_orchestrated_grammers(req: &CreateTransferRequest) -> Result<OrchStartRes
 }
 
 /// Run orchestrated transfer — **Grammers only** (Telethon studio-serve removed).
-pub fn run_orchestrated_blocking(req: &CreateTransferRequest) -> Result<OrchStartResult, String> {
-    match run_orchestrated_grammers(req) {
+pub fn run_orchestrated_blocking(app: Option<&tauri::AppHandle>, req: &CreateTransferRequest) -> Result<OrchStartResult, String> {
+    match run_orchestrated_grammers(app, req) {
         Ok(r) => {
             tg_log::info("studio_orch", "done", format!("mode={}", r.mode));
             Ok(r)

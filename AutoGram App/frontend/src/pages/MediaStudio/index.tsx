@@ -20,7 +20,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { HardDrive, Upload } from 'lucide-react';
-import { canUseLocalTelegramWorker } from '../../lib/tauri/platform';
+import { canUseLocalTelegramWorker, detectTauriRuntime } from '../../lib/tauri/platform';
 import {
   openDriveMoveConfirm,
   closeDriveMoveConfirm,
@@ -3468,9 +3468,9 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
    * Uses the same live-sync reconcile path (no loading spinner, no thumb-pause,
    * no selection reset). Throttled to one concurrent fetch at a time.
    */
-  const uploadSoftRefresh = useCallback(async () => {
+  const uploadSoftRefresh = useCallback(async (force = false) => {
     if (!creds || uploadRefreshLockRef.current) return;
-    if (isTransferJobActive()) return;
+    if (!force && isTransferJobActive()) return;
     uploadRefreshLockRef.current = true;
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
@@ -3487,6 +3487,16 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
       });
       if (gen !== peerGen.current || tid !== topicFilterRef.current || activeFilesCacheKeyRef.current !== cacheKey) return;
       const liveHead: DriveFile[] = dedupeByMsgId(res.files || []);
+
+      // Realtime thumbnail priming for newly uploaded/discovered files
+      primeThumbsFromFileList(creds, peerId, liveHead, thumbLocationOptions);
+      const missing = liveHead
+        .filter((f) => canShowDriveThumb(f) && getCachedThumb(peerId, f.id, thumbLocationOptions) == null)
+        .map((f) => f.id);
+      if (missing.length) {
+        requestVisibleThumbs(creds, peerId, missing.slice(0, 48), thumbLocationOptions);
+      }
+
       const keptExtendedPages = !!res.has_more && liveFilesRef.current.length > liveHead.length;
       const merged = reconcileDriveLiveHead(liveFilesRef.current, liveHead, !!res.has_more);
       liveFilesRef.current = merged;
@@ -3527,7 +3537,28 @@ function MediaDriveDesktop({ onExitToApp }: MediaStudioProps) {
     } finally {
       uploadRefreshLockRef.current = false;
     }
-  }, [creds, peerId, nextOffsetId, filesHasMore]);
+  }, [creds, peerId, nextOffsetId, filesHasMore, thumbLocationOptions]);
+
+  // Real-time transfer progress and thumbnail synchronization listener
+  useEffect(() => {
+    if (!detectTauriRuntime()) return;
+    let unlisten: (() => void) | undefined;
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<any>('transfer-event', (e) => {
+        if (e.payload) {
+          setTransfer((t) => applyTransferEvent(t, e.payload));
+          if (e.payload.type === 'StudioItemDone' || e.payload.type === 'StudioFinished') {
+            void uploadSoftRefresh(true);
+          }
+        }
+      }).then((u) => {
+        unlisten = u;
+      });
+    });
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [uploadSoftRefresh]);
 
   /**
    * Lightweight sidebar refresh triggered after upload finishes.
