@@ -9,6 +9,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
 import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin } from '../../lib/telegram';
+import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 
@@ -298,8 +299,9 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
-          // Use stripped_thumb from auth_status as initial placeholder (very fast)
-          const photoBase64 = user?.photoBase64 || undefined;
+          // Check disk/memory avatar cache first (peer 0 = self)
+          const cachedAvatar = getCachedAvatar(0, saved.name);
+          const photoBase64 = user?.photoBase64 || cachedAvatar || undefined;
           setSessions((current) =>
             current.map((row) =>
               row.name === saved.name
@@ -315,28 +317,43 @@ export function Accounts() {
             )
           );
 
-          // Fire-and-forget: download actual high-quality profile photo asynchronously
-          // This updates the avatar progressively without blocking the session list
+          // Fast avatar fetch via avatarBatcher (peer 0 = self), fallback to tgDownloadProfilePhoto
           if (connected) {
-            tgDownloadProfilePhoto({
-              session: saved.name,
-              apiId: Number(apiId),
-              apiHash,
-            }).then((realPhoto) => {
-              if (realPhoto) {
-                setSessions((current) =>
-                  current.map((row) =>
-                    row.name === saved.name ? { ...row, photoBase64: realPhoto } : row
-                  )
-                );
-                // Clear any cached error for this session so the photo is shown
-                setAvatarErrors((prev) => {
-                  const next = new Set(prev);
-                  next.delete(saved.name);
-                  return next;
-                });
-              }
-            }).catch(() => { /* Silently ignore photo download errors */ });
+            requestAvatar({ session: saved.name, apiId: Number(apiId), apiHash }, 0)
+              .then((avatarUrl) => {
+                if (avatarUrl) {
+                  setSessions((current) =>
+                    current.map((row) =>
+                      row.name === saved.name ? { ...row, photoBase64: avatarUrl } : row
+                    )
+                  );
+                  setAvatarErrors((prev) => {
+                    const next = new Set(prev);
+                    next.delete(saved.name);
+                    return next;
+                  });
+                } else {
+                  return tgDownloadProfilePhoto({
+                    session: saved.name,
+                    apiId: Number(apiId),
+                    apiHash,
+                  }).then((realPhoto) => {
+                    if (realPhoto) {
+                      setSessions((current) =>
+                        current.map((row) =>
+                          row.name === saved.name ? { ...row, photoBase64: realPhoto } : row
+                        )
+                      );
+                      setAvatarErrors((prev) => {
+                        const next = new Set(prev);
+                        next.delete(saved.name);
+                        return next;
+                      });
+                    }
+                  });
+                }
+              })
+              .catch(() => { /* Silently ignore photo download errors */ });
           }
         })
       );
