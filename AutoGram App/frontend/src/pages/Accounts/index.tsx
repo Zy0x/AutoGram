@@ -616,16 +616,28 @@ export function Accounts() {
                       <Users size={20} color="var(--primary)" aria-hidden />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                          {s.userFullName || s.name}
-                        </span>
-                        {s.username && (
-                          <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
-                            ({s.username.startsWith('@') ? s.username : `@${s.username}`})
-                          </span>
-                        )}
-                      </h4>
+                      {(() => {
+                        const isAutoTemp = /^session_\d+|^tg_\d+/i.test(s.name);
+                        const mainTitle = isAutoTemp && s.userFullName ? s.userFullName : s.name;
+                        const showProfileName = !isAutoTemp && s.userFullName && s.userFullName !== s.name;
+                        return (
+                          <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>
+                              {mainTitle}
+                            </span>
+                            {s.username && (
+                              <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
+                                ({s.username.startsWith('@') ? s.username : `@${s.username}`})
+                              </span>
+                            )}
+                            {showProfileName && (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal', opacity: 0.7 }}>
+                                · {s.userFullName}
+                              </span>
+                            )}
+                          </h4>
+                        );
+                      })()}
                       <span className={`session-status status-${s.status || 'ok'}`}>
                         {s.status === 'connected'
                           ? `${t('accounts.status_connected')}${s.latencyMs != null ? ` · ${s.latencyMs} ms` : ''}`
