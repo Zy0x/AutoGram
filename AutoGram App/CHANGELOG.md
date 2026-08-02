@@ -1,3 +1,10 @@
+## v2.7.8 Universal Document Thumbnail & Video Attribute Support Across All Modes
+
+### Dukungan Thumbnail Dokumen & Atribut Video (`media_transfer.rs`, `media_prep.rs`)
+- **Visual Thumbnail di Mode ORIGINAL / Document**: Ketika file video/gambar dikirim sebagai dokumen murni (`as_document = true` atau mode **ORIGINAL — intact document**), AutoGram kini selalu mengekstrak thumbnail JPEG 320px via FFmpeg dan menyertakan `.thumbnail(thumb_uploaded)` ke Telegram.
+- **Atribut Stream & Metadata Video**: Menyertakan `Attribute::Video` (durasi, lebar, tinggi) bahkan saat dikirim sebagai dokumen asli, sehingga Telegram selalu menampilkan kartu video visual yang jernih dan dapat diputar tanpa mengubah isi byte file asli 100%.
+- **Dukungan Format Gambar & Video Terpadu**: Fungsi `extract_video_thumbnail()` kini mendukung pembuatan thumbnail otomatis untuk format video (`mp4`, `mov`, `mkv`, `webm`, `avi`, `m4v`, `3gp`, `ts`, `flv`) dan format gambar (`jpg`, `jpeg`, `png`, `webp`, `gif`, `bmp`).
+
 ## v2.7.7 Dynamic Re-encoded File Size Sync & Progress Overflow Fix
 
 ### Sinkronisasi Ukuran File Pasca Re-encode (`media_prep.rs`, `studio_orch.rs`)

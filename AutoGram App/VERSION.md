@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.7
+AutoGram Version: v2.7.8
 
 Current State:
+v2.7.8 Universal Document Thumbnail & Video Attribute Support Across All Modes — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memastikan bahwa saat mengunggah media (video maupun gambar) di mode **ORIGINAL — intact document** (atau ketika `as_document = true`), AutoGram selalu mengekstrak thumbnail JPEG 320px secara otomatis dan menyertakan `.thumbnail(thumb_uploaded)` serta atribut video (`Attribute::Video`). File dikirim 100% sebagai dokumen murni tanpa di-reencode, namun Telegram kini selalu menampilkan gambar pratinjau visual dan badge durasi video secara jernih di tampilan obrolan/topik.
+
+Previous:
 v2.7.7 Dynamic Re-encoded File Size Sync & Progress Overflow Fix — membenahi `media_prep.rs`, `studio_orch.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana ukuran total item pada Transfer Manager mentok di ukuran file asli (seperti 139.93 MB) meskipun file hasil re-encode berubah menjadi lebih besar (202.19 MB), yang sebelumnya menyebabkan persentase melompat ke 100% secara premature dan byte meluap (`182.00 MB / 139.93 MB`). Menyalurkan `actual_upload_size` pasca re-encode dari Rust, memperbarui `StudioReencodeDone` dengan total ukuran file baru, dan mengoreksi evaluasi `perTotal` di `transferProgress.ts` agar mengutamakan ukuran file riil yang sedang diunggah.
 
 Previous:

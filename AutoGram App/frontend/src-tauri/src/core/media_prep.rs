@@ -309,7 +309,11 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
         ext.as_str(),
         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "ts"
     );
-    if !is_video {
+    let is_image = matches!(
+        ext.as_str(),
+        "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "tiff"
+    );
+    if !is_video && !is_image {
         return None;
     }
 
@@ -320,12 +324,14 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
 
     let out = unique_name("thumb", "jpg");
 
-    // Get video duration to seek to a representative frame (10% into video)
+    // Get video duration to seek to a representative frame (10% into video for videos, 0s for images)
     let (width, height, duration) = probe_video_metadata(path);
-    let seek_time = if duration > 0.0 {
+    let seek_time = if is_image {
+        0.0
+    } else if duration > 0.0 {
         (duration * 0.1).min(10.0) // seek to 10% or max 10s
     } else {
-        1.0
+        0.0
     };
 
     // Thumbnail: max 320px wide, maintain aspect ratio, JPEG quality 85
