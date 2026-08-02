@@ -1,3 +1,13 @@
+## v2.7.7 Dynamic Re-encoded File Size Sync & Progress Overflow Fix
+
+### Sinkronisasi Ukuran File Pasca Re-encode (`media_prep.rs`, `studio_orch.rs`)
+- **`actual_upload_size` Calculation**: Setelah proses re-encode selesai di `prepare_upload_path()`, backend Rust secara akurat menghitung ukuran file riil hasil re-encode via `std::fs::metadata(&local_path)` dan menggunakannya pada payload `StudioProgress` sebagai `total` dan `item_total`.
+- **`StudioReencodeDone` Payload Update**: Menambahkan field `total: sz` dan `output_bytes: sz` pada event `StudioReencodeDone` sehingga persentase dan estimasi byte diperbarui sejak awal tahap unggah.
+
+### Eliminasi Progress Overflow & Mismatched Total (`transferProgress.ts`)
+- **Dynamic `perTotal` Evaluation**: Mengoreksi logika penentuan `perTotal` pada reducer `transferProgress.ts` di frontend agar mengutamakan `p.item_total ?? p.total` jika tersedia (> 0) daripada nilai `total` lama yang berasal dari ukuran file asli.
+- **Accurate Percentage & Byte Rendering**: Mengeliminasi bug di mana item mentok di 100% secara premature dan byte meluap (`182.00 MB / 139.93 MB`), menjamin persentase dan perbandingan byte pada Transfer Manager tampil konsisten dan presisi dari 0% hingga 100%.
+
 ## v2.7.6 Video Thumbnail Generation & Smart Hardware GPU Allocation Engine
 
 ### Generasi Thumbnail Video Otomatis (`media_transfer.rs`, `media_prep.rs`)

@@ -606,6 +606,7 @@ pub fn maybe_reencode_for_telegram(
                 emit_transfer_event(app, "StudioReencodeDone", serde_json::json!({
                     "index": item_index,
                     "output_bytes": sz,
+                    "total": sz,
                     "encoder": encoder_display
                 }));
                 return out.display().to_string();

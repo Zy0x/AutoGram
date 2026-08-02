@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.6
+AutoGram Version: v2.7.7
 
 Current State:
+v2.7.7 Dynamic Re-encoded File Size Sync & Progress Overflow Fix — membenahi `media_prep.rs`, `studio_orch.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana ukuran total item pada Transfer Manager mentok di ukuran file asli (seperti 139.93 MB) meskipun file hasil re-encode berubah menjadi lebih besar (202.19 MB), yang sebelumnya menyebabkan persentase melompat ke 100% secara premature dan byte meluap (`182.00 MB / 139.93 MB`). Menyalurkan `actual_upload_size` pasca re-encode dari Rust, memperbarui `StudioReencodeDone` dengan total ukuran file baru, dan mengoreksi evaluasi `perTotal` di `transferProgress.ts` agar mengutamakan ukuran file riil yang sedang diunggah.
+
+Previous:
 v2.7.6 Video Thumbnail Generation & Smart Hardware GPU Allocation Engine — membenahi `media_transfer.rs`, `hardware_capability.rs`, `media_prep.rs`, `studio_orch.rs`, `transferProgressStore.ts`, `DriveTransferSettings.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki 3 masalah utama: (1) Otomatis mengekstrak frame thumbnail video JPEG dan mengunggahnya sebagai video document attribute (bukan generic document) sehingga thumbnail video terpancar di Telegram; (2) Menyelaraskan struct `HardwareCapabilities` antara Rust dan TypeScript sehingga deteksi GPU nyata (NVIDIA, AMD, Intel, CPU) dan `best_encoder` tampil akurat di Transfer Settings; (3) Menerapkan pengalokasikan GPU dinamis dan parameter optimasi FFmpeg GPU khusus (`-rc vbr` untuk NVENC, `-quality speed` untuk AMF, `-global_quality` untuk QSV, `-threads 0`) sesuai dengan opsi preferensi hardware pengguna.
 
 Previous:

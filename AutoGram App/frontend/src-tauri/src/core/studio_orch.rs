@@ -352,6 +352,7 @@ fn run_orchestrated_grammers(
                 }
             };
 
+        let actual_upload_size = std::fs::metadata(&local_path).map(|m| m.len()).unwrap_or(item.size);
         let _ = job_queue::update_item(&tid, item.index, ItemState::Uploading, None, None);
         if let Some(app) = app {
             use tauri::Emitter;
@@ -360,7 +361,8 @@ fn run_orchestrated_grammers(
                 "index": item.index,
                 "percent": 0.0,
                 "transferred": 0,
-                "total": item.size,
+                "total": actual_upload_size,
+                "item_total": actual_upload_size,
                 "phase": "upload"
             }));
         }

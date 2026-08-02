@@ -354,11 +354,13 @@ export function applyTransferEvent(
 
   if (t === 'StudioReencodeDone') {
     const index = num(p.index, 0);
+    const outBytes = num(p.output_bytes ?? p.total, 0);
     const items = ensureItem(session.items, index, session.direction, {
       status: 'preparing',
       phase: 'reencode',
       percent: 100,
-      estimatedOutputBytes: num(p.output_bytes, session.items[index]?.estimatedOutputBytes || 0) || undefined,
+      estimatedOutputBytes: outBytes || session.items[index]?.estimatedOutputBytes || undefined,
+      ...(outBytes > 0 ? { total: outBytes } : {}),
       encodeEtaSeconds: null,
       encoderBackend: str(p.backend || session.items[index]?.encoderBackend || '') || undefined,
       encoderName: str(p.encoder || session.items[index]?.encoderName || '') || undefined,
@@ -429,10 +431,12 @@ export function applyTransferEvent(
     // Prefer explicit item_* ; treat 0 as valid. Fall back to overall transferred.
     const hasItemCur = p.item_current != null && p.item_current !== '';
     const itemCurrent = hasItemCur ? num(p.item_current, 0) : num(p.transferred, 0);
-    const itemTotal = num(p.item_total ?? 0, 0);
+    const eventItemTotal = num(p.item_total ?? p.total ?? 0, 0);
     const perTransferred = itemCurrent;
     const perTotal =
-      itemTotal > 0 ? itemTotal : items[index]?.total || num(p.total, 0) || 0;
+      eventItemTotal > 0
+        ? eventItemTotal
+        : items[index]?.total || 0;
     const eventPct = num(p.percent, -1);
     const perPct =
       perTotal > 0
