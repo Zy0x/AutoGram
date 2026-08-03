@@ -2509,9 +2509,9 @@ export function DrivePreviewModal({
           : '';
 
   /** Shared pan+zoom+rotate for image & video */
-  const mediaTransform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom * (flipH ? -1 : 1)}, ${
-    zoom * (flipV ? -1 : 1)
-  }) rotate(${rotation}deg)`;
+  const mediaTransform = `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${
+    zoom * (flipH ? -1 : 1)
+  }, ${zoom * (flipV ? -1 : 1)})`;
 
   /** Any non-identity transform — CSS transform on <video> breaks native seek in Chromium/WebView2 */
   const needsMediaTransform =
@@ -2795,7 +2795,7 @@ export function DrivePreviewModal({
                 <span className="drive-tool-group-label">{t("speedtest.label_rotate")}</span>
                 <button
                   type="button"
-                  className={`drive-tool-btn${rotation ? ' is-on' : ''}`}
+                  className={`drive-tool-btn${rotation === 270 ? ' is-on' : ''}`}
                   title={t("speedtest.tooltip_rotate_left")}
                   onClick={() => setRotation((r) => (r + 270) % 360)}
                 >
@@ -2804,7 +2804,7 @@ export function DrivePreviewModal({
                 </button>
                 <button
                   type="button"
-                  className={`drive-tool-btn${rotation ? ' is-on' : ''}`}
+                  className={`drive-tool-btn${rotation === 90 ? ' is-on' : ''}`}
                   title={t("speedtest.tooltip_rotate_right")}
                   onClick={() => setRotation((r) => (r + 90) % 360)}
                 >
