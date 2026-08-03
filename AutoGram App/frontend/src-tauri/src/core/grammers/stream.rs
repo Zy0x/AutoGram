@@ -131,6 +131,7 @@ pub fn cancel_progressive(stream_id: &str) -> bool {
 }
 
 /// Find an existing full preview file for this chat+message (photo/doc reopen).
+/// Also matches done `.partial` stream files (video/audio fully downloaded and cached).
 fn find_cached_preview_file(pdir: &Path, chat_safe: &str, message_id: i64) -> Option<PathBuf> {
     let prefix = format!("{chat_safe}_{message_id}");
     let rd = std::fs::read_dir(pdir).ok()?;
@@ -142,7 +143,13 @@ fn find_cached_preview_file(pdir: &Path, chat_safe: &str, message_id: i64) -> Op
             continue;
         }
         if name.ends_with(".partial") {
-            continue;
+            // Allow .partial files only when their stream entry is marked done —
+            // meaning the video/audio is fully buffered on disk and safe to serve.
+            let sid = name.trim_end_matches(".partial");
+            match stream_server::get_entry(sid) {
+                Some(e) if e.done => {} // OK — proceed to size check
+                _ => continue,
+            }
         }
         let path = entry.path();
         let len = entry.metadata().map(|m| m.len()).unwrap_or(0);
@@ -1343,12 +1350,115 @@ fn start_preview_stream_inner(
         // Video/audio progressive — return stream URL as soon as the first
         // head bytes are on disk. NEVER hold the media slot for the full file
         // (that froze the UI on "Memuat…" for huge MP4s).
-        let stream_id = format!(
-            "g{}-{}-{}",
-            message_id,
-            now_ms() % 1_000_000,
-            (now_ms() / 7) % 99991
-        );
+        //
+        // stream_id is DETERMINISTIC: g{chat_safe}-{message_id}.
+        // The same message always maps to the same partial file and registry entry,
+        // enabling transparent cache reuse on re-open and across app restarts.
+        let stream_id = format!("g{}-{}", chat_safe, message_id);
+
+        // ── CACHE / ACTIVE-STREAM REUSE ──────────────────────────────────────
+        if let Some(existing) = stream_server::get_entry(&stream_id) {
+            let partial_path = PathBuf::from(&existing.path);
+            let on_disk_size = std::fs::metadata(&partial_path)
+                .map(|m| m.len())
+                .unwrap_or(0);
+
+            if existing.total_size == size {
+                // CASE A: Fully downloaded — instant play, zero MTProto request.
+                if existing.done
+                    && partial_path.is_file()
+                    && on_disk_size >= size.saturating_mul(9) / 10
+                {
+                    let stream_url = stream_public_url(&stream_id, &name);
+                    session_rate::track_stream(&session_name, &stream_id);
+                    let _ = persist_memory_session(&live.session, &live.session_path);
+                    let kind = if is_video || is_audio { "stream" } else { "stream" };
+                    tg_log::info(
+                        BACKEND,
+                        "[CACHE_HIT]",
+                        format!(
+                            "sid={stream_id} msg={message_id} size={size} \
+                             — reusing done stream, no re-download"
+                        ),
+                    );
+                    return Ok(PreviewStreamResult {
+                        status: "success".into(),
+                        stream_id: stream_id.clone(),
+                        stream_url,
+                        path: partial_path.display().to_string(),
+                        mime_type: mime.clone(),
+                        size,
+                        data_url: None,
+                        text_content: None,
+                        preview_kind: kind.into(),
+                        streaming: true,
+                        backend: BACKEND.into(),
+                        message: "cache hit — no re-download".into(),
+                        source: "disk_cache".into(),
+                        is_fallback: false,
+                        width: None,
+                        height: None,
+                        byte_size: size,
+                        full_download_error: None,
+                    });
+                }
+
+                // CASE B: Fill loop still active — reuse the existing stream.
+                if !existing.done
+                    && !existing.cancelled
+                    && existing.error.is_none()
+                    && partial_path.is_file()
+                    && on_disk_size > 0
+                {
+                    let stream_url = stream_public_url(&stream_id, &name);
+                    let _ = persist_memory_session(&live.session, &live.session_path);
+                    tg_log::info(
+                        BACKEND,
+                        "[CACHE_ACTIVE]",
+                        format!("sid={stream_id} msg={message_id} — reusing active stream"),
+                    );
+                    return Ok(PreviewStreamResult {
+                        status: "success".into(),
+                        stream_id: stream_id.clone(),
+                        stream_url,
+                        path: partial_path.display().to_string(),
+                        mime_type: mime.clone(),
+                        size,
+                        data_url: None,
+                        text_content: None,
+                        preview_kind: "stream".into(),
+                        streaming: true,
+                        backend: BACKEND.into(),
+                        message: "reusing active stream".into(),
+                        source: "active_stream".into(),
+                        is_fallback: false,
+                        width: None,
+                        height: None,
+                        byte_size: size,
+                        full_download_error: None,
+                    });
+                }
+
+                // CASE C: Stale entry (cancelled / error) — remove registry, fall through.
+                if existing.cancelled || existing.error.is_some() {
+                    stream_server::remove_entry(&stream_id);
+                }
+            } else {
+                // Size mismatch — file was replaced on Telegram, invalidate cache.
+                tg_log::info(
+                    BACKEND,
+                    "[CACHE_INVALIDATE]",
+                    format!(
+                        "sid={stream_id} msg={message_id} size_changed: \
+                         cached={} new={size} — invalidating",
+                        existing.total_size
+                    ),
+                );
+                stream_server::remove_entry(&stream_id);
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         for old in session_rate::streams_to_cancel(&session_name, &stream_id) {
             cancel_progressive(&old);
         }
@@ -1362,10 +1472,16 @@ fn start_preview_stream_inner(
             .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
 
         {
-            let f = std::fs::File::create(&dest)
-                .map_err(|e| TgError::new(TgErrorCode::Io, format!("create partial: {e}")))?;
-            f.set_len(size)
-                .map_err(|e| TgError::new(TgErrorCode::Io, format!("set_len: {e}")))?;
+            // Only allocate a fresh sparse file if none exists yet or it is empty.
+            // Preserves any bytes already on disk from a prior partial session.
+            let needs_alloc = !dest.is_file()
+                || std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0) == 0;
+            if needs_alloc {
+                let f = std::fs::File::create(&dest)
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("create partial: {e}")))?;
+                f.set_len(size)
+                    .map_err(|e| TgError::new(TgErrorCode::Io, format!("set_len: {e}")))?;
+            }
         }
 
         let entry = StreamEntry {
