@@ -2435,42 +2435,36 @@ export function DrivePreviewModal({
 
   const onWheelStage = (e: React.WheelEvent) => {
     if (!showImage && !showVideo) return;
-    // Image + video: mouse wheel zoom (no Ctrl required)
     e.preventDefault();
     e.stopPropagation();
-    // Smooth wheel: larger deltas = bigger steps (trackpad friendly)
-    const steps = Math.max(1, Math.min(3, Math.round(Math.abs(e.deltaY) / 100)));
-    const dir = e.deltaY > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
-    // Zoom toward cursor so pan+zoom-out stays on the point of interest
-    zoomBy(dir, { x: e.clientX, y: e.clientY });
+
+    if (e.ctrlKey) {
+      // 2-finger trackpad pinch-to-zoom or Ctrl+Wheel continuous smooth zoom
+      const factor = Math.pow(1.008, -e.deltaY);
+      const targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomRef.current * factor));
+      const deltaZoom = targetZoom - zoomRef.current;
+      zoomBy(deltaZoom, { x: e.clientX, y: e.clientY });
+    } else {
+      // Standard Mouse Scroll Wheel
+      const steps = Math.max(1, Math.min(4, Math.round(Math.abs(e.deltaY) / 60)));
+      const dir = e.deltaY > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
+      zoomBy(dir, { x: e.clientX, y: e.clientY });
+    }
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!showImage && !showVideo) return;
-    // Primary button only (left mouse / touch / pen)
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-    // Video: never steal native controls (scrubber / volume / play / fullscreen).
-    // Hit-test bottom control strip of the video element in screen space.
     if (showVideo) {
       const t = e.target as HTMLElement;
-      if (t.closest('video') == null && !t.classList.contains('drive-preview-media-wrap')) {
+      if (t.closest('.drive-preview-video-controls-bar') != null) {
         return;
       }
-      const v = videoRef.current;
-      if (v) {
-        const rect = v.getBoundingClientRect();
-        const controlH = Math.min(64, Math.max(40, rect.height * 0.14));
-        if (e.clientY >= rect.bottom - controlH) {
-          return; // let browser handle seek / volume
-        }
-      }
-      // Don't pan at 1× — wheel / toolbar zoom only
-      if (zoomRef.current <= 1) return;
+      if (zoomRef.current <= 1 && !isMagnifierMode) return;
     }
 
-    // At 1×: no pan — cursor is zoom-in; use wheel / double-click to zoom
-    if (zoomRef.current <= 1) return;
+    if (zoomRef.current <= 1 && !isMagnifierMode && !showImage) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -2504,9 +2498,7 @@ export function DrivePreviewModal({
   const onImageDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Cancel any half-started drag
     endPanDrag();
-    // Not at 100% (zoomed in or out) → reset to default 100%
     if (Math.abs(zoomRef.current - 1) > 0.05) {
       resetZoom();
     } else {
@@ -2558,12 +2550,9 @@ export function DrivePreviewModal({
       window.clearTimeout(controlsTimeoutRef.current);
       controlsTimeoutRef.current = null;
     }
-    const v = videoRef.current;
-    if (v && !v.paused) {
-      controlsTimeoutRef.current = window.setTimeout(() => {
-        setControlsVisible(false);
-      }, 2500);
-    }
+    controlsTimeoutRef.current = window.setTimeout(() => {
+      setControlsVisible(false);
+    }, 2500);
   };
 
   const handleVideoPointerDown = (e: React.PointerEvent) => {
@@ -2603,16 +2592,22 @@ export function DrivePreviewModal({
       window.clearTimeout(controlsTimeoutRef.current);
       controlsTimeoutRef.current = null;
     }
-    const v = videoRef.current;
-    if (v && !v.paused) {
-      setControlsVisible(false);
-    }
+    setControlsVisible(false);
   };
 
   const handleVideoPointerUp = (e: React.PointerEvent) => {
     resetControlsTimeout();
     if (isMagnifierMode) {
       onPointerUpLocal(e);
+      // In magnifier mode, allow double click to zoom in/out or drag to pan
+      const now = Date.now();
+      const timeSinceLast = now - lastClickTimeRef.current;
+      if (timeSinceLast < 300) {
+        lastClickTimeRef.current = 0;
+        onImageDoubleClick(e as unknown as React.MouseEvent);
+      } else {
+        lastClickTimeRef.current = now;
+      }
       return;
     }
     // Cancel hold timer
@@ -2651,6 +2646,12 @@ export function DrivePreviewModal({
         clickTimerRef.current = null;
       }
       lastClickTimeRef.current = 0;
+
+      // If video is zoomed in (> 100%), double click resets zoom to 100%
+      if (zoomRef.current > 1.01) {
+        resetZoom();
+        return;
+      }
 
       const v = videoRef.current;
       if (!v) return;

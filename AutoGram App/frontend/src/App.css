@@ -4195,10 +4195,14 @@ body.td-dnd-external {
 }
 /* Video: never force zoom-in over native controls (scrubber/volume need pointer).
    Zoom still via toolbar / wheel / double-click on picture area. */
-.drive-preview-media-wrap.is-zoomable video.drive-preview-video,
-.drive-preview-media-wrap.is-pannable video.drive-preview-video,
+.drive-preview-media-wrap.is-zoomable video.drive-preview-video {
+  cursor: zoom-in;
+}
+.drive-preview-media-wrap.is-pannable video.drive-preview-video {
+  cursor: grab;
+}
 .drive-preview-media-wrap.is-dragging video.drive-preview-video {
-  cursor: auto;
+  cursor: grabbing !important;
 }
 .drive-preview-media-wrap.is-pannable {
   cursor: grab;
