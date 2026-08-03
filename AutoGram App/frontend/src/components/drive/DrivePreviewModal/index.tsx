@@ -26,6 +26,8 @@ import {
   VolumeX,
   Play,
   Pause,
+  Search,
+  FastForward,
   PictureInPicture2,
   RefreshCw,
   Info,
@@ -551,7 +553,7 @@ export function DrivePreviewModal({
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
   const [mediaHeight, setMediaHeight] = useState<number | null>(null);
 
-  // Video tools
+  // Video & View tools
   const [playbackRate, setPlaybackRate] = useState(1);
   const [muted, setMuted] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
@@ -565,8 +567,21 @@ export function DrivePreviewModal({
       return false;
     }
   });
-  /** First decoded frame — avoid pure-black stage while stream/moov boots */
   const [hasVideoFrame, setHasVideoFrame] = useState(false);
+  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
+  const [videoBufferedPercent, setVideoBufferedPercent] = useState(0);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [rippleOverlay, setRippleOverlay] = useState<{ type: 'play' | 'pause'; key: number } | null>(null);
+  const [jumpOverlay, setJumpOverlay] = useState<{ side: 'left' | 'right'; seconds: number; key: number } | null>(null);
+  const [isSpeedingUp, setIsSpeedingUp] = useState(false);
+
+  const controlsTimeoutRef = useRef<number | null>(null);
+  const lastClickTimeRef = useRef(0);
+  const clickTimerRef = useRef<number | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
+  const speedupActiveRef = useRef(false);
+  const originalSpeedRef = useRef(1);
+  const jumpChainRef = useRef<{ side: 'left' | 'right'; count: number; time: number }>({ side: 'left', count: 0, time: 0 });
   /** True after user scrub (seeking); cleared after handleSeekJump */
   const userSeekPendingRef = useRef(false);
   /** Skip N seeked events from resume/load (not user scrub) */
@@ -2502,16 +2517,156 @@ export function DrivePreviewModal({
   const mediaCursorClass =
     isDragging
       ? 'is-dragging'
-      : zoom > 1.01
-        ? 'is-pannable'
-        : showImage || showVideo
-          ? 'is-zoomable'
+      : isMagnifierMode || showImage
+        ? zoom > 1.01
+          ? 'is-pannable'
+          : 'is-zoomable'
+        : zoom > 1.01
+          ? 'is-pannable'
           : '';
 
   /** Shared pan+zoom+rotate for image & video */
   const mediaTransform = `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${
     zoom * (flipH ? -1 : 1)
   }, ${zoom * (flipV ? -1 : 1)})`;
+
+  const updateVideoBuffered = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration || !Number.isFinite(v.duration) || v.duration <= 0) return;
+    let end = 0;
+    try {
+      for (let i = 0; i < v.buffered.length; i++) {
+        if (v.buffered.start(i) <= v.currentTime && v.currentTime <= v.buffered.end(i)) {
+          end = v.buffered.end(i);
+          break;
+        }
+      }
+      if (end === 0 && v.buffered.length > 0) {
+        end = v.buffered.end(v.buffered.length - 1);
+      }
+    } catch {
+      /* ignore */
+    }
+    const pct = Math.min(100, Math.max(0, (end / v.duration) * 100));
+    setVideoBufferedPercent(pct);
+  };
+
+  const resetControlsTimeout = () => {
+    setControlsVisible(true);
+    if (controlsTimeoutRef.current) {
+      window.clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = null;
+    }
+    const v = videoRef.current;
+    if (v && !v.paused) {
+      controlsTimeoutRef.current = window.setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500);
+    }
+  };
+
+  const handleVideoPointerDown = (e: React.PointerEvent) => {
+    resetControlsTimeout();
+    if (isMagnifierMode) {
+      onPointerDown(e);
+      return;
+    }
+
+    // Start Hold Speed Up timer (250ms hold -> 2x speed)
+    holdTimerRef.current = window.setTimeout(() => {
+      const v = videoRef.current;
+      if (v && !v.paused) {
+        speedupActiveRef.current = true;
+        originalSpeedRef.current = v.playbackRate;
+        v.playbackRate = 2.0;
+        setIsSpeedingUp(true);
+      }
+    }, 250);
+  };
+
+  const handleVideoPointerUp = (e: React.PointerEvent) => {
+    resetControlsTimeout();
+    if (isMagnifierMode) {
+      onPointerUpLocal(e);
+      return;
+    }
+    // Cancel hold timer
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    // If hold speedup was active, restore original speed
+    if (speedupActiveRef.current) {
+      speedupActiveRef.current = false;
+      setIsSpeedingUp(false);
+      const v = videoRef.current;
+      if (v) {
+        v.playbackRate = playbackRate;
+      }
+      return;
+    }
+
+    // Single vs Double Click Logic
+    const now = Date.now();
+    const timeSinceLast = now - lastClickTimeRef.current;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+
+    if (timeSinceLast < 300) {
+      // DOUBLE CLICK DETECTED!
+      if (clickTimerRef.current) {
+        window.clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+      lastClickTimeRef.current = 0;
+
+      const v = videoRef.current;
+      if (!v) return;
+
+      if (clickX < rect.width * 0.42) {
+        // Double Click LEFT -> Progressive Seek Back (-5s, -10s, -15s...)
+        const chainCount =
+          jumpChainRef.current.side === 'left' && now - jumpChainRef.current.time < 1200
+            ? jumpChainRef.current.count + 1
+            : 1;
+        jumpChainRef.current = { side: 'left', count: chainCount, time: now };
+        const jumpSeconds = chainCount * 5;
+        v.currentTime = Math.max(0, v.currentTime - 5);
+        userSeekPendingRef.current = true;
+        handleSeekJump();
+        setJumpOverlay({ side: 'left', seconds: jumpSeconds, key: now });
+      } else if (clickX > rect.width * 0.58) {
+        // Double Click RIGHT -> Progressive Seek Forward (+5s, +10s, +15s...)
+        const chainCount =
+          jumpChainRef.current.side === 'right' && now - jumpChainRef.current.time < 1200
+            ? jumpChainRef.current.count + 1
+            : 1;
+        jumpChainRef.current = { side: 'right', count: chainCount, time: now };
+        const jumpSeconds = chainCount * 5;
+        v.currentTime = Math.min(v.duration || 0, v.currentTime + 5);
+        userSeekPendingRef.current = true;
+        handleSeekJump();
+        setJumpOverlay({ side: 'right', seconds: jumpSeconds, key: now });
+      } else {
+        // Center double click -> toggle fullscreen
+        void toggleFullscreen();
+      }
+    } else {
+      // SINGLE CLICK DETECTED (delay 220ms to distinguish from double click)
+      lastClickTimeRef.current = now;
+      clickTimerRef.current = window.setTimeout(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        if (v.paused) {
+          void v.play();
+          setRippleOverlay({ type: 'play', key: Date.now() });
+        } else {
+          v.pause();
+          setRippleOverlay({ type: 'pause', key: Date.now() });
+        }
+      }, 220);
+    }
+  };
 
   /** Any non-identity transform — CSS transform on <video> breaks native seek in Chromium/WebView2 */
   const needsMediaTransform =
@@ -2786,6 +2941,15 @@ export function DrivePreviewModal({
                 >
                   <ZoomIn size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_zoom_in")}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
+                  title={t("speedtest.tooltip_magnifier")}
+                  onClick={() => setIsMagnifierMode((v) => !v)}
+                >
+                  <Search size={15} />
+                  <span className="drive-tool-btn-label">{t("speedtest.label_magnifier")}</span>
                 </button>
               </div>
             )}
@@ -3343,20 +3507,11 @@ export function DrivePreviewModal({
               style={{
                 overflow: 'hidden',
               }}
-              onPointerDown={onPointerDown}
-              onPointerUp={onPointerUpLocal}
-              onPointerCancel={onPointerUpLocal}
-              onDoubleClick={(e) => {
-                const v = videoRef.current;
-                if (v) {
-                  const rect = v.getBoundingClientRect();
-                  const controlH = Math.min(64, Math.max(40, rect.height * 0.14));
-                  if (e.clientY >= rect.bottom - controlH) return;
-                }
-                if ((e.target as HTMLElement).closest('video')) {
-                  onImageDoubleClick(e);
-                }
-              }}
+              onPointerMove={resetControlsTimeout}
+              onPointerDown={handleVideoPointerDown}
+              onPointerUp={handleVideoPointerUp}
+              onPointerCancel={handleVideoPointerUp}
+              onPointerLeave={handleVideoPointerUp}
               onWheel={(e) => {
                 onWheelStage(e);
               }}
@@ -3391,6 +3546,9 @@ export function DrivePreviewModal({
                   transform: needsMediaTransform ? mediaTransform : 'none',
                   transformOrigin: 'center center',
                 }}
+                onProgress={() => {
+                  updateVideoBuffered();
+                }}
                 onLoadedMetadata={() => {
                   const v = videoRef.current;
                   const t = resumeAtRef.current;
@@ -3412,6 +3570,7 @@ export function DrivePreviewModal({
                       setVideoDuration(v.duration);
                     }
                   }
+                  updateVideoBuffered();
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
                       ignoreSeekEventsRef.current += 1;
@@ -3456,6 +3615,7 @@ export function DrivePreviewModal({
                       setVideoDuration(v.duration);
                     }
                   }
+                  updateVideoBuffered();
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -3489,6 +3649,7 @@ export function DrivePreviewModal({
                       setVideoDuration(v.duration);
                     }
                   }
+                  updateVideoBuffered();
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
                     streamTimeoutRef.current = null;
@@ -3521,6 +3682,7 @@ export function DrivePreviewModal({
                       setVideoDuration(v.duration);
                     }
                   }
+                  updateVideoBuffered();
                   captureVideoFrame();
                 }}
                 onSeeking={() => {
@@ -3792,16 +3954,50 @@ export function DrivePreviewModal({
                   </div>
                 </div>
               )}
-              {/* Custom video controls bar (untransformed, pinned to bottom of media wrapper) */}
+              {/* Overlays inside media wrapper: ripple, jump, 2x hold speedup */}
+              {rippleOverlay && (
+                <div key={`ripple-${rippleOverlay.key}`} className="drive-preview-ripple-overlay">
+                  {rippleOverlay.type === 'play' ? (
+                    <Play size={32} className="fill-current ml-1" />
+                  ) : (
+                    <Pause size={32} />
+                  )}
+                </div>
+              )}
+              {jumpOverlay && (
+                <div
+                  key={`jump-${jumpOverlay.key}`}
+                  className={`drive-preview-jump-overlay is-${jumpOverlay.side}`}
+                >
+                  {jumpOverlay.side === 'left' ? <RotateCcw size={28} /> : <RotateCw size={28} />}
+                  <span className="drive-preview-jump-text">
+                    {jumpOverlay.side === 'left' ? `-${jumpOverlay.seconds}s` : `+${jumpOverlay.seconds}s`}
+                  </span>
+                </div>
+              )}
+              {isSpeedingUp && (
+                <div className="drive-preview-speedup-pill">
+                  <FastForward size={15} />
+                  <span>{t('speedtest.speed_up_hint')}</span>
+                </div>
+              )}
+
+              {/* Custom video controls bar (untransformed, pinned to bottom of media wrapper, auto-hiding) */}
               <div
-                className="drive-preview-video-controls-bar"
+                className={`drive-preview-video-controls-bar${
+                  !controlsVisible && videoIsPlaying ? ' is-hidden' : ''
+                }`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
               >
-                {/* Progress seek bar track */}
+                {/* Progress seek bar track with buffered line */}
                 <div className="drive-preview-seek-container">
                   <div className="drive-preview-seek-track">
+                    <div
+                      className="drive-preview-seek-buffer"
+                      style={{ width: `${videoBufferedPercent}%` }}
+                    />
                     <div
                       className="drive-preview-seek-fill"
                       style={{
