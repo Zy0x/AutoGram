@@ -3557,7 +3557,7 @@ export function DrivePreviewModal({
             <div
               className={`drive-preview-media-wrap ${mediaCursorClass}${
                 needsMediaTransform ? ' is-transformed' : ''
-              }`}
+              }${!controlsVisible ? ' is-hide-cursor' : ''}`}
               style={{
                 overflow: 'hidden',
               }}

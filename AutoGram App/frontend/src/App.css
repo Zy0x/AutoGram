@@ -9706,6 +9706,18 @@ body:has(.app-layout-drive-focus),
   z-index: 999 !important;
 }
 
+/* Hide cursor over video when controls are auto-hidden (idle state) */
+.drive-preview-media-wrap.is-hide-cursor,
+.drive-preview-media-wrap.is-hide-cursor * {
+  cursor: none !important;
+}
+
+/* But keep cursor visible on the controls bar itself always */
+.drive-preview-media-wrap.is-hide-cursor .drive-preview-video-controls-bar,
+.drive-preview-media-wrap.is-hide-cursor .drive-preview-video-controls-bar * {
+  cursor: auto !important;
+}
+
 .drive-preview-time-label {
   font-family: monospace;
   font-size: 12px;
