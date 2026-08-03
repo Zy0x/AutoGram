@@ -53,6 +53,11 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [topicSubView, setTopicSubView] = useState<{ choice: DriveDestChoice; topics: DriveTopic[] } | null>(null);
 
+  // Keep a ref so the ESC key handler always sees the current topicSubView without
+  // being in the effect's dependency array (which would cause immediate self-clearing).
+  const topicSubViewRef = useRef(topicSubView);
+  topicSubViewRef.current = topicSubView;
+
   useEffect(() => {
     if (!open || !state) return;
     setQuery('');
@@ -63,7 +68,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (topicSubView) {
+        if (topicSubViewRef.current) {
           setTopicSubView(null);
         } else {
           onClose();
@@ -75,7 +80,8 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
       window.clearTimeout(timeoutId);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open, state, onClose, topicSubView]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, state, onClose]); // topicSubView intentionally excluded — read via ref above
 
   const filtered = useMemo(() => {
     if (!state) return [];
