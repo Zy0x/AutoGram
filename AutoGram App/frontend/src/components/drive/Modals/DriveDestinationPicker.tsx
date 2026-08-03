@@ -8,18 +8,24 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search, Users, X } from 'lucide-react';
 
+import type { DriveCredentials } from '../../../lib/telegram/driveApi/driveApiUtils';
+import type { DriveTopic } from '../../../lib/telegram/driveTypes';
+import { driveListTopics } from '../../../lib/telegram/driveApi/driveFoldersApi';
+
 export type DriveDestChoice = {
   id: number | null;
   label: string;
   isForum?: boolean;
   kind?: 'saved' | 'drive' | 'chat';
   type?: 'user' | 'group' | 'channel' | 'bot' | 'unknown' | string;
+  topicId?: number | null;
 };
 
 export type DriveDestPickerState = {
   title: string;
   detail?: string;
   choices: DriveDestChoice[];
+  creds?: DriveCredentials | null;
   onConfirm: (choice: DriveDestChoice) => void;
 };
 
@@ -44,16 +50,24 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const open = !!state;
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [topicSubView, setTopicSubView] = useState<{ choice: DriveDestChoice; topics: DriveTopic[] } | null>(null);
 
   useEffect(() => {
     if (!open || !state) return;
     setQuery('');
     setSelectedIdx(0);
+    setLoadingId(null);
+    setTopicSubView(null);
     const timeoutId = window.setTimeout(() => searchRef.current?.focus(), 40);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        if (topicSubView) {
+          setTopicSubView(null);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -61,7 +75,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
       window.clearTimeout(timeoutId);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open, state, onClose]);
+  }, [open, state, onClose, topicSubView]);
 
   const filtered = useMemo(() => {
     if (!state) return [];
@@ -82,9 +96,52 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     window.setTimeout(() => fn(choice), 0);
   };
 
+  const handleChoiceClick = async (c: DriveDestChoice) => {
+    if (loadingId !== null) return;
+    if (c.id === null || !state.creds) {
+      pick(c);
+      return;
+    }
+
+    // Check if target is a candidate for topics (forum or group/supergroup/drive)
+    const candidate = c.isForum || c.type === 'group' || c.type === 'supergroup' || c.kind === 'drive';
+    if (!candidate) {
+      pick(c);
+      return;
+    }
+
+    setLoadingId(c.id);
+    try {
+      const res = await driveListTopics(state.creds, c.id);
+      const topicsList = (res?.topics || []) as DriveTopic[];
+      const isForum = !!(res?.is_forum || topicsList.length > 0 || c.isForum);
+      if (isForum || c.isForum || c.type === 'group' || c.type === 'supergroup') {
+        // Always show topic sub-view for groups/forums so user can pick General or a topic.
+        // If backend returned is_forum=false or empty topics, still allow General.
+        setTopicSubView({ choice: { ...c, isForum: isForum || !!c.isForum }, topics: topicsList });
+      } else {
+        pick({ ...c, isForum: false, topicId: null });
+      }
+    } catch {
+      // On error, still show topic sub-view with empty list so user can pick General.
+      // Don't silently skip to the confirm dialog.
+      if (c.isForum || c.type === 'group' || c.type === 'supergroup') {
+        setTopicSubView({ choice: { ...c, isForum: !!c.isForum }, topics: [] });
+      } else {
+        pick(c);
+      }
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const confirmSelected = () => {
+    if (topicSubView) {
+      pick({ ...topicSubView.choice, topicId: null });
+      return;
+    }
     const c = filtered[selectedIdx];
-    if (c) pick(c);
+    if (c) void handleChoiceClick(c);
   };
 
   const renderBadge = (c: DriveDestChoice) => {
@@ -125,67 +182,133 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             <FolderInput size={20} />
           </span>
           <div className="td-confirm-head-text">
-            <h2 id="td-dest-title">{state.title}</h2>
-            {state.detail && <p>{state.detail}</p>}
+            <h2 id="td-dest-title">
+              {topicSubView
+                ? t('speedtest.select_topic_in_chat', { chat: topicSubView.choice.label })
+                : state.title}
+            </h2>
+            {topicSubView ? (
+              <button
+                type="button"
+                className="td-dest-back-btn"
+                style={{ background: 'none', border: 'none', color: 'var(--td-accent-light, #38bdf8)', fontSize: '12px', padding: 0, cursor: 'pointer', marginTop: '2px' }}
+                onClick={() => setTopicSubView(null)}
+              >
+                ← {t('speedtest.back_to_chats')}
+              </button>
+            ) : (
+              state.detail && <p>{state.detail}</p>
+            )}
           </div>
           <button type="button" className="td-confirm-close" onClick={onClose} aria-label="Tutup">
             <X size={18} />
           </button>
         </header>
 
-        <div className="td-dest-search">
-          <Search size={14} aria-hidden />
-          <input
-            ref={searchRef}
-            type="search"
-            className="td-dest-search-input"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('speedtest.ph_search_chat_folder')}
-            aria-label="Cari tujuan"
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setSelectedIdx((i: any) => Math.min(filtered.length - 1, i + 1));
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSelectedIdx((i: any) => Math.max(0, i - 1));
-              } else if (e.key === 'Enter') {
-                e.preventDefault();
-                confirmSelected();
-              }
-            }}
-          />
-        </div>
-
-        <ul className="td-dest-list" role="listbox" aria-label="Daftar tujuan">
-          {filtered.length === 0 && (
-            <li className="td-dest-empty">Tidak ada yang cocok</li>
-          )}
-          {filtered.map((c, i) => {
-            const active = i === selectedIdx;
-            return (
-              <li key={`${c.kind ?? 'x'}-${c.id ?? 'me'}-${c.label}`}>
+        {topicSubView ? (
+          <ul className="td-dest-list" role="listbox" aria-label="Daftar topik forum">
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected="true"
+                className="td-dest-item is-active"
+                onClick={() => pick({ ...topicSubView.choice, topicId: null })}
+              >
+                <span className="td-dest-ico" aria-hidden>
+                  <Hash size={15} />
+                </span>
+                <span className="td-dest-label">
+                  {t('speedtest.forum_topic_general_all')}
+                </span>
+                <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>
+              </button>
+            </li>
+            {topicSubView.topics.map((topic) => (
+              <li key={`topic-${topic.id}`}>
                 <button
                   type="button"
                   role="option"
-                  aria-selected={active}
-                  className={`td-dest-item${active ? ' is-active' : ''}`}
-                  onClick={() => pick(c)}
-                  onMouseEnter={() => setSelectedIdx(i)}
+                  disabled={!!topic.closed}
+                  className="td-dest-item"
+                  onClick={() => pick({ ...topicSubView.choice, topicId: topic.id })}
                 >
                   <span className="td-dest-ico" aria-hidden>
-                    {kindIcon(c)}
+                    <Hash size={15} />
                   </span>
-                  <span className="td-dest-label" title={c.label}>
-                    {c.label}
+                  <span className="td-dest-label">
+                    {topic.title || `Topik ${topic.id}`}
                   </span>
-                  {renderBadge(c)}
+                  {topic.closed && <span className="td-dest-badge">{t('speedtest.topic_closed')}</span>}
                 </button>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        ) : (
+          <>
+            <div className="td-dest-search">
+              <Search size={14} aria-hidden />
+              <input
+                ref={searchRef}
+                type="search"
+                className="td-dest-search-input"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('speedtest.ph_search_chat_folder')}
+                aria-label="Cari tujuan"
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedIdx((i: any) => Math.min(filtered.length - 1, i + 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedIdx((i: any) => Math.max(0, i - 1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmSelected();
+                  }
+                }}
+              />
+            </div>
+
+            <ul className="td-dest-list" role="listbox" aria-label="Daftar tujuan">
+              {filtered.length === 0 && (
+                <li className="td-dest-empty">Tidak ada yang cocok</li>
+              )}
+              {filtered.map((c, i) => {
+                const active = i === selectedIdx;
+                const isLoading = loadingId !== null && loadingId === c.id;
+                return (
+                  <li key={`${c.kind ?? 'x'}-${c.id ?? 'me'}-${c.label}`}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      disabled={loadingId !== null && !isLoading}
+                      className={`td-dest-item${active ? ' is-active' : ''}`}
+                      onClick={() => void handleChoiceClick(c)}
+                      onMouseEnter={() => setSelectedIdx(i)}
+                    >
+                      <span className="td-dest-ico" aria-hidden>
+                        {isLoading ? <span className="td-spinner-sm" /> : kindIcon(c)}
+                      </span>
+                      <span className="td-dest-label" title={c.label}>
+                        {c.label}
+                      </span>
+                      {isLoading ? (
+                        <span className="td-dest-badge" style={{ opacity: 0.8 }}>
+                          {t('speedtest.loading_topics_for_chat')}
+                        </span>
+                      ) : (
+                        renderBadge(c)
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
 
         <footer className="td-confirm-foot">
           <button type="button" className="td-confirm-btn ghost" onClick={onClose}>
@@ -195,7 +318,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             type="button"
             className="td-confirm-btn primary"
             onClick={confirmSelected}
-            disabled={!filtered.length}
+            disabled={!filtered.length && !topicSubView}
           >
             <FolderInput size={15} />
             Pilih tujuan
