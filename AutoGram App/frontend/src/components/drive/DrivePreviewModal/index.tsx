@@ -710,10 +710,10 @@ export function DrivePreviewModal({
   const shellRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   /** Fixed-position popovers (avoid toolbar overflow clipping) */
-  const [qualityMenuPos, setQualityMenuPos] = useState<{ top: number; left: number; width: number } | null>(
+  const [qualityMenuPos, setQualityMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(
     null
   );
-  const [rateMenuPos, setRateMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [rateMenuPos, setRateMenuPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
   const mountGenRef = useRef(0);
   const loadSeq = useRef(0);
   const dragRef = useRef<{
@@ -1734,25 +1734,22 @@ export function DrivePreviewModal({
   }, [onClose, onNext, onPrev, hasNext, hasPrev, qualityOpen, rateOpen, file]);
 
   /** Place fixed menus near trigger — never clipped by toolbar; flip up if near bottom */
-  const placeMenuNear = useCallback((btn: HTMLElement | null) => {
+  const placeMenuNear = useCallback((btn: HTMLElement | null, estH = 240) => {
     if (!btn || typeof window === 'undefined') return null;
     const r = btn.getBoundingClientRect();
     const width = Math.min(300, Math.max(220, r.width + 80));
-    const estH = 280; // typical quality menu height
     let left = r.right - width;
     left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
     const spaceBelow = window.innerHeight - r.bottom - 12;
     const spaceAbove = r.top - 12;
-    let top: number;
     if (spaceBelow >= Math.min(estH, 160) || spaceBelow >= spaceAbove) {
-      top = r.bottom + 6;
+      const top = Math.max(8, Math.min(r.bottom + 6, window.innerHeight - 100));
+      return { top, left, width };
     } else {
-      // Open upward
-      top = Math.max(8, r.top - estH - 6);
+      // Open upward — pin bottom edge 8px above button top
+      const bottom = Math.max(8, window.innerHeight - r.top + 8);
+      return { bottom, left, width };
     }
-    // Keep fully on-screen
-    top = Math.max(8, Math.min(top, window.innerHeight - 100));
-    return { top, left, width };
   }, []);
 
   useEffect(() => {
@@ -3112,7 +3109,7 @@ export function DrivePreviewModal({
                         setRateMenuPos(null);
                         setQualityOpen((o) => {
                           const next = !o;
-                          if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current));
+                          if (next) setQualityMenuPos(placeMenuNear(qualityBtnRef.current, 280));
                           else setQualityMenuPos(null);
                           return next;
                         });
@@ -3133,63 +3130,17 @@ export function DrivePreviewModal({
                     </button>
                   </div>
                 )}
-                <div className="drive-quality-wrap">
+                {isVideo && (
                   <button
-                    ref={rateBtnRef}
                     type="button"
-                    className="drive-tool-btn drive-tool-btn-value"
-                    title={t("speedtest.tooltip_speed")}
-                    onClick={() => {
-                      setQualityOpen(false);
-                      setQualityMenuPos(null);
-                      setRateOpen((o) => {
-                        const next = !o;
-                        if (next) setRateMenuPos(placeMenuNear(rateBtnRef.current));
-                        else setRateMenuPos(null);
-                        return next;
-                      });
-                    }}
-                    aria-expanded={rateOpen}
-                    aria-haspopup="menu"
-                    aria-label={`Kecepatan putar: ${playbackRate}x`}
+                    className="drive-tool-btn"
+                    title={t('speedtest.preview_pip_hint')}
+                    onClick={() => void togglePip()}
                   >
-                    <Gauge size={15} />
-                    <span className="drive-tool-btn-label strong">{playbackRate}x</span>
+                    <PictureInPicture2 size={15} />
+                    <span className="drive-tool-btn-label">{t("speedtest.label_pip")}</span>
                   </button>
-                </div>
-                <button
-                  type="button"
-                  className={`drive-tool-btn${muted ? ' is-on' : ''}`}
-                  title={muted ? t('speedtest.preview_unmute_hint') : t('speedtest.preview_mute_hint')}
-                  onClick={() => setMuted((m) => !m)}
-                >
-                  {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                  <span className="drive-tool-btn-label">{muted ? t('speedtest.label_mute') : t('speedtest.label_sound')}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`drive-tool-btn${loopVideo ? ' is-on' : ''}`}
-                  title={
-                    loopVideo
-                      ? 'Loop aktif — video diputar lagi setelah selesai (klik untuk matikan)'
-                      : 'Loop: putar ulang otomatis setelah selesai'
-                  }
-                  aria-pressed={loopVideo}
-                  aria-label={loopVideo ? 'Matikan loop video' : 'Aktifkan loop video'}
-                  onClick={() => setLoopVideo((on) => !on)}
-                >
-                  <Repeat size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_loop")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="drive-tool-btn"
-                  title={t('speedtest.preview_pip_hint')}
-                  onClick={() => void togglePip()}
-                >
-                  <PictureInPicture2 size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_pip")}</span>
-                </button>
+                )}
               </div>
             )}
 
@@ -3288,7 +3239,8 @@ export function DrivePreviewModal({
               role="menu"
               style={{
                 position: 'fixed',
-                top: qualityMenuPos.top,
+                top: qualityMenuPos.top !== undefined ? qualityMenuPos.top : 'auto',
+                bottom: qualityMenuPos.bottom !== undefined ? qualityMenuPos.bottom : 'auto',
                 left: qualityMenuPos.left,
                 width: qualityMenuPos.width,
                 zIndex: 10_000,
@@ -3350,7 +3302,8 @@ export function DrivePreviewModal({
               role="menu"
               style={{
                 position: 'fixed',
-                top: rateMenuPos.top,
+                top: rateMenuPos.top !== undefined ? rateMenuPos.top : 'auto',
+                bottom: rateMenuPos.bottom !== undefined ? rateMenuPos.bottom : 'auto',
                 left: rateMenuPos.left,
                 width: rateMenuPos.width,
                 zIndex: 10_000,
@@ -4210,7 +4163,7 @@ export function DrivePreviewModal({
                           setQualityMenuPos(null);
                           setRateOpen((o) => {
                             const next = !o;
-                            if (next) setRateMenuPos(placeMenuNear(rateBtnRef.current));
+                            if (next) setRateMenuPos(placeMenuNear(rateBtnRef.current, 230));
                             else setRateMenuPos(null);
                             return next;
                           });
