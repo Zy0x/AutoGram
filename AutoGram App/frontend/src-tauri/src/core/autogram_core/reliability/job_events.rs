@@ -21,6 +21,18 @@ pub fn log_job_event(
     message: &str,
     metadata: Option<&str>,
 ) -> Result<(), String> {
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS job_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL,
+            stage TEXT NOT NULL,
+            message TEXT NOT NULL,
+            metadata TEXT
+        );",
+        [],
+    );
+
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
@@ -37,6 +49,18 @@ pub fn log_job_event(
 }
 
 pub fn get_job_events(conn: &Connection, job_id: i64) -> Result<Vec<JobEvent>, String> {
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS job_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL,
+            stage TEXT NOT NULL,
+            message TEXT NOT NULL,
+            metadata TEXT
+        );",
+        [],
+    );
+
     let mut stmt = conn
         .prepare("SELECT id, job_id, timestamp, stage, message, metadata FROM job_events WHERE job_id = ?1 ORDER BY timestamp ASC")
         .map_err(|e| e.to_string())?;

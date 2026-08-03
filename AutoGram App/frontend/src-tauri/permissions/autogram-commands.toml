@@ -119,6 +119,12 @@ allow = [
     "drive_calculate_cache_size",
     "cache_clear_disk",
     "cache_trim_disk",
-    "tg_download_profile_photo"
+    "tg_download_profile_photo",
+    "autogram_get_account_scores",
+    "autogram_run_container_repair",
+    "autogram_get_hardware_profiles",
+    "autogram_plan_batch",
+    "autogram_get_job_events"
 ]
+
 

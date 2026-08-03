@@ -20,7 +20,8 @@
         "focus": true,
         "visible": true,
         "decorations": true,
-        "center": true
+        "center": true,
+        "additionalBrowserArgs": "--remote-debugging-port=9225 --remote-allow-origins=*"
       }
     ],
     "security": {
