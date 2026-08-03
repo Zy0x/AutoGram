@@ -47,19 +47,22 @@ function kindIcon(c: DriveDestChoice) {
 export function DriveDestinationPicker({ state, onClose }: Props) {
   const { t } = useTranslation();
   const searchRef = useRef<HTMLInputElement>(null);
-  const open = !!state;
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [topicSubView, setTopicSubView] = useState<{ choice: DriveDestChoice; topics: DriveTopic[] } | null>(null);
 
-  // Keep a ref so the ESC key handler always sees the current topicSubView without
-  // being in the effect's dependency array (which would cause immediate self-clearing).
+  // Keep refs for unstable values/callbacks to prevent useEffect re-runs on every parent render.
+  // onClose = () => setDestPicker(null) is a new function on every parent render.
+  // topicSubView must also be read via ref inside the ESC handler to avoid stale closure.
   const topicSubViewRef = useRef(topicSubView);
   topicSubViewRef.current = topicSubView;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
-    if (!open || !state) return;
+    if (!state) return;
+    // Reset internal state whenever a new picker session opens (state identity changes).
     setQuery('');
     setSelectedIdx(0);
     setLoadingId(null);
@@ -71,7 +74,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
         if (topicSubViewRef.current) {
           setTopicSubView(null);
         } else {
-          onClose();
+          onCloseRef.current();
         }
       }
     };
@@ -81,7 +84,8 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
       window.removeEventListener('keydown', onKey);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, state, onClose]); // topicSubView intentionally excluded — read via ref above
+  }, [state]); // Only re-init when the picker opens with a new state object.
+               // onClose & topicSubView accessed via refs — excluded intentionally.
 
   const filtered = useMemo(() => {
     if (!state) return [];
