@@ -206,6 +206,39 @@ async fn try_recover_single_file_from_history(
     None
 }
 
+fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
+    match ext {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "bmp" => "image/bmp",
+        "mp4" => "video/mp4",
+        "mov" => "video/quicktime",
+        "mkv" => "video/x-matroska",
+        "webm" => "video/webm",
+        "avi" => "video/x-msvideo",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "flac" => "audio/flac",
+        "wav" => "audio/x-wav",
+        "pdf" => "application/pdf",
+        "zip" => "application/zip",
+        "rar" => "application/x-rar-compressed",
+        "7z" => "application/x-7z-compressed",
+        "txt" => "text/plain",
+        _ => {
+            if is_image {
+                "image/jpeg"
+            } else if is_video {
+                "video/mp4"
+            } else {
+                "application/octet-stream"
+            }
+        }
+    }
+}
+
 pub fn upload_album_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -231,10 +264,18 @@ pub fn upload_album_blocking(
     for (p, _) in files {
         path_policy::assert_safe_transfer_path(p)
             .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
-        if !PathBuf::from(p).is_file() {
+        let pbuf = PathBuf::from(p);
+        if !pbuf.is_file() {
             return Err(TgError::new(
                 TgErrorCode::Io,
                 format!("file not found: {p}"),
+            ));
+        }
+        let size = std::fs::metadata(&pbuf).map(|m| m.len()).unwrap_or(0);
+        if size == 0 {
+            return Err(TgError::new(
+                TgErrorCode::Io,
+                format!("file is empty (0 bytes): {p}"),
             ));
         }
     }
@@ -278,6 +319,7 @@ pub fn upload_album_blocking(
                             ext.as_str(),
                             "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
                         );
+                    let mime = infer_mime_type(&ext, is_image, is_video);
                     let path_str = path_buf.to_str().unwrap_or("");
                     let mut im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
@@ -286,7 +328,7 @@ pub fn upload_album_blocking(
                         im = im.reply_to(reply_to);
                     }
                     im = if as_document {
-                        let mut doc_im = im.document(uploaded);
+                        let mut doc_im = im.mime_type(mime).document(uploaded);
                         if is_video {
                             let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
                             doc_im = doc_im.attribute(Attribute::Video {
@@ -341,7 +383,7 @@ pub fn upload_album_blocking(
                         }
                         video_im
                     } else {
-                        let mut doc_im = im.document(uploaded);
+                        let mut doc_im = im.mime_type(mime).document(uploaded);
                         let thumb_path = extract_video_thumbnail(path_str);
                         if let Some(ref tp) = thumb_path {
                             if let Ok(thumb_uploaded) = client.upload_file(tp).await {
@@ -660,6 +702,7 @@ pub fn upload_file_blocking_topic_with_app(
                         ext.as_str(),
                         "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
                     );
+                let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path_buf.to_str().unwrap_or("");
 
                 let mut msg = InputMessage::new()
@@ -668,7 +711,7 @@ pub fn upload_file_blocking_topic_with_app(
                     .reply_to(reply_to);
                 // Prefer document for fidelity; video gets thumbnail + video attributes
                 msg = if as_document {
-                    let mut doc_msg = msg.document(uploaded);
+                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
                     if is_video {
                         let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
                         doc_msg = doc_msg.attribute(Attribute::Video {
@@ -723,7 +766,7 @@ pub fn upload_file_blocking_topic_with_app(
                     }
                     video_msg
                 } else {
-                    let mut doc_msg = msg.document(uploaded);
+                    let mut doc_msg = msg.mime_type(mime).document(uploaded);
                     let thumb_path = extract_video_thumbnail(path_str);
                     if let Some(ref tp) = thumb_path {
                         if let Ok(thumb_uploaded) = client.upload_file(tp).await {
