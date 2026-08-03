@@ -3045,7 +3045,7 @@ export function DrivePreviewModal({
                 <span className="drive-tool-group-label">{t("speedtest.label_rotate")}</span>
                 <button
                   type="button"
-                  className={`drive-tool-btn${rotation === 270 ? ' is-on' : ''}`}
+                  className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_left")}
                   onClick={() => setRotation((r) => (r + 270) % 360)}
                 >
@@ -3054,7 +3054,7 @@ export function DrivePreviewModal({
                 </button>
                 <button
                   type="button"
-                  className={`drive-tool-btn${rotation === 90 ? ' is-on' : ''}`}
+                  className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_right")}
                   onClick={() => setRotation((r) => (r + 90) % 360)}
                 >
@@ -3063,7 +3063,7 @@ export function DrivePreviewModal({
                 </button>
                 <button
                   type="button"
-                  className={`drive-tool-btn${flipH ? ' is-on' : ''}`}
+                  className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_h")}
                   onClick={() => setFlipH((v) => !v)}
                 >
@@ -3072,13 +3072,28 @@ export function DrivePreviewModal({
                 </button>
                 <button
                   type="button"
-                  className={`drive-tool-btn${flipV ? ' is-on' : ''}`}
+                  className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_v")}
                   onClick={() => setFlipV((v) => !v)}
                 >
                   <FlipVertical size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_flip_v")}</span>
                 </button>
+                {(rotation !== 0 || flipH || flipV) && (
+                  <button
+                    type="button"
+                    className="drive-tool-btn"
+                    title={t("speedtest.tooltip_rotate_reset")}
+                    onClick={() => {
+                      setRotation(0);
+                      setFlipH(false);
+                      setFlipV(false);
+                    }}
+                  >
+                    <RefreshCw size={15} />
+                    <span className="drive-tool-btn-label">{t("speedtest.label_rotate_reset")}</span>
+                  </button>
+                )}
               </div>
             )}
 

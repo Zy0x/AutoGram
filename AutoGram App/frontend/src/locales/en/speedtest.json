@@ -278,6 +278,8 @@
   "tooltip_zoom_in": "Zoom In (max 500%) — scroll up or +",
   "tooltip_rotate_left": "Rotate left 90 degrees",
   "tooltip_rotate_right": "Rotate right 90 degrees (R)",
+  "tooltip_rotate_reset": "Reset rotation and flip to default",
+  "label_rotate_reset": "Reset",
   "tooltip_flip_h": "Flip horizontal (left-right)",
   "tooltip_flip_v": "Flip vertical (top-bottom)",
   "tooltip_res": "Stream resolution (Auto / Original / 720p…)",

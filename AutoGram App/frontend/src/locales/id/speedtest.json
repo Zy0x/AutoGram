@@ -278,6 +278,8 @@
   "tooltip_zoom_in": "Perbesar (maks 500%) — gulir ke atas atau +",
   "tooltip_rotate_left": "Putar kiri 90 derajat",
   "tooltip_rotate_right": "Putar kanan 90 derajat (R)",
+  "tooltip_rotate_reset": "Atur ulang rotasi dan flip ke posisi awal",
+  "label_rotate_reset": "Reset",
   "tooltip_flip_h": "Cermin horizontal (kiri-kanan)",
   "tooltip_flip_v": "Balik vertikal (atas-bawah)",
   "tooltip_res": "Resolusi stream (Otomatis / Asli / 720p…)",
