@@ -124,21 +124,17 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     try {
       const res = await driveListTopics(state.creds, c.id);
       const topicsList = (res?.topics || []) as DriveTopic[];
-      const isForum = !!(res?.is_forum || topicsList.length > 0 || c.isForum);
-      // Show topic sub-view for: forum groups, groups, supergroups, AND any drive folder.
-      // Drive folders always need topic selection (General minimum) regardless of is_forum flag.
-      if (isForum || c.isForum || c.type === 'group' || c.type === 'supergroup' || c.kind === 'drive') {
-        setTopicSubView({ choice: { ...c, isForum: isForum || !!c.isForum }, topics: topicsList });
+      // Smart detection: only show topic sub-view when destination truly has topics.
+      // If API says no forum & no topics → skip sub-view, go directly to confirm.
+      const isForum = !!(res?.is_forum || topicsList.length > 0);
+      if (isForum) {
+        setTopicSubView({ choice: { ...c, isForum: true }, topics: topicsList });
       } else {
         pick({ ...c, isForum: false, topicId: null });
       }
     } catch {
-      // On API error: still show sub-view for drive/group/forum so user can pick General.
-      if (c.isForum || c.type === 'group' || c.type === 'supergroup' || c.kind === 'drive') {
-        setTopicSubView({ choice: { ...c, isForum: !!c.isForum }, topics: [] });
-      } else {
-        pick(c);
-      }
+      // On API error: can't determine forum status → go directly to confirm.
+      pick(c);
     } finally {
       setLoadingId(null);
     }

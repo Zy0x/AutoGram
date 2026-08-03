@@ -5440,22 +5440,26 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
 
   /** Build destination list for move/send picker (Saved + TD folders + chats). */
   const buildMoveDestinations = useCallback((): DriveDestChoice[] => {
+    const driveEntries: DriveDestChoice[] = folders.map((f) => {
+      const match = chats.find((c) => c.id === f.id);
+      return {
+        id: f.id as number | null,
+        label: f.name,
+        isForum: !!match?.is_forum,
+        kind: 'drive' as const,
+        type: match?.type || 'drive',
+      };
+    });
+    // Collect IDs of drive folders so we don't duplicate them in the chat list.
+    const driveIds = new Set(driveEntries.map((e) => e.id));
     return [
       { id: null, label: 'Saved Messages', isForum: false, kind: 'saved' },
-      ...folders
-        .filter((f) => f.id !== peerId)
-        .map((f) => {
-          const match = chats.find((c) => c.id === f.id);
-          return {
-            id: f.id as number | null,
-            label: f.name,
-            isForum: !!match?.is_forum,
-            kind: 'drive' as const,
-            type: match?.type || 'drive',
-          };
-        }),
+      // Drive folders: include the current folder (peerId) so user can move between topics
+      // within the same group/drive. All drive entries shown regardless of peerId.
+      ...driveEntries,
+      // Regular chats: skip ones already represented as drive folders, and skip current peer.
       ...chats
-        .filter((c) => c.id !== peerId)
+        .filter((c) => !driveIds.has(c.id) && c.id !== peerId)
         .slice(0, 120)
         .map((c) => ({
           id: c.id as number | null,
@@ -5466,6 +5470,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         })),
     ];
   }, [folders, chats, peerId]);
+
 
   // Remember recent locations when user navigates (for sidebar quick jump).
   // ALWAYS bound to active session — never write into another account's list.
