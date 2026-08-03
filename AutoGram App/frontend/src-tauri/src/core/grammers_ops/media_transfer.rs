@@ -50,57 +50,87 @@ async fn try_recover_album_from_history(
     expected_count: usize,
     index_base: usize,
 ) -> Option<Vec<UploadStepResult>> {
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    for attempt in 1..=4 {
+        tokio::time::sleep(Duration::from_secs(2)).await;
 
-    tg_log::info(
-        BACKEND,
-        "album_recovery_check_start",
-        format!("Checking history for chat={chat_id} expected_count={expected_count}"),
-    );
+        tg_log::info(
+            BACKEND,
+            "album_recovery_check_start",
+            format!("Checking history for chat={chat_id} expected_count={expected_count} attempt={attempt}"),
+        );
 
-    let mut iter = client.iter_messages(peer).limit(30);
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64;
+        let mut iter = client.iter_messages(peer).limit(30);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
 
-    let mut recent_msgs = Vec::new();
+        let mut recent_msgs = Vec::new();
 
-    while let Ok(Some(msg)) = iter.next().await {
-        let msg_date = msg.date().timestamp();
-        if now - msg_date > 120 {
-            break;
+        while let Ok(Some(msg)) = iter.next().await {
+            let msg_date = msg.date().timestamp();
+            if now - msg_date > 180 {
+                break;
+            }
+
+            if let Some(tid) = topic_id {
+                if tid > 0 {
+                    let msg_tid = message_topic_id(&msg);
+                    if msg_tid != Some(tid) {
+                        continue;
+                    }
+                }
+            }
+
+            recent_msgs.push(msg);
         }
 
-        if let Some(tid) = topic_id {
-            if tid > 0 {
-                let msg_tid = message_topic_id(&msg);
-                if msg_tid != Some(tid) {
-                    continue;
-                }
+        if recent_msgs.is_empty() {
+            continue;
+        }
+
+        // 1. Group recent messages by grouped_id
+        let mut grouped_map: HashMap<i64, Vec<i64>> = HashMap::new();
+        for msg in &recent_msgs {
+            if let Some(gid) = msg.grouped_id() {
+                grouped_map.entry(gid).or_default().push(msg.id() as i64);
             }
         }
 
-        recent_msgs.push(msg);
-    }
-
-    if recent_msgs.is_empty() {
-        return None;
-    }
-
-    // 1. Group recent messages by grouped_id
-    let mut grouped_map: HashMap<i64, Vec<i64>> = HashMap::new();
-    for msg in &recent_msgs {
-        if let Some(gid) = msg.grouped_id() {
-            grouped_map.entry(gid).or_default().push(msg.id() as i64);
+        for (_gid, mut mids) in grouped_map {
+            if mids.len() == expected_count {
+                mids.sort();
+                let mut out = Vec::new();
+                for (i, &mid) in mids.iter().enumerate() {
+                    out.push(UploadStepResult {
+                        status: "done".into(),
+                        message_id: Some(mid),
+                        error: None,
+                        index: index_base + i,
+                        backend: Some(BACKEND.into()),
+                    });
+                }
+                tg_log::info(
+                    BACKEND,
+                    "album_worker_busy_recovered_by_grouped_id",
+                    format!("Successfully recovered {} album items by grouped_id from history (attempt {})", out.len(), attempt),
+                );
+                return Some(out);
+            }
         }
-    }
 
-    for (_gid, mut mids) in grouped_map {
-        if mids.len() == expected_count {
-            mids.sort();
+        // 2. Fallback: check recent media messages count
+        let mut media_mids: Vec<i64> = recent_msgs
+            .iter()
+            .filter(|m| m.media().is_some())
+            .map(|m| m.id() as i64)
+            .collect();
+
+        if media_mids.len() >= expected_count {
+            media_mids.truncate(expected_count);
+            media_mids.sort();
             let mut out = Vec::new();
-            for (i, &mid) in mids.iter().enumerate() {
+            for (i, &mid) in media_mids.iter().enumerate() {
                 out.push(UploadStepResult {
                     status: "done".into(),
                     message_id: Some(mid),
@@ -111,39 +141,11 @@ async fn try_recover_album_from_history(
             }
             tg_log::info(
                 BACKEND,
-                "album_worker_busy_recovered_by_grouped_id",
-                format!("Successfully recovered {} album items by grouped_id from history", out.len()),
+                "album_worker_busy_recovered_by_media_count",
+                format!("Successfully recovered {} album items by media count from history (attempt {})", out.len(), attempt),
             );
             return Some(out);
         }
-    }
-
-    // 2. Fallback: check recent media messages count
-    let mut media_mids: Vec<i64> = recent_msgs
-        .iter()
-        .filter(|m| m.media().is_some())
-        .map(|m| m.id() as i64)
-        .collect();
-
-    if media_mids.len() >= expected_count {
-        media_mids.truncate(expected_count);
-        media_mids.sort();
-        let mut out = Vec::new();
-        for (i, &mid) in media_mids.iter().enumerate() {
-            out.push(UploadStepResult {
-                status: "done".into(),
-                message_id: Some(mid),
-                error: None,
-                index: index_base + i,
-                backend: Some(BACKEND.into()),
-            });
-        }
-        tg_log::info(
-            BACKEND,
-            "album_worker_busy_recovered_by_media_count",
-            format!("Successfully recovered {} album items by media count from history", out.len()),
-        );
-        return Some(out);
     }
 
     None
@@ -157,49 +159,51 @@ async fn try_recover_single_file_from_history(
     caption: &str,
     index: usize,
 ) -> Option<UploadStepResult> {
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    for attempt in 1..=3 {
+        tokio::time::sleep(Duration::from_secs(2)).await;
 
-    tg_log::info(
-        BACKEND,
-        "single_upload_recovery_check_start",
-        format!("Checking history for chat={chat_id}"),
-    );
+        tg_log::info(
+            BACKEND,
+            "single_upload_recovery_check_start",
+            format!("Checking history for chat={chat_id} attempt={attempt}"),
+        );
 
-    let mut iter = client.iter_messages(peer).limit(10);
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64;
+        let mut iter = client.iter_messages(peer).limit(10);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
 
-    while let Ok(Some(msg)) = iter.next().await {
-        let msg_date = msg.date().timestamp();
-        if now - msg_date > 60 {
-            break;
-        }
+        while let Ok(Some(msg)) = iter.next().await {
+            let msg_date = msg.date().timestamp();
+            if now - msg_date > 90 {
+                break;
+            }
 
-        if let Some(tid) = topic_id {
-            if tid > 0 {
-                let msg_tid = message_topic_id(&msg);
-                if msg_tid != Some(tid) {
-                    continue;
+            if let Some(tid) = topic_id {
+                if tid > 0 {
+                    let msg_tid = message_topic_id(&msg);
+                    if msg_tid != Some(tid) {
+                        continue;
+                    }
                 }
             }
-        }
 
-        if msg.media().is_some() || (!caption.is_empty() && msg.text().contains(caption)) {
-            let mid = msg.id() as i64;
-            tg_log::info(
-                BACKEND,
-                "single_upload_worker_busy_recovered",
-                format!("Successfully recovered message_id={mid} from history"),
-            );
-            return Some(UploadStepResult {
-                status: "done".into(),
-                message_id: Some(mid),
-                error: None,
-                index,
-                backend: Some(BACKEND.into()),
-            });
+            if msg.media().is_some() || (!caption.is_empty() && msg.text().contains(caption)) {
+                let mid = msg.id() as i64;
+                tg_log::info(
+                    BACKEND,
+                    "single_upload_worker_busy_recovered",
+                    format!("Successfully recovered message_id={mid} from history (attempt {})", attempt),
+                );
+                return Some(UploadStepResult {
+                    status: "done".into(),
+                    message_id: Some(mid),
+                    error: None,
+                    index,
+                    backend: Some(BACKEND.into()),
+                });
+            }
         }
     }
 
