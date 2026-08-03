@@ -926,12 +926,13 @@ pub struct MoveMessagesResult {
     pub backend: String,
 }
 
-/// Forward messages to destination, then delete from source when requested.
+/// Forward messages to destination (including group topics), then delete from source when requested.
 pub fn move_messages_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
     source_chat: &str,
     dest_chat: &str,
+    dest_topic_id: Option<i64>,
     message_ids: &[i64],
     delete_source: bool,
 ) -> Result<MoveMessagesResult, TgError> {
@@ -963,11 +964,35 @@ pub fn move_messages_blocking(
                 }
                 let source = resolve_peer(client, &src).await?;
                 let dest = resolve_peer(client, &dst).await?;
-                let forwarded = client
-                    .forward_messages(dest, &ids, source)
-                    .await
-                    .map_err(|e| map_invocation(&e))?;
-                let moved = forwarded.iter().filter(|m| m.is_some()).count();
+                let to_peer: tl::enums::InputPeer = dest.into();
+                let from_peer: tl::enums::InputPeer = source.into();
+                let random_ids: Vec<i64> = (0..ids.len()).map(|_| rand::random()).collect();
+                let top_msg_id = dest_topic_id.filter(|&t| t > 0).map(|t| t as i32);
+                let req = tl::functions::messages::ForwardMessages {
+                    silent: false,
+                    background: false,
+                    with_my_score: false,
+                    drop_author: true, // Clean copy: remove 'Forwarded from' header tag
+                    drop_media_captions: false,
+                    noforwards: false,
+                    allow_paid_floodskip: false,
+                    suggested_post: None,
+                    to_peer,
+                    top_msg_id,
+                    id: ids.clone(),
+                    random_id: random_ids,
+                    from_peer,
+                    reply_to: None,
+                    schedule_date: None,
+                    schedule_repeat_period: None,
+                    send_as: None,
+                    quick_reply_shortcut: None,
+                    allow_paid_stars: None,
+                    video_timestamp: None,
+                    effect: None,
+                };
+                let _updates = client.invoke(&req).await.map_err(|e| map_invocation(&e))?;
+                let moved = ids.len();
                 if delete_source && moved > 0 {
                     let _ = client.delete_messages(source, &ids).await;
                 }
