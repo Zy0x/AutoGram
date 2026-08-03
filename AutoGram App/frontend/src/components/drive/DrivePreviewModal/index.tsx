@@ -4198,6 +4198,49 @@ export function DrivePreviewModal({
                   </div>
 
                   <div className="drive-preview-controls-right">
+                    {/* Speed menu button */}
+                    <div className="drive-quality-wrap">
+                      <button
+                        ref={rateBtnRef}
+                        type="button"
+                        className="drive-preview-control-btn"
+                        title={t("speedtest.tooltip_speed")}
+                        onClick={() => {
+                          setQualityOpen(false);
+                          setQualityMenuPos(null);
+                          setRateOpen((o) => {
+                            const next = !o;
+                            if (next) setRateMenuPos(placeMenuNear(rateBtnRef.current));
+                            else setRateMenuPos(null);
+                            return next;
+                          });
+                        }}
+                        aria-expanded={rateOpen}
+                        aria-haspopup="menu"
+                        aria-label={`Kecepatan putar: ${playbackRate}x`}
+                      >
+                        <Gauge size={16} />
+                        <span style={{ fontSize: '12px', fontWeight: 600, marginLeft: '3px' }}>{playbackRate}x</span>
+                      </button>
+                    </div>
+
+                    {/* Loop video toggle */}
+                    <button
+                      type="button"
+                      className={`drive-preview-control-btn${loopVideo ? ' is-active' : ''}`}
+                      title={
+                        loopVideo
+                          ? 'Loop aktif — video diputar lagi setelah selesai (klik untuk matikan)'
+                          : 'Loop: putar ulang otomatis setelah selesai'
+                      }
+                      aria-pressed={loopVideo}
+                      aria-label={loopVideo ? 'Matikan loop video' : 'Aktifkan loop video'}
+                      onClick={() => setLoopVideo((on) => !on)}
+                    >
+                      <Repeat size={16} className={loopVideo ? 'text-emerald-400' : ''} />
+                    </button>
+
+                    {/* Fullscreen toggle */}
                     <button
                       type="button"
                       onClick={toggleFullscreen}

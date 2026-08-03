@@ -9626,6 +9626,17 @@ body:has(.app-layout-drive-focus),
   cursor: pointer;
 }
 
+.drive-preview-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drive-preview-control-btn.is-active {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
 .drive-preview-time-label {
   font-family: monospace;
   font-size: 12px;
