@@ -272,10 +272,12 @@ pub fn upload_album_blocking(
                         ext.as_str(),
                         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                     );
-                    let is_image = matches!(
-                        ext.as_str(),
-                        "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp"
-                    );
+                    let is_photo = matches!(ext.as_str(), "jpg" | "jpeg" | "png");
+                    let is_image = is_photo
+                        || matches!(
+                            ext.as_str(),
+                            "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                        );
                     let path_str = path_buf.to_str().unwrap_or("");
                     let mut im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
@@ -310,7 +312,7 @@ pub fn upload_album_blocking(
                             }
                         }
                         doc_im
-                    } else if is_image {
+                    } else if is_photo {
                         im.photo(uploaded)
                     } else if is_video {
                         // Video: send as document with thumbnail + video attributes for Telegram preview
@@ -652,10 +654,12 @@ pub fn upload_file_blocking_topic_with_app(
                     ext.as_str(),
                     "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                 );
-                let is_image = matches!(
-                    ext.as_str(),
-                    "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp"
-                );
+                let is_photo = matches!(ext.as_str(), "jpg" | "jpeg" | "png");
+                let is_image = is_photo
+                    || matches!(
+                        ext.as_str(),
+                        "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                    );
                 let path_str = path_buf.to_str().unwrap_or("");
 
                 let mut msg = InputMessage::new()
@@ -690,7 +694,7 @@ pub fn upload_file_blocking_topic_with_app(
                         }
                     }
                     doc_msg
-                } else if is_image {
+                } else if is_photo {
                     msg.photo(uploaded)
                 } else if is_video {
                     // Video: send as document with thumbnail + video attributes for Telegram preview
