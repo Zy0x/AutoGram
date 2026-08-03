@@ -24,8 +24,6 @@ import {
   Gauge,
   Volume2,
   VolumeX,
-  Play,
-  Pause,
   PictureInPicture2,
   RefreshCw,
   Info,
@@ -554,10 +552,6 @@ export function DrivePreviewModal({
   // Video tools
   const [playbackRate, setPlaybackRate] = useState(1);
   const [muted, setMuted] = useState(false);
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(0);
-  const [videoIsPlaying, setVideoIsPlaying] = useState(false);
-  const [videoVolume, setVideoVolume] = useState(1);
   const [loopVideo, setLoopVideo] = useState(() => {
     try {
       return localStorage.getItem('drive.preview.loop') === '1';
@@ -2517,6 +2511,13 @@ export function DrivePreviewModal({
   const needsMediaTransform =
     Math.abs(zoom - 1) > 0.01 || rotation !== 0 || flipH || flipV || isDragging;
 
+  /** Counter-transform for native browser controls so player UI stays horizontal & right-side-up */
+  const videoControlsTransform = needsMediaTransform
+    ? `rotate(${(360 - rotation) % 360}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1}) scale(${
+        1 / (zoom || 1)
+      })`
+    : 'none';
+
   const togglePip = async () => {
     const v = videoRef.current;
     if (!v) {
@@ -3378,7 +3379,7 @@ export function DrivePreviewModal({
                 key={`vid-${file.id}-${quality}`}
                 src={activeSrc!}
                 poster={poster || gridThumb || undefined}
-                controls={!needsMediaTransform}
+                controls
                 playsInline
                 autoPlay
                 muted={muted}
@@ -3387,10 +3388,13 @@ export function DrivePreviewModal({
                 className={`drive-preview-media drive-preview-video${
                   hasVideoFrame ? ' is-ready' : ' is-booting'
                 }`}
-                style={{
-                  transform: needsMediaTransform ? mediaTransform : 'none',
-                  transformOrigin: 'center center',
-                }}
+                style={
+                  {
+                    transform: needsMediaTransform ? mediaTransform : 'none',
+                    transformOrigin: 'center center',
+                    '--video-controls-transform': videoControlsTransform,
+                  } as React.CSSProperties
+                }
                 onLoadedMetadata={() => {
                   const v = videoRef.current;
                   const t = resumeAtRef.current;
@@ -3408,9 +3412,6 @@ export function DrivePreviewModal({
                     v.loop = loopVideo;
                     setMediaWidth(v.videoWidth);
                     setMediaHeight(v.videoHeight);
-                    if (v.duration && Number.isFinite(v.duration)) {
-                      setVideoDuration(v.duration);
-                    }
                   }
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
@@ -3452,9 +3453,6 @@ export function DrivePreviewModal({
                       readyState: v.readyState,
                       currentTime: v.currentTime,
                     });
-                    if (v.duration && Number.isFinite(v.duration)) {
-                      setVideoDuration(v.duration);
-                    }
                   }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
@@ -3485,9 +3483,6 @@ export function DrivePreviewModal({
                       readyState: v.readyState,
                       currentTime: v.currentTime,
                     });
-                    if (v.duration && Number.isFinite(v.duration)) {
-                      setVideoDuration(v.duration);
-                    }
                   }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
@@ -3510,13 +3505,6 @@ export function DrivePreviewModal({
                   }
                 }}
                 onTimeUpdate={() => {
-                  const v = videoRef.current;
-                  if (v) {
-                    setVideoCurrentTime(v.currentTime);
-                    if (v.duration && Number.isFinite(v.duration)) {
-                      setVideoDuration(v.duration);
-                    }
-                  }
                   captureVideoFrame();
                 }}
                 onSeeking={() => {
@@ -3535,7 +3523,6 @@ export function DrivePreviewModal({
                   handleSeekJump();
                 }}
                 onEnded={() => {
-                  setVideoIsPlaying(false);
                   if (!loopVideo) return;
                   const v = videoRef.current;
                   if (!v) return;
@@ -3554,13 +3541,11 @@ export function DrivePreviewModal({
                   }
                 }}
                 onPlay={() => {
-                  setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   captureVideoFrame();
                   handlePlay();
                 }}
                 onPause={() => {
-                  setVideoIsPlaying(false);
                   const v = videoRef.current;
                   if (v && !v.error && !v.ended) {
                     userExplicitlyPausedRef.current = true;
@@ -3569,7 +3554,6 @@ export function DrivePreviewModal({
                   handlePause();
                 }}
                 onPlaying={() => {
-                  setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
                   setLoading(false);
@@ -3785,113 +3769,6 @@ export function DrivePreviewModal({
                     >
                       Buka File Asli
                     </button>
-                  </div>
-                </div>
-              )}
-              {needsMediaTransform && (
-                <div
-                  className="drive-video-custom-controls absolute inset-x-0 bottom-0 z-30 p-3 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent transition-opacity duration-300 pointer-events-auto flex flex-col gap-2 opacity-100 select-none font-sans"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  onDoubleClick={(e) => e.stopPropagation()}
-                >
-                  <div className="relative w-full flex items-center group/seek cursor-pointer">
-                    <input
-                      type="range"
-                      min={0}
-                      max={videoDuration || 100}
-                      step={0.1}
-                      value={videoCurrentTime}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setVideoCurrentTime(val);
-                        const v = videoRef.current;
-                        if (v) {
-                          userSeekPendingRef.current = true;
-                          v.currentTime = val;
-                          handleSeekJump();
-                        }
-                      }}
-                      className="w-full h-1.5 bg-slate-700/80 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:h-2 transition-all"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-slate-200 text-xs px-1">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const v = videoRef.current;
-                          if (!v) return;
-                          if (v.paused) {
-                            void v.play();
-                          } else {
-                            v.pause();
-                          }
-                        }}
-                        className="p-1.5 rounded-md hover:bg-white/15 text-slate-200 hover:text-white transition-colors"
-                        title={videoIsPlaying ? t('speedtest.preview_pause_hint') : t('speedtest.preview_play_hint')}
-                      >
-                        {videoIsPlaying ? <Pause size={16} /> : <Play size={16} className="fill-current" />}
-                      </button>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const v = videoRef.current;
-                            if (!v) return;
-                            v.muted = !muted;
-                            setMuted(!muted);
-                          }}
-                          className="p-1 text-slate-300 hover:text-white transition-colors"
-                          title={muted || videoVolume === 0 ? t('speedtest.preview_unmute_hint') : t('speedtest.preview_mute_hint')}
-                        >
-                          {muted || videoVolume === 0 ? (
-                            <VolumeX size={15} className="text-red-400" />
-                          ) : (
-                            <Volume2 size={15} />
-                          )}
-                        </button>
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          value={muted ? 0 : videoVolume}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            setVideoVolume(val);
-                            const v = videoRef.current;
-                            if (v) {
-                              v.volume = val;
-                              if (val > 0 && muted) {
-                                v.muted = false;
-                                setMuted(false);
-                              }
-                            }
-                          }}
-                          className="w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                        />
-                      </div>
-
-                      <div className="font-mono text-slate-300 text-[11px] ml-1">
-                        <span>{formatDriveDuration(videoCurrentTime)}</span>
-                        <span className="text-slate-500 mx-1">/</span>
-                        <span>{formatDriveDuration(videoDuration)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={toggleFullscreen}
-                        className="p-1.5 rounded-md hover:bg-white/15 text-slate-300 hover:text-white transition-colors"
-                        title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                      >
-                        {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}

@@ -9373,6 +9373,12 @@ body:has(.app-layout-drive-focus),
   position: relative;
   z-index: 1;
 }
+/* Counter-transform native browser controls on video rotate/flip/zoom */
+video.drive-preview-video::-webkit-media-controls-panel,
+video.drive-preview-video::-webkit-media-controls-enclosure {
+  transform: var(--video-controls-transform, none) !important;
+  transform-origin: center bottom !important;
+}
 /* While stream boots, keep native poster/black less jarring under fallback thumb */
 .drive-preview-video.is-booting {
   background: transparent;
