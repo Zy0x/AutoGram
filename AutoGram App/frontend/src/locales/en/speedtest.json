@@ -102,6 +102,7 @@
   "copy_topic_id": "Copy Topic ID",
   "delete_topic": "Delete Topic",
   "forum_topic_optional": "Forum Topic (optional)",
+  "forum_topic_general_all": "General / All Media (Main Chat)",
   "show_less": "Show less",
   "start_upload": "Start Upload",
   "minimize_panel": "Minimize panel",

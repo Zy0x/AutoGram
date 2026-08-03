@@ -5947,7 +5947,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
       fromFolderId: number | null,
       toFolderId: number | null,
       targetLabel: string,
-      meta?: { isForum?: boolean }
+      meta?: { isForum?: boolean; topicId?: number | null }
     ) => {
       try {
         (window as unknown as { __lastMoveReq?: unknown }).__lastMoveReq = {
@@ -5967,7 +5967,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         setError(!creds ? 'Session/API belum siap — pilih session dulu.' : 'Tidak ada file untuk dipindah.');
         return;
       }
-      if (sameDriveLocation(fromFolderId, toFolderId)) {
+      const hasDestTopic = meta?.topicId != null && Number(meta.topicId) > 0;
+      if (sameDriveLocation(fromFolderId, toFolderId) && !hasDestTopic && !meta?.isForum) {
         setStatusText('Sudah di lokasi ini — pilih chat/folder lain');
         setError(null);
         return;
@@ -5984,8 +5985,14 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         return f?.name || `msg_${id}`;
       });
       const chatMeta = toFolderId != null ? chats.find((c) => c.id === toFolderId) : null;
-      let isForum = !!(meta?.isForum || chatMeta?.is_forum);
-      const maybeNeedsTopics = isForum || chatMeta?.type === 'group';
+      let isForum = !!(meta?.isForum || chatMeta?.is_forum || hasDestTopic);
+      const maybeNeedsTopics =
+        isForum ||
+        !chatMeta ||
+        chatMeta.type === 'group' ||
+        chatMeta.type === 'supergroup' ||
+        chatMeta.type === 'channel' ||
+        toFolderId != null;
 
       const buildState = (topicsList: DriveTopic[], forum: boolean): DriveConfirmState => ({
         kind: 'move',
@@ -5993,6 +6000,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         detail: `→ ${targetLabel}`,
         isForum: forum,
         topics: topicsList,
+        initialTopicId: meta?.topicId ?? null,
         onConfirm: (choice: any) => {
           if (isTransferJobActive() || transfer.active || moveActiveRef.current) {
             setError('Transfer/pindah masih berjalan — Stop dulu di Transfer Manager.');
@@ -6002,10 +6010,10 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
           const moveChoice =
             choice && 'mode' in choice
               ? choice
-              : { mode: 'move' as const, topicId: null as number | null };
+              : { mode: 'move' as const, topicId: meta?.topicId ?? null as number | null };
           void moveMessageIds(messageIds, fromFolderId, toFolderId, targetLabel, {
             deleteSource: moveChoice.mode !== 'copy',
-            topicId: moveChoice.topicId ?? null,
+            topicId: moveChoice.topicId ?? meta?.topicId ?? null,
           });
         },
       });
@@ -6844,7 +6852,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
     // Abort sequential move/forward batch (not a worker job)
     cancelMoveBatch();
     await clearDriveTransferPause();
-    await cancelDriveJob();
+    await cancelDriveJob(transfer.jobKey);
     childRef.current?.dispose?.();
     childRef.current = null;
     if (wasMove && !wasDownload) {

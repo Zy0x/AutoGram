@@ -43,6 +43,8 @@ export type DriveConfirmState = {
   topics?: DriveTopic[];
   /** true when destination is a forum (even if topics list empty) */
   isForum?: boolean;
+  /** Optional pre-selected forum topic ID */
+  initialTopicId?: number | null;
   /** delete: file (default) vs folder channel [TD] vs forum topic */
   entity?: 'file' | 'folder' | 'topic';
   /**
@@ -67,12 +69,12 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
   const confirmRef = useRef<HTMLButtonElement>(null);
   const open = !!state;
   const [moveMode, setMoveMode] = useState<'move' | 'copy'>('move');
-  const [topicId, setTopicId] = useState<number | null>(null);
+  const [topicId, setTopicId] = useState<number | null>(state?.initialTopicId ?? null);
 
   useEffect(() => {
     if (!open || !state) return;
     setMoveMode('move');
-    setTopicId(null);
+    setTopicId(state.initialTopicId ?? null);
     const t = window.setTimeout(() => confirmRef.current?.focus(), 50);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -285,7 +287,7 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
                   onChange={(value) => setTopicId(value ? Number(value) : null)}
                   ariaLabel="Topik forum tujuan"
                   options={[
-                    { value: '', label: 'General / tanpa topik khusus' },
+                    { value: '', label: t('speedtest.forum_topic_general_all', { defaultValue: 'General / Semua media (Chat Utama)' }) },
                     ...topics.map((topic) => ({
                       value: String(topic.id),
                       label: topic.title || `Topik ${topic.id}`,
