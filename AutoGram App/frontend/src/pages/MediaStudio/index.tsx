@@ -6078,9 +6078,11 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
             ? names[0]
             : `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`,
         choices,
+        creds,
         onConfirm: (dest: any) => {
           void requestMoveToTarget(messageIds, peerId, dest.id, dest.label, {
             isForum: !!dest.isForum,
+            topicId: dest.topicId ?? null,
           });
         },
       });
