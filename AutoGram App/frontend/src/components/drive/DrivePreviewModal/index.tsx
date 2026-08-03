@@ -2433,36 +2433,54 @@ export function DrivePreviewModal({
     };
   }, [schedulePan, endPanDrag]);
 
-  // Native non-passive wheel listener for smooth mouse wheel + trackpad pinch zoom
+  // Native non-passive wheel listener attached to window for smooth mouse wheel + trackpad pinch zoom & pan
   useEffect(() => {
-    const stageEl = stageRef.current;
-    if (!stageEl) return;
-
     const handleNativeWheel = (e: WheelEvent) => {
       if (!showImage && !showVideo) return;
 
       const target = e.target as HTMLElement | null;
-      if (target?.closest('.drive-preview-video-controls-bar')) return;
+      if (!target) return;
+
+      // Ensure gesture is over preview modal backdrop or media stage
+      const backdrop = target.closest('.drive-preview-backdrop');
+      if (!backdrop) return;
+
+      // Skip controls bar, text box, or toolbar
+      if (target.closest('.drive-preview-video-controls-bar, .drive-preview-text-box, .drive-preview-toolbar')) {
+        return;
+      }
 
       e.preventDefault();
       e.stopPropagation();
 
+      // Normalize deltas across pixel/line/page modes
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      const dx = e.deltaMode === 1 ? e.deltaX * 16 : e.deltaMode === 2 ? e.deltaX * 400 : e.deltaX;
 
-      if (e.ctrlKey || Math.abs(dy) < 40) {
-        const zoomFactor = Math.exp(-dy * 0.0035);
+      if (e.ctrlKey || e.metaKey) {
+        // Trackpad 2-finger PINCH-TO-ZOOM: dy > 0 (pinch in -> zoom out), dy < 0 (pinch out -> zoom in)
+        const zoomFactor = Math.pow(0.99, dy);
         const targetZoom = clamp(zoomRef.current * zoomFactor, MIN_ZOOM, MAX_ZOOM);
         applyZoomAt(targetZoom, { x: e.clientX, y: e.clientY });
+      } else if (zoomRef.current > 1.01) {
+        // Zoomed in: 2-finger trackpad movement PANS the image/video
+        const p = panRef.current;
+        const maxPan = Math.max(400, 1200 * zoomRef.current);
+        const nx = clamp(p.x - dx, -maxPan, maxPan);
+        const ny = clamp(p.y - dy, -maxPan, maxPan);
+        setPan({ x: nx, y: ny });
+        panRef.current = { x: nx, y: ny };
       } else {
+        // Standard Mouse Scroll Wheel (discrete step zoom)
         const steps = Math.max(1, Math.min(4, Math.round(Math.abs(dy) / 80)));
         const dir = dy > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
         zoomBy(dir, { x: e.clientX, y: e.clientY });
       }
     };
 
-    stageEl.addEventListener('wheel', handleNativeWheel, { passive: false });
+    window.addEventListener('wheel', handleNativeWheel, { passive: false });
     return () => {
-      stageEl.removeEventListener('wheel', handleNativeWheel);
+      window.removeEventListener('wheel', handleNativeWheel);
     };
   }, [showImage, showVideo, applyZoomAt, zoomBy]);
 
