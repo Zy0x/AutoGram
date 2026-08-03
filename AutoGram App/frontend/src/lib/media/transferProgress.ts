@@ -504,7 +504,7 @@ export function applyTransferEvent(
     const err = str(p.error || '');
     const name = basename(str(p.path || p.file_name || ''));
     const size = num(p.size, 0);
-    const mid = num(p.message_id, 0);
+    const mid = num(p.message_id ?? p.messageId, 0);
     const prev = session.items[index];
     // Never downgrade a successful item to failed — even if messageId was not
     // stored yet (StudioItemDone done without mid), or mid arrives with failed.

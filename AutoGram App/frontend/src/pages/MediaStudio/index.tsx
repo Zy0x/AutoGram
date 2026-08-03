@@ -5884,6 +5884,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
               index: i,
               status: 'done',
               messageId: id,
+              message_id: id,
             })
           );
         } catch (e: any) {
