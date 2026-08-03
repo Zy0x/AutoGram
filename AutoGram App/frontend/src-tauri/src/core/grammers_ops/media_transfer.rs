@@ -206,6 +206,37 @@ async fn try_recover_single_file_from_history(
     None
 }
 
+fn is_real_photo(path: &Path, ext: &str) -> bool {
+    let matches_ext = matches!(ext, "jpg" | "jpeg" | "png");
+    if !matches_ext {
+        return false;
+    }
+    let mut file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    use std::io::Read;
+    let mut header = [0u8; 8];
+    let n = file.read(&mut header).unwrap_or(0);
+    if n < 3 {
+        return false;
+    }
+    // JPEG magic bytes: 0xFF, 0xD8, 0xFF
+    let is_jpeg = header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF;
+    // PNG magic bytes: 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+    let is_png = n >= 8
+        && header[0] == 0x89
+        && header[1] == 0x50
+        && header[2] == 0x4E
+        && header[3] == 0x47
+        && header[4] == 0x0D
+        && header[5] == 0x0A
+        && header[6] == 0x1A
+        && header[7] == 0x0A;
+
+    is_jpeg || is_png
+}
+
 fn infer_mime_type(ext: &str, is_image: bool, is_video: bool) -> &'static str {
     match ext {
         "jpg" | "jpeg" => "image/jpeg",
@@ -313,21 +344,23 @@ pub fn upload_album_blocking(
                         ext.as_str(),
                         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                     );
-                    let is_photo = matches!(ext.as_str(), "jpg" | "jpeg" | "png");
+                    let is_photo = is_real_photo(path_buf, &ext);
                     let is_image = is_photo
                         || matches!(
                             ext.as_str(),
-                            "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                            "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
                         );
                     let mime = infer_mime_type(&ext, is_image, is_video);
                     let path_str = path_buf.to_str().unwrap_or("");
-                    let mut im =
+                    let im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
                     // Forum topic: only first media carries reply_to
-                    if i == 0 {
-                        im = im.reply_to(reply_to);
-                    }
-                    im = if as_document {
+                    let im = if i == 0 {
+                        im.reply_to(reply_to)
+                    } else {
+                        im
+                    };
+                    let final_media = if as_document {
                         let mut doc_im = im.mime_type(mime).document(uploaded);
                         if is_video {
                             let (vid_w, vid_h, vid_dur) = probe_video_metadata(path_str);
@@ -394,7 +427,7 @@ pub fn upload_album_blocking(
                         doc_im
                     };
                     let _ = silent;
-                    medias.push(im);
+                    medias.push(final_media);
                     tg_log::info(
                         BACKEND,
                         "album_upload_part",
@@ -696,11 +729,11 @@ pub fn upload_file_blocking_topic_with_app(
                     ext.as_str(),
                     "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "ts" | "flv"
                 );
-                let is_photo = matches!(ext.as_str(), "jpg" | "jpeg" | "png");
+                let is_photo = is_real_photo(&path_buf, &ext);
                 let is_image = is_photo
                     || matches!(
                         ext.as_str(),
-                        "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
+                        "jpg" | "jpeg" | "png" | "webp" | "gif" | "bmp" | "jfif" | "svg" | "heic" | "heif" | "avif"
                     );
                 let mime = infer_mime_type(&ext, is_image, is_video);
                 let path_str = path_buf.to_str().unwrap_or("");
