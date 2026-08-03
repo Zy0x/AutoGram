@@ -115,17 +115,16 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
       const res = await driveListTopics(state.creds, c.id);
       const topicsList = (res?.topics || []) as DriveTopic[];
       const isForum = !!(res?.is_forum || topicsList.length > 0 || c.isForum);
-      if (isForum || c.isForum || c.type === 'group' || c.type === 'supergroup') {
-        // Always show topic sub-view for groups/forums so user can pick General or a topic.
-        // If backend returned is_forum=false or empty topics, still allow General.
+      // Show topic sub-view for: forum groups, groups, supergroups, AND any drive folder.
+      // Drive folders always need topic selection (General minimum) regardless of is_forum flag.
+      if (isForum || c.isForum || c.type === 'group' || c.type === 'supergroup' || c.kind === 'drive') {
         setTopicSubView({ choice: { ...c, isForum: isForum || !!c.isForum }, topics: topicsList });
       } else {
         pick({ ...c, isForum: false, topicId: null });
       }
     } catch {
-      // On error, still show topic sub-view with empty list so user can pick General.
-      // Don't silently skip to the confirm dialog.
-      if (c.isForum || c.type === 'group' || c.type === 'supergroup') {
+      // On API error: still show sub-view for drive/group/forum so user can pick General.
+      if (c.isForum || c.type === 'group' || c.type === 'supergroup' || c.kind === 'drive') {
         setTopicSubView({ choice: { ...c, isForum: !!c.isForum }, topics: [] });
       } else {
         pick(c);
