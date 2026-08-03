@@ -349,12 +349,13 @@ export function mapDialogToChat(d: {
 }) {
   const title = String(d.title || d.id);
   const isTd = title.includes('[TD]');
+  const isGroup = d.isGroup === true || (d.isChannel && d.isForum === true);
   const type = d.isUser
     ? 'user'
-    : d.isChannel
-      ? 'channel'
-      : d.isGroup
-        ? 'group'
+    : isGroup
+      ? 'group'
+      : d.isChannel
+        ? 'channel'
         : 'unknown';
   // Unknown forum flag must stay undefined/true-path — never hard-false unless
   // backend said so (false skips topic RPC and leaves Groups without topics).

@@ -5444,12 +5444,16 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
       { id: null, label: 'Saved Messages', isForum: false, kind: 'saved' },
       ...folders
         .filter((f) => f.id !== peerId)
-        .map((f) => ({
-          id: f.id as number | null,
-          label: f.name,
-          isForum: false,
-          kind: 'drive' as const,
-        })),
+        .map((f) => {
+          const match = chats.find((c) => c.id === f.id);
+          return {
+            id: f.id as number | null,
+            label: f.name,
+            isForum: !!match?.is_forum,
+            kind: 'drive' as const,
+            type: match?.type || 'drive',
+          };
+        }),
       ...chats
         .filter((c) => c.id !== peerId)
         .slice(0, 120)

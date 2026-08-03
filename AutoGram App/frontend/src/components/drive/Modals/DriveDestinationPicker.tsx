@@ -91,11 +91,11 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     if (c.kind === 'saved') {
       return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
     }
-    if (c.kind === 'drive') {
-      return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
-    }
     if (c.isForum) {
       return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
+    }
+    if (c.kind === 'drive') {
+      return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
     }
     if (c.type === 'group') {
       return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
