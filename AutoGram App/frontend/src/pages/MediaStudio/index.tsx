@@ -5458,6 +5458,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
           label: c.name,
           isForum: !!c.is_forum,
           kind: 'chat' as const,
+          type: c.type,
         })),
     ];
   }, [folders, chats, peerId]);
@@ -5994,11 +5995,12 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         chatMeta.type === 'channel' ||
         toFolderId != null;
 
-      const buildState = (topicsList: DriveTopic[], forum: boolean): DriveConfirmState => ({
+      const buildState = (topicsList: DriveTopic[], forum: boolean, topicLoading = false): DriveConfirmState => ({
         kind: 'move',
         names,
         detail: `→ ${targetLabel}`,
         isForum: forum,
+        isTopicLoading: topicLoading,
         topics: topicsList,
         initialTopicId: meta?.topicId ?? null,
         onConfirm: (choice: any) => {
@@ -6023,7 +6025,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         openDriveMoveConfirm(s);
         setConfirmDlg(s);
       };
-      openMoveDlg(buildState([], isForum));
+      const initialTopicLoading = toFolderId != null && maybeNeedsTopics && !isForum;
+      openMoveDlg(buildState([], isForum, initialTopicLoading));
       setStatusText('Siap');
       try {
         (window as unknown as { __lastMoveReq?: Record<string, unknown> }).__lastMoveReq = {
@@ -6041,12 +6044,10 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         try {
           const res = await driveListTopics(creds, toFolderId);
           const topicsList = (res?.topics || []) as DriveTopic[];
-          if (res?.is_forum || topicsList.length) isForum = true;
-          if (topicsList.length || isForum) {
-            openMoveDlg(buildState(topicsList, isForum));
-          }
+          const forum = !!(res?.is_forum || topicsList.length || isForum);
+          openMoveDlg(buildState(topicsList, forum, false));
         } catch {
-          /* keep dialog without topics */
+          openMoveDlg(buildState([], isForum, false));
         }
       }
     },

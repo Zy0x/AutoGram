@@ -43,6 +43,8 @@ export type DriveConfirmState = {
   topics?: DriveTopic[];
   /** true when destination is a forum (even if topics list empty) */
   isForum?: boolean;
+  /** true while topics are loading asynchronously */
+  isTopicLoading?: boolean;
   /** Optional pre-selected forum topic ID */
   initialTopicId?: number | null;
   /** delete: file (default) vs folder channel [TD] vs forum topic */
@@ -278,25 +280,32 @@ export function DriveConfirmDialog({ state, onClose }: Props) {
               </button>
             </div>
 
-            {state.isForum && (
+            {(state.isForum || state.isTopicLoading) && (
               <label className="td-confirm-topic">
                 <span>{t('speedtest.forum_topic_optional')}</span>
-                <MediaSelect
-                  className="td-confirm-topic-select"
-                  value={topicId == null ? '' : String(topicId)}
-                  onChange={(value) => setTopicId(value ? Number(value) : null)}
-                  ariaLabel="Topik forum tujuan"
-                  options={[
-                    { value: '', label: t('speedtest.forum_topic_general_all', { defaultValue: 'General / Semua media (Chat Utama)' }) },
-                    ...topics.map((topic) => ({
-                      value: String(topic.id),
-                      label: topic.title || `Topik ${topic.id}`,
-                      description: topic.closed ? 'Topik ditutup' : undefined,
-                      disabled: !!topic.closed,
-                    })),
-                  ]}
-                />
-                {!topics.length && (
+                {state.isTopicLoading ? (
+                  <div className="td-confirm-topic-loading" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '13px', color: 'var(--td-text-muted, #94a3b8)' }}>
+                    <span className="td-spinner-sm" />
+                    <span>{t('speedtest.loading_forum_topics')}</span>
+                  </div>
+                ) : (
+                  <MediaSelect
+                    className="td-confirm-topic-select"
+                    value={topicId == null ? '' : String(topicId)}
+                    onChange={(value) => setTopicId(value ? Number(value) : null)}
+                    ariaLabel="Topik forum tujuan"
+                    options={[
+                      { value: '', label: t('speedtest.forum_topic_general_all', { defaultValue: 'General / Semua media (Chat Utama)' }) },
+                      ...topics.map((topic) => ({
+                        value: String(topic.id),
+                        label: topic.title || `Topik ${topic.id}`,
+                        description: topic.closed ? t('speedtest.topic_closed', { defaultValue: 'Topik ditutup' }) : undefined,
+                        disabled: !!topic.closed,
+                      })),
+                    ]}
+                  />
+                )}
+                {!state.isTopicLoading && !topics.length && (
                   <span className="td-confirm-topic-empty">
                     Daftar topik kosong — kirim ke general chat.
                   </span>

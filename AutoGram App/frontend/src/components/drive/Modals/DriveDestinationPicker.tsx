@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 /**
  * Destination picker for Media Studio (move / send).
  * Replaces native window.prompt with numbered list.
@@ -6,13 +6,14 @@ import i18n from 'i18next';
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Folder, FolderInput, Home, MessageSquare, Search, X } from 'lucide-react';
+import { Bot, Folder, FolderInput, Hash, Home, Megaphone, MessageSquare, Search, Users, X } from 'lucide-react';
 
 export type DriveDestChoice = {
   id: number | null;
   label: string;
   isForum?: boolean;
   kind?: 'saved' | 'drive' | 'chat';
+  type?: 'user' | 'group' | 'channel' | 'bot' | 'unknown' | string;
 };
 
 export type DriveDestPickerState = {
@@ -27,13 +28,18 @@ type Props = {
   onClose: () => void;
 };
 
-function kindIcon(kind?: DriveDestChoice['kind']) {
-  if (kind === 'saved') return <Home size={15} />;
-  if (kind === 'drive') return <Folder size={15} />;
+function kindIcon(c: DriveDestChoice) {
+  if (c.kind === 'saved') return <Home size={15} />;
+  if (c.kind === 'drive') return <Folder size={15} />;
+  if (c.isForum) return <Hash size={15} />;
+  if (c.type === 'group') return <Users size={15} />;
+  if (c.type === 'channel') return <Megaphone size={15} />;
+  if (c.type === 'bot') return <Bot size={15} />;
   return <MessageSquare size={15} />;
 }
 
 export function DriveDestinationPicker({ state, onClose }: Props) {
+  const { t } = useTranslation();
   const searchRef = useRef<HTMLInputElement>(null);
   const open = !!state;
   const [query, setQuery] = useState('');
@@ -43,7 +49,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     if (!open || !state) return;
     setQuery('');
     setSelectedIdx(0);
-    const t = window.setTimeout(() => searchRef.current?.focus(), 40);
+    const timeoutId = window.setTimeout(() => searchRef.current?.focus(), 40);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -52,7 +58,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      window.clearTimeout(t);
+      window.clearTimeout(timeoutId);
       window.removeEventListener('keydown', onKey);
     };
   }, [open, state, onClose]);
@@ -79,6 +85,28 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
   const confirmSelected = () => {
     const c = filtered[selectedIdx];
     if (c) pick(c);
+  };
+
+  const renderBadge = (c: DriveDestChoice) => {
+    if (c.kind === 'saved') {
+      return <span className="td-dest-badge saved">{t('speedtest.dest_badge_saved')}</span>;
+    }
+    if (c.kind === 'drive') {
+      return <span className="td-dest-badge td">{t('speedtest.dest_badge_drive')}</span>;
+    }
+    if (c.isForum) {
+      return <span className="td-dest-badge forum">{t('speedtest.dest_badge_forum')}</span>;
+    }
+    if (c.type === 'group') {
+      return <span className="td-dest-badge group">{t('speedtest.dest_badge_group')}</span>;
+    }
+    if (c.type === 'channel') {
+      return <span className="td-dest-badge channel">{t('speedtest.dest_badge_channel')}</span>;
+    }
+    if (c.type === 'bot') {
+      return <span className="td-dest-badge bot">{t('speedtest.dest_badge_bot')}</span>;
+    }
+    return <span className="td-dest-badge user">{t('speedtest.dest_badge_user')}</span>;
   };
 
   const node = (
@@ -113,7 +141,7 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
             className="td-dest-search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={i18n.t("speedtest.ph_search_chat_folder")}
+            placeholder={t('speedtest.ph_search_chat_folder')}
             aria-label="Cari tujuan"
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown') {
@@ -147,13 +175,12 @@ export function DriveDestinationPicker({ state, onClose }: Props) {
                   onMouseEnter={() => setSelectedIdx(i)}
                 >
                   <span className="td-dest-ico" aria-hidden>
-                    {kindIcon(c.kind)}
+                    {kindIcon(c)}
                   </span>
                   <span className="td-dest-label" title={c.label}>
                     {c.label}
                   </span>
-                  {c.isForum && <span className="td-dest-badge">Forum</span>}
-                  {c.kind === 'drive' && <span className="td-dest-badge td">TD</span>}
+                  {renderBadge(c)}
                 </button>
               </li>
             );

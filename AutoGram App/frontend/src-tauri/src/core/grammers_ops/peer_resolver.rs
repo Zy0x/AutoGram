@@ -124,8 +124,9 @@ pub fn list_dialogs_blocking(
                         let (is_user, is_channel, is_group, is_forum) = match &peer {
                             grammers_client::peer::Peer::User(_) => (true, false, false, false),
                             grammers_client::peer::Peer::Channel(ch) => {
-                                // Broadcast channel
-                                (false, true, false, ch.raw.forum)
+                                let is_megagroup = ch.raw.megagroup;
+                                let is_forum = ch.raw.forum;
+                                (false, !is_megagroup, is_megagroup, is_forum)
                             }
                             grammers_client::peer::Peer::Group(g) => {
                                 use grammers_client::tl::enums::Chat as C;
