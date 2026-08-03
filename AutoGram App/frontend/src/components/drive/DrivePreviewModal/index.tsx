@@ -24,6 +24,8 @@ import {
   Gauge,
   Volume2,
   VolumeX,
+  Play,
+  Pause,
   PictureInPicture2,
   RefreshCw,
   Info,
@@ -552,6 +554,10 @@ export function DrivePreviewModal({
   // Video tools
   const [playbackRate, setPlaybackRate] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoIsPlaying, setVideoIsPlaying] = useState(false);
+  const [videoVolume, setVideoVolume] = useState(1);
   const [loopVideo, setLoopVideo] = useState(() => {
     try {
       return localStorage.getItem('drive.preview.loop') === '1';
@@ -2511,13 +2517,6 @@ export function DrivePreviewModal({
   const needsMediaTransform =
     Math.abs(zoom - 1) > 0.01 || rotation !== 0 || flipH || flipV || isDragging;
 
-  /** Counter-transform for native browser controls so player UI stays horizontal & right-side-up */
-  const videoControlsTransform = needsMediaTransform
-    ? `rotate(${(360 - rotation) % 360}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1}) scale(${
-        1 / (zoom || 1)
-      })`
-    : 'none';
-
   const togglePip = async () => {
     const v = videoRef.current;
     if (!v) {
@@ -3379,7 +3378,7 @@ export function DrivePreviewModal({
                 key={`vid-${file.id}-${quality}`}
                 src={activeSrc!}
                 poster={poster || gridThumb || undefined}
-                controls
+                controls={false}
                 playsInline
                 autoPlay
                 muted={muted}
@@ -3388,13 +3387,10 @@ export function DrivePreviewModal({
                 className={`drive-preview-media drive-preview-video${
                   hasVideoFrame ? ' is-ready' : ' is-booting'
                 }`}
-                style={
-                  {
-                    transform: needsMediaTransform ? mediaTransform : 'none',
-                    transformOrigin: 'center center',
-                    '--video-controls-transform': videoControlsTransform,
-                  } as React.CSSProperties
-                }
+                style={{
+                  transform: needsMediaTransform ? mediaTransform : 'none',
+                  transformOrigin: 'center center',
+                }}
                 onLoadedMetadata={() => {
                   const v = videoRef.current;
                   const t = resumeAtRef.current;
@@ -3412,6 +3408,9 @@ export function DrivePreviewModal({
                     v.loop = loopVideo;
                     setMediaWidth(v.videoWidth);
                     setMediaHeight(v.videoHeight);
+                    if (v.duration && Number.isFinite(v.duration)) {
+                      setVideoDuration(v.duration);
+                    }
                   }
                   if (v && t > 0.5 && Number.isFinite(v.duration) && t < v.duration) {
                     try {
@@ -3453,6 +3452,9 @@ export function DrivePreviewModal({
                       readyState: v.readyState,
                       currentTime: v.currentTime,
                     });
+                    if (v.duration && Number.isFinite(v.duration)) {
+                      setVideoDuration(v.duration);
+                    }
                   }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
@@ -3483,6 +3485,9 @@ export function DrivePreviewModal({
                       readyState: v.readyState,
                       currentTime: v.currentTime,
                     });
+                    if (v.duration && Number.isFinite(v.duration)) {
+                      setVideoDuration(v.duration);
+                    }
                   }
                   if (streamTimeoutRef.current != null) {
                     window.clearTimeout(streamTimeoutRef.current);
@@ -3500,11 +3505,22 @@ export function DrivePreviewModal({
                       setMuted(true);
                       void v.play().then(() => {
                         hasUserPlayRef.current = true;
+                        userExplicitlyPausedRef.current = false;
+                        setHasVideoFrame(true);
+                        setPlayerHint(null);
+                        setLoading(false);
                       }).catch(() => undefined);
                     });
                   }
                 }}
                 onTimeUpdate={() => {
+                  const v = videoRef.current;
+                  if (v) {
+                    setVideoCurrentTime(v.currentTime);
+                    if (v.duration && Number.isFinite(v.duration)) {
+                      setVideoDuration(v.duration);
+                    }
+                  }
                   captureVideoFrame();
                 }}
                 onSeeking={() => {
@@ -3523,6 +3539,7 @@ export function DrivePreviewModal({
                   handleSeekJump();
                 }}
                 onEnded={() => {
+                  setVideoIsPlaying(false);
                   if (!loopVideo) return;
                   const v = videoRef.current;
                   if (!v) return;
@@ -3541,11 +3558,13 @@ export function DrivePreviewModal({
                   }
                 }}
                 onPlay={() => {
+                  setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   captureVideoFrame();
                   handlePlay();
                 }}
                 onPause={() => {
+                  setVideoIsPlaying(false);
                   const v = videoRef.current;
                   if (v && !v.error && !v.ended) {
                     userExplicitlyPausedRef.current = true;
@@ -3554,6 +3573,7 @@ export function DrivePreviewModal({
                   handlePause();
                 }}
                 onPlaying={() => {
+                  setVideoIsPlaying(true);
                   userExplicitlyPausedRef.current = false;
                   setHasVideoFrame(true);
                   setLoading(false);
@@ -3772,6 +3792,126 @@ export function DrivePreviewModal({
                   </div>
                 </div>
               )}
+              {/* Custom video controls bar (untransformed, pinned to bottom of media wrapper) */}
+              <div
+                className="drive-preview-video-controls-bar"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
+                {/* Progress seek bar track */}
+                <div className="drive-preview-seek-container">
+                  <div className="drive-preview-seek-track">
+                    <div
+                      className="drive-preview-seek-fill"
+                      style={{
+                        width: `${
+                          videoDuration > 0
+                            ? Math.min(100, Math.max(0, (videoCurrentTime / videoDuration) * 100))
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={videoDuration || 100}
+                    step={0.1}
+                    value={videoCurrentTime}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setVideoCurrentTime(val);
+                      const v = videoRef.current;
+                      if (v) {
+                        userSeekPendingRef.current = true;
+                        v.currentTime = val;
+                        handleSeekJump();
+                      }
+                    }}
+                    className="drive-preview-seek-input"
+                  />
+                </div>
+
+                {/* Bottom control row */}
+                <div className="drive-preview-controls-row">
+                  <div className="drive-preview-controls-left">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = videoRef.current;
+                        if (!v) return;
+                        if (v.paused) {
+                          void v.play();
+                        } else {
+                          v.pause();
+                        }
+                      }}
+                      className="drive-preview-control-btn"
+                      title={videoIsPlaying ? t('speedtest.preview_pause_hint') : t('speedtest.preview_play_hint')}
+                    >
+                      {videoIsPlaying ? <Pause size={18} /> : <Play size={18} className="fill-current" />}
+                    </button>
+
+                    <div className="drive-preview-volume-group">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const v = videoRef.current;
+                          if (!v) return;
+                          v.muted = !muted;
+                          setMuted(!muted);
+                        }}
+                        className="drive-preview-control-btn"
+                        title={muted || videoVolume === 0 ? t('speedtest.preview_unmute_hint') : t('speedtest.preview_mute_hint')}
+                      >
+                        {muted || videoVolume === 0 ? (
+                          <VolumeX size={16} className="text-red-400" />
+                        ) : (
+                          <Volume2 size={16} />
+                        )}
+                      </button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={muted ? 0 : videoVolume}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setVideoVolume(val);
+                          const v = videoRef.current;
+                          if (v) {
+                            v.volume = val;
+                            if (val > 0 && muted) {
+                              v.muted = false;
+                              setMuted(false);
+                            }
+                          }
+                        }}
+                        className="drive-preview-volume-slider"
+                      />
+                    </div>
+
+                    <div className="drive-preview-time-label">
+                      <span className="active">{formatDriveDuration(videoCurrentTime)}</span>
+                      <span> / </span>
+                      <span>{formatDriveDuration(videoDuration)}</span>
+                    </div>
+                  </div>
+
+                  <div className="drive-preview-controls-right">
+                    <button
+                      type="button"
+                      onClick={toggleFullscreen}
+                      className="drive-preview-control-btn"
+                      title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                    >
+                      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
