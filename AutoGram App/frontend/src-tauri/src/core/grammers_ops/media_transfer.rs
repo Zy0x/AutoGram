@@ -42,6 +42,170 @@ use super::session_auth::*;
 /// Local multi-file album (2–10 items per Telegram limit). Photos preferred; documents when as_document.
 /// `topic_id` = forum top message id for reply_to (optional).
 /// `index_base` offsets result indices when chunking larger albums.
+async fn try_recover_album_from_history(
+    client: &Client,
+    peer: grammers_session::types::PeerRef,
+    chat_id: &str,
+    topic_id: Option<i64>,
+    expected_count: usize,
+    index_base: usize,
+) -> Option<Vec<UploadStepResult>> {
+    tokio::time::sleep(Duration::from_secs(2)).await;
+
+    tg_log::info(
+        BACKEND,
+        "album_recovery_check_start",
+        format!("Checking history for chat={chat_id} expected_count={expected_count}"),
+    );
+
+    let mut iter = client.iter_messages(peer).limit(30);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let mut recent_msgs = Vec::new();
+
+    while let Ok(Some(msg)) = iter.next().await {
+        let msg_date = msg.date().timestamp();
+        if now - msg_date > 120 {
+            break;
+        }
+
+        if let Some(tid) = topic_id {
+            if tid > 0 {
+                let msg_tid = message_topic_id(&msg);
+                if msg_tid != Some(tid) {
+                    continue;
+                }
+            }
+        }
+
+        recent_msgs.push(msg);
+    }
+
+    if recent_msgs.is_empty() {
+        return None;
+    }
+
+    // 1. Group recent messages by grouped_id
+    let mut grouped_map: HashMap<i64, Vec<i64>> = HashMap::new();
+    for msg in &recent_msgs {
+        if let Some(gid) = msg.grouped_id() {
+            grouped_map.entry(gid).or_default().push(msg.id() as i64);
+        }
+    }
+
+    for (_gid, mut mids) in grouped_map {
+        if mids.len() == expected_count {
+            mids.sort();
+            let mut out = Vec::new();
+            for (i, &mid) in mids.iter().enumerate() {
+                out.push(UploadStepResult {
+                    status: "done".into(),
+                    message_id: Some(mid),
+                    error: None,
+                    index: index_base + i,
+                    backend: Some(BACKEND.into()),
+                });
+            }
+            tg_log::info(
+                BACKEND,
+                "album_worker_busy_recovered_by_grouped_id",
+                format!("Successfully recovered {} album items by grouped_id from history", out.len()),
+            );
+            return Some(out);
+        }
+    }
+
+    // 2. Fallback: check recent media messages count
+    let mut media_mids: Vec<i64> = recent_msgs
+        .iter()
+        .filter(|m| m.media().is_some())
+        .map(|m| m.id() as i64)
+        .collect();
+
+    if media_mids.len() >= expected_count {
+        media_mids.truncate(expected_count);
+        media_mids.sort();
+        let mut out = Vec::new();
+        for (i, &mid) in media_mids.iter().enumerate() {
+            out.push(UploadStepResult {
+                status: "done".into(),
+                message_id: Some(mid),
+                error: None,
+                index: index_base + i,
+                backend: Some(BACKEND.into()),
+            });
+        }
+        tg_log::info(
+            BACKEND,
+            "album_worker_busy_recovered_by_media_count",
+            format!("Successfully recovered {} album items by media count from history", out.len()),
+        );
+        return Some(out);
+    }
+
+    None
+}
+
+async fn try_recover_single_file_from_history(
+    client: &Client,
+    peer: grammers_session::types::PeerRef,
+    chat_id: &str,
+    topic_id: Option<i64>,
+    caption: &str,
+    index: usize,
+) -> Option<UploadStepResult> {
+    tokio::time::sleep(Duration::from_secs(2)).await;
+
+    tg_log::info(
+        BACKEND,
+        "single_upload_recovery_check_start",
+        format!("Checking history for chat={chat_id}"),
+    );
+
+    let mut iter = client.iter_messages(peer).limit(10);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    while let Ok(Some(msg)) = iter.next().await {
+        let msg_date = msg.date().timestamp();
+        if now - msg_date > 60 {
+            break;
+        }
+
+        if let Some(tid) = topic_id {
+            if tid > 0 {
+                let msg_tid = message_topic_id(&msg);
+                if msg_tid != Some(tid) {
+                    continue;
+                }
+            }
+        }
+
+        if msg.media().is_some() || (!caption.is_empty() && msg.text().contains(caption)) {
+            let mid = msg.id() as i64;
+            tg_log::info(
+                BACKEND,
+                "single_upload_worker_busy_recovered",
+                format!("Successfully recovered message_id={mid} from history"),
+            );
+            return Some(UploadStepResult {
+                status: "done".into(),
+                message_id: Some(mid),
+                error: None,
+                index,
+                backend: Some(BACKEND.into()),
+            });
+        }
+    }
+
+    None
+}
+
 pub fn upload_album_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -197,10 +361,42 @@ pub fn upload_album_blocking(
                         ),
                     );
                 }
-                let sent = client
-                    .send_album(peer, medias)
-                    .await
-                    .map_err(|e| map_invocation(&e))?;
+
+                let sent_res = client.send_album(peer, medias).await;
+                let sent = match sent_res {
+                    Ok(s) => s,
+                    Err(e) => {
+                        let mapped = map_invocation(&e);
+                        let is_busy = mapped.user_message().contains("WORKER_BUSY")
+                            || mapped.user_message().contains("500")
+                            || mapped.retryable();
+
+                        if is_busy {
+                            tg_log::warn(
+                                BACKEND,
+                                "album_send_worker_busy",
+                                format!(
+                                    "send_album RPC 500 / WORKER_BUSY hit: {}. Checking history...",
+                                    mapped.user_message()
+                                ),
+                            );
+                            if let Some(recovered) = try_recover_album_from_history(
+                                client,
+                                peer,
+                                &chat,
+                                topic_id,
+                                items.len(),
+                                index_base,
+                            )
+                            .await
+                            {
+                                return Ok(recovered);
+                            }
+                        }
+                        return Err(mapped);
+                    }
+                };
+
                 let mut out = Vec::new();
                 for (i, msg) in sent.into_iter().enumerate() {
                     let mid = msg.as_ref().map(|m| m.id() as i64);
@@ -463,7 +659,7 @@ pub fn upload_file_blocking_topic_with_app(
                 let path_str = path_buf.to_str().unwrap_or("");
 
                 let mut msg = InputMessage::new()
-                    .text(cap)
+                    .text(cap.clone())
                     .silent(silent)
                     .reply_to(reply_to);
                 // Prefer document for fidelity; video gets thumbnail + video attributes
@@ -538,6 +734,33 @@ pub fn upload_file_blocking_topic_with_app(
                     Ok(m) => m,
                     Err(e) => {
                         let mapped = map_invocation(&e);
+                        let is_busy = mapped.user_message().contains("WORKER_BUSY")
+                            || mapped.user_message().contains("500")
+                            || mapped.retryable();
+
+                        if is_busy {
+                            tg_log::warn(
+                                BACKEND,
+                                "single_send_worker_busy",
+                                format!(
+                                    "send_message RPC 500 / WORKER_BUSY hit: {}. Checking history...",
+                                    mapped.user_message()
+                                ),
+                            );
+                            if let Some(recovered) = try_recover_single_file_from_history(
+                                client,
+                                peer,
+                                &chat,
+                                topic_id,
+                                &cap,
+                                index,
+                            )
+                            .await
+                            {
+                                return Ok(recovered);
+                            }
+                        }
+
                         // Auto-retry once on short flood wait
                         if let Some(secs) = mapped.flood_wait_secs() {
                             if secs <= 45 {

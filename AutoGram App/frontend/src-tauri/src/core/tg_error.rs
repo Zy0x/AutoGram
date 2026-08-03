@@ -74,10 +74,16 @@ impl TgError {
 
     pub fn with_rpc(name: impl Into<String>, message: impl Into<String>) -> Self {
         let name = name.into();
+        let msg = message.into();
+        let is_worker_busy = name.contains("WORKER_BUSY")
+            || name.contains("TRY_AGAIN")
+            || msg.contains("WORKER_BUSY_TOO_LONG_RETRY");
         let code = if name.contains("FLOOD_WAIT") {
             TgErrorCode::FloodWait
         } else if name.contains("PEER_FLOOD") {
             TgErrorCode::PeerFlood
+        } else if is_worker_busy {
+            TgErrorCode::Timeout
         } else if name.contains("AUTH") || name.contains("SESSION") {
             TgErrorCode::Auth
         } else if name.contains("USERNAME") || name.contains("PEER") {
@@ -87,10 +93,10 @@ impl TgError {
         };
         Self::Structured {
             code,
-            message: crate::core::tg_log::redact(&message.into()),
+            message: crate::core::tg_log::redact(&msg),
             flood_wait_secs: None,
             rpc_name: Some(name),
-            retryable: matches!(code, TgErrorCode::FloodWait | TgErrorCode::Network),
+            retryable: is_worker_busy || matches!(code, TgErrorCode::FloodWait | TgErrorCode::Network),
         }
     }
 
