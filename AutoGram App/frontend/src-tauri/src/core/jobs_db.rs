@@ -96,6 +96,37 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         CREATE INDEX IF NOT EXISTS idx_ledger_sha ON migration_ledger(job_id, sha256);
         CREATE INDEX IF NOT EXISTS idx_ledger_name_size ON migration_ledger(job_id, filename, size);
         CREATE INDEX IF NOT EXISTS idx_ledger_tg_uid ON migration_ledger(job_id, telegram_unique_id);
+
+        CREATE TABLE IF NOT EXISTS job_dependencies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            parent_job_id INTEGER NOT NULL,
+            child_job_id INTEGER NOT NULL,
+            dependency_type TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY(parent_job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+            FOREIGN KEY(child_job_id) REFERENCES jobs(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS checkpoints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            segment_id INTEGER DEFAULT 0,
+            validated_checkpoint_segment INTEGER DEFAULT 0,
+            byte_offset INTEGER DEFAULT 0,
+            temp_path TEXT,
+            encoder_profile TEXT,
+            segment_hash TEXT,
+            updated_at INTEGER NOT NULL,
+            FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS job_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL,
+            stage TEXT NOT NULL,
+            message TEXT NOT NULL,
+            metadata TEXT,
+            FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+        );
         "#,
     )
     .map_err(|e| format!("schema: {e}"))?;

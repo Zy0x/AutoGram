@@ -1,5 +1,6 @@
 //! AutoGram Rust core — Grammers-only MTProto backend (no Python Telethon runtime).
 
+pub mod autogram_core;
 pub mod capability;
 pub mod config_normalize;
 pub mod hardware_capability;

@@ -1,6 +1,9 @@
-AutoGram Version: v2.7.8
+AutoGram Version: v2.8.0
 
 Current State:
+v2.8.0 Platform-Independent Production Reliability Engine (Architecture Hardening Edition) — Mengintegrasikan modul shared core `autogram-core` (platform abstraction layer, persistent job queue dengan SQLite WAL, job dependency graph, segment & byte offset checkpoint resume, container repair faststart, normalized account scoring system 0-100, dynamic limit detection, hardware quality profiles, batch strategy optimizer, policy engine, intent engine, dan audit trail event logging) untuk menjamin keandalan platform berkelas produksi tanpa mengganggu fitur UI seperti tampilan card, list card, thumbnail, preview media, dan thumbnail spesial.
+
+Previous:
 v2.7.8 Universal Document Thumbnail & Video Attribute Support Across All Modes — membenahi `media_prep.rs`, `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memastikan bahwa saat mengunggah media (video maupun gambar) di mode **ORIGINAL — intact document** (atau ketika `as_document = true`), AutoGram selalu mengekstrak thumbnail JPEG 320px secara otomatis dan menyertakan `.thumbnail(thumb_uploaded)` serta atribut video (`Attribute::Video`). File dikirim 100% sebagai dokumen murni tanpa di-reencode, namun Telegram kini selalu menampilkan gambar pratinjau visual dan badge durasi video secara jernih di tampilan obrolan/topik.
 
 Previous:

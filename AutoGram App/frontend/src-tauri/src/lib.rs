@@ -1493,6 +1493,56 @@ async fn tg_move_messages(
         .map_err(|e| format!("move_messages task failed: {e}"))
 }
 
+#[tauri::command]
+async fn autogram_get_account_scores() -> Result<Vec<core::autogram_core::AccountScore>, String> {
+    let acc_free = core::autogram_core::AccountCapability::free("account-1");
+    let health = core::autogram_core::AccountHealthState::Healthy;
+    let score = core::autogram_core::calculate_account_score(&acc_free, &health, 30, 0, false);
+    Ok(vec![score])
+}
+
+#[tauri::command]
+async fn autogram_run_container_repair(
+    input_path: String,
+    output_path: String,
+) -> Result<core::autogram_core::RepairResult, String> {
+    let input = PathBuf::from(input_path);
+    let output = PathBuf::from(output_path);
+    core::autogram_core::repair_mp4_container(&input, &output)
+}
+
+#[tauri::command]
+async fn autogram_get_hardware_profiles() -> Result<core::autogram_core::HardwareProfileInfo, String> {
+    let enc = core::autogram_core::HardwareEncoderType::Nvenc;
+    Ok(core::autogram_core::select_best_hardware_profile(enc))
+}
+
+#[tauri::command]
+async fn autogram_plan_batch(
+    files: Vec<(String, u64)>,
+) -> Result<core::autogram_core::BatchPlan, String> {
+    let list: Vec<(PathBuf, String, u64)> = files
+        .into_iter()
+        .map(|(path_str, sz)| {
+            let p = PathBuf::from(&path_str);
+            let name = p
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| path_str.clone());
+            (p, name, sz)
+        })
+        .collect();
+
+    Ok(core::autogram_core::plan_batch_execution(&list, 2_147_483_648))
+}
+
+#[tauri::command]
+async fn autogram_get_job_events(job_id: i64) -> Result<Vec<core::autogram_core::JobEvent>, String> {
+    let db_path = core::jobs_db::resolve_migrator_db();
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    core::autogram_core::get_job_events(&conn, job_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1566,6 +1616,11 @@ pub fn run() {
             tg_delete_topic,
             tg_avatars_batch,
             tg_move_messages,
+            autogram_get_account_scores,
+            autogram_run_container_repair,
+            autogram_get_hardware_profiles,
+            autogram_plan_batch,
+            autogram_get_job_events,
             jobs_list,
             jobs_create,
             jobs_edit,

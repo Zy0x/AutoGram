@@ -1,3 +1,13 @@
+## v2.8.0 Platform-Independent Production Reliability Engine (Architecture Hardening Edition)
+
+### Shared Core Engine & Platform Abstraction Layer (`autogram-core`)
+- **Platform Abstraction Layer (PAL)**: Menambahkan `StorageProvider`, `NetworkProvider`, `EncoderProvider`, dan `ResourceProvider` untuk memisahkan I/O, network, hardware, dan resource OS dari logika inti Rust.
+- **SQLite WAL Persistent Queue & Job Dependency Graph**: Menyediakan skema tabel `jobs`, `job_dependencies`, `checkpoints`, dan `job_events` yang mendukung eksekusi berantai atomic (`HARD_BLOCK`, `SOFT_SEQUENCE`, `CLEANUP`) serta resume checkpoint berbasis segmen & byte offset.
+- **Container Repair & Recovery Engine**: Menyediakan modul `container_repair.rs` untuk merelokasi MOOV atom pada video MP4 corrupt secara otomatis via FFmpeg faststart sebelum proses transcoding / encoding.
+- **Normalized Account Scoring System & Dynamic Capabilities**: Menerapkan sistem penilaian akun ter-normalisasi (0-100 pts) berbasis bobot kapabilitas, kesehatan, latensi, antrean, dan penalti FLOOD_WAIT beserta routing akun dinamis.
+- **Hardware Protection & Quality Profiles**: Menyediakan profil kualitas transcoding (`HighQuality`, `Balanced`, `HighSpeed`) berbasis deteksi GPU hardware (NVENC, AMF, QSV, MediaCodec, x264/x265).
+- **Batch Optimizer & Intelligent Engines**: Mengintegrasikan `policy_engine`, `intent_engine` (klasifikasi Media Album vs Cold Storage Archive), dan `batch_optimizer` untuk perencanaan eksekusi batch berukuran besar.
+
 ## v2.7.8 Universal Document Thumbnail & Video Attribute Support Across All Modes
 
 ### Dukungan Thumbnail Dokumen & Atribut Video (`media_transfer.rs`, `media_prep.rs`)
