@@ -1,5 +1,6 @@
-2026/08/02-09:38:05.405 5e68 Reusing MANIFEST F:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
-2026/08/02-09:38:05.423 5e68 Recovering log #491
-2026/08/02-09:38:05.426 5e68 Level-0 table #493: started
-2026/08/02-09:38:05.440 5e68 Level-0 table #493: 24032 bytes OK
-2026/08/02-09:38:05.452 5e68 Delete type=0 #491
+2026/08/03-18:09:29.216 6490 Reusing MANIFEST F:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
+2026/08/03-18:09:29.237 6490 Recovering log #528
+2026/08/03-18:09:29.244 6490 Reusing old log F:\AutoGram\remote\.webview2_data\EBWebView\Default\Local Storage\leveldb/000528.log 
+2026/08/03-18:18:29.787 6490 Level-0 table #533: started
+2026/08/03-18:18:29.792 6490 Level-0 table #533: 22455 bytes OK
+2026/08/03-18:18:29.795 6490 Delete type=0 #528
