@@ -2306,8 +2306,8 @@ export function DrivePreviewModal({
     (nextZoom: number, focalClient: { x: number; y: number } | null) => {
       const z = zoomRef.current || 1;
       const p = panRef.current || { x: 0, y: 0 };
-      const next = clamp(Math.round(nextZoom * 100) / 100, MIN_ZOOM, MAX_ZOOM);
-      if (Math.abs(next - z) < 0.001) return;
+      const next = clamp(Math.round(nextZoom * 1000) / 1000, MIN_ZOOM, MAX_ZOOM);
+      if (Math.abs(next - z) < 0.0005) return;
 
       // At or below 100%: allow zoom-out (down to 25%), always re-center pan
       if (next <= 1) {
@@ -2438,16 +2438,18 @@ export function DrivePreviewModal({
     e.preventDefault();
     e.stopPropagation();
 
+    // Normalize deltaY based on deltaMode (0: pixels, 1: lines, 2: pages)
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+
     if (e.ctrlKey) {
       // 2-finger trackpad pinch-to-zoom or Ctrl+Wheel continuous smooth zoom
-      const factor = Math.pow(1.008, -e.deltaY);
-      const targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomRef.current * factor));
-      const deltaZoom = targetZoom - zoomRef.current;
-      zoomBy(deltaZoom, { x: e.clientX, y: e.clientY });
+      const zoomFactor = Math.exp(-dy * 0.004);
+      const targetZoom = clamp(zoomRef.current * zoomFactor, MIN_ZOOM, MAX_ZOOM);
+      applyZoomAt(targetZoom, { x: e.clientX, y: e.clientY });
     } else {
       // Standard Mouse Scroll Wheel
-      const steps = Math.max(1, Math.min(4, Math.round(Math.abs(e.deltaY) / 60)));
-      const dir = e.deltaY > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
+      const steps = Math.max(1, Math.min(4, Math.round(Math.abs(dy) / 80)));
+      const dir = dy > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
       zoomBy(dir, { x: e.clientX, y: e.clientY });
     }
   };
@@ -2552,7 +2554,7 @@ export function DrivePreviewModal({
     }
     controlsTimeoutRef.current = window.setTimeout(() => {
       setControlsVisible(false);
-    }, 2500);
+    }, 1800);
   };
 
   const handleVideoPointerDown = (e: React.PointerEvent) => {
