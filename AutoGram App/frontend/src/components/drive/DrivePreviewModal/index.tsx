@@ -2433,6 +2433,39 @@ export function DrivePreviewModal({
     };
   }, [schedulePan, endPanDrag]);
 
+  // Native non-passive wheel listener for smooth mouse wheel + trackpad pinch zoom
+  useEffect(() => {
+    const stageEl = stageRef.current;
+    if (!stageEl) return;
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      if (!showImage && !showVideo) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('.drive-preview-video-controls-bar')) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+
+      if (e.ctrlKey || Math.abs(dy) < 40) {
+        const zoomFactor = Math.exp(-dy * 0.0035);
+        const targetZoom = clamp(zoomRef.current * zoomFactor, MIN_ZOOM, MAX_ZOOM);
+        applyZoomAt(targetZoom, { x: e.clientX, y: e.clientY });
+      } else {
+        const steps = Math.max(1, Math.min(4, Math.round(Math.abs(dy) / 80)));
+        const dir = dy > 0 ? -ZOOM_STEP * steps : ZOOM_STEP * steps;
+        zoomBy(dir, { x: e.clientX, y: e.clientY });
+      }
+    };
+
+    stageEl.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => {
+      stageEl.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, [showImage, showVideo, applyZoomAt, zoomBy]);
+
   const onWheelStage = (e: React.WheelEvent) => {
     if (!showImage && !showVideo) return;
     e.preventDefault();
@@ -4020,7 +4053,7 @@ export function DrivePreviewModal({
               {/* Custom video controls bar (untransformed, pinned to bottom of media wrapper, auto-hiding) */}
               <div
                 className={`drive-preview-video-controls-bar${
-                  !controlsVisible && videoIsPlaying ? ' is-hidden' : ''
+                  !controlsVisible ? ' is-hidden' : ''
                 }`}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
