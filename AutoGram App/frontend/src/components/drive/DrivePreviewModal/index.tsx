@@ -577,6 +577,7 @@ export function DrivePreviewModal({
 
   const controlsTimeoutRef = useRef<number | null>(null);
   const lastClickTimeRef = useRef(0);
+  const pointerDownPosRef = useRef({ x: 0, y: 0 });
   const clickTimerRef = useRef<number | null>(null);
   const holdTimerRef = useRef<number | null>(null);
   const speedupActiveRef = useRef(false);
@@ -2566,6 +2567,7 @@ export function DrivePreviewModal({
   };
 
   const handleVideoPointerDown = (e: React.PointerEvent) => {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
     resetControlsTimeout();
     if (isMagnifierMode) {
       onPointerDown(e);
@@ -2582,6 +2584,29 @@ export function DrivePreviewModal({
         setIsSpeedingUp(true);
       }
     }, 250);
+  };
+
+  const handleVideoPointerLeave = () => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (speedupActiveRef.current) {
+      speedupActiveRef.current = false;
+      setIsSpeedingUp(false);
+      const v = videoRef.current;
+      if (v) {
+        v.playbackRate = playbackRate;
+      }
+    }
+    if (controlsTimeoutRef.current) {
+      window.clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = null;
+    }
+    const v = videoRef.current;
+    if (v && !v.paused) {
+      setControlsVisible(false);
+    }
   };
 
   const handleVideoPointerUp = (e: React.PointerEvent) => {
@@ -2606,6 +2631,13 @@ export function DrivePreviewModal({
       return;
     }
 
+    // Ignore if drag movement > 6px
+    const dist = Math.hypot(
+      e.clientX - pointerDownPosRef.current.x,
+      e.clientY - pointerDownPosRef.current.y
+    );
+    if (dist > 6) return;
+
     // Single vs Double Click Logic
     const now = Date.now();
     const timeSinceLast = now - lastClickTimeRef.current;
@@ -2624,26 +2656,26 @@ export function DrivePreviewModal({
       if (!v) return;
 
       if (clickX < rect.width * 0.42) {
-        // Double Click LEFT -> Progressive Seek Back (-5s, -10s, -15s...)
+        // Double Click LEFT -> 3s Progressive Seek Back (-3s, -6s, -9s...)
         const chainCount =
           jumpChainRef.current.side === 'left' && now - jumpChainRef.current.time < 1200
             ? jumpChainRef.current.count + 1
             : 1;
         jumpChainRef.current = { side: 'left', count: chainCount, time: now };
-        const jumpSeconds = chainCount * 5;
-        v.currentTime = Math.max(0, v.currentTime - 5);
+        const jumpSeconds = chainCount * 3;
+        v.currentTime = Math.max(0, v.currentTime - 3);
         userSeekPendingRef.current = true;
         handleSeekJump();
         setJumpOverlay({ side: 'left', seconds: jumpSeconds, key: now });
       } else if (clickX > rect.width * 0.58) {
-        // Double Click RIGHT -> Progressive Seek Forward (+5s, +10s, +15s...)
+        // Double Click RIGHT -> 3s Progressive Seek Forward (+3s, +6s, +9s...)
         const chainCount =
           jumpChainRef.current.side === 'right' && now - jumpChainRef.current.time < 1200
             ? jumpChainRef.current.count + 1
             : 1;
         jumpChainRef.current = { side: 'right', count: chainCount, time: now };
-        const jumpSeconds = chainCount * 5;
-        v.currentTime = Math.min(v.duration || 0, v.currentTime + 5);
+        const jumpSeconds = chainCount * 3;
+        v.currentTime = Math.min(v.duration || 0, v.currentTime + 3);
         userSeekPendingRef.current = true;
         handleSeekJump();
         setJumpOverlay({ side: 'right', seconds: jumpSeconds, key: now });
@@ -2652,7 +2684,7 @@ export function DrivePreviewModal({
         void toggleFullscreen();
       }
     } else {
-      // SINGLE CLICK DETECTED (delay 220ms to distinguish from double click)
+      // SINGLE CLICK DETECTED (delay 200ms to distinguish from double click)
       lastClickTimeRef.current = now;
       clickTimerRef.current = window.setTimeout(() => {
         const v = videoRef.current;
@@ -2664,7 +2696,7 @@ export function DrivePreviewModal({
           v.pause();
           setRippleOverlay({ type: 'pause', key: Date.now() });
         }
-      }, 220);
+      }, 200);
     }
   };
 
@@ -3510,8 +3542,8 @@ export function DrivePreviewModal({
               onPointerMove={resetControlsTimeout}
               onPointerDown={handleVideoPointerDown}
               onPointerUp={handleVideoPointerUp}
-              onPointerCancel={handleVideoPointerUp}
-              onPointerLeave={handleVideoPointerUp}
+              onPointerCancel={handleVideoPointerLeave}
+              onPointerLeave={handleVideoPointerLeave}
               onWheel={(e) => {
                 onWheelStage(e);
               }}

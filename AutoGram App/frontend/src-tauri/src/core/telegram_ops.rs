@@ -1065,6 +1065,7 @@ pub struct MoveMessagesRequest {
     pub api_hash: String,
     pub source_chat: String,
     pub dest_chat: String,
+    pub dest_topic_id: Option<i64>,
     pub message_ids: Vec<i64>,
     pub delete_source: Option<bool>,
 }
@@ -1079,6 +1080,7 @@ pub fn tg_move_messages(
         &identity,
         &req.source_chat,
         &req.dest_chat,
+        req.dest_topic_id,
         &req.message_ids,
         req.delete_source.unwrap_or(true),
     ) {

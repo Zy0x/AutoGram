@@ -124,7 +124,15 @@ allow = [
     "autogram_run_container_repair",
     "autogram_get_hardware_profiles",
     "autogram_plan_batch",
-    "autogram_get_job_events"
+    "autogram_get_job_events",
+    "start_worker_job",
+    "kill_worker_job",
+    "run_worker_once",
+    "write_worker_stdin",
+    "studio_cancel_transfer"
 ]
+
+
+
 
 

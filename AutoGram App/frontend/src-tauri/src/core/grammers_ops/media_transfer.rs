@@ -264,6 +264,7 @@ pub struct ProgressAsyncReader<R> {
     pub last_emit_bytes: u64,
     pub app_handle: Option<tauri::AppHandle>,
     pub item_index: usize,
+    pub transfer_id: Option<String>,
 }
 
 impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
@@ -272,6 +273,14 @@ impl<R: AsyncRead + Unpin> AsyncRead for ProgressAsyncReader<R> {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
+        if let Some(tid) = &self.transfer_id {
+            if crate::core::job_queue::is_transfer_cancelled(tid) {
+                return Poll::Ready(Err(std::io::Error::new(
+                    std::io::ErrorKind::Interrupted,
+                    "Transfer cancelled by user",
+                )));
+            }
+        }
         let filled_before = buf.filled().len();
         let res = Pin::new(&mut self.inner).poll_read(cx, buf);
         if let Poll::Ready(Ok(())) = &res {
@@ -352,6 +361,7 @@ pub fn upload_file_blocking_topic(
         index,
         topic_id,
         None,
+        None,
     )
 }
 
@@ -366,6 +376,7 @@ pub fn upload_file_blocking_topic_with_app(
     index: usize,
     topic_id: Option<i64>,
     app_handle: Option<tauri::AppHandle>,
+    transfer_id: Option<String>,
 ) -> Result<UploadStepResult, TgError> {
     path_policy::assert_safe_transfer_path(path)
         .map_err(|e| TgError::new(TgErrorCode::PathRejected, e))?;
@@ -394,6 +405,7 @@ pub fn upload_file_blocking_topic_with_app(
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
             let app_handle_inner = app_handle.clone();
+            let tid_inner = transfer_id.clone();
             Box::pin(async move {
                 if !client
                     .is_authorized()
@@ -422,6 +434,7 @@ pub fn upload_file_blocking_topic_with_app(
                         last_emit_bytes: 0,
                         app_handle: app_handle_inner,
                         item_index: index,
+                        transfer_id: tid_inner,
                     };
                     client
                         .upload_stream(&mut progress_reader, size as usize, filename)

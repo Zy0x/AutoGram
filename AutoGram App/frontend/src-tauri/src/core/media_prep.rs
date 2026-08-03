@@ -436,6 +436,17 @@ pub fn maybe_reencode_for_telegram(
     if !is_video {
         return path.to_string();
     }
+
+    // Standard MP4 files are already native Telegram video format (H.264/AAC MP4).
+    // Upload directly without re-encoding unless explicitly forced via FORCE_REENCODE mode.
+    if ext == "mp4" && !mode.contains("FORCE_REENCODE") && !mode.contains("ALWAYS_REENCODE") {
+        tg_log::info(
+            BACKEND,
+            "reencode_passthrough",
+            format!("Direct upload passthrough for mp4 video: {path}"),
+        );
+        return path.to_string();
+    }
     let Some(ff) = find_ffmpeg_binary() else {
         tg_log::warn(BACKEND, "reencode_skip", "ffmpeg not found");
         return path.to_string();

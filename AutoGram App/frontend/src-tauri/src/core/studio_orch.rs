@@ -73,6 +73,7 @@ fn run_orchestrated_grammers(
 ) -> Result<OrchStartResult, String> {
     let rec = job_queue::create_transfer(req.clone())?;
     let tid = rec.transfer_id.clone();
+    job_queue::clear_cancel_flag_for(&tid);
     job_queue::set_transfer_state(&tid, TransferState::Running)?;
 
     if let Some(app) = app {
@@ -305,6 +306,20 @@ fn run_orchestrated_grammers(
     let mut first_fatal: Option<String> = None;
 
     for item in &rec.items {
+        if job_queue::is_transfer_cancelled(&tid) {
+            tg_log::info("studio_orch", "cancel_detected", format!("Transfer {tid} cancelled by user"));
+            let _ = job_queue::set_transfer_state(&tid, job_queue::TransferState::Cancelled);
+            if let Some(app) = app {
+                use tauri::Emitter;
+                let _ = app.emit("transfer-event", serde_json::json!({
+                    "type": "StudioFinished",
+                    "status": "cancelled",
+                    "transferId": tid
+                }));
+            }
+            return Err("Transfer cancelled by user".to_string());
+        }
+
         let file_name = std::path::Path::new(&item.path)
             .file_name()
             .and_then(|s| s.to_str())
@@ -378,6 +393,7 @@ fn run_orchestrated_grammers(
             item.index,
             topic_id,
             app.cloned(),
+            Some(tid.clone()),
         ) {
             Ok(r) => {
                 let st = match r.status.as_str() {

@@ -376,8 +376,14 @@ export async function driveDownloadBatchSpawn(
   );
 }
 
-export async function cancelDriveJob(): Promise<boolean> {
+export async function cancelDriveJob(transferId?: string): Promise<boolean> {
   transferJobActive = false;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('studio_cancel_transfer', { transferId: transferId ?? null });
+  } catch {
+    /* ignore */
+  }
   return killWorkerJob(DRIVE_JOB_ID);
 }
 

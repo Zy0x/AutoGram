@@ -268,6 +268,47 @@ pub fn set_transfer_state(transfer_id: &str, state: TransferState) -> Result<(),
     Ok(())
 }
 
+static CANCELLED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> = OnceLock::new();
+
+fn cancelled_set() -> &'static RwLock<std::collections::HashSet<String>> {
+    CANCELLED_TRANSFER_IDS.get_or_init(|| RwLock::new(std::collections::HashSet::new()))
+}
+
+pub fn cancel_transfer(transfer_id: Option<&str>) {
+    if let Some(tid) = transfer_id {
+        cancelled_set().write().insert(tid.to_string());
+        let _ = set_transfer_state(tid, TransferState::Cancelled);
+    } else {
+        let mut map = live().write();
+        let mut set = cancelled_set().write();
+        for (id, rec) in map.iter_mut() {
+            if rec.state == TransferState::Running || rec.state == TransferState::Queued {
+                rec.state = TransferState::Cancelled;
+                set.insert(id.clone());
+            }
+        }
+    }
+}
+
+pub fn clear_cancel_flag_for(transfer_id: &str) {
+    cancelled_set().write().remove(transfer_id);
+}
+
+pub fn clear_all_cancel_flags() {
+    cancelled_set().write().clear();
+}
+
+pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
+    let set = cancelled_set().read();
+    if set.contains(transfer_id) {
+        return true;
+    }
+    if let Some(rec) = get_transfer(transfer_id) {
+        return rec.state == TransferState::Cancelled;
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

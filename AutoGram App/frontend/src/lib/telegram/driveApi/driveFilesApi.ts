@@ -393,6 +393,7 @@ export async function driveMove(
   opts?: DriveMoveOpts
 ) {
   const deleteSource = opts?.deleteSource !== false;
+  const topicId = opts?.topicId != null && Number(opts.topicId) > 0 ? Number(opts.topicId) : null;
   const id = await resolveGrammersIdentity(creds);
   const { tgMoveMessages } = await import('../core/telegramBackend');
   const sourceChat = fromFolderId == null ? 'me' : String(fromFolderId);
@@ -402,6 +403,7 @@ export async function driveMove(
     ...id,
     sourceChat,
     destChat,
+    destTopicId: topicId,
     messageIds: [messageId],
     deleteSource,
   });

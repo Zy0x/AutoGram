@@ -442,12 +442,22 @@ src/
   1. `topics.rs` mengambil daftar topik forum via Grammers MTProto.
   2. `app_db.rs` menyimpan indeks media ke tabel SQLite `topic_media_items` dengan komposit primary key (`account_id`, `peer_id`, `topic_id`, `message_id`).
 
-### Kategori 10: Multi-Channel Transfer, Chunked Upload/Download & Bandwidth Monitor
-- **Deskripsi**: Engine migrasi dan transfer media antar saluran.
-- **Alur Kerja**:
-  1. `migration_run.rs` mengeksekusi job migrasi.
-  2. `dup_checker.rs` mengecek duplikasi 4 level (Message ID, Telegram Unique ID, SHA256 Hash, Filename+Size).
-  3. `media_transfer.rs` mengunggah/mengunduh berkas dalam chunk terpisah dengan pemantauan bandwidth realtime (`progress_rate.rs`).
+### Kategori 10: Multi-Channel Transfer, Chunked Upload/Download, Media Prep & Duplicate Engine
+- **Deskripsi**: Engine transfer, upload, download, media prep (GPU reencode), duplikasi 4 level, dan pengelompokan pesan/forwarder Telegram.
+- **Komponen Utama**:
+  - `MediaStudio/index.tsx` & `DriveTransferManager.tsx`: Frontend transfer queue orchestrator & floating IDM-style widget UI.
+  - `transferProgressStore.ts`: Dynamic store untuk menangkap event IPC Tauri `transfer-progress` (5-sample moving average smoothing).
+  - `studio_orch.rs` & `studioOrch.ts`: Orchestration pipeline antara UI React dan Grammers Rust engine (`studioRunUploadDefault`).
+  - `media_prep.rs` & `hardware_capability.rs`: Auto-decision passthrough vs re-encode dengan akselerasi GPU (NVENC, AMF, QSV, x264).
+  - `dup_checker.rs` & `smart_scanner.rs`: Engine pencegah duplikasi 4 level (`file_unique_id`, `hash:<sha256>`, `fp:<fingerprint_hash>`, `name:<file_name>|<file_size>`) & cache in-memory.
+  - `migration_run.rs` & `driveMove`: Fitur pemindahan/salin media dan forwarder antar-channel Telegram.
+- **Alur Kerja Utama**:
+  1. `MediaStudio` mengumpulkan file lokal/remote URL, mengecek opsi guardrail/duplikat, lalu mendaftarkan `QueueTask` ke `transferSession`.
+  2. `processNextQueueTask` memanggil `studioRunUploadDefault` ke Rust backend (`studio_run_orchestrated`).
+  3. `media_prep.rs` mengevaluasi format media: Direct Passthrough jika format MP4 standar, atau Hardware Re-encoding jika media non-standar.
+  4. `dup_checker.rs` dan `smart_scanner.rs` mengecek duplikasi di SQLite cache `destination_scan_cache` dan `duplicate_history`. Jika duplikat terdeteksi, file ditandai `skipped`.
+  5. Rust Grammers mengunggah/mengunduh chunk file ke/dari Telegram DC secara streaming dan memancarkan progres realtime ke UI via event `transfer-progress`.
+  6. Setelah transfer selesai, sistem menjalankan `uploadSoftRefresh()` dan `softRefreshSidebar()` untuk menyegarkan tampilan berkas Drive secara instan.
 
 ---
 
@@ -792,6 +802,65 @@ sequenceDiagram
         RustZip->>RustZip: Inflate / Decompress Single File in Memory
         RustZip-->>IPC: Save to Temp Local Path & Return Path
         IPC-->>ZipUI: Open Extracted File
+    end
+```
+
+### 9.6 Alur Kerja Upload, Download & Forwarder (Transfer Manager Orchestrator)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Pengguna (MediaStudio UI)
+    participant UI as MediaStudio Page & Modals
+    participant Queue as Transfer Queue & Session Store
+    participant TM as Transfer Manager (Dock/FAB Widget)
+    participant Rust as Rust Grammers Orchestrator (Backend)
+    participant TG as Telegram API (DC)
+
+    alt Skenario Upload Berkas
+        User->>UI: Input File (Drag&Drop / TopBar / Context Menu / Remote URL)
+        opt Remote Upload (http/https URL)
+            UI->>UI: Verifikasi URL via FastAPI /verify-url
+        end
+        opt Guardrail / Pre-Scan Duplikat
+            UI->>UI: Tampilkan ReUploadBatchModal / DriveConfirmDialog
+        end
+        UI->>Queue: Enqueue QueueTask ('upload') & Seed TransferSession
+        Queue->>TM: Open / Un-minimize Transfer Manager Dock
+        Queue->>Rust: studioRunUploadDefault() -> studio_run_orchestrated
+        opt Media Non-MP4 / Mode Re-encode
+            Rust->>TM: Emit 'transfer-progress' stage 'encode' (FPS, GPU Encoder, ETA)
+        end
+        Rust->>TG: Stream Upload Chunk Parts ke Telegram DC
+        Rust->>TM: Emit 'transfer-progress' stage 'upload' (MB/s, %, Bytes)
+        TG-->>Rust: Return Message ID & Commit Metadata
+        Rust-->>Queue: Mark Status 'done' / 'skipped' (Duplicate)
+        Queue->>UI: Auto Soft-Refresh File List & Sidebar Cache
+    else Skenario Download Berkas
+        User->>UI: Request Download (Single File / Selected Files / Download All ZIP)
+        opt Bulk Download (Banyak File)
+            UI->>UI: Tampilkan DriveConfirmDialog (kind='download')
+        end
+        UI->>UI: Native File/Folder Save Dialog (@tauri-apps/plugin-dialog)
+        UI->>Queue: Enqueue QueueTask ('download')
+        Queue->>TM: Open / Un-minimize Transfer Manager Dock
+        Queue->>Rust: tgDownloadFile(chatId, messageId, destPath)
+        Rust->>TG: Stream Download Chunk Parts dari Telegram DC
+        Rust->>TM: Emit 'transfer-progress' stage 'download' (MB/s, %)
+        TG-->>Rust: Return File Bytes -> Write Disk
+        Rust-->>Queue: Mark Status 'done'
+        TM->>User: Aktifkan Tombol "Buka Folder" Hasil Download
+    else Skenario Forwarder / Move Media
+        User->>UI: Memindahkan/Menyalin Media (kind='move')
+        UI->>UI: DriveDestinationPicker (Pilih Chat & Topic Tujuan)
+        UI->>UI: DriveConfirmDialog (Pilih Mode 'move' Pindah vs 'copy' Salin)
+        UI->>Rust: invoke('tg_move_messages', { messageIds, destChatId, topicId, copyOnly })
+        Rust->>TG: Forward Messages / Re-stream Fallback
+        TG-->>Rust: Success Confirmation
+        opt Mode Pindah ('move')
+            Rust->>TG: Delete Messages dari Source Chat
+        end
+        Rust-->>UI: Update Live Media List
     end
 ```
 

@@ -9,20 +9,21 @@ mod session_clone;
 use serde::Serialize;
 
 use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::{Mutex, OnceLock};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// job_id → OS process id for hard-kill cancel
-#[cfg(any())]
 fn worker_pids() -> &'static Mutex<HashMap<i64, u32>> {
     static MAP: OnceLock<Mutex<HashMap<i64, u32>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 /// job_id → stdin for long-lived workers (drive-serve RPC)
-#[cfg(any())]
 fn worker_stdins() -> &'static Mutex<HashMap<i64, std::process::ChildStdin>> {
     static MAP: OnceLock<Mutex<HashMap<i64, std::process::ChildStdin>>> = OnceLock::new();
     MAP.get_or_init(|| Mutex::new(HashMap::new()))
@@ -142,7 +143,6 @@ fn release_worker_session_lease(
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg(any())]
 struct WorkerLinePayload {
     job_id: i64,
     line: String,
@@ -151,7 +151,6 @@ struct WorkerLinePayload {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg(any())]
 struct WorkerExitPayload {
     job_id: i64,
     code: i32,
@@ -159,7 +158,6 @@ struct WorkerExitPayload {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg(any())]
 struct WorkerOnceResult {
     code: i32,
     stdout: String,
@@ -215,7 +213,6 @@ fn resolve_daemon_script(app: &AppHandle) -> Result<PathBuf, String> {
     ))
 }
 
-#[cfg(any())]
 fn resolve_python_bin(daemon: &Path) -> PathBuf {
     // Prefer worker/venv for deps (cryptg, telethon) — critical for upload speed
     if let Some(parent) = daemon.parent() {
@@ -238,12 +235,10 @@ fn resolve_python_bin(daemon: &Path) -> PathBuf {
     PathBuf::from("python")
 }
 
-#[cfg(any())]
 fn build_python_command(daemon: &Path, args: &[String]) -> std::process::Command {
     build_python_command_with_stdin(daemon, args, false)
 }
 
-#[cfg(any())]
 fn build_python_command_with_stdin(
     daemon: &Path,
     args: &[String],
@@ -336,7 +331,6 @@ fn build_python_command_with_stdin(
 }
 
 /// Hard-kill PID (and children on Windows) without removing maps.
-#[cfg(any())]
 fn kill_pid_tree(pid: u32) {
     #[cfg(windows)]
     {
@@ -357,7 +351,6 @@ fn kill_pid_tree(pid: u32) {
 /// Set `pipe_stdin` true for interactive workers (drive-serve RPC).
 /// If the same job_id is already running, kills it first (kill-before-respawn).
 #[tauri::command]
-#[cfg(any())]
 async fn start_worker_job(
     app: AppHandle,
     job_id: i64,
@@ -508,10 +501,16 @@ fn cancel_rust_qr_login(session: String) -> bool {
     core::grammers_ops::cancel_qr_login(&session)
 }
 
+#[tauri::command]
+fn studio_cancel_transfer(transfer_id: Option<String>) -> Result<bool, String> {
+    core::job_queue::cancel_transfer(transfer_id.as_deref());
+    Ok(true)
+}
+
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
-#[cfg(any())]
 fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
+    use std::io::Write;
     let mut map = worker_stdins().lock().map_err(|e| format!("lock: {e}"))?;
     let stdin = map
         .get_mut(&job_id)
@@ -696,7 +695,6 @@ fn cleanup_partial_downloads(
 
 /// Hard-kill a running worker started via start_worker_job (Cancel).
 #[tauri::command]
-#[cfg(any())]
 fn kill_worker_job(job_id: i64) -> Result<bool, String> {
     if let Ok(mut map) = worker_stdins().lock() {
         map.remove(&job_id);
@@ -714,7 +712,6 @@ fn kill_worker_job(job_id: i64) -> Result<bool, String> {
 
 /// One-shot daemon call (list-jobs, set-status, create-job, etc.)
 #[tauri::command]
-#[cfg(any())]
 async fn run_worker_once(app: AppHandle, args: Vec<String>) -> Result<WorkerOnceResult, String> {
     if let Err(e) = secrets::validate_worker_args(&args) {
         return Ok(WorkerOnceResult {
@@ -1673,6 +1670,11 @@ pub fn run() {
             inspect_mp4_layout_cmd,
             core::hardware_capability::get_hardware_capabilities,
             core::hardware_capability::select_best_encoder,
+            start_worker_job,
+            kill_worker_job,
+            run_worker_once,
+            write_worker_stdin,
+            studio_cancel_transfer,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env
