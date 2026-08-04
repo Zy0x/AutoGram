@@ -284,6 +284,32 @@ pub fn upload_album_blocking(
     topic_id: Option<i64>,
     index_base: usize,
 ) -> Result<Vec<UploadStepResult>, TgError> {
+    upload_album_blocking_with_app(
+        sessions_dir,
+        identity,
+        chat_id,
+        files,
+        as_document,
+        silent,
+        topic_id,
+        index_base,
+        None,
+        None,
+    )
+}
+
+pub fn upload_album_blocking_with_app(
+    sessions_dir: &Path,
+    identity: &TelegramIdentity,
+    chat_id: &str,
+    files: &[(String, String)], // path, caption
+    as_document: bool,
+    silent: bool,
+    topic_id: Option<i64>,
+    index_base: usize,
+    app_handle: Option<tauri::AppHandle>,
+    transfer_id: Option<String>,
+) -> Result<Vec<UploadStepResult>, TgError> {
     if files.len() < 2 {
         return Err(TgError::new(
             TgErrorCode::Internal,
@@ -324,6 +350,8 @@ pub fn upload_album_blocking(
 
     rt.block_on(async {
         with_client(sessions_dir, identity, true, |client| {
+            let app_handle_outer = app_handle.clone();
+            let tid_outer = transfer_id.clone();
             Box::pin(async move {
                 if !client
                     .is_authorized()
@@ -335,10 +363,55 @@ pub fn upload_album_blocking(
                 let peer = resolve_peer(client, &chat).await?;
                 let mut medias = Vec::with_capacity(items.len());
                 for (i, (path_buf, cap)) in items.iter().enumerate() {
-                    let uploaded = client
-                        .upload_file(path_buf)
-                        .await
-                        .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?;
+                    let item_index = index_base + i;
+                    let size = std::fs::metadata(path_buf).map(|m| m.len()).unwrap_or(0);
+                    let filename = path_buf
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("file.dat")
+                        .to_string();
+
+                    let app_handle_inner = app_handle_outer.clone();
+                    let tid_inner = tid_outer.clone();
+
+                    if let Some(app) = &app_handle_outer {
+                        use tauri::Emitter;
+                        let _ = app.emit(
+                            "transfer-event",
+                            serde_json::json!({
+                                "type": "StudioProgress",
+                                "index": item_index,
+                                "percent": 0.0,
+                                "transferred": 0,
+                                "total": size,
+                                "item_total": size,
+                                "phase": "upload"
+                            }),
+                        );
+                    }
+
+                    let uploaded = if let Ok(tokio_file) = tokio::fs::File::open(path_buf).await {
+                        let mut progress_reader = ProgressAsyncReader {
+                            inner: tokio_file,
+                            stage: "upload".to_string(),
+                            total_bytes: size,
+                            current_bytes: 0,
+                            last_emit_time: Instant::now(),
+                            last_emit_bytes: 0,
+                            app_handle: app_handle_inner,
+                            item_index,
+                            transfer_id: tid_inner,
+                        };
+                        client
+                            .upload_stream(&mut progress_reader, size as usize, filename)
+                            .await
+                            .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_stream: {e}")))?
+                    } else {
+                        client
+                            .upload_file(path_buf)
+                            .await
+                            .map_err(|e| TgError::new(TgErrorCode::Io, format!("upload_file: {e}")))?
+                    };
                     let ext = path_buf
                         .extension()
                         .and_then(|s| s.to_str())

@@ -178,7 +178,7 @@ fn run_orchestrated_grammers(
             let chunk = &files[base..end];
             // Single leftover item in last chunk: use single upload
             if chunk.len() == 1 {
-                match grammers_ops::upload_file_blocking_topic(
+                match grammers_ops::upload_file_blocking_topic_with_app(
                     &sessions,
                     &identity,
                     &rec.chat_id,
@@ -188,6 +188,8 @@ fn run_orchestrated_grammers(
                     silent,
                     base,
                     topic_id,
+                    app.cloned(),
+                    Some(tid.clone()),
                 ) {
                     Ok(r) => {
                         let st = match r.status.as_str() {
@@ -200,10 +202,25 @@ fn run_orchestrated_grammers(
                         let _ = job_queue::update_item(
                             &tid,
                             r.index,
-                            st,
+                            st.clone(),
                             r.message_id,
                             r.error.clone(),
                         );
+                        if let Some(app) = app {
+                            use tauri::Emitter;
+                            let status_str = if st == ItemState::Done {
+                                "done"
+                            } else {
+                                "failed"
+                            };
+                            let _ = app.emit("transfer-event", serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": r.index,
+                                "status": status_str,
+                                "message_id": r.message_id,
+                                "error": r.error,
+                            }));
+                        }
                         if r.error.is_some() && first_err.is_none() {
                             first_err = r.error;
                         }
@@ -217,12 +234,21 @@ fn run_orchestrated_grammers(
                             None,
                             first_err.clone(),
                         );
+                        if let Some(app) = app {
+                            use tauri::Emitter;
+                            let _ = app.emit("transfer-event", serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": base,
+                                "status": "failed",
+                                "error": first_err.clone(),
+                            }));
+                        }
                     }
                 }
                 base = end;
                 continue;
             }
-            match grammers_ops::upload_album_blocking(
+            match grammers_ops::upload_album_blocking_with_app(
                 &sessions,
                 &identity,
                 &rec.chat_id,
@@ -231,6 +257,8 @@ fn run_orchestrated_grammers(
                 silent,
                 topic_id,
                 base,
+                app.cloned(),
+                Some(tid.clone()),
             ) {
                 Ok(results) => {
                     for r in results {
@@ -244,10 +272,25 @@ fn run_orchestrated_grammers(
                         let _ = job_queue::update_item(
                             &tid,
                             r.index,
-                            st,
+                            st.clone(),
                             r.message_id,
                             r.error.clone(),
                         );
+                        if let Some(app) = app {
+                            use tauri::Emitter;
+                            let status_str = if st == ItemState::Done {
+                                "done"
+                            } else {
+                                "failed"
+                            };
+                            let _ = app.emit("transfer-event", serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": r.index,
+                                "status": status_str,
+                                "message_id": r.message_id,
+                                "error": r.error,
+                            }));
+                        }
                         if r.error.is_some() && first_err.is_none() {
                             first_err = r.error;
                         }
@@ -264,6 +307,15 @@ fn run_orchestrated_grammers(
                             None,
                             first_err.clone(),
                         );
+                        if let Some(app) = app {
+                            use tauri::Emitter;
+                            let _ = app.emit("transfer-event", serde_json::json!({
+                                "type": "StudioItemDone",
+                                "index": i,
+                                "status": "failed",
+                                "error": first_err.clone(),
+                            }));
+                        }
                     }
                 }
             }

@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.0
+AutoGram Version: v2.8.1
 
 Current State:
+v2.8.1 Realtime Transfer Manager Album & Photo Upload Progress Engine — membenahi `media_transfer.rs`, `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan foto/media album (`group_as_album`) pada Transfer Manager mentok di `0.0%` tanpa pergerakan progres item. Menyalurkan `ProgressAsyncReader` melalui `client.upload_stream` di `upload_album_blocking_with_app`, mempropagasi `AppHandle` dan `TransferId` dari `studio_orch.rs`, serta memancarkan event `StudioProgress` dan `StudioItemDone` secara real-time ke UI antarmuka antrean transfer.
+
+Previous:
 v2.8.0 Platform-Independent Production Reliability Engine (Architecture Hardening Edition) — Mengintegrasikan modul shared core `autogram-core` (platform abstraction layer, persistent job queue dengan SQLite WAL, job dependency graph, segment & byte offset checkpoint resume, container repair faststart, normalized account scoring system 0-100, dynamic limit detection, hardware quality profiles, batch strategy optimizer, policy engine, intent engine, dan audit trail event logging) untuk menjamin keandalan platform berkelas produksi tanpa mengganggu fitur UI seperti tampilan card, list card, thumbnail, preview media, dan thumbnail spesial.
 
 Previous:

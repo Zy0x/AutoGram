@@ -1,3 +1,10 @@
+## v2.8.1 Realtime Transfer Manager Album & Photo Upload Progress Engine
+
+### Integrasi Streaming Progress & Event IPC Album (`media_transfer.rs`, `studio_orch.rs`)
+- **Realtime Streaming Upload untuk Album**: Memperbarui `upload_album_blocking_with_app` agar mengunggah setiap media dalam album (`group_as_album`) menggunakan `ProgressAsyncReader` via `client.upload_stream` (bukan raw `upload_file`). Byte terunggah dipancarkan secara real-time ke UI antarmuka setiap 150ms.
+- **Propagasi `AppHandle` & `TransferId`**: Menyalurkan `AppHandle` dan `TransferId` dari `studio_orch.rs` ke fungsi pengunggahan album dan sisa item tunggal album chunk.
+- **Event `StudioItemDone` Real-Time**: Memancarkan event `StudioItemDone` saat setiap item album selesai diunggah sehingga persentase total, progress bar item, dan counter commit (`x/10 commit`) diperbarui secara presisi pada modal Transfer Manager.
+
 ## v2.8.0 Platform-Independent Production Reliability Engine (Architecture Hardening Edition)
 
 ### Shared Core Engine & Platform Abstraction Layer (`autogram-core`)
