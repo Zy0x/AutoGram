@@ -174,7 +174,8 @@ fn run_orchestrated_grammers(
         let mut first_err: Option<String> = None;
         let mut base = 0usize;
         while base < files.len() {
-            let end = (base + 10).min(files.len());
+            // Grammers album: Telegram 3x3 grid limit (max 9 items per album payload)
+            let end = (base + 9).min(files.len());
             let chunk = &files[base..end];
             // Single leftover item in last chunk: use single upload
             if chunk.len() == 1 {
@@ -366,7 +367,7 @@ fn run_orchestrated_grammers(
             return Ok(finalize_transfer(
                 &tid,
                 rec.items.len(),
-                if rec.items.len() > 10 {
+                if rec.items.len() > 9 {
                     "rust_orch_grammers_album_chunked"
                 } else {
                     "rust_orch_grammers_album"

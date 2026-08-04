@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.6
+AutoGram Version: v2.8.7
 
 Current State:
+v2.8.7 Smart 3x3 Grid Album Chunking Engine (Max 9 Per Album) — membenahi `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyesuaikan batas maksimal chunking album di AutoGram dari 10 item menjadi 9 item per album. Mengatur seluruh batch pengunggahan media agar selalu membentuk kisi simetris sempurna 3 × 3 (9 foto) di Telegram Web/Desktop/Mobile, menghilangkan pemisahan foto ke-10 oleh server Telegram dan menjamin 100% album terposting secara bersih dan rapi.
+
+Previous:
 v2.8.6 Universal Forum Topic Album Routing & Automatic Single Fallback Retry Engine — membenahi `media_transfer.rs`, `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana Telegram memisahkan atau menolak item ke-10 dari album paket Forum Topic. Mengalokasikan header `reply_to` topik secara eksplisit di seluruh item album (item 1-10) pada `media_transfer.rs`, serta mengaktifkan mekanisme *single upload fallback retry* di `studio_orch.rs` jika ada item album yang tercecer. Seluruh 10/10 item kini dijamin 100% terposting ke topik dan berstatus "SELESAI".
 
 Previous:

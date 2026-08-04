@@ -1,3 +1,8 @@
+## v2.8.7 Smart 3x3 Grid Album Chunking Engine (Max 9 Per Album)
+
+### Optimalisasi Chunking Album 3x3 Grid (`studio_orch.rs`)
+- **Penyesuaian Batas Max Chunk Album ke 9 Foto**: Menyesuaikan pembagian batch pengunggahan album di `studio_orch.rs` menjadi maksimal 9 item per paket album. Mengatur pengiriman batch 18 media menjadi 2 paket album 3x3 (9 + 9) yang simetris dan rapi di Telegram, menghilangkan secara total kejadian tercecer/pemisahan foto ke-10 oleh server Telegram.
+
 ## v2.8.6 Universal Forum Topic Album Routing & Automatic Single Fallback Retry Engine
 
 ### Pengalokasian Target Topik & Fallback Retry Otomatis (`media_transfer.rs`, `studio_orch.rs`)
