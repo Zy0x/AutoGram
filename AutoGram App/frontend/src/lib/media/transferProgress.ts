@@ -527,14 +527,11 @@ export function applyTransferEvent(
     const alreadyCommitted = alreadyDone || prevMid > 0;
     // Skipped takes precedence only if not already committed as a real success
     const finalSkipped = isSkipped && !alreadyCommitted;
-    const hasCommitProof = t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
-    const finalOk = !finalSkipped && hasCommitProof && (ok || alreadyCommitted || mid > 0);
+    const hasCommitProof = ok || t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
+    const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
     const skipNote = finalSkipped
       ? (note || 'Duplikat dilewati — sudah ada di tujuan')
       : undefined;
-    // Fix: if backend explicitly confirms status 'done'/'success', accept finalOk=true even if mid is 0
-    const hasCommitProof = ok || t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
-    const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
     const logText = `Item ${index + 1} (${name || `File ${index + 1}`}): ${finalOk ? 'SELESAI' : finalSkipped ? 'DILEWATI' : 'GAGAL'} ${mid > 0 ? `[msg_id: ${mid}]` : ''} ${err ? `err: ${err}` : ''}`.trim();
     const debugLogs = appendDebugLog(session, logText);
     const items = ensureItem(session.items, index, session.direction, {
