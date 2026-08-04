@@ -562,8 +562,24 @@ export function matchesMediaFilter(
 }
 
 export type QualityMode = 'HIGH_QUALITY' | 'SMART' | 'ORIGINAL';
-export type ReencodeHardware = 'auto' | 'nvidia' | 'amd' | 'intel' | 'cpu';
+export type ReencodeHardware =
+  | 'auto'
+  | 'nvidia'
+  | 'amd'
+  | 'intel'
+  | 'cpu'
+  | `device:${'nvenc' | 'amf' | 'qsv'}:${number}:${string}`;
 export type ReencodePreset = 'speed' | 'balanced' | 'quality';
+export type PresentationOverride = 'automatic' | 'force_document' | 'force_native_media';
+export type AlbumPacking = 'maximum' | 'balanced' | 'custom' | 'follow_selection' | 'never';
+export type AlbumFailurePolicy = 'atomic_strict' | 'retry_prepare' | 'replan_group' | 'send_remaining' | 'send_failed_separately' | 'cancel_group' | 'best_effort_advanced';
+export type OversizeAction = 'split' | 'alternate_account' | 'skip';
+export type AlbumAlternateStrategy = 'separate_item' | 'move_whole_group' | 'cancel_group';
+export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software_preferred' | 'hardware_only' | 'software_only' | 'specific_device' | 'disable_reencode';
+export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
+export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
+export type DownloadIntegrity = 'size' | 'sha256';
+export type CaptionOverflowPolicy = 'truncate_with_warning' | 'fail';
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
@@ -582,6 +598,12 @@ export type DriveTransferSettings = {
   silent: boolean;
   /** Spoiler media flag when supported */
   spoiler: boolean;
+  /** One-based batch positions that override spoiler for selected items, for example 1,3-5 */
+  spoilerItemPositions: string;
+  /** Optional local datetime for Telegram scheduled delivery */
+  scheduleAt: string;
+  /** Optional Telegram peer identifier used as send-as identity */
+  sendAs: string;
   /** Preferred original document send (no photo compression) — alias of ORIGINAL for clarity */
   forceDocumentDefault: boolean;
   /** Duplicate resolution policy: 'SKIP' (default) or 'FORCE_UPLOAD' (always upload) */
@@ -596,8 +618,10 @@ export type DriveTransferSettings = {
   topicScope: TopicScope;
   /** Max re-uploads per hour rate limit */
   maxReuploadPerHour: number;
-  /** Caption applied to every uploaded file when empty caption */
+  /** Batch caption; album mode assigns it to exactly one surviving item. */
   globalCaption: string;
+  /** Explicit behavior when Telegram's live UTF-16 caption limit is exceeded. */
+  captionOverflowPolicy: CaptionOverflowPolicy;
   /** After upload finishes, refresh file list (recommended) */
   refreshAfterUpload: boolean;
   /** After download finishes, show status with folder path */
@@ -606,6 +630,32 @@ export type DriveTransferSettings = {
   reencodeHardware: ReencodeHardware;
   /** Quality/speed tradeoff for video re-encoding */
   reencodePreset: ReencodePreset;
+  presentationOverride: PresentationOverride;
+  albumPacking: AlbumPacking;
+  albumGroupSize: number;
+  albumAvoidSingle: boolean;
+  albumFailurePolicy: AlbumFailurePolicy;
+  groupDocuments: boolean;
+  groupAudio: boolean;
+  groupOriginalDocuments: boolean;
+  oversizeAction: OversizeAction;
+  alternateAccountPool: string;
+  alternateIdentityApproved: boolean;
+  albumAlternateStrategy: AlbumAlternateStrategy;
+  encoderStrategy: EncoderStrategy;
+  encoderResourceProfile: EncoderResourceProfile;
+  encoderMaxParallel: number;
+  encoderAllowSoftwareFallback: boolean;
+  downloadConflictPolicy: DownloadConflictPolicy;
+  downloadResumePartial: boolean;
+  downloadIntegrity: DownloadIntegrity;
+};
+
+export type DriveTransferSettingsProfile = {
+  id: string;
+  name: string;
+  updatedAt: number;
+  settings: DriveTransferSettings;
 };
 
 export function isScanMode(v: unknown): v is ScanMode {
@@ -623,6 +673,9 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   groupAsAlbum: false,
   silent: false,
   spoiler: false,
+  spoilerItemPositions: '',
+  scheduleAt: '',
+  sendAs: '',
   forceDocumentDefault: false,
   duplicatePolicy: 'SKIP',
   scanMode: 'smart',
@@ -631,32 +684,38 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   topicScope: 'selected_plus_general',
   maxReuploadPerHour: 10,
   globalCaption: '',
+  captionOverflowPolicy: 'truncate_with_warning',
   refreshAfterUpload: true,
   notifyDownloadDone: true,
   reencodeHardware: 'auto',
   reencodePreset: 'balanced',
+  presentationOverride: 'automatic',
+  albumPacking: 'maximum',
+  albumGroupSize: 10,
+  albumAvoidSingle: true,
+  albumFailurePolicy: 'atomic_strict',
+  groupDocuments: true,
+  groupAudio: true,
+  groupOriginalDocuments: true,
+  oversizeAction: 'split',
+  alternateAccountPool: '',
+  alternateIdentityApproved: false,
+  albumAlternateStrategy: 'cancel_group',
+  encoderStrategy: 'auto_adaptive',
+  encoderResourceProfile: 'balanced',
+  encoderMaxParallel: 1,
+  encoderAllowSoftwareFallback: true,
+  downloadConflictPolicy: 'ask',
+  downloadResumePartial: true,
+  downloadIntegrity: 'size',
 };
 
 export const QUALITY_MODE_OPTIONS: {
   id: QualityMode;
-  label: string;
-  description: string;
 }[] = [
-  {
-    id: 'HIGH_QUALITY',
-    label: 'HQ — Telegram native',
-    description: 'Foto/video sebagai media Telegram (streaming video). File lain sebagai dokumen.',
-  },
-  {
-    id: 'SMART',
-    label: 'SMART — otomatis',
-    description: 'Pilih mode per ekstensi (re-encode video problematik bila perlu).',
-  },
-  {
-    id: 'ORIGINAL',
-    label: 'ORIGINAL — dokumen utuh',
-    description: 'Semua sebagai dokumen (force_document). Paling cepat, tanpa kompresi foto Telegram.',
-  },
+  { id: 'HIGH_QUALITY' },
+  { id: 'SMART' },
+  { id: 'ORIGINAL' },
 ];
 
 export function clampConcurrency(n: unknown, fallback = 4): number {
@@ -670,7 +729,12 @@ export function isQualityMode(v: unknown): v is QualityMode {
 }
 
 export function isReencodeHardware(v: unknown): v is ReencodeHardware {
-  return v === 'auto' || v === 'nvidia' || v === 'amd' || v === 'intel' || v === 'cpu';
+  return v === 'auto'
+    || v === 'nvidia'
+    || v === 'amd'
+    || v === 'intel'
+    || v === 'cpu'
+    || (typeof v === 'string' && /^device:(nvenc|amf|qsv):\d+:[a-f0-9]{16}$/i.test(v));
 }
 
 export function isReencodePreset(v: unknown): v is ReencodePreset {
@@ -695,6 +759,11 @@ export function loadTransferSettings(): DriveTransferSettings {
       groupAsAlbum: !!p.groupAsAlbum,
       silent: !!p.silent,
       spoiler: !!p.spoiler,
+      spoilerItemPositions: typeof p.spoilerItemPositions === 'string'
+        ? p.spoilerItemPositions.replace(/[^0-9,\-\s]/g, '').slice(0, 128)
+        : '',
+      scheduleAt: typeof p.scheduleAt === 'string' ? p.scheduleAt.slice(0, 32) : '',
+      sendAs: typeof p.sendAs === 'string' ? p.sendAs.trim().slice(0, 128) : '',
       forceDocumentDefault: !!p.forceDocumentDefault,
       duplicatePolicy: p.duplicatePolicy === 'FORCE_UPLOAD' ? 'FORCE_UPLOAD' : 'SKIP',
       scanMode: isScanMode(p.scanMode) ? p.scanMode : DEFAULT_TRANSFER_SETTINGS.scanMode,
@@ -708,11 +777,47 @@ export function loadTransferSettings(): DriveTransferSettings {
       maxReuploadPerHour: (
         typeof p.maxReuploadPerHour === 'number' && p.maxReuploadPerHour >= 1
       ) ? Math.min(p.maxReuploadPerHour, 100) : DEFAULT_TRANSFER_SETTINGS.maxReuploadPerHour,
-      globalCaption: typeof p.globalCaption === 'string' ? p.globalCaption.slice(0, 1024) : '',
+      globalCaption: typeof p.globalCaption === 'string' ? p.globalCaption.slice(0, 65_536) : '',
+      captionOverflowPolicy: p.captionOverflowPolicy === 'fail' ? 'fail' : 'truncate_with_warning',
       refreshAfterUpload: p.refreshAfterUpload !== false,
       notifyDownloadDone: p.notifyDownloadDone !== false,
       reencodeHardware: isReencodeHardware(p.reencodeHardware) ? p.reencodeHardware : DEFAULT_TRANSFER_SETTINGS.reencodeHardware,
       reencodePreset: isReencodePreset(p.reencodePreset) ? p.reencodePreset : DEFAULT_TRANSFER_SETTINGS.reencodePreset,
+      presentationOverride: ['automatic', 'force_document', 'force_native_media'].includes(String(p.presentationOverride))
+        ? p.presentationOverride!
+        : p.forceDocumentDefault
+          ? 'force_document'
+          : DEFAULT_TRANSFER_SETTINGS.presentationOverride,
+      albumPacking: ['maximum', 'balanced', 'custom', 'follow_selection', 'never'].includes(String(p.albumPacking)) ? p.albumPacking! : DEFAULT_TRANSFER_SETTINGS.albumPacking,
+      albumGroupSize: Math.max(2, Math.min(10, Number(p.albumGroupSize) || DEFAULT_TRANSFER_SETTINGS.albumGroupSize)),
+      albumAvoidSingle: p.albumAvoidSingle !== false,
+      albumFailurePolicy: ['atomic_strict', 'retry_prepare', 'replan_group', 'send_remaining', 'send_failed_separately', 'cancel_group', 'best_effort_advanced'].includes(String(p.albumFailurePolicy))
+        ? p.albumFailurePolicy!
+        : String(p.albumFailurePolicy) === 'retry_group'
+          ? 'retry_prepare'
+          : String(p.albumFailurePolicy) === 'keep_delivered'
+            ? 'send_remaining'
+            : String(p.albumFailurePolicy) === 'stop_group'
+              ? 'cancel_group'
+              : 'atomic_strict',
+      groupDocuments: p.groupDocuments !== false,
+      groupAudio: p.groupAudio !== false,
+      groupOriginalDocuments: p.groupOriginalDocuments !== false,
+      oversizeAction: ['split', 'alternate_account', 'skip'].includes(String(p.oversizeAction)) ? p.oversizeAction! : DEFAULT_TRANSFER_SETTINGS.oversizeAction,
+      alternateAccountPool: typeof p.alternateAccountPool === 'string'
+        ? p.alternateAccountPool.replace(/[^a-zA-Z0-9_.\-,\s]/g, '').slice(0, 512)
+        : '',
+      alternateIdentityApproved: p.alternateIdentityApproved === true,
+      albumAlternateStrategy: ['separate_item', 'move_whole_group', 'cancel_group'].includes(String(p.albumAlternateStrategy))
+        ? p.albumAlternateStrategy!
+        : 'cancel_group',
+      encoderStrategy: ['auto_adaptive', 'hardware_preferred', 'software_preferred', 'hardware_only', 'software_only', 'specific_device', 'disable_reencode'].includes(String(p.encoderStrategy)) ? p.encoderStrategy! : DEFAULT_TRANSFER_SETTINGS.encoderStrategy,
+      encoderResourceProfile: ['eco', 'balanced', 'performance', 'custom'].includes(String(p.encoderResourceProfile)) ? p.encoderResourceProfile! : DEFAULT_TRANSFER_SETTINGS.encoderResourceProfile,
+      encoderMaxParallel: Math.max(1, Math.min(4, Number(p.encoderMaxParallel) || DEFAULT_TRANSFER_SETTINGS.encoderMaxParallel)),
+      encoderAllowSoftwareFallback: p.encoderAllowSoftwareFallback !== false,
+      downloadConflictPolicy: ['ask', 'rename', 'overwrite', 'skip'].includes(String(p.downloadConflictPolicy)) ? p.downloadConflictPolicy! : DEFAULT_TRANSFER_SETTINGS.downloadConflictPolicy,
+      downloadResumePartial: p.downloadResumePartial !== false,
+      downloadIntegrity: p.downloadIntegrity === 'sha256' ? 'sha256' : 'size',
     };
   } catch {
     return { ...DEFAULT_TRANSFER_SETTINGS };
@@ -722,6 +827,42 @@ export function loadTransferSettings(): DriveTransferSettings {
 export function saveTransferSettings(s: DriveTransferSettings): void {
   try {
     localStorage.setItem('autogram_drive_transfer_settings', JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+
+const TRANSFER_PROFILE_STORAGE_KEY = 'autogram_drive_transfer_profiles_v1';
+
+export function loadTransferSettingsProfiles(): DriveTransferSettingsProfile[] {
+  try {
+    const raw = localStorage.getItem(TRANSFER_PROFILE_STORAGE_KEY);
+    if (!raw) return [];
+    const rows = JSON.parse(raw);
+    if (!Array.isArray(rows)) return [];
+    return rows
+      .filter((row): row is DriveTransferSettingsProfile => (
+        !!row
+        && typeof row.id === 'string'
+        && typeof row.name === 'string'
+        && row.settings
+        && typeof row.settings === 'object'
+      ))
+      .map((row) => ({
+        id: row.id,
+        name: row.name.slice(0, 80),
+        updatedAt: Number(row.updatedAt) || 0,
+        settings: { ...DEFAULT_TRANSFER_SETTINGS, ...row.settings },
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch {
+    return [];
+  }
+}
+
+export function saveTransferSettingsProfiles(profiles: DriveTransferSettingsProfile[]): void {
+  try {
+    localStorage.setItem(TRANSFER_PROFILE_STORAGE_KEY, JSON.stringify(profiles.slice(0, 50)));
   } catch {
     /* ignore */
   }

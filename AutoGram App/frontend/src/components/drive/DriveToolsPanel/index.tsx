@@ -17,9 +17,11 @@ import {
   Upload,
   Download,
   RotateCcw,
+  Save,
+  Search,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
-import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, QualityMode } from '../../../lib/telegram/driveTypes';
+import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, DriveTransferSettingsProfile, QualityMode } from '../../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   QUALITY_MODE_OPTIONS,
@@ -29,6 +31,8 @@ import {
   formatDriveBytes,
   driveItemKind,
   isVideoDriveFile,
+  loadTransferSettingsProfiles,
+  saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
 import { getCachedThumb, requestThumb } from '../../../lib/media/thumbBatcher';
 import {
@@ -44,6 +48,8 @@ import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
 import { useTransferProgressStore } from '../../../stores/transferProgressStore';
+import { TransferOrchestrationSettings } from '../Transfers/TransferOrchestrationSettings';
+import { buildEncoderHardwareOptions, isExplicitEncoderDevice } from '../Transfers/encoderHardwareOptions';
 export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
@@ -210,10 +216,8 @@ export function DriveToolsPanel({
       uploadConcurrency: clampConcurrency(xferDraft.uploadConcurrency),
       downloadConcurrency: clampConcurrency(xferDraft.downloadConcurrency),
       globalCaption: (xferDraft.globalCaption || '').slice(0, 1024),
-      qualityMode:
-        xferDraft.forceDocumentDefault && xferDraft.qualityMode !== 'ORIGINAL'
-          ? 'ORIGINAL'
-          : xferDraft.qualityMode,
+      albumGroupSize: Math.max(2, Math.min(10, xferDraft.albumGroupSize)),
+      encoderMaxParallel: Math.max(1, Math.min(4, xferDraft.encoderMaxParallel)),
     };
     onTransferSettingsChange(next);
   };
@@ -333,7 +337,7 @@ export function DriveToolsPanel({
             ))}
           </aside>
 
-          <main className="td-tools-main">
+          <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
           <ToolTabIntro
             tab={tab}
             locationLabel={locationLabel}
@@ -771,49 +775,61 @@ function TransferTabContent({
 }) {
   const { t } = useTranslation();
   const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferProgressStore();
+  const [profiles, setProfiles] = useState<DriveTransferSettingsProfile[]>(() => loadTransferSettingsProfiles());
+  const [selectedProfileId, setSelectedProfileId] = useState('');
+  const [profileName, setProfileName] = useState('');
+  const [settingsQuery, setSettingsQuery] = useState('');
 
   useEffect(() => {
     fetchHardwareCapabilities();
   }, [fetchHardwareCapabilities]);
 
+  const loadProfile = (id: string) => {
+    setSelectedProfileId(id);
+    const profile = profiles.find((candidate) => candidate.id === id);
+    if (!profile) return;
+    setProfileName(profile.name);
+    onChange({ ...DEFAULT_TRANSFER_SETTINGS, ...profile.settings });
+  };
+
+  const saveProfile = () => {
+    const name = profileName.trim().slice(0, 80);
+    if (!name) return;
+    const id = selectedProfileId || (globalThis.crypto?.randomUUID?.() ?? `profile-${Date.now()}`);
+    const nextProfile: DriveTransferSettingsProfile = { id, name, updatedAt: Date.now(), settings: { ...draft } };
+    const next = [nextProfile, ...profiles.filter((candidate) => candidate.id !== id)];
+    setProfiles(next);
+    setSelectedProfileId(id);
+    saveTransferSettingsProfiles(next);
+  };
+
+  const deleteProfile = () => {
+    if (!selectedProfileId) return;
+    const next = profiles.filter((candidate) => candidate.id !== selectedProfileId);
+    setProfiles(next);
+    setSelectedProfileId('');
+    setProfileName('');
+    saveTransferSettingsProfiles(next);
+  };
+
+  const searchResults = useMemo(() => {
+    const query = settingsQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
+    return [
+      { tab: 'upload' as const, id: 'tools-transfer-quality', label: String(t('speedtest.upload_quality_header')) },
+      { tab: 'upload' as const, id: 'transfer-orchestration', label: String(t('speedtest.album_orchestration_title')) },
+      { tab: 'upload' as const, id: 'transfer-encoder', label: String(t('speedtest.encoder_orchestration_title')) },
+      { tab: 'download' as const, id: 'tools-transfer-download', label: String(t('speedtest.download_reliability_title')) },
+    ].filter((entry) => entry.label.toLocaleLowerCase().includes(query));
+  }, [settingsQuery, t]);
+
+  const jumpToSetting = (tab: 'upload' | 'download', id: string) => {
+    onSubTab(tab);
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+
   const hardwareOptions = useMemo(() => {
-    const opts: { value: string; label: string; description: string }[] = [];
-
-    const autoDesc = hardwareCapabilities?.best_encoder
-      ? `Otomatis memilih encoder terbaik (${hardwareCapabilities.best_encoder.encoder_backend.toUpperCase()} - ${hardwareCapabilities.best_encoder.device_name})`
-      : String(t('speedtest.gpu_auto_desc'));
-
-    opts.push({
-      value: 'auto',
-      label: String(t('speedtest.gpu_auto_label')),
-      description: autoDesc,
-    });
-
-    if (hardwareCapabilities) {
-      for (const gpu of hardwareCapabilities.gpu) {
-        if (gpu.supported) {
-          opts.push({
-            value: gpu.backend_id,
-            label: `✓ ${gpu.name} (${gpu.backend_id.toUpperCase()})`,
-            description: `Encoder: ${gpu.encoder_codec} · Prioritas #${gpu.priority_rank}`,
-          });
-        }
-      }
-      const cpu = hardwareCapabilities.cpu;
-      opts.push({
-        value: 'cpu',
-        label: `CPU x264 (${cpu.processor_name})`,
-        description: `${cpu.cores} Cores / ${cpu.threads} Threads · Software Encoding`,
-      });
-    } else {
-      opts.push(
-        { value: 'nvidia', label: 'NVIDIA NVENC', description: String(t('speedtest.gpu_nvidia_desc')) },
-        { value: 'amd', label: 'AMD AMF', description: String(t('speedtest.gpu_amd_desc')) },
-        { value: 'intel', label: 'Intel Quick Sync', description: String(t('speedtest.gpu_intel_desc')) },
-        { value: 'cpu', label: 'CPU x264', description: String(t('speedtest.gpu_cpu_desc')) },
-      );
-    }
-    return opts;
+    return buildEncoderHardwareOptions(hardwareCapabilities, t);
   }, [hardwareCapabilities, t]);
 
   return (
@@ -842,8 +858,81 @@ function TransferTabContent({
       </div>
 
       <div className="td-xfer-settings-body">
+        <div className="td-transfer-profile-card">
+          <div className="td-profile-mgr-head">
+            <h3>{t('speedtest.transfer_profiles_title')}</h3>
+            <p className="td-xfer-hint">{t('speedtest.transfer_profiles_desc')}</p>
+          </div>
+          <div className="td-profile-mgr-controls">
+            <select
+              value={selectedProfileId}
+              disabled={!!transferActive}
+              onChange={(event) => loadProfile(event.target.value)}
+              aria-label={t('speedtest.transfer_profiles_select')}
+              className="td-tools-select"
+            >
+              <option value="">{t('speedtest.transfer_profiles_new')}</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name}
+                </option>
+              ))}
+            </select>
+            <input
+              value={profileName}
+              maxLength={80}
+              disabled={!!transferActive}
+              onChange={(event) => setProfileName(event.target.value)}
+              placeholder={t('speedtest.transfer_profiles_name')}
+              aria-label={t('speedtest.transfer_profiles_name')}
+              className="td-tools-input"
+            />
+            <button
+              type="button"
+              className="td-chip-btn is-primary"
+              onClick={saveProfile}
+              disabled={!!transferActive || !profileName.trim()}
+            >
+              <Save size={13} /> {t('speedtest.transfer_profiles_save')}
+            </button>
+            <button
+              type="button"
+              className="td-chip-btn is-danger"
+              onClick={deleteProfile}
+              disabled={!!transferActive || !selectedProfileId}
+            >
+              <Trash2 size={13} /> {t('speedtest.transfer_profiles_delete')}
+            </button>
+          </div>
+
+          <div className="td-profile-search-row">
+            <Search size={14} className="td-search-icon" aria-hidden />
+            <input
+              type="search"
+              value={settingsQuery}
+              onChange={(event) => setSettingsQuery(event.target.value)}
+              placeholder={t('speedtest.transfer_settings_search')}
+              aria-label={t('speedtest.transfer_settings_search')}
+              className="td-tools-input td-search-input"
+            />
+          </div>
+
+          {settingsQuery.trim() && (
+            <div className="td-profile-search-results" role="navigation" aria-label={t('speedtest.transfer_settings_search_results')}>
+              {searchResults.length ? (
+                searchResults.map((result) => (
+                  <button key={result.id} type="button" className="td-chip-btn" onClick={() => jumpToSetting(result.tab, result.id)}>
+                    {result.label}
+                  </button>
+                ))
+              ) : (
+                <span className="td-xfer-hint">{t('speedtest.transfer_settings_search_empty')}</span>
+              )}
+            </div>
+          )}
+        </div>
         {subTab === 'upload' && (
-          <section className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
+          <section id="tools-transfer-quality" className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
             <h3>{t('speedtest.upload_quality_header')}</h3>
             <p className="td-xfer-hint">
               {t("speedtest.upload_quality_hint")}
@@ -863,13 +952,13 @@ function TransferTabContent({
                     onChange={() => {
                       onChange({
                         qualityMode: opt.id as QualityMode,
-                        forceDocumentDefault: opt.id === 'ORIGINAL',
+                        forceDocumentDefault: false,
                       });
                     }}
                   />
                   <span>
-                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`, opt.label))}</strong>
-                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`, opt.description))}</small>
+                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`))}</strong>
+                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`))}</small>
                   </span>
                 </label>
               ))}
@@ -888,6 +977,9 @@ function TransferTabContent({
                 options={hardwareOptions}
               />
             </label>
+            {draft.encoderStrategy === 'specific_device' && !isExplicitEncoderDevice(draft.reencodeHardware) && (
+              <p className="td-xfer-note" role="alert">{t('speedtest.encoder_specific_device_required')}</p>
+            )}
 
             <h3>{t('speedtest.reencode_mode_header')}</h3>
             <p className="td-xfer-hint">
@@ -965,13 +1057,13 @@ function TransferTabContent({
               <label className="td-xfer-check">
                 <input
                   type="checkbox"
-                  checked={draft.forceDocumentDefault || draft.qualityMode === 'ORIGINAL'}
+                  checked={draft.presentationOverride === 'force_document'}
                   disabled={!!transferActive}
                   onChange={(e) => {
                     const on = e.target.checked;
                     onChange({
                       forceDocumentDefault: on,
-                      qualityMode: on ? 'ORIGINAL' : draft.qualityMode === 'ORIGINAL' ? 'HIGH_QUALITY' : draft.qualityMode,
+                      presentationOverride: on ? 'force_document' : 'automatic',
                     });
                   }}
                 />
@@ -994,6 +1086,13 @@ function TransferTabContent({
               </label>
             </div>
 
+            <TransferOrchestrationSettings
+              mode="upload"
+              settings={draft}
+              onChange={onChange}
+              disabled={!!transferActive}
+            />
+
             <h3>{t('speedtest.default_caption')}</h3>
             <textarea
               className="td-xfer-textarea"
@@ -1009,7 +1108,7 @@ function TransferTabContent({
         )}
 
         {subTab === 'download' && (
-          <section className="td-xfer-section" aria-label={t('speedtest.download_settings_aria')}>
+          <section id="tools-transfer-download" className="td-xfer-section" aria-label={t('speedtest.download_settings_aria')}>
             <h3>{t('speedtest.download_parallel')}</h3>
             <p className="td-xfer-hint">
               {t('speedtest.download_parallel_desc')}
@@ -1041,6 +1140,12 @@ function TransferTabContent({
                 </span>
               </label>
             </div>
+            <TransferOrchestrationSettings
+              mode="download"
+              settings={draft}
+              onChange={onChange}
+              disabled={!!transferActive}
+            />
           </section>
         )}
       </div>
