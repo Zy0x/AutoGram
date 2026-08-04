@@ -495,11 +495,7 @@ pub fn upload_album_blocking_with_app(
                     let im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
                     // Forum topic: attach reply_to on all media items so Telegram routes every file to topic
-                    let im = if let Some(rt) = reply_to {
-                        im.reply_to(rt)
-                    } else {
-                        im
-                    };
+                    let im = im.reply_to(reply_to);
                     let final_media = if as_document {
                         let mut doc_im = im.mime_type(mime).document(uploaded);
                         if is_video {

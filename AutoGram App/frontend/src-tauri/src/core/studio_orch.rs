@@ -283,7 +283,7 @@ fn run_orchestrated_grammers(
                                     &sessions,
                                     &identity,
                                     &rec.chat_id,
-                                    &item_ref.path,
+                                    &item_ref.0,
                                     if rel_idx == 0 { &caption } else { "" },
                                     as_doc,
                                     silent,
