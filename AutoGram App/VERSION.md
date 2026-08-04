@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.2
+AutoGram Version: v2.8.3
 
 Current State:
+v2.8.3 Album Commit Phase State Engine & ReferenceError Fix — membenahi `media_transfer.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki `ReferenceError: finalSkipped is not defined` pada UI React serta menambahkan emisi event phase `StudioItemPhase` (`committing`) pada backend Rust sebelum memanggil `client.send_album`. Transfer Manager kini menampilkan teks "Mengirim pesan…" saat proses upload byte 100% selesai dan RPC commit sedang berjalan di Telegram.
+
+Previous:
 v2.8.2 Album Send Result Mapping, History Recovery & Transfer Manager Debug Log Engine — membenahi `media_transfer.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan album foto berhasil terposting di Telegram tetapi Transfer Manager secara salah melaporkan status "Selesai dengan error" / "Upload Grammers gagal (album item missing)". Memperbaiki validasi `finalOk` pada `transferProgress.ts` agar tidak menolak konfirmasi status `done`/`success` dari Rust, mengaktifkan pemicu `try_recover_album_from_history` pada semua error RPC `send_album` maupun ID pesan yang hilang, serta menyalurkan catatan log aktivitas transfer secara otomatis ke panel `Debug log` Transfer Manager.
 
 Previous:

@@ -516,6 +516,20 @@ pub fn upload_album_blocking_with_app(
                     );
                 }
 
+                if let Some(app) = &app_handle_outer {
+                    use tauri::Emitter;
+                    for i in 0..items.len() {
+                        let _ = app.emit(
+                            "transfer-event",
+                            serde_json::json!({
+                                "type": "StudioItemPhase",
+                                "index": index_base + i,
+                                "phase": "committing"
+                            }),
+                        );
+                    }
+                }
+
                 let sent_res = client.send_album(peer, medias).await;
                 let sent = match sent_res {
                     Ok(s) => s,

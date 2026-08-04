@@ -525,9 +525,7 @@ export function applyTransferEvent(
       num((prev as { messageId?: number } | undefined)?.messageId, 0) ||
       num((prev as { message_id?: number } | undefined)?.message_id, 0);
     const alreadyCommitted = alreadyDone || prevMid > 0;
-    // Skipped takes precedence only if not already committed as a real success
     const finalSkipped = isSkipped && !alreadyCommitted;
-    const hasCommitProof = ok || t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
     const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
     const skipNote = finalSkipped
       ? (note || 'Duplikat dilewati — sudah ada di tujuan')

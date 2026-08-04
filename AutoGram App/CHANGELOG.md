@@ -1,3 +1,9 @@
+## v2.8.3 Album Commit Phase State Engine & ReferenceError Fix
+
+### Perbaikan Error UI & Phase Status `committing` (`transferProgress.ts`, `media_transfer.rs`)
+- **Pembersihan `ReferenceError` React**: Memperbaiki ruang lingkup variabel `finalSkipped` pada `transferProgress.ts` untuk mengeliminasi crash halaman `ReferenceError: finalSkipped is not defined`.
+- **Indikator Status Commit "Mengirim pesan…"**: Memancarkan event phase `StudioItemPhase` dengan `phase: "committing"` saat byte 100% selesai diunggah sebelum memanggil `client.send_album`. Transfer Manager kini dengan jelas menampilkan status "Mengirim pesan…" saat RPC commit berlangsung di Telegram.
+
 ## v2.8.2 Album Send Result Mapping, History Recovery & Transfer Manager Debug Log Engine
 
 ### Eliminasi False Failure Album & Validasi `finalOk` (`transferProgress.ts`)
