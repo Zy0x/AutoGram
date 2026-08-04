@@ -284,7 +284,7 @@ fn run_orchestrated_grammers(
                                     &identity,
                                     &rec.chat_id,
                                     &item_ref.0,
-                                    if rel_idx == 0 { &caption } else { "" },
+                                    &item_ref.1,
                                     as_doc,
                                     silent,
                                     r.index,
