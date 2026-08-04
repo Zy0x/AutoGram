@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.3
+AutoGram Version: v2.8.4
 
 Current State:
+v2.8.4 Forum Topic Album History Recovery Engine & GroupedID Matching — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan album ke Forum Topic yang mengalami timeout RPC Grammers dilaporkan gagal padahal 10 foto sudah berhasil terposting di Telegram. Mengoreksi `try_recover_album_from_history` agar mengevaluasi seluruh item dalam `grouped_id` tanpa membuang foto ke 2-10 yang tidak memiliki header `reply_to` topik dari Telegram, menjamin pemulihan ID pesan 100% presisi dan status transfer kembali "Selesai (Success)".
+
+Previous:
 v2.8.3 Album Commit Phase State Engine & ReferenceError Fix — membenahi `media_transfer.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki `ReferenceError: finalSkipped is not defined` pada UI React serta menambahkan emisi event phase `StudioItemPhase` (`committing`) pada backend Rust sebelum memanggil `client.send_album`. Transfer Manager kini menampilkan teks "Mengirim pesan…" saat proses upload byte 100% selesai dan RPC commit sedang berjalan di Telegram.
 
 Previous:

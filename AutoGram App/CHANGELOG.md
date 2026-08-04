@@ -1,3 +1,8 @@
+## v2.8.4 Forum Topic Album History Recovery Engine & GroupedID Matching
+
+### Pemulihan Riwayat Chat Album Topik Forum (`media_transfer.rs`)
+- **Pencocokan GroupedID Forum Topic**: Memperbaiki `try_recover_album_from_history` agar mengevaluasi kelompok `grouped_id` secara utuh untuk Forum Topic. Telegram hanya menempelkan header `reply_to` topik pada foto pertama album; foto ke 2-10 tidak memiliki header `reply_to`. Algoritma baru memverifikasi bahwa setidaknya satu foto dalam `grouped_id` cocok dengan topik, sehingga seluruh 10 foto album dipulihkan secara presisi dengan status "done" (Selesai).
+
 ## v2.8.3 Album Commit Phase State Engine & ReferenceError Fix
 
 ### Perbaikan Error UI & Phase Status `committing` (`transferProgress.ts`, `media_transfer.rs`)
