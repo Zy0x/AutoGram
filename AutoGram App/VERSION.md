@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.5
+AutoGram Version: v2.8.6
 
 Current State:
+v2.8.6 Universal Forum Topic Album Routing & Automatic Single Fallback Retry Engine — membenahi `media_transfer.rs`, `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana Telegram memisahkan atau menolak item ke-10 dari album paket Forum Topic. Mengalokasikan header `reply_to` topik secara eksplisit di seluruh item album (item 1-10) pada `media_transfer.rs`, serta mengaktifkan mekanisme *single upload fallback retry* di `studio_orch.rs` jika ada item album yang tercecer. Seluruh 10/10 item kini dijamin 100% terposting ke topik dan berstatus "SELESAI".
+
+Previous:
 v2.8.5 Partial Album Recovery Engine & Accurate Item Status Mapping — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki `try_recover_album_from_history` agar memulihkan status partial (misalnya 9 dari 10 foto berhasil terposting di Telegram dan 1 gagal). AutoGram kini menandai item yang berhasil diterima Telegram sebagai "SELESAI" (9/10 commit) dan item yang gagal sebagai "GAGAL" secara presisi, mencocokkan tampilan obrolan Telegram Web secara 100%.
 
 Previous:

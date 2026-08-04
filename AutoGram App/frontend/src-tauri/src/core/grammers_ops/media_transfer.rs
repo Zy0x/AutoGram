@@ -494,9 +494,9 @@ pub fn upload_album_blocking_with_app(
                     let path_str = path_buf.to_str().unwrap_or("");
                     let im =
                         InputMedia::new().caption(if i == 0 { cap.clone() } else { String::new() });
-                    // Forum topic: only first media carries reply_to
-                    let im = if i == 0 {
-                        im.reply_to(reply_to)
+                    // Forum topic: attach reply_to on all media items so Telegram routes every file to topic
+                    let im = if let Some(rt) = reply_to {
+                        im.reply_to(rt)
                     } else {
                         im
                     };

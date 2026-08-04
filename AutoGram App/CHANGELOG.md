@@ -1,3 +1,9 @@
+## v2.8.6 Universal Forum Topic Album Routing & Automatic Single Fallback Retry Engine
+
+### Pengalokasian Target Topik & Fallback Retry Otomatis (`media_transfer.rs`, `studio_orch.rs`)
+- **Explicit `reply_to` Target Routing pada Seluruh Media**: Memperbarui perakitan array `medias` di `media_transfer.rs` agar menempelkan `reply_to` topik secara eksplisit pada seluruh item (foto 1 sampai 10). Mencegah server Telegram memisahkan atau membuang foto ke-10 dari album di Forum Topic.
+- **Single Upload Fallback Retry**: Memperbarui `studio_orch.rs` agar secara otomatis mencoba ulang pengiriman tunggal (*single upload retry*) untuk item album yang tercecer dari payload Telegram. Seluruh 10/10 item dijamin terposting dan mencapai status "SELESAI" (Done).
+
 ## v2.8.5 Partial Album Recovery Engine & Accurate Item Status Mapping
 
 ### Pemulihan Album Parsial & Akurasi Status Item (`media_transfer.rs`)

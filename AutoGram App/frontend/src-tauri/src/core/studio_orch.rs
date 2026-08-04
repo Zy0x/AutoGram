@@ -262,19 +262,60 @@ fn run_orchestrated_grammers(
             ) {
                 Ok(results) => {
                     for r in results {
-                        let st = match r.status.as_str() {
-                            "done" | "success" => {
-                                any_ok = true;
-                                ItemState::Done
-                            }
+                        let mut st = match r.status.as_str() {
+                            "done" | "success" => ItemState::Done,
                             _ => ItemState::Failed,
                         };
+                        let mut final_mid = r.message_id;
+                        let mut final_err = r.error.clone();
+
+                        // Fallback retry: if an item was omitted by Telegram from album payload, upload as single file to topic
+                        if st != ItemState::Done {
+                            let rel_idx = r.index.saturating_sub(base);
+                            if rel_idx < chunk.len() {
+                                let item_ref = &chunk[rel_idx];
+                                tg_log::info(
+                                    "studio_orch",
+                                    "album_item_fallback_single_retry",
+                                    format!("Album item index={} failed to join album payload. Retrying as single file...", r.index),
+                                );
+                                if let Ok(single_res) = grammers_ops::upload_file_blocking_topic_with_app(
+                                    &sessions,
+                                    &identity,
+                                    &rec.chat_id,
+                                    &item_ref.path,
+                                    if rel_idx == 0 { &caption } else { "" },
+                                    as_doc,
+                                    silent,
+                                    r.index,
+                                    topic_id,
+                                    app.cloned(),
+                                    Some(tid.clone()),
+                                ) {
+                                    if single_res.status == "done" || single_res.status == "success" {
+                                        st = ItemState::Done;
+                                        final_mid = single_res.message_id;
+                                        final_err = None;
+                                        tg_log::info(
+                                            "studio_orch",
+                                            "album_item_fallback_single_success",
+                                            format!("Item index={} successfully delivered via single upload fallback! mid={:?}", r.index, final_mid),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        if st == ItemState::Done {
+                            any_ok = true;
+                        }
+
                         let _ = job_queue::update_item(
                             &tid,
                             r.index,
                             st.clone(),
-                            r.message_id,
-                            r.error.clone(),
+                            final_mid,
+                            final_err.clone(),
                         );
                         if let Some(app) = app {
                             use tauri::Emitter;
@@ -287,12 +328,12 @@ fn run_orchestrated_grammers(
                                 "type": "StudioItemDone",
                                 "index": r.index,
                                 "status": status_str,
-                                "message_id": r.message_id,
-                                "error": r.error,
+                                "message_id": final_mid,
+                                "error": final_err,
                             }));
                         }
-                        if r.error.is_some() && first_err.is_none() {
-                            first_err = r.error;
+                        if final_err.is_some() && first_err.is_none() {
+                            first_err = final_err;
                         }
                     }
                 }
