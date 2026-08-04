@@ -56,7 +56,10 @@ async fn try_recover_album_from_history(
         tg_log::info(
             BACKEND,
             "album_recovery_check_start",
-            format!("Checking history for chat={chat_id} topic={:?} expected_count={expected_count} attempt={attempt}", topic_id),
+            format!(
+                "Checking history for chat={chat_id} topic={:?} expected_count={expected_count} attempt={attempt}",
+                topic_id
+            ),
         );
 
         let mut iter = client.iter_messages(peer).limit(50);
@@ -69,7 +72,8 @@ async fn try_recover_album_from_history(
 
         while let Ok(Some(msg)) = iter.next().await {
             let msg_date = msg.date().timestamp();
-            if now - msg_date > 300 {
+            // Accept messages from last 10 minutes
+            if now - msg_date > 600 {
                 break;
             }
             recent_msgs.push(msg);
@@ -79,13 +83,15 @@ async fn try_recover_album_from_history(
             continue;
         }
 
+        let target_topic = topic_id.filter(|t| *t > 0);
+
         // 1. Group recent messages by grouped_id
         // Group entries: (grouped_id -> Vec<(message_id, topic_id_matches)>)
         let mut grouped_map: HashMap<i64, Vec<(i64, bool)>> = HashMap::new();
         for msg in &recent_msgs {
             if let Some(gid) = msg.grouped_id() {
                 let msg_tid = message_topic_id(msg);
-                let topic_matches = match topic_id.filter(|t| *t > 0) {
+                let topic_matches = match target_topic {
                     Some(tid) => msg_tid == Some(tid),
                     None => true,
                 };
@@ -93,39 +99,61 @@ async fn try_recover_album_from_history(
             }
         }
 
+        // Find the best matching grouped_id (closest to expected_count, or exact)
+        let mut best_group_mids: Vec<i64> = Vec::new();
+
         for (_gid, items) in grouped_map {
-            // Album group must match expected_count
-            if items.len() == expected_count {
-                // For forum topics: check that at least one message in the album matches topic_id
-                let topic_valid = match topic_id.filter(|t| *t > 0) {
-                    Some(_) => items.iter().any(|(_, matches)| *matches),
-                    None => true,
-                };
-                if topic_valid {
-                    let mut mids: Vec<i64> = items.into_iter().map(|(m, _)| m).collect();
-                    mids.sort();
-                    let mut out = Vec::new();
-                    for (i, &mid) in mids.iter().enumerate() {
-                        out.push(UploadStepResult {
-                            status: "done".into(),
-                            message_id: Some(mid),
-                            error: None,
-                            index: index_base + i,
-                            backend: Some(BACKEND.into()),
-                        });
-                    }
-                    tg_log::info(
-                        BACKEND,
-                        "album_worker_busy_recovered_by_grouped_id",
-                        format!("Successfully recovered {} album items by grouped_id from history (attempt {})", out.len(), attempt),
-                    );
-                    return Some(out);
+            let topic_valid = match target_topic {
+                Some(_) => items.iter().any(|(_, matches)| *matches),
+                None => true,
+            };
+            if topic_valid && !items.is_empty() {
+                let count = items.len();
+                if count <= expected_count && count > best_group_mids.len() {
+                    best_group_mids = items.into_iter().map(|(m, _)| m).collect();
                 }
             }
         }
 
-        // 2. Fallback: check recent media messages count matching topic_id
-        let target_topic = topic_id.filter(|t| *t > 0);
+        if !best_group_mids.is_empty() {
+            best_group_mids.sort();
+            let mut out = Vec::new();
+            let recovered_count = best_group_mids.len();
+            for (i, &mid) in best_group_mids.iter().enumerate() {
+                out.push(UploadStepResult {
+                    status: "done".into(),
+                    message_id: Some(mid),
+                    error: None,
+                    index: index_base + i,
+                    backend: Some(BACKEND.into()),
+                });
+            }
+            for i in recovered_count..expected_count {
+                out.push(UploadStepResult {
+                    status: "failed".into(),
+                    message_id: None,
+                    error: Some(format!(
+                        "Item ke-{} tidak diterima oleh Telegram dalam paket album ini ({} dari {} berhasil).",
+                        i + 1,
+                        recovered_count,
+                        expected_count
+                    )),
+                    index: index_base + i,
+                    backend: Some(BACKEND.into()),
+                });
+            }
+            tg_log::info(
+                BACKEND,
+                "album_recovered_by_grouped_id",
+                format!(
+                    "Recovered {}/{} album items by grouped_id from history (attempt {})",
+                    recovered_count, expected_count, attempt
+                ),
+            );
+            return Some(out);
+        }
+
+        // 2. Fallback: check recent media messages in chat/topic
         let mut media_mids: Vec<i64> = recent_msgs
             .iter()
             .filter(|m| {
@@ -134,7 +162,6 @@ async fn try_recover_album_from_history(
                 }
                 if let Some(tid) = target_topic {
                     let msg_tid = message_topic_id(m);
-                    // Match if explicitly topic ID or if no reply_header (album item)
                     return msg_tid == Some(tid) || msg_tid.is_none();
                 }
                 true
@@ -142,9 +169,12 @@ async fn try_recover_album_from_history(
             .map(|m| m.id() as i64)
             .collect();
 
-        if media_mids.len() >= expected_count {
-            media_mids.truncate(expected_count);
+        if !media_mids.is_empty() {
+            if media_mids.len() > expected_count {
+                media_mids.truncate(expected_count);
+            }
             media_mids.sort();
+            let recovered_count = media_mids.len();
             let mut out = Vec::new();
             for (i, &mid) in media_mids.iter().enumerate() {
                 out.push(UploadStepResult {
@@ -155,10 +185,27 @@ async fn try_recover_album_from_history(
                     backend: Some(BACKEND.into()),
                 });
             }
+            for i in recovered_count..expected_count {
+                out.push(UploadStepResult {
+                    status: "failed".into(),
+                    message_id: None,
+                    error: Some(format!(
+                        "Item ke-{} tidak diterima oleh Telegram dalam paket album ini ({} dari {} berhasil).",
+                        i + 1,
+                        recovered_count,
+                        expected_count
+                    )),
+                    index: index_base + i,
+                    backend: Some(BACKEND.into()),
+                });
+            }
             tg_log::info(
                 BACKEND,
-                "album_worker_busy_recovered_by_media_count",
-                format!("Successfully recovered {} album items by media count from history (attempt {})", out.len(), attempt),
+                "album_recovered_by_media_count",
+                format!(
+                    "Recovered {}/{} album items by media count from history (attempt {})",
+                    recovered_count, expected_count, attempt
+                ),
             );
             return Some(out);
         }

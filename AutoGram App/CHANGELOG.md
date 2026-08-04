@@ -1,3 +1,8 @@
+## v2.8.5 Partial Album Recovery Engine & Accurate Item Status Mapping
+
+### Pemulihan Album Parsial & Akurasi Status Item (`media_transfer.rs`)
+- **Dukungan Album Parsial (Partial Album Recovery)**: Memperbarui `try_recover_album_from_history` agar mengekstrak grup album terbaik jika Telegram menerima sebagian foto (misal 9 dari 10 foto). Item 1-9 yang berhasil diterima Telegram ditandai sebagai "done" (Selesai), sedangkan item 10 yang gagal/ditolak Telegram ditandai sebagai "failed" (Gagal) dengan pesan yang rinci. Tampilan status di Transfer Manager kini 100% mencocokkan obrolan Telegram Web.
+
 ## v2.8.4 Forum Topic Album History Recovery Engine & GroupedID Matching
 
 ### Pemulihan Riwayat Chat Album Topik Forum (`media_transfer.rs`)

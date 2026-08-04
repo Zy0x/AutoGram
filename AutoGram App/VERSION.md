@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.4
+AutoGram Version: v2.8.5
 
 Current State:
+v2.8.5 Partial Album Recovery Engine & Accurate Item Status Mapping — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki `try_recover_album_from_history` agar memulihkan status partial (misalnya 9 dari 10 foto berhasil terposting di Telegram dan 1 gagal). AutoGram kini menandai item yang berhasil diterima Telegram sebagai "SELESAI" (9/10 commit) dan item yang gagal sebagai "GAGAL" secara presisi, mencocokkan tampilan obrolan Telegram Web secara 100%.
+
+Previous:
 v2.8.4 Forum Topic Album History Recovery Engine & GroupedID Matching — membenahi `media_transfer.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan album ke Forum Topic yang mengalami timeout RPC Grammers dilaporkan gagal padahal 10 foto sudah berhasil terposting di Telegram. Mengoreksi `try_recover_album_from_history` agar mengevaluasi seluruh item dalam `grouped_id` tanpa membuang foto ke 2-10 yang tidak memiliki header `reply_to` topik dari Telegram, menjamin pemulihan ID pesan 100% presisi dan status transfer kembali "Selesai (Success)".
 
 Previous:
