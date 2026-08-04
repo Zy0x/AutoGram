@@ -521,39 +521,37 @@ pub fn upload_album_blocking_with_app(
                     Ok(s) => s,
                     Err(e) => {
                         let mapped = map_invocation(&e);
-                        let is_busy = mapped.user_message().contains("WORKER_BUSY")
-                            || mapped.user_message().contains("500")
-                            || mapped.retryable();
-
-                        if is_busy {
-                            tg_log::warn(
-                                BACKEND,
-                                "album_send_worker_busy",
-                                format!(
-                                    "send_album RPC 500 / WORKER_BUSY hit: {}. Checking history...",
-                                    mapped.user_message()
-                                ),
-                            );
-                            if let Some(recovered) = try_recover_album_from_history(
-                                client,
-                                peer,
-                                &chat,
-                                topic_id,
-                                items.len(),
-                                index_base,
-                            )
-                            .await
-                            {
-                                return Ok(recovered);
-                            }
+                        tg_log::warn(
+                            BACKEND,
+                            "album_send_rpc_error",
+                            format!(
+                                "send_album RPC hit error: {}. Checking chat history...",
+                                mapped.user_message()
+                            ),
+                        );
+                        if let Some(recovered) = try_recover_album_from_history(
+                            client,
+                            peer,
+                            &chat,
+                            topic_id,
+                            items.len(),
+                            index_base,
+                        )
+                        .await
+                        {
+                            return Ok(recovered);
                         }
                         return Err(mapped);
                     }
                 };
 
                 let mut out = Vec::new();
+                let mut missing_mids = false;
                 for (i, msg) in sent.into_iter().enumerate() {
                     let mid = msg.as_ref().map(|m| m.id() as i64);
+                    if mid.is_none() {
+                        missing_mids = true;
+                    }
                     out.push(UploadStepResult {
                         status: if mid.is_some() {
                             "done".into()
@@ -570,6 +568,27 @@ pub fn upload_album_blocking_with_app(
                         backend: Some(BACKEND.into()),
                     });
                 }
+
+                if missing_mids {
+                    tg_log::warn(
+                        BACKEND,
+                        "album_send_missing_mids",
+                        format!("send_album returned missing message IDs for base={index_base}. Checking chat history..."),
+                    );
+                    if let Some(recovered) = try_recover_album_from_history(
+                        client,
+                        peer,
+                        &chat,
+                        topic_id,
+                        items.len(),
+                        index_base,
+                    )
+                    .await
+                    {
+                        return Ok(recovered);
+                    }
+                }
+
                 tg_log::info(
                     BACKEND,
                     "album_ok",

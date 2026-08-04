@@ -1,3 +1,12 @@
+## v2.8.2 Album Send Result Mapping, History Recovery & Transfer Manager Debug Log Engine
+
+### Eliminasi False Failure Album & Validasi `finalOk` (`transferProgress.ts`)
+- **Penerimaan Konfirmasi Status `done` dari Rust**: Memperbarui evaluasi `finalOk` dan `hasCommitProof` pada reducer `transferProgress.ts` agar menerima status `done`/`success`/`ok` yang dikirim eksplisit oleh backend Rust tanpa membatalkan status hanya karena field ID pesan numerik tidak tersedia pada payload awal.
+- **Visualisasi `Debug log` Real-Time**: Mengintegrasikan fungsi `appendDebugLog` ke dalam `applyTransferEvent` sehingga seluruh aktivitas transfer (mulai transfer, prepare, status item, error, flood wait) dicatat secara kronologis ke panel `Debug log` Transfer Manager.
+
+### Pemulihan Riwayat Chat Otomatis untuk RPC Album (`media_transfer.rs`)
+- **Penanganan Error RPC & Missing Message ID**: Mengubah `upload_album_blocking_with_app` agar selalu memicu `try_recover_album_from_history` jika `send_album` mengembalikan error RPC apapun atau mengembalikan list item tanpa ID pesan (`None`). Jika album 10 foto telah sukses terunggah di Telegram, backend secara otomatis memulihkan ID pesan berbasis `grouped_id` dari riwayat obrolan.
+
 ## v2.8.1 Realtime Transfer Manager Album & Photo Upload Progress Engine
 
 ### Integrasi Streaming Progress & Event IPC Album (`media_transfer.rs`, `studio_orch.rs`)

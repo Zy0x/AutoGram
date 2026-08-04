@@ -231,6 +231,14 @@ export function setSessionPaused(session: TransferSession, paused: boolean): Tra
   };
 }
 
+function appendDebugLog(session: TransferSession, logLine: string): string[] {
+  const prev = session.debugLogs || [];
+  const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+  const entry = `[${timeStr}] ${logLine}`;
+  const next = [...prev, entry];
+  return next.length > 200 ? next.slice(next.length - 200) : next;
+}
+
 /**
  * Apply a worker [EVENT] line payload to the transfer session.
  */
@@ -257,8 +265,10 @@ export function applyTransferEvent(
       }
     }
     const totalBytes = num(p.total_bytes, session.total);
+    const debugLogs = appendDebugLog(session, `Mulai transfer ${direction} (${n} item)`);
     return recomputeOverall({
       ...session,
+      debugLogs,
       active: true,
       direction,
       items,
@@ -281,8 +291,10 @@ export function applyTransferEvent(
       estimatedOutputBytes: num(p.output_bytes, session.items[index]?.estimatedOutputBytes || 0) || undefined,
       ...(name ? { name } : {}),
     });
+    const debugLogs = appendDebugLog(session, `Item ${index + 1} (${name || 'File'}): Menyiapkan (${phase})`);
     return {
       ...session,
+      debugLogs,
       active: true,
       items,
       banner:
@@ -520,6 +532,11 @@ export function applyTransferEvent(
     const skipNote = finalSkipped
       ? (note || 'Duplikat dilewati — sudah ada di tujuan')
       : undefined;
+    // Fix: if backend explicitly confirms status 'done'/'success', accept finalOk=true even if mid is 0
+    const hasCommitProof = ok || t !== 'StudioItemDone' || mid > 0 || alreadyCommitted;
+    const finalOk = !finalSkipped && (ok || alreadyCommitted || mid > 0);
+    const logText = `Item ${index + 1} (${name || `File ${index + 1}`}): ${finalOk ? 'SELESAI' : finalSkipped ? 'DILEWATI' : 'GAGAL'} ${mid > 0 ? `[msg_id: ${mid}]` : ''} ${err ? `err: ${err}` : ''}`.trim();
+    const debugLogs = appendDebugLog(session, logText);
     const items = ensureItem(session.items, index, session.direction, {
       status: needsVerification ? 'needs_verification' : finalSkipped ? 'skipped' : finalOk ? 'done' : 'failed',
       percent: (needsVerification || finalSkipped || finalOk) ? 100 : session.items[index]?.percent ?? 0,
@@ -541,6 +558,7 @@ export function applyTransferEvent(
     });
     return recomputeOverall({
       ...session,
+      debugLogs,
       items,
       committedCount: items.filter((i) => i.status === 'done').length,
       needsVerificationCount: items.filter((i) => i.status === 'needs_verification').length,

@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.1
+AutoGram Version: v2.8.2
 
 Current State:
+v2.8.2 Album Send Result Mapping, History Recovery & Transfer Manager Debug Log Engine — membenahi `media_transfer.rs`, `transferProgress.ts`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan album foto berhasil terposting di Telegram tetapi Transfer Manager secara salah melaporkan status "Selesai dengan error" / "Upload Grammers gagal (album item missing)". Memperbaiki validasi `finalOk` pada `transferProgress.ts` agar tidak menolak konfirmasi status `done`/`success` dari Rust, mengaktifkan pemicu `try_recover_album_from_history` pada semua error RPC `send_album` maupun ID pesan yang hilang, serta menyalurkan catatan log aktivitas transfer secara otomatis ke panel `Debug log` Transfer Manager.
+
+Previous:
 v2.8.1 Realtime Transfer Manager Album & Photo Upload Progress Engine — membenahi `media_transfer.rs`, `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki masalah di mana pengunggahan foto/media album (`group_as_album`) pada Transfer Manager mentok di `0.0%` tanpa pergerakan progres item. Menyalurkan `ProgressAsyncReader` melalui `client.upload_stream` di `upload_album_blocking_with_app`, mempropagasi `AppHandle` dan `TransferId` dari `studio_orch.rs`, serta memancarkan event `StudioProgress` dan `StudioItemDone` secara real-time ke UI antarmuka antrean transfer.
 
 Previous:
