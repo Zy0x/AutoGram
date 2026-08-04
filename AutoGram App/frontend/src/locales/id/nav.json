@@ -16,5 +16,9 @@
   "collapse_sidebar": "Ciutkan Sidebar",
   "back_to_app": "Kembali ke Aplikasi Utama",
   "status_active": "Aktif",
-  "status_idle": "Siap"
+  "status_idle": "Siap",
+  "error_title": "Terjadi Kesalahan pada Halaman Ini",
+  "error_fallback_title": "Terjadi Kesalahan Komponen UI",
+  "error_default_desc": "Aplikasi mengalami kendala tak terduga saat memuat bagian ini.",
+  "error_retry": "Coba Lagi / Muat Ulang"
 }

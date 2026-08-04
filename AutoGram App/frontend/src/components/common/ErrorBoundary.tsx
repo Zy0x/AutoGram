@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import i18n from '../../i18n';
 
 interface Props {
   children: ReactNode;
@@ -30,9 +31,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
+    const isDynamicImportError =
+      this.state.error?.message?.includes('Failed to fetch dynamically imported module') ||
+      this.state.error?.name === 'TypeError';
+
     this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();
+    }
+
+    if (isDynamicImportError) {
+      window.location.reload();
     }
   };
 
@@ -53,12 +62,12 @@ export class ErrorBoundary extends Component<Props, State> {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#ef4444', marginBottom: '1rem' }}>
               <AlertTriangle size={28} />
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
-                {this.props.fallbackTitle || 'Terjadi Kesalahan Komponen UI'}
+                {this.props.fallbackTitle || i18n.t('nav.error_fallback_title', 'Terjadi Kesalahan Komponen UI')}
               </h3>
             </div>
 
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '1rem' }}>
-              {this.state.error?.message || 'Aplikasi mengalami kendala tak terduga saat memuat bagian ini.'}
+              {this.state.error?.message || i18n.t('nav.error_default_desc', 'Aplikasi mengalami kendala tak terduga saat memuat bagian ini.')}
             </p>
 
             {this.state.error && (
@@ -87,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
                 <RefreshCw size={16} />
-                Coba Lagi / Muat Ulang
+                {i18n.t('nav.error_retry', 'Coba Lagi / Muat Ulang')}
               </button>
             </div>
           </div>

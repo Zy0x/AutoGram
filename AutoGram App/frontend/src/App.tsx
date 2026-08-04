@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import './App.css';
 import { Sidebar } from './components/layout/Sidebar';
 import { Dashboard } from './pages/Dashboard';
@@ -16,8 +17,36 @@ import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
+/**
+ * Helper to lazy load components with automatic retry on dynamic import failure
+ * (e.g. when Vite HMR invalidates module URLs or network drops briefly).
+ */
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (firstError) {
+      await new Promise((res) => setTimeout(res, 500));
+      try {
+        return await componentImport();
+      } catch (secondError) {
+        const pageHasAlreadyBeenReloaded = sessionStorage.getItem('retry-lazy-refreshed');
+        if (!pageHasAlreadyBeenReloaded) {
+          sessionStorage.setItem('retry-lazy-refreshed', 'true');
+          window.location.reload();
+          return new Promise(() => {});
+        }
+        sessionStorage.removeItem('retry-lazy-refreshed');
+        throw secondError;
+      }
+    }
+  });
+}
+
 /** Code-split Media Studio — keeps main shell light until tab opens */
-const MediaStudio = lazy(() =>
+const MediaStudio = lazyWithRetry(() =>
   import('./pages/MediaStudio').then((m) => ({ default: m.MediaStudio }))
 );
 
@@ -32,6 +61,7 @@ function initialTab(): string {
 }
 
 function App() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
@@ -79,7 +109,7 @@ function App() {
       {!driveFocus && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />}
 
       <div className={`app-content ${driveFocus ? 'app-content-drive' : ''}`} id="app-content">
-        <ErrorBoundary fallbackTitle="Terjadi Kesalahan pada Halaman Ini" onReset={() => setActiveTab('dashboard')}>
+        <ErrorBoundary fallbackTitle={t('nav.error_title', 'Terjadi Kesalahan pada Halaman Ini')} onReset={() => setActiveTab('dashboard')}>
           {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
           {activeTab === 'jobs' && <Jobs />}
           {activeTab === 'sync' && <Sync />}

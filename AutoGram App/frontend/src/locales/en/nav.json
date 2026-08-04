@@ -16,5 +16,9 @@
   "collapse_sidebar": "Collapse Sidebar",
   "back_to_app": "Back to Main App",
   "status_active": "Active",
-  "status_idle": "Idle"
+  "status_idle": "Idle",
+  "error_title": "An Error Occurred on This Page",
+  "error_fallback_title": "UI Component Error Occurred",
+  "error_default_desc": "The application encountered an unexpected issue while loading this section.",
+  "error_retry": "Try Again / Reload"
 }
