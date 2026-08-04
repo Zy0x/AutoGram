@@ -12845,16 +12845,18 @@ body:has(.app-layout-drive-focus),
   display: flex;
   flex-direction: column;
   gap: 16px;
+  contain: content;
+  will-change: scroll-position;
 }
 
-/* Profiles Card (Clean Embedded Card) */
+/* Profiles Card (Clean Embedded Card - Opaque for GPU Scroll) */
 .td-transfer-profile-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: #111827;
+  border: 1px solid rgba(56, 189, 248, 0.25);
   border-left: 4px solid #38bdf8;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -12882,7 +12884,7 @@ body:has(.app-layout-drive-focus),
 }
 .td-tools-select {
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.8);
+  background: #1e293b;
   color: #f8fafc;
   border-radius: 9px;
   padding: 8px 12px;
@@ -12890,7 +12892,7 @@ body:has(.app-layout-drive-focus),
   outline: none;
   cursor: pointer;
   min-height: 38px;
-  transition: border-color 0.18s ease;
+  transition: border-color 0.15s ease;
 }
 .td-tools-select:focus {
   border-color: #38bdf8;
@@ -12901,6 +12903,7 @@ body:has(.app-layout-drive-focus),
   flex: 1;
   min-width: 150px;
   min-height: 38px;
+  background: #1e293b;
 }
 
 .td-chip-btn {
@@ -12912,32 +12915,32 @@ body:has(.app-layout-drive-focus),
   font-weight: 600;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  background: #1e293b;
   color: #e2e8f0;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   min-height: 38px;
 }
 .td-chip-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: #334155;
   color: #ffffff;
 }
 .td-chip-btn.is-primary {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.25));
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
 }
 .td-chip-btn.is-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.4), rgba(37, 99, 235, 0.4));
+  background: #0369a1;
   color: #ffffff;
 }
 .td-chip-btn.is-danger {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background: #991b1b;
+  border-color: #f87171;
+  color: #ffffff;
 }
 .td-chip-btn.is-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.3);
+  background: #b91c1c;
   color: #ffffff;
 }
 .td-chip-btn:disabled {
@@ -12960,6 +12963,7 @@ body:has(.app-layout-drive-focus),
   padding-left: 36px;
   width: 100%;
   box-sizing: border-box;
+  background: #1e293b;
 }
 
 .td-profile-search-results {
@@ -12998,18 +13002,18 @@ body:has(.app-layout-drive-focus),
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.45);
+  background: #0f172a;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .td-xfer-radio:hover {
-  border-color: rgba(56, 189, 248, 0.3);
-  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(56, 189, 248, 0.4);
+  background: #1e293b;
 }
 .td-xfer-radio.is-on {
-  border-color: rgba(56, 189, 248, 0.5);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%);
-  box-shadow: 0 2px 12px rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  background: #1e293b;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.12);
 }
 .td-xfer-radio input {
   margin-top: 3px;

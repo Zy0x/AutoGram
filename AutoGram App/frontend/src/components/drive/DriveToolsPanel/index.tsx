@@ -47,7 +47,7 @@ import {
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
-import { useTransferProgressStore } from '../../../stores/transferProgressStore';
+import { useTransferHardwareCapabilities } from '../../../stores/transferProgressStore';
 import { TransferOrchestrationSettings } from '../Transfers/TransferOrchestrationSettings';
 import { buildEncoderHardwareOptions, isExplicitEncoderDevice } from '../Transfers/encoderHardwareOptions';
 export type { DriveToolsTab };
@@ -774,7 +774,7 @@ function TransferTabContent({
   onSubTab: (t: 'upload' | 'download') => void;
 }) {
   const { t } = useTranslation();
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferProgressStore();
+  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
   const [profiles, setProfiles] = useState<DriveTransferSettingsProfile[]>(() => loadTransferSettingsProfiles());
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [profileName, setProfileName] = useState('');

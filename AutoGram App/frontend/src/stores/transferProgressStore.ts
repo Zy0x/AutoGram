@@ -22,11 +22,17 @@ export interface TransferJob {
 }
 
 export interface HardwareGpu {
+  device_id: string;
+  device_index: number;
   backend_id: string;
   name: string;
+  gpu_type: 'dedicated' | 'integrated' | string;
+  vendor: string;
   encoder_codec: string;
   supported: boolean;
   priority_rank: number;
+  supports_explicit_selection: boolean;
+  driver_version?: string | null;
 }
 
 export interface HardwareCpu {
@@ -110,6 +116,10 @@ class TransferProgressStore {
 
   public getSnapshot = () => {
     return this.snapshot;
+  };
+
+  public getHardwareCapabilities = () => {
+    return this.snapshot.hardwareCapabilities;
   };
 
   public fetchHardwareCapabilities = async () => {
@@ -200,6 +210,17 @@ export function useTransferProgressStore() {
   );
   return {
     ...state,
+    fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
+  };
+}
+
+export function useTransferHardwareCapabilities() {
+  const hardwareCapabilities = useSyncExternalStore(
+    transferProgressStore.subscribe,
+    transferProgressStore.getHardwareCapabilities
+  );
+  return {
+    hardwareCapabilities,
     fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
   };
 }
