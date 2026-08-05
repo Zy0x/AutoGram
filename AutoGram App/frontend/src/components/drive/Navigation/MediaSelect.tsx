@@ -177,6 +177,7 @@ export function MediaSelect({
                 className={`td-modern-select-option${option.value === value ? ' selected' : ''}`}
                 onFocus={() => setActiveIndex(index)}
                 onClick={() => {
+                  if (option.disabled) return;
                   onChange(option.value);
                   setOpen(false);
                   triggerRef.current?.focus();

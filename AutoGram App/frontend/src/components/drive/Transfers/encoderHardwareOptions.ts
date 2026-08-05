@@ -21,6 +21,7 @@ export function buildEncoderHardwareOptions(
       value: 'detecting',
       label: String(t('speedtest.gpu_detecting_label')),
       description: String(t('speedtest.gpu_detecting_desc')),
+      disabled: true,
     }];
   }
 
