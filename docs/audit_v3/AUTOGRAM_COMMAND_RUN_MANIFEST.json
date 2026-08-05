@@ -1,0 +1,162 @@
+{
+  "manifest_version": "1.0",
+  "generated_at": "2026-08-05T13:03:05Z",
+  "commands": [
+    {
+      "command_id": "CMD-GIT-ROOT",
+      "command": "git rev-parse --show-toplevel",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_root.log",
+      "raw_log_sha256": "bcbf13e60ff1025171aead93bed99893f92d5cfd5d84732fda29bbcce97774ac",
+      "raw_log_size_bytes": 28,
+      "raw_log_line_count": 1
+    },
+    {
+      "command_id": "CMD-GIT-BRANCH",
+      "command": "git branch --show-current",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_branch.log",
+      "raw_log_sha256": "11ae45b82361df0d1b124b8e5c422e537cdfaf74895d2c267f231025acc0e8cf",
+      "raw_log_size_bytes": 14,
+      "raw_log_line_count": 1
+    },
+    {
+      "command_id": "CMD-GIT-COMMIT",
+      "command": "git log -1 --oneline",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_commit.log",
+      "raw_log_sha256": "bb9c2d27364d86f588fa37210983de23fbb56a26cc6188dbcd21fc1d3775bb0d",
+      "raw_log_size_bytes": 310,
+      "raw_log_line_count": 1
+    },
+    {
+      "command_id": "CMD-GIT-STATUS",
+      "command": "git status --short",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_status.log",
+      "raw_log_sha256": "9fceacfe3778a3f534b02323695eb79b1ca85737c4b951341b251298dff252cf",
+      "raw_log_size_bytes": 69698,
+      "raw_log_line_count": 393
+    },
+    {
+      "command_id": "CMD-CARGO-FMT",
+      "command": "cargo fmt --all -- --check",
+      "working_directory": "f:\\AutoGram\\AutoGram App\\frontend\\src-tauri",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 1,
+      "raw_log": "docs/audit_v3/evidence/raw/cargo_fmt.log",
+      "raw_log_sha256": "47dfca1f966645ddcecb297aba705c38e45f06580477cc8238e41fc7d4293dfb",
+      "raw_log_size_bytes": 2420,
+      "raw_log_line_count": 36
+    },
+    {
+      "command_id": "CMD-CARGO-CHECK",
+      "command": "cargo check --manifest-path \"AutoGram App/frontend/src-tauri/Cargo.toml\"",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/cargo_check.log",
+      "raw_log_sha256": "13f77338701feaa2c65eebef341436f7a525fff51dc899d6ccdca069996f55fc",
+      "raw_log_size_bytes": 222986,
+      "raw_log_line_count": 3192
+    },
+    {
+      "command_id": "CMD-CARGO-TEST-LIST",
+      "command": "cargo test --manifest-path \"AutoGram App/frontend/src-tauri/Cargo.toml\" -- --list",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/cargo_test_list.log",
+      "raw_log_sha256": "0f8edcea94193da520c25c435cb845a9ab42502c13d753819813e703f72ed28e",
+      "raw_log_size_bytes": 238872,
+      "raw_log_line_count": 3295
+    },
+    {
+      "command_id": "CMD-CARGO-TEST",
+      "command": "cargo test --manifest-path \"AutoGram App/frontend/src-tauri/Cargo.toml\"",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/cargo_test.log",
+      "raw_log_sha256": "e2741501e7f346796a362e4f64ca61a6848b437710816906ea6e80ba330a6c30",
+      "raw_log_size_bytes": 240772,
+      "raw_log_line_count": 3307
+    },
+    {
+      "command_id": "CMD-TSC-CHECK",
+      "command": "npx tsc --noEmit",
+      "working_directory": "f:\\AutoGram\\AutoGram App\\frontend",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/tsc_check.log",
+      "raw_log_sha256": "5c09279c141c5be5f252e2fb54e7bcecd2fdb5c14b03d5aa8d92f1284592f7d4",
+      "raw_log_size_bytes": 10186,
+      "raw_log_line_count": 141
+    },
+    {
+      "command_id": "CMD-FRONTEND-BUILD",
+      "command": "npm run build",
+      "working_directory": "f:\\AutoGram\\AutoGram App\\frontend",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/frontend_build.log",
+      "raw_log_sha256": "0e738a3b95a2b29b1ea24876950b0d08c45fc744ddc4eafa6448e691e335a482",
+      "raw_log_size_bytes": 27196,
+      "raw_log_line_count": 170
+    },
+    {
+      "command_id": "CMD-AUDIT-VERIFY",
+      "command": "python docs/audit_v3/tools/verify_audit_integrity.py",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/audit_integrity_verifier.log",
+      "raw_log_sha256": "aa009b969401f1baeb3af814ac6fe65ffc7aa1f4df5085d75dd04d8634df9f9e",
+      "raw_log_size_bytes": 2648,
+      "raw_log_line_count": 24
+    },
+    {
+      "command_id": "CMD-GIT-STATUS-FINAL",
+      "command": "git status --short",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_status_final.log",
+      "raw_log_sha256": "9fceacfe3778a3f534b02323695eb79b1ca85737c4b951341b251298dff252cf",
+      "raw_log_size_bytes": 69698,
+      "raw_log_line_count": 393
+    },
+    {
+      "command_id": "CMD-GIT-APP-DIFF-FINAL",
+      "command": "git diff -- \"AutoGram App/\"",
+      "working_directory": "f:\\AutoGram",
+      "started_at": "2026-08-05T13:03:00Z",
+      "ended_at": "2026-08-05T13:03:05Z",
+      "exit_code": 0,
+      "raw_log": "docs/audit_v3/evidence/raw/git_app_diff_final.log",
+      "raw_log_sha256": "9459f6325539ced087654059141fcf488f08e78bbe27534d6f9738fa60e1c0a4",
+      "raw_log_size_bytes": 597262,
+      "raw_log_line_count": 7070
+    }
+  ]
+}

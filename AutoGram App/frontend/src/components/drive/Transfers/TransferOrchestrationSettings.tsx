@@ -165,15 +165,33 @@ export function TransferOrchestrationSettings({ mode, settings, onChange, disabl
             </label>
           )}
           <MediaSelect
-            value={settings.albumFailurePolicy}
+            value={
+              settings.albumFailurePolicy === 'atomic_strict' || settings.albumFailurePolicy === 'cancel_group'
+                ? 'atomic_strict'
+                : settings.albumFailurePolicy === 'send_failed_separately' || settings.albumFailurePolicy === 'retry_prepare'
+                ? 'send_failed_separately'
+                : 'replan_group'
+            }
             disabled={disabled}
             onChange={(value) => onChange({ albumFailurePolicy: value as DriveTransferSettings['albumFailurePolicy'] })}
             ariaLabel={t('speedtest.album_failure_policy')}
-            options={['atomic_strict', 'retry_prepare', 'replan_group', 'send_remaining', 'send_failed_separately', 'cancel_group', 'best_effort_advanced'].map((value) => ({
-              value,
-              label: String(t(`speedtest.album_failure_${value}`)),
-              description: String(t(`speedtest.album_failure_${value}_desc`)),
-            }))}
+            options={[
+              {
+                value: 'atomic_strict',
+                label: String(t('speedtest.album_failure_preset_strict_title')),
+                description: String(t('speedtest.album_failure_preset_strict_desc')),
+              },
+              {
+                value: 'replan_group',
+                label: String(t('speedtest.album_failure_preset_best_effort_title')),
+                description: String(t('speedtest.album_failure_preset_best_effort_desc')),
+              },
+              {
+                value: 'send_failed_separately',
+                label: String(t('speedtest.album_failure_preset_retry_title')),
+                description: String(t('speedtest.album_failure_preset_retry_desc')),
+              },
+            ]}
           />
           <div className="td-xfer-checks">
             {(['albumAvoidSingle', 'groupDocuments', 'groupAudio', 'groupOriginalDocuments'] as const).map((field) => (

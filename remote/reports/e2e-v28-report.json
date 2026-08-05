@@ -1,0 +1,2148 @@
+{
+  "timestamp": "2026-08-03T10:09:24.273Z",
+  "steps": [
+    {
+      "name": "CDP Connected to WebView2",
+      "details": {
+        "url": "http://localhost:1420/",
+        "title": "Tauri + React + Typescript"
+      },
+      "time": "2026-08-03T10:09:40.275Z"
+    },
+    {
+      "name": "Initial Render Audit",
+      "details": {
+        "bodyTextSnippet": "Drive\nTelegram · [TD]\nAutoGram\nCONNECTED SESSION\nMantan Gadis (@mantangadis)\n12 ms · Very Strong\nMuat\n+ Drive\nSaved Messages\nRECENT\n1\nSaved Messages\nDRIVES [TD]\n1\n#Gudang\nDrive\nCHATS LIST\n79\nTELEGRAM CHAT FOLDERS\nSemua Chat\nAll Gudang\nSource A1\nSource A2\nSource AA1\nSource 1\nSource AA2\nFull kênh\ntes\n"
+      },
+      "time": "2026-08-03T10:09:42.309Z"
+    },
+    {
+      "name": "Testing IPC Commands",
+      "details": {
+        "starting": true
+      },
+      "time": "2026-08-03T10:09:42.756Z"
+    },
+    {
+      "name": "IPC Results Evaluated",
+      "details": {
+        "account_scores": [
+          {
+            "account_id": "account-1",
+            "total_score": 65,
+            "capability_score": 50,
+            "health_score": 100,
+            "latency_score": 33.333333333333336,
+            "queue_score": 100,
+            "flood_penalty": 0,
+            "routing_tier": "Secondary"
+          }
+        ],
+        "hardware_profiles": {
+          "best_encoder": "h264_nvenc",
+          "priority": 1,
+          "default_profile": {
+            "HighQuality": {
+              "bitrate": 8000000,
+              "preset": "p4"
+            }
+          }
+        },
+        "batch_plan": {
+          "total_files": 2,
+          "total_bytes": 5473566720,
+          "estimated_seconds": 522,
+          "items": [
+            {
+              "filepath": "C:/test/sample_video.mp4",
+              "filename": "sample_video.mp4",
+              "filesize": 104857600,
+              "intent": "MediaAlbum",
+              "category": "DirectUpload"
+            },
+            {
+              "filepath": "C:/test/large_archive.zip",
+              "filename": "large_archive.zip",
+              "filesize": 5368709120,
+              "intent": "ColdStorageArchive",
+              "category": "SplitBinary"
+            }
+          ]
+        },
+        "job_events": []
+      },
+      "time": "2026-08-03T10:09:42.787Z"
+    },
+    {
+      "name": "Sidebar Navigation Count",
+      "details": {
+        "buttonCount": 74
+      },
+      "time": "2026-08-03T10:09:42.790Z"
+    },
+    {
+      "name": "UI Components Audit",
+      "details": {
+        "cardElements": 49,
+        "listElements": 0,
+        "imgThumbnails": 21
+      },
+      "time": "2026-08-03T10:09:42.800Z"
+    },
+    {
+      "name": "Testing Transfer Pause & Resume Engine",
+      "details": {
+        "starting": true
+      },
+      "time": "2026-08-03T10:09:42.800Z"
+    },
+    {
+      "name": "Transfer Engine Result",
+      "details": {
+        "normalized": {
+          "backend": "rust",
+          "delay": 0,
+          "dest_topic_id": 0,
+          "dry_run": false,
+          "include_audio": true,
+          "include_documents": true,
+          "include_photos": true,
+          "include_videos": true,
+          "limit": 0,
+          "mode": "copy",
+          "preserve_albums": true,
+          "skip_duplicates": true,
+          "topic_id": 0
+        },
+        "transfers": [
+          {
+            "transferId": "upload_1785751488486_8ixyn3e",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "failed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\1000051137.mp4",
+                "caption": "1000051137",
+                "size": 82956638,
+                "state": "failed",
+                "messageId": null,
+                "error": "upload_stream: Transfer cancelled by user",
+                "itemId": "upload_1785751488486_8ixyn3e:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785751488486_8ixyn3e",
+              "transfer_id": "upload_1785751488486_8ixyn3e"
+            },
+            "createdAtMs": 1785751488896,
+            "updatedAtMs": 1785751491281,
+            "doneCount": 0,
+            "failedCount": 1
+          },
+          {
+            "transferId": "upload_1785751212792_8v13m5t",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204236226514395239.mp4",
+                "caption": "5_6204236226514395239",
+                "size": 43436345,
+                "state": "done",
+                "messageId": 42825,
+                "error": null,
+                "itemId": "upload_1785751212792_8v13m5t:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785751212792_8v13m5t",
+              "transfer_id": "upload_1785751212792_8v13m5t"
+            },
+            "createdAtMs": 1785751213218,
+            "updatedAtMs": 1785751229350,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785743169785_41hi0ax",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204185464295923493.mp4",
+                "caption": "5_6204185464295923493",
+                "size": 84366377,
+                "state": "done",
+                "messageId": 42824,
+                "error": null,
+                "itemId": "upload_1785743169785_41hi0ax:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785743169785_41hi0ax",
+              "transfer_id": "upload_1785743169785_41hi0ax"
+            },
+            "createdAtMs": 1785743170226,
+            "updatedAtMs": 1785743205702,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785742126666_t74pf8u",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204185464295923420.mp4",
+                "caption": "5_6204185464295923420",
+                "size": 194330509,
+                "state": "done",
+                "messageId": 42822,
+                "error": null,
+                "itemId": "upload_1785742126666_t74pf8u:0"
+              },
+              {
+                "index": 1,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204181117789020488.mp4",
+                "caption": "5_6204181117789020488",
+                "size": 54158255,
+                "state": "done",
+                "messageId": 42823,
+                "error": null,
+                "itemId": "upload_1785742126666_t74pf8u:1"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785742126666_t74pf8u",
+              "transfer_id": "upload_1785742126666_t74pf8u"
+            },
+            "createdAtMs": 1785742127066,
+            "updatedAtMs": 1785742219261,
+            "doneCount": 2,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785730947153_mq7x5uc",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6203983506343731960.mp4",
+                "caption": "5_6203983506343731960",
+                "size": 29155443,
+                "state": "done",
+                "messageId": 42821,
+                "error": null,
+                "itemId": "upload_1785730947153_mq7x5uc:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785730947153_mq7x5uc",
+              "transfer_id": "upload_1785730947153_mq7x5uc"
+            },
+            "createdAtMs": 1785730947687,
+            "updatedAtMs": 1785730974528,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785689309093_t2z60mk",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\Si Cantik Jennifer Ngewe Desahannya Nikmat Bgt (720).mp4",
+                "caption": "Si Cantik Jennifer Ngewe Desahannya Nikmat Bgt (720)",
+                "size": 30976628,
+                "state": "done",
+                "messageId": 42817,
+                "error": null,
+                "itemId": "upload_1785689309093_t2z60mk:0"
+              },
+              {
+                "index": 1,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\Video • widey.cc_3.mp4",
+                "caption": "Video • widey.cc_3",
+                "size": 6035586,
+                "state": "done",
+                "messageId": 42818,
+                "error": null,
+                "itemId": "upload_1785689309093_t2z60mk:1"
+              },
+              {
+                "index": 2,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\zJAAo5J8B7-m5XGPbY3kB.mp4",
+                "caption": "zJAAo5J8B7-m5XGPbY3kB",
+                "size": 4932596,
+                "state": "done",
+                "messageId": 42819,
+                "error": null,
+                "itemId": "upload_1785689309093_t2z60mk:2"
+              },
+              {
+                "index": 3,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\教室-内-教室盗撮3.mp4",
+                "caption": "教室-内-教室盗撮3",
+                "size": 7959679,
+                "state": "done",
+                "messageId": 42820,
+                "error": null,
+                "itemId": "upload_1785689309093_t2z60mk:3"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785689309093_t2z60mk",
+              "transfer_id": "upload_1785689309093_t2z60mk"
+            },
+            "createdAtMs": 1785689309549,
+            "updatedAtMs": 1785689411269,
+            "doneCount": 4,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785687012996_t0is9oy",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42816,
+                "error": null,
+                "itemId": "upload_1785687012996_t0is9oy:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "ORIGINAL",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785687012996_t0is9oy",
+              "transfer_id": "upload_1785687012996_t0is9oy"
+            },
+            "createdAtMs": 1785687013402,
+            "updatedAtMs": 1785687073133,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785686722439_nhumzuc",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42815,
+                "error": null,
+                "itemId": "upload_1785686722439_nhumzuc:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "ORIGINAL",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785686722439_nhumzuc",
+              "transfer_id": "upload_1785686722439_nhumzuc"
+            },
+            "createdAtMs": 1785686722875,
+            "updatedAtMs": 1785686773383,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785685935611_g8arztn",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42814,
+                "error": null,
+                "itemId": "upload_1785685935611_g8arztn:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785685935611_g8arztn",
+              "transfer_id": "upload_1785685935611_g8arztn"
+            },
+            "createdAtMs": 1785685936111,
+            "updatedAtMs": 1785686029298,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785685811242_cu5ueeb",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42813,
+                "error": null,
+                "itemId": "upload_1785685811242_cu5ueeb:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "SMART",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785685811242_cu5ueeb",
+              "transfer_id": "upload_1785685811242_cu5ueeb"
+            },
+            "createdAtMs": 1785685811642,
+            "updatedAtMs": 1785685870312,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785674368823_udxos7j",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42812,
+                "error": null,
+                "itemId": "upload_1785674368823_udxos7j:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "SMART",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785674368823_udxos7j",
+              "transfer_id": "upload_1785674368823_udxos7j"
+            },
+            "createdAtMs": 1785674369209,
+            "updatedAtMs": 1785674429722,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785674270477_ev4gmff",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42811,
+                "error": null,
+                "itemId": "upload_1785674270477_ev4gmff:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785674270477_ev4gmff",
+              "transfer_id": "upload_1785674270477_ev4gmff"
+            },
+            "createdAtMs": 1785674270868,
+            "updatedAtMs": 1785674334722,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785672922078_341ragu",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42810,
+                "error": null,
+                "itemId": "upload_1785672922078_341ragu:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785672922078_341ragu",
+              "transfer_id": "upload_1785672922078_341ragu"
+            },
+            "createdAtMs": 1785672922479,
+            "updatedAtMs": 1785672975543,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785670262001_jzfb7od",
+            "session": "session_1785668521",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42809,
+                "error": null,
+                "itemId": "upload_1785670262001_jzfb7od:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785670262001_jzfb7od",
+              "transfer_id": "upload_1785670262001_jzfb7od"
+            },
+            "createdAtMs": 1785670262495,
+            "updatedAtMs": 1785670358136,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785659179689_tw4fm95",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "cancelled",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "uploading",
+                "messageId": null,
+                "error": null,
+                "itemId": "upload_1785659179689_tw4fm95:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785659179689_tw4fm95",
+              "transfer_id": "upload_1785659179689_tw4fm95"
+            },
+            "createdAtMs": 1785659180140,
+            "updatedAtMs": 1785659228073,
+            "doneCount": 0,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785658430894_go91w03",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": null,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42808,
+                "error": null,
+                "itemId": "upload_1785658430894_go91w03:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785658430894_go91w03",
+              "transfer_id": "upload_1785658430894_go91w03"
+            },
+            "createdAtMs": 1785658431235,
+            "updatedAtMs": 1785658521674,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1785656615539_2pzo1d3",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 4,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+                "caption": "5_6149683037979286992",
+                "size": 146729707,
+                "state": "done",
+                "messageId": 42807,
+                "error": null,
+                "itemId": "upload_1785656615539_2pzo1d3:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 4,
+              "topic_id": 4,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1785656615539_2pzo1d3",
+              "transfer_id": "upload_1785656615539_2pzo1d3"
+            },
+            "createdAtMs": 1785656615935,
+            "updatedAtMs": 1785656704269,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1784910735223_yktbhis",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 5,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784910734105_0_sound_document_6298606291619159844.mp4",
+                "caption": "ag_zip_upload_1784910734105_0_sound_document_6298606291619159844",
+                "size": 1757301,
+                "state": "done",
+                "messageId": 42806,
+                "error": null,
+                "itemId": "upload_1784910735223_yktbhis:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 5,
+              "topic_id": 5,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1784910735223_yktbhis",
+              "transfer_id": "upload_1784910735223_yktbhis"
+            },
+            "createdAtMs": 1784910735601,
+            "updatedAtMs": 1784910744010,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1784909485500_jzse43k",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 32793,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784909480309_0_TG__DONGHUANATION09_14.png",
+                "caption": "ag_zip_upload_1784909480309_0_TG__DONGHUANATION09_14",
+                "size": 9038744,
+                "state": "done",
+                "messageId": 42805,
+                "error": null,
+                "itemId": "upload_1784909485500_jzse43k:0"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 32793,
+              "topic_id": 32793,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1784909485500_jzse43k",
+              "transfer_id": "upload_1784909485500_jzse43k"
+            },
+            "createdAtMs": 1784909485916,
+            "updatedAtMs": 1784909494490,
+            "doneCount": 1,
+            "failedCount": 0
+          },
+          {
+            "transferId": "upload_1784840323726_xyo8w40",
+            "session": "Lavender",
+            "apiId": 33766959,
+            "chatId": "-1003214112048",
+            "topicId": 32793,
+            "state": "completed",
+            "items": [
+              {
+                "index": 0,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323378_0_sound_document_6298606291619159844.mp4",
+                "caption": "ag_zip_upload_1784840323378_0_sound_document_6298606291619159844",
+                "size": 1757301,
+                "state": "done",
+                "messageId": 42795,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:0"
+              },
+              {
+                "index": 1,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323407_1_sound_document_6298606291619159929.mp4",
+                "caption": "ag_zip_upload_1784840323407_1_sound_document_6298606291619159929",
+                "size": 1812991,
+                "state": "done",
+                "messageId": 42796,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:1"
+              },
+              {
+                "index": 2,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323453_2_sound_document_6298606291619159930.mp4",
+                "caption": "ag_zip_upload_1784840323453_2_sound_document_6298606291619159930",
+                "size": 1825753,
+                "state": "done",
+                "messageId": 42797,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:2"
+              },
+              {
+                "index": 3,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323474_3_sound_document_6298606291619159931.mp4",
+                "caption": "ag_zip_upload_1784840323474_3_sound_document_6298606291619159931",
+                "size": 1877744,
+                "state": "done",
+                "messageId": 42798,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:3"
+              },
+              {
+                "index": 4,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323515_4_sound_document_6298606291619159938.mp4",
+                "caption": "ag_zip_upload_1784840323515_4_sound_document_6298606291619159938",
+                "size": 1878168,
+                "state": "done",
+                "messageId": 42799,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:4"
+              },
+              {
+                "index": 5,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323556_5_sound_document_6298606291619159973.mp4",
+                "caption": "ag_zip_upload_1784840323556_5_sound_document_6298606291619159973",
+                "size": 4376777,
+                "state": "done",
+                "messageId": 42800,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:5"
+              },
+              {
+                "index": 6,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323595_6_sound_document_6298606291619159983.mp4",
+                "caption": "ag_zip_upload_1784840323595_6_sound_document_6298606291619159983",
+                "size": 1869601,
+                "state": "done",
+                "messageId": 42801,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:6"
+              },
+              {
+                "index": 7,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323635_7_sound_document_6298606291619159984.mp4",
+                "caption": "ag_zip_upload_1784840323635_7_sound_document_6298606291619159984",
+                "size": 1692058,
+                "state": "done",
+                "messageId": 42802,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:7"
+              },
+              {
+                "index": 8,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323661_8_sound_HH.mp4",
+                "caption": "ag_zip_upload_1784840323661_8_sound_HH",
+                "size": 1789415,
+                "state": "done",
+                "messageId": 42803,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:8"
+              },
+              {
+                "index": 9,
+                "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323703_9_sound_RR.mp4",
+                "caption": "ag_zip_upload_1784840323703_9_sound_RR",
+                "size": 1764462,
+                "state": "done",
+                "messageId": 42804,
+                "error": null,
+                "itemId": "upload_1784840323726_xyo8w40:9"
+              }
+            ],
+            "options": {
+              "concurrency": 8,
+              "duplicate_policy": "SKIP",
+              "group_as_album": false,
+              "guardrail_enabled": true,
+              "guardrail_threshold_days": 3,
+              "max_reupload_per_hour": 10,
+              "quality_mode": "HIGH_QUALITY",
+              "reencodeHardware": "auto",
+              "reencodePreset": "balanced",
+              "scan_mode": "smart",
+              "silent": true,
+              "spoiler": false,
+              "topicId": 32793,
+              "topic_id": 32793,
+              "topic_scope": "selected_plus_general",
+              "transferId": "upload_1784840323726_xyo8w40",
+              "transfer_id": "upload_1784840323726_xyo8w40"
+            },
+            "createdAtMs": 1784840324073,
+            "updatedAtMs": 1784840374688,
+            "doneCount": 10,
+            "failedCount": 0
+          }
+        ],
+        "pause_resume_ready": true
+      },
+      "time": "2026-08-03T10:09:42.823Z"
+    }
+  ],
+  "ipc_tests": {
+    "account_scores": [
+      {
+        "account_id": "account-1",
+        "total_score": 65,
+        "capability_score": 50,
+        "health_score": 100,
+        "latency_score": 33.333333333333336,
+        "queue_score": 100,
+        "flood_penalty": 0,
+        "routing_tier": "Secondary"
+      }
+    ],
+    "hardware_profiles": {
+      "best_encoder": "h264_nvenc",
+      "priority": 1,
+      "default_profile": {
+        "HighQuality": {
+          "bitrate": 8000000,
+          "preset": "p4"
+        }
+      }
+    },
+    "batch_plan": {
+      "total_files": 2,
+      "total_bytes": 5473566720,
+      "estimated_seconds": 522,
+      "items": [
+        {
+          "filepath": "C:/test/sample_video.mp4",
+          "filename": "sample_video.mp4",
+          "filesize": 104857600,
+          "intent": "MediaAlbum",
+          "category": "DirectUpload"
+        },
+        {
+          "filepath": "C:/test/large_archive.zip",
+          "filename": "large_archive.zip",
+          "filesize": 5368709120,
+          "intent": "ColdStorageArchive",
+          "category": "SplitBinary"
+        }
+      ]
+    },
+    "job_events": []
+  },
+  "ui_tests": {
+    "card_count": 49,
+    "list_count": 0,
+    "thumbnail_count": 21,
+    "transferStateTest": {
+      "normalized": {
+        "backend": "rust",
+        "delay": 0,
+        "dest_topic_id": 0,
+        "dry_run": false,
+        "include_audio": true,
+        "include_documents": true,
+        "include_photos": true,
+        "include_videos": true,
+        "limit": 0,
+        "mode": "copy",
+        "preserve_albums": true,
+        "skip_duplicates": true,
+        "topic_id": 0
+      },
+      "transfers": [
+        {
+          "transferId": "upload_1785751488486_8ixyn3e",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "failed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\1000051137.mp4",
+              "caption": "1000051137",
+              "size": 82956638,
+              "state": "failed",
+              "messageId": null,
+              "error": "upload_stream: Transfer cancelled by user",
+              "itemId": "upload_1785751488486_8ixyn3e:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785751488486_8ixyn3e",
+            "transfer_id": "upload_1785751488486_8ixyn3e"
+          },
+          "createdAtMs": 1785751488896,
+          "updatedAtMs": 1785751491281,
+          "doneCount": 0,
+          "failedCount": 1
+        },
+        {
+          "transferId": "upload_1785751212792_8v13m5t",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204236226514395239.mp4",
+              "caption": "5_6204236226514395239",
+              "size": 43436345,
+              "state": "done",
+              "messageId": 42825,
+              "error": null,
+              "itemId": "upload_1785751212792_8v13m5t:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785751212792_8v13m5t",
+            "transfer_id": "upload_1785751212792_8v13m5t"
+          },
+          "createdAtMs": 1785751213218,
+          "updatedAtMs": 1785751229350,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785743169785_41hi0ax",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204185464295923493.mp4",
+              "caption": "5_6204185464295923493",
+              "size": 84366377,
+              "state": "done",
+              "messageId": 42824,
+              "error": null,
+              "itemId": "upload_1785743169785_41hi0ax:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785743169785_41hi0ax",
+            "transfer_id": "upload_1785743169785_41hi0ax"
+          },
+          "createdAtMs": 1785743170226,
+          "updatedAtMs": 1785743205702,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785742126666_t74pf8u",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204185464295923420.mp4",
+              "caption": "5_6204185464295923420",
+              "size": 194330509,
+              "state": "done",
+              "messageId": 42822,
+              "error": null,
+              "itemId": "upload_1785742126666_t74pf8u:0"
+            },
+            {
+              "index": 1,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6204181117789020488.mp4",
+              "caption": "5_6204181117789020488",
+              "size": 54158255,
+              "state": "done",
+              "messageId": 42823,
+              "error": null,
+              "itemId": "upload_1785742126666_t74pf8u:1"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785742126666_t74pf8u",
+            "transfer_id": "upload_1785742126666_t74pf8u"
+          },
+          "createdAtMs": 1785742127066,
+          "updatedAtMs": 1785742219261,
+          "doneCount": 2,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785730947153_mq7x5uc",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6203983506343731960.mp4",
+              "caption": "5_6203983506343731960",
+              "size": 29155443,
+              "state": "done",
+              "messageId": 42821,
+              "error": null,
+              "itemId": "upload_1785730947153_mq7x5uc:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785730947153_mq7x5uc",
+            "transfer_id": "upload_1785730947153_mq7x5uc"
+          },
+          "createdAtMs": 1785730947687,
+          "updatedAtMs": 1785730974528,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785689309093_t2z60mk",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\Si Cantik Jennifer Ngewe Desahannya Nikmat Bgt (720).mp4",
+              "caption": "Si Cantik Jennifer Ngewe Desahannya Nikmat Bgt (720)",
+              "size": 30976628,
+              "state": "done",
+              "messageId": 42817,
+              "error": null,
+              "itemId": "upload_1785689309093_t2z60mk:0"
+            },
+            {
+              "index": 1,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\Video • widey.cc_3.mp4",
+              "caption": "Video • widey.cc_3",
+              "size": 6035586,
+              "state": "done",
+              "messageId": 42818,
+              "error": null,
+              "itemId": "upload_1785689309093_t2z60mk:1"
+            },
+            {
+              "index": 2,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\zJAAo5J8B7-m5XGPbY3kB.mp4",
+              "caption": "zJAAo5J8B7-m5XGPbY3kB",
+              "size": 4932596,
+              "state": "done",
+              "messageId": 42819,
+              "error": null,
+              "itemId": "upload_1785689309093_t2z60mk:2"
+            },
+            {
+              "index": 3,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\教室-内-教室盗撮3.mp4",
+              "caption": "教室-内-教室盗撮3",
+              "size": 7959679,
+              "state": "done",
+              "messageId": 42820,
+              "error": null,
+              "itemId": "upload_1785689309093_t2z60mk:3"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785689309093_t2z60mk",
+            "transfer_id": "upload_1785689309093_t2z60mk"
+          },
+          "createdAtMs": 1785689309549,
+          "updatedAtMs": 1785689411269,
+          "doneCount": 4,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785687012996_t0is9oy",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42816,
+              "error": null,
+              "itemId": "upload_1785687012996_t0is9oy:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "ORIGINAL",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785687012996_t0is9oy",
+            "transfer_id": "upload_1785687012996_t0is9oy"
+          },
+          "createdAtMs": 1785687013402,
+          "updatedAtMs": 1785687073133,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785686722439_nhumzuc",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42815,
+              "error": null,
+              "itemId": "upload_1785686722439_nhumzuc:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "ORIGINAL",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785686722439_nhumzuc",
+            "transfer_id": "upload_1785686722439_nhumzuc"
+          },
+          "createdAtMs": 1785686722875,
+          "updatedAtMs": 1785686773383,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785685935611_g8arztn",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42814,
+              "error": null,
+              "itemId": "upload_1785685935611_g8arztn:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785685935611_g8arztn",
+            "transfer_id": "upload_1785685935611_g8arztn"
+          },
+          "createdAtMs": 1785685936111,
+          "updatedAtMs": 1785686029298,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785685811242_cu5ueeb",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42813,
+              "error": null,
+              "itemId": "upload_1785685811242_cu5ueeb:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "SMART",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785685811242_cu5ueeb",
+            "transfer_id": "upload_1785685811242_cu5ueeb"
+          },
+          "createdAtMs": 1785685811642,
+          "updatedAtMs": 1785685870312,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785674368823_udxos7j",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42812,
+              "error": null,
+              "itemId": "upload_1785674368823_udxos7j:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "SMART",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785674368823_udxos7j",
+            "transfer_id": "upload_1785674368823_udxos7j"
+          },
+          "createdAtMs": 1785674369209,
+          "updatedAtMs": 1785674429722,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785674270477_ev4gmff",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42811,
+              "error": null,
+              "itemId": "upload_1785674270477_ev4gmff:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785674270477_ev4gmff",
+            "transfer_id": "upload_1785674270477_ev4gmff"
+          },
+          "createdAtMs": 1785674270868,
+          "updatedAtMs": 1785674334722,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785672922078_341ragu",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42810,
+              "error": null,
+              "itemId": "upload_1785672922078_341ragu:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785672922078_341ragu",
+            "transfer_id": "upload_1785672922078_341ragu"
+          },
+          "createdAtMs": 1785672922479,
+          "updatedAtMs": 1785672975543,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785670262001_jzfb7od",
+          "session": "session_1785668521",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42809,
+              "error": null,
+              "itemId": "upload_1785670262001_jzfb7od:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785670262001_jzfb7od",
+            "transfer_id": "upload_1785670262001_jzfb7od"
+          },
+          "createdAtMs": 1785670262495,
+          "updatedAtMs": 1785670358136,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785659179689_tw4fm95",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "cancelled",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "uploading",
+              "messageId": null,
+              "error": null,
+              "itemId": "upload_1785659179689_tw4fm95:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785659179689_tw4fm95",
+            "transfer_id": "upload_1785659179689_tw4fm95"
+          },
+          "createdAtMs": 1785659180140,
+          "updatedAtMs": 1785659228073,
+          "doneCount": 0,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785658430894_go91w03",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": null,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42808,
+              "error": null,
+              "itemId": "upload_1785658430894_go91w03:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785658430894_go91w03",
+            "transfer_id": "upload_1785658430894_go91w03"
+          },
+          "createdAtMs": 1785658431235,
+          "updatedAtMs": 1785658521674,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1785656615539_2pzo1d3",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 4,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "E:\\Data\\Upload\\Upload Fix\\Twitter\\5_6149683037979286992.MOV",
+              "caption": "5_6149683037979286992",
+              "size": 146729707,
+              "state": "done",
+              "messageId": 42807,
+              "error": null,
+              "itemId": "upload_1785656615539_2pzo1d3:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 4,
+            "topic_id": 4,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1785656615539_2pzo1d3",
+            "transfer_id": "upload_1785656615539_2pzo1d3"
+          },
+          "createdAtMs": 1785656615935,
+          "updatedAtMs": 1785656704269,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1784910735223_yktbhis",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 5,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784910734105_0_sound_document_6298606291619159844.mp4",
+              "caption": "ag_zip_upload_1784910734105_0_sound_document_6298606291619159844",
+              "size": 1757301,
+              "state": "done",
+              "messageId": 42806,
+              "error": null,
+              "itemId": "upload_1784910735223_yktbhis:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 5,
+            "topic_id": 5,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1784910735223_yktbhis",
+            "transfer_id": "upload_1784910735223_yktbhis"
+          },
+          "createdAtMs": 1784910735601,
+          "updatedAtMs": 1784910744010,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1784909485500_jzse43k",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 32793,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784909480309_0_TG__DONGHUANATION09_14.png",
+              "caption": "ag_zip_upload_1784909480309_0_TG__DONGHUANATION09_14",
+              "size": 9038744,
+              "state": "done",
+              "messageId": 42805,
+              "error": null,
+              "itemId": "upload_1784909485500_jzse43k:0"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 32793,
+            "topic_id": 32793,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1784909485500_jzse43k",
+            "transfer_id": "upload_1784909485500_jzse43k"
+          },
+          "createdAtMs": 1784909485916,
+          "updatedAtMs": 1784909494490,
+          "doneCount": 1,
+          "failedCount": 0
+        },
+        {
+          "transferId": "upload_1784840323726_xyo8w40",
+          "session": "Lavender",
+          "apiId": 33766959,
+          "chatId": "-1003214112048",
+          "topicId": 32793,
+          "state": "completed",
+          "items": [
+            {
+              "index": 0,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323378_0_sound_document_6298606291619159844.mp4",
+              "caption": "ag_zip_upload_1784840323378_0_sound_document_6298606291619159844",
+              "size": 1757301,
+              "state": "done",
+              "messageId": 42795,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:0"
+            },
+            {
+              "index": 1,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323407_1_sound_document_6298606291619159929.mp4",
+              "caption": "ag_zip_upload_1784840323407_1_sound_document_6298606291619159929",
+              "size": 1812991,
+              "state": "done",
+              "messageId": 42796,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:1"
+            },
+            {
+              "index": 2,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323453_2_sound_document_6298606291619159930.mp4",
+              "caption": "ag_zip_upload_1784840323453_2_sound_document_6298606291619159930",
+              "size": 1825753,
+              "state": "done",
+              "messageId": 42797,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:2"
+            },
+            {
+              "index": 3,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323474_3_sound_document_6298606291619159931.mp4",
+              "caption": "ag_zip_upload_1784840323474_3_sound_document_6298606291619159931",
+              "size": 1877744,
+              "state": "done",
+              "messageId": 42798,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:3"
+            },
+            {
+              "index": 4,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323515_4_sound_document_6298606291619159938.mp4",
+              "caption": "ag_zip_upload_1784840323515_4_sound_document_6298606291619159938",
+              "size": 1878168,
+              "state": "done",
+              "messageId": 42799,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:4"
+            },
+            {
+              "index": 5,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323556_5_sound_document_6298606291619159973.mp4",
+              "caption": "ag_zip_upload_1784840323556_5_sound_document_6298606291619159973",
+              "size": 4376777,
+              "state": "done",
+              "messageId": 42800,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:5"
+            },
+            {
+              "index": 6,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323595_6_sound_document_6298606291619159983.mp4",
+              "caption": "ag_zip_upload_1784840323595_6_sound_document_6298606291619159983",
+              "size": 1869601,
+              "state": "done",
+              "messageId": 42801,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:6"
+            },
+            {
+              "index": 7,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323635_7_sound_document_6298606291619159984.mp4",
+              "caption": "ag_zip_upload_1784840323635_7_sound_document_6298606291619159984",
+              "size": 1692058,
+              "state": "done",
+              "messageId": 42802,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:7"
+            },
+            {
+              "index": 8,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323661_8_sound_HH.mp4",
+              "caption": "ag_zip_upload_1784840323661_8_sound_HH",
+              "size": 1789415,
+              "state": "done",
+              "messageId": 42803,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:8"
+            },
+            {
+              "index": 9,
+              "path": "C:\\Users\\aliri\\AppData\\Local\\Temp/ag_zip_upload_1784840323703_9_sound_RR.mp4",
+              "caption": "ag_zip_upload_1784840323703_9_sound_RR",
+              "size": 1764462,
+              "state": "done",
+              "messageId": 42804,
+              "error": null,
+              "itemId": "upload_1784840323726_xyo8w40:9"
+            }
+          ],
+          "options": {
+            "concurrency": 8,
+            "duplicate_policy": "SKIP",
+            "group_as_album": false,
+            "guardrail_enabled": true,
+            "guardrail_threshold_days": 3,
+            "max_reupload_per_hour": 10,
+            "quality_mode": "HIGH_QUALITY",
+            "reencodeHardware": "auto",
+            "reencodePreset": "balanced",
+            "scan_mode": "smart",
+            "silent": true,
+            "spoiler": false,
+            "topicId": 32793,
+            "topic_id": 32793,
+            "topic_scope": "selected_plus_general",
+            "transferId": "upload_1784840323726_xyo8w40",
+            "transfer_id": "upload_1784840323726_xyo8w40"
+          },
+          "createdAtMs": 1784840324073,
+          "updatedAtMs": 1784840374688,
+          "doneCount": 10,
+          "failedCount": 0
+        }
+      ],
+      "pause_resume_ready": true
+    }
+  },
+  "passed": true
+}

@@ -1,0 +1,1782 @@
+export const title = "Drives";
+export const subtitle = "Jelajah media Telegram, preview cepat, upload & download — parallel dengan Forwarder.";
+export const perspective_telegram = "Perspektif Telegram";
+export const perspective_drive = "Perspektif Drive";
+export const perspective_telegram_short = "Telegram";
+export const perspective_drive_short = "Drive";
+export const items_loaded_total = "{{loaded}} / {{total}} Item";
+export const items_loaded_only = "{{loaded}} Item";
+export const items_total_only = "{{total}} Item";
+export const tab_telegram_media = "Media";
+export const tab_telegram_files = "Berkas";
+export const tab_telegram_links = "Tautan";
+export const tab_telegram_gifs = "GIF";
+export const tab_telegram_audio = "Audio";
+export const tab_drive_images = "Gambar";
+export const tab_drive_videos = "Video";
+export const tab_drive_audio = "Audio";
+export const tab_drive_documents = "Dokumen";
+export const tab_drive_archives = "Arsip";
+export const badge_telegram_media = "MEDIA";
+export const badge_telegram_file = "BERKAS";
+export const badge_telegram_link = "TAUTAN";
+export const badge_telegram_gif = "GIF";
+export const badge_telegram_audio = "AUDIO";
+export const badge_drive_image = "GAMBAR";
+export const badge_drive_video = "VIDEO";
+export const badge_drive_doc = "DOKUMEN";
+export const badge_drive_archive = "ARSIP";
+export const badge_drive_audio = "AUDIO";
+export const badge_drive_web = "WEB";
+export const root_drive = "Drive Utama";
+export const saved_messages = "Pesan Tersimpan";
+export const recents = "Baru Dilihat";
+export const trash = "Tong Sampah";
+export const active_transfers = "Transfer Aktif";
+export const search_placeholder = "Cari berkas di lokasi ini… (Ctrl+F)";
+export const filter_all = "Semua";
+export const filter_images = "Foto";
+export const filter_videos = "Video";
+export const filter_audio = "Audio & Musik";
+export const filter_docs = "Dokumen";
+export const filter_archives = "Arsip";
+export const filter_apks = "Aplikasi APK";
+export const select_all = "Pilih Semua";
+export const clear_selection = "Batalkan Pilihan";
+export const download_batch = "Download Terpilih";
+export const delete_batch = "Hapus Terpilih";
+export const delete_batch_confirm = "Hapus Batch";
+export const cloud_storage = "Telegram Cloud Storage";
+export const unlimited_cloud = "Awan Tanpa Batas";
+export const global_sort_warning = "Pengurutan global (ukuran/nama) memerlukan pemuatan seluruh item folder.";
+export const download_failed = "Gagal mengunduh berkas";
+export const write_debug_failed = "Gagal menulis file debug transfer";
+export const save_file = "Simpan File";
+export const tools_title = "Alat & Pengaturan Drive";
+export const walk_media_notice = "Walk media di latar — angka akan final saat selesai. Grid tetap bisa dipakai.";
+export const walk_grid_notice = "Dari halaman grid / lower-bound. Buka tab ini memicu hitung akurat otomatis.";
+export const skip_dup_name_size = "Lewati duplikat (nama + ukuran yang sama di tujuan)";
+export const upload_quality = "Kualitas Unggahan";
+export const upload_parallel = "Paralel unggah";
+export const skip_uploaded_files = "Lewati berkas yang sudah diunggah";
+export const skip_uploaded_desc = "Otomatis mendeteksi riwayat obrolan Telegram";
+export const download_parallel = "Paralelisme Unduhan";
+export const download_behavior = "Perilaku Unduhan";
+export const download_notice_title = "Notifikasi saat unduhan selesai";
+export const download_notice_desc = "Tampilkan pemberitahuan banner ketika batch download rampung.";
+export const save_transfer_settings = "Simpan perubahan pengaturan transfer";
+export const default_keep_newest = "Default: simpan terbaru";
+export const per_group_keep_one = "Per grup: simpan 1 (terbaru/terlama), centang sisanya untuk dihapus";
+export const keep_all_groups = "Simpan semua file di semua grup (tidak ada yang dihapus)";
+export const delete_action = "· hapus";
+export const keep_one_check_rest = "Simpan 1 (default), centang sisanya";
+export const keep_all_in_group = "Simpan semua di grup ini";
+export const prev_file_tooltip = "File sebelumnya";
+export const open_system_app = "Buka di aplikasi default";
+export const download_tooltip = "Unduh file ke komputer";
+export const open_default_tooltip = "Buka dengan aplikasi default Windows";
+export const open_with_tooltip = "Buka dengan… (pilih aplikasi)";
+export const processing = "Memproses…";
+export const cancel_preview_tooltip = "Batalkan dan kembali ke pratinjau";
+export const cancel = "Batal";
+export const close_status_strip = "Tutup strip status";
+export const open_default_app = "Buka di aplikasi default";
+export const open_with_other = "Buka dengan aplikasi lain…";
+export const print_pdf_tooltip = "Cetak PDF (dialog Windows punya tombol Batal)";
+export const copy_text = "Salin teks";
+export const reload_preview = "Muat ulang preview dari Telegram";
+export const file_detail_tooltip = "Tampilkan detail file (I)";
+export const media_size = "Ukuran";
+export const media_dim = "Dimensi";
+export const media_duration = "Durasi";
+export const load_location_failed = "Gagal memuat lokasi";
+export const clear_search = "Hapus pencarian lokasi";
+export const group_with_topics = "Grup dengan Topik (Forum)";
+export const select_visible_all = "Pilih Semua Terlihat";
+export const open_location_list = "Buka daftar lokasi";
+export const tools_panel_tooltip = "Alat & Pengaturan Drive (Duplikat, Rename, Storage, Filter)";
+export const show_group_media = "Tampilkan media grup";
+export const add_new_topic = "Tambah topik baru di forum ini";
+export const filter_media_tooltip = "Filter media dalam lokasi ini";
+export const copy_topic_id = "Salin ID Topik";
+export const delete_topic = "Hapus Topik";
+export const forum_topic_optional = "Topik Forum (opsional)";
+export const show_less = "Sembunyikan";
+export const start_upload = "Mulai Unggah";
+export const minimize_panel = "Minimalkan panel";
+export const minimize_corner_tooltip = "Minimalkan ke sudut layar";
+export const retry_failed_files = "Coba lagi file yang gagal";
+export const clear_transfer_history = "Bersihkan riwayat transfer";
+export const status_done = "Selesai";
+export const copy_log_clipboard = "Salin log ke clipboard";
+export const transfer_settings_title = "Pengaturan Transfer Telegram";
+export const transfer_settings_subtitle = "Atur paralelisasi, kualitas re-encode, dan de-duplikasi otomatis.";
+export const refresh_after_upload = "Refresh folder otomatis setelah unggah";
+export const download_status_title = "Pengaturan Pengunduhan";
+export const download_status_desc = "Lokasi simpan dan kecepatan pengunduhan paralel.";
+export const download_multi_folder = "Simpan ke folder terpisah per batch";
+export const download_single_file = "Unduh tunggal tanpa ZIP";
+export const cancel_active_download = "Batalkan unduhan aktif";
+export const tools_cat_drive = "ALAT DRIVE";
+export const tools_cat_config = "KONFIGURASI";
+export const tools_tab_copy = "Salin batch";
+export const tools_tab_dups = "Duplikat";
+export const tools_tab_rename = "Bulk rename";
+export const tools_tab_space = "Penyimpanan Disk";
+export const tools_tab_filter = "Filter Lanjutan";
+export const tools_tab_settings = "Pengaturan Transfer";
+export const smart_copy_desc = "Salin masal ke Drive/Chat (berkas asli tidak disentuh). Sangat cocok untuk arsip chat -> Drive.";
+export const scope_label = "Cakupan Area";
+export const scope_selected = "Terpilih";
+export const scope_all = "Semua file di lokasi ini";
+export const target_label = "Tujuan";
+export const btn_start_copy = "Mulai Salin Masal";
+export const dup_mode_title = "Mode Deteksi Duplikat";
+export const dup_mode_subtitle = "Pilih kriteria untuk menemukan file ganda";
+export const dup_none_found = "Tidak ditemukan file duplikat dalam lokasi ini.";
+export const used_capacity = "Kapasitas terpakai";
+export const cat_videos = "Video";
+export const cat_images = "Gambar";
+export const cat_audio = "Audio";
+export const cat_archives = "Arsip (ZIP/RAR)";
+export const cat_other = "Lainnya";
+export const accurate_metadata = "Akurat (Metadata Telegram)";
+export const approx_loaded = "Perkiraan (Grid Loaded)";
+export const top_largest_files = "File Terbesar";
+export const token_label = "Token:";
+export const rename_preview_title = "Pratinjau Hasil Rename";
+export const rename_no_change = "Tidak ada perubahan / file kosong";
+export const hardware_reencode = "Enkoding Ulang Hardware (GPU)";
+export const reencode_mode = "Mode Re-encode";
+export const send_options = "Opsi pengiriman";
+export const send_as_album = "Kirim sebagai album";
+export const send_as_album_desc = "Grupkan foto/video serupa (maksimal 10 per batch Telegram).";
+export const silent_send = "Silent (tanpa notifikasi)";
+export const silent_send_desc = "Kirim tanpa bunyi notifikasi di sisi penerima.";
+export const spoiler_media = "Media Sensor (Spoiler)";
+export const spoiler_media_desc = "Tandai media sebagai spoiler (blur sampai diklik).";
+export const force_document = "Paksa dokumen (ORIGINAL)";
+export const force_document_desc = "Sama dengan mode ORIGINAL — berkas utuh tanpa kompresi foto Telegram.";
+export const default_caption = "Caption default";
+export const default_caption_ph = "Caption opsional…";
+export const restore_defaults = "Kembalikan semua ke setelan awal";
+export const dup_detection_mode = "Mode deteksi duplikat";
+export const smart_pref_tooltip = "Preferensi default cerdas (bisa diubah per-item)";
+export const check_delete_tooltip = "Centang untuk menghapus salinan ini";
+export const zip_contents = "Isi Berkas ZIP";
+export const zip_entries_count = "entri";
+export const zip_extract_selected = "Ekstrak Terpilih";
+export const zip_search_ph = "Cari di dalam ZIP…";
+export const zoom_in = "Besar";
+export const zoom_out = "Kecil";
+export const zoom_reset = "100%";
+export const rotate_left = "Kiri";
+export const rotate_right = "Kanan";
+export const flip_h = "Cermin";
+export const flip_v = "Balik";
+export const video_auto = "Otomatis";
+export const sound = "Suara";
+export const pip = "Gambar dalam Gambar (PiP)";
+export const more = "Lain";
+export const file_info = "Informasi Berkas";
+export const file_name = "Nama file";
+export const original_name = "Nama asli";
+export const mime_type = "Tipe MIME";
+export const created_at = "Dibuat pada";
+export const dup_mode_sub = "Pilih kriteria untuk menemukan file ganda";
+export const dup_name_size = "Nama & Ukuran";
+export const dup_none = "Tidak ditemukan file duplikat dalam lokasi ini.";
+export const dup_found_summary = "Ditemukan";
+export const dup_groups = "grup";
+export const dup_files = "file";
+export const dup_est_save = "estimasi hemat";
+export const dup_keep_newest = "Simpan Terbaru";
+export const dup_keep_oldest = "Simpan Terlama";
+export const dup_group_hdr = "Grup";
+export const dup_selected_count = "Terpilih";
+export const dup_for_deletion = "file untuk dihapus";
+export const dup_delete_btn = "Hapus Duplikat Terpilih";
+export const space_capacity_used = "Kapasitas terpakai";
+export const space_cat_videos = "Video";
+export const space_cat_images = "Gambar";
+export const space_cat_audio = "Audio";
+export const space_cat_archives = "Arsip (ZIP/RAR)";
+export const space_cat_other = "Lainnya";
+export const sort_by = "Urutkan";
+export const sort_newest = "Terbaru dulu";
+export const sort_oldest = "Terlama dulu";
+export const sort_size_desc = "Ukuran terbesar";
+export const sort_name_asc = "Nama A → Z";
+export const thumb_saver = "Hemat";
+export const thumb_balanced = "Seimbang";
+export const thumb_crisp = "Jelas";
+export const remote_upload_title = "Unggah dari URL Remote";
+export const remote_upload_desc = "Masukkan URL langsung (HTTP/HTTPS) untuk diunduh dan diunggah langsung ke Drive/Telegram.";
+export const url_placeholder = "https://example.com/file.mp4";
+export const btn_confirm_delete = "Ya, Hapus";
+export const btn_cancel = "Batal";
+export const reupload_batch_title = "Ulangi Unggah Batch";
+export const reupload_batch_desc = "Mencoba kembali pengiriman berkas yang gagal atau tertunda.";
+export const transfer_manager_title = "Manajer Transfer";
+export const speed_label = "Kecepatan";
+export const eta_label = "Estimasi Selesai";
+export const cancel_session = "Batal Sesi";
+export const next_file_tooltip = "File Berikutnya (Panah Kanan)";
+export const close_esc_tooltip = "Tutup (ESC)";
+export const download_file_tooltip = "Unduh Berkas Ini";
+export const fullscreen = "Layar Penuh";
+export const rotate_left_tooltip = "Putar Kiri 90°";
+export const rotate_right_tooltip = "Putar Kanan 90°";
+export const flip_h_tooltip = "Cermin Horizontal";
+export const flip_v_tooltip = "Cermin Vertikal";
+export const zoom_in_tooltip = "Perbesar";
+export const zoom_out_tooltip = "Perkecil";
+export const audio_stream_title = "Audio Stream Telegram";
+export const close_aria = "Tutup";
+export const prev_aria = "Sebelumnya";
+export const next_aria = "Berikutnya";
+export const nav_aria = "Navigasi preview";
+export const detail_aria = "Detail file";
+export const close_info = "Tutup info";
+export const label_zoom = "Perbesar";
+export const label_zoom_out = "Kecil";
+export const label_zoom_in = "Besar";
+export const label_rotate = "Putar";
+export const label_left = "Kiri";
+export const label_right = "Kanan";
+export const label_flip = "Cermin";
+export const label_flip_v = "Balik";
+export const label_sound = "Suara";
+export const label_mute = "Bisukan";
+export const label_loop = "Putar Ulang";
+export const label_pip = "PiP";
+export const label_open = "Buka";
+export const label_app = "Aplikasi";
+export const label_with = "Dengan…";
+export const label_print = "Cetak";
+export const label_copy = "Salin";
+export const label_other = "Lain";
+export const label_load = "Muat";
+export const label_info = "Informasi";
+export const label_loading = "Memuat…";
+export const tooltip_zoom_out = "Perkecil (min 10%) — gulir ke bawah atau -";
+export const tooltip_zoom_reset = "Kembalikan 100% (default) — tombol 0";
+export const tooltip_zoom_in = "Perbesar (maks 500%) — gulir ke atas atau +";
+export const tooltip_rotate_left = "Putar kiri 90 derajat";
+export const tooltip_rotate_right = "Putar kanan 90 derajat (R)";
+export const tooltip_flip_h = "Cermin horizontal (kiri-kanan)";
+export const tooltip_flip_v = "Balik vertikal (atas-bawah)";
+export const tooltip_res = "Resolusi stream (Otomatis / Asli / 720p…)";
+export const tooltip_speed = "Kecepatan putar (0.5x – 2x)";
+export const tooltip_unmute = "Nyalakan suara (M)";
+export const tooltip_mute = "Bisukan suara (M)";
+export const tooltip_loop_on = "Loop aktif — video diputar lagi setelah selesai (klik untuk matikan)";
+export const tooltip_loop_off = "Loop: putar ulang otomatis setelah selesai";
+export const tooltip_pip = "Jendela mini (Picture-in-Picture)";
+export const sidebar_drive_header = "Drive Utama";
+export const sidebar_telegram_td = "Telegram Cloud · [TD]";
+export const sidebar_back_to_app = "Kembali ke AutoGram";
+export const sidebar_session = "SESI TELEGRAM";
+export const sidebar_btn_refresh = "Muat";
+export const sidebar_refresh_tooltip = "Muat ulang Drives, folder & chat";
+export const sidebar_btn_add_folder = "+ Folder Baru";
+export const sidebar_search_ph = "Cari lokasi… (Ctrl+K)";
+export const sidebar_search_aria = "Cari lokasi Drive (folder dan chat). Pintasan Ctrl+K";
+export const sidebar_search_title = "Cari folder, chat, @username · Ctrl+K";
+export const sidebar_clear_search = "Hapus pencarian lokasi";
+export const sidebar_saved_messages = "Pesan Tersimpan";
+export const sidebar_saved_messages_tooltip = "Saved Messages — klik kanan untuk menu";
+export const sidebar_recents_header = "TERBARU";
+export const sidebar_recents_tooltip = "Jumlah lokasi terbaru";
+export const sidebar_drives_header = "DAFTAR DRIVE [TD]";
+export const sidebar_drives_tooltip = "Jumlah Drive & folder [TD]";
+export const sidebar_drives_empty = "Tidak ada Drive/folder cocok.";
+export const sidebar_resizer_aria = "Batas Drives dan Chats";
+export const sidebar_chats_header = "Daftar Chat";
+export const sidebar_chats_tooltip = "Jumlah chat termuat";
+export const sidebar_chat_folders_aria = "Folder Chat Telegram";
+export const sidebar_sync_live = "Sinkron live";
+export const sidebar_media_categories = "Kategori Media";
+export const sidebar_cat_images = "Foto & Gambar";
+export const sidebar_cat_videos = "Video & Film";
+export const sidebar_cat_audio = "Audio & Musik";
+export const sidebar_cat_documents = "Dokumen & PDF";
+export const sidebar_cat_archives = "Arsip (ZIP/RAR)";
+export const sidebar_cat_apk = "Aplikasi Android";
+export const topbar_selected = "dipilih";
+export const topbar_select_all = "Semua";
+export const topbar_deselect_all_tooltip = "Batalkan semua pilihan (Esc)";
+export const topbar_cancel = "Batal";
+export const topbar_invert = "Balik";
+export const topbar_invert_tooltip = "Balik seleksi (hanya item terlihat)";
+export const topbar_move = "Pindah";
+export const topbar_download = "Unduh";
+export const topbar_delete = "Hapus";
+export const topbar_search_files_ph = "Cari file di lokasi ini… (Ctrl+F)";
+export const badge_recently_uploaded = "Baru diunggah";
+export const tooltip_preview = "Pratinjau";
+export const tooltip_download = "Unduh";
+export const tooltip_delete = "Hapus";
+export const col_name = "Nama";
+export const col_size = "Ukuran";
+export const col_date = "Tanggal";
+export const col_type = "Tipe";
+export const col_actions = "Aksi";
+export const reading_catalog = "Membaca katalog media Telegram MTProto…";
+export const no_media_found = "Tidak ada berkas media ditemukan";
+export const drop_to_upload = "Lepaskan berkas di sini untuk diunggah ke Telegram Drive";
+export const folder_label = "Folder";
+export const reupload_confirm_title = "Konfirmasi Re-upload";
+export const remote_upload_url_title = "Unggah berkas dari URL (Remote)";
+export const remote_upload_url_desc = "Unggah file langsung dari URL publik ke Telegram Cloud";
+export const url_placeholder_example = "https://example.com/file.zip";
+export const uploading_status = "Mengunggah...";
+export const saved_messages_root = "Pesan Tersimpan (Saved Messages)";
+export const no_match_found = "Tidak ada yang cocok";
+export const forum_label = "Forum Chat";
+export const general_no_topic = "General / tanpa topik khusus";
+export const action_delete_source = "hapus sumber";
+export const action_keep_source = "sumber tetap";
+export const skip_deleted_tooltip = "Lewati semua file yang dihapus — tidak ada yang diunggah ulang";
+export const no_transfers_yet = "Belum ada unduhan/unggahan.";
+export const minimize_corner_desc = "Minimize ke pojok (panel tetap bisa dibuka lagi)";
+export const skip_dup_target_tooltip = "File dilewati karena sudah ada di tujuan";
+export const overwrite_auto_tooltip = "File dihapus dari tujuan lalu diunggah ulang otomatis";
+export const commit_ambiguous_tooltip = "Commit ambigu; AutoGram tidak mengunggah ulang byte";
+export const btn_stop = "Hentikan Prosedur";
+export const btn_clear = "Bersihkan";
+export const btn_retry = "Coba Lagi";
+export const expand_sidebar = "Perluas Sidebar";
+export const drive_root = "Akar Drive (Root)";
+export const no_active_account = "Tidak ada akun aktif";
+export const refresh_sidebar = "Muat Ulang Sidebar";
+export const drives_and_folders = "Drives & Folder";
+export const new_folder = "Folder Baru";
+export const all_topics = "Semua Topik";
+export const view_links = "Tautan";
+export const sort_newest_first = "Terbaru Dulu";
+export const sort_oldest_first = "Terlama Dulu";
+export const sort_name_desc = "Nama Z → A";
+export const sort_size_asc = "Ukuran terkecil";
+export const grid_view_tooltip = "Tampilan Grid";
+export const list_view_tooltip = "Tampilan Daftar";
+export const btn_upload = "Unggah";
+export const active_session_label = "Sesi Aktif:";
+export const search_media_ph = "Cari file media…";
+export const refresh_drive = "Muat Ulang Drive";
+export const extract_entry_tooltip = "Ekstrak Entri";
+export const extracting_reading_entry = "Mengekstrak & membaca entri…";
+export const reading_archive_index = "Membaca indeks arsip…";
+export const filter_image = "Gambar";
+export const filter_video = "Video";
+export const filter_document = "Dokumen";
+export const filter_archive = "Arsip (ZIP/RAR)";
+export const zoom_xs = "Sangat Kecil";
+export const zoom_s = "Kecil";
+export const zoom_m = "Sedang";
+export const zoom_l = "Besar";
+export const zoom_xl = "Sangat Besar";
+export const zoom_xxl = "Maksimal";
+export const tm_title = "Pengelola Transfer";
+export const tm_no_transfers = "Belum ada transfer";
+export const tm_empty_title = "Belum ada unduhan/unggahan.";
+export const tm_empty_hint = "Mulai unduh atau unggah — kemajuan akan tampil di sini. Panel tidak hilang saat klik di luar area drive.";
+export const tm_status_paused = "Dijeda";
+export const tm_status_error = "Selesai dengan error";
+export const tm_status_need_verify = "{{count}} perlu verifikasi";
+export const tm_status_skipped = "{{count}} dilewati";
+export const tm_status_done_skipped = "Selesai · {{count}} dilewati";
+export const tm_status_done = "Selesai";
+export const tm_status_ready = "Siap";
+export const tm_log_debug = "Log debug ({{count}})";
+export const sidebar_search_location_ph = "Cari lokasi… (Ctrl+K)";
+export const tools_modal_title = "Alat & Pengaturan Drive";
+export const tools_sec_tools = "ALAT DRIVE";
+export const tools_sec_config = "KONFIGURASI";
+export const selected_count = "Terpilih ({{count}})";
+export const all_in_view_count = "Semua tampilan ({{count}})";
+export const dup_none_detected = "Tidak ada duplikat terdeteksi di file yang dimuat.";
+export const dup_summary_header = "{{groups}} grup · hemat potensial max {{bytes}}";
+export const dup_lead_hint = "Centang = salinan yang dihapus. Biarkan kosong = disimpan. Boleh simpan 2 dari 3.";
+export const dup_mode_name_size_label = "Nama + ukuran";
+export const dup_mode_both_label = "+ ukuran sama (soft)";
+export const smart_selection_btn = "Pilihan cerdas";
+export const keep_all_btn = "Simpan semua";
+export const smart_mini_btn = "Cerdas";
+export const dup_stats_summary = "Simpan {{keep}} · hapus {{delete}}";
+export const dup_all_marked_warn = "{{count}} grup mencentang semua item — tidak ada yang disimpan di grup itu.";
+export const delete_checked_btn = "Hapus {{count}} tercentang";
+export const dup_group_badge = "{{reason}} · {{count}} file · simpan {{keep}} / hapus {{delete}}";
+export const badge_tag_delete = "HAPUS";
+export const badge_tag_keep_default = "SIMPAN (DEFAULT)";
+export const badge_tag_keep = "SIMPAN";
+export const rename_scope_selected = "Scope: {{count}} terpilih.";
+export const rename_scope_view = "Scope: hingga {{count}} file di view.";
+export const rename_pattern_label = "Pola Rename";
+export const start_from_label = "Mulai Dari";
+export const rename_preview_header = "PRATINJAU HASIL UBAH NAMA";
+export const btn_apply_rename = "Terapkan Rename";
+export const space_grid_loaded_hint = "Grid dimuat: {{count}} berkas · {{bytes}}{{more}}";
+export const by_type_all_loc = "PER TIPE (SELURUH LOKASI)";
+export const by_type_grid_loaded = "PER TIPE (YANG DIMUAT DI GRID)";
+export const space_waiting_stats = "Menunggu hasil penghitungan…";
+export const space_no_data = "Belum ada data. Tunggu hitung selesai atau muat grid.";
+export const preview_title = "Pratinjau: {{name}}";
+export const adv_filter_desc = "Filter lanjutan di lokasi ini (di atas filter tipe media & pencarian).";
+export const filter_min_bytes = "Ukuran min (byte)";
+export const filter_max_bytes = "Ukuran max (byte)";
+export const filter_from_date = "Dari tanggal";
+export const filter_to_date = "Sampai tanggal";
+export const filter_extension = "Ekstensi";
+export const filter_message_id = "Message ID";
+export const msg_id_ph = "Contoh: 42712";
+export const filter_shortcut_hint = "Shortcut: 1 MB ≈ 1.048.576 · contoh min video besar: 5000000";
+export const btn_reset_filter = "Reset Filter";
+export const btn_apply_filter = "Terapkan Filter";
+export const upload_quality_header = "KUALITAS UNGGAHAN";
+export const upload_quality_desc = "Menentukan bagaimana file dikirim ke Telegram (media native vs dokumen).";
+export const quality_hq_title = "HQ — Telegram native";
+export const quality_hq_desc = "Foto/video sebagai media Telegram (streaming video). File lain sebagai dokumen.";
+export const quality_smart_title = "SMART — otomatis";
+export const quality_smart_desc = "Pilih mode per ekstensi (re-encode video problematik bila perlu).";
+export const quality_orig_title = "ORIGINAL — dokumen utuh";
+export const quality_orig_desc = "Semua sebagai dokumen (force_document). Paling cepat, tanpa kompresi foto Telegram.";
+export const hardware_reencode_header = "HARDWARE RE-ENCODE (GPU)";
+export const gpu_accel_desc = "Akselerasi GPU untuk konversi video sebelum diunggah.";
+export const reencode_mode_header = "RE-ENCODE MODE";
+export const reencode_mode_desc = "Keseimbangan antara kecepatan proses dan kualitas akhir.";
+export const upload_parallelism_header = "UPLOAD PARALLELISM";
+export const parallelism_desc = "Berapa berkas di-pipeline ke pusat data Telegram bersamaan (1–8).";
+export const remote_upload_url_subtitle = "Unggah berkas langsung dari URL publik ke Telegram Cloud";
+export const source_url_label = "URL Berkas Sumber";
+export const destination_folder_label = "Folder / Channel Tujuan";
+export const file_detail_title = "Detail Berkas";
+export const file_name_label = "Nama";
+export const original_name_label = "Nama asli";
+export const dimensions_label = "Dimensi";
+export const size_label = "Ukuran";
+export const duration_label = "Durasi";
+export const type_label = "Tipe";
+export const mime_label = "MIME";
+export const date_label = "Tanggal";
+export const delivery_label = "Pengiriman";
+export const deliv_doc_orig = "Dokumen/File (Asli)";
+export const deliv_photo_comp = "Media Foto (Kompresi)";
+export const deliv_video_comp = "Media Video (Kompresi)";
+export const quality_label = "Kualitias";
+export const zoom_label = "Zoom";
+export const rotate_label = "putar";
+export const flip_h_label = "cermin";
+export const flip_v_label = "balik";
+export const mode_label = "Mode";
+export const cache_label = "Cache";
+export const id_label = "ID Pesan";
+export const doc_file_badge = "Dokumen File";
+export const video_media_badge = "Media Video";
+export const label_video = "Video";
+export const label_audio = "Audio";
+export const label_open_doc = "Buka Dokumen";
+export const session_header = "Sesi Terhubung";
+export const sidebar_chat_folders_header = "Folder Chat Telegram";
+export const all_chats = "Semua Chat";
+export const ping_transferring = "Telegram: Sedang mentransfer data (Session terkunci eksklusif)";
+export const ping_drive_connected = "Drive Terhubung";
+export const ping_connected = "Terhubung";
+export const ping_not_connected = "Belum Terhubung";
+export const ping_offline = "Internet Terputus (Device Offline)";
+export const ping_disconnected = "Telegram Terputus (Lost)";
+export const ping_excellent = "Sangat Kuat";
+export const ping_good = "Kuat";
+export const ping_fair = "Sedang";
+export const ping_poor = "Lemah";
+export const btn_add_drive = "+ Drive Baru";
+export const topbar_selected_count_tooltip = "{{count}} berkas terpilih";
+export const topbar_forward_tooltip = "Kirim / pindahkan ke chat atau folder";
+export const topbar_wait_transfer = "Tunggu transfer selesai";
+export const topbar_download_sel = "Unduh terpilih";
+export const topbar_delete_sel = "Hapus terpilih";
+export const topbar_pin_loc = "Pin lokasi ini";
+export const topbar_unpin_loc = "Lepas pin lokasi";
+export const topbar_full_path = "Path lengkap: {{path}}";
+export const topbar_forum_group = "Grup dengan topik (forum)";
+export const topbar_zoom_out = "Perkecil thumbnail (Ctrl + scroll turun)";
+export const topbar_zoom_in = "Perbesar thumbnail (Ctrl + scroll naik)";
+export const topbar_refresh_all = "Muat ulang folder & chat";
+export const topbar_download_zip = "Unduh Semua (ZIP)";
+export const topbar_upload_file = "Unggah file ke lokasi ini";
+export const topbar_upload_busy = "Transfer masih berjalan — Hentikan dulu di Transfer Manager";
+export const ctx_menu_preview = "Pratinjau";
+export const ctx_menu_open_tg = "Buka pesan di Telegram";
+export const ctx_menu_copy_tg = "Salin tautan Telegram";
+export const ctx_menu_tg_link_unavailable = "Tautan pesan tidak tersedia untuk jenis chat ini";
+export const ctx_menu_open = "Buka";
+export const ctx_menu_open_with = "Buka dengan…";
+export const ctx_menu_reveal = "Tampilkan di folder";
+export const ctx_menu_download = "Unduh";
+export const ctx_menu_copy_id = "Salin ID";
+export const ctx_menu_rename = "Ganti nama";
+export const ctx_menu_move = "Pindah ke…";
+export const ctx_menu_delete = "Hapus";
+export const ctx_menu_create_subfolder = "Buat folder di sini";
+export const ctx_menu_refresh = "Muat ulang";
+export const ctx_menu_upload = "Unggah file…";
+export const ctx_menu_select_all = "Pilih semua";
+export const ctx_menu_clear_selection = "Hapus pilihan ({{count}})";
+export const ctx_menu_delete_selected = "Hapus terpilih ({{count}})";
+export const ctx_menu_aria_file = "Menu file";
+export const ctx_menu_aria_location = "Menu lokasi sidebar";
+export const ctx_menu_aria_canvas = "Menu lokasi Drive";
+export const ctx_menu_default_create_drive = "Buat Drive [TD]";
+export const ctx_menu_default_create_subfolder = "Buat folder di…";
+export const ctx_menu_default_rename = "Ganti nama…";
+export const ctx_menu_default_reparent = "Pindah ke Drive/Folder…";
+export const ctx_menu_default_delete = "Hapus [TD]…";
+export const ctx_menu_this_location = "Lokasi ini";
+export const topbar_filter_media_type = "Filter tipe media";
+export const topbar_sort_order = "Urutan tampilan media";
+export const topbar_thumb_quality = "Kualitas thumbnail di grid";
+export const topbar_preview_quality = "Kualitas gambar pratinjau";
+export const sidebar_refresh_all = "Muat ulang Drives, folder & chat";
+export const sidebar_td_count = "Jumlah Drive & folder [TD]";
+export const sidebar_expand_subfolder = "Perluas subfolder";
+export const sidebar_collapse_subfolder = "Ciutkan subfolder";
+export const sidebar_drive_root = "Drive (root [TD])";
+export const sidebar_orphan_parent = "Parent tidak ditemukan";
+export const sidebar_source_invalid = "Lokasi sumber — pilih chat/folder lain";
+export const tm_minimize = "Minimize ke pojok";
+export const tm_skipped_hint = "File dilewati karena sudah ada di tujuan";
+export const tm_reupload_hint = "File dihapus dari tujuan lalu diunggah ulang otomatis";
+export const tm_verify_hint = "Commit ambigu; AutoGram tidak mengunggah ulang byte";
+export const tm_dest_tooltip = "Tujuan: {{dest}}";
+export const preview_prev_file = "Sebelumnya (←)";
+export const preview_no_prev = "Tidak ada file sebelumnya";
+export const preview_next_file = "Berikutnya (→)";
+export const preview_no_next = "Tidak ada file berikutnya";
+export const preview_fullscreen_enter = "Layar Penuh";
+export const preview_fullscreen_exit = "Keluar Layar Penuh";
+export const preview_zoom_out_hint = "Perkecil (min 25%) — gulir ke bawah atau -";
+export const preview_zoom_in_hint = "Perbesar (maks 600%) — gulir ke atas atau +";
+export const preview_unmute_hint = "Nyalakan suara (M)";
+export const preview_mute_hint = "Bisukan suara (M)";
+export const preview_loop_on_hint = "Loop aktif — video diputar lagi setelah selesai (klik untuk matikan)";
+export const preview_loop_off_hint = "Loop: putar ulang otomatis setelah selesai";
+export const preview_pip_hint = "Jendela mini (Picture-in-Picture)";
+export const word_wrap_tooltip = "Potong baris panjang (Word Wrap)";
+export const topbar_zoom_reset_hint = "{{label}} — klik untuk atur ulang ke Sedang. Ctrl+scroll di grid juga mengatur zoom.";
+export const topbar_open_transfer_manager = "Buka Transfer Manager (progress unduh/unggah)";
+export const remote_url_btn = "URL Remote";
+export const upload_file_to_loc = "Unggah berkas ke lokasi ini";
+export const btn_add_topic = "+ Tambah Topik";
+export const label_topic = "Topik";
+export const all_media_pill = "Semua Media";
+export const loading_topics = "Memuat topik…";
+export const status_live_sync = "Sinkronisasi live · {{count}}{{more}} berkas";
+export const status_loaded_files = "{{count}}{{more}} berkas terdaftar{{topicNote}}";
+export const preview_zoom_pan_tooltip = "Tahan & seret untuk geser · gulir untuk zoom (25%–600%) · double-klik untuk 100%";
+export const preview_zoom_default_tooltip = "Gulir untuk zoom (25%–600%, default 100%) · double-klik untuk perbesar";
+export const auto_mode_label = "Otomatis";
+export const files_in_scope = "berkas di {{scope}}";
+export const accurate_total_hint = "Total unik seluruh {{scope}} (metadata Telegram, tanpa unduh berkas). Tidak dihitung ganda antar filter.";
+export const scroll_for_more = " (+ gulir untuk lebih banyak)";
+export const filter_active_badge = "Aktif";
+export const adv_filter_shortcut_hint = "⚡ Shortcut: 1 MB ≈ 1.048.576 · contoh min video besar: 5000000";
+export const gpu_auto_label = "Otomatis · Prioritas GPU";
+export const gpu_auto_desc = "Pilih backend yang lolos pengujian kemampuan";
+export const preset_speed_label = "Kecepatan";
+export const preset_balanced_label = "Seimbang";
+export const preset_quality_label = "Kualitas";
+export const preset_speed_desc = "Adaptif maksimum, menjaga cadangan memori";
+export const preset_balanced_desc = "Default kualitas dan kecepatan";
+export const preset_quality_desc = "Kompresi lebih teliti dan lebih lama";
+export const send_options_header = "Opsi Pengiriman";
+export const send_silent = "Senyap (tanpa notifikasi)";
+export const send_silent_desc = "Kirim tanpa suara notifikasi di sisi penerima.";
+export const send_spoiler = "Media Spoiler";
+export const sort_label = "URUTKAN";
+export const thumb_label = "THUMB";
+export const filter_label = "FILTER";
+export const filter_link = "Link";
+export const filter_tip_all = "Semua tipe media";
+export const filter_tip_image = "Hanya gambar / foto";
+export const filter_tip_video = "Hanya video";
+export const filter_tip_document = "Hanya dokumen";
+export const filter_tip_link = "Hanya link / URL";
+export const sort_newest_desc = "Media paling baru di atas";
+export const sort_oldest_desc = "Media paling lama di atas";
+export const sort_name_asc_desc = "Urut nama naik";
+export const sort_name_desc_desc = "Urut nama turun";
+export const sort_size_desc_desc = "File besar di atas";
+export const sort_size_asc_desc = "File kecil di atas";
+export const thumb_low = "Hemat";
+export const thumb_med = "Seimbang";
+export const thumb_high = "Jelas";
+export const thumb_low_short = "Hemat";
+export const thumb_med_short = "Seimbang";
+export const thumb_high_short = "Jelas";
+export const thumb_low_desc = "Rendah (ringan kuota/RAM)";
+export const thumb_med_desc = "Sedang (standar)";
+export const thumb_high_desc = "Tinggi (tajam & detail)";
+export const counting_total_media = "Menghitung total media unik di lokasi… ({{fileCount}}{{spaceLabel}})";
+export const accurate_total_media = "Total akurat (unik) di lokasi ini: {{fileCount}} berkas{{spaceLabel}}";
+export const approx_media_count = "{{fileCount}} item · {{spaceLabel}} (perkiraan / belum final)";
+export const media_count_loc = "{{fileCount}} item di lokasi ini";
+export const search_aria_label = "Cari file di lokasi saat ini. Pintasan Ctrl+F";
+export const scope_this_topic = "topik ini";
+export const scope_all_group_topics = "semua topik di grup";
+export const scope_this_location = "lokasi ini";
+export const close_esc = "Tutup (Esc)";
+export const tab_upload = "Unggah";
+export const tab_download = "Unduh";
+export const upload_settings_aria = "Pengaturan upload";
+export const upload_quality_hint = "Menentukan bagaimana berkas dikirim ke Telegram (media native vs dokumen).";
+export const gpu_nvidia_desc = "CUDA/NVDEC dengan fallback aman";
+export const gpu_amd_desc = "AMF hardware encoder";
+export const gpu_intel_desc = "QSV hardware encoder";
+export const gpu_cpu_desc = "Fallback kompatibilitas CPU x264";
+export const send_spoiler_desc = "Tandai media sebagai spoiler (buram sampai diklik).";
+export const force_document_title = "Paksa dokumen (ORIGINAL)";
+export const refresh_after_upload_desc = "Muat ulang grid di folder tujuan agar berkas baru langsung terlihat.";
+export const scan_mode_title = "Mode Pemindaian Tujuan";
+export const scan_mode_desc = "Mengontrol seberapa dalam aplikasi memindai riwayat pesan tujuan sebelum transfer dimulai.";
+export const scan_normal = "Normal";
+export const scan_normal_desc = "1.000 pesan terakhir — cepat.";
+export const scan_smart = "Smart";
+export const scan_smart_desc = "1.000 pesan terbaru + sampling adaptif — direkomendasikan.";
+export const scan_forensic = "Forensik";
+export const scan_forensic_desc = "Semua pesan tanpa batas — sangat akurat, lambat untuk grup besar.";
+export const topic_scope_title = "Cakupan Topik (Forum)";
+export const topic_scope_selected = "Topik terpilih saja";
+export const topic_scope_selected_desc = "Hanya memindai di topik forum yang sedang Anda buka";
+export const topic_scope_plus_gen = "Topik terpilih + General";
+export const topic_scope_plus_gen_desc = "Memindai topik terpilih serta topik utama (General)";
+export const topic_scope_all = "Semua topik";
+export const topic_scope_all_desc = "Memindai semua topik dalam forum secara menyeluruh";
+export const guardrail_title = "Guardrail Re-upload";
+export const guardrail_check_title = "Konfirmasi sebelum re-upload berkas yang dihapus baru-baru ini";
+export const guardrail_check_desc = "Mencegah re-upload massal tanpa sengaja saat berkas baru dihapus dari tujuan.";
+export const guardrail_time_hint = "Minta konfirmasi untuk berkas yang dihapus dalam kurun waktu:";
+export const days_unit = "hari";
+export const default_caption_title = "CAPTION DEFAULT";
+export const default_caption_desc = "Teks yang dilampirkan ke setiap unggahan. Kosongkan untuk memakai nama berkas saja.";
+export const optional_caption_ph = "Caption opsional…";
+export const upload_settings_note = "Drag & drop dari File Explorer, tombol Unggah, dan drop ke baris chat memakai pengaturan ini.";
+export const download_settings_aria = "Pengaturan download";
+export const download_parallel_desc = "Jumlah berkas yang diunduh bersamaan saat Unduh terpilih (batch).";
+export const download_note = "Unduh satu berkas selalu ke lokasi yang Anda pilih di dialog simpan. Batch unduh memakai folder tujuan + paralel di atas.";
+export const supported_features_title = "FITUR TERDUKUNG";
+export const dock_progress_feature = "Progress % / MB/s / puncak di dock transfer";
+export const multipart_feature = "Multi-part paralel untuk berkas besar (worker)";
+export const btn_reset_default = "Atur ulang default";
+export const btn_save = "Simpan";
+export const zip_preview_content = "Pratinjau Konten";
+export const zip_extract_entry = "Ekstrak File Ini";
+export const zip_extract_title = "Ekstrak Berkas ZIP";
+export const zip_code_preview_title = "Pratinjau Kode Berkas";
+export const zip_cat_all = "Semua Berkas";
+export const zip_cat_image = "Gambar";
+export const zip_cat_media = "Media";
+export const zip_cat_doc = "Dokumen & Kode";
+export const zip_extract_count = "Ekstrak ({{count}})";
+export const zip_save_archive = "Simpan Arsip";
+export const zip_reading_index = "Membaca indeks arsip ZIP…";
+export const zip_protected = "Dilindungi";
+export const zip_unlocked = "Terbuka";
+export const zip_col_name = "Nama Berkas";
+export const zip_col_size = "Ukuran";
+export const zip_col_compressed = "Terkompresi";
+export const zip_col_actions = "Aksi";
+export const zip_extract_dest_desc = "Pilih folder tujuan Drive tempat berkas hasil ekstrak disimpan:";
+export const zip_drive_root = "Pesan Tersimpan (Root Drive)";
+export const zip_start_extract = "Mulai Ekstrak";
+export const zip_btn_cancel = "Batal";
+export const zip_btn_copy = "Salin";
+export const zip_btn_copied = "Tersalin";
+export const zip_reading_entry = "Mengestrak & membaca isi berkas…";
+export const zip_empty_search = "Tidak ada berkas yang cocok dalam arsip ini";
+export const zip_archive_explorer = "Penjelajah Arsip";
+export const zip_cat_archive = "ZIP Bersarang";
+export const zip_previous_archive = "Arsip sebelumnya";
+export const zip_next_archive = "Arsip berikutnya";
+export const zip_back_parent = "Kembali ke arsip induk";
+export const zip_nested_depth = "Kedalaman {{count}}";
+export const zip_clear_search = "Bersihkan pencarian";
+export const zip_root = "akar";
+export const zip_breadcrumbs = "Lokasi dalam arsip";
+export const zip_select_all = "Pilih semua entri yang terlihat";
+export const zip_select_directory = "Pilih folder {{name}}";
+export const zip_select_entry = "Pilih entri {{name}}";
+export const zip_extract_directory = "Ekstrak folder ini";
+export const zip_open_folder = "Buka folder";
+export const zip_open_nested = "Buka ZIP bersarang";
+export const zip_close = "Tutup";
+export const zip_retry = "Coba lagi";
+export const zip_list_failed = "Indeks ZIP tidak dapat dibaca.";
+export const zip_entry_failed = "Entri ZIP tidak dapat dibuka.";
+export const zip_binary_title = "Pratinjau visual tidak tersedia";
+export const zip_binary_desc = "Format biner ini tidak dapat dirender dengan aman di aplikasi. Anda tetap dapat mengekstraknya ke tujuan Telegram.";
+export const zip_password_title = "Buka ZIP terenkripsi";
+export const zip_password_desc = "Masukkan password untuk membuka {{archive}}. Password hanya digunakan di memori selama penjelajahan ini.";
+export const zip_password_label = "Password arsip";
+export const zip_password_placeholder = "Masukkan password";
+export const zip_password_checking = "Memeriksa…";
+export const zip_password_unlock = "Buka arsip";
+export const zip_password_invalid = "Password salah atau metode enkripsi belum didukung.";
+export const zip_destination_type = "Jenis tujuan ekstraksi";
+export const zip_dest_drive = "Drive dan folder";
+export const zip_dest_chat = "Chat Telegram";
+export const zip_saved_desc = "Kirim hasil ekstraksi ke ruang pribadi Anda.";
+export const zip_destination_search = "Cari Drive, folder, bot, channel, atau grup…";
+export const zip_chat_type_user = "Pengguna";
+export const zip_chat_type_group = "Grup";
+export const zip_chat_type_channel = "Channel";
+export const zip_chat_type_bot = "Bot";
+export const zip_chat_type_unknown = "Chat";
+export const zip_topic_id = "ID topik forum";
+export const zip_topic_id_placeholder = "Contoh: 42";
+export const zip_topic_id_hint = "Kosongkan untuk mengirim ke topik umum grup.";
+export const zip_extracting = "Mengekstrak…";
+export const zip_extract_progress = "Menyiapkan {{current}} dari {{total}} berkas…";
+export const zip_upload_queue_unavailable = "Antrean unggah tidak tersedia untuk tujuan ini.";
+export const tools_group_drive = "Alat Drive";
+export const tools_group_settings = "Konfigurasi";
+export const tools_tab_copy_desc = "Salin berkas pilihan atau seluruh tampilan ke lokasi Telegram lain dengan proteksi duplikat.";
+export const tools_tab_dups_desc = "Temukan salinan yang sama, tentukan berkas yang dipertahankan, lalu hapus dengan aman.";
+export const tools_tab_rename_desc = "Ubah nama banyak berkas menggunakan token dan periksa hasil sebelum diterapkan.";
+export const tools_tab_space_desc = "Lihat penggunaan ruang dan distribusi jenis media dari metadata lokasi.";
+export const tools_tab_filter_desc = "Persempit katalog berdasarkan ukuran, tanggal, ekstensi, atau ID pesan.";
+export const tools_tab_settings_desc = "Atur kualitas, akselerasi, paralelisme, perilaku kirim, dan unduhan.";
+export const tools_file_count = "{{count}} berkas";
+export const tools_selected_count = "{{count}} dipilih";
+export const tools_scope_topic = "topik ini";
+export const tools_scope_forum = "semua topik di grup";
+export const tools_scope_location = "lokasi ini";
+export const tools_counting = "Menghitung…";
+export const tools_grid_loaded = "Grid dimuat: {{count}} berkas · {{size}}{{more}}";
+export const tools_scroll_more = " · gulir untuk memuat lebih banyak";
+export const tools_waiting_count = "Menunggu hasil penghitungan…";
+export const tools_no_usage_data = "Belum ada data. Tunggu penghitungan selesai atau muat katalog.";
+export const tools_preview_file = "Pratinjau: {{name}}";
+export const tools_scope_label = "Cakupan";
+export const tools_destination_label = "Tujuan";
+export const tools_copy_scope_aria = "Cakupan penyalinan";
+export const tools_copy_destination_aria = "Tujuan penyalinan";
+export const tools_chat_fallback = "Chat {{id}}";
+export const tools_folder_fallback = "Folder {{id}}";
+export const gpu_nvidia_label = "NVIDIA NVENC";
+export const gpu_amd_label = "AMD AMF";
+export const gpu_intel_label = "Intel Quick Sync";
+export const gpu_cpu_label = "CPU x264";
+export const dup_lead_summary = "{{groups}} grup · potensi hemat maksimum {{size}}";
+export const dup_all_marked_warning = "Semua item dicentang pada {{count}} grup; tidak ada berkas yang akan dipertahankan di grup tersebut.";
+export const dup_reason_name_size = "Nama + ukuran";
+export const dup_reason_size_only = "Ukuran saja";
+export const dup_group_counts = "{{files}} berkas · simpan {{keep}} / hapus {{delete}}";
+export const filter_extension_ph = "pdf, mp4, …";
+export const dest_picker_title = "Pilih Lokasi Tujuan";
+export const input_dialog_confirm = "Konfirmasi";
+export const batch_reupload_skip = "Lewati semua berkas yang dihapus — tidak ada yang diunggah ulang";
+export const remote_upload_modal_title = "Unggah Jarak Jauh (URL)";
+export const storage_gauge_title = "Penggunaan Penyimpanan";
+export const upload_parallelism_hint = "Berapa berkas di-pipeline ke data center Telegram bersamaan (1–8). Naikkan untuk multi-file lebih cepat; turunkan jika sering FloodWait.";
+export const default_caption_hint = "Teks yang dilampirkan ke setiap unggahan (bisa diganti per-file di masa depan). Kosongkan untuk memakai nama file saja.";
+export const upload_note_box = "Drag & drop dari File Explorer, tombol Unggah, dan drop ke baris chat memakai pengaturan ini. Part paralel per-file diatur otomatis di worker (hingga 12).";
+export const download_parallelism_hint = "Jumlah file yang diunduh bersamaan saat Unduh terpilih (batch). Tiap file besar juga memakai unduhan multi-part di worker.";
+export const download_note_box = "Unduh satu file (dari kartu / preview) selalu ke lokasi yang Anda pilih di dialog simpan. Batch unduh memakai folder tujuan + paralel di atas. Batal transfer lewat tombol Batal di dock progress.";
+export const quality_mode_high_quality_label = "HQ — Telegram native";
+export const quality_mode_high_quality_desc = "Foto/video sebagai media Telegram (streaming video). Berkas lain sebagai dokumen.";
+export const quality_mode_smart_label = "SMART — otomatis";
+export const quality_mode_smart_desc = "Pilih mode per ekstensi (re-encode video problematik bila perlu).";
+export const quality_mode_original_label = "ORIGINAL — dokumen utuh";
+export const quality_mode_original_desc = "Semua sebagai dokumen (force_document). Paling cepat, tanpa kompresi foto Telegram.";
+export const ph_search_zip = "Cari berkas zip...";
+export const ph_search_chat_folder = "Cari chat / folder…";
+export const ph_remote_url = "https://example.com/file.zip";
+export const ph_folder_name = "Nama folder...";
+export const label_filter = "FILTER";
+export const label_sort = "URUTKAN";
+export const label_thumb = "THUMB";
+export const filter_all_tip = "Semua tipe media";
+export const filter_photos = "Gambar";
+export const filter_photos_tip = "Hanya gambar";
+export const filter_videos_tip = "Hanya video";
+export const filter_documents = "Dokumen";
+export const filter_documents_tip = "Hanya dokumen";
+export const filter_links = "Link";
+export const filter_links_tip = "Hanya link / URL";
+export const thumb_saver_short = "Hemat";
+export const thumb_saver_label = "Format hemat kuota";
+export const thumb_saver_desc = "Format hemat kuota (ringkas & cepat dimuat)";
+export const thumb_balanced_short = "Seimbang";
+export const thumb_balanced_label = "Format standar";
+export const thumb_balanced_desc = "Format standar (keseimbangan kecepatan & ketajaman)";
+export const thumb_clear_short = "Jelas";
+export const thumb_clear_label = "Format HD/HQ";
+export const thumb_clear_desc = "Format HD/HQ (gambar tajam, unduhan sedikit lebih besar)";
+export const topic_closed_suffix = "ditutup";
+export const topbar_tools_aria = "Filter, urutan, dan thumbnail";
+export const topbar_label_filter = "Filter";
+export const topbar_label_sort = "Urutkan";
+export const topbar_label_thumb = "Thumb";
+export const topbar_sort_media_aria = "Urutkan media";
+export const topbar_upload_disabled_title = "Transfer masih berjalan — Stop dulu di Transfer Manager";
+export const topbar_upload_disabled_aria = "Unggah dinonaktifkan — transfer masih berjalan";
+export const topbar_label_topic = "Topik";
+export const topbar_all_media = "Semua media";
+export const topbar_view_mode_aria = "Mode tampilan";
+export const topbar_view_grid_title = "Grid";
+export const topbar_view_list_title = "Daftar";
+export const topbar_zoom_grid_aria = "Zoom grid";
+export const topbar_zoom_out_aria = "Perkecil zoom";
+export const topbar_zoom_in_aria = "Perbesar zoom";
+export const topbar_refresh_aria = "Muat ulang";
+export const topbar_open_tools_aria = "Buka alat & pengaturan Drive";
+export const topbar_count_counting_title = "Menghitung total media unik di lokasi… ({{count}}{{space}})";
+export const topbar_count_accurate_title = "Total akurat (unik) di lokasi ini: {{count}} file{{space}}";
+export const topbar_count_approx_title = "{{count}} item · {{space}} (perkiraan / belum final)";
+export const topbar_count_simple_title = "{{count}} item di lokasi ini";
+export const topbar_tm_busy_title = "Transfer Manager — {{count}} file berjalan";
+export const topbar_tm_error_title = "Transfer Manager — {{count}} gagal";
+export const topbar_tm_done_title = "Transfer Manager — {{count}} selesai";
+export const topbar_tm_count_aria = "Transfer Manager, {{count}} item";
+export const topbar_tm_aria = "Transfer Manager";
+export const sort_newest_label = "Terbaru dulu";
+export const sort_oldest_label = "Terlama dulu";
+export const sort_name_asc_label = "Nama A → Z";
+export const sort_name_desc_label = "Nama Z → A";
+export const sort_size_desc_label = "Ukuran terbesar";
+export const sort_size_asc_label = "Ukuran terkecil";
+export const thumb_sharp_short = "Jelas";
+export const thumb_sharp_label = "Jelas";
+export const thumb_sharp_desc = "Tajam dari layer Telegram terbesar (~70–130 KB) — tanpa unduh full file";
+export const settings_sections_aria = "Bagian pengaturan";
+export const categories_aria = "Kategori Alat dan Pengaturan";
+export const upload_tab = "Upload";
+export const download_tab = "Download";
+export const download_parallel_header = "PARALEL DOWNLOAD";
+export const download_behavior_header = "PERILAKU DOWNLOAD";
+export const err_name_empty = "Nama tidak boleh kosong";
+export const create_folder_title = "Buat folder";
+export const create_drive_title = "Buat Drive [TD]";
+export const create_folder_desc = "Di dalam “{{parentName}}”. Folder bisa berisi subfolder.";
+export const create_drive_desc = "Drive root di Media Studio (channel privat Telegram [TD]).";
+export const folder_name_label = "Nama folder";
+export const drive_name_label = "Nama Drive";
+export const folder_name_ph = "mis. Semester 1";
+export const drive_name_ph = "mis. Materi Kelas A";
+export const create_folder_btn = "Buat folder";
+export const create_drive_btn = "Buat Drive";
+export const loading_more = "Memuat lagi…";
+export const scroll_to_load_more = "Gulir untuk memuat lebih banyak…";
+export const all_media_loaded = "Semua {{count}} media telah dimuat";
+export const count_pill_counting_title = "Menghitung total media unik di lokasi… ({{count}}{{space}})";
+export const count_pill_accurate_title = "Total akurat (unik) di lokasi ini: {{count}} file{{space}}";
+export const count_pill_final_title = "Total final (selesai dimuat): {{count}} media{{space}}";
+export const count_pill_estimate_title = "{{count}} item · {{space}} (perkiraan / belum final)";
+export const count_pill_simple_title = "{{count}} item di lokasi ini";
+export const loading_video = "Memuat Video…";
+export const loading_short = "Memuat…";
+export const deselect = "Batal pilih";
+export const select = "Pilih";
+export const duration_title = "Durasi {{duration}}";
+export const btn_delete = "Hapus";
+export const status_connecting_mtproto = "Menghubungkan Telegram MTProto…";
+export const status_reading_catalog = "Membaca katalog media drive…";
+export const status_parsing_metadata = "Menyusun metadata & file…";
+export const status_almost_done = "Hampir selesai…";
+export const syncing_media_library = "Menyinkronkan pustaka media Anda";
+export const loading_catalog = "Memuat Katalog";
+export const done_exclamation = "Selesai!";
+export const preparing_display = "Menyiapkan tampilan…";
+export const secs_remaining = "~{{count}} detik tersisa";
+export default {
+  title,
+  subtitle,
+  perspective_telegram,
+  perspective_drive,
+  perspective_telegram_short,
+  perspective_drive_short,
+  items_loaded_total,
+  items_loaded_only,
+  items_total_only,
+  tab_telegram_media,
+  tab_telegram_files,
+  tab_telegram_links,
+  tab_telegram_gifs,
+  tab_telegram_audio,
+  tab_drive_images,
+  tab_drive_videos,
+  tab_drive_audio,
+  tab_drive_documents,
+  tab_drive_archives,
+  badge_telegram_media,
+  badge_telegram_file,
+  badge_telegram_link,
+  badge_telegram_gif,
+  badge_telegram_audio,
+  badge_drive_image,
+  badge_drive_video,
+  badge_drive_doc,
+  badge_drive_archive,
+  badge_drive_audio,
+  badge_drive_web,
+  root_drive,
+  saved_messages,
+  recents,
+  trash,
+  active_transfers,
+  search_placeholder,
+  filter_all,
+  filter_images,
+  filter_videos,
+  filter_audio,
+  filter_docs,
+  filter_archives,
+  filter_apks,
+  select_all,
+  clear_selection,
+  download_batch,
+  delete_batch,
+  delete_batch_confirm,
+  cloud_storage,
+  unlimited_cloud,
+  global_sort_warning,
+  download_failed,
+  write_debug_failed,
+  save_file,
+  tools_title,
+  walk_media_notice,
+  walk_grid_notice,
+  skip_dup_name_size,
+  upload_quality,
+  upload_parallel,
+  skip_uploaded_files,
+  skip_uploaded_desc,
+  download_parallel,
+  download_behavior,
+  download_notice_title,
+  download_notice_desc,
+  save_transfer_settings,
+  default_keep_newest,
+  per_group_keep_one,
+  keep_all_groups,
+  delete_action,
+  keep_one_check_rest,
+  keep_all_in_group,
+  prev_file_tooltip,
+  open_system_app,
+  download_tooltip,
+  open_default_tooltip,
+  open_with_tooltip,
+  processing,
+  cancel_preview_tooltip,
+  cancel,
+  close_status_strip,
+  open_default_app,
+  open_with_other,
+  print_pdf_tooltip,
+  copy_text,
+  reload_preview,
+  file_detail_tooltip,
+  media_size,
+  media_dim,
+  media_duration,
+  load_location_failed,
+  clear_search,
+  group_with_topics,
+  select_visible_all,
+  open_location_list,
+  tools_panel_tooltip,
+  show_group_media,
+  add_new_topic,
+  filter_media_tooltip,
+  copy_topic_id,
+  delete_topic,
+  forum_topic_optional,
+  show_less,
+  start_upload,
+  minimize_panel,
+  minimize_corner_tooltip,
+  retry_failed_files,
+  clear_transfer_history,
+  status_done,
+  copy_log_clipboard,
+  transfer_settings_title,
+  transfer_settings_subtitle,
+  refresh_after_upload,
+  download_status_title,
+  download_status_desc,
+  download_multi_folder,
+  download_single_file,
+  cancel_active_download,
+  tools_cat_drive,
+  tools_cat_config,
+  tools_tab_copy,
+  tools_tab_dups,
+  tools_tab_rename,
+  tools_tab_space,
+  tools_tab_filter,
+  tools_tab_settings,
+  smart_copy_desc,
+  scope_label,
+  scope_selected,
+  scope_all,
+  target_label,
+  btn_start_copy,
+  dup_mode_title,
+  dup_mode_subtitle,
+  dup_none_found,
+  used_capacity,
+  cat_videos,
+  cat_images,
+  cat_audio,
+  cat_archives,
+  cat_other,
+  accurate_metadata,
+  approx_loaded,
+  top_largest_files,
+  token_label,
+  rename_preview_title,
+  rename_no_change,
+  hardware_reencode,
+  reencode_mode,
+  send_options,
+  send_as_album,
+  send_as_album_desc,
+  silent_send,
+  silent_send_desc,
+  spoiler_media,
+  spoiler_media_desc,
+  force_document,
+  force_document_desc,
+  default_caption,
+  default_caption_ph,
+  restore_defaults,
+  dup_detection_mode,
+  smart_pref_tooltip,
+  check_delete_tooltip,
+  zip_contents,
+  zip_entries_count,
+  zip_extract_selected,
+  zip_search_ph,
+  zoom_in,
+  zoom_out,
+  zoom_reset,
+  rotate_left,
+  rotate_right,
+  flip_h,
+  flip_v,
+  video_auto,
+  sound,
+  pip,
+  more,
+  file_info,
+  file_name,
+  original_name,
+  mime_type,
+  created_at,
+  dup_mode_sub,
+  dup_name_size,
+  dup_none,
+  dup_found_summary,
+  dup_groups,
+  dup_files,
+  dup_est_save,
+  dup_keep_newest,
+  dup_keep_oldest,
+  dup_group_hdr,
+  dup_selected_count,
+  dup_for_deletion,
+  dup_delete_btn,
+  space_capacity_used,
+  space_cat_videos,
+  space_cat_images,
+  space_cat_audio,
+  space_cat_archives,
+  space_cat_other,
+  sort_by,
+  sort_newest,
+  sort_oldest,
+  sort_size_desc,
+  sort_name_asc,
+  thumb_saver,
+  thumb_balanced,
+  thumb_crisp,
+  remote_upload_title,
+  remote_upload_desc,
+  url_placeholder,
+  btn_confirm_delete,
+  btn_cancel,
+  reupload_batch_title,
+  reupload_batch_desc,
+  transfer_manager_title,
+  speed_label,
+  eta_label,
+  cancel_session,
+  next_file_tooltip,
+  close_esc_tooltip,
+  download_file_tooltip,
+  fullscreen,
+  rotate_left_tooltip,
+  rotate_right_tooltip,
+  flip_h_tooltip,
+  flip_v_tooltip,
+  zoom_in_tooltip,
+  zoom_out_tooltip,
+  audio_stream_title,
+  close_aria,
+  prev_aria,
+  next_aria,
+  nav_aria,
+  detail_aria,
+  close_info,
+  label_zoom,
+  label_zoom_out,
+  label_zoom_in,
+  label_rotate,
+  label_left,
+  label_right,
+  label_flip,
+  label_flip_v,
+  label_sound,
+  label_mute,
+  label_loop,
+  label_pip,
+  label_open,
+  label_app,
+  label_with,
+  label_print,
+  label_copy,
+  label_other,
+  label_load,
+  label_info,
+  label_loading,
+  tooltip_zoom_out,
+  tooltip_zoom_reset,
+  tooltip_zoom_in,
+  tooltip_rotate_left,
+  tooltip_rotate_right,
+  tooltip_flip_h,
+  tooltip_flip_v,
+  tooltip_res,
+  tooltip_speed,
+  tooltip_unmute,
+  tooltip_mute,
+  tooltip_loop_on,
+  tooltip_loop_off,
+  tooltip_pip,
+  sidebar_drive_header,
+  sidebar_telegram_td,
+  sidebar_back_to_app,
+  sidebar_session,
+  sidebar_btn_refresh,
+  sidebar_refresh_tooltip,
+  sidebar_btn_add_folder,
+  sidebar_search_ph,
+  sidebar_search_aria,
+  sidebar_search_title,
+  sidebar_clear_search,
+  sidebar_saved_messages,
+  sidebar_saved_messages_tooltip,
+  sidebar_recents_header,
+  sidebar_recents_tooltip,
+  sidebar_drives_header,
+  sidebar_drives_tooltip,
+  sidebar_drives_empty,
+  sidebar_resizer_aria,
+  sidebar_chats_header,
+  sidebar_chats_tooltip,
+  sidebar_chat_folders_aria,
+  sidebar_sync_live,
+  sidebar_media_categories,
+  sidebar_cat_images,
+  sidebar_cat_videos,
+  sidebar_cat_audio,
+  sidebar_cat_documents,
+  sidebar_cat_archives,
+  sidebar_cat_apk,
+  topbar_selected,
+  topbar_select_all,
+  topbar_deselect_all_tooltip,
+  topbar_cancel,
+  topbar_invert,
+  topbar_invert_tooltip,
+  topbar_move,
+  topbar_download,
+  topbar_delete,
+  topbar_search_files_ph,
+  badge_recently_uploaded,
+  tooltip_preview,
+  tooltip_download,
+  tooltip_delete,
+  col_name,
+  col_size,
+  col_date,
+  col_type,
+  col_actions,
+  reading_catalog,
+  no_media_found,
+  drop_to_upload,
+  folder_label,
+  reupload_confirm_title,
+  remote_upload_url_title,
+  remote_upload_url_desc,
+  url_placeholder_example,
+  uploading_status,
+  saved_messages_root,
+  no_match_found,
+  forum_label,
+  general_no_topic,
+  action_delete_source,
+  action_keep_source,
+  skip_deleted_tooltip,
+  no_transfers_yet,
+  minimize_corner_desc,
+  skip_dup_target_tooltip,
+  overwrite_auto_tooltip,
+  commit_ambiguous_tooltip,
+  btn_stop,
+  btn_clear,
+  btn_retry,
+  expand_sidebar,
+  drive_root,
+  no_active_account,
+  refresh_sidebar,
+  drives_and_folders,
+  new_folder,
+  all_topics,
+  view_links,
+  sort_newest_first,
+  sort_oldest_first,
+  sort_name_desc,
+  sort_size_asc,
+  grid_view_tooltip,
+  list_view_tooltip,
+  btn_upload,
+  active_session_label,
+  search_media_ph,
+  refresh_drive,
+  extract_entry_tooltip,
+  extracting_reading_entry,
+  reading_archive_index,
+  filter_image,
+  filter_video,
+  filter_document,
+  filter_archive,
+  zoom_xs,
+  zoom_s,
+  zoom_m,
+  zoom_l,
+  zoom_xl,
+  zoom_xxl,
+  tm_title,
+  tm_no_transfers,
+  tm_empty_title,
+  tm_empty_hint,
+  tm_status_paused,
+  tm_status_error,
+  tm_status_need_verify,
+  tm_status_skipped,
+  tm_status_done_skipped,
+  tm_status_done,
+  tm_status_ready,
+  tm_log_debug,
+  sidebar_search_location_ph,
+  tools_modal_title,
+  tools_sec_tools,
+  tools_sec_config,
+  selected_count,
+  all_in_view_count,
+  dup_none_detected,
+  dup_summary_header,
+  dup_lead_hint,
+  dup_mode_name_size_label,
+  dup_mode_both_label,
+  smart_selection_btn,
+  keep_all_btn,
+  smart_mini_btn,
+  dup_stats_summary,
+  dup_all_marked_warn,
+  delete_checked_btn,
+  dup_group_badge,
+  badge_tag_delete,
+  badge_tag_keep_default,
+  badge_tag_keep,
+  rename_scope_selected,
+  rename_scope_view,
+  rename_pattern_label,
+  start_from_label,
+  rename_preview_header,
+  btn_apply_rename,
+  space_grid_loaded_hint,
+  by_type_all_loc,
+  by_type_grid_loaded,
+  space_waiting_stats,
+  space_no_data,
+  preview_title,
+  adv_filter_desc,
+  filter_min_bytes,
+  filter_max_bytes,
+  filter_from_date,
+  filter_to_date,
+  filter_extension,
+  filter_message_id,
+  msg_id_ph,
+  filter_shortcut_hint,
+  btn_reset_filter,
+  btn_apply_filter,
+  upload_quality_header,
+  upload_quality_desc,
+  quality_hq_title,
+  quality_hq_desc,
+  quality_smart_title,
+  quality_smart_desc,
+  quality_orig_title,
+  quality_orig_desc,
+  hardware_reencode_header,
+  gpu_accel_desc,
+  reencode_mode_header,
+  reencode_mode_desc,
+  upload_parallelism_header,
+  parallelism_desc,
+  remote_upload_url_subtitle,
+  source_url_label,
+  destination_folder_label,
+  file_detail_title,
+  file_name_label,
+  original_name_label,
+  dimensions_label,
+  size_label,
+  duration_label,
+  type_label,
+  mime_label,
+  date_label,
+  delivery_label,
+  deliv_doc_orig,
+  deliv_photo_comp,
+  deliv_video_comp,
+  quality_label,
+  zoom_label,
+  rotate_label,
+  flip_h_label,
+  flip_v_label,
+  mode_label,
+  cache_label,
+  id_label,
+  doc_file_badge,
+  video_media_badge,
+  label_video,
+  label_audio,
+  label_open_doc,
+  session_header,
+  sidebar_chat_folders_header,
+  all_chats,
+  ping_transferring,
+  ping_drive_connected,
+  ping_connected,
+  ping_not_connected,
+  ping_offline,
+  ping_disconnected,
+  ping_excellent,
+  ping_good,
+  ping_fair,
+  ping_poor,
+  btn_add_drive,
+  topbar_selected_count_tooltip,
+  topbar_forward_tooltip,
+  topbar_wait_transfer,
+  topbar_download_sel,
+  topbar_delete_sel,
+  topbar_pin_loc,
+  topbar_unpin_loc,
+  topbar_full_path,
+  topbar_forum_group,
+  topbar_zoom_out,
+  topbar_zoom_in,
+  topbar_refresh_all,
+  topbar_download_zip,
+  topbar_upload_file,
+  topbar_upload_busy,
+  ctx_menu_preview,
+  ctx_menu_open_tg,
+  ctx_menu_copy_tg,
+  ctx_menu_tg_link_unavailable,
+  ctx_menu_open,
+  ctx_menu_open_with,
+  ctx_menu_reveal,
+  ctx_menu_download,
+  ctx_menu_copy_id,
+  ctx_menu_rename,
+  ctx_menu_move,
+  ctx_menu_delete,
+  ctx_menu_create_subfolder,
+  ctx_menu_refresh,
+  ctx_menu_upload,
+  ctx_menu_select_all,
+  ctx_menu_clear_selection,
+  ctx_menu_delete_selected,
+  ctx_menu_aria_file,
+  ctx_menu_aria_location,
+  ctx_menu_aria_canvas,
+  ctx_menu_default_create_drive,
+  ctx_menu_default_create_subfolder,
+  ctx_menu_default_rename,
+  ctx_menu_default_reparent,
+  ctx_menu_default_delete,
+  ctx_menu_this_location,
+  topbar_filter_media_type,
+  topbar_sort_order,
+  topbar_thumb_quality,
+  topbar_preview_quality,
+  sidebar_refresh_all,
+  sidebar_td_count,
+  sidebar_expand_subfolder,
+  sidebar_collapse_subfolder,
+  sidebar_drive_root,
+  sidebar_orphan_parent,
+  sidebar_source_invalid,
+  tm_minimize,
+  tm_skipped_hint,
+  tm_reupload_hint,
+  tm_verify_hint,
+  tm_dest_tooltip,
+  preview_prev_file,
+  preview_no_prev,
+  preview_next_file,
+  preview_no_next,
+  preview_fullscreen_enter,
+  preview_fullscreen_exit,
+  preview_zoom_out_hint,
+  preview_zoom_in_hint,
+  preview_unmute_hint,
+  preview_mute_hint,
+  preview_loop_on_hint,
+  preview_loop_off_hint,
+  preview_pip_hint,
+  word_wrap_tooltip,
+  topbar_zoom_reset_hint,
+  topbar_open_transfer_manager,
+  remote_url_btn,
+  upload_file_to_loc,
+  btn_add_topic,
+  label_topic,
+  all_media_pill,
+  loading_topics,
+  status_live_sync,
+  status_loaded_files,
+  preview_zoom_pan_tooltip,
+  preview_zoom_default_tooltip,
+  auto_mode_label,
+  files_in_scope,
+  accurate_total_hint,
+  scroll_for_more,
+  filter_active_badge,
+  adv_filter_shortcut_hint,
+  gpu_auto_label,
+  gpu_auto_desc,
+  preset_speed_label,
+  preset_balanced_label,
+  preset_quality_label,
+  preset_speed_desc,
+  preset_balanced_desc,
+  preset_quality_desc,
+  send_options_header,
+  send_silent,
+  send_silent_desc,
+  send_spoiler,
+  sort_label,
+  thumb_label,
+  filter_label,
+  filter_link,
+  filter_tip_all,
+  filter_tip_image,
+  filter_tip_video,
+  filter_tip_document,
+  filter_tip_link,
+  sort_newest_desc,
+  sort_oldest_desc,
+  sort_name_asc_desc,
+  sort_name_desc_desc,
+  sort_size_desc_desc,
+  sort_size_asc_desc,
+  thumb_low,
+  thumb_med,
+  thumb_high,
+  thumb_low_short,
+  thumb_med_short,
+  thumb_high_short,
+  thumb_low_desc,
+  thumb_med_desc,
+  thumb_high_desc,
+  counting_total_media,
+  accurate_total_media,
+  approx_media_count,
+  media_count_loc,
+  search_aria_label,
+  scope_this_topic,
+  scope_all_group_topics,
+  scope_this_location,
+  close_esc,
+  tab_upload,
+  tab_download,
+  upload_settings_aria,
+  upload_quality_hint,
+  gpu_nvidia_desc,
+  gpu_amd_desc,
+  gpu_intel_desc,
+  gpu_cpu_desc,
+  send_spoiler_desc,
+  force_document_title,
+  refresh_after_upload_desc,
+  scan_mode_title,
+  scan_mode_desc,
+  scan_normal,
+  scan_normal_desc,
+  scan_smart,
+  scan_smart_desc,
+  scan_forensic,
+  scan_forensic_desc,
+  topic_scope_title,
+  topic_scope_selected,
+  topic_scope_selected_desc,
+  topic_scope_plus_gen,
+  topic_scope_plus_gen_desc,
+  topic_scope_all,
+  topic_scope_all_desc,
+  guardrail_title,
+  guardrail_check_title,
+  guardrail_check_desc,
+  guardrail_time_hint,
+  days_unit,
+  default_caption_title,
+  default_caption_desc,
+  optional_caption_ph,
+  upload_settings_note,
+  download_settings_aria,
+  download_parallel_desc,
+  download_note,
+  supported_features_title,
+  dock_progress_feature,
+  multipart_feature,
+  btn_reset_default,
+  btn_save,
+  zip_preview_content,
+  zip_extract_entry,
+  zip_extract_title,
+  zip_code_preview_title,
+  zip_cat_all,
+  zip_cat_image,
+  zip_cat_media,
+  zip_cat_doc,
+  zip_extract_count,
+  zip_save_archive,
+  zip_reading_index,
+  zip_protected,
+  zip_unlocked,
+  zip_col_name,
+  zip_col_size,
+  zip_col_compressed,
+  zip_col_actions,
+  zip_extract_dest_desc,
+  zip_drive_root,
+  zip_start_extract,
+  zip_btn_cancel,
+  zip_btn_copy,
+  zip_btn_copied,
+  zip_reading_entry,
+  zip_empty_search,
+  zip_archive_explorer,
+  zip_cat_archive,
+  zip_previous_archive,
+  zip_next_archive,
+  zip_back_parent,
+  zip_nested_depth,
+  zip_clear_search,
+  zip_root,
+  zip_breadcrumbs,
+  zip_select_all,
+  zip_select_directory,
+  zip_select_entry,
+  zip_extract_directory,
+  zip_open_folder,
+  zip_open_nested,
+  zip_close,
+  zip_retry,
+  zip_list_failed,
+  zip_entry_failed,
+  zip_binary_title,
+  zip_binary_desc,
+  zip_password_title,
+  zip_password_desc,
+  zip_password_label,
+  zip_password_placeholder,
+  zip_password_checking,
+  zip_password_unlock,
+  zip_password_invalid,
+  zip_destination_type,
+  zip_dest_drive,
+  zip_dest_chat,
+  zip_saved_desc,
+  zip_destination_search,
+  zip_chat_type_user,
+  zip_chat_type_group,
+  zip_chat_type_channel,
+  zip_chat_type_bot,
+  zip_chat_type_unknown,
+  zip_topic_id,
+  zip_topic_id_placeholder,
+  zip_topic_id_hint,
+  zip_extracting,
+  zip_extract_progress,
+  zip_upload_queue_unavailable,
+  tools_group_drive,
+  tools_group_settings,
+  tools_tab_copy_desc,
+  tools_tab_dups_desc,
+  tools_tab_rename_desc,
+  tools_tab_space_desc,
+  tools_tab_filter_desc,
+  tools_tab_settings_desc,
+  tools_file_count,
+  tools_selected_count,
+  tools_scope_topic,
+  tools_scope_forum,
+  tools_scope_location,
+  tools_counting,
+  tools_grid_loaded,
+  tools_scroll_more,
+  tools_waiting_count,
+  tools_no_usage_data,
+  tools_preview_file,
+  tools_scope_label,
+  tools_destination_label,
+  tools_copy_scope_aria,
+  tools_copy_destination_aria,
+  tools_chat_fallback,
+  tools_folder_fallback,
+  gpu_nvidia_label,
+  gpu_amd_label,
+  gpu_intel_label,
+  gpu_cpu_label,
+  dup_lead_summary,
+  dup_all_marked_warning,
+  dup_reason_name_size,
+  dup_reason_size_only,
+  dup_group_counts,
+  filter_extension_ph,
+  dest_picker_title,
+  input_dialog_confirm,
+  batch_reupload_skip,
+  remote_upload_modal_title,
+  storage_gauge_title,
+  upload_parallelism_hint,
+  default_caption_hint,
+  upload_note_box,
+  download_parallelism_hint,
+  download_note_box,
+  quality_mode_high_quality_label,
+  quality_mode_high_quality_desc,
+  quality_mode_smart_label,
+  quality_mode_smart_desc,
+  quality_mode_original_label,
+  quality_mode_original_desc,
+  ph_search_zip,
+  ph_search_chat_folder,
+  ph_remote_url,
+  ph_folder_name,
+  label_filter,
+  label_sort,
+  label_thumb,
+  filter_all_tip,
+  filter_photos,
+  filter_photos_tip,
+  filter_videos_tip,
+  filter_documents,
+  filter_documents_tip,
+  filter_links,
+  filter_links_tip,
+  thumb_saver_short,
+  thumb_saver_label,
+  thumb_saver_desc,
+  thumb_balanced_short,
+  thumb_balanced_label,
+  thumb_balanced_desc,
+  thumb_clear_short,
+  thumb_clear_label,
+  thumb_clear_desc,
+  topic_closed_suffix,
+  topbar_tools_aria,
+  topbar_label_filter,
+  topbar_label_sort,
+  topbar_label_thumb,
+  topbar_sort_media_aria,
+  topbar_upload_disabled_title,
+  topbar_upload_disabled_aria,
+  topbar_label_topic,
+  topbar_all_media,
+  topbar_view_mode_aria,
+  topbar_view_grid_title,
+  topbar_view_list_title,
+  topbar_zoom_grid_aria,
+  topbar_zoom_out_aria,
+  topbar_zoom_in_aria,
+  topbar_refresh_aria,
+  topbar_open_tools_aria,
+  topbar_count_counting_title,
+  topbar_count_accurate_title,
+  topbar_count_approx_title,
+  topbar_count_simple_title,
+  topbar_tm_busy_title,
+  topbar_tm_error_title,
+  topbar_tm_done_title,
+  topbar_tm_count_aria,
+  topbar_tm_aria,
+  sort_newest_label,
+  sort_oldest_label,
+  sort_name_asc_label,
+  sort_name_desc_label,
+  sort_size_desc_label,
+  sort_size_asc_label,
+  thumb_sharp_short,
+  thumb_sharp_label,
+  thumb_sharp_desc,
+  settings_sections_aria,
+  categories_aria,
+  upload_tab,
+  download_tab,
+  download_parallel_header,
+  download_behavior_header,
+  err_name_empty,
+  create_folder_title,
+  create_drive_title,
+  create_folder_desc,
+  create_drive_desc,
+  folder_name_label,
+  drive_name_label,
+  folder_name_ph,
+  drive_name_ph,
+  create_folder_btn,
+  create_drive_btn,
+  loading_more,
+  scroll_to_load_more,
+  all_media_loaded,
+  count_pill_counting_title,
+  count_pill_accurate_title,
+  count_pill_final_title,
+  count_pill_estimate_title,
+  count_pill_simple_title,
+  loading_video,
+  loading_short,
+  deselect,
+  select,
+  duration_title,
+  btn_delete,
+  status_connecting_mtproto,
+  status_reading_catalog,
+  status_parsing_metadata,
+  status_almost_done,
+  syncing_media_library,
+  loading_catalog,
+  done_exclamation,
+  preparing_display,
+  secs_remaining,
+};

@@ -100,8 +100,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/capabilities/default.json": {
-    "mtime": 1784657598.0,
-    "ast_hash": "3d95b9b0735b27355b6bd7e23c05d0bb",
+    "mtime": 1785547768.0,
+    "ast_hash": "04d62e2928da4e2eef1e073e9d95c70d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/checkpoints/25.json": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/app_db.rs": {
-    "mtime": 1784914778.0,
-    "ast_hash": "cb905e09c637b6a5c7e2bb1d2084a956",
+    "mtime": 1785558706.0,
+    "ast_hash": "51716a0b74f357396f69a42d17a526ab",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/automations_db.rs": {
@@ -155,18 +155,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/capability.rs": {
-    "mtime": 1784725490.0,
-    "ast_hash": "fb54ca1432ca4f5981e45451baa35ee3",
+    "mtime": 1785558706.0,
+    "ast_hash": "173ce2f9c02f052d41db47a9af680a02",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/config_normalize.rs": {
-    "mtime": 1784635508.0,
-    "ast_hash": "65613b46d51926052324443280ec578f",
+    "mtime": 1785558706.0,
+    "ast_hash": "2104ea1adf93b6da41377ab0bddf72ec",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/doc_preview.rs": {
-    "mtime": 1784635144.0,
-    "ast_hash": "c67853fff42745d10900dea757e4e803",
+    "mtime": 1785562400.0,
+    "ast_hash": "b61ed386f9fdb09b1fc411b310db7c32",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/download_registry.rs": {
@@ -175,13 +175,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/drive_rpc.rs": {
-    "mtime": 1784859274.0,
-    "ast_hash": "9ecb7c75b756cd836467c3dcbb95fa8e",
+    "mtime": 1785770222.0,
+    "ast_hash": "0eb22bed275242499a4ff3eca21e8dc6",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/dup_checker.rs": {
-    "mtime": 1784914656.0,
-    "ast_hash": "3f2620ef04ea5a638e658bb1a3da9077",
+    "mtime": 1785558706.0,
+    "ast_hash": "e5aa8db01224ae8520019d69f4f9469a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/events.rs": {
@@ -190,78 +190,78 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/fingerprint.rs": {
-    "mtime": 1784914336.0,
-    "ast_hash": "0eb9ce4e39a32d9ef8e681dac5309ded",
+    "mtime": 1785558706.0,
+    "ast_hash": "2c312108bdc0edc34ea9f36e990d05cf",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_sparse_zip.rs": {
-    "mtime": 1784978684.0,
-    "ast_hash": "fc59b405b07d19756f67b75887c58122",
+    "mtime": 1785558826.0,
+    "ast_hash": "1facb8f86ef9e3b955faec7667583961",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/hash_util.rs": {
-    "mtime": 1784635758.0,
-    "ast_hash": "10a220228685e4c154ca0f14ea6d61fa",
+    "mtime": 1785558706.0,
+    "ast_hash": "eb6db7eea88304eed1e804938ef31d2e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/job_queue.rs": {
-    "mtime": 1784636688.0,
-    "ast_hash": "30b9cda6cd3137fccee643a9aeeadbf8",
+    "mtime": 1785866280.0,
+    "ast_hash": "fa8d78fcffb58aad141205cc60827ae5",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/jobs_db.rs": {
-    "mtime": 1785149630.0,
-    "ast_hash": "772301e65ef0a71a27a22339e8d508ec",
+    "mtime": 1785859138.0,
+    "ast_hash": "8b1fc25e4d1ec56d394c930aad09ddf5",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/media_bench.rs": {
-    "mtime": 1784915304.0,
-    "ast_hash": "c93741d331fb30608f363830e2a237a3",
+    "mtime": 1785558706.0,
+    "ast_hash": "434ccaa7bd92c657d5edefa8ece0a849",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/media_meta.rs": {
-    "mtime": 1784915310.0,
-    "ast_hash": "5b00a8155ba4ba318468218027c2b2c3",
+    "mtime": 1785558706.0,
+    "ast_hash": "4f9f202394b1aa837b9c029db77dc275",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/media_prep.rs": {
-    "mtime": 1784916252.0,
-    "ast_hash": "8432bd41cae119b493a11b0eeb2a599a",
+    "mtime": 1785867666.0,
+    "ast_hash": "f169286d7c3841533840ae052ad88937",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/migration_run.rs": {
-    "mtime": 1784915868.0,
-    "ast_hash": "61e89bafa3ae3283a9ef0b160c9d8d37",
+    "mtime": 1785558706.0,
+    "ast_hash": "ca2cfad3967068540a6e0a6f566bbbb6",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/mod.rs": {
-    "mtime": 1785272146.0,
-    "ast_hash": "bf69849f3d8a34a1c637fc8b1afdeaf7",
+    "mtime": 1785864290.0,
+    "ast_hash": "36b1d5a66a03bb9b9bdfc94e9c3e6702",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/moov_sidecar.rs": {
-    "mtime": 1785009520.0,
-    "ast_hash": "d6137dd2c76befb98eec4b5a9293ea93",
+    "mtime": 1785558706.0,
+    "ast_hash": "dd0d609f1a0cac367aceeea4bf584c7e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/mp4_keyframe.rs": {
-    "mtime": 1784915082.0,
-    "ast_hash": "7d2ddec6bdcf7a318f48a97c765275f8",
+    "mtime": 1785558706.0,
+    "ast_hash": "08bc76edf5144da159c06ef90538fbc4",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/network.rs": {
-    "mtime": 1784636012.0,
-    "ast_hash": "5090c7270fee94aff7175b2ea621d605",
+    "mtime": 1785558706.0,
+    "ast_hash": "4880a1c8834247bff6de809e8461373c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/path_policy.rs": {
-    "mtime": 1784872462.0,
-    "ast_hash": "b13b009bb0ec3496093a87565c69c570",
+    "mtime": 1785558706.0,
+    "ast_hash": "23427cba1852b7c70cba7eca37ba539e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/preview_transcoder.rs": {
-    "mtime": 1784915372.0,
-    "ast_hash": "b5c2901f8e892ce40ec2b996ea18360d",
+    "mtime": 1785558706.0,
+    "ast_hash": "b7df503a22aef569d5dd631fe5468f1a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/profiles_db.rs": {
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/progress_rate.rs": {
-    "mtime": 1784635508.0,
-    "ast_hash": "5db3c6fe2698f8e2b47c7568980dd370",
+    "mtime": 1785558706.0,
+    "ast_hash": "224290032536fd91836bce4175c7d85f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/session_guard.rs": {
@@ -280,78 +280,78 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/session_rate.rs": {
-    "mtime": 1785009520.0,
-    "ast_hash": "bffb0b6eec1fb6e203c4e74bec0650aa",
+    "mtime": 1785861006.0,
+    "ast_hash": "55561f58108f7c604b5e24e14724a3ca",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/smart_scanner.rs": {
-    "mtime": 1784914688.0,
-    "ast_hash": "1f049b146afb83583bd04a9f0b8574b6",
+    "mtime": 1785558706.0,
+    "ast_hash": "43bdddbfe9cc9af501b7f8b9b889e3f0",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/smart_throttle.rs": {
-    "mtime": 1784915070.0,
-    "ast_hash": "1410de48ccc2ff7c975e7f9303acfb3a",
+    "mtime": 1785558706.0,
+    "ast_hash": "5e35b512f62cdd29b8a1c3f2d1cf19a6",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/stats_db.rs": {
-    "mtime": 1784855014.0,
-    "ast_hash": "5fb9bf58f39f1e6ba09f91f777b7e881",
+    "mtime": 1785558706.0,
+    "ast_hash": "16a2c40de3dcd687ad490bf5b8fb69dd",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/stream_server.rs": {
-    "mtime": 1785086412.0,
-    "ast_hash": "55e4e701595069fd518d3ec11af49f8c",
+    "mtime": 1785870324.0,
+    "ast_hash": "6a6973435ee9999c3eac5dc4031bc36d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/streaming_policy.rs": {
-    "mtime": 1784696192.0,
-    "ast_hash": "744b3059d5f1091d28983b915de1c935",
+    "mtime": 1785558706.0,
+    "ast_hash": "3e553753f15cdd31e3954633cb81b8aa",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/studio_orch.rs": {
-    "mtime": 1784732454.0,
-    "ast_hash": "8a1c95721c06f011ff1d3611856a9e3f",
+    "mtime": 1785870610.0,
+    "ast_hash": "5e4b58943ce071dad1334afd36ad271a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/telegram_ops.rs": {
-    "mtime": 1785084510.0,
-    "ast_hash": "bbe60adf81ffe825850ae670e23c1bab",
+    "mtime": 1785864290.0,
+    "ast_hash": "1f239d74fc7cbb3dbf1f53653858e501",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/telethon_session_import.rs": {
-    "mtime": 1784726648.0,
-    "ast_hash": "5d46ae6d6841964f6e2fa3ba9c700239",
+    "mtime": 1785558706.0,
+    "ast_hash": "4e60e4e3067279fe5def06f75c97e35d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/tg_error.rs": {
-    "mtime": 1784732348.0,
-    "ast_hash": "b82de03ad6e52fe0b1a8a030fb030ccd",
+    "mtime": 1785864290.0,
+    "ast_hash": "5b6cc6e5985731fdbbf88e0333d5cce7",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/tg_log.rs": {
-    "mtime": 1784638064.0,
-    "ast_hash": "5d5fe5e2fb8fdedb925ac65912b15a41",
+    "mtime": 1785568384.0,
+    "ast_hash": "1109a4a649ab7003f4a248775dcc4f6c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/transfer_journal.rs": {
-    "mtime": 1784915378.0,
-    "ast_hash": "3f2919a718ab72a497868bbdf6823f83",
+    "mtime": 1785558706.0,
+    "ast_hash": "3314ff22616d6d78e61380a50db56e66",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/transfer_state.rs": {
-    "mtime": 1784914742.0,
-    "ast_hash": "6e561174b336b4329f9fedf5b809ec5d",
+    "mtime": 1785558706.0,
+    "ast_hash": "fbd2af20f3df5eea1240cfc08f64fe43",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/zip_local.rs": {
-    "mtime": 1784907534.0,
-    "ast_hash": "ef851055aab924bff15c5d899bafbac2",
+    "mtime": 1785561426.0,
+    "ast_hash": "86983ff270053a3b0de7ea24cad86282",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/lib.rs": {
-    "mtime": 1785084522.0,
-    "ast_hash": "201a888ca2bc2910dc5d3c8e3a07a4e2",
+    "mtime": 1785870554.0,
+    "ast_hash": "0c1a3fe7be2ba73a6aca95e182d819c3",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/main.rs": {
@@ -360,28 +360,28 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/open_file.rs": {
-    "mtime": 1784001788.0,
-    "ast_hash": "d1d34bff05b7a1c37b15057993cc956f",
+    "mtime": 1785558706.0,
+    "ast_hash": "0e11c20048a0fa391d926b15b7572e75",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/secrets.rs": {
-    "mtime": 1784726318.0,
-    "ast_hash": "eda418036dbaa615d3ed6baac3d0d3dc",
+    "mtime": 1785558706.0,
+    "ast_hash": "dc90aaea62df2550a9a9ffe79f227ce9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/session_clone.rs": {
-    "mtime": 1784603516.0,
-    "ast_hash": "11ea95573c54eaa0a4d031705cb1979a",
+    "mtime": 1785558706.0,
+    "ast_hash": "c9f545f59a8231902fe3d30ae1d3cf92",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/tauri.conf.json": {
-    "mtime": 1784087572.0,
-    "ast_hash": "5f2cbb011793f4d7f37ef1d596741592",
+    "mtime": 1785732188.0,
+    "ast_hash": "d776ba589bf723b8a9f7514a9aefb931",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/App.tsx": {
-    "mtime": 1785344688.0,
-    "ast_hash": "331913311171aa4bc131bdee706003da",
+    "mtime": 1785804650.0,
+    "ast_hash": "61ae0a34ab6c625b2cfe8a219a6581d1",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/common/VSCodeCodeViewer.tsx": {
@@ -1200,8 +1200,8 @@
     "semantic_hash": ""
   },
   "remote/build-frontend-debug.ps1": {
-    "mtime": 1784638566.0,
-    "ast_hash": "9ef8346196c9a0434bfd502da3fa565d",
+    "mtime": 1785560286.0,
+    "ast_hash": "b4bff9e10d5f1c1a9e341359c746faeb",
     "semantic_hash": ""
   },
   "remote/config/element_map.json": {
@@ -1210,8 +1210,8 @@
     "semantic_hash": ""
   },
   "remote/config/remote_config.json": {
-    "mtime": 1785071306.0,
-    "ast_hash": "93bc2487b66403e2ae9ad2332f248350",
+    "mtime": 1785584234.0,
+    "ast_hash": "8f46215da880d0302a09622df9099fed",
     "semantic_hash": ""
   },
   "remote/config/test_manifest.json": {
@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "remote/ensure-remote.ps1": {
-    "mtime": 1785072014.0,
-    "ast_hash": "d4611d2e5d6a061fd837f7f18c901ce5",
+    "mtime": 1785732364.0,
+    "ast_hash": "34c942ad8e66d75c1c0f53b029096e11",
     "semantic_hash": ""
   },
   "remote/goto_42772.mjs": {
@@ -1425,8 +1425,8 @@
     "semantic_hash": ""
   },
   "remote/start_app_with_cdp.ps1": {
-    "mtime": 1784776140.0,
-    "ast_hash": "0aaf2ae178120529f42320fcd1e62c08",
+    "mtime": 1785605494.0,
+    "ast_hash": "164f78437cea8bb8acca33bfb42b0128",
     "semantic_hash": ""
   },
   "remote/test_34404.mjs": {
@@ -1460,7 +1460,7 @@
     "semantic_hash": ""
   },
   "remote/worker/sessions/Lavender.grammers.json": {
-    "mtime": 1784775306.0,
+    "mtime": 1785605368.0,
     "ast_hash": "48f99190a08638b29b8ca5a87ad5f132",
     "semantic_hash": ""
   },
@@ -1550,8 +1550,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/CHANGELOG.md": {
-    "mtime": 1785174994.0,
-    "ast_hash": "82dacea75d3b0d7d3ddd7a8d36b64191",
+    "mtime": 1785807376.0,
+    "ast_hash": "9fd89aa82cc884ccb44ba7fd4ef59c0c",
     "semantic_hash": ""
   },
   "AutoGram App/README.md": {
@@ -1560,8 +1560,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/VERSION.md": {
-    "mtime": 1785174994.0,
-    "ast_hash": "8b3703ef8241c795a176c2e8d6407a09",
+    "mtime": 1785807366.0,
+    "ast_hash": "34f5cfd0a00970b47c0db589c164e13c",
     "semantic_hash": ""
   },
   "AutoGram App/database/README.md": {
@@ -1580,8 +1580,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/Data_Flow.md": {
-    "mtime": 1783573278.0,
-    "ast_hash": "58eb1648d391637c965829162d46a75e",
+    "mtime": 1785903382.0,
+    "ast_hash": "0c6537553224c5137663ac6fda8d81bd",
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/HYBRID_RUST_PYTHON.md": {
@@ -1590,18 +1590,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/RUST_GRAMMERS_BACKEND.md": {
-    "mtime": 1784731584.0,
-    "ast_hash": "05d83272716c05d832100a59cb2eb27e",
+    "mtime": 1785903378.0,
+    "ast_hash": "04b52cc29b07631f872c0e431b0bd0f2",
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/SYSTEM_ARCHITECTURE.md": {
-    "mtime": 1783572816.0,
-    "ast_hash": "ebc718f8acbc4189c818e384b56d2389",
+    "mtime": 1785903368.0,
+    "ast_hash": "6653958798bfbabe15c8bc92aa6dbcba",
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/System_Component_Map.md": {
-    "mtime": 1783573896.0,
-    "ast_hash": "f782d92fb5f1e95f9ddd08900dcffb8f",
+    "mtime": 1785903372.0,
+    "ast_hash": "56760f17f68b6d0abec3fa65062ce978",
     "semantic_hash": ""
   },
   "AutoGram App/docs/architecture/Telegram_Core_Architecture.md": {
@@ -1690,7 +1690,7 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/index.html": {
-    "mtime": 1783609568.0,
+    "mtime": 1785634676.0,
     "ast_hash": "980adb7f3b362d9e0f299bece26cf44c",
     "semantic_hash": ""
   },
@@ -1710,8 +1710,8 @@
     "semantic_hash": ""
   },
   "remote/reports/last-run-status.txt": {
-    "mtime": 1785112932.0,
-    "ast_hash": "73d73d0f32e19deb6078581820869e88",
+    "mtime": 1785751782.0,
+    "ast_hash": "4849716d1bea5115b83e41240fcec541",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/public/tauri.svg": {
@@ -1835,8 +1835,8 @@
     "semantic_hash": ""
   },
   "remote/reports/gudang_thumbs_live_heal.png": {
-    "mtime": 1784796624.0,
-    "ast_hash": "c69023a9a51c33afefb0716a1dd1194c",
+    "mtime": 1785751782.0,
+    "ast_hash": "24bb2ad4a033940df912c6389ae3262d",
     "semantic_hash": ""
   },
   "remote/reports/gudang_thumbs_verification.png": {
@@ -1850,13 +1850,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/ffmpeg.rs": {
-    "mtime": 1785285638.0,
-    "ast_hash": "925edabe5d94c51f76381f68e085e9a3",
+    "mtime": 1785561250.0,
+    "ast_hash": "ae93a2167eb7856f00d5041684a3653c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/mod.rs": {
-    "mtime": 1785272136.0,
-    "ast_hash": "d137302bf1cf4d1c3b5643f1a74a40d2",
+    "mtime": 1785558706.0,
+    "ast_hash": "0ffeb235d92d9807e40309fbe75d58a9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/session.rs": {
@@ -1865,53 +1865,53 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/stream.rs": {
-    "mtime": 1785321258.0,
-    "ast_hash": "1b8e043779a3c8294b33d090de5d60b6",
+    "mtime": 1785777470.0,
+    "ast_hash": "74a8f7bfb8c555bf30169ac1722cd79e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/thumbs.rs": {
-    "mtime": 1785285636.0,
-    "ast_hash": "21a0fdd40a6112f7e7d6b77c41e8c48a",
+    "mtime": 1785572704.0,
+    "ast_hash": "906bd4d6f60fbe59b216ed3dba3f1ed7",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers/topics.rs": {
-    "mtime": 1785285538.0,
-    "ast_hash": "c348e45ff301f3dedc1532805d96caf5",
+    "mtime": 1785558706.0,
+    "ast_hash": "86183c17d4ead4e2126d9576d6357bad",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/client_pool.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "458518763e1462602db7e044b535fb77",
+    "mtime": 1785664582.0,
+    "ast_hash": "421227eeb31f319cd43e0109f76b60eb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/media_list.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "dda69b3b65e5857ab320a768e08d0ff7",
+    "mtime": 1785864290.0,
+    "ast_hash": "86ca32ba4088056831f8be7167d5c90b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/media_transfer.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "3a89e938535f5dccc1ecc89a2424e0c8",
+    "mtime": 1785870172.0,
+    "ast_hash": "98bbe6312849188acd541227d32adf4b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/mod.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "44a83f846c2f046c767053f91afe1b36",
+    "mtime": 1785864552.0,
+    "ast_hash": "e62812bc9bc048da12dc4138f20cde4c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/peer_resolver.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "d76bf9f7288138fa2ddb1f87e6c945d9",
+    "mtime": 1785864290.0,
+    "ast_hash": "867166b13bbf8f8b367ecdecc7f8fb0c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src-tauri/src/core/grammers_ops/session_auth.rs": {
-    "mtime": 1785321564.0,
-    "ast_hash": "058cf386d14229502bfdedfa9f9216b7",
+    "mtime": 1785864290.0,
+    "ast_hash": "a6728fd0f6d9a96ab65e00300fd2bc78",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/index.tsx": {
-    "mtime": 1785408756.0,
-    "ast_hash": "a45005c96278dbbade42dfb28644cf39",
+    "mtime": 1785669300.0,
+    "ast_hash": "ae8ff590cc3cc13a7d7c6789de2378a2",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/Jobs/JobEditor/jobEditorUtils.ts": {
@@ -1960,13 +1960,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/MediaVideoPlayer.tsx": {
-    "mtime": 1785399198.0,
-    "ast_hash": "cf5885b5d24ca8323ed1aed6e77b40c9",
+    "mtime": 1785592586.0,
+    "ast_hash": "d55ad01e1e433ca6137cd699070c0570",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/index.tsx": {
-    "mtime": 1785407198.0,
-    "ast_hash": "512d34e6d6468d82bd6bcc7fac188a0d",
+    "mtime": 1785776150.0,
+    "ast_hash": "c9971cdfa649f3b4978bf3a3744eb8eb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DrivePreviewModal/previewUtils.ts": {
@@ -1975,43 +1975,43 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/index.tsx": {
-    "mtime": 1785407650.0,
-    "ast_hash": "8d56a661f4fe39f4143b76b4d8267a09",
+    "mtime": 1785882396.0,
+    "ast_hash": "3936b2b13fa415c2d5411e3fd0e950d7",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveToolsPanel/toolsUtils.ts": {
-    "mtime": 1785384086.0,
-    "ast_hash": "f48b461c7bac076fd738423bf9094842",
+    "mtime": 1785559442.0,
+    "ast_hash": "398c6d97ac2c8692a8a3351819183b56",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipCodePreviewModal.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "8c41bf349cfcfe1296e07581531168b0",
+    "mtime": 1785559298.0,
+    "ast_hash": "a3b9d52ea2923e58aa6f9cf0485e3e08",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipEntryTable.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "6c49c097dc728128de73be6d5c0fc980",
+    "mtime": 1785559170.0,
+    "ast_hash": "da98c0928c087adad09371878058e721",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipExtractModal.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "4f15151f01a220db4667986d9e1a3b01",
+    "mtime": 1785558956.0,
+    "ast_hash": "d91dcf983d2e595e9b9a5f2f2e2ec7eb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipHeaderToolbar.tsx": {
-    "mtime": 1785408774.0,
-    "ast_hash": "1cef8485b0752d87628f88c775f5d242",
+    "mtime": 1785559086.0,
+    "ast_hash": "0802e7c7869ccfd860f6d377ae902532",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/index.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "1aa7c14a9dd4430baee5769296759042",
+    "mtime": 1785559056.0,
+    "ast_hash": "d6e51f110d034a0d9380a3689ad8c4ba",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.ts": {
-    "mtime": 1785345760.0,
-    "ast_hash": "5cea9280ac3fe0e3ab265d899bd08bc8",
+    "mtime": 1785558854.0,
+    "ast_hash": "dc73fe1d0bcc7f12047d1711ea60e19a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/layout/Sidebar.tsx": {
@@ -2020,13 +2020,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Accounts/index.tsx": {
-    "mtime": 1785400794.0,
-    "ast_hash": "67202e9d6b11573b9d85abac85dba4aa",
+    "mtime": 1785669848.0,
+    "ast_hash": "808de2df75882caaebc3fda8803c5fc8",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Automation/index.tsx": {
-    "mtime": 1785400794.0,
-    "ast_hash": "532dd3870205a3f955d39abe884c3c0b",
+    "mtime": 1785670146.0,
+    "ast_hash": "d0e03e1ac40fef5b4b86e809032cdee9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Dashboard/index.tsx": {
@@ -2035,8 +2035,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Jobs/index.tsx": {
-    "mtime": 1785388118.0,
-    "ast_hash": "f08d5bc798fe7747aa64da5ca725c697",
+    "mtime": 1785410826.0,
+    "ast_hash": "b659fc3a59daea030df699aba85a9d0c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioGrid.tsx": {
@@ -2050,18 +2050,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioModalsContainer.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "ab762f2b5872b92e09e84a4eda81cdc2",
+    "mtime": 1785662656.0,
+    "ast_hash": "5ac7fe47ccc4a32c5d0784382595aa9c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioOverlays.tsx": {
-    "mtime": 1785344710.0,
-    "ast_hash": "6b01b8d1be884283630b6d9fe9f951e1",
+    "mtime": 1785662640.0,
+    "ast_hash": "d22bed0084763a5625b9358a21d234e0",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioSidebar.tsx": {
-    "mtime": 1785400098.0,
-    "ast_hash": "b0330bdb70a3a348c67dc92ddbd1b032",
+    "mtime": 1785669256.0,
+    "ast_hash": "3b27cb14c632a2b240b30426a426594c",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioToolbar.tsx": {
@@ -2070,18 +2070,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/index.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "ab398040b2810f13305969c1f2b33923",
+    "mtime": 1785870018.0,
+    "ast_hash": "b6dfe053660975c8da1ad0dd5ba97177",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/mediaStudioUtils.ts": {
-    "mtime": 1785344710.0,
-    "ast_hash": "d2089f0fe3a6c135a1dbe89d02d4b39e",
+    "mtime": 1785662666.0,
+    "ast_hash": "f4112b54cd863487471c2917a75229c4",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Profiles/index.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "cff940463d385e0bcf5b0962af2d88eb",
+    "mtime": 1785668650.0,
+    "ast_hash": "54f142dff087694e1a8cf732c6718ff0",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/DebugLogsSection.tsx": {
@@ -2095,8 +2095,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/index.tsx": {
-    "mtime": 1785400248.0,
-    "ast_hash": "0e279db5f0c607e242616497e65526b2",
+    "mtime": 1785572062.0,
+    "ast_hash": "56132164715a0e7722f4e83376dc792b",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/Settings/settingsUtils.ts": {
@@ -2205,23 +2205,23 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveExplorer.tsx": {
-    "mtime": 1785400086.0,
-    "ast_hash": "cc161e8203c9a1bbcf74cbc2dab4f7dd",
+    "mtime": 1785654548.0,
+    "ast_hash": "eb7bdd0aa268c784c6cb729138b9ab88",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveFileCard.tsx": {
-    "mtime": 1785408574.0,
-    "ast_hash": "0f3940dbc0ce9f0e827fb7de6dd16edd",
+    "mtime": 1785650192.0,
+    "ast_hash": "b05261bbde58f6b7b2b8f129e7ccac2e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveFileListItem.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "b5175a0b06e8a8349bb64cc40ad0510f",
+    "mtime": 1785448962.0,
+    "ast_hash": "700f6e9bba9d71dea144adb7d0c6c00f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/DriveSkeleton.tsx": {
-    "mtime": 1785344908.0,
-    "ast_hash": "c04202b7a415fce654cf43a7b4dcaa4d",
+    "mtime": 1785410198.0,
+    "ast_hash": "da0d5c3180b0076fb64cdf1b5eb9b00e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Explorer/FileTypeIcon.tsx": {
@@ -2235,23 +2235,23 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveConfirmDialog.tsx": {
-    "mtime": 1785398970.0,
-    "ast_hash": "0a9a64c907444fffd780b973683d36c2",
+    "mtime": 1785753962.0,
+    "ast_hash": "21f4fd14d3974907a6f2571dec13cf52",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveContextMenu.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "b8589b0c2919cfe0852d4db7dec49fff",
+    "mtime": 1785557058.0,
+    "ast_hash": "a325ca9c476b3d78996a4192f7642ddb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveDestinationPicker.tsx": {
-    "mtime": 1785408774.0,
-    "ast_hash": "3f96dd056fa60c45f39d1a170b146802",
+    "mtime": 1785769662.0,
+    "ast_hash": "6f38c09a6a79daccfc0c87952934bf1f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/DriveInputDialog.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "3426fac9474fd12e3730dca5a2c4f496",
+    "mtime": 1785410060.0,
+    "ast_hash": "a5d78f5606c2ae71ddbeb69fd64d74a5",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Modals/ReUploadBatchModal.tsx": {
@@ -2265,18 +2265,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/DriveSidebarIndex.tsx": {
-    "mtime": 1785403406.0,
-    "ast_hash": "2d1ace1608d199143fa7de4848ed6309",
+    "mtime": 1785669824.0,
+    "ast_hash": "5933b82d57de05c4adb20f19536ab3e8",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/DriveTopBar.tsx": {
-    "mtime": 1785408994.0,
-    "ast_hash": "76a818c21045e28f87fc5d725ad0e3a0",
+    "mtime": 1785868050.0,
+    "ast_hash": "799c398699757fcf89250f628f84937f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/MediaSelect.tsx": {
-    "mtime": 1785408522.0,
-    "ast_hash": "83cd3a0ed7d09571a39c85ed5594a25f",
+    "mtime": 1785669832.0,
+    "ast_hash": "f6502dca4dabe0a09313858bbc6535a9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarRecentsSection.tsx": {
@@ -2285,8 +2285,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarSessionHeader.tsx": {
-    "mtime": 1785400002.0,
-    "ast_hash": "31974bef9a1408c49b93ec36593936f6",
+    "mtime": 1785669236.0,
+    "ast_hash": "f1551b943e398467ee6c44c19025e98a",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/TopBarBreadcrumbs.tsx": {
@@ -2310,13 +2310,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Transfers/DriveTransferManager.tsx": {
-    "mtime": 1785403406.0,
-    "ast_hash": "ddd8255dda17d23ecf2397d218b2cb52",
+    "mtime": 1785672688.0,
+    "ast_hash": "f78acc2be388d734885d5c9d631b0cda",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Transfers/DriveTransferSettings.tsx": {
-    "mtime": 1785409070.0,
-    "ast_hash": "f19ce4f55390fa7bf89d22988002dcec",
+    "mtime": 1785870198.0,
+    "ast_hash": "321c2bb6b11706008cde2311657eff89",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/components/drive/Navigation/SidebarCategoryList.tsx": {
@@ -2345,18 +2345,18 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/pages/MediaStudio/MediaStudioHeader.tsx": {
-    "mtime": 1785400116.0,
-    "ast_hash": "5608993aa4535bec9e787ea1646e4110",
+    "mtime": 1785669280.0,
+    "ast_hash": "61b1eac38101b674dfb246f34c7b1c47",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/accounts.json": {
-    "mtime": 1785408756.0,
-    "ast_hash": "4d8064b62e0434c91508d49a264c4ae9",
+    "mtime": 1785664314.0,
+    "ast_hash": "5d095c42abd76ea416d1f15e284ed908",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/automation.json": {
-    "mtime": 1785401656.0,
-    "ast_hash": "eabd1be035c8ec8be13fa00dd0324b89",
+    "mtime": 1785410888.0,
+    "ast_hash": "0f53856490a93a6033c5919309945554",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/dashboard.json": {
@@ -2365,13 +2365,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/jobs.json": {
-    "mtime": 1785408756.0,
-    "ast_hash": "2b2e54fb0169b97c25016c37cd33a2dd",
+    "mtime": 1785410882.0,
+    "ast_hash": "5e289bab711e5e7f6eca7a70b42fe13e",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/nav.json": {
-    "mtime": 1785402422.0,
-    "ast_hash": "406d8c4b21f6a21eabda2361f0dda1d0",
+    "mtime": 1785804606.0,
+    "ast_hash": "832a66c7387da08955e59881c9f9fafb",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/settings.json": {
@@ -2380,8 +2380,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/speedtest.json": {
-    "mtime": 1785409070.0,
-    "ast_hash": "73792104e3b8d9a7f3fb32d104843c73",
+    "mtime": 1785870604.0,
+    "ast_hash": "c2609c8f6445c1b5ec2b101a14b3597f",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/en/statistics.json": {
@@ -2390,13 +2390,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/accounts.json": {
-    "mtime": 1785408756.0,
-    "ast_hash": "42020171ab4c5139c6b171c79cf8f04d",
+    "mtime": 1785664310.0,
+    "ast_hash": "83ae8ce2ebb36c04d4ba0fda8140b06d",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/automation.json": {
-    "mtime": 1785401656.0,
-    "ast_hash": "86f608bba6e66ff2f9a5619fe4d12621",
+    "mtime": 1785410886.0,
+    "ast_hash": "513f9c7791b6495215660bff287d44a2",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/dashboard.json": {
@@ -2405,13 +2405,13 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/jobs.json": {
-    "mtime": 1785408756.0,
-    "ast_hash": "e82d51862506c647eda4eda16b34260b",
+    "mtime": 1785410878.0,
+    "ast_hash": "8ffbcb741c2d56dfe5128c909ea82cd9",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/nav.json": {
-    "mtime": 1785402422.0,
-    "ast_hash": "81ceef074079ea4f1f7a9caebb99d9ee",
+    "mtime": 1785804602.0,
+    "ast_hash": "fb29e21315049031b11f797ae7db8ec4",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/settings.json": {
@@ -2420,8 +2420,8 @@
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/speedtest.json": {
-    "mtime": 1785409070.0,
-    "ast_hash": "7bf4d2d15b956653e4e67dadb91e51f5",
+    "mtime": 1785870604.0,
+    "ast_hash": "9f58d32c24ac39e5b6593881c6e840c1",
     "semantic_hash": ""
   },
   "AutoGram App/frontend/src/locales/id/statistics.json": {
@@ -2442,6 +2442,1226 @@
   "AutoGram App/frontend/src/locales/id/sync.json": {
     "mtime": 1785401656.0,
     "ast_hash": "35a3b3d95ffd54f68a283208be3564a5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/database/migrations/014_create_topic_media_cache.sql": {
+    "mtime": 1785430084.0,
+    "ast_hash": "3b0da39aa0f8bd0f13ac044c23e09282",
+    "semantic_hash": ""
+  },
+  "AutoGram App/database/migrations/015_transfer_control_plane_v4.sql": {
+    "mtime": 1785866450.0,
+    "ast_hash": "1225bec14218302a1259e7e5b4667047",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/batch_optimizer.rs": {
+    "mtime": 1785729614.0,
+    "ast_hash": "65b81ef27a5b5d2da76d479f79ef5b38",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/intent_engine.rs": {
+    "mtime": 1785729612.0,
+    "ast_hash": "18b2f92bb0ccd9258a6084d011382aa0",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/mod.rs": {
+    "mtime": 1785729618.0,
+    "ast_hash": "772209c968b31bdaaa06b44d2c0c4c79",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/orchestrator.rs": {
+    "mtime": 1785729616.0,
+    "ast_hash": "b9c74f0561b4aa11fd86085355638fae",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/pipeline_state.rs": {
+    "mtime": 1785729616.0,
+    "ast_hash": "78fca9c879e2f131ad71851e15368fe2",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/engine/policy_engine.rs": {
+    "mtime": 1785729610.0,
+    "ast_hash": "1abffd14c4aa1771bff39263d78daac1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/container_repair.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "e76c5ae71a6ab581e90a1ce5efc55802",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/encoder.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "78db23bc6dd687a642c71117ab6f4558",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/mod.rs": {
+    "mtime": 1785729600.0,
+    "ast_hash": "efb62edb060a0c763d9bfeadd0f55d53",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/remuxer.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "546b62f750f2cc651040a392d6703c4e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/split_engine/binary_volume_split.rs": {
+    "mtime": 1785859744.0,
+    "ast_hash": "47c3f2713ed64c6f3b57c97c1969d05f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/split_engine/manifest_builder.rs": {
+    "mtime": 1785859800.0,
+    "ast_hash": "8452dc2f15646b22f43208ca547197b1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/split_engine/mod.rs": {
+    "mtime": 1785859736.0,
+    "ast_hash": "9cb4d541688bc7be43543df3d2032fc3",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/execution/split_engine/video_segment_split.rs": {
+    "mtime": 1785729594.0,
+    "ast_hash": "af233068839d0dcc820249b226f2ad16",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/hardware/encoder_detector.rs": {
+    "mtime": 1785729586.0,
+    "ast_hash": "c68b02c31c3a64715d7e9a9a3884b58a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/hardware/hardware_capability.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "5674d09e513bd344e47f17202be69089",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/hardware/mod.rs": {
+    "mtime": 1785729588.0,
+    "ast_hash": "d4c6a26568516d47d9e2724c40587abe",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/hardware/resource_scheduler.rs": {
+    "mtime": 1785729584.0,
+    "ast_hash": "812e013428cbb7a3a4d5d3313a839ba6",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/intelligence/interfaces.rs": {
+    "mtime": 1785729606.0,
+    "ast_hash": "90f808c865687d47fb058c2c63dc2be9",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/intelligence/mod.rs": {
+    "mtime": 1785729608.0,
+    "ast_hash": "d7af27951a50989b44063f975175659a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/intelligence/traits.rs": {
+    "mtime": 1785729608.0,
+    "ast_hash": "1543ec2ed576b40e4f46747f50b5ca87",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/mod.rs": {
+    "mtime": 1785858558.0,
+    "ast_hash": "9c350555dc94d95dcb6c52265347bce2",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/network/bandwidth_controller.rs": {
+    "mtime": 1785729582.0,
+    "ast_hash": "2036cbd9e83151a112a877ee844cda87",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/network/mod.rs": {
+    "mtime": 1785729582.0,
+    "ast_hash": "e09e2308c130e9ed1c35b6c9a60327a6",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/platform/encoder_provider.rs": {
+    "mtime": 1785729536.0,
+    "ast_hash": "d2cfa3bb9915d14e263e734c41988af8",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/platform/mod.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "69ee7543ee49cb2dd08732e3fde387d0",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/platform/network_provider.rs": {
+    "mtime": 1785729534.0,
+    "ast_hash": "762ab5277bbaf1116fb9965a04712367",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/platform/resource_provider.rs": {
+    "mtime": 1785729538.0,
+    "ast_hash": "2f726d1b7a2934369a429a42661f6dfc",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/platform/storage_provider.rs": {
+    "mtime": 1785729534.0,
+    "ast_hash": "94dd9d4436909040c8c38df2029a3eca",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/checkpoint_manager.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "2b238ec2a82f1aaab3778c5c125afe1e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/checkpoint_validator.rs": {
+    "mtime": 1785729548.0,
+    "ast_hash": "9cd5e9f8d75dc63e05887085b1eca8ae",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/error_classifier.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "ba9f2ec6a1e78242acccbe9c3c1240f1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/job_dependencies.rs": {
+    "mtime": 1785729544.0,
+    "ast_hash": "d783890b58dd9f5113bf84ec2fc41377",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/job_events.rs": {
+    "mtime": 1785733710.0,
+    "ast_hash": "59102b6edbf39d4bb0bb456d70538da9",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/job_queue.rs": {
+    "mtime": 1785729556.0,
+    "ast_hash": "222fbc6876613b42f967f717e6ec8259",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/mod.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "6dcca9fdf9f4d0a35bb2935600c70dc2",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/recovery_engine.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "b6a5a404971c9719c89a034c3db4d807",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/reliability/retry_policy.rs": {
+    "mtime": 1785729550.0,
+    "ast_hash": "c18cf46ae2898af0b6159b1939c782a7",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/storage/mod.rs": {
+    "mtime": 1785729604.0,
+    "ast_hash": "e47cea9d34792befd4ca1ebfb31a05a5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/storage/storage_manager.rs": {
+    "mtime": 1785729602.0,
+    "ast_hash": "4b51dbdfc4c8deb1f8def70ade3a939f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/capability.rs": {
+    "mtime": 1785869928.0,
+    "ast_hash": "f95aef20f852caedcfec4d79be3d62bf",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/flood_handler.rs": {
+    "mtime": 1785729564.0,
+    "ast_hash": "6ca493f919c2410b8321e978bdeabea3",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/health.rs": {
+    "mtime": 1785729560.0,
+    "ast_hash": "52c66cceb4bb95ce056a07c28b549da1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/mod.rs": {
+    "mtime": 1785864628.0,
+    "ast_hash": "59c353776973da46b59d6d10ae227e57",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/router.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "c0105ae264d3400a81e90bbd7a01f0ee",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/account/score.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "df64348da72a1e977f29f5a4e17b4e35",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/client/connection.rs": {
+    "mtime": 1785729570.0,
+    "ast_hash": "b12f7601d4041dfee3ae1b7556d82893",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/client/mod.rs": {
+    "mtime": 1785729572.0,
+    "ast_hash": "564915caa06954818f1d57eaab956f9f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/client/mtproto_client.rs": {
+    "mtime": 1785729572.0,
+    "ast_hash": "acb262a2f341d065a8ba3738541fdfb9",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/client/session.rs": {
+    "mtime": 1785729570.0,
+    "ast_hash": "e86fc740db1af57f8e21df1ac22f4827",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/mod.rs": {
+    "mtime": 1785729580.0,
+    "ast_hash": "243bc108bd5774896fbc309203facdd5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/upload/chunk_manager.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "5fb4344c30c756b98e80fe89a365ad9d",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/upload/mod.rs": {
+    "mtime": 1785729578.0,
+    "ast_hash": "cf951ed5e9b521532bc6b099c4fe1e5a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/upload/resume.rs": {
+    "mtime": 1785729576.0,
+    "ast_hash": "e0e23db454b71520281a2bd825a784be",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/telegram/upload/uploader.rs": {
+    "mtime": 1785729578.0,
+    "ast_hash": "485915ff5a377f1f71b0390757538030",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/album.rs": {
+    "mtime": 1785863354.0,
+    "ast_hash": "94d5360b47fec102ecc25db4be4ab937",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/analysis.rs": {
+    "mtime": 1785865114.0,
+    "ast_hash": "1b40515cbf8cdc82f16802c89d162ab2",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/caption.rs": {
+    "mtime": 1785870810.0,
+    "ast_hash": "12a205d3a7280f17479f69c387d1f322",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/download.rs": {
+    "mtime": 1785870172.0,
+    "ast_hash": "b23210c23915714098823456b6ed85e9",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/encoder.rs": {
+    "mtime": 1785858640.0,
+    "ast_hash": "f11eb13ba18755ac36bbdb536e1a02dc",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/feature_flags.rs": {
+    "mtime": 1785870554.0,
+    "ast_hash": "38127e7685c5a237dc17220439d3b66d",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/mod.rs": {
+    "mtime": 1785870554.0,
+    "ast_hash": "004ed9afe817dbd1cc5639ea14512ce6",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/oversize.rs": {
+    "mtime": 1785858640.0,
+    "ast_hash": "b3c304380cd30d402b4b89c515cf8733",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/preflight.rs": {
+    "mtime": 1785870610.0,
+    "ast_hash": "8cde9bd60aac9000486f53618f30aad5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/profile.rs": {
+    "mtime": 1785863724.0,
+    "ast_hash": "c576918da8401bc1d6b2236ba6e03d65",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/quality.rs": {
+    "mtime": 1785865754.0,
+    "ast_hash": "262bdeebba6fe5d648cceaed634ac16c",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/autogram_core/transfer/store.rs": {
+    "mtime": 1785866618.0,
+    "ast_hash": "02bced1374724ea499c6e54dd916f617",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/grammers/special_media_thumb.rs": {
+    "mtime": 1785567646.0,
+    "ast_hash": "1c923b82417321c74fdad17586af87f4",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/grammers/thumbnail_range_bridge.rs": {
+    "mtime": 1785561426.0,
+    "ast_hash": "ca046930c3ba1fc35cb451b5306d7853",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/grammers_ops/account_capability.rs": {
+    "mtime": 1785870172.0,
+    "ast_hash": "164690cbc44ec53ebc0f50d8ca8ad67b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/hardware_capability.rs": {
+    "mtime": 1785867406.0,
+    "ast_hash": "28387a32d5003fe3e793bf7ad5353930",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/media_classifier.rs": {
+    "mtime": 1785870324.0,
+    "ast_hash": "e360a26f26880397834e0d695d32d832",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/media_counter.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "bd686fbd2850d828d349d2b58d83f6b3",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/core/media_statistics.rs": {
+    "mtime": 1785649914.0,
+    "ast_hash": "888c8249f2bdc603075e99829313437b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/mod.rs": {
+    "mtime": 1785430300.0,
+    "ast_hash": "92ad0ed5255afd23f0aed98b1381e1ea",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/disk.rs": {
+    "mtime": 1785430164.0,
+    "ast_hash": "834d679d30d11d8b4e2b7b24b44b721f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/eviction.rs": {
+    "mtime": 1785430176.0,
+    "ast_hash": "c69e44d1d1d54d7d452444f426ad4a67",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/in_flight.rs": {
+    "mtime": 1785430160.0,
+    "ast_hash": "5afef4f9ddbbccb2bf5bde1504df517b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/key.rs": {
+    "mtime": 1785430158.0,
+    "ast_hash": "f1743e26984e33a888da35558718aa9b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/memory.rs": {
+    "mtime": 1785430170.0,
+    "ast_hash": "54c8c2d024926b1563c7232e82ee3d94",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/mod.rs": {
+    "mtime": 1785430166.0,
+    "ast_hash": "0336d0f0d7e6312886ed8dce8db44eb9",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/cache/range_cache.rs": {
+    "mtime": 1785430172.0,
+    "ast_hash": "2ccc0021b5bbc8264565d931e2b4ce77",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/commands.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "abfc14a0b4d9dcea93fbec3a2498c965",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/error.rs": {
+    "mtime": 1785430098.0,
+    "ast_hash": "4f95e4cf527d0d5e4476d4076b670225",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/events.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "14ce039fdf14b9f800ad1c0613bce006",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/legacy_adapter.rs": {
+    "mtime": 1785434570.0,
+    "ast_hash": "8a19d99afa38d10c8ee66d96f4a626c1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mod.rs": {
+    "mtime": 1785430230.0,
+    "ast_hash": "365e0ebb0bd9631841c2f478a6716f7b",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/models.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "4cebd906573c2e32f1d0174182a5d468",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/document_mapper.rs": {
+    "mtime": 1785864290.0,
+    "ast_hash": "4a6ed0e4cc6ccceb7e576892b1872aea",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/file_reference.rs": {
+    "mtime": 1785430124.0,
+    "ast_hash": "11e144db72d12a41f4c0a3f8089b2713",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/file_transport.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "733953cd37bb8d9fd26f6d2085be00b6",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/mod.rs": {
+    "mtime": 1785430130.0,
+    "ast_hash": "b12d6c6c0fe514fc8f04e12cc3469c12",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/search.rs": {
+    "mtime": 1785506208.0,
+    "ast_hash": "6ef68c3f0666cbfffe4f140ab5ba0e1a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/mtproto/update_mapper.rs": {
+    "mtime": 1785430700.0,
+    "ast_hash": "862fa731a12496e4f94ce5210450afd5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/repository.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "aa982f27dc5c5841a948105d1ba28e6c",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/cancellation.rs": {
+    "mtime": 1785430138.0,
+    "ast_hash": "4bae5a8c2cbfb2e6addcc8b4e2796cb1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/flood_wait.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "9500e49fc321788f09eafdadb0884033",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/metrics.rs": {
+    "mtime": 1785430152.0,
+    "ast_hash": "1a898f82ccdbcf1d764a7b90d3e83f83",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/mod.rs": {
+    "mtime": 1785430154.0,
+    "ast_hash": "1e9adff7392f50c68e00c298df3a0e37",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/queue.rs": {
+    "mtime": 1785430142.0,
+    "ast_hash": "f7463b34ab4abfaf4cb3079ece35df25",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/rate_limit.rs": {
+    "mtime": 1785430148.0,
+    "ast_hash": "5785e97ef96a83ccd0185270ffb0d5d0",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/scheduler/worker_pool.rs": {
+    "mtime": 1785430144.0,
+    "ast_hash": "4ac7780cbe3bb379d0bbfa68a9447f47",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/service.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "a94736f6a29f82001b6131bef5dc28d0",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/fallback_icon.rs": {
+    "mtime": 1785430188.0,
+    "ast_hash": "8af8dc80ec256a86652d34aac5f46f10",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/format_registry.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "8d068808efc47f0b14be1a292ff25c8e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/frame_selector.rs": {
+    "mtime": 1785430192.0,
+    "ast_hash": "5cc159482cd8d885c311b058a4583242",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/image_extractor.rs": {
+    "mtime": 1785430198.0,
+    "ast_hash": "b61ce4ab1785658b06d08d4afefbc3f1",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/mod.rs": {
+    "mtime": 1785430194.0,
+    "ast_hash": "0f9bd332b93e56472ee8d44e542ed67e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/mode_profile.rs": {
+    "mtime": 1785430180.0,
+    "ast_hash": "e134536c75c0e66c58be25f618100b8c",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/pdf_extractor.rs": {
+    "mtime": 1785430206.0,
+    "ast_hash": "efa94d2235b259fd7dbd909da0f83868",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/range_reader.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "8756f3126a9fba052df4be8e2a0ca165",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/resolver.rs": {
+    "mtime": 1785558706.0,
+    "ast_hash": "73cb12a0e19b075bc5e984aa50ccd1fb",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src-tauri/src/features/topic_media/thumbnail/video_extractor.rs": {
+    "mtime": 1785430200.0,
+    "ast_hash": "e8ee2452c9830785d28de76605f1f8d8",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/common/ConfirmModal.tsx": {
+    "mtime": 1785410734.0,
+    "ast_hash": "b90e268958ca5c812089c2999ab0eabc",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/common/ErrorBoundary.tsx": {
+    "mtime": 1785804622.0,
+    "ast_hash": "b54c149ae27e8b15fbc1de6bb5b264ae",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveZipBrowser/ZipPasswordModal.tsx": {
+    "mtime": 1785558916.0,
+    "ast_hash": "9d9157bc58d0384b9ee3a44cdc6bfbb0",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/DriveZipBrowser/zipUtils.test.ts": {
+    "mtime": 1785560106.0,
+    "ast_hash": "141d725e16283f94ed9075ca0dfee73a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Explorer/VideoCanvasThumbnailCapturer.tsx": {
+    "mtime": 1785517008.0,
+    "ast_hash": "232624c4a26acea51889451153b2ac64",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Modals/SessionRelogModal.tsx": {
+    "mtime": 1785662632.0,
+    "ast_hash": "7dd75186af3577adad456be1956a7ad8",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Transfers/TransferOrchestrationSettings.tsx": {
+    "mtime": 1785864800.0,
+    "ast_hash": "4cf50401850401448ec1442c4f8e775e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Transfers/TransferPreflightDialog.tsx": {
+    "mtime": 1785870604.0,
+    "ast_hash": "67cb1232e4f35fa11f44f7d68cf2cf67",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/components/drive/Transfers/encoderHardwareOptions.ts": {
+    "mtime": 1785867338.0,
+    "ast_hash": "8ce921b7c90bd4bce91890241a3b5e17",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/api.ts": {
+    "mtime": 1785430280.0,
+    "ast_hash": "b620be6d0afa5b1866d3513b867ad3c5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/DocumentThumbnail.tsx": {
+    "mtime": 1785430330.0,
+    "ast_hash": "1707d20c01ccbaeee50663b8a97f6d9f",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/DownloadProgress.tsx": {
+    "mtime": 1785430326.0,
+    "ast_hash": "e1471055ca05b69ff88d73b6790d4bf7",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/FileTypeIcon.tsx": {
+    "mtime": 1785430320.0,
+    "ast_hash": "478181f6e7285b828d446704d06b1631",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/ThumbnailQualityBadge.tsx": {
+    "mtime": 1785430324.0,
+    "ast_hash": "3ce4cc19f590cfcdc580df03f2af1ecb",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/TopicMediaGrid.tsx": {
+    "mtime": 1785430370.0,
+    "ast_hash": "274d25e2c876d0ae5e06904801eb8ece",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/TopicMediaItem.tsx": {
+    "mtime": 1785430438.0,
+    "ast_hash": "4d9ffe43b0d519c1b77cdc8ade235443",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/components/TopicMediaSkeleton.tsx": {
+    "mtime": 1785430364.0,
+    "ast_hash": "50c06333e4f2ee09511fc8be19c3994a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/eventListener.ts": {
+    "mtime": 1785430282.0,
+    "ast_hash": "b051cae6ef6dd8dc6024d414cebdb84a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/index.ts": {
+    "mtime": 1785430442.0,
+    "ast_hash": "89e2fc46157c558820609b34cfdf2845",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/keys.ts": {
+    "mtime": 1785430276.0,
+    "ast_hash": "1184520159cfbac52578d487d03bdf08",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/selectors.ts": {
+    "mtime": 1785430286.0,
+    "ast_hash": "9d0f75d0b39680dfad22409b6a584ae5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/store.ts": {
+    "mtime": 1785430284.0,
+    "ast_hash": "7c82024c24fae792abce9f17d14b47a8",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/thumbnailUrl.ts": {
+    "mtime": 1785430288.0,
+    "ast_hash": "82b412c121d5179832f994193cc19498",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/types.ts": {
+    "mtime": 1785430276.0,
+    "ast_hash": "ad2b8b77b0b306c7cd6e3ec82b5ff21d",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/useThumbnailMode.ts": {
+    "mtime": 1785430314.0,
+    "ast_hash": "f27117e8872cfed37373b477ebdb870a",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/useTopicMedia.ts": {
+    "mtime": 1785430294.0,
+    "ast_hash": "10e8bf32cae9ce98533d3b5129a04a46",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/useTopicMediaEvents.ts": {
+    "mtime": 1785430292.0,
+    "ast_hash": "3ec8dfe3985d5b125f2a09905384ce05",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/features/topic-media/useTopicMediaViewport.ts": {
+    "mtime": 1785430316.0,
+    "ast_hash": "bf4a0791bc78c2693d20ff034bd72294",
+    "semantic_hash": ""
+  },
+  "AutoGram App/frontend/src/stores/transferProgressStore.ts": {
+    "mtime": 1785882458.0,
+    "ast_hash": "b1a743a8f9cfa71427ada36c76ce0c31",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/AutoLaunchProtocolsComponent/1.0.0.12/manifest.json": {
+    "mtime": 1783622682.0,
+    "ast_hash": "616eb6b585f16811dc5db5063e088cd7",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/AutoLaunchProtocolsComponent/1.0.0.12/protocols.json": {
+    "mtime": 1783622682.0,
+    "ast_hash": "5e2067a92dcfcb05537479c384a89725",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/CertificateRevocation/6498.2025.9.4/manifest.json": {
+    "mtime": 1757129048.0,
+    "ast_hash": "7ef3c71464d0fef472bc1d81fd363c62",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/DevToolsPlugin.js": {
+    "mtime": 978307200.0,
+    "ast_hash": "7f32ca5d3f52675f538b041bd67c0444",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/NamedFunctionRange.js": {
+    "mtime": 978307200.0,
+    "ast_hash": "fae98d8d75b2ddab58eb531d3c08a8f6",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/_metadata/computed_hashes.json": {
+    "mtime": 1785751780.0,
+    "ast_hash": "c44785ed27cd0a3074ddd1835095efe3",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/_metadata/verified_contents.json": {
+    "mtime": 1741390220.0,
+    "ast_hash": "70f58c8151600335b5ec548cade5b98b",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/manifest.json": {
+    "mtime": 1785751780.0,
+    "ast_hash": "c447a41c21cbb2bf5411029cb0936e13",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/third_party/typescript/typescript-tsconfig.json": {
+    "mtime": 978307200.0,
+    "ast_hash": "40d3e3fbfc100769071a2a27040e33f9",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/third_party/typescript/typescript.d.ts": {
+    "mtime": 978307200.0,
+    "ast_hash": "9f7f369b169033ee919dba043b424a83",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/third_party/typescript/typescript.js": {
+    "mtime": 978307200.0,
+    "ast_hash": "fb1c951f849bca76b6aeec81fafb1ee4",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/_metadata/computed_hashes.json": {
+    "mtime": 1785751782.0,
+    "ast_hash": "ac2ddefbff0bfa96528175820a0a3f87",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/_metadata/verified_contents.json": {
+    "mtime": 1680640040.0,
+    "ast_hash": "c7182c4ef7a2cd6a57e48d44bfd4af9b",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/manifest.json": {
+    "mtime": 1785751782.0,
+    "ast_hash": "2cf796650e5ad5bfb6c4a421d81734be",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/third_party/babylon/babylon.js": {
+    "mtime": 1679906642.0,
+    "ast_hash": "e1adfd8f62854c2d9ce65f13268c1ac1",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/third_party/typescript/typescript.js": {
+    "mtime": 1679906644.0,
+    "ast_hash": "d931cf27eb964f239e5bec661810abf5",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/OriginTrials/0.0.1.7/manifest.json": {
+    "mtime": 1730927248.0,
+    "ast_hash": "af3a9104ca46f35bb5f6123d89c25966",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/PKIMetadata/46.0.0.0/manifest.json": {
+    "mtime": 1776868124.0,
+    "ast_hash": "19322c8a94f1ac01a70f8c58cdbbc720",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Speech Recognition/1.15.0.1/manifest.json": {
+    "mtime": 1646704812.0,
+    "ast_hash": "ba25fcf816a017558d3434583e9746b8",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Subresource Filter/Unindexed Rules/10.34.0.84/adblock_snippet.js": {
+    "mtime": 1775841690.0,
+    "ast_hash": "f5c93c471485f4b9ab45260518c30267",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Subresource Filter/Unindexed Rules/10.34.0.84/manifest.json": {
+    "mtime": 1775841720.0,
+    "ast_hash": "daf93729356a67ea1f849554827fdab1",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/TrustTokenKeyCommitments/2026.3.23.1/_metadata/verified_contents.json": {
+    "mtime": 1774246278.0,
+    "ast_hash": "449dd45bb3743ba9d74d22e229d240b9",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/TrustTokenKeyCommitments/2026.3.23.1/keys.json": {
+    "mtime": 1774246278.0,
+    "ast_hash": "d3ebc1cb4b692c6e2d29a4625420fe73",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/TrustTokenKeyCommitments/2026.3.23.1/manifest.json": {
+    "mtime": 1774246278.0,
+    "ast_hash": "817fea104100763cd1bf4f15a51bfe94",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/WidevineCdm/4.10.3050.1/_metadata/verified_contents.json": {
+    "mtime": 1776104668.0,
+    "ast_hash": "2176df460d874e462da56abd20c25c70",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/WidevineCdm/4.10.3050.1/manifest.json": {
+    "mtime": 1781559480.0,
+    "ast_hash": "9be87722ce3608a2d38a79079feaa394",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/component_crx_cache/metadata.json": {
+    "mtime": 1785585010.0,
+    "ast_hash": "8730f7990999cf8090d98fd2c0374ae0",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/extensions_crx_cache/metadata.json": {
+    "mtime": 1785584414.0,
+    "ast_hash": "2aa9e263ee3796d9ce358460a2451b4c",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/hyphen-data/120.0.6050.0/_metadata/verified_contents.json": {
+    "mtime": 978307200.0,
+    "ast_hash": "117d173e82b282deca740475e35c8ecd",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/hyphen-data/120.0.6050.0/manifest.json": {
+    "mtime": 978307200.0,
+    "ast_hash": "2617c38bed67a4190fc499142b6f2867",
+    "semantic_hash": ""
+  },
+  "remote/audit_all_cards.mjs": {
+    "mtime": 1785584698.0,
+    "ast_hash": "c9a4dac6d5a316a8ef5f5392c34bc3ba",
+    "semantic_hash": ""
+  },
+  "remote/deep_inspect.mjs": {
+    "mtime": 1785585418.0,
+    "ast_hash": "b130d86242950de18a697658f0da6914",
+    "semantic_hash": ""
+  },
+  "remote/diag_stream_1869.mjs": {
+    "mtime": 1785605712.0,
+    "ast_hash": "70369ed0c13f670b196b73ca247e53cc",
+    "semantic_hash": ""
+  },
+  "remote/e2e-v28-test.mjs": {
+    "mtime": 1785732302.0,
+    "ast_hash": "677f6efcc1895cc127fec44829c4397b",
+    "semantic_hash": ""
+  },
+  "remote/enable_desktop_mode.mjs": {
+    "mtime": 1785634746.0,
+    "ast_hash": "d67b929315a7f8fb0a8e669dc5ecc9b5",
+    "semantic_hash": ""
+  },
+  "remote/find_autogram_cdp.mjs": {
+    "mtime": 1785732162.0,
+    "ast_hash": "03e9e9e9274b0c424b29dabd95b26026",
+    "semantic_hash": ""
+  },
+  "remote/inspect_aspect_ratio.mjs": {
+    "mtime": 1785586198.0,
+    "ast_hash": "b36e40574b55b59a37afe71a2815aba9",
+    "semantic_hash": ""
+  },
+  "remote/inspect_channel_73.mjs": {
+    "mtime": 1785634382.0,
+    "ast_hash": "809a2ef9bba89fabcc8f2d7eba73d5d1",
+    "semantic_hash": ""
+  },
+  "remote/inspect_dom.mjs": {
+    "mtime": 1785605950.0,
+    "ast_hash": "b868fde772c8c167b31ff0b1d2409bc7",
+    "semantic_hash": ""
+  },
+  "remote/inspect_gudang_cards.mjs": {
+    "mtime": 1785585036.0,
+    "ast_hash": "4fcbcd590d5b00c980633bb45377d133",
+    "semantic_hash": ""
+  },
+  "remote/inspect_live_dom.mjs": {
+    "mtime": 1785635646.0,
+    "ast_hash": "95c449b6f17e30c866da867b237b64de",
+    "semantic_hash": ""
+  },
+  "remote/launch_fresh.ps1": {
+    "mtime": 1785732178.0,
+    "ast_hash": "7a08b3c60920044de566614aa5f06ebf",
+    "semantic_hash": ""
+  },
+  "remote/launch_frontend.ps1": {
+    "mtime": 1785634392.0,
+    "ast_hash": "a5e679a42814cbbad122a351f2aa067c",
+    "semantic_hash": ""
+  },
+  "remote/nav_inspect.mjs": {
+    "mtime": 1785585474.0,
+    "ast_hash": "c7f8486f7ff7d54f190e409d0e41072a",
+    "semantic_hash": ""
+  },
+  "remote/probe_cdp_pages.mjs": {
+    "mtime": 1785732116.0,
+    "ast_hash": "cf9bd19d4a7598cff757346f278c0482",
+    "semantic_hash": ""
+  },
+  "remote/reload_webview.mjs": {
+    "mtime": 1785634454.0,
+    "ast_hash": "b3ee0baea6620e9fb31cdcdc007fd269",
+    "semantic_hash": ""
+  },
+  "remote/reports/e2e-v28-report.json": {
+    "mtime": 1785751784.0,
+    "ast_hash": "423955bcb87d443758886b61d4088db9",
+    "semantic_hash": ""
+  },
+  "remote/run_full_e2e_suite.mjs": {
+    "mtime": 1785732426.0,
+    "ast_hash": "9e530431f6fffb4dd73253be026a80b3",
+    "semantic_hash": ""
+  },
+  "remote/run_real_seeking_suite.mjs": {
+    "mtime": 1785635690.0,
+    "ast_hash": "50887a31abc1cf5eac2bcdf5bb6b1358",
+    "semantic_hash": ""
+  },
+  "remote/screenshot_inspect.mjs": {
+    "mtime": 1785585302.0,
+    "ast_hash": "1df91cfbfa16356498f3f6c6cb8e36c5",
+    "semantic_hash": ""
+  },
+  "remote/test_10_videos_seek.mjs": {
+    "mtime": 1785631096.0,
+    "ast_hash": "39210c250453d805eadd2de80647cd9a",
+    "semantic_hash": ""
+  },
+  "remote/test_1869_playwright.mjs": {
+    "mtime": 1785605576.0,
+    "ast_hash": "c318f73ba568eb5ba8f53bc827c8718b",
+    "semantic_hash": ""
+  },
+  "remote/test_media_73_random_seeks.mjs": {
+    "mtime": 1785634610.0,
+    "ast_hash": "c19a675100abe82de39b5ee885478f54",
+    "semantic_hash": ""
+  },
+  "remote/test_topic_interactive.mjs": {
+    "mtime": 1785584816.0,
+    "ast_hash": "a069e9a4778ba664faa917493aac3cc4",
+    "semantic_hash": ""
+  },
+  "remote/test_topic_navigation.mjs": {
+    "mtime": 1785584788.0,
+    "ast_hash": "c2a84197a4f72ec7e9520ac35d401d95",
+    "semantic_hash": ""
+  },
+  "worker/sessions/session_1785668521.grammers.json": {
+    "mtime": 1785861486.0,
+    "ast_hash": "c0533617b6ca64a9feba798efd96013c",
+    "semantic_hash": ""
+  },
+  ".agent-notes/AUTOGRAM_SPEC_V4_COMPLETION_AUDIT.md": {
+    "mtime": 1785870494.0,
+    "ast_hash": "113b1f087efcb9f2c4b9ff42f584b807",
+    "semantic_hash": ""
+  },
+  ".agent-notes/AUTOGRAM_SPEC_V4_IMPLEMENTATION.md": {
+    "mtime": 1785870494.0,
+    "ast_hash": "78c058bd85b48871180183e2b893c508",
+    "semantic_hash": ""
+  },
+  ".agent-notes/bug-investigations/media-studio-context-leak-thumb-viewport-2026-08-01.md": {
+    "mtime": 1785573366.0,
+    "ast_hash": "d06f78b25a804ceea65b9ad2f513a2ab",
+    "semantic_hash": ""
+  },
+  ".agent-notes/bug-investigations/media-studio-zip-tools-thumbnails-2026-08-01.md": {
+    "mtime": 1785565490.0,
+    "ast_hash": "4b0e3b16817b55389796a1b99027a578",
+    "semantic_hash": ""
+  },
+  "AutoGram App/docs/architecture/AUTOGRAM_MASTER_ARCHITECTURE_WORKFLOW.md": {
+    "mtime": 1785903424.0,
+    "ast_hash": "5aa741c78ca59e3c6bbaa0879c8b2a0e",
+    "semantic_hash": ""
+  },
+  "AutoGram App/docs/development/QUALITY_ENGINE_BASELINE_AUDIT.md": {
+    "mtime": 1785858284.0,
+    "ast_hash": "8c01b9ec013716fbbe808d98a80bd5b5",
+    "semantic_hash": ""
+  },
+  "AutoGram App/docs/development/TRANSFER_V4_REGRESSION_REPORT.md": {
+    "mtime": 1785870494.0,
+    "ast_hash": "ebac70345c5d92d78ff08ddcfde3f8d4",
+    "semantic_hash": ""
+  },
+  "log/CWINDOWSsystem32cmd.exe .txt": {
+    "mtime": 1785480692.0,
+    "ast_hash": "5183a8fa52cd2b2d0602a5a8ab936678",
+    "semantic_hash": ""
+  },
+  "log/log2.txt": {
+    "mtime": 1785485760.0,
+    "ast_hash": "6440bc3913934f24feca24b994c15c87",
+    "semantic_hash": ""
+  },
+  "log/log3.txt": {
+    "mtime": 1785487962.0,
+    "ast_hash": "c4ffe8f0c8a05bb5cdcf8bbf7051aa2e",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/DevToolsPlugin.html": {
+    "mtime": 978307200.0,
+    "ast_hash": "0d09cc16eebaeae80fe58be258501fc8",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/cgjgjfacjflmgphhhepmbhhbgjieaecn/135.0.3176.0_0/third_party/typescript/LICENSE.txt": {
+    "mtime": 978307200.0,
+    "ast_hash": "f632dfdde0adc0da86f701c6f2df38af",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/filelist.txt": {
+    "mtime": 1679906642.0,
+    "ast_hash": "3bf6b4eae5af15288bf0d79702f9cb78",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/third_party/babylon/LICENSE.md": {
+    "mtime": 1679906642.0,
+    "ast_hash": "e57b8dbca804bf4a2db759fa1a70b3cc",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Extensions/kfbdpdaobnofkbopebjglnaadopfikhh/113.0.1765.0_0/third_party/typescript/LICENSE.txt": {
+    "mtime": 1679906642.0,
+    "ast_hash": "f632dfdde0adc0da86f701c6f2df38af",
+    "semantic_hash": ""
+  },
+  "remote/.webview2_data/EBWebView/Default/Service Worker/CacheStorage/f1b1eceded8ac6e8b7368b154168822527acb767/index.txt": {
+    "mtime": 1785584670.0,
+    "ast_hash": "a13fd5b861fa0abe5308f977fc7c3261",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_cards_live.png": {
+    "mtime": 1785584660.0,
+    "ast_hash": "e93a9b385084f6b8cef5f3ac67bbb405",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_chat_item_0.png": {
+    "mtime": 1785585134.0,
+    "ast_hash": "c95a3bb15e7ca6d672b673291964e697",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_chat_item_1.png": {
+    "mtime": 1785585138.0,
+    "ast_hash": "849e302f8012510507c9d9b6314b1066",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_chat_item_2.png": {
+    "mtime": 1785585142.0,
+    "ast_hash": "eeaa25243c56da9ace56262dc04301f1",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_chat_item_3.png": {
+    "mtime": 1785585146.0,
+    "ast_hash": "54b85b57bdb21d37b80c814a9fd4710c",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_chat_item_4.png": {
+    "mtime": 1785585150.0,
+    "ast_hash": "cefbcda6db3ac6fe80e3aaf0b287003b",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_initial_drives.png": {
+    "mtime": 1785584722.0,
+    "ast_hash": "74c729e254d32e06e83196a85d09511e",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_topic_group_view.png": {
+    "mtime": 1785584802.0,
+    "ast_hash": "34c981182154d8fa022299a1cce4a38a",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_view_mode_toggled.png": {
+    "mtime": 1785584726.0,
+    "ast_hash": "dbfcf4c6fe7b280fa5ada5013a649604",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_zoom_level_0.png": {
+    "mtime": 1785584724.0,
+    "ast_hash": "12b82916eea642e1b9501259e07e0975",
+    "semantic_hash": ""
+  },
+  "remote/reports/audit_zoom_level_1.png": {
+    "mtime": 1785584726.0,
+    "ast_hash": "b2b2937a911ead4ee9af983530c5527c",
+    "semantic_hash": ""
+  },
+  "remote/reports/current_state.png": {
+    "mtime": 1785585322.0,
+    "ast_hash": "221bb1e034763b68ac05f1f2182866b3",
+    "semantic_hash": ""
+  },
+  "remote/reports/deep_inspect.png": {
+    "mtime": 1785585426.0,
+    "ast_hash": "f2e4f591a9d6e51088e9e23a0843f04d",
+    "semantic_hash": ""
+  },
+  "remote/reports/diag_01_after_click.png": {
+    "mtime": 1785604208.0,
+    "ast_hash": "e84fc4d75abc4fa970a0d55f88b06d84",
+    "semantic_hash": ""
+  },
+  "remote/reports/diag_01_after_open.png": {
+    "mtime": 1785605730.0,
+    "ast_hash": "0383a9ccdff941c0ad1cbab311db3b93",
+    "semantic_hash": ""
+  },
+  "remote/reports/diag_01_initial.png": {
+    "mtime": 1785604060.0,
+    "ast_hash": "e040c5ddc9ff7fed20b61e8d31f7d5c3",
+    "semantic_hash": ""
+  },
+  "remote/reports/diag_02_after_monitor.png": {
+    "mtime": 1785604238.0,
+    "ast_hash": "0ddd6bdef9f016e8fdec4413904dc8d1",
+    "semantic_hash": ""
+  },
+  "remote/reports/diag_02_final.png": {
+    "mtime": 1785604062.0,
+    "ast_hash": "769617c82b2770b4b1c44138dd0baa8e",
+    "semantic_hash": ""
+  },
+  "remote/reports/nav_final.png": {
+    "mtime": 1785585624.0,
+    "ast_hash": "17e48626e1959659980e04f791f9f458",
+    "semantic_hash": ""
+  },
+  "remote/reports/nav_gudang_initial.png": {
+    "mtime": 1785585620.0,
+    "ast_hash": "3cc37f1f5ea0f4abdfedcd981288dde7",
+    "semantic_hash": ""
+  },
+  "remote/reports/nav_gudang_topic0.png": {
+    "mtime": 1785585624.0,
+    "ast_hash": "4306dbfb273a02ddf7d389098ef5c6ed",
+    "semantic_hash": ""
+  },
+  "remote/reports/test_1869_01_topic.png": {
+    "mtime": 1785605740.0,
+    "ast_hash": "7c5124456ec952a3c329df7425b75866",
+    "semantic_hash": ""
+  },
+  "remote/reports/test_1869_02_modal.png": {
+    "mtime": 1785605744.0,
+    "ast_hash": "3d450ef0871b53a6a7695e5231367a92",
+    "semantic_hash": ""
+  },
+  "remote/reports/test_1869_03_final.png": {
+    "mtime": 1785605774.0,
+    "ast_hash": "95cbbfbffe8078bdb92cebee4f9e16cc",
+    "semantic_hash": ""
+  },
+  "remote/reports/v28-boot-screen.png": {
+    "mtime": 1785751784.0,
+    "ast_hash": "0a03b94efe1a9683745034d51b262305",
+    "semantic_hash": ""
+  },
+  "remote/reports/v28-boot.png": {
+    "mtime": 1785732144.0,
+    "ast_hash": "08fbd9bf2b49bf18347d4133835a3791",
+    "semantic_hash": ""
+  },
+  "remote/reports/v28-drives.png": {
+    "mtime": 1785732146.0,
+    "ast_hash": "08fbd9bf2b49bf18347d4133835a3791",
+    "semantic_hash": ""
+  },
+  "remote/reports/v28-final-screen.png": {
+    "mtime": 1785751784.0,
+    "ast_hash": "dd587b2b5fe95aaa9714ef80a923a5e0",
     "semantic_hash": ""
   }
 }

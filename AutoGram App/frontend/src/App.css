@@ -9628,21 +9628,6 @@ body:has(.app-layout-drive-focus),
 
 :fullscreen .drive-preview-video-controls-bar,
 .drive-preview-modal.is-fullscreen .drive-preview-video-controls-bar {
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.92;
-}
-/* (cursor states defined with .drive-preview-media-wrap block above) */
-
-/* -- Transfer settings modal (Upload / Download) -- */
-.td-xfer-settings-overlay {
-  position: fixed !important;
-  inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;

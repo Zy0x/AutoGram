@@ -5,6 +5,7 @@ export type EncoderHardwareOption = {
   value: string;
   label: string;
   description: string;
+  disabled?: boolean;
 };
 
 export function isExplicitEncoderDevice(value: string): boolean {
@@ -69,3 +70,9 @@ export function buildEncoderHardwareOptions(
   });
   return options;
 }
+
+export function hasDetectedHardwareGpus(hardwareCapabilities: HardwareCapabilities | null): boolean {
+  if (!hardwareCapabilities?.gpu) return false;
+  return hardwareCapabilities.gpu.some((g) => g.supported);
+}
+

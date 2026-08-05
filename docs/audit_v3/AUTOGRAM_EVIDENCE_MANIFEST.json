@@ -1,0 +1,97 @@
+{
+  "manifest_version": "1.0",
+  "total_logs": 13,
+  "evidence_logs": [
+    {
+      "log_filename": "git_root.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_root.log",
+      "sha256": "bcbf13e60ff1025171aead93bed99893f92d5cfd5d84732fda29bbcce97774ac",
+      "size_bytes": 28,
+      "line_count": 1
+    },
+    {
+      "log_filename": "git_branch.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_branch.log",
+      "sha256": "11ae45b82361df0d1b124b8e5c422e537cdfaf74895d2c267f231025acc0e8cf",
+      "size_bytes": 14,
+      "line_count": 1
+    },
+    {
+      "log_filename": "git_commit.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_commit.log",
+      "sha256": "bb9c2d27364d86f588fa37210983de23fbb56a26cc6188dbcd21fc1d3775bb0d",
+      "size_bytes": 310,
+      "line_count": 1
+    },
+    {
+      "log_filename": "git_status.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_status.log",
+      "sha256": "9fceacfe3778a3f534b02323695eb79b1ca85737c4b951341b251298dff252cf",
+      "size_bytes": 69698,
+      "line_count": 393
+    },
+    {
+      "log_filename": "cargo_fmt.log",
+      "relative_path": "docs/audit_v3/evidence/raw/cargo_fmt.log",
+      "sha256": "47dfca1f966645ddcecb297aba705c38e45f06580477cc8238e41fc7d4293dfb",
+      "size_bytes": 2420,
+      "line_count": 36
+    },
+    {
+      "log_filename": "cargo_check.log",
+      "relative_path": "docs/audit_v3/evidence/raw/cargo_check.log",
+      "sha256": "13f77338701feaa2c65eebef341436f7a525fff51dc899d6ccdca069996f55fc",
+      "size_bytes": 222986,
+      "line_count": 3192
+    },
+    {
+      "log_filename": "cargo_test_list.log",
+      "relative_path": "docs/audit_v3/evidence/raw/cargo_test_list.log",
+      "sha256": "0f8edcea94193da520c25c435cb845a9ab42502c13d753819813e703f72ed28e",
+      "size_bytes": 238872,
+      "line_count": 3295
+    },
+    {
+      "log_filename": "cargo_test.log",
+      "relative_path": "docs/audit_v3/evidence/raw/cargo_test.log",
+      "sha256": "e2741501e7f346796a362e4f64ca61a6848b437710816906ea6e80ba330a6c30",
+      "size_bytes": 240772,
+      "line_count": 3307
+    },
+    {
+      "log_filename": "tsc_check.log",
+      "relative_path": "docs/audit_v3/evidence/raw/tsc_check.log",
+      "sha256": "5c09279c141c5be5f252e2fb54e7bcecd2fdb5c14b03d5aa8d92f1284592f7d4",
+      "size_bytes": 10186,
+      "line_count": 141
+    },
+    {
+      "log_filename": "frontend_build.log",
+      "relative_path": "docs/audit_v3/evidence/raw/frontend_build.log",
+      "sha256": "0e738a3b95a2b29b1ea24876950b0d08c45fc744ddc4eafa6448e691e335a482",
+      "size_bytes": 27196,
+      "line_count": 170
+    },
+    {
+      "log_filename": "audit_integrity_verifier.log",
+      "relative_path": "docs/audit_v3/evidence/raw/audit_integrity_verifier.log",
+      "sha256": "aa009b969401f1baeb3af814ac6fe65ffc7aa1f4df5085d75dd04d8634df9f9e",
+      "size_bytes": 2648,
+      "line_count": 24
+    },
+    {
+      "log_filename": "git_status_final.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_status_final.log",
+      "sha256": "9fceacfe3778a3f534b02323695eb79b1ca85737c4b951341b251298dff252cf",
+      "size_bytes": 69698,
+      "line_count": 393
+    },
+    {
+      "log_filename": "git_app_diff_final.log",
+      "relative_path": "docs/audit_v3/evidence/raw/git_app_diff_final.log",
+      "sha256": "9459f6325539ced087654059141fcf488f08e78bbe27534d6f9738fa60e1c0a4",
+      "size_bytes": 597262,
+      "line_count": 7070
+    }
+  ]
+}
