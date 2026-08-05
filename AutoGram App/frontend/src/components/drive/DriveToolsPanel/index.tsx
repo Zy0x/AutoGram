@@ -298,7 +298,8 @@ export function DriveToolsPanel({
               title={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
               aria-label={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
             >
-              {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              <span className="td-toggle-lbl">{isSidebarCollapsed ? 'Navigasi' : 'Sidebar'}</span>
             </button>
             <div className="td-tools-icon-wrap" aria-hidden="true">
               <SlidersHorizontal size={20} />
