@@ -16,28 +16,24 @@ export function buildEncoderHardwareOptions(
   t: TFunction,
   isDetecting?: boolean,
 ): EncoderHardwareOption[] {
-  const detectingHint = isDetecting ? ` (${String(t('speedtest.gpu_detecting_label'))})` : '';
+  if (isDetecting || !hardwareCapabilities) {
+    return [{
+      value: 'detecting',
+      label: String(t('speedtest.gpu_detecting_label')),
+      description: String(t('speedtest.gpu_detecting_desc')),
+    }];
+  }
 
   const options: EncoderHardwareOption[] = [{
     value: 'auto',
     label: String(t('speedtest.gpu_auto_label')),
-    description: hardwareCapabilities?.best_encoder
+    description: hardwareCapabilities.best_encoder
       ? String(t('speedtest.gpu_auto_detected_desc', {
           backend: hardwareCapabilities.best_encoder.encoder_backend.toUpperCase(),
           device: hardwareCapabilities.best_encoder.device_name,
         }))
-      : String(t('speedtest.gpu_auto_desc')) + detectingHint,
+      : String(t('speedtest.gpu_auto_desc')),
   }];
-
-  if (!hardwareCapabilities) {
-    options.push(
-      { value: 'nvidia', label: String(t('speedtest.gpu_nvidia_label')), description: String(t('speedtest.gpu_nvidia_desc')) },
-      { value: 'amd', label: String(t('speedtest.gpu_amd_label')), description: String(t('speedtest.gpu_amd_desc')) },
-      { value: 'intel', label: String(t('speedtest.gpu_intel_label')), description: String(t('speedtest.gpu_intel_desc')) },
-      { value: 'cpu', label: String(t('speedtest.gpu_cpu_label')), description: String(t('speedtest.gpu_cpu_desc')) },
-    );
-    return options;
-  }
 
   const genericBackends = new Set<string>();
   for (const gpu of hardwareCapabilities.gpu) {
