@@ -24,6 +24,7 @@ type Props = {
   disabled?: boolean;
   className?: string;
   compact?: boolean;
+  onOpen?: () => void;
 };
 
 export function MediaSelect({
@@ -34,6 +35,7 @@ export function MediaSelect({
   disabled,
   className = '',
   compact,
+  onOpen,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [, setMetaTick] = useState(0);
@@ -75,6 +77,7 @@ export function MediaSelect({
 
   useLayoutEffect(() => {
     if (!open) return;
+    onOpen?.();
     setActiveIndex(selectedIndex);
     place();
     requestAnimationFrame(() => {

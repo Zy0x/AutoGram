@@ -973,6 +973,7 @@ function TransferTabContent({
                 value={draft.reencodeHardware}
                 disabled={!!transferActive}
                 onChange={(value: any) => onChange({ reencodeHardware: value as any })}
+                onOpen={fetchHardwareCapabilities}
                 ariaLabel={t("speedtest.hardware_reencode_header")}
                 options={hardwareOptions}
               />
