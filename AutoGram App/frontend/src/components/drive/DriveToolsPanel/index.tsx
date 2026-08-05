@@ -293,16 +293,16 @@ export function DriveToolsPanel({
           <div className="td-tools-title">
             <button
               type="button"
-              className={`td-sidebar-toggle-btn ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
+              className={`td-tools-icon-toggle-btn ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
-              aria-label={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
+              title={isSidebarCollapsed ? 'Klik untuk Tampilkan Sidebar Navigasi' : 'Klik untuk Sembunyikan Sidebar Navigasi'}
+              aria-label={isSidebarCollapsed ? 'Klik untuk Tampilkan Sidebar Navigasi' : 'Klik untuk Sembunyikan Sidebar Navigasi'}
             >
-              {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            </button>
-            <div className="td-tools-icon-wrap" aria-hidden="true">
               <SlidersHorizontal size={20} />
-            </div>
+              <div className="td-icon-badge" aria-hidden="true">
+                {isSidebarCollapsed ? <PanelLeftOpen size={11} /> : <PanelLeftClose size={11} />}
+              </div>
+            </button>
             <div className="td-tools-title-text">
               <h2>{t('speedtest.tools_title')}</h2>
               <div className="td-tools-sub" title={locationLabel}>
