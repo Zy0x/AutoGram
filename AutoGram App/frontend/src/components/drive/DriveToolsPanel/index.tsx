@@ -317,7 +317,15 @@ export function DriveToolsPanel({
         </header>
 
         <div className="td-tools-layout">
-          <aside className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`} aria-label={t("speedtest.categories_aria")}>
+          <aside
+            className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
+            aria-label={t("speedtest.categories_aria")}
+            style={
+              isSidebarCollapsed
+                ? { width: 0, minWidth: 0, maxWidth: 0, padding: 0, margin: 0, border: 'none', opacity: 0, display: 'none' }
+                : undefined
+            }
+          >
             {TOOL_GROUPS.map((group) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
                 <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>
