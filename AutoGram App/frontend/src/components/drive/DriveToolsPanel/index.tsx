@@ -291,6 +291,15 @@ export function DriveToolsPanel({
       >
         <header className="td-tools-head">
           <div className="td-tools-title">
+            <button
+              type="button"
+              className={`td-sidebar-toggle-hdr ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
+              aria-label={isSidebarCollapsed ? 'Tampilkan Sidebar Navigasi' : 'Sembunyikan Sidebar Navigasi'}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
             <div className="td-tools-icon-wrap" aria-hidden="true">
               <SlidersHorizontal size={20} />
             </div>
@@ -309,22 +318,9 @@ export function DriveToolsPanel({
 
         <div className="td-tools-layout">
           <aside className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`} aria-label={t("speedtest.categories_aria")}>
-            <div className="td-sidebar-toggle-row">
-              <button
-                type="button"
-                className="td-sidebar-collapse-btn"
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
-                aria-label={isSidebarCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
-              >
-                {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-                {!isSidebarCollapsed && <span>{t('speedtest.collapse_sidebar', 'Ciutkan')}</span>}
-              </button>
-            </div>
-
             {TOOL_GROUPS.map((group) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
-                {!isSidebarCollapsed && <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>}
+                <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
@@ -335,10 +331,9 @@ export function DriveToolsPanel({
                       type="button"
                       className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
                       onClick={() => onTab(tItem.id)}
-                      title={isSidebarCollapsed ? tabLabel : undefined}
                     >
                       <Icon size={16} />
-                      {!isSidebarCollapsed && <span>{tabLabel}</span>}
+                      <span>{tabLabel}</span>
                     </button>
                   );
                 })}
