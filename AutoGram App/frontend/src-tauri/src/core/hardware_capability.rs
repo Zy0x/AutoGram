@@ -323,7 +323,9 @@ pub fn detect_hardware_capabilities() -> HardwareCapabilities {
             "qsv" => ff_support.has_qsv,
             _ => false,
         };
-        let supported = listed && smoke_test_encoder(encoder_codec).is_ok();
+        let supported = listed
+            && (smoke_test_encoder_on_device(encoder_codec, device_index).is_ok()
+                || smoke_test_encoder(encoder_codec).is_ok());
         gpu_caps.push(GpuCapability {
             device_id,
             device_index,
@@ -467,7 +469,7 @@ fn smoke_test_encoder_with_device(codec: &str, device_index: Option<u32>) -> Res
             "-f",
             "lavfi",
             "-i",
-            "color=c=black:s=64x64:d=0.1",
+            "color=c=black:s=256x256:d=0.1",
             "-frames:v",
             "1",
             "-c:v",
@@ -565,6 +567,13 @@ mod tests {
         let snapshot = super::evaluate_resource_admission();
         assert!(snapshot.cpu_load_pct >= 0.0);
         assert!(snapshot.ram_available_mb > 0);
+    }
+
+    #[test]
+    fn test_hardware_capabilities_detection() {
+        let caps = super::detect_hardware_capabilities();
+        println!("Detected GPUs: {:?}", caps.gpu);
+        println!("Best encoder: {:?}", caps.best_encoder);
     }
 }
 
