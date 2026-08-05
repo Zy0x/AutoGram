@@ -603,6 +603,8 @@
   "adv_filter_shortcut_hint": "⚡ Shortcut: 1 MB ≈ 1,048,576 · e.g., large video min: 5000000",
   "gpu_auto_label": "Auto · GPU Priority",
   "gpu_auto_desc": "Select backend passing capability test",
+  "gpu_detecting_label": "Detecting hardware...",
+  "gpu_detecting_desc": "Scanning video controllers & testing encoder capabilities",
   "gpu_auto_detected_desc": "Automatically use the best verified encoder ({{backend}} — {{device}})",
   "gpu_detected_label": "Verified · {{name}} ({{backend}})",
   "gpu_detected_desc": "Encoder: {{encoder}} · Priority #{{priority}} · Device #{{index}}",

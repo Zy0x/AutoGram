@@ -603,6 +603,8 @@
   "adv_filter_shortcut_hint": "⚡ Shortcut: 1 MB ≈ 1.048.576 · contoh min video besar: 5000000",
   "gpu_auto_label": "Otomatis · Prioritas GPU",
   "gpu_auto_desc": "Pilih backend yang lolos pengujian kemampuan",
+  "gpu_detecting_label": "Sedang mendeteksi hardware...",
+  "gpu_detecting_desc": "Memindai pengontrol video & menguji kemampuan encoder",
   "gpu_auto_detected_desc": "Gunakan encoder terverifikasi terbaik secara otomatis ({{backend}} — {{device}})",
   "gpu_detected_label": "Terverifikasi · {{name}} ({{backend}})",
   "gpu_detected_desc": "Encoder: {{encoder}} · Prioritas #{{priority}} · Perangkat #{{index}}",

@@ -79,12 +79,14 @@ export interface TransferProgressState {
   jobs: TransferJob[];
   hardwareCapabilities: HardwareCapabilities | null;
   selectedEncoder: SelectedEncoder | null;
+  isDetectingHardware: boolean;
 }
 
 class TransferProgressStore {
   private jobs: Map<string, TransferJob> = new Map();
   private hardwareCapabilities: HardwareCapabilities | null = null;
   private selectedEncoder: SelectedEncoder | null = null;
+  private isDetectingHardware = false;
   private speedHistories: Map<string, number[]> = new Map();
   private listeners: Set<() => void> = new Set();
   private isListening = false;
@@ -92,6 +94,7 @@ class TransferProgressStore {
     jobs: [],
     hardwareCapabilities: null,
     selectedEncoder: null,
+    isDetectingHardware: false,
   };
 
   constructor() {
@@ -104,6 +107,7 @@ class TransferProgressStore {
       jobs: Array.from(this.jobs.values()),
       hardwareCapabilities: this.hardwareCapabilities,
       selectedEncoder: this.selectedEncoder,
+      isDetectingHardware: this.isDetectingHardware,
     };
   }
 
@@ -122,15 +126,24 @@ class TransferProgressStore {
     return this.snapshot.hardwareCapabilities;
   };
 
+  public getIsDetectingHardware = () => {
+    return this.isDetectingHardware;
+  };
+
   public fetchHardwareCapabilities = async () => {
+    if (this.isDetectingHardware) return;
+    this.isDetectingHardware = true;
+    this.notify();
     try {
       const caps = await invoke<HardwareCapabilities>('get_hardware_capabilities');
       const best = await invoke<SelectedEncoder>('select_best_encoder');
       this.hardwareCapabilities = caps;
       this.selectedEncoder = best;
-      this.notify();
     } catch (err) {
       console.warn('Failed to fetch hardware capabilities from Tauri:', err);
+    } finally {
+      this.isDetectingHardware = false;
+      this.notify();
     }
   };
 
@@ -219,8 +232,13 @@ export function useTransferHardwareCapabilities() {
     transferProgressStore.subscribe,
     transferProgressStore.getHardwareCapabilities
   );
+  const isDetectingHardware = useSyncExternalStore(
+    transferProgressStore.subscribe,
+    transferProgressStore.getIsDetectingHardware
+  );
   return {
     hardwareCapabilities,
+    isDetectingHardware,
     fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
   };
 }

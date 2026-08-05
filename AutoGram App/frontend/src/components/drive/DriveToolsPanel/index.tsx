@@ -774,7 +774,7 @@ function TransferTabContent({
   onSubTab: (t: 'upload' | 'download') => void;
 }) {
   const { t } = useTranslation();
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
+  const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
   const [profiles, setProfiles] = useState<DriveTransferSettingsProfile[]>(() => loadTransferSettingsProfiles());
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [profileName, setProfileName] = useState('');
@@ -829,8 +829,8 @@ function TransferTabContent({
   };
 
   const hardwareOptions = useMemo(() => {
-    return buildEncoderHardwareOptions(hardwareCapabilities, t);
-  }, [hardwareCapabilities, t]);
+    return buildEncoderHardwareOptions(hardwareCapabilities, t, isDetectingHardware);
+  }, [hardwareCapabilities, isDetectingHardware, t]);
 
   return (
     <div className="td-tools-xfer-container">

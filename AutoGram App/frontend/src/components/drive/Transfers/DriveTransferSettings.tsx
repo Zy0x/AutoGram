@@ -60,7 +60,7 @@ export function DriveTransferSettings({
   const [profileName, setProfileName] = useState('');
   const [settingsQuery, setSettingsQuery] = useState('');
 
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
+  const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
   useEffect(() => {
     if (open) {
@@ -162,8 +162,8 @@ export function DriveTransferSettings({
   };
 
   const hardwareOptions = useMemo(() => {
-    return buildEncoderHardwareOptions(hardwareCapabilities, t);
-  }, [hardwareCapabilities, t]);
+    return buildEncoderHardwareOptions(hardwareCapabilities, t, isDetectingHardware);
+  }, [hardwareCapabilities, isDetectingHardware, t]);
 
   if (!open) return null;
 
