@@ -16477,3 +16477,106 @@ video.drive-zip-img {
   font-size: 0.78rem !important;
   max-width: 320px !important;
 }
+
+/* ==========================================
+   MODERN PROFILE DROPDOWN & INPUT STYLING
+   ========================================== */
+.td-profile-mgr-card {
+  padding: 16px !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.td-profile-row {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+.td-profile-select-wrapper {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+}
+
+.td-select-left-icon {
+  position: absolute !important;
+  left: 12px !important;
+  color: #38bdf8 !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+.td-modern-profile-select {
+  width: 100% !important;
+  height: 40px !important;
+  padding: 0 32px 0 36px !important;
+  border-radius: 10px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  color: #f8fafc !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  transition: all 0.2s ease !important;
+}
+
+.td-modern-profile-select:hover:not(:disabled) {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
+}
+
+.td-modern-profile-select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35) !important;
+}
+
+.td-modern-profile-select option {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 8px !important;
+}
+
+.td-profile-input-wrapper {
+  flex: 1 !important;
+}
+
+.td-modern-profile-input {
+  width: 100% !important;
+  height: 40px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  font-size: 0.84rem !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+.td-modern-profile-input:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+.td-modern-profile-input:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
+}
+
+.td-profile-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}

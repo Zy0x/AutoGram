@@ -26,7 +26,6 @@ import {
   DownloadCloud,
   ArrowLeft,
   ChevronRight,
-  FolderOpen,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -1036,39 +1035,27 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* HIGH-END OVERHAULED PROFILES & PRESETS DRAWER / MODAL OVERLAY */}
+        {/* PROFILES DRAWER / MODAL OVERLAY */}
         {showPresetDrawer && (
           <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowPresetDrawer(false)}>
             <div className="td-xfer-drawer-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-              
-              {/* DRAWER HEADER */}
               <div className="td-drawer-head">
                 <div className="td-drawer-head-left">
-                  <div className="td-drawer-icon-wrap">
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <h4>{t('speedtest.transfer_profiles_title', 'Preset & Profil Konfigurasi Transfer')}</h4>
-                    <p className="td-drawer-subtitle">Pilih preset bawaan sistem atau kelola profil kustom Anda</p>
-                  </div>
+                  <Sparkles size={18} className="td-preset-sparkle" />
+                  <h4>{t('speedtest.transfer_profiles_title', 'Preset & Profil Konfigurasi')}</h4>
                 </div>
                 <button
                   type="button"
-                  className="td-icon-btn td-drawer-close-btn"
+                  className="td-chip-btn"
                   onClick={() => setShowPresetDrawer(false)}
-                  aria-label="Tutup"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
 
               <div className="td-drawer-body">
-                {/* SECTION 1: SYSTEM PRESETS */}
-                <div className="td-drawer-section-header">
-                  <span className="td-section-eyebrow">PRESET SISTEM</span>
-                  <h5>Pilih Preset Optimal Siap Pakai</h5>
-                </div>
-
+                {/* 3 PRESET CARDS */}
+                <h5 className="td-drawer-section-title">Pilih Preset Siap Pakai</h5>
                 <div className="td-hero-presets-grid">
                   {SYSTEM_TRANSFER_PRESETS.map((preset) => {
                     const isSelected = activePresetId === preset.id;
@@ -1082,113 +1069,70 @@ export function TransferSettingsWorkspace({
                         }}
                       >
                         <div className="td-hero-card-top">
-                          <div className="td-preset-card-title-wrap">
-                            <h4>{preset.name}</h4>
-                            <span className="td-preset-badge">System</span>
-                          </div>
-                          {isSelected ? (
-                            <span className="td-selected-pill">
-                              <CheckCircle2 size={13} /> Aktif
-                            </span>
-                          ) : (
-                            <span className="td-select-hint">Pilih</span>
-                          )}
+                          <h4>{preset.name}</h4>
+                          {isSelected && <CheckCircle2 size={16} className="td-selected-check" />}
                         </div>
                         <p className="td-hero-card-desc">{preset.description}</p>
-                        <div className="td-preset-tags">
-                          <span className="td-preset-tag">⚡ {preset.settings.uploadConcurrency} Paralel</span>
-                          <span className="td-preset-tag">🎮 GPU {(preset.settings.reencodeHardware || 'auto').toUpperCase()}</span>
-                          <span className="td-preset-tag">
-                            {preset.settings.duplicatePolicy === 'SKIP' ? '🛡️ Lewati Duplikat' : '🔄 Unggah Ulang'}
-                          </span>
-                        </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* SECTION 2: NAMED TRANSFER PROFILES MANAGER */}
-                <div className="td-drawer-section-header" style={{ marginTop: '24px' }}>
-                  <span className="td-section-eyebrow">PROFIL KUSTOM SAYA</span>
-                  <h5>Manajemen Profil Tersimpan</h5>
-                </div>
+                {/* USER PROFILES PERSISTENCE MANAGER */}
+                <h5 className="td-drawer-section-title" style={{ marginTop: '22px' }}>Manajemen Profil Tersimpan</h5>
+                <div className="td-profile-mgr-card">
+                  <div className="td-profile-row">
+                    {/* MODERN STYLED PROFILE DROPDOWN */}
+                    <div className="td-profile-select-wrapper">
+                      <Bookmark size={15} className="td-select-left-icon" />
+                      <select
+                        value={selectedProfileId}
+                        disabled={!!transferActive}
+                        onChange={(e) => loadProfile(e.target.value)}
+                        className="td-modern-profile-select"
+                      >
+                        <option value="">{t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}</option>
+                        {profiles.map((profile) => (
+                          <option key={profile.id} value={profile.id}>
+                            {profile.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="td-profile-mgr-container">
-                  {/* CREATE / SAVE NEW PROFILE BAR */}
-                  <div className="td-profile-create-bar">
-                    <div className="td-profile-input-wrap">
-                      <Bookmark size={16} className="td-profile-input-icon" />
+                    {/* PROFILE NAME INPUT */}
+                    <div className="td-profile-input-wrapper">
                       <input
                         value={profileName}
                         maxLength={80}
                         disabled={!!transferActive}
                         onChange={(e) => setProfileName(e.target.value)}
-                        placeholder={t('speedtest.transfer_profiles_name', 'Beri nama profil kustom baru...')}
+                        placeholder={t('speedtest.transfer_profiles_name', 'Nama Profil')}
+                        className="td-modern-profile-input"
                       />
                     </div>
+                  </div>
+
+                  <div className="td-profile-actions">
                     <button
                       type="button"
-                      className="td-btn-save-profile"
+                      className="td-chip-btn td-chip-primary"
                       onClick={saveProfile}
                       disabled={!!transferActive || !profileName.trim()}
                     >
-                      <Save size={14} /> {selectedProfileId ? 'Update Profil' : 'Simpan Profil Baru'}
+                      <Save size={14} /> {t('speedtest.transfer_profiles_save', 'Simpan Profil')}
                     </button>
+                    {selectedProfileId && (
+                      <button
+                        type="button"
+                        className="td-chip-btn td-chip-danger"
+                        onClick={deleteProfile}
+                        disabled={!!transferActive}
+                      >
+                        <Trash2 size={14} /> {t('speedtest.transfer_profiles_delete', 'Hapus Profil')}
+                      </button>
+                    )}
                   </div>
-
-                  {/* LIST OF SAVED USER PROFILES */}
-                  {profiles.length > 0 ? (
-                    <div className="td-profiles-list">
-                      {profiles.map((prof) => {
-                        const isSelected = selectedProfileId === prof.id;
-                        return (
-                          <div key={prof.id} className={`td-profile-item-card ${isSelected ? 'is-selected' : ''}`}>
-                            <div className="td-profile-item-info">
-                              <div className="td-profile-item-header">
-                                <Bookmark size={15} className="td-prof-icon" />
-                                <h6>{prof.name}</h6>
-                                {isSelected && <span className="td-prof-active-tag">Terpilih</span>}
-                              </div>
-                              <div className="td-profile-item-details">
-                                <span>⚡ {prof.settings.uploadConcurrency} Paralel</span>
-                                <span>🎮 GPU {(prof.settings.reencodeHardware || 'auto').toUpperCase()}</span>
-                                <span>
-                                  {prof.settings.duplicatePolicy === 'SKIP' ? '🛡️ Lewati Duplikat' : '🔄 Unggah Ulang'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="td-profile-item-actions">
-                              <button
-                                type="button"
-                                className="td-profile-btn-load"
-                                onClick={() => loadProfile(prof.id)}
-                                disabled={!!transferActive}
-                              >
-                                <FolderOpen size={13} /> {t('speedtest.load_profile', 'Terapkan')}
-                              </button>
-                              <button
-                                type="button"
-                                className="td-profile-btn-delete"
-                                onClick={() => {
-                                  setSelectedProfileId(prof.id);
-                                  deleteProfile();
-                                }}
-                                disabled={!!transferActive}
-                                title="Hapus Profil"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="td-profiles-empty-state">
-                      <Bookmark size={24} />
-                      <p>Belum ada profil kustom tersimpan. Buat profil di atas untuk menyimpan konfigurasi favorit Anda.</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
