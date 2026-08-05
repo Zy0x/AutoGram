@@ -562,7 +562,7 @@ mod tests {
 
     #[test]
     fn test_resource_admission_controller_evaluation() {
-        let snapshot = evaluate_resource_admission();
+        let snapshot = super::evaluate_resource_admission();
         assert!(snapshot.cpu_load_pct >= 0.0);
         assert!(snapshot.ram_available_mb > 0);
     }
