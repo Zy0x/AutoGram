@@ -324,14 +324,7 @@ export function TransferSettingsWorkspace({
                   className="td-chip-btn td-chip-primary"
                   onClick={() => setShowPresetDrawer(true)}
                 >
-                  <Sparkles size={13} /> {t('speedtest.change_preset_btn', 'Ubah Preset')}
-                </button>
-                <button
-                  type="button"
-                  className="td-chip-btn"
-                  onClick={() => setShowPresetDrawer(true)}
-                >
-                  <Bookmark size={13} /> {t('speedtest.profiles_btn', 'Profil')}
+                  <Sparkles size={13} /> {t('speedtest.preset_and_profiles_btn', 'Preset & Profil')}
                 </button>
               </div>
             </section>
