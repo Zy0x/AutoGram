@@ -15,8 +15,8 @@ import {
   Play,
   SlidersHorizontal,
   RotateCcw,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -291,18 +291,9 @@ export function DriveToolsPanel({
       >
         <header className="td-tools-head">
           <div className="td-tools-title">
-            <button
-              type="button"
-              className={`td-tools-icon-toggle-btn ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={isSidebarCollapsed ? 'Klik untuk Tampilkan Sidebar Navigasi' : 'Klik untuk Sembunyikan Sidebar Navigasi'}
-              aria-label={isSidebarCollapsed ? 'Klik untuk Tampilkan Sidebar Navigasi' : 'Klik untuk Sembunyikan Sidebar Navigasi'}
-            >
+            <div className="td-tools-icon-wrap" aria-hidden="true">
               <SlidersHorizontal size={20} />
-              <div className="td-icon-badge" aria-hidden="true">
-                {isSidebarCollapsed ? <PanelLeftOpen size={11} /> : <PanelLeftClose size={11} />}
-              </div>
-            </button>
+            </div>
             <div className="td-tools-title-text">
               <h2>{t('speedtest.tools_title')}</h2>
               <div className="td-tools-sub" title={locationLabel}>
@@ -320,15 +311,33 @@ export function DriveToolsPanel({
           <aside
             className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
             aria-label={t("speedtest.categories_aria")}
-            style={
-              isSidebarCollapsed
-                ? { width: 0, minWidth: 0, maxWidth: 0, padding: 0, margin: 0, border: 'none', opacity: 0, display: 'none' }
-                : undefined
-            }
           >
+            {/* SIDEBAR BRAND & ARROW TOGGLE ROW */}
+            <div className="td-sidebar-brand-row">
+              <div className="td-sidebar-brand">
+                <div className="td-sidebar-logo">AG</div>
+                {!isSidebarCollapsed && (
+                  <div className="td-sidebar-brand-info">
+                    <span className="td-sidebar-brand-title">AutoGram</span>
+                    <span className="td-sidebar-brand-sub">Tools & Settings</span>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                className="td-sidebar-collapse-toggle"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                title={isSidebarCollapsed ? 'Perluas Sidebar Navigasi' : 'Ciutkan Sidebar Navigasi'}
+                aria-label={isSidebarCollapsed ? 'Perluas Sidebar Navigasi' : 'Ciutkan Sidebar Navigasi'}
+              >
+                {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+              </button>
+            </div>
+
+            {/* SIDEBAR NAV GROUPS & ITEMS */}
             {TOOL_GROUPS.map((group) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
-                <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>
+                {!isSidebarCollapsed && <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>}
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
@@ -339,9 +348,10 @@ export function DriveToolsPanel({
                       type="button"
                       className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
                       onClick={() => onTab(tItem.id)}
+                      title={isSidebarCollapsed ? tabLabel : undefined}
                     >
-                      <Icon size={16} />
-                      <span>{tabLabel}</span>
+                      <Icon size={18} />
+                      {!isSidebarCollapsed && <span>{tabLabel}</span>}
                     </button>
                   );
                 })}
