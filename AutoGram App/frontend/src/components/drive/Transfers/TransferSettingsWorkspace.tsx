@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   Sparkles,
   CheckCircle2,
-  Gauge,
   FolderTree,
   CopyCheck,
   HardDriveUpload,
@@ -25,6 +24,8 @@ import {
   Clock,
   FileCode,
   DownloadCloud,
+  ArrowLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -55,6 +56,8 @@ import {
   type SubMenuCategory,
 } from './transferSettingsSearchRegistry';
 
+export type WorkspaceTabState = 'menu' | SubMenuCategory;
+
 export interface TransferSettingsWorkspaceProps {
   settings: DriveTransferSettings;
   onChange: (next: DriveTransferSettings) => void;
@@ -73,8 +76,8 @@ export function TransferSettingsWorkspace({
   const { t } = useTranslation();
   const searchInputId = useId();
 
-  // Navigation & mode state
-  const [activeTab, setActiveTab] = useState<SubMenuCategory>('summary');
+  // Navigation state: 'menu' (main overview list) or direct sub-menu category
+  const [activeTab, setActiveTab] = useState<WorkspaceTabState>('menu');
   const [viewMode, setViewMode] = useState<'basic' | 'advanced'>('basic');
   const [settingsQuery, setSettingsQuery] = useState('');
 
@@ -216,16 +219,15 @@ export function TransferSettingsWorkspace({
     return found ? found.name : t('speedtest.preset_custom', 'Kustom');
   }, [activePresetId, t]);
 
-  // 8 Horizontal Sub-Menu Tabs
-  const subMenuTabs: { id: SubMenuCategory; label: string; icon: any; isAdvancedOnly?: boolean }[] = [
-    { id: 'summary', label: t('speedtest.tab_summary', 'Ringkasan'), icon: Gauge },
-    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), icon: Upload },
-    { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), icon: Film },
-    { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), icon: FolderTree },
-    { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), icon: CopyCheck },
-    { id: 'download', label: t('speedtest.tab_download', 'Download'), icon: Download },
-    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), icon: HardDriveUpload, isAdvancedOnly: true },
-    { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), icon: SlidersHorizontal, isAdvancedOnly: true },
+  // Sub-Menu Categories List
+  const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any; isAdvancedOnly?: boolean }[] = [
+    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
+    { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
+    { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
+    { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
+    { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
+    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload, isAdvancedOnly: true },
+    { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal, isAdvancedOnly: true },
   ];
 
   return (
@@ -233,12 +235,32 @@ export function TransferSettingsWorkspace({
       {/* TOP HEADER BAR */}
       <header className="td-xfer-header">
         <div className="td-xfer-header-left">
-          <div className="td-xfer-avatar">
-            <SlidersHorizontal size={20} />
-          </div>
+          {activeTab !== 'menu' ? (
+            <button
+              type="button"
+              className="td-back-nav-btn"
+              onClick={() => setActiveTab('menu')}
+            >
+              <ArrowLeft size={16} />
+              <span>{t('speedtest.back_to_settings', 'Kembali')}</span>
+            </button>
+          ) : (
+            <div className="td-xfer-avatar">
+              <SlidersHorizontal size={20} />
+            </div>
+          )}
+
           <div>
-            <h3>{t('speedtest.transfer_settings_title', 'Transfer Settings')}</h3>
-            <p>{t('speedtest.transfer_settings_subtitle', 'Konfigurasi unggah, unduh, dan pengodean media')}</p>
+            <h3>
+              {activeTab === 'menu'
+                ? t('speedtest.transfer_settings_title', 'Transfer Settings')
+                : subMenuCategories.find((c) => c.id === activeTab)?.label || 'Detail Pengaturan'}
+            </h3>
+            <p>
+              {activeTab === 'menu'
+                ? t('speedtest.transfer_settings_subtitle', 'Konfigurasi unggah, unduh, dan pengodean media')
+                : subMenuCategories.find((c) => c.id === activeTab)?.desc}
+            </p>
           </div>
         </div>
 
@@ -300,119 +322,71 @@ export function TransferSettingsWorkspace({
         </div>
       </header>
 
-      {/* COMPACT PRESET SUMMARY STRIP */}
-      <section className="td-xfer-preset-strip">
-        <div className="td-preset-strip-left">
-          <Sparkles size={16} className="td-preset-sparkle" />
-          <div className="td-preset-summary-info">
-            <span className="td-preset-label-text">
-              {t('speedtest.active_preset_label', 'Preset aktif')}: <strong>{activePresetName}</strong>
-            </span>
-            <span className="td-preset-details-text">
-              • GPU {currentEncoderMode.toUpperCase()} • {draft.uploadConcurrency} Paralel Unggah • {draft.duplicatePolicy === 'SKIP' ? 'Lewati Duplikat' : 'Unggah Ulang'}
-            </span>
-          </div>
-        </div>
-
-        <div className="td-preset-strip-actions">
-          <button
-            type="button"
-            className="td-chip-btn td-chip-primary"
-            onClick={() => setShowPresetDrawer(true)}
-          >
-            <Sparkles size={13} /> {t('speedtest.change_preset_btn', 'Ubah Preset')}
-          </button>
-          <button
-            type="button"
-            className="td-chip-btn"
-            onClick={() => {
-              setActiveTab('profiles');
-              setShowPresetDrawer(true);
-            }}
-          >
-            <Bookmark size={13} /> {t('speedtest.profiles_btn', 'Profil')}
-          </button>
-        </div>
-      </section>
-
-      {/* HORIZONTAL SUB-MENU TABS BAR */}
-      <nav className="td-xfer-subnav-bar" aria-label="Transfer Settings Categories">
-        {subMenuTabs.map((tab) => {
-          if (tab.isAdvancedOnly && viewMode !== 'advanced') return null;
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`td-subnav-pill ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <Icon size={15} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
       {/* MAIN FOCUSED WORKSPACE VIEWPORT */}
       <main className="td-xfer-panel-viewport">
-        {/* SUB-MENU 1: RINGKASAN */}
-        {activeTab === 'summary' && (
-          <div className="td-xfer-focused-panel" id="section-summary">
-            <div className="td-panel-head">
-              <Gauge size={20} className="td-panel-icon" />
-              <div>
-                <h3>{t('speedtest.cat_summary', 'Ringkasan Konfigurasi Transfer')}</h3>
-                <p>{t('speedtest.summary_desc', 'Tinjauan cepat seluruh status pengaturan transfer aktif')}</p>
-              </div>
-            </div>
-
-            <div className="td-summary-grid-cards">
-              <div className="td-summary-tile" onClick={() => setActiveTab('upload')}>
-                <span className="td-summary-tile-title">Format & Kualitas Unggah</span>
-                <strong className="td-summary-tile-val">{currentDeliveryFormat.toUpperCase()} ({draft.qualityMode})</strong>
-                <span className="td-summary-tile-sub">Klik untuk ubah di tab Upload</span>
-              </div>
-
-              <div className="td-summary-tile" onClick={() => setActiveTab('encoding')}>
-                <span className="td-summary-tile-title">Mode Encoder Video</span>
-                <strong className="td-summary-tile-val">{currentEncoderMode.toUpperCase()}</strong>
-                <span className="td-summary-tile-sub">
-                  {draft.reencodeHardware !== 'auto' && draft.reencodeHardware !== 'cpu'
-                    ? draft.reencodeHardware
-                    : 'Akselerasi Otomatis'}
-                </span>
+        {/* LEVEL 1: MAIN MENU OVERVIEW (PRESET ACTIVE STRIP + CATEGORY LIST BUTTONS) */}
+        {activeTab === 'menu' && (
+          <div className="td-xfer-menu-page">
+            {/* PRESET ACTIVE SUMMARY STRIP */}
+            <section className="td-xfer-preset-strip">
+              <div className="td-preset-strip-left">
+                <Sparkles size={16} className="td-preset-sparkle" />
+                <div className="td-preset-summary-info">
+                  <span className="td-preset-label-text">
+                    {t('speedtest.active_preset_label', 'Preset aktif')}: <strong>{activePresetName}</strong>
+                  </span>
+                  <span className="td-preset-details-text">
+                    • GPU {currentEncoderMode.toUpperCase()} • {draft.uploadConcurrency} Paralel Unggah • {draft.duplicatePolicy === 'SKIP' ? 'Lewati Duplikat' : 'Unggah Ulang'}
+                  </span>
+                </div>
               </div>
 
-              <div className="td-summary-tile" onClick={() => setActiveTab('upload')}>
-                <span className="td-summary-tile-title">Unggah Paralel</span>
-                <strong className="td-summary-tile-val">{draft.uploadConcurrency} Berkas</strong>
-                <span className="td-summary-tile-sub">Batas bersamaan</span>
+              <div className="td-preset-strip-actions">
+                <button
+                  type="button"
+                  className="td-chip-btn td-chip-primary"
+                  onClick={() => setShowPresetDrawer(true)}
+                >
+                  <Sparkles size={13} /> {t('speedtest.change_preset_btn', 'Ubah Preset')}
+                </button>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  onClick={() => setShowPresetDrawer(true)}
+                >
+                  <Bookmark size={13} /> {t('speedtest.profiles_btn', 'Profil')}
+                </button>
               </div>
+            </section>
 
-              <div className="td-summary-tile" onClick={() => setActiveTab('download')}>
-                <span className="td-summary-tile-title">Unduh Paralel</span>
-                <strong className="td-summary-tile-val">{draft.downloadConcurrency} Berkas</strong>
-                <span className="td-summary-tile-sub">Batas bersamaan</span>
-              </div>
-
-              <div className="td-summary-tile" onClick={() => setActiveTab('albums')}>
-                <span className="td-summary-tile-title">Pengelompokan Album</span>
-                <strong className="td-summary-tile-val">{draft.groupAsAlbum ? 'Aktif' : 'Nonaktif'}</strong>
-                <span className="td-summary-tile-sub">Ukuran: {draft.albumGroupSize || 10} media</span>
-              </div>
-
-              <div className="td-summary-tile" onClick={() => setActiveTab('duplicates')}>
-                <span className="td-summary-tile-title">Penanganan Duplikat</span>
-                <strong className="td-summary-tile-val">{draft.duplicatePolicy === 'SKIP' ? 'Lewati' : 'Unggah Ulang'}</strong>
-                <span className="td-summary-tile-sub">Deteksi obrolan Telegram</span>
-              </div>
+            {/* CATEGORIES BUTTONS LIST GRID */}
+            <div className="td-category-menu-list">
+              {subMenuCategories.map((cat) => {
+                if (cat.isAdvancedOnly && viewMode !== 'advanced') return null;
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className="td-category-menu-card"
+                    onClick={() => setActiveTab(cat.id)}
+                  >
+                    <div className="td-cat-card-icon">
+                      <Icon size={22} />
+                    </div>
+                    <div className="td-cat-card-info">
+                      <h4>{cat.label}</h4>
+                      <p>{cat.desc}</p>
+                    </div>
+                    <ChevronRight size={18} className="td-cat-arrow" />
+                  </button>
+                );
+              })}
             </div>
 
             {/* Validation Warnings inside Summary */}
             {validation.warnings.length > 0 && (
-              <div className="td-summary-warning-box">
+              <div className="td-summary-warning-box" style={{ marginTop: '16px' }}>
                 <AlertTriangle size={18} />
                 <div>
                   <strong>{t('speedtest.warning_label', 'Peringatan Konfigurasi')}</strong>
@@ -423,7 +397,9 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 2: UPLOAD */}
+        {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (100% CLEAN - NO PRESET STRIP OR TAB BAR CLUTTER) */}
+
+        {/* DEDICATED PAGE: UPLOAD */}
         {activeTab === 'upload' && (
           <div className="td-xfer-focused-panel" id="section-upload-format">
             {/* FORMAT PENGIRIMAN */}
@@ -616,7 +592,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 3: ENCODING VIDEO */}
+        {/* DEDICATED PAGE: ENCODING VIDEO */}
         {activeTab === 'encoding' && (
           <div className="td-xfer-focused-panel" id="section-encoding-mode">
             <div className="td-settings-card">
@@ -783,7 +759,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 4: PENGELOMPOKAN ALBUM */}
+        {/* DEDICATED PAGE: PENGELOMPOKAN ALBUM */}
         {activeTab === 'albums' && (
           <div className="td-xfer-focused-panel" id="section-albums-main">
             <div className="td-settings-card">
@@ -857,7 +833,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 5: PENANGANAN DUPLIKAT */}
+        {/* DEDICATED PAGE: PENANGANAN DUPLIKAT */}
         {activeTab === 'duplicates' && (
           <div className="td-xfer-focused-panel" id="section-duplicates-main">
             <div className="td-settings-card">
@@ -915,7 +891,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 6: DOWNLOAD */}
+        {/* DEDICATED PAGE: DOWNLOAD */}
         {activeTab === 'download' && (
           <div className="td-xfer-focused-panel" id="section-download-performance">
             <div className="td-settings-card">
@@ -1001,7 +977,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 7: BATAS UKURAN & PEMULIHAN */}
+        {/* DEDICATED PAGE: BATAS UKURAN & PEMULIHAN */}
         {activeTab === 'limits_recovery' && (
           <div className="td-xfer-focused-panel" id="section-limits-recovery">
             <div className="td-settings-card">
@@ -1058,7 +1034,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* SUB-MENU 8: PENGATURAN LANJUTAN */}
+        {/* DEDICATED PAGE: PENGATURAN LANJUTAN */}
         {activeTab === 'advanced' && (
           <div className="td-xfer-focused-panel" id="section-advanced-main">
             <div className="td-settings-card">
@@ -1089,7 +1065,7 @@ export function TransferSettingsWorkspace({
         )}
 
         {/* PROFILES DRAWER / MODAL OVERLAY */}
-        {(showPresetDrawer || activeTab === 'profiles') && (
+        {showPresetDrawer && (
           <div className="td-xfer-confirm-overlay" role="presentation">
             <div className="td-xfer-drawer-modal" role="dialog" aria-modal="true">
               <div className="td-drawer-head">
