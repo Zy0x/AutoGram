@@ -73,9 +73,9 @@ export function DriveTransferSettings({
       setSelectedProfileId('');
       setProfileName('');
       setSettingsQuery('');
-      fetchHardwareCapabilities();
+      // fetchHardwareCapabilities(); // Temporarily disabled
     }
-  }, [open, settings, fetchHardwareCapabilities]);
+  }, [open, settings]);
 
   useEffect(() => {
     if (!open) return;

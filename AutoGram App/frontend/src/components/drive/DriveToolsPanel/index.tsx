@@ -781,8 +781,8 @@ function TransferTabContent({
   const [settingsQuery, setSettingsQuery] = useState('');
 
   useEffect(() => {
-    fetchHardwareCapabilities();
-  }, [fetchHardwareCapabilities]);
+    // fetchHardwareCapabilities(); // Temporarily disabled
+  }, []);
 
   const loadProfile = (id: string) => {
     setSelectedProfileId(id);

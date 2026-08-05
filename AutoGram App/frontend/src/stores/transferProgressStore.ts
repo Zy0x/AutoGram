@@ -123,15 +123,8 @@ class TransferProgressStore {
   };
 
   public fetchHardwareCapabilities = async () => {
-    try {
-      const caps = await invoke<HardwareCapabilities>('get_hardware_capabilities');
-      const best = await invoke<SelectedEncoder>('select_best_encoder');
-      this.hardwareCapabilities = caps;
-      this.selectedEncoder = best;
-      this.notify();
-    } catch (err) {
-      console.warn('Failed to fetch hardware capabilities from Tauri:', err);
-    }
+    // Temporarily disabled to prevent background process conflicts and scroll lag
+    return;
   };
 
   private notify() {
