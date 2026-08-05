@@ -6,7 +6,7 @@ pub mod health;
 pub mod router;
 pub mod score;
 
-pub use capability::AccountCapability;
+pub use capability::{AccountCapability, CapabilitySource, MAX_TELEGRAM_PART_SIZE};
 pub use flood_handler::FloodWaitState;
 pub use health::AccountHealthState;
 pub use router::{select_best_account, AccountProfileInfo};

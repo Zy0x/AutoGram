@@ -1,5 +1,5 @@
 //! Studio / transfer job queue (Rust).
-//! Owns ordered item state; Python studio-serve only executes Telethon steps.
+//! Owns ordered item state for the Rust/Grammers Studio orchestrator.
 
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -19,6 +19,8 @@ pub enum ItemState {
     Preparing,
     Uploading,
     Committing,
+    UnknownCommit,
+    Reconciling,
     Done,
     Failed,
     Skipped,
@@ -268,7 +270,12 @@ pub fn set_transfer_state(transfer_id: &str, state: TransferState) -> Result<(),
     Ok(())
 }
 
-static CANCELLED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> = OnceLock::new();
+static CANCELLED_TRANSFER_IDS: OnceLock<RwLock<std::collections::HashSet<String>>> =
+    OnceLock::new();
+static CANCEL_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+static PAUSE_ALL_TRANSFERS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
 
 fn cancelled_set() -> &'static RwLock<std::collections::HashSet<String>> {
     CANCELLED_TRANSFER_IDS.get_or_init(|| RwLock::new(std::collections::HashSet::new()))
@@ -279,6 +286,7 @@ pub fn cancel_transfer(transfer_id: Option<&str>) {
         cancelled_set().write().insert(tid.to_string());
         let _ = set_transfer_state(tid, TransferState::Cancelled);
     } else {
+        CANCEL_ALL_TRANSFERS.store(true, std::sync::atomic::Ordering::SeqCst);
         let mut map = live().write();
         let mut set = cancelled_set().write();
         for (id, rec) in map.iter_mut() {
@@ -291,14 +299,19 @@ pub fn cancel_transfer(transfer_id: Option<&str>) {
 }
 
 pub fn clear_cancel_flag_for(transfer_id: &str) {
+    CANCEL_ALL_TRANSFERS.store(false, std::sync::atomic::Ordering::SeqCst);
     cancelled_set().write().remove(transfer_id);
 }
 
 pub fn clear_all_cancel_flags() {
+    CANCEL_ALL_TRANSFERS.store(false, std::sync::atomic::Ordering::SeqCst);
     cancelled_set().write().clear();
 }
 
 pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
+    if CANCEL_ALL_TRANSFERS.load(std::sync::atomic::Ordering::SeqCst) {
+        return true;
+    }
     let set = cancelled_set().read();
     if set.contains(transfer_id) {
         return true;
@@ -307,6 +320,24 @@ pub fn is_transfer_cancelled(transfer_id: &str) -> bool {
         return rec.state == TransferState::Cancelled;
     }
     false
+}
+
+pub fn set_transfer_paused(paused: bool) {
+    PAUSE_ALL_TRANSFERS.store(paused, std::sync::atomic::Ordering::SeqCst);
+}
+
+pub fn is_transfer_paused() -> bool {
+    PAUSE_ALL_TRANSFERS.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+pub fn wait_while_transfer_paused(transfer_id: &str) -> Result<(), String> {
+    while is_transfer_paused() {
+        if is_transfer_cancelled(transfer_id) {
+            return Err("transfer cancelled by user".into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -339,5 +370,22 @@ mod tests {
         let u = update_item("test-t1", 0, ItemState::Done, Some(99), None).unwrap();
         assert_eq!(u.done_count, 1);
         assert_eq!(u.state, TransferState::Completed);
+    }
+
+    #[test]
+    fn global_cancel_reaches_unregistered_transfer_ids() {
+        clear_all_cancel_flags();
+        cancel_transfer(None);
+        assert!(is_transfer_cancelled("download:not-in-live-map"));
+        clear_cancel_flag_for("download:not-in-live-map");
+        assert!(!is_transfer_cancelled("download:not-in-live-map"));
+    }
+
+    #[test]
+    fn pause_state_is_explicit_and_reversible() {
+        set_transfer_paused(true);
+        assert!(is_transfer_paused());
+        set_transfer_paused(false);
+        assert!(!is_transfer_paused());
     }
 }

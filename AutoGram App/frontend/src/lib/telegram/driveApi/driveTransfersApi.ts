@@ -424,9 +424,26 @@ export async function cleanupPartialDownloads(
 
 /** Soft-pause flag under worker/temp (worker checks between files). */
 const PAUSE_FLAG_NAME = 'drive_pause.txt';
+let transferPaused = false;
+const transferPauseWaiters = new Set<() => void>();
+
+export async function waitWhileDriveTransferPaused(): Promise<void> {
+  if (!transferPaused) return;
+  await new Promise<void>((resolve) => transferPauseWaiters.add(resolve));
+}
 
 export async function setDriveTransferPaused(paused: boolean): Promise<void> {
   const { invoke } = await import('@tauri-apps/api/core');
+  transferPaused = paused;
+  if (!paused) {
+    for (const resolve of transferPauseWaiters) resolve();
+    transferPauseWaiters.clear();
+  }
+  try {
+    await invoke<boolean>('studio_set_transfer_paused', { paused });
+  } catch {
+    /* legacy binary: worker pause flag below remains available */
+  }
   if (paused) {
     try {
       await invoke<string>('write_worker_temp_file', {

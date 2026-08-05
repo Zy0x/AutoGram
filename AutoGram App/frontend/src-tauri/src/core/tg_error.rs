@@ -96,7 +96,8 @@ impl TgError {
             message: crate::core::tg_log::redact(&msg),
             flood_wait_secs: None,
             rpc_name: Some(name),
-            retryable: is_worker_busy || matches!(code, TgErrorCode::FloodWait | TgErrorCode::Network),
+            retryable: is_worker_busy
+                || matches!(code, TgErrorCode::FloodWait | TgErrorCode::Network),
         }
     }
 

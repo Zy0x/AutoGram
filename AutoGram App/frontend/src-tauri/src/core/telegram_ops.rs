@@ -304,7 +304,6 @@ pub fn tg_download_profile_photo(identity: TelegramIdentity) -> OpResult<Option<
     }
 }
 
-
 pub fn tg_list_dialogs(
     identity: TelegramIdentity,
     limit: Option<usize>,
@@ -535,6 +534,18 @@ pub struct DownloadFileRequest {
     pub chat_id: String,
     pub message_id: i64,
     pub dest_path: String,
+    #[serde(default)]
+    pub conflict_policy: Option<String>,
+    #[serde(default)]
+    pub resume_partial: Option<bool>,
+    #[serde(default)]
+    pub integrity: Option<String>,
+    #[serde(default)]
+    pub expected_sha256: Option<String>,
+    #[serde(default)]
+    pub transfer_id: Option<String>,
+    #[serde(default)]
+    pub item_index: Option<usize>,
 }
 
 pub fn tg_download_file(
@@ -546,12 +557,20 @@ pub fn tg_download_file(
         api_id: req.api_id,
         api_hash: req.api_hash,
     };
-    match super::grammers_ops::download_file_blocking(
+    match super::grammers_ops::download_file_blocking_with_policy(
         &dir,
         &identity,
         &req.chat_id,
         req.message_id,
         &req.dest_path,
+        super::grammers_ops::DownloadPolicyRequest {
+            conflict_policy: req.conflict_policy,
+            resume_partial: req.resume_partial.unwrap_or(false),
+            integrity: req.integrity,
+            expected_sha256: req.expected_sha256,
+            transfer_id: req.transfer_id,
+            item_index: req.item_index.unwrap_or(0),
+        },
     ) {
         Ok(r) => ok_result("grammers", r),
         Err(e) => {

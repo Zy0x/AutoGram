@@ -130,6 +130,10 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         "#,
     )
     .map_err(|e| format!("schema: {e}"))?;
+    conn.execute_batch(include_str!(
+        "../../../../database/migrations/015_transfer_control_plane_v4.sql"
+    ))
+    .map_err(|e| format!("transfer control schema: {e}"))?;
     Ok(())
 }
 

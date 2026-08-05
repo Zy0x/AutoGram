@@ -3,10 +3,10 @@
 pub mod autogram_core;
 pub mod capability;
 pub mod config_normalize;
-pub mod hardware_capability;
 pub mod doc_preview;
 pub mod drive_rpc;
 pub mod grammers;
+pub mod hardware_capability;
 pub use grammers as grammers_media;
 pub mod app_db;
 pub mod automations_db;

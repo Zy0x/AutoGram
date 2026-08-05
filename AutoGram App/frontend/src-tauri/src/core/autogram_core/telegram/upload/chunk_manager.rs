@@ -10,7 +10,11 @@ pub struct ChunkAllocation {
     pub parallel_workers: usize,
 }
 
-pub fn calculate_chunk_allocation(file_size: u64, is_premium: bool, latency_ms: u32) -> ChunkAllocation {
+pub fn calculate_chunk_allocation(
+    file_size: u64,
+    is_premium: bool,
+    latency_ms: u32,
+) -> ChunkAllocation {
     let chunk_size = if file_size > 10 * 1024 * 1024 {
         512 * 1024 // 512 KB
     } else if file_size > 1024 * 1024 {

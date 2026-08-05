@@ -60,7 +60,11 @@ pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
 
     UserProfile {
         id: peer_id_i64(u.id()),
-        first_name: if full_name.is_empty() { None } else { Some(full_name) },
+        first_name: if full_name.is_empty() {
+            None
+        } else {
+            Some(full_name)
+        },
         username: u.username().map(|s| s.to_string()),
         photo_base64,
     }

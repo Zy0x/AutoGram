@@ -76,10 +76,7 @@ pub fn load_latest_checkpoint(
 }
 
 pub fn delete_job_checkpoints(conn: &Connection, job_id: i64) -> Result<(), String> {
-    conn.execute(
-        "DELETE FROM checkpoints WHERE job_id = ?1",
-        params![job_id],
-    )
-    .map_err(|e| format!("delete checkpoints failed: {e}"))?;
+    conn.execute("DELETE FROM checkpoints WHERE job_id = ?1", params![job_id])
+        .map_err(|e| format!("delete checkpoints failed: {e}"))?;
     Ok(())
 }

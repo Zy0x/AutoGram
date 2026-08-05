@@ -18,7 +18,8 @@ pub struct RepairResult {
 }
 
 pub fn repair_mp4_container(input_path: &Path, output_path: &Path) -> Result<RepairResult, String> {
-    let ff_path = find_ffmpeg_binary().ok_or_else(|| "FFmpeg binary not found for container repair".to_string())?;
+    let ff_path = find_ffmpeg_binary()
+        .ok_or_else(|| "FFmpeg binary not found for container repair".to_string())?;
 
     let mut cmd = Command::new(&ff_path);
     cmd.arg("-hide_banner")
@@ -34,7 +35,9 @@ pub fn repair_mp4_container(input_path: &Path, output_path: &Path) -> Result<Rep
     #[cfg(windows)]
     cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
 
-    let output = cmd.output().map_err(|e| format!("failed to execute ffmpeg repair: {e}"))?;
+    let output = cmd
+        .output()
+        .map_err(|e| format!("failed to execute ffmpeg repair: {e}"))?;
 
     if output.status.success() && output_path.exists() {
         Ok(RepairResult {

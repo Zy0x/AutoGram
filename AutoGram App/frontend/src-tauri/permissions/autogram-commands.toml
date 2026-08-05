@@ -116,7 +116,6 @@ allow = [
     "tg_thumbs_batch_v2",
     "inspect_mp4_layout_cmd",
     "cache_calculate_size",
-    "drive_calculate_cache_size",
     "cache_clear_disk",
     "cache_trim_disk",
     "tg_download_profile_photo",
@@ -129,10 +128,12 @@ allow = [
     "kill_worker_job",
     "run_worker_once",
     "write_worker_stdin",
-    "studio_cancel_transfer"
+    "studio_cancel_transfer",
+    "studio_set_transfer_paused",
+    "quality_preflight",
+    "get_hardware_capabilities",
+    "select_best_encoder"
 ]
-
-
 
 
 

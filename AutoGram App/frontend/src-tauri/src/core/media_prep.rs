@@ -4,14 +4,49 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::{Condvar, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::grammers_media::find_ffmpeg_binary;
-use super::hardware_capability::resolve_encoder_from_preference;
+use super::hardware_capability::{
+    detect_hardware_capabilities, parse_specific_encoder_device, resolve_encoder_from_preference,
+    smoke_test_encoder, smoke_test_encoder_on_device,
+};
 use super::path_policy;
 use super::tg_log;
 
 const BACKEND: &str = "media_prep";
+
+static ACTIVE_ENCODERS: Mutex<usize> = Mutex::new(0);
+static ENCODER_CAPACITY: Condvar = Condvar::new();
+
+struct EncoderPermit;
+
+impl EncoderPermit {
+    fn acquire(max_parallel: usize) -> Self {
+        let limit = max_parallel.clamp(1, 4);
+        let mut active = ACTIVE_ENCODERS
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        while *active >= limit {
+            active = ENCODER_CAPACITY
+                .wait(active)
+                .unwrap_or_else(|error| error.into_inner());
+        }
+        *active += 1;
+        Self
+    }
+}
+
+impl Drop for EncoderPermit {
+    fn drop(&mut self) {
+        let mut active = ACTIVE_ENCODERS
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        *active = active.saturating_sub(1);
+        ENCODER_CAPACITY.notify_one();
+    }
+}
 
 fn temp_dir() -> PathBuf {
     let base = std::env::temp_dir().join("autogram_studio_prep");
@@ -33,19 +68,30 @@ pub fn is_remote_url(path: &str) -> bool {
     p.starts_with("http://") || p.starts_with("https://")
 }
 
-fn emit_transfer_event(app: Option<&tauri::AppHandle>, event_type: &str, payload: serde_json::Value) {
+fn emit_transfer_event(
+    app: Option<&tauri::AppHandle>,
+    event_type: &str,
+    payload: serde_json::Value,
+) {
     if let Some(app) = app {
         use tauri::Emitter;
         let mut map = payload;
         if let Some(obj) = map.as_object_mut() {
-            obj.insert("type".to_string(), serde_json::Value::String(event_type.to_string()));
+            obj.insert(
+                "type".to_string(),
+                serde_json::Value::String(event_type.to_string()),
+            );
         }
         let _ = app.emit("transfer-event", map);
     }
 }
 
 /// Download remote URL to a temp file under path policy (max ~200MB).
-pub fn download_remote_url(url: &str, app: Option<&tauri::AppHandle>, item_index: usize) -> Result<PathBuf, String> {
+pub fn download_remote_url(
+    url: &str,
+    app: Option<&tauri::AppHandle>,
+    item_index: usize,
+) -> Result<PathBuf, String> {
     let url = url.trim();
     if !is_remote_url(url) {
         return Err("not a remote URL".into());
@@ -91,13 +137,17 @@ pub fn download_remote_url(url: &str, app: Option<&tauri::AppHandle>, item_index
         if let Some(total) = content_length {
             if total > 0 {
                 let pct = (written as f64 / total as f64 * 100.0).min(99.0);
-                emit_transfer_event(app, "StudioProgress", serde_json::json!({
-                    "item_index": item_index,
-                    "percent": pct,
-                    "transferred": written,
-                    "total": total,
-                    "phase": "download"
-                }));
+                emit_transfer_event(
+                    app,
+                    "StudioProgress",
+                    serde_json::json!({
+                        "item_index": item_index,
+                        "percent": pct,
+                        "transferred": written,
+                        "total": total,
+                        "phase": "download"
+                    }),
+                );
             }
         }
         if written > max {
@@ -191,6 +241,39 @@ fn resolve_quality_preset(mode: &str) -> QualityPreset {
     }
 }
 
+fn target_video_bitrate(
+    duration_seconds: f64,
+    planning_bytes: u64,
+    audio_bitrate: &str,
+    quality_mode: &str,
+) -> Option<u64> {
+    if !duration_seconds.is_finite() || duration_seconds <= 0.0 || planning_bytes < 1_000_000 {
+        return None;
+    }
+    let audio_bps = audio_bitrate
+        .trim_end_matches('k')
+        .parse::<u64>()
+        .ok()?
+        .saturating_mul(1_000);
+    let total_bps = ((planning_bytes as f64 * 8.0) / duration_seconds) as u64;
+    let video_bps = total_bps.saturating_sub(audio_bps).saturating_sub(64_000);
+    let quality_floor = if quality_mode.contains("HIGH") {
+        600_000
+    } else {
+        350_000
+    };
+    (video_bps >= quality_floor).then_some(video_bps.min(50_000_000))
+}
+
+fn adjusted_target_planning_bytes(current_plan: u64, hard_limit: u64, actual_bytes: u64) -> u64 {
+    current_plan
+        .saturating_mul(hard_limit)
+        .checked_div(actual_bytes.max(1))
+        .unwrap_or(current_plan)
+        .saturating_mul(95)
+        / 100
+}
+
 /// Extract basic video metadata (width, height, duration in seconds) using ffprobe.
 /// Returns (width, height, duration_secs) or defaults (0, 0, 0).
 pub fn probe_video_metadata(path: &str) -> (u32, u32, f64) {
@@ -198,16 +281,21 @@ pub fn probe_video_metadata(path: &str) -> (u32, u32, f64) {
         return (0, 0, 0.0);
     };
     // Try ffprobe first (same dir as ffmpeg)
-    let ffprobe = ff.parent()
+    let ffprobe = ff
+        .parent()
         .map(|p| p.join("ffprobe"))
         .unwrap_or_else(|| PathBuf::from("ffprobe"));
 
     let mut cmd = Command::new(&ffprobe);
     cmd.args([
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,duration",
-        "-of", "default=noprint_wrappers=1:nokey=0",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height,duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=0",
         path,
     ]);
 
@@ -304,7 +392,11 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     if !p.is_file() {
         return None;
     }
-    let ext = p.extension().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase();
+    let ext = p
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     let is_video = matches!(
         ext.as_str(),
         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp" | "flv" | "ts"
@@ -345,16 +437,23 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
     let mut cmd = Command::new(&ff);
     cmd.args([
         "-hide_banner",
-        "-loglevel", "error",
+        "-loglevel",
+        "error",
         "-nostdin",
         "-y",
-        "-ss", &format!("{:.1}", seek_time),
-        "-i", path,
+        "-ss",
+        &format!("{:.1}", seek_time),
+        "-i",
+        path,
         "-an",
-        "-vframes", "1",
-        "-vf", &scale_filter,
-        "-q:v", "3",
-        "-f", "image2",
+        "-vframes",
+        "1",
+        "-vf",
+        &scale_filter,
+        "-q:v",
+        "3",
+        "-f",
+        "image2",
         out.to_str().unwrap_or("thumb.jpg"),
     ]);
 
@@ -396,7 +495,8 @@ pub fn extract_video_thumbnail(path: &str) -> Option<PathBuf> {
 }
 
 /// Optional lean reencode for Telegram-friendly MP4 (when quality_mode suggests it).
-/// Returns original path if reencode skipped/failed (best-effort).
+/// Returns the original path when the selected mode safely permits passthrough;
+/// strict encoder strategies return an error when their contract cannot be met.
 ///
 /// `hardware_override`: user-specified encoder preference from Transfer Settings UI.
 ///   - None or "auto" → auto-detect best available
@@ -408,9 +508,26 @@ pub fn maybe_reencode_for_telegram(
     path: &str,
     quality_mode: Option<&str>,
     hardware_override: Option<&str>,
+    encoder_strategy: Option<&str>,
+    resource_profile: Option<&str>,
+    max_parallel: usize,
+    allow_software_fallback: bool,
+    target_max_bytes: Option<u64>,
+    target_planning_bytes: Option<u64>,
+    target_attempt: u8,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
-) -> String {
+) -> Result<String, String> {
+    let strategy = encoder_strategy.unwrap_or("auto_adaptive");
+    let strict_hardware = matches!(strategy, "hardware_only" | "specific_device");
+    let strict_software = strategy == "software_only";
+    if encoder_strategy
+        .map(|value| value.eq_ignore_ascii_case("disable_reencode"))
+        .unwrap_or(false)
+    {
+        tg_log::info(BACKEND, "reencode_disabled_by_profile", path);
+        return Ok(path.to_string());
+    }
     let mode = quality_mode.unwrap_or("").to_ascii_uppercase();
     // ORIGINAL / DOCUMENT / empty → skip
     if mode.is_empty()
@@ -418,11 +535,11 @@ pub fn maybe_reencode_for_telegram(
         || mode.contains("DOCUMENT")
         || mode.contains("SKIP")
     {
-        return path.to_string();
+        return Ok(path.to_string());
     }
     let p = Path::new(path);
     if !p.is_file() {
-        return path.to_string();
+        return Ok(path.to_string());
     }
     let ext = p
         .extension()
@@ -434,31 +551,184 @@ pub fn maybe_reencode_for_telegram(
         "mp4" | "mov" | "mkv" | "webm" | "avi" | "m4v" | "3gp"
     );
     if !is_video {
-        return path.to_string();
+        return Ok(path.to_string());
     }
 
-    // Standard MP4 files are already native Telegram video format (H.264/AAC MP4).
-    // Upload directly without re-encoding unless explicitly forced via FORCE_REENCODE mode.
-    if ext == "mp4" && !mode.contains("FORCE_REENCODE") && !mode.contains("ALWAYS_REENCODE") {
+    let source_analysis = super::autogram_core::transfer::analyze_media(p);
+    let input_size = fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let hard_target_bytes = target_max_bytes.filter(|limit| *limit > 0 && input_size > *limit);
+    if source_analysis.is_hdr() || source_analysis.has_preservation_sensitive_streams() {
+        tg_log::warn(
+            BACKEND,
+            "reencode_preservation_guard",
+            "HDR, subtitle, attachment, data, or multi-audio streams require an explicit preservation decision",
+        );
+        return Ok(path.to_string());
+    }
+
+    // Container extension alone is not proof of native playback compatibility.
+    if ext == "mp4"
+        && source_analysis.is_validated_native_video()
+        && hard_target_bytes.is_none()
+        && !mode.contains("FORCE_REENCODE")
+        && !mode.contains("ALWAYS_REENCODE")
+    {
         tg_log::info(
             BACKEND,
             "reencode_passthrough",
             format!("Direct upload passthrough for mp4 video: {path}"),
         );
-        return path.to_string();
+        return Ok(path.to_string());
     }
     let Some(ff) = find_ffmpeg_binary() else {
         tg_log::warn(BACKEND, "reencode_skip", "ffmpeg not found");
-        return path.to_string();
+        if strict_hardware || strict_software {
+            return Err("encoder_toolchain_unavailable: FFmpeg binary not found".into());
+        }
+        return Ok(path.to_string());
     };
+
+    if ext != "mp4" && hard_target_bytes.is_none() && source_analysis.lossless_mp4_remux_feasible()
+    {
+        let remuxed = unique_name("remux", "mp4");
+        let mut command = Command::new(&ff);
+        command.args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-y",
+            "-i",
+            path,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "copy",
+            "-map_metadata",
+            "0",
+            "-map_chapters",
+            "0",
+            "-movflags",
+            "+faststart",
+        ]);
+        command.arg(&remuxed);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
+        match command.status() {
+            Ok(status) if status.success() && remuxed.is_file() => {
+                let validation = super::autogram_core::transfer::analyze_media(&remuxed);
+                if validation.is_validated_native_video() {
+                    tg_log::info(BACKEND, "lossless_remux_selected", "explicit stream map");
+                    return Ok(remuxed.display().to_string());
+                }
+                let _ = fs::remove_file(&remuxed);
+                tg_log::warn(
+                    BACKEND,
+                    "lossless_remux_validation_failed",
+                    "remux output was not native-playback compatible",
+                );
+            }
+            Ok(status) => {
+                tg_log::warn(BACKEND, "lossless_remux_failed", format!("status={status}"))
+            }
+            Err(error) => tg_log::warn(BACKEND, "lossless_remux_spawn", error.to_string()),
+        }
+    }
 
     let preset = resolve_quality_preset(&mode);
     let out = unique_name("reenc", "mp4");
-    let input_size = fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let planning_bytes = hard_target_bytes.map(|hard_limit| {
+        target_planning_bytes.unwrap_or_else(|| hard_limit.saturating_mul(95) / 100)
+    });
+    let planned_video_bitrate = match planning_bytes {
+        Some(bytes) => {
+            let Some(duration) = source_analysis.duration_seconds else {
+                tg_log::warn(
+                    BACKEND,
+                    "target_size_duration_unavailable",
+                    "target-size encode deferred to oversize resolver because duration is unavailable",
+                );
+                return Ok(path.to_string());
+            };
+            let Some(bitrate) = target_video_bitrate(duration, bytes, preset.audio_bitrate, &mode)
+            else {
+                tg_log::warn(
+                    BACKEND,
+                    "target_size_quality_floor",
+                    "target-size bitrate would cross the bounded quality floor",
+                );
+                return Ok(path.to_string());
+            };
+            Some(bitrate)
+        }
+        None => None,
+    };
 
     // Resolve encoder: user preference takes priority, fallback to auto-detect
-    let hw_pref = hardware_override.unwrap_or("auto");
-    let (v_codec, encoder_display) = resolve_encoder_from_preference(hw_pref);
+    let hw_pref = match strategy {
+        "software_only" | "software_preferred" => "cpu",
+        _ => hardware_override.unwrap_or("auto"),
+    };
+    let selected_device = parse_specific_encoder_device(&hw_pref.to_ascii_lowercase());
+    if strategy == "specific_device" && selected_device.is_none() {
+        return Err(
+            "specific_device_required: select an explicitly routable physical encoder device"
+                .into(),
+        );
+    }
+    if let Some(device) = selected_device.as_ref() {
+        let capabilities = detect_hardware_capabilities();
+        let is_current_and_routable = capabilities.gpu.iter().any(|gpu| {
+            gpu.backend_id == device.backend_id
+                && gpu.device_index == device.device_index
+                && gpu.device_id.eq_ignore_ascii_case(&device.device_id)
+                && gpu.supported
+                && gpu.supports_explicit_selection
+        });
+        if !is_current_and_routable {
+            return Err(
+                "specific_device_unavailable: selected physical encoder is stale, unsupported, or cannot be routed explicitly"
+                    .into(),
+            );
+        }
+    }
+    let (mut v_codec, mut encoder_display) = resolve_encoder_from_preference(hw_pref);
+    if strict_hardware && v_codec == "libx264" {
+        return Err(
+            "hardware_only_no_valid_device: no usable hardware encoder was selected".into(),
+        );
+    }
+    let smoke_result = if let Some(device) = selected_device.as_ref() {
+        smoke_test_encoder_on_device(&v_codec, device.device_index)
+    } else {
+        smoke_test_encoder(&v_codec)
+    };
+    if let Err(error) = smoke_result {
+        tg_log::warn(BACKEND, "encoder_smoke_failed", &error);
+        if v_codec != "libx264" && allow_software_fallback && !strict_hardware {
+            smoke_test_encoder("libx264")?;
+            v_codec = "libx264".into();
+            encoder_display = "CPU x264 fallback".into();
+            tg_log::info(BACKEND, "software_fallback_selected", &error);
+        } else {
+            return Err(error);
+        }
+    }
+    let _encoder_permit = EncoderPermit::acquire(max_parallel);
+    let thread_count = match resource_profile.unwrap_or("balanced") {
+        "eco" => "2".to_string(),
+        "custom" => std::thread::available_parallelism()
+            .map(|value| (value.get() / 2).max(1).to_string())
+            .unwrap_or_else(|_| "2".into()),
+        _ => "0".into(),
+    };
 
     tg_log::info(
         BACKEND,
@@ -466,12 +736,18 @@ pub fn maybe_reencode_for_telegram(
         format!("encoder={encoder_display} hw_pref={hw_pref} mode={mode}"),
     );
 
-    emit_transfer_event(app, "StudioReencodeStarted", serde_json::json!({
-        "index": item_index,
-        "backend": hw_pref,
-        "encoder": encoder_display,
-        "planned_target_bytes": input_size
-    }));
+    emit_transfer_event(
+        app,
+        "StudioReencodeStarted",
+        serde_json::json!({
+            "index": item_index,
+            "backend": hw_pref,
+            "encoder": encoder_display,
+            "planned_target_bytes": planning_bytes.unwrap_or(input_size),
+            "target_attempt": target_attempt,
+            "planned_video_bitrate": planned_video_bitrate,
+        }),
+    );
 
     use std::io::BufRead;
     use std::process::Stdio;
@@ -479,24 +755,36 @@ pub fn maybe_reencode_for_telegram(
     // Build GPU-specific optimization args
     let mut extra_args: Vec<String> = Vec::new();
 
+    if let Some(bitrate) = planned_video_bitrate {
+        extra_args.extend(["-b:v".to_string(), bitrate.to_string()]);
+    }
+
     if v_codec == "h264_nvenc" {
+        if let Some(device) = selected_device.as_ref() {
+            extra_args.extend(["-gpu".to_string(), device.device_index.to_string()]);
+        }
         // NVENC: use VBR rate control for better quality/speed balance
         extra_args.extend([
-            "-rc".to_string(), "vbr".to_string(),
-            "-b:v".to_string(), "0".to_string(),
-            "-cq".to_string(), preset.crf.to_string(),
-            "-spatial_aq".to_string(), "1".to_string(),
+            "-rc".to_string(),
+            "vbr".to_string(),
+            "-cq".to_string(),
+            preset.crf.to_string(),
+            "-spatial_aq".to_string(),
+            "1".to_string(),
         ]);
+        if planned_video_bitrate.is_none() {
+            extra_args.extend(["-b:v".to_string(), "0".to_string()]);
+        }
     } else if v_codec == "h264_amf" {
         // AMF: quality mode for better GPU utilization
-        extra_args.extend([
-            "-quality".to_string(), "speed".to_string(),
-        ]);
+        extra_args.extend(["-quality".to_string(), "speed".to_string()]);
     } else if v_codec == "h264_qsv" {
         // QSV: global quality for Intel GPU
         extra_args.extend([
-            "-global_quality".to_string(), preset.crf.to_string(),
-            "-look_ahead".to_string(), "1".to_string(),
+            "-global_quality".to_string(),
+            preset.crf.to_string(),
+            "-look_ahead".to_string(),
+            "1".to_string(),
         ]);
     }
 
@@ -506,7 +794,8 @@ pub fn maybe_reencode_for_telegram(
         "-progress",
         "pipe:1",
         "-nostats",
-        "-threads", "0",   // Auto-select optimal thread count
+        "-threads",
+        &thread_count,
         "-i",
         path,
         "-map",
@@ -525,30 +814,62 @@ pub fn maybe_reencode_for_telegram(
     }
 
     // For CPU encoding only, use CRF mode
-    if v_codec == "libx264" {
-        child_cmd.args([
-            "-preset", "veryfast",
-            "-crf", preset.crf,
-        ]);
+    if v_codec == "libx264" && planned_video_bitrate.is_none() {
+        child_cmd.args(["-preset", "veryfast", "-crf", preset.crf]);
+    } else if v_codec == "libx264" {
+        child_cmd.args(["-preset", "veryfast"]);
     }
 
-    child_cmd.args([
-        "-maxrate", preset.max_rate,
-        "-bufsize", preset.buf_size,
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", preset.audio_bitrate,
-        "-movflags", "+faststart",
-        out.to_str().unwrap_or("out.mp4"),
-    ])
-    .stdout(Stdio::piped())
-    .stderr(Stdio::null());
+    let target_max_rate = planned_video_bitrate
+        .map(|bitrate| bitrate.saturating_mul(105) / 100)
+        .map(|bitrate| bitrate.to_string());
+    let target_buffer_size = planned_video_bitrate
+        .map(|bitrate| bitrate.saturating_mul(2))
+        .map(|bitrate| bitrate.to_string());
+    let max_rate = target_max_rate.as_deref().unwrap_or(preset.max_rate);
+    let buffer_size = target_buffer_size.as_deref().unwrap_or(preset.buf_size);
+
+    child_cmd
+        .args([
+            "-maxrate",
+            max_rate,
+            "-bufsize",
+            buffer_size,
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            preset.audio_bitrate,
+            "-movflags",
+            "+faststart",
+            out.to_str().unwrap_or("out.mp4"),
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
 
     let mut child = match child_cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
             tg_log::warn(BACKEND, "reencode_spawn", e.to_string());
-            return path.to_string();
+            drop(_encoder_permit);
+            if v_codec != "libx264" && allow_software_fallback && !strict_hardware {
+                return maybe_reencode_for_telegram(
+                    path,
+                    quality_mode,
+                    Some("cpu"),
+                    Some("software_only"),
+                    resource_profile,
+                    max_parallel,
+                    false,
+                    target_max_bytes,
+                    target_planning_bytes,
+                    target_attempt,
+                    app,
+                    item_index,
+                );
+            }
+            return Err(format!("encoder_spawn_failed: {e}"));
         }
     };
 
@@ -584,27 +905,34 @@ pub fn maybe_reencode_for_telegram(
                 };
                 let processed_bytes = (pct / 100.0 * input_size as f64) as u64;
 
-                emit_transfer_event(app, "StudioReencodeProgress", serde_json::json!({
-                    "index": item_index,
-                    "percent": pct,
-                    "fps": fps,
-                    "speed_x": speed_x,
-                    "eta_s": eta_s,
-                    "encoder": encoder_display,
-                }));
+                emit_transfer_event(
+                    app,
+                    "StudioReencodeProgress",
+                    serde_json::json!({
+                        "index": item_index,
+                        "percent": pct,
+                        "fps": fps,
+                        "speed_x": speed_x,
+                        "eta_s": eta_s,
+                        "encoder": encoder_display,
+                    }),
+                );
 
                 if let Some(app) = app {
                     use tauri::Emitter;
-                    let _ = app.emit("transfer-progress", serde_json::json!({
-                        "jobId": format!("item-{}", item_index),
-                        "stage": "encode",
-                        "currentBytes": processed_bytes,
-                        "totalBytes": input_size,
-                        "speed": speed_x,
-                        "percentage": pct,
-                        "fps": fps,
-                        "eta": eta_s as u64
-                    }));
+                    let _ = app.emit(
+                        "transfer-progress",
+                        serde_json::json!({
+                            "jobId": format!("item-{}", item_index),
+                            "stage": "encode",
+                            "currentBytes": processed_bytes,
+                            "totalBytes": input_size,
+                            "speed": speed_x,
+                            "percentage": pct,
+                            "fps": fps,
+                            "eta": eta_s as u64
+                        }),
+                    );
                 }
             }
         }
@@ -615,18 +943,65 @@ pub fn maybe_reencode_for_telegram(
         Ok(s) if s.success() && out.is_file() => {
             let sz = fs::metadata(&out).map(|m| m.len()).unwrap_or(0);
             if sz > 64 {
+                if let (Some(hard_limit), Some(current_plan)) = (hard_target_bytes, planning_bytes)
+                {
+                    if sz > hard_limit && target_attempt < 2 {
+                        let adjusted_plan =
+                            adjusted_target_planning_bytes(current_plan, hard_limit, sz);
+                        tg_log::warn(
+                            BACKEND,
+                            "target_size_retry",
+                            format!(
+                                "attempt={} actual={} hard_limit={} next_plan={}",
+                                target_attempt + 1,
+                                sz,
+                                hard_limit,
+                                adjusted_plan
+                            ),
+                        );
+                        let _ = fs::remove_file(&out);
+                        drop(_encoder_permit);
+                        return maybe_reencode_for_telegram(
+                            path,
+                            quality_mode,
+                            hardware_override,
+                            encoder_strategy,
+                            resource_profile,
+                            max_parallel,
+                            allow_software_fallback,
+                            target_max_bytes,
+                            Some(adjusted_plan),
+                            target_attempt + 1,
+                            app,
+                            item_index,
+                        );
+                    }
+                    if sz > hard_limit {
+                        tg_log::warn(
+                            BACKEND,
+                            "target_size_exhausted",
+                            format!(
+                                "actual={sz} hard_limit={hard_limit}; forwarding to oversize resolver"
+                            ),
+                        );
+                    }
+                }
                 tg_log::info(
                     BACKEND,
                     "reencode_ok",
                     format!("encoder={encoder_display} out={} bytes={sz}", out.display()),
                 );
-                emit_transfer_event(app, "StudioReencodeDone", serde_json::json!({
-                    "index": item_index,
-                    "output_bytes": sz,
-                    "total": sz,
-                    "encoder": encoder_display
-                }));
-                return out.display().to_string();
+                emit_transfer_event(
+                    app,
+                    "StudioReencodeDone",
+                    serde_json::json!({
+                        "index": item_index,
+                        "output_bytes": sz,
+                        "total": sz,
+                        "encoder": encoder_display
+                    }),
+                );
+                return Ok(out.display().to_string());
             }
         }
         Ok(s) => {
@@ -641,37 +1016,229 @@ pub fn maybe_reencode_for_telegram(
         }
     }
     let _ = fs::remove_file(&out);
-    path.to_string()
+    if v_codec != "libx264" && allow_software_fallback && !strict_hardware {
+        tg_log::warn(
+            BACKEND,
+            "encoder_runtime_fallback",
+            "hardware encode failed; retrying once with CPU x264",
+        );
+        drop(_encoder_permit);
+        return maybe_reencode_for_telegram(
+            path,
+            quality_mode,
+            Some("cpu"),
+            Some("software_only"),
+            resource_profile,
+            max_parallel,
+            false,
+            target_max_bytes,
+            target_planning_bytes,
+            target_attempt,
+            app,
+            item_index,
+        );
+    }
+    Err(format!(
+        "encoder_output_invalid: {encoder_display} did not produce a valid output"
+    ))
 }
 
-/// Resolve a studio item path: download remote URL if needed, optional reencode.
-/// Returns (local_path, cleanup_temp).
-pub fn prepare_upload_path(
+#[derive(Debug, Clone)]
+pub struct PreparedUploadArtifact {
+    pub source_path: String,
+    pub prepared_path: String,
+    pub cleanup_paths: Vec<PathBuf>,
+    pub transformed: bool,
+    pub native_visual_validated: bool,
+    pub transform_action: super::autogram_core::transfer::TransformAction,
+}
+
+impl PreparedUploadArtifact {
+    pub fn cleanup(self) {
+        for path in self.cleanup_paths {
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
+/// Resolve and materialize a Studio item before delivery. Every temporary file
+/// is retained in the receipt so multi-stage URL -> encode flows cannot leak.
+pub fn prepare_upload_artifact_with_policy(
+    path: &str,
+    quality_mode: Option<&str>,
+    hardware_override: Option<&str>,
+    encoder_strategy: Option<&str>,
+    encoder_resource_profile: Option<&str>,
+    encoder_max_parallel: usize,
+    encoder_allow_software_fallback: bool,
+    target_max_bytes: Option<u64>,
+    app: Option<&tauri::AppHandle>,
+    item_index: usize,
+) -> Result<PreparedUploadArtifact, String> {
+    let mut cleanup_paths = Vec::new();
+    let local = if is_remote_url(path) {
+        let downloaded = download_remote_url(path, app, item_index)?;
+        cleanup_paths.push(downloaded.clone());
+        downloaded.display().to_string()
+    } else {
+        path_policy::assert_safe_transfer_path(path).map_err(|e| e.to_string())?;
+        path.to_string()
+    };
+    let prepared = maybe_reencode_for_telegram(
+        &local,
+        quality_mode,
+        hardware_override,
+        encoder_strategy,
+        encoder_resource_profile,
+        encoder_max_parallel,
+        encoder_allow_software_fallback,
+        target_max_bytes,
+        None,
+        0,
+        app,
+        item_index,
+    )?;
+    let transformed = prepared != local;
+    let transform_action = if !transformed {
+        super::autogram_core::transfer::TransformAction::PassThrough
+    } else if std::path::Path::new(&prepared)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|value| value.starts_with("remux_"))
+    {
+        super::autogram_core::transfer::TransformAction::LosslessRemux
+    } else {
+        super::autogram_core::transfer::TransformAction::Reencode
+    };
+    if transformed {
+        cleanup_paths.push(PathBuf::from(&prepared));
+    }
+    let source_analysis =
+        super::autogram_core::transfer::analyze_media(std::path::Path::new(&local));
+    let prepared_analysis =
+        super::autogram_core::transfer::analyze_media(std::path::Path::new(&prepared));
+    if transformed {
+        let validation_error = if prepared_analysis.probe_error.is_some() {
+            Some("encoder_validation_unavailable: prepared output could not be inspected".into())
+        } else if !prepared_analysis.is_validated_native_video() {
+            Some(
+                "encoder_output_invalid: prepared output is not a Telegram-native H.264/AAC MP4"
+                    .into(),
+            )
+        } else if transform_action == super::autogram_core::transfer::TransformAction::Reencode {
+            match (
+                source_analysis.duration_seconds,
+                prepared_analysis.duration_seconds,
+            ) {
+                (Some(source_duration), Some(output_duration)) => {
+                    let tolerance = (source_duration * 0.02).max(2.0);
+                    ((source_duration - output_duration).abs() > tolerance).then(|| {
+                            format!(
+                                "encoder_duration_mismatch: source={source_duration:.3}s output={output_duration:.3}s tolerance={tolerance:.3}s"
+                            )
+                        })
+                }
+                _ => Some(
+                    "encoder_validation_incomplete: source/output duration is unavailable".into(),
+                ),
+            }
+        } else {
+            None
+        };
+        if let Some(error) = validation_error {
+            for cleanup_path in cleanup_paths {
+                let _ = fs::remove_file(cleanup_path);
+            }
+            return Err(error);
+        }
+    }
+    let native_visual_validated = match prepared_analysis.category {
+        super::autogram_core::transfer::MediaCategory::JpegImage => true,
+        super::autogram_core::transfer::MediaCategory::Mp4Video => {
+            prepared_analysis.is_validated_native_video()
+        }
+        _ => false,
+    };
+    Ok(PreparedUploadArtifact {
+        source_path: path.to_string(),
+        prepared_path: prepared,
+        cleanup_paths,
+        transformed,
+        native_visual_validated,
+        transform_action,
+    })
+}
+
+pub fn prepare_upload_artifact(
     path: &str,
     quality_mode: Option<&str>,
     hardware_override: Option<&str>,
     app: Option<&tauri::AppHandle>,
     item_index: usize,
-) -> Result<(String, Option<PathBuf>), String> {
-    let mut temps: Vec<PathBuf> = Vec::new();
-    let local = if is_remote_url(path) {
-        let p = download_remote_url(path, app, item_index)?;
-        temps.push(p.clone());
-        p.display().to_string()
-    } else {
-        path_policy::assert_safe_transfer_path(path).map_err(|e| e.to_string())?;
-        path.to_string()
-    };
-    let prepared = maybe_reencode_for_telegram(&local, quality_mode, hardware_override, app, item_index);
-    if prepared != local {
-        temps.push(PathBuf::from(&prepared));
-    }
-    let cleanup = temps.into_iter().last();
-    Ok((prepared, cleanup))
+) -> Result<PreparedUploadArtifact, String> {
+    prepare_upload_artifact_with_policy(
+        path,
+        quality_mode,
+        hardware_override,
+        None,
+        None,
+        1,
+        true,
+        None,
+        app,
+        item_index,
+    )
 }
 
-pub fn cleanup_temp(path: Option<PathBuf>) {
-    if let Some(p) = path {
-        let _ = fs::remove_file(p);
+#[cfg(test)]
+mod tests {
+    use super::{adjusted_target_planning_bytes, target_video_bitrate, PreparedUploadArtifact};
+    use std::{fs, path::PathBuf};
+
+    #[test]
+    fn prepared_artifact_cleanup_removes_every_stage() {
+        let root = std::env::temp_dir().join(format!(
+            "autogram-artifact-cleanup-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let downloaded = root.join("downloaded.bin");
+        let encoded = root.join("encoded.bin");
+        fs::write(&downloaded, b"download").unwrap();
+        fs::write(&encoded, b"encode").unwrap();
+
+        PreparedUploadArtifact {
+            source_path: "https://example.invalid/source".to_string(),
+            prepared_path: encoded.display().to_string(),
+            cleanup_paths: vec![downloaded.clone(), encoded.clone()],
+            transformed: true,
+            native_visual_validated: true,
+            transform_action: super::super::autogram_core::transfer::TransformAction::Reencode,
+        }
+        .cleanup();
+
+        assert!(!downloaded.exists());
+        assert!(!encoded.exists());
+        let _ = fs::remove_dir(PathBuf::from(root));
+    }
+
+    #[test]
+    fn target_size_bitrate_reserves_audio_and_honors_quality_floor() {
+        assert_eq!(
+            target_video_bitrate(100.0, 20_000_000, "128k", "SMART"),
+            Some(1_408_000)
+        );
+        assert_eq!(
+            target_video_bitrate(100.0, 5_000_000, "128k", "HIGH_QUALITY"),
+            None
+        );
+    }
+
+    #[test]
+    fn target_size_retry_reduces_planning_budget_with_headroom() {
+        let adjusted = adjusted_target_planning_bytes(95_000_000, 100_000_000, 110_000_000);
+        assert!(adjusted < 95_000_000);
+        assert_eq!(adjusted, 82_045_454);
     }
 }

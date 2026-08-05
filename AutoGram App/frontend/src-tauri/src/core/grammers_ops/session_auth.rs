@@ -365,9 +365,9 @@ pub fn auth_status_blocking(
                             // Skip placeholder profiles (id==0 inserted by client_pool before get_me).
                             // Also re-fetch if photo is missing so first-run after avatar feature update works.
                             let cached = get_cached_user_profile(&session_name);
-                            let has_real_profile = cached.as_ref().map_or(false, |p| {
-                                p.id != 0 && p.photo_base64.is_some()
-                            });
+                            let has_real_profile = cached
+                                .as_ref()
+                                .map_or(false, |p| p.id != 0 && p.photo_base64.is_some());
                             if has_real_profile {
                                 profile = cached;
                             } else {
@@ -460,9 +460,16 @@ pub fn download_profile_photo_blocking(
                     if let grammers_client::tl::enums::User::User(raw_user) = &me.raw {
                         if let Some(tl::enums::UserProfilePhoto::Photo(p)) = &raw_user.photo {
                             if let Some(st) = &p.stripped_thumb {
-                                if let Some(jpeg) = crate::core::grammers::ffmpeg::unstrip_jpeg(st) {
-                                    if let Some(url) = crate::core::grammers::thumbs::to_data_url(&jpeg) {
-                                        tg_log::info(BACKEND, "profile_photo", "using get_me() stripped_thumb");
+                                if let Some(jpeg) = crate::core::grammers::ffmpeg::unstrip_jpeg(st)
+                                {
+                                    if let Some(url) =
+                                        crate::core::grammers::thumbs::to_data_url(&jpeg)
+                                    {
+                                        tg_log::info(
+                                            BACKEND,
+                                            "profile_photo",
+                                            "using get_me() stripped_thumb",
+                                        );
                                         return Ok(Some(url));
                                     }
                                 }
@@ -495,7 +502,8 @@ pub fn download_profile_photo_blocking(
                 for thumb in media_photo.thumbs() {
                     if let Some(data) = thumb.to_data() {
                         if !data.is_empty() {
-                            let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(&data).unwrap_or(data);
+                            let jpeg =
+                                crate::core::grammers::ffmpeg::unstrip_jpeg(&data).unwrap_or(data);
                             tg_log::info(BACKEND, "profile_photo", "using inline photo bytes");
                             return Ok(crate::core::grammers::thumbs::to_data_url(&jpeg));
                         }
@@ -579,9 +587,6 @@ pub fn download_profile_photo_blocking(
         .await
     })
 }
-
-
-
 
 /// Drop live MTProto client for a session (account switch without dual-open).
 pub fn disconnect_session_blocking(session_name: &str) {

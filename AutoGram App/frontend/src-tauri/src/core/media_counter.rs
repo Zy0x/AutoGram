@@ -3,11 +3,13 @@
 //! Queries exact total counters and category breakdowns directly from Telegram MTProto
 //! without downloading media content or causing FloodWait.
 
-use std::path::Path;
 use grammers_client::tl;
+use std::path::Path;
 
 use crate::core::grammers_ops::*;
-use crate::core::media_statistics::{get_cached_statistics, save_statistics, MediaStatisticsResult};
+use crate::core::media_statistics::{
+    get_cached_statistics, save_statistics, MediaStatisticsResult,
+};
 use crate::core::telegram_ops::TelegramIdentity;
 use crate::core::tg_error::{map_invocation, TgError, TgErrorCode};
 

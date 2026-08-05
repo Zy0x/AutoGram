@@ -37,17 +37,21 @@ fn rates() -> &'static Mutex<HashMap<String, SessionRate>> {
 
 fn with_rate<R>(session: &str, f: impl FnOnce(&mut SessionRate) -> R) -> R {
     let mut map = rates().lock();
-    let e = map
-        .entry(session.to_string())
-        .or_insert_with(|| SessionRate {
-            flood_until: None,
+    let e = map.entry(session.to_string()).or_insert_with(|| {
+        let restored_wait = crate::core::autogram_core::transfer::load_account_rate_gate(session)
+            .ok()
+            .flatten();
+        SessionRate {
+            flood_until: restored_wait
+                .map(|seconds| Instant::now() + Duration::from_secs(u64::from(seconds))),
             media_sem: std::sync::Arc::new(Semaphore::new(MAX_MEDIA_DOWNLOADS)),
             preview_sem: std::sync::Arc::new(Semaphore::new(MAX_PREVIEW_CONCURRENCY)),
             fast_sem: std::sync::Arc::new(Semaphore::new(MAX_FAST_THUMB_CONCURRENCY)),
             video_sem: std::sync::Arc::new(Semaphore::new(MAX_VIDEO_THUMB_CONCURRENCY)),
             active_streams: Vec::new(),
             inflight_preview: HashMap::new(),
-        });
+        }
+    });
     f(e)
 }
 
@@ -61,6 +65,11 @@ pub fn note_flood_wait(session: &str, secs: u32) {
             _ => Some(until),
         };
     });
+    let _ = crate::core::autogram_core::transfer::persist_account_rate_gate(
+        session,
+        secs,
+        "telegram_flood_wait",
+    );
 }
 
 /// Parse FLOOD_WAIT or FLOOD_PREMIUM_WAIT seconds from Telegram RPC error text if present.
@@ -361,27 +370,34 @@ mod tests {
 
     #[test]
     fn non_flood_errors_do_not_trigger_flood_wait() {
-        let sess = "test-session-non-flood";
+        let sess = format!(
+            "test-session-non-flood-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
 
         // 1. Timeout with 'tunggu' in Indonesian UI error message must NOT trigger FloodWait
         let err_busy = TgError::new(
             TgErrorCode::Timeout,
             "media slot busy — batalkan preview lama dan coba lagi",
         );
-        note_error(sess, &err_busy);
-        assert_eq!(flood_remaining_secs(sess), None);
+        note_error(&sess, &err_busy);
+        assert_eq!(flood_remaining_secs(&sess), None);
 
         // 2. Generic network timeout with 'tunggu 5 detik' must NOT trigger FloodWait
         let err_net = TgError::new(
             TgErrorCode::Network,
             "Silakan tunggu 5 detik sebelum mencoba lagi",
         );
-        note_error(sess, &err_net);
-        assert_eq!(flood_remaining_secs(sess), None);
+        note_error(&sess, &err_net);
+        assert_eq!(flood_remaining_secs(&sess), None);
 
         // 3. Genuine TgErrorCode::FloodWait DOES trigger FloodWait
         let err_flood = TgError::with_flood(20, "FLOOD_WAIT_20");
-        note_error(sess, &err_flood);
-        assert!(flood_remaining_secs(sess).unwrap_or(0) >= 18);
+        note_error(&sess, &err_flood);
+        assert!(flood_remaining_secs(&sess).unwrap_or(0) >= 18);
     }
 }

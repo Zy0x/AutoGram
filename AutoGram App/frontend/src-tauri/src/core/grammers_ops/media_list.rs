@@ -164,7 +164,13 @@ pub fn media_to_row(
             } else {
                 format!("photo_{id}.jpg")
             };
-            let cls = crate::core::media_classifier::classify_media_item(&name, Some("image/jpeg"), false, true, false);
+            let cls = crate::core::media_classifier::classify_media_item(
+                &name,
+                Some("image/jpeg"),
+                false,
+                true,
+                false,
+            );
             let row = MediaFileRow {
                 id,
                 folder_id,
@@ -420,7 +426,13 @@ pub fn tl_message_to_row(
                         }
                     }
                 }
-                let cls = crate::core::media_classifier::classify_media_item(&name, Some("image/jpeg"), false, true, false);
+                let cls = crate::core::media_classifier::classify_media_item(
+                    &name,
+                    Some("image/jpeg"),
+                    false,
+                    true,
+                    false,
+                );
                 Some(MediaFileRow {
                     id,
                     folder_id,

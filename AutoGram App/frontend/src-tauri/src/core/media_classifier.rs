@@ -6,6 +6,19 @@
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MediaCategory {
+    ImageConsumer,
+    ImageProfessional,
+    VideoConsumer,
+    VideoProduction,
+    AudioConsumer,
+    AudioLossless,
+    BinaryAsset,
+    Unknown,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ClassificationResult {
@@ -13,6 +26,60 @@ pub struct ClassificationResult {
     pub telegram_subtype: String,  // "photo" | "video" | "doc_photo" | "doc_video" | "archive" | "pdf" | "docx" | "url" | "music" | "voice" | "other"
     pub drive_category: String,    // "image" | "video" | "audio" | "document" | "archive" | "web"
     pub drive_format: String,      // "MP4" | "MKV" | "JPG" | "PNG" | "PDF" | "ZIP" | "URL" | etc.
+    pub media_category: MediaCategory, // Spec v4.3 typed media category
+}
+
+pub fn classify_media_category(file_name: &str, mime_type: Option<&str>) -> MediaCategory {
+    let name_l = file_name.to_lowercase();
+    let mime_l = mime_type.unwrap_or("").to_lowercase();
+
+    if name_l.ends_with(".cr2")
+        || name_l.ends_with(".nef")
+        || name_l.ends_with(".arw")
+        || name_l.ends_with(".dng")
+        || name_l.ends_with(".psd")
+        || name_l.ends_with(".tiff")
+    {
+        MediaCategory::ImageProfessional
+    } else if mime_l.starts_with("image/")
+        || name_l.ends_with(".jpg")
+        || name_l.ends_with(".jpeg")
+        || name_l.ends_with(".png")
+        || name_l.ends_with(".webp")
+    {
+        MediaCategory::ImageConsumer
+    } else if name_l.ends_with(".prores")
+        || name_l.ends_with(".dnxhd")
+        || name_l.ends_with(".r3d")
+        || name_l.ends_with(".m2ts")
+    {
+        MediaCategory::VideoProduction
+    } else if mime_l.starts_with("video/")
+        || name_l.ends_with(".mp4")
+        || name_l.ends_with(".mov")
+        || name_l.ends_with(".mkv")
+        || name_l.ends_with(".webm")
+    {
+        MediaCategory::VideoConsumer
+    } else if name_l.ends_with(".flac") || name_l.ends_with(".wav") || name_l.ends_with(".alac") {
+        MediaCategory::AudioLossless
+    } else if mime_l.starts_with("audio/")
+        || name_l.ends_with(".mp3")
+        || name_l.ends_with(".m4a")
+        || name_l.ends_with(".aac")
+        || name_l.ends_with(".ogg")
+    {
+        MediaCategory::AudioConsumer
+    } else if name_l.ends_with(".exe")
+        || name_l.ends_with(".zip")
+        || name_l.ends_with(".iso")
+        || name_l.ends_with(".bin")
+        || name_l.ends_with(".pdf")
+    {
+        MediaCategory::BinaryAsset
+    } else {
+        MediaCategory::Unknown
+    }
 }
 
 pub fn classify_media_item(
@@ -24,6 +91,7 @@ pub fn classify_media_item(
 ) -> ClassificationResult {
     let name_l = file_name.to_lowercase();
     let mime_l = mime_type.unwrap_or("").to_lowercase();
+    let media_category = classify_media_category(file_name, mime_type);
 
     let ext = name_l
         .rfind('.')
@@ -49,6 +117,7 @@ pub fn classify_media_item(
             telegram_subtype: "url".into(),
             drive_category: "web".into(),
             drive_format: "URL".into(),
+            media_category,
         };
     }
 
@@ -59,6 +128,7 @@ pub fn classify_media_item(
             telegram_subtype: "sticker".into(),
             drive_category: "image".into(),
             drive_format: "WEBP".into(),
+            media_category,
         };
     }
 
@@ -178,5 +248,36 @@ pub fn classify_media_item(
         telegram_subtype,
         drive_category,
         drive_format: ext,
+        media_category,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_media_category_classification() {
+        assert_eq!(
+            classify_media_category("photo.jpg", Some("image/jpeg")),
+            MediaCategory::ImageConsumer
+        );
+        assert_eq!(
+            classify_media_category("raw_photo.cr2", Some("image/x-canon-cr2")),
+            MediaCategory::ImageProfessional
+        );
+        assert_eq!(
+            classify_media_category("video.mp4", Some("video/mp4")),
+            MediaCategory::VideoConsumer
+        );
+        assert_eq!(
+            classify_media_category("song.flac", Some("audio/flac")),
+            MediaCategory::AudioLossless
+        );
+        assert_eq!(
+            classify_media_category("data.zip", Some("application/zip")),
+            MediaCategory::BinaryAsset
+        );
+    }
+}
+

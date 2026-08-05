@@ -17,6 +17,7 @@ import {
   SendHorizontal,
   MousePointerClick,
   SlidersHorizontal,
+  Settings2,
   Pin,
   PinOff,
   Copy,
@@ -163,7 +164,7 @@ export function DriveTopBar({
   onDelete,
   onMoveSelected,
   onRefresh,
-  onOpenTransferSettings: _onOpenTransferSettings,
+  onOpenTransferSettings,
   onOpenTransferManager,
   transferBusy,
   actionsDisabled,
@@ -567,6 +568,18 @@ export function DriveTopBar({
           >
             <RefreshCw size={16} className={loading ? 'spin' : undefined} />
           </button>
+          {onOpenTransferSettings && (
+            <button
+              type="button"
+              className="td-icon-btn"
+              onClick={onOpenTransferSettings}
+              disabled={!!actionsDisabled}
+              title={t('speedtest.topbar_open_transfer_settings')}
+              aria-label={t('speedtest.topbar_open_transfer_settings')}
+            >
+              <Settings2 size={16} />
+            </button>
+          )}
           {onOpenTransferManager && (
             <button
               type="button"

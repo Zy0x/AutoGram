@@ -507,6 +507,52 @@ fn studio_cancel_transfer(transfer_id: Option<String>) -> Result<bool, String> {
     Ok(true)
 }
 
+#[tauri::command]
+fn studio_set_transfer_paused(paused: bool) -> bool {
+    core::job_queue::set_transfer_paused(paused);
+    true
+}
+
+#[tauri::command]
+async fn quality_preflight(
+    request: core::autogram_core::transfer::QualityPreflightRequest,
+) -> Result<core::autogram_core::transfer::QualityPreflightReport, String> {
+    if request.paths.is_empty() || request.paths.len() > 10_000 {
+        return Err("quality preflight requires 1..10000 items".into());
+    }
+    for path in &request.paths {
+        if !(path.starts_with("http://") || path.starts_with("https://")) {
+            core::path_policy::assert_safe_transfer_path(path)?;
+        }
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let sessions = core::grammers_ops::resolve_sessions_dir(None);
+        let identity = core::telegram_ops::TelegramIdentity {
+            session: request.session.clone(),
+            api_id: request.api_id,
+            api_hash: request.api_hash.clone(),
+        };
+        let capability =
+            core::grammers_ops::resolve_account_capability_blocking(&sessions, &identity);
+        let feature_flags = core::autogram_core::transfer::TransferFeatureFlags::resolve();
+        let capability_source = match capability.source {
+            core::autogram_core::telegram::account::CapabilitySource::Live => "live",
+            core::autogram_core::telegram::account::CapabilitySource::Cached => "cached",
+            core::autogram_core::telegram::account::CapabilitySource::Fallback => "fallback",
+        };
+        Ok(core::autogram_core::transfer::build_quality_preflight(
+            &request,
+            capability_source,
+            capability.effective_max_bytes,
+            capability.caption_limit,
+            core::grammers_media::find_ffmpeg_binary().is_some(),
+            feature_flags,
+        ))
+    })
+    .await
+    .map_err(|error| format!("quality preflight task failed: {error}"))?
+}
+
 /// Write one line to a long-lived worker's stdin (drive-serve JSON-RPC).
 #[tauri::command]
 fn write_worker_stdin(job_id: i64, line: String) -> Result<(), String> {
@@ -1069,9 +1115,11 @@ async fn studio_run_orchestrated(
     ensure_sessions_dir_env(&app);
     let req = request;
     let app_handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || core::studio_orch::run_orchestrated_blocking(Some(&app_handle), &req))
-        .await
-        .map_err(|e| format!("orch join: {e}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        core::studio_orch::run_orchestrated_blocking(Some(&app_handle), &req)
+    })
+    .await
+    .map_err(|e| format!("orch join: {e}"))?
 }
 
 // ── Phase 4 Grammers / dual-path Telegram ops ─────────────────────────────
@@ -1177,7 +1225,6 @@ async fn tg_download_profile_photo(
     .map_err(|e| format!("download profile photo task failed: {e}"))
 }
 
-
 #[tauri::command]
 async fn tg_list_dialogs(
     app: AppHandle,
@@ -1211,9 +1258,11 @@ async fn tg_get_media_statistics(
     request: core::telegram_ops::GetMediaStatisticsRequest,
 ) -> Result<core::telegram_ops::OpResult<core::media_statistics::MediaStatisticsResult>, String> {
     ensure_sessions_dir_env(&app);
-    tauri::async_runtime::spawn_blocking(move || core::telegram_ops::tg_get_media_statistics(request))
-        .await
-        .map_err(|e| format!("native media statistics task failed: {e}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        core::telegram_ops::tg_get_media_statistics(request)
+    })
+    .await
+    .map_err(|e| format!("native media statistics task failed: {e}"))
 }
 
 #[tauri::command]
@@ -1509,7 +1558,8 @@ async fn autogram_run_container_repair(
 }
 
 #[tauri::command]
-async fn autogram_get_hardware_profiles() -> Result<core::autogram_core::HardwareProfileInfo, String> {
+async fn autogram_get_hardware_profiles() -> Result<core::autogram_core::HardwareProfileInfo, String>
+{
     let enc = core::autogram_core::HardwareEncoderType::Nvenc;
     Ok(core::autogram_core::select_best_hardware_profile(enc))
 }
@@ -1530,11 +1580,16 @@ async fn autogram_plan_batch(
         })
         .collect();
 
-    Ok(core::autogram_core::plan_batch_execution(&list, 2_147_483_648))
+    Ok(core::autogram_core::plan_batch_execution(
+        &list,
+        2_147_483_648,
+    ))
 }
 
 #[tauri::command]
-async fn autogram_get_job_events(job_id: i64) -> Result<Vec<core::autogram_core::JobEvent>, String> {
+async fn autogram_get_job_events(
+    job_id: i64,
+) -> Result<Vec<core::autogram_core::JobEvent>, String> {
     let db_path = core::jobs_db::resolve_migrator_db();
     let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
     core::autogram_core::get_job_events(&conn, job_id)
@@ -1675,6 +1730,8 @@ pub fn run() {
             run_worker_once,
             write_worker_stdin,
             studio_cancel_transfer,
+            studio_set_transfer_paused,
+            quality_preflight,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env

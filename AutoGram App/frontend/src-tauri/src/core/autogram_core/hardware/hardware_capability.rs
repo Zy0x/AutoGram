@@ -13,18 +13,24 @@ pub struct HardwareProfileInfo {
 
 pub fn select_best_hardware_profile(encoder: HardwareEncoderType) -> HardwareProfileInfo {
     let default_profile = match encoder {
-        HardwareEncoderType::Nvenc | HardwareEncoderType::Amf => EncoderQualityProfile::HighQuality {
-            bitrate: 8_000_000,
-            preset: "p4".into(),
-        },
-        HardwareEncoderType::Qsv | HardwareEncoderType::MediaCodec => EncoderQualityProfile::Balanced {
-            bitrate: 5_000_000,
-            preset: "medium".into(),
-        },
-        HardwareEncoderType::CpuX264 | HardwareEncoderType::CpuX265 => EncoderQualityProfile::HighSpeed {
-            bitrate: 3_000_000,
-            preset: "veryfast".into(),
-        },
+        HardwareEncoderType::Nvenc | HardwareEncoderType::Amf => {
+            EncoderQualityProfile::HighQuality {
+                bitrate: 8_000_000,
+                preset: "p4".into(),
+            }
+        }
+        HardwareEncoderType::Qsv | HardwareEncoderType::MediaCodec => {
+            EncoderQualityProfile::Balanced {
+                bitrate: 5_000_000,
+                preset: "medium".into(),
+            }
+        }
+        HardwareEncoderType::CpuX264 | HardwareEncoderType::CpuX265 => {
+            EncoderQualityProfile::HighSpeed {
+                bitrate: 3_000_000,
+                preset: "veryfast".into(),
+            }
+        }
     };
 
     HardwareProfileInfo {

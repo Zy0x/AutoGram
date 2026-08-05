@@ -10,6 +10,7 @@ pub mod platform;
 pub mod reliability;
 pub mod storage;
 pub mod telegram;
+pub mod transfer;
 
 pub use engine::*;
 pub use execution::*;
@@ -20,3 +21,4 @@ pub use platform::*;
 pub use reliability::*;
 pub use storage::*;
 pub use telegram::*;
+pub use transfer::*;

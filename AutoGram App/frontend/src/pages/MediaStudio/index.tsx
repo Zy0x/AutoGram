@@ -2,6 +2,12 @@ import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
+import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
+import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
+import {
+  runQualityPreflight,
+  type QualityPreflightReport,
+} from '../../lib/transfer/qualityPreflight';
 import { MediaStudioProps, readSessionsCache, writeSessionsCache } from './mediaStudioUtils';
 import { isDriveSessionCircuitTripped, resetDriveSessionCircuit } from '../../lib/telegram';
 /**
@@ -62,6 +68,7 @@ import {
   cancelDriveJob,
   cleanupPartialDownloads,
   setDriveTransferPaused,
+  waitWhileDriveTransferPaused,
   clearDriveTransferPause,
   isTransferJobActive,
   friendlyDriveError,
@@ -273,6 +280,7 @@ import { type DriveInputState } from '../../components/drive/Modals/DriveInputDi
 import { type DriveDestChoice, type DriveDestPickerState } from '../../components/drive/Modals/DriveDestinationPicker';
 import type { JobChild } from '../../lib/db/jobProcess';
 import { tgDownloadFile } from '../../lib/telegram';
+import { parseBatchPositions, runWithConcurrency } from '../../lib/transfer/batchExecution';
 import {
   clearDriveSessionEphemeralCaches,
   isDrivePinned,
@@ -513,6 +521,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
   const [advFilter, setAdvFilter] = useState<DriveAdvFilter>({ ...EMPTY_ADV_FILTER });
   const [toolsOpen, setToolsOpen] = useState(false);
   const [toolsTab, setToolsTab] = useState<DriveToolsTab>('copy');
+  const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
   const [navHist, setNavHist] = useState<DriveNavHistory>(() =>
     createNavHistory({ kind: initial.kind, id: initial.id })
   );
@@ -655,6 +664,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
     ...loadTransferSettings(),
   }));
   const [transfer, setTransfer] = useState<TransferSession>(() => ({ ...EMPTY_TRANSFER_SESSION }));
+  const [preflightReport, setPreflightReport] = useState<QualityPreflightReport | null>(null);
+  const preflightResolverRef = useRef<((approved: boolean) => void) | null>(null);
   const transferQueueRef = useRef<QueueTask[]>([]);
   const activeTaskStartIndexRef = useRef<number>(0);
   const taskRunningRef = useRef(false);
@@ -735,6 +746,26 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
   }, [activeConfirm, moveConfirmVersion]);
   const [inputDlg, setInputDlg] = useState<DriveInputState | null>(null);
   const [destPicker, setDestPicker] = useState<DriveDestPickerState | null>(null);
+
+  useEffect(() => () => {
+    preflightResolverRef.current?.(false);
+    preflightResolverRef.current = null;
+  }, []);
+
+  const reviewPreflight = useCallback((report: QualityPreflightReport) => {
+    preflightResolverRef.current?.(false);
+    setPreflightReport(report);
+    return new Promise<boolean>((resolve) => {
+      preflightResolverRef.current = resolve;
+    });
+  }, []);
+
+  const closePreflight = useCallback((approved: boolean) => {
+    const resolve = preflightResolverRef.current;
+    preflightResolverRef.current = null;
+    setPreflightReport(null);
+    resolve?.(approved);
+  }, []);
 
   // Default expanded; only collapse if user previously chose so
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(LS_COLLAPSE) === '1');
@@ -3726,9 +3757,10 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         const filesPayload = task.paths!.map((path) => {
           const base = path.split(/[/\\]/).pop() || path;
           const stem = base.includes('.') ? base.replace(/\.[^.]+$/, '') : base;
+          const albumSummary = !!task.options.group_as_album && !!task.options.global_caption;
           return {
             path,
-            caption: task.options.global_caption || stem || base,
+            caption: albumSummary ? '' : task.options.global_caption || stem || base,
           };
         });
 
@@ -3859,7 +3891,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         let successCount = 0;
         const totalCount = task.selectedIds!.length;
 
-        for (let i = 0; i < totalCount; i++) {
+        await runWithConcurrency(totalCount, Number(task.options?.concurrency), async (i) => {
+          await waitWhileDriveTransferPaused();
           const msgId = task.selectedIds![i];
           const name = task.names[i] || `msg_${msgId}`;
           const destFile = `${task.saveDir!.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
@@ -3880,6 +3913,11 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
               chatId: String(task.targetFolderId ?? peerId ?? 'me'),
               messageId: msgId,
               destPath: destFile,
+              conflictPolicy: transferSettings.downloadConflictPolicy,
+              resumePartial: transferSettings.downloadResumePartial,
+              integrity: transferSettings.downloadIntegrity,
+              transferId: `download:${task.id}`,
+              itemIndex: itemIdx,
             });
 
             if (res?.ok) {
@@ -3908,7 +3946,7 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
               ),
             }));
           }
-        }
+        });
 
         if (successCount > 0) {
           setStatusText(`Download selesai: ${successCount}/${totalCount} berkas`);
@@ -4669,17 +4707,71 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
       return p.split(/[/\\]/).pop() || p;
     });
 
+    try {
+      setStatusText(String(t('speedtest.preflight_running')));
+      const report = await runQualityPreflight({
+        session: creds.session,
+        apiId: Number(creds.apiId) || 0,
+        apiHash: creds.apiHash,
+        paths: cleanPaths,
+        qualityMode: transferSettings.qualityMode,
+        presentationOverride: transferSettings.presentationOverride,
+        groupAsAlbum: transferSettings.groupAsAlbum,
+        oversizeAction: transferSettings.oversizeAction,
+        globalCaption: (transferSettings.globalCaption || '').trim() || undefined,
+        captionOverflowPolicy: transferSettings.captionOverflowPolicy,
+      });
+      const approved = await reviewPreflight(report);
+      if (!approved) {
+        setStatusText(String(t('speedtest.preflight_cancelled')));
+        return;
+      }
+    } catch (preflightError) {
+      setError(`${t('speedtest.preflight_failed')}: ${String((preflightError as Error)?.message || preflightError)}`);
+      setStatusText(String(t('speedtest.preflight_cancelled')));
+      return;
+    }
+
+    const scheduleAtSeconds = transferSettings.scheduleAt
+      ? Math.floor(new Date(transferSettings.scheduleAt).getTime() / 1000)
+      : undefined;
     const options: Record<string, unknown> = {
-      quality_mode: transferSettings.forceDocumentDefault
-        ? 'ORIGINAL'
-        : transferSettings.qualityMode,
+      quality_mode: transferSettings.qualityMode,
       concurrency: transferSettings.uploadConcurrency,
       group_as_album: transferSettings.groupAsAlbum,
       silent: transferSettings.silent,
       spoiler: transferSettings.spoiler,
+      spoiler_item_indices: parseBatchPositions(transferSettings.spoilerItemPositions, cleanPaths.length),
+      schedule_at: Number.isFinite(scheduleAtSeconds) && scheduleAtSeconds! > Date.now() / 1000
+        ? scheduleAtSeconds
+        : undefined,
+      send_as: transferSettings.sendAs.trim() || undefined,
       global_caption: (transferSettings.globalCaption || '').trim() || undefined,
+      caption_overflow_policy: transferSettings.captionOverflowPolicy,
       reencodeHardware: transferSettings.reencodeHardware,
       reencodePreset: transferSettings.reencodePreset,
+      presentation_override: transferSettings.presentationOverride,
+      album_packing: transferSettings.albumPacking,
+      album_group_size: transferSettings.albumGroupSize,
+      album_avoid_single: transferSettings.albumAvoidSingle,
+      album_failure_policy: transferSettings.albumFailurePolicy,
+      group_documents: transferSettings.groupDocuments,
+      group_audio: transferSettings.groupAudio,
+      group_original_documents: transferSettings.groupOriginalDocuments,
+      oversize_action: transferSettings.oversizeAction,
+      alternate_account_pool: transferSettings.alternateAccountPool
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean),
+      alternate_identity_approved: transferSettings.alternateIdentityApproved,
+      album_alternate_strategy: transferSettings.albumAlternateStrategy,
+      encoder_strategy: transferSettings.encoderStrategy,
+      encoder_resource_profile: transferSettings.encoderResourceProfile,
+      encoder_max_parallel: transferSettings.encoderMaxParallel,
+      encoder_allow_software_fallback: transferSettings.encoderAllowSoftwareFallback,
+      download_conflict_policy: transferSettings.downloadConflictPolicy,
+      download_resume_partial: transferSettings.downloadResumePartial,
+      download_integrity: transferSettings.downloadIntegrity,
       duplicate_policy: transferSettings.duplicatePolicy || 'SKIP',
       scan_mode: transferSettings.scanMode || 'smart',
       guardrail_enabled: transferSettings.guardrailEnabled !== false,
@@ -7394,8 +7486,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
             }}
             onRefresh={refreshFiles}
             onOpenTransferSettings={() => {
-              setToolsTab('transfer');
-              setToolsOpen(true);
+              setToolsOpen(false);
+              setTransferSettingsOpen(true);
             }}
             onOpenTransferManager={openTransferManager}
             transferHasHistory={
@@ -7519,7 +7611,10 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
                   setTransferMinimized(false);
 
                   let successCount = 0;
-                  for (let i = 0; i < r.ids.length; i++) {
+                  await runWithConcurrency(
+                    r.ids.length,
+                    transferSettings.downloadConcurrency,
+                    async (i) => {
                     const msgId = r.ids[i];
                     const name = r.names[i] || `msg_${msgId}`;
                     const destFile = `${r.saveDir.replace(/[/\\]+$/, '')}/${name.replace(/[<>:"/\\|?*]/g, '_')}`;
@@ -7539,6 +7634,11 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
                       chatId: String(peerId ?? 'me'),
                       messageId: msgId,
                       destPath: destFile,
+                      conflictPolicy: transferSettings.downloadConflictPolicy,
+                      resumePartial: transferSettings.downloadResumePartial,
+                      integrity: transferSettings.downloadIntegrity,
+                      transferId: `download-retry:${msgId}`,
+                      itemIndex: itemIdx,
                     });
 
                     if (res?.ok) {
@@ -7558,7 +7658,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
                         ),
                       }));
                     }
-                  }
+                    }
+                  );
 
                   if (successCount > 0) {
                     setStatusText(`Retry selesai → ${r.saveDir}`);
@@ -7616,6 +7717,18 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
             onBulkRename={handleBulkRename}
             onSmartCopy={(opts) => {
               void handleSmartCopy(opts);
+            }}
+          />
+
+          <DriveTransferSettings
+            open={transferSettingsOpen}
+            settings={transferSettings}
+            transferActive={transfer.active}
+            onClose={() => setTransferSettingsOpen(false)}
+            onChange={(next: TransferSettingsState) => {
+              setTransferSettings(next);
+              saveTransferSettings(next);
+              void setSecureTransferSettings(next);
             }}
           />
 
@@ -7889,6 +8002,11 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
         remoteUploadOpen={remoteUploadOpen}
         setRemoteUploadOpen={setRemoteUploadOpen}
         handleRemoteUpload={handleRemoteUpload}
+      />
+      <TransferPreflightDialog
+        report={preflightReport}
+        onConfirm={() => closePreflight(true)}
+        onCancel={() => closePreflight(false)}
       />
       </main>
   );

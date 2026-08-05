@@ -1,8 +1,8 @@
 //! Account Selection & Multi-Account Router Engine
 
-use super::score::{calculate_account_score, AccountRoutingTier, AccountScore};
 use super::capability::AccountCapability;
 use super::health::AccountHealthState;
+use super::score::{calculate_account_score, AccountRoutingTier, AccountScore};
 
 #[derive(Debug, Clone)]
 pub struct AccountProfileInfo {
@@ -31,7 +31,11 @@ pub fn select_best_account<'a>(
         .collect();
 
     // Sort descending by score
-    scored.sort_by(|a, b| b.1.total_score.partial_cmp(&a.1.total_score).unwrap_or(std::cmp::Ordering::Equal));
+    scored.sort_by(|a, b| {
+        b.1.total_score
+            .partial_cmp(&a.1.total_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Return the highest scoring non-CircuitBreaker account
     scored

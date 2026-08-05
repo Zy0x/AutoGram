@@ -50,7 +50,8 @@ pub fn calculate_account_score(
     // Flood penalty
     let s_flood_penalty = if is_flooded { 100.0 } else { 0.0 };
 
-    let total = (0.30 * s_cap) + (0.30 * s_health) + (0.15 * s_latency) + (0.15 * s_queue) - s_flood_penalty;
+    let total = (0.30 * s_cap) + (0.30 * s_health) + (0.15 * s_latency) + (0.15 * s_queue)
+        - s_flood_penalty;
     let total_score = total.clamp(0.0, 100.0);
 
     let routing_tier = if total_score >= 80.0 {

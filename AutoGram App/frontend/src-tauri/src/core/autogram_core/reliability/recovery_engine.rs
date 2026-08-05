@@ -29,7 +29,9 @@ pub fn determine_recovery_action(
         ErrorClass::SizeLimit | _ if exceeds_limit => RecoveryAction::SplitEngine,
         ErrorClass::FileError if has_moov_error => RecoveryAction::RepairContainer,
         ErrorClass::FileError => RecoveryAction::RemuxLossless,
-        ErrorClass::NetworkError if retry_count < 5 => RecoveryAction::RetryWithOffset(current_offset),
+        ErrorClass::NetworkError if retry_count < 5 => {
+            RecoveryAction::RetryWithOffset(current_offset)
+        }
         ErrorClass::SystemError if retry_count < 3 => RecoveryAction::TranscodeAdaptive,
         _ => RecoveryAction::Abort(error_message.to_string()),
     }

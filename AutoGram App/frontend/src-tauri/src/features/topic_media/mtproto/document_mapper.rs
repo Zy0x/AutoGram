@@ -129,7 +129,9 @@ pub fn message_to_topic_media_item(
 
                 for attr in &doc.attributes {
                     match attr {
-                        tl::enums::DocumentAttribute::Filename(f) => raw_name = Some(f.file_name.clone()),
+                        tl::enums::DocumentAttribute::Filename(f) => {
+                            raw_name = Some(f.file_name.clone())
+                        }
                         tl::enums::DocumentAttribute::Video(_) => is_video_attr = true,
                         tl::enums::DocumentAttribute::Audio(_) => is_audio_attr = true,
                         _ => {}
