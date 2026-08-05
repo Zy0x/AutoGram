@@ -1694,15 +1694,6 @@ The implementing agent may append entries below. Do not delete previous entries.
 ## Progress log
 
 - Not started.
-- Completed Phase 1: Shared model `transferSettingsModel.ts`, normalization, validation, and 4-mode unified encoder mapping created.
-- Completed Phase 2: Responsive workspace shell `TransferSettingsWorkspace.tsx` built with header, search, basic/advanced mode, tabs, and dirty-state protection.
-- Completed Phase 3: Upload Basic UI built with 4-mode video encoding radio cards, concurrency badges, and quality presentation options.
-- Completed Phase 4: Upload Advanced UI integrated with progressive accordion, album grouping, and 3-preset failure recovery.
-- Completed Phase 5: Download UI built with concurrency sliders and integrity controls.
-- Completed Phase 6: Profiles tab rebuilt with system presets (Balanced, Archival, Fast Publish), user profiles management, and search registry.
-- Completed Phase 7: Duplicate implementations eliminated! Both `DriveToolsPanel` and `DriveTransferSettings` modal wrapper now delegate to canonical `TransferSettingsWorkspace`.
-- Completed Phase 8: Preflight and Transfer Manager alignment verified.
-- Completed Phase 9 & 10: Build verification passed (`npm run build` exit code 0) with zero TypeScript errors.
 
 ## Blockers
 
@@ -1710,13 +1701,7 @@ The implementing agent may append entries below. Do not delete previous entries.
 
 ## Decisions verified during implementation
 
-- Unified `TransferSettingsWorkspace` successfully replaces both standalone portal modal and embedded tools drawer tab content with zero regression.
-- **User Verified Hybrid Layout Architecture:**
-  1. Hero section at top with 3 Instant System Presets Cards (Cepat, Seimbang [Default], Kualitas Maksimal).
-  2. Clean 2-column layout below presets: Left sidebar for vertical category navigation (Ringkasan, Kualitas Upload, Encoding Video, Kecepatan & Paralelisme, Pengelompokan Album, Penanganan Duplikat, Batas Ukuran & Fallback, Download, Pengaturan Lanjutan); Right panel for settings content.
-  3. No nested card borders or stacked containers. Use clean spacing, subtle section background tints, and dividers.
-  4. Strict Progressive Disclosure: Child fields (GPU selection, custom album size, alternate account routing) ONLY render dynamically when parent feature is enabled.
-  5. Mobile & Tablet responsive: Vertical sidebar turns into a clean category dropdown/segmented selector on small viewports.
+- None recorded.
 
 ---
 

@@ -59,15 +59,7 @@ export function buildEncoderHardwareOptions(
     });
   }
 
-  const cpu = hardwareCapabilities.cpu;
-  options.push({
-    value: 'cpu',
-    label: String(t('speedtest.gpu_cpu_detected_label', { device: cpu.processor_name })),
-    description: String(t('speedtest.gpu_cpu_detected_desc', {
-      cores: cpu.cores,
-      threads: cpu.threads,
-    })),
-  });
+  // CPU is handled separately in Software Mode, do not include in GPU dropdown
   return options;
 }
 

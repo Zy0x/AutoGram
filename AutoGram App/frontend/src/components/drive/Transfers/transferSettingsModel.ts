@@ -14,6 +14,52 @@ export type UnifiedEncodingMode = 'automatic' | 'hardware' | 'software' | 'disab
 
 export type AlbumFailurePreset = 'strict' | 'best_effort' | 'retry_separate';
 
+export type DeliveryFormatMode = 'auto' | 'telegram' | 'document';
+
+export type DuplicateCheckPreset = 'fast' | 'balanced' | 'strict' | 'custom';
+
+export function getDeliveryFormatMode(settings: Partial<DriveTransferSettings>): DeliveryFormatMode {
+  if (settings.presentationOverride === 'force_document' || settings.forceDocumentDefault) {
+    return 'document';
+  }
+  if (settings.presentationOverride === 'force_native_media') {
+    return 'telegram';
+  }
+  return 'auto';
+}
+
+export function applyDeliveryFormatMode(
+  current: DriveTransferSettings,
+  mode: DeliveryFormatMode
+): Partial<DriveTransferSettings> {
+  switch (mode) {
+    case 'auto':
+      return {
+        presentationOverride: 'automatic',
+        forceDocumentDefault: false,
+        qualityMode: current.qualityMode === 'ORIGINAL' ? 'SMART' : current.qualityMode,
+      };
+    case 'telegram':
+      return {
+        presentationOverride: 'force_native_media',
+        forceDocumentDefault: false,
+        qualityMode: 'HIGH_QUALITY',
+      };
+    case 'document':
+      return {
+        presentationOverride: 'force_document',
+        forceDocumentDefault: true,
+        qualityMode: 'ORIGINAL',
+      };
+  }
+}
+
+export function getDuplicateCheckPreset(settings: Partial<DriveTransferSettings>): DuplicateCheckPreset {
+  if (settings.duplicatePolicy === 'FORCE_UPLOAD') return 'custom';
+  // Check default skip level
+  return 'balanced';
+}
+
 export interface ValidationIssue {
   field: keyof DriveTransferSettings | 'global';
   message: string;
