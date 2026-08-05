@@ -10156,8 +10156,8 @@ body:has(.app-layout-drive-focus),
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 .td-category-menu-card {
@@ -10397,8 +10397,8 @@ body:has(.app-layout-drive-focus),
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
 }
 .td-panel-head {
