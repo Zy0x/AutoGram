@@ -78,13 +78,11 @@ export function TransferSettingsWorkspace({
 
   // Navigation state: 'menu' (main overview list) or direct sub-menu category
   const [activeTab, setActiveTab] = useState<WorkspaceTabState>('menu');
-  const [viewMode, setViewMode] = useState<'basic' | 'advanced'>('basic');
   const [settingsQuery, setSettingsQuery] = useState('');
 
   // Drawer / Modal overlays
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showAdvancedEncoding, setShowAdvancedEncoding] = useState(false);
 
   // Baseline vs Draft state
   const [baseline, setBaseline] = useState<DriveTransferSettings>(() => normalizeTransferSettings(settings));
@@ -186,9 +184,6 @@ export function TransferSettingsWorkspace({
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
     setActiveTab(item.tab);
-    if (item.mode === 'advanced') {
-      setViewMode('advanced');
-    }
     window.setTimeout(() => {
       const el = document.getElementById(item.sectionId);
       if (el) {
@@ -219,15 +214,15 @@ export function TransferSettingsWorkspace({
     return found ? found.name : t('speedtest.preset_custom', 'Kustom');
   }, [activePresetId, t]);
 
-  // Sub-Menu Categories List
-  const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any; isAdvancedOnly?: boolean }[] = [
+  // Sub-Menu Categories List (Displays ALL categories directly)
+  const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
     { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
     { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
     { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
-    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload, isAdvancedOnly: true },
-    { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal, isAdvancedOnly: true },
+    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload },
+    { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
 
   return (
@@ -265,24 +260,6 @@ export function TransferSettingsWorkspace({
         </div>
 
         <div className="td-xfer-header-right">
-          {/* Mode Switcher: Basic vs Advanced */}
-          <div className="td-xfer-mode-segmented">
-            <button
-              type="button"
-              className={`td-segmented-btn ${viewMode === 'basic' ? 'active' : ''}`}
-              onClick={() => setViewMode('basic')}
-            >
-              {t('speedtest.mode_basic', 'Dasar')}
-            </button>
-            <button
-              type="button"
-              className={`td-segmented-btn ${viewMode === 'advanced' ? 'active' : ''}`}
-              onClick={() => setViewMode('advanced')}
-            >
-              {t('speedtest.mode_advanced', 'Lanjutan')}
-            </button>
-          </div>
-
           {isDirty && (
             <span className="td-dirty-badge">
               <span className="td-dirty-dot" />
@@ -359,10 +336,9 @@ export function TransferSettingsWorkspace({
               </div>
             </section>
 
-            {/* CATEGORIES BUTTONS LIST GRID */}
+            {/* CATEGORIES BUTTONS LIST GRID (DIRECTLY DISPLAYS ALL CATEGORIES) */}
             <div className="td-category-menu-list">
               {subMenuCategories.map((cat) => {
-                if (cat.isAdvancedOnly && viewMode !== 'advanced') return null;
                 const Icon = cat.icon;
                 return (
                   <button
@@ -397,7 +373,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (100% CLEAN - NO PRESET STRIP OR TAB BAR CLUTTER) */}
+        {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (SHOWS ALL SETTINGS DIRECTLY INCLUDING ADVANCED OPTIONS) */}
 
         {/* DEDICATED PAGE: UPLOAD */}
         {activeTab === 'upload' && (
@@ -712,49 +688,44 @@ export function TransferSettingsWorkspace({
               )}
             </div>
 
-            {/* ENCODING TECHNICAL OPTIONS (ACCORDION) */}
+            {/* ENCODING TECHNICAL OPTIONS (DIRECTLY DISPLAYED) */}
             <div className="td-settings-card">
-              <button
-                type="button"
-                className="td-accordion-toggle-btn"
-                onClick={() => setShowAdvancedEncoding(!showAdvancedEncoding)}
-              >
-                <span>Pengaturan Teknis Encoder Lanjutan</span>
-                <SlidersHorizontal size={15} />
-              </button>
-
-              {showAdvancedEncoding && (
-                <div className="td-accordion-content">
-                  <div className="td-form-row-grid">
-                    <div className="td-field-group">
-                      <label className="td-field-label">Jumlah Encoder Paralel</label>
-                      <select
-                        value={draft.encoderMaxParallel || 1}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
-                      >
-                        <option value={1}>1 Proses (Stabil)</option>
-                        <option value={2}>2 Proses Parallel</option>
-                        <option value={3}>3 Proses Parallel</option>
-                        <option value={4}>4 Proses Parallel (Max GPU)</option>
-                      </select>
-                    </div>
-
-                    <div className="td-field-group">
-                      <label className="td-field-label">Resource Profile</label>
-                      <select
-                        value={draft.encoderResourceProfile || 'balanced'}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
-                      >
-                        <option value="eco">Hemat Daya (Eco)</option>
-                        <option value="balanced">Seimbang (Recommended)</option>
-                        <option value="performance">Performa Maksimal</option>
-                      </select>
-                    </div>
-                  </div>
+              <div className="td-card-head">
+                <SlidersHorizontal size={18} />
+                <div>
+                  <h4>Pengaturan Teknis Encoder Lanjutan</h4>
+                  <p>Konfigurasi beban kerja prosesor dan jumlah thread encoding parallel</p>
                 </div>
-              )}
+              </div>
+
+              <div className="td-form-row-grid">
+                <div className="td-field-group">
+                  <label className="td-field-label">Jumlah Encoder Paralel</label>
+                  <select
+                    value={draft.encoderMaxParallel || 1}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
+                  >
+                    <option value={1}>1 Proses (Stabil)</option>
+                    <option value={2}>2 Proses Parallel</option>
+                    <option value={3}>3 Proses Parallel</option>
+                    <option value={4}>4 Proses Parallel (Max GPU)</option>
+                  </select>
+                </div>
+
+                <div className="td-field-group">
+                  <label className="td-field-label">Resource Profile</label>
+                  <select
+                    value={draft.encoderResourceProfile || 'balanced'}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
+                  >
+                    <option value="eco">Hemat Daya (Eco)</option>
+                    <option value="balanced">Seimbang (Recommended)</option>
+                    <option value="performance">Performa Maksimal</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}
