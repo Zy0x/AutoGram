@@ -178,39 +178,17 @@ struct ProcessorWmi {
 }
 
 fn query_cpu_info() -> (String, u32, u32) {
-    #[cfg(windows)]
-    {
-        let mut cmd = Command::new("powershell");
-        cmd.args([
-            "-NoProfile",
-            "-Command",
-            "Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors | ConvertTo-Json",
-        ]);
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-
-        if let Ok(output) = cmd.output() {
-            let json_text = String::from_utf8_lossy(&output.stdout);
-            // Handle both array and single object
-            let parsed: Option<ProcessorWmi> =
-                serde_json::from_str::<Vec<ProcessorWmi>>(&json_text)
-                    .ok()
-                    .and_then(|v| v.into_iter().next())
-                    .or_else(|| serde_json::from_str::<ProcessorWmi>(&json_text).ok());
-
-            if let Some(p) = parsed {
-                if !p.Name.is_empty() {
-                    return (
-                        p.Name.trim().to_string(),
-                        p.NumberOfCores.unwrap_or(1),
-                        p.NumberOfLogicalProcessors.unwrap_or(1),
-                    );
-                }
-            }
-        }
-    }
-
     let name = std::env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "Generic CPU".to_string());
-    (name, 1, 1)
+    let logical = std::env::var("NUMBER_OF_PROCESSORS")
+        .ok()
+        .and_then(|n| n.parse::<u32>().ok())
+        .unwrap_or(1);
+    let cores = Math_max_u32(1, logical / 2);
+    (name, cores, logical)
+}
+
+fn Math_max_u32(a: u32, b: u32) -> u32 {
+    if a > b { a } else { b }
 }
 
 #[derive(Deserialize)]
@@ -231,26 +209,61 @@ fn query_gpu_devices() -> Vec<VideoControllerInfo> {
 
     #[cfg(windows)]
     {
-        let mut cmd = Command::new("powershell");
+        let mut cmd = Command::new("cmd.exe");
         cmd.args([
-            "-NoProfile",
-            "-Command",
-            "Get-CimInstance Win32_VideoController | Select-Object Name, AdapterCompatibility, PNPDeviceID, DriverVersion | ConvertTo-Json",
+            "/c",
+            "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318} /s",
         ]);
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
 
         if let Ok(output) = cmd.output() {
-            let json_text = String::from_utf8_lossy(&output.stdout);
-            if let Ok(items) = serde_json::from_str::<Vec<VideoControllerInfo>>(&json_text) {
-                for item in items {
-                    if !item.Name.is_empty() {
-                        devices.push(item);
+            let text = String::from_utf8_lossy(&output.stdout);
+            let mut current_name = String::new();
+            let mut current_vendor = String::new();
+            let mut current_pnp = String::new();
+            let mut current_version = String::new();
+
+            for line in text.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("HKEY_LOCAL_MACHINE") {
+                    if !current_name.is_empty() {
+                        devices.push(VideoControllerInfo {
+                            Name: current_name.clone(),
+                            AdapterCompatibility: current_vendor.clone(),
+                            PNPDeviceID: current_pnp.clone(),
+                            DriverVersion: current_version.clone(),
+                        });
+                        current_name.clear();
+                        current_vendor.clear();
+                        current_pnp.clear();
+                        current_version.clear();
+                    }
+                } else if trimmed.starts_with("DriverDesc") {
+                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                        current_name = val.trim().to_string();
+                    }
+                } else if trimmed.starts_with("ProviderName") {
+                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                        current_vendor = val.trim().to_string();
+                    }
+                } else if trimmed.starts_with("MatchingDeviceId") {
+                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                        current_pnp = val.trim().to_string();
+                    }
+                } else if trimmed.starts_with("DriverVersion") {
+                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
+                        current_version = val.trim().to_string();
                     }
                 }
-            } else if let Ok(single) = serde_json::from_str::<VideoControllerInfo>(&json_text) {
-                if !single.Name.is_empty() {
-                    devices.push(single);
-                }
+            }
+
+            if !current_name.is_empty() {
+                devices.push(VideoControllerInfo {
+                    Name: current_name,
+                    AdapterCompatibility: current_vendor,
+                    PNPDeviceID: current_pnp,
+                    DriverVersion: current_version,
+                });
             }
         }
     }
@@ -259,6 +272,13 @@ fn query_gpu_devices() -> Vec<VideoControllerInfo> {
 }
 
 pub fn detect_hardware_capabilities() -> HardwareCapabilities {
+    static CACHE: OnceLock<Mutex<Option<HardwareCapabilities>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(None));
+    if let Ok(guard) = cache.lock() {
+        if let Some(ref cached) = *guard {
+            return cached.clone();
+        }
+    }
     let (cpu_name, cores, threads) = query_cpu_info();
     let raw_gpus = query_gpu_devices();
     let ff_support = probe_ffmpeg_encoders();
@@ -350,7 +370,7 @@ pub fn detect_hardware_capabilities() -> HardwareCapabilities {
 
     let best_encoder = compute_best_encoder(&gpu_caps, &cpu_name, &ff_support);
 
-    HardwareCapabilities {
+    let caps = HardwareCapabilities {
         cpu: CpuCapability {
             processor_name: cpu_name,
             cores,
@@ -359,7 +379,11 @@ pub fn detect_hardware_capabilities() -> HardwareCapabilities {
         },
         gpu: gpu_caps,
         best_encoder,
+    };
+    if let Ok(mut guard) = cache.lock() {
+        *guard = Some(caps.clone());
     }
+    caps
 }
 
 fn compute_best_encoder(
