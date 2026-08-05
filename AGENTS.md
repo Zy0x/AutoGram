@@ -54,7 +54,7 @@ Activate **`prompt-to-spec-orchestrator`** first. Do not start coding from a fuz
 4. `implementation-quality-gate`
 
 ### Frontend / mobile UI
-- `react-refactor-safe`, `ui-polish-mobile`, `scroll-touch-debugger`, `performance-audit` as relevant.
+- `taste-skill` (anti-slop UI design), `redesign-skill`, `minimalist-skill`, `brutalist-skill`, `soft-skill`, `gpt-tasteskill`, `react-refactor-safe`, `ui-polish-mobile`, `scroll-touch-debugger`, `performance-audit` as relevant.
 
 ### Deploy / Netlify
 - `netlify-deploy-debug` when build/deploy fails.

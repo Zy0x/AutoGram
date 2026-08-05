@@ -110,7 +110,11 @@ rustup-init.exe
 *.sw?
 
 # Agents
-.agents/
+.agents/*
+!.agents/AGENTS.md
+!.agents/skills/
+!.agents/rules/
+!.agents/workflows/
 
 # Legacy and Temp folders
 Prompt/
