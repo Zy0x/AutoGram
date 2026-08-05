@@ -329,12 +329,14 @@ export function DriveToolsPanel({
           </aside>
 
           <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
-          <ToolTabIntro
-            tab={tab}
-            locationLabel={locationLabel}
-            fileCount={displayCount}
-            selectedCount={selectedFiles.length}
-          />
+          {tab !== 'transfer' && (
+            <ToolTabIntro
+              tab={tab}
+              locationLabel={locationLabel}
+              fileCount={displayCount}
+              selectedCount={selectedFiles.length}
+            />
+          )}
           {tab === 'dups' && (
             <DupTab
               groups={groups}

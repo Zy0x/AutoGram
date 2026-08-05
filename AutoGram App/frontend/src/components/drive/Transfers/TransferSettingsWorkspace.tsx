@@ -203,24 +203,17 @@ export function TransferSettingsWorkspace({
     <div className={`td-xfer-workspace ${embedded ? 'is-embedded' : 'is-standalone'}`}>
       {/* Header bar */}
       <header className="td-xfer-workspace-head">
-        <div className="td-xfer-workspace-title">
-          <div className="td-xfer-head-avatar">
-            <Sliders size={22} className="td-xfer-icon-glow" />
+        {!embedded ? (
+          <div className="td-xfer-workspace-title">
+            <div className="td-xfer-head-avatar">
+              <Sliders size={22} className="td-xfer-icon-glow" />
+            </div>
+            <div>
+              <h3>{t('speedtest.transfer_settings_title')}</h3>
+              <p>{t('speedtest.transfer_settings_subtitle')}</p>
+            </div>
           </div>
-          <div>
-            <h3>{t('speedtest.transfer_settings_title')}</h3>
-            <p>{t('speedtest.transfer_settings_subtitle')}</p>
-          </div>
-        </div>
-
-        <div className="td-xfer-workspace-head-right">
-          {isDirty && (
-            <span className="td-dirty-badge" role="status">
-              <span className="td-dirty-dot" />
-              {t('speedtest.unsaved_changes', 'Perubahan belum disimpan')}
-            </span>
-          )}
-
+        ) : (
           <div className="td-mode-segmented-control" role="group" aria-label="Mode selector">
             <button
               type="button"
@@ -239,6 +232,36 @@ export function TransferSettingsWorkspace({
               {t('speedtest.mode_toggle_advanced')}
             </button>
           </div>
+        )}
+
+        <div className="td-xfer-workspace-head-right">
+          {isDirty && (
+            <span className="td-dirty-badge" role="status">
+              <span className="td-dirty-dot" />
+              {t('speedtest.unsaved_changes', 'Perubahan belum disimpan')}
+            </span>
+          )}
+
+          {!embedded && (
+            <div className="td-mode-segmented-control" role="group" aria-label="Mode selector">
+              <button
+                type="button"
+                className={`td-segmented-btn ${basicMode ? 'active' : ''}`}
+                onClick={() => setBasicMode(true)}
+              >
+                <Zap size={13} />
+                {t('speedtest.mode_toggle_basic')}
+              </button>
+              <button
+                type="button"
+                className={`td-segmented-btn ${!basicMode ? 'active' : ''}`}
+                onClick={() => setBasicMode(false)}
+              >
+                <Layers size={13} />
+                {t('speedtest.mode_toggle_advanced')}
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
