@@ -1,8 +1,8 @@
 # AutoGram Master Architecture, WorkTree & Operational Workflow Specification
 
 > **Dokumen Spesifikasi Teknis Master, Peta WorkTree Utuh, Diagram Sequence Mermaid, Manual Operational Workflow Real-World & Standar Tata Kelola Agent AutoGram App**  
-> *Versi Rujukan Terintegrasi: **v2.7.2** (Absolute Definitive Production Master Edition — 100% Comprehensive, Detailed & Complete)*  
-> *Platform: Desktop Offline (Tauri v2 + React 19 + TypeScript + Rust Grammers Engine + SQLite + IndexedDB)*
+> *Versi Rujukan Terintegrasi: **v2.8.7** (Smart 3x3 Grid Album Chunking Engine & Platform Hardening Production Master Edition — 100% Comprehensive, Detailed & Complete)*  
+> *Platform: Desktop Offline (Tauri v2 + React 19 + TypeScript + Rust autogram-core & Grammers Engine + SQLite + IndexedDB)*
 
 ---
 
@@ -17,14 +17,14 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 ║  Pages: MediaStudio · Dashboard · Jobs · Accounts · Profiles · Settings         ║
 ║         Statistics · Automation · Sync                                           ║
 ║                                                                                  ║
-║  Components: DriveExplorer · DriveFileCard · DrivePreviewModal                  ║
-║              DriveToolsPanel · DriveZipBrowser · DriveTransfers                 ║
-║              MediaHeaderToolbar · MediaVideoPlayer · MediaAudioPlayer            ║
-║              DocumentViewer · ImageViewer · DriveSkeleton                       ║
+║  Components: DriveExplorer · DriveFileCard · DrivePreviewModal · TransferManager ║
+║              DriveToolsPanel · DriveZipBrowser · DriveTransfers                  ║
+║              DriveTransferSettings · MediaHeaderToolbar · MediaVideoPlayer       ║
+║              MediaAudioPlayer · DocumentViewer · ImageViewer · DriveSkeleton     ║
 ║                                                                                  ║
-║  Lib: thumbBatcher · thumbPersistentCache · previewCache                        ║
-║       driveFilesApi · driveFoldersApi · driveTransfersApi                       ║
-║       driveStreamApi · driveStreamZipApi · driveSession · telegramBackend       ║
+║  Lib: thumbBatcher · thumbPersistentCache · previewCache · transferProgressStore ║
+║       driveFilesApi · driveFoldersApi · driveTransfersApi · telegramBackend      ║
+║       driveStreamApi · driveStreamZipApi · driveSession · mediaIdentity          ║
 ║       mediaScanStateMachine · driveLiveSync · driveDrag · driveSelection        ║
 ║       driveLocationCache · driveRecents · driveScrollMemory                     ║
 ╠══════════════════════════════════════════════════════════════════════════════════╣
@@ -32,27 +32,28 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 ║   85+ Tauri Commands: tg_list_media · tg_thumbs_batch · tg_preview_stream      ║
 ║   tg_seek_stream · tg_stop_stream · tg_upload_file · tg_download_file          ║
 ║   tg_zip_list_sparse · tg_zip_preview_entry_sparse · jobs_run_migration         ║
-║   studio_enqueue · studio_run_orchestrated · network_apply_proxy                ║
+║   studio_enqueue · studio_run_orchestrated · get_hardware_capabilities         ║
 ╠══════════════════════════════════════════════════════════════════════════════════╣
-║                      RUST CORE ENGINE (src-tauri/src)                           ║
+║                  RUST CORE & autogram-core ENGINE (src-tauri/src)               ║
 ║                                                                                  ║
-║  core/grammers/                   core/grammers_ops/                            ║
-║  ├─ stream.rs (90KB)              ├─ session_auth.rs (43KB)                     ║
-║  ├─ thumbs.rs (92KB)              ├─ media_list.rs (31KB)                       ║
-║  ├─ ffmpeg.rs (43KB)              ├─ client_pool.rs (16KB)                      ║
-║  ├─ special_media_thumb.rs (10KB) ├─ media_transfer.rs (16KB)                  ║
-║  ├─ thumbnail_range_bridge.rs     └─ peer_resolver.rs (13KB)                   ║
-║  └─ topics.rs                                                                    ║
+║  core/autogram_core/ (Shared Core) core/grammers/                               ║
+║  ├─ engine/ (batch, policy, intent) ├─ stream.rs (96KB)                          ║
+║  ├─ reliability/ (queue, WAL, resume)├─ thumbs.rs (92KB)                         ║
+║  ├─ hardware/ (gpu, profile, sched) ├─ ffmpeg.rs (43KB)                          ║
+║  ├─ transfer/ (album, preflight)    ├─ special_media_thumb.rs (10KB)             ║
+║  └─ telegram/ (scoring, limits)     └─ thumbnail_range_bridge.rs                ║
 ║                                                                                  ║
-║  core/ (41 files)                 features/topic_media/                         ║
-║  ├─ stream_server.rs (40KB)       ├─ commands.rs                                ║
-║  ├─ telegram_ops.rs (34KB)        ├─ service.rs                                 ║
-║  ├─ drive_rpc.rs (37KB)           ├─ scheduler/ (5 files)                      ║
-║  ├─ app_db.rs (31KB)              └─ thumbnail/ (9 files)                       ║
-║  ├─ jobs_db.rs (23KB)                                                            ║
-║  ├─ migration_run.rs (21KB)       secrets.rs · open_file.rs                    ║
-║  ├─ studio_orch.rs (21KB)         session_clone.rs · session_rate.rs           ║
-║  └─ ... (33 more modules)                                                        ║
+║  core/ (45 files)                   core/grammers_ops/                           ║
+║  ├─ studio_orch.rs (81KB)           ├─ session_auth.rs (43KB)                    ║
+║  ├─ media_prep.rs (42KB)            ├─ media_list.rs (31KB)                      ║
+║  ├─ stream_server.rs (40KB)         ├─ media_transfer.rs (36KB)                  ║
+║  ├─ drive_rpc.rs (38KB)             ├─ client_pool.rs (16KB)                     ║
+║  ├─ telegram_ops.rs (36KB)          └─ peer_resolver.rs (13KB)                  ║
+║  ├─ grammers_sparse_zip.rs (33KB)                                                ║
+║  ├─ app_db.rs (31KB)                features/topic_media/                        ║
+║  ├─ jobs_db.rs (24KB)               ├─ commands.rs & service.rs                  ║
+║  ├─ dup_checker.rs (18KB)           └─ scheduler/ & thumbnail/                   ║
+║  └─ hardware_capability.rs (19KB)                                                ║
 ╠══════════════════════════════════════════════════════════════════════════════════╣
 ║              STREAM HTTP SERVER (tiny_http · port ephemeral)                     ║
 ║              127.0.0.1:{port}/stream/{sid}  →  HTTP 206 Partial Content         ║
@@ -61,13 +62,13 @@ AutoGram adalah platform manajemen, migrasi, dan eksplorasi media Telegram berba
 ╚══════════════════════════════════════════════════════════════════════════════════╝
 ```
 
-### 5 Pilar Utama Arsitektur Teknis v2.7.2:
+### 5 Pilar Utama Arsitektur Teknis v2.8.7:
 
-1. **Grammers-Only Rust MTProto Backend**: Seluruh interaksi Telegram API (Otentikasi, List Media, Topic Search, Instant Stripped Mini-Thumb Extraction, Thumbnail Batch, Upload/Download Stream, Sparse Zip Stream) dieksekusi 100% secara native di Rust menggunakan **Grammers**. Tidak ada runtime Python/Telethon yang aktif.
-2. **Local-First SWR & Instant 0ms Mini-Thumb Paint**: Render antarmuka visual terjadi secara instan (<10ms) menggunakan data hangat dari IndexedDB (`mediaStudioDb.ts`) atau mini-thumb Telegram MTProto `PhotoSize::Stripped` (`tl_stripped_thumb_data_url`), disusul oleh pembaruan HD background batch tanpa jeda.
-3. **Unpaused High-Throughput Request Correlation Pipeline**: Pemproses antrean thumbnail `thumbBatcher.ts` mengeksekusi 4 penerbangan RPC paralel dengan kapasitas batch hingga 48 item per request menggunakan `requestId` unik (`thumb:peerId:msgId:gGen`). Data dicocokkan secara non-posisional via `ThumbnailBatchItemResult` tanpa risiko pergeseran indeks.
-4. **Dual-Track Resource-Guarded Scheduler & Seekable HTTP Range Bridge**: Pemuatan thumbnail dipisah menjadi dua jalur independen: `fast_sem` (12 permit paralel) untuk foto/gambar statis dan `video_sem` (4 permit paralel) untuk video dokumen FFmpeg. Video dokumen melayani request HTTP `206 Partial Content` dengan **512 KB Boundary Alignment**, **Bounded 16 MB Cap**, serta **3-Layer Seek Fix** (15s per-chunk timeout, 500ms interruptible batch loop, 2s seek re-registration).
-5. **Fail-Closed Generation Protection (`peerGen.current`) & Specialized Media Engine**: Setiap perubahan lokasi/topik menaikkan atomic generation counter (`peerGen.current`), yang secara otomatis menggugurkan (*abort*) callback dan request yang terlambat, menjamin 0% kebocoran data (*media bleed*). Kegagalan thumbnail dokumen non-media secara otomatis menyimpan penanda negatif `.nothumb` di disk cache dan `"NOT_FOUND"` di memori. Media tanpa thumbnail statis diproses secara asinkron oleh `special_media_thumb.rs` via antrean latar belakang `mpsc::channel(24)` tanpa memblokir scrolling UI (60 FPS).
+1. **Shared Modular Core Engine (`autogram-core`) & Grammers MTProto**: Seluruh keandalan platform diatur oleh `autogram-core` (persistent job queue SQLite WAL, byte-offset checkpoint resume, faststart MP4 repair, hardware capability profiling, policy & intent engine, account score 0-100, dan audit trail event logging) dipadu dengan Grammers MTProto 100% native Rust untuk otentikasi multi-akun, eksplorasi media, dan transfer data tanpa runtime Python.
+2. **Smart 3x3 Grid Album Chunking Engine**: Penyesuaian batas maksimal chunking album dari 10 item menjadi **maksimal 9 item per album** (`chunk_size <= 9`) untuk menjamin postingan media di Telegram Web/Desktop/Mobile merender kisi simetris sempurna 3 × 3 (9 foto) tanpa memisah foto ke-10 menjadi post tersendiri. Dilengkapi *Universal Forum Topic Album Routing*, *Explicit `reply_to` Allocation*, *Automatic Single Fallback Retry Engine*, dan *Partial Album History Recovery* (`try_recover_album_from_history`).
+3. **Smart Hardware GPU Allocation Engine & Re-encode Size Sync**: Deteksi hardware GPU dinamis (NVIDIA NVENC, AMD AMF, Intel QSV, CPU) di Rust (`hardware_capability.rs`) dipetakan ke parameter FFmpeg (`-rc vbr`, `-quality speed`, dll.) yang tersinkronisasi dengan TypeScript (`DriveTransferSettings.tsx`). Ukuran berkas pasca re-encode disinkronkan secara dinamik (`actual_upload_size`) ke Transfer Manager untuk mencegah overflow persentase progress.
+4. **Canonical Media Identity Architecture & Preview Resilience**: Pengikatan penuh seluruh media ke `MediaIdentity` kanonis (`accountId`, `peerId`, `topicId`, `messageId`) mengeliminasi total kebocoran fallback `'me'`. Dilengkapi *Active Socket Invalidation & Fresh MTProto Reconnect Engine* pada RPC Timeout -503, dual-track resource semaphore (`fast_sem` vs `video_sem`), serta Range HTTP `206 Partial Content` 512 KB Boundary Alignment.
+5. **Local-First SWR, Instant 0ms Mini-Thumb Paint & Realtime Progress Engine**: Render antarmuka visual instan (<10ms) via IndexedDB (`mediaStudioDb.ts`) dan mini-thumb MTProto `PhotoSize::Stripped` (`tl_stripped_thumb_data_url`). Penyaluran `ProgressAsyncReader` pada stream upload byte memancarkan event `StudioProgress` dan `StudioItemDone` secara real-time ke UI antrean transfer dengan fase commit jelas (`StudioItemPhase::Committing`).
 
 ---
 
@@ -442,22 +443,24 @@ src/
   1. `topics.rs` mengambil daftar topik forum via Grammers MTProto.
   2. `app_db.rs` menyimpan indeks media ke tabel SQLite `topic_media_items` dengan komposit primary key (`account_id`, `peer_id`, `topic_id`, `message_id`).
 
-### Kategori 10: Multi-Channel Transfer, Chunked Upload/Download, Media Prep & Duplicate Engine
-- **Deskripsi**: Engine transfer, upload, download, media prep (GPU reencode), duplikasi 4 level, dan pengelompokan pesan/forwarder Telegram.
+### Kategori 10: Multi-Channel Transfer, Smart 3x3 Album Engine, Hardware GPU Re-encode & Duplicate Engine (v2.8.7)
+- **Deskripsi**: Engine transfer, studio upload, migration core flow, akselerasi re-encode GPU dinamis, duplikasi 4 level, dan pengelompokan media album Telegram.
 - **Komponen Utama**:
-  - `MediaStudio/index.tsx` & `DriveTransferManager.tsx`: Frontend transfer queue orchestrator & floating IDM-style widget UI.
-  - `transferProgressStore.ts`: Dynamic store untuk menangkap event IPC Tauri `transfer-progress` (5-sample moving average smoothing).
-  - `studio_orch.rs` & `studioOrch.ts`: Orchestration pipeline antara UI React dan Grammers Rust engine (`studioRunUploadDefault`).
-  - `media_prep.rs` & `hardware_capability.rs`: Auto-decision passthrough vs re-encode dengan akselerasi GPU (NVENC, AMF, QSV, x264).
+  - `MediaStudio/index.tsx` & `TransferManager`: Frontend transfer queue orchestrator & floating IDM-style widget UI dengan indikator persentase real-time dan log aktivitas.
+  - `transferProgressStore.ts` & `StudioProgress`: Dynamic store untuk menangkap event IPC Tauri `StudioProgress` dan `StudioItemDone` via `ProgressAsyncReader`.
+  - `studio_orch.rs` & `studioOrch.ts`: Orchestration pipeline antara UI React dan Grammers Rust engine (`studio_run_orchestrated`).
+  - `hardware_capability.rs` & `media_prep.rs`: Smart Hardware GPU Allocation Engine (NVENC, AMF, QSV, CPU) yang dipetakan ke preferensi GPU pengguna dengan penyelarasan otomatis `actual_upload_size` pasca re-encode.
   - `dup_checker.rs` & `smart_scanner.rs`: Engine pencegah duplikasi 4 level (`file_unique_id`, `hash:<sha256>`, `fp:<fingerprint_hash>`, `name:<file_name>|<file_size>`) & cache in-memory.
-  - `migration_run.rs` & `driveMove`: Fitur pemindahan/salin media dan forwarder antar-channel Telegram.
-- **Alur Kerja Utama**:
-  1. `MediaStudio` mengumpulkan file lokal/remote URL, mengecek opsi guardrail/duplikat, lalu mendaftarkan `QueueTask` ke `transferSession`.
-  2. `processNextQueueTask` memanggil `studioRunUploadDefault` ke Rust backend (`studio_run_orchestrated`).
-  3. `media_prep.rs` mengevaluasi format media: Direct Passthrough jika format MP4 standar, atau Hardware Re-encoding jika media non-standar.
-  4. `dup_checker.rs` dan `smart_scanner.rs` mengecek duplikasi di SQLite cache `destination_scan_cache` dan `duplicate_history`. Jika duplikat terdeteksi, file ditandai `skipped`.
-  5. Rust Grammers mengunggah/mengunduh chunk file ke/dari Telegram DC secara streaming dan memancarkan progres realtime ke UI via event `transfer-progress`.
-  6. Setelah transfer selesai, sistem menjalankan `uploadSoftRefresh()` dan `softRefreshSidebar()` untuk menyegarkan tampilan berkas Drive secara instan.
+  - `migration_run.rs` & `media_transfer.rs`: Fitur pemindahan/salin media, forwarder, dan pemulihan status album.
+- **Alur Kerja Utama (v2.8.7)**:
+  1. `MediaStudio` mendaftarkan berkas ke `studio_orch.rs` via `studio_run_orchestrated`. Setiap item diikat dengan `MediaIdentity` kanonis (`accountId`, `peerId`, `topicId`, `messageId`).
+  2. `hardware_capability.rs` mendeteksi hardware GPU nyata (NVIDIA NVENC, AMD AMF, Intel QSV, CPU) dan menghasilkan argumen optimasi FFmpeg (`-rc vbr`, `-quality speed`, dll.). Pasca re-encode, `actual_upload_size` dikirimkan ke UI untuk merevisi total byte dan mencegah overflow progress % > 100%.
+  3. Untuk pengiriman album (*Group as Album*), `studio_orch.rs` mengeksekusi **Smart 3x3 Grid Album Chunking Engine**, membagi item menjadi batch maksimal **9 item per album** (`chunk_size <= 9`). Hal ini menjamin Telegram Web/Desktop/Mobile merender postingan secara simetris sempurna 3 × 3 (9 foto) tanpa memisah foto ke-10 menjadi post tersendiri.
+  4. Untuk grup berpola Forum Topic, header `reply_to` dialokasikan secara eksplisit di seluruh item album (item 1–9).
+  5. `dup_checker.rs` memverifikasi duplikasi 4 level. Jika unik, byte media diunggah via `ProgressAsyncReader` pada `client.upload_stream` sambil memancarkan event `StudioProgress` ke UI.
+  6. Saat pengunggahan byte 100% selesai dan RPC `send_album` dieksekusi, backend memancarkan fase `StudioItemPhase::Committing` ("Mengirim pesan…").
+  7. Jika RPC `send_album` mengalami error atau timeout Grammers, sistem mengaktifkan `try_recover_album_from_history` untuk mencocokkan `grouped_id` di Telegram history. Item yang tercecer dicoba ulang via *single upload fallback retry engine*.
+
 
 ---
 
@@ -965,19 +968,28 @@ sequenceDiagram
 
 ---
 
-## 15. Matriks Status Fitur (Feature Matrix v2.7.2)
+## 15. Matriks Status Fitur (Feature Matrix v2.8.7)
 
 | Fitur Utama | Status Terintegrasi | Modul Utama Penanggung Jawab |
 | :--- | :--- | :--- |
-| Otentikasi Telegram (Phone + OTP) | **AKTIF** | `session_auth.rs` |
-| Otentikasi QR Code Login | **AKTIF** | `session_auth.rs` |
+| Otentikasi Telegram (Phone + OTP + QR) | **AKTIF** | `session_auth.rs`, Grammers MTProto |
 | Import Sesi Telethon Python Legacy | **AKTIF** | `telethon_session_import.rs` |
+| Shared Modular Core (`autogram-core`) | **AKTIF (v2.8.0)** | `autogram_core/` (`reliability`, `engine`, `hardware`, `transfer`) |
+| Persistent Job Queue (SQLite WAL & Resume) | **AKTIF (v2.8.0)** | `autogram_core/reliability/job_queue.rs`, `checkpoint_manager.rs` |
+| Smart Hardware GPU Allocation Engine | **AKTIF (v2.7.6)** | `hardware_capability.rs`, `media_prep.rs`, `DriveTransferSettings.tsx` |
+| Dynamic Re-encoded Size Sync | **AKTIF (v2.7.7)** | `media_prep.rs`, `studio_orch.rs`, `transferProgressStore.ts` |
+| Smart 3x3 Grid Album Chunking Engine (≤9 items) | **AKTIF (v2.8.7)** | `studio_orch.rs`, `album.rs` |
+| Universal Forum Topic Album Routing & `reply_to` | **AKTIF (v2.8.6)** | `media_transfer.rs`, `studio_orch.rs` |
+| Automatic Single Fallback Retry Engine | **AKTIF (v2.8.6)** | `studio_orch.rs` |
+| Partial Album History Recovery & `grouped_id` Match | **AKTIF (v2.8.4-v2.8.5)** | `media_transfer.rs` (`try_recover_album_from_history`) |
+| Realtime Progress Streaming & Commit Phase State | **AKTIF (v2.8.1-v2.8.3)** | `media_transfer.rs`, `studio_orch.rs`, `transferProgressStore.ts` |
+| Canonical Media Identity Architecture | **AKTIF (v2.7.0)** | `mediaIdentity.ts`, `driveFilesApi.ts`, `telegramBackend.ts` |
+| Fresh MTProto Reconnect & Socket Invalidation | **AKTIF (v2.5.10)** | `stream.rs`, Grammers MTProto |
 | Drive Explorer (Virtualized Grid & List) | **AKTIF** | `DriveExplorer.tsx`, `DriveFileCard.tsx` |
-| Progressive Thumbnail Pipeline (Tier 1–5) | **AKTIF** | `thumbs.rs`, `thumbBatcher.ts` |
-| Progressive Video Stream & 3-Layer Seek Fix | **AKTIF (v2.7.2)** | `stream.rs`, `stream_server.rs` |
+| Progressive Thumbnail Pipeline (Tier 1–5) | **AKTIF** | `thumbs.rs`, `special_media_thumb.rs`, `thumbBatcher.ts` |
+| Progressive Video Stream & 3-Layer Seek Fix | **AKTIF** | `stream.rs`, `stream_server.rs` |
 | Sparse Remote ZIP Archive Browser | **AKTIF** | `grammers_sparse_zip.rs` |
-| Multi-Channel Migration Engine | **AKTIF** | `migration_run.rs`, `jobs_db.rs` |
-| 4-Level Duplicate Detection Engine | **AKTIF** | `dup_checker.rs` |
+| Multi-Channel Migration Engine & 4-Level Dedupe | **AKTIF** | `migration_run.rs`, `dup_checker.rs`, `jobs_db.rs` |
 | Studio Upload Orchestrator | **AKTIF** | `studio_orch.rs`, `job_queue.rs` |
 | Network Proxy (SOCKS5/HTTP) & VPN | **AKTIF** | `network.rs` |
 | OS Keyring Credential Storage | **AKTIF** | `secrets.rs` |
@@ -985,8 +997,9 @@ sequenceDiagram
 | Smart Rate Limiter & FloodWait Controller | **AKTIF** | `session_rate.rs`, `smart_throttle.rs` |
 | Automation Rules & Scheduler | **AKTIF** | `automations_db.rs`, `Automation/index.tsx` |
 | Transfer Statistics & Export CSV | **AKTIF** | `stats_db.rs`, `Statistics/index.tsx` |
-| Internasionalisasi (i18n Dual-Language) | **AKTIF** | `src/locales/`, `i18n.ts` |
+| Internasionalisasi (i18n 100% Key Parity) | **AKTIF** | `src/locales/`, `i18n.ts` |
 | Remote Agent Protocol (Dev Mode CDP) | **AKTIF (Dev Only)** | `lib.rs` (`#[cfg(debug_assertions)]`) |
+
 
 ---
 
@@ -1003,4 +1016,5 @@ Matriks 16 Skill spesialisasi aktif yang wajib dikonsumsi Agent: `prompt-to-spec
 
 ---
 
-*Dokumen master ini disahkan sebagai pedoman teknis utama definitif v2.7.2 paling lengkap, komprehensif, mencakup 100% seluruh berkas proyek, 16 Detail Mikro Teknis Berdampak Besar (dengan masalah, solusi, dampak, dan lokasi kode), Spesifikasi Buffer/Stream/Seek Engine (termasuk 3 Seek Fixes v2.7.2), 10 Kategori Fitur Utama Deep-Dive, 85+ Command Tauri IPC, Protokol Remote Agent Desktop, 5 Diagram Sequence Mermaid, Matriks Call Graph Inter-Module, Tabel Skema DB & Store IndexedDB, dan Standar Agent Governance.*
+*Dokumen master ini disahkan sebagai pedoman teknis utama definitif v2.8.7 paling lengkap, komprehensif, mencakup 100% seluruh berkas proyek, Shared Modular Core (`autogram-core`), Smart 3x3 Grid Album Chunking Engine, Smart Hardware GPU Allocation Engine, 16 Detail Mikro Teknis Berdampak Besar, Spesifikasi Buffer/Stream/Seek Engine, 10 Kategori Fitur Utama Deep-Dive, 85+ Command Tauri IPC, Protokol Remote Agent Desktop, 6 Diagram Sequence Mermaid, Matriks Call Graph Inter-Module, Tabel Skema DB & Store IndexedDB, dan Standar Agent Governance.*
+
