@@ -16019,3 +16019,70 @@ video.drive-zip-img {
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.3) !important;
   border-color: #38bdf8 !important;
 }
+
+/* ==========================================
+   HEADER SIDEBAR TOGGLE & BRAND STYLES
+   ========================================== */
+.td-header-sidebar-toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  outline: none !important;
+}
+
+.td-header-toggle-icon {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(99, 102, 241, 0.14) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #38bdf8 !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.18) !important;
+}
+
+.td-header-sidebar-toggle:hover .td-header-toggle-icon {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(99, 102, 241, 0.25) 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #7dd3fc !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.35) !important;
+  transform: translateY(-1px) scale(1.04) !important;
+}
+
+.td-header-sidebar-toggle:active .td-header-toggle-icon {
+  transform: scale(0.96) !important;
+}
+
+.td-toggle-arrow-badge {
+  position: absolute !important;
+  bottom: -3px !important;
+  right: -3px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: #09101a !important;
+  border: 1px solid rgba(56, 189, 248, 0.5) !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  transition: all 0.2s ease !important;
+}
+
+.td-header-sidebar-toggle:hover .td-toggle-arrow-badge {
+  background: #38bdf8 !important;
+  color: #0f172a !important;
+  border-color: #38bdf8 !important;
+  transform: scale(1.15) !important;
+}

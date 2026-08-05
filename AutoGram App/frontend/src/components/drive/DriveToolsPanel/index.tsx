@@ -291,16 +291,27 @@ export function DriveToolsPanel({
       >
         <header className="td-tools-head">
           <div className="td-tools-title">
-            <div className="td-tools-icon-wrap" aria-hidden="true">
-              <SlidersHorizontal size={20} />
-            </div>
-            <div className="td-tools-title-text">
-              <h2>{t('speedtest.tools_title')}</h2>
-              <div className="td-tools-sub" title={locationLabel}>
-                <span className="td-tools-loc-dot"></span>
-                <span>{locationLabel}</span>
+            <button
+              type="button"
+              className={`td-header-sidebar-toggle ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title={isSidebarCollapsed ? 'Klik untuk Perluas Sidebar Navigasi' : 'Klik untuk Ciutkan Sidebar Navigasi'}
+              aria-label={isSidebarCollapsed ? 'Klik untuk Perluas Sidebar Navigasi' : 'Klik untuk Ciutkan Sidebar Navigasi'}
+            >
+              <div className="td-header-toggle-icon">
+                <SlidersHorizontal size={18} />
+                <span className="td-toggle-arrow-badge">
+                  {isSidebarCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+                </span>
               </div>
-            </div>
+              <div className="td-tools-title-text">
+                <h2>{t('speedtest.tools_title')}</h2>
+                <div className="td-tools-sub" title={locationLabel}>
+                  <span className="td-tools-loc-dot"></span>
+                  <span>{locationLabel}</span>
+                </div>
+              </div>
+            </button>
           </div>
           <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
             <X size={18} />
@@ -312,28 +323,6 @@ export function DriveToolsPanel({
             className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
             aria-label={t("speedtest.categories_aria")}
           >
-            {/* SIDEBAR BRAND & ARROW TOGGLE ROW */}
-            <div className="td-sidebar-brand-row">
-              <div className="td-sidebar-brand">
-                <div className="td-sidebar-logo">AG</div>
-                {!isSidebarCollapsed && (
-                  <div className="td-sidebar-brand-info">
-                    <span className="td-sidebar-brand-title">AutoGram</span>
-                    <span className="td-sidebar-brand-sub">Tools & Settings</span>
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                className="td-sidebar-collapse-toggle"
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                title={isSidebarCollapsed ? 'Perluas Sidebar Navigasi' : 'Ciutkan Sidebar Navigasi'}
-                aria-label={isSidebarCollapsed ? 'Perluas Sidebar Navigasi' : 'Ciutkan Sidebar Navigasi'}
-              >
-                {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-              </button>
-            </div>
-
             {/* SIDEBAR NAV GROUPS & ITEMS */}
             {TOOL_GROUPS.map((group) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
