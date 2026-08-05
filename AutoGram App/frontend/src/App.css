@@ -12845,8 +12845,8 @@ body:has(.app-layout-drive-focus),
   display: flex;
   flex-direction: column;
   gap: 16px;
-  contain: content;
-  will-change: scroll-position;
+  contain: paint layout;
+  transform: translateZ(0);
 }
 
 /* Profiles Card (Clean Embedded Card - Opaque for GPU Scroll) */

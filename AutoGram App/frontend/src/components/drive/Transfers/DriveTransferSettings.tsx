@@ -26,7 +26,7 @@ import {
   saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
 import { MediaSelect } from '../Navigation/MediaSelect';
-import { useTransferProgressStore } from '../../../stores/transferProgressStore';
+import { useTransferProgressStore, useTransferHardwareCapabilities } from '../../../stores/transferProgressStore';
 import { TransferOrchestrationSettings } from './TransferOrchestrationSettings';
 import { buildEncoderHardwareOptions, isExplicitEncoderDevice } from './encoderHardwareOptions';
 
@@ -60,7 +60,7 @@ export function DriveTransferSettings({
   const [profileName, setProfileName] = useState('');
   const [settingsQuery, setSettingsQuery] = useState('');
 
-  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferProgressStore();
+  const { hardwareCapabilities, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
   useEffect(() => {
     if (open) {
