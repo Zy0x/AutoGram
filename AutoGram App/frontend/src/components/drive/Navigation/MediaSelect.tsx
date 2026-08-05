@@ -75,9 +75,16 @@ export function MediaSelect({
     });
   };
 
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      onOpen?.();
+    }
+    prevOpenRef.current = open;
+  }, [open, onOpen]);
+
   useLayoutEffect(() => {
     if (!open) return;
-    onOpen?.();
     setActiveIndex(selectedIndex);
     place();
     requestAnimationFrame(() => {

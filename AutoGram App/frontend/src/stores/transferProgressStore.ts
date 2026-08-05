@@ -228,17 +228,13 @@ export function useTransferProgressStore() {
 }
 
 export function useTransferHardwareCapabilities() {
-  const hardwareCapabilities = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     transferProgressStore.subscribe,
-    transferProgressStore.getHardwareCapabilities
-  );
-  const isDetectingHardware = useSyncExternalStore(
-    transferProgressStore.subscribe,
-    transferProgressStore.getIsDetectingHardware
+    transferProgressStore.getSnapshot
   );
   return {
-    hardwareCapabilities,
-    isDetectingHardware,
+    hardwareCapabilities: snapshot.hardwareCapabilities,
+    isDetectingHardware: snapshot.isDetectingHardware,
     fetchHardwareCapabilities: transferProgressStore.fetchHardwareCapabilities,
   };
 }
