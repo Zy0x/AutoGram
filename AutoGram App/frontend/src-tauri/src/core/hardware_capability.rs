@@ -549,13 +549,17 @@ pub fn select_best_encoder_internal_legacy() -> (String, String) {
 }
 
 #[tauri::command]
-pub fn get_hardware_capabilities() -> HardwareCapabilities {
-    detect_hardware_capabilities()
+pub async fn get_hardware_capabilities() -> Result<HardwareCapabilities, String> {
+    tokio::task::spawn_blocking(detect_hardware_capabilities)
+        .await
+        .map_err(|e| format!("get_hardware_capabilities task failed: {e}"))
 }
 
 #[tauri::command]
-pub fn select_best_encoder() -> SelectedEncoder {
-    detect_hardware_capabilities().best_encoder
+pub async fn select_best_encoder() -> Result<SelectedEncoder, String> {
+    tokio::task::spawn_blocking(|| detect_hardware_capabilities().best_encoder)
+        .await
+        .map_err(|e| format!("select_best_encoder task failed: {e}"))
 }
 
 #[cfg(test)]

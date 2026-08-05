@@ -774,21 +774,28 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
     }
 
     if cfg!(windows) {
-        let mut win_dirs = Vec::new();
-        if let Ok(pf) = std::env::var("ProgramFiles") {
-            win_dirs.push(PathBuf::from(pf));
+        let win_candidates = [
+            PathBuf::from("C:\\ffmpeg\\bin\\ffmpeg.exe"),
+            PathBuf::from("C:\\ffmpeg\\ffmpeg.exe"),
+            PathBuf::from("C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe"),
+            PathBuf::from("C:\\Tools\\ffmpeg.exe"),
+        ];
+        for candidate in win_candidates {
+            if candidate.is_file() {
+                candidates.push(candidate);
+            }
         }
-        if let Ok(pfx86) = std::env::var("ProgramFiles(x86)") {
-            win_dirs.push(PathBuf::from(pfx86));
+        if let Ok(pf) = std::env::var("ProgramFiles") {
+            let p = PathBuf::from(pf).join("ffmpeg\\bin\\ffmpeg.exe");
+            if p.is_file() {
+                candidates.push(p);
+            }
         }
         if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            win_dirs.push(PathBuf::from(local_app));
-        }
-        win_dirs.push(PathBuf::from("C:\\ffmpeg"));
-        win_dirs.push(PathBuf::from("C:\\Tools"));
-
-        for base in win_dirs {
-            collect_ffmpeg_recursive(&base, 4, &mut candidates);
+            let p = PathBuf::from(local_app).join("Programs\\ffmpeg\\bin\\ffmpeg.exe");
+            if p.is_file() {
+                candidates.push(p);
+            }
         }
     }
 
