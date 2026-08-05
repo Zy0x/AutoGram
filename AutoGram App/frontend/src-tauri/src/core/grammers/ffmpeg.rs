@@ -785,16 +785,33 @@ fn collect_ffmpeg_candidates() -> Vec<PathBuf> {
                 candidates.push(candidate);
             }
         }
+        let mut app_search_roots = Vec::new();
         if let Ok(pf) = std::env::var("ProgramFiles") {
-            let p = PathBuf::from(pf).join("ffmpeg\\bin\\ffmpeg.exe");
-            if p.is_file() {
-                candidates.push(p);
-            }
+            app_search_roots.push(PathBuf::from(pf));
+        }
+        if let Ok(pfx86) = std::env::var("ProgramFiles(x86)") {
+            app_search_roots.push(PathBuf::from(pfx86));
         }
         if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
-            let p = PathBuf::from(local_app).join("Programs\\ffmpeg\\bin\\ffmpeg.exe");
-            if p.is_file() {
-                candidates.push(p);
+            app_search_roots.push(PathBuf::from(local_app));
+        }
+
+        for root in app_search_roots {
+            if let Ok(entries) = std::fs::read_dir(&root) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.is_dir() {
+                        let name_lower = p.file_name().unwrap_or_default().to_string_lossy().to_lowercase();
+                        if name_lower.contains("formatfactory")
+                            || name_lower.contains("capcut")
+                            || name_lower.contains("bluestacks")
+                            || name_lower.contains("ffmpeg")
+                            || name_lower.contains("obs-studio")
+                        {
+                            collect_ffmpeg_recursive(&p, 3, &mut candidates);
+                        }
+                    }
+                }
             }
         }
     }

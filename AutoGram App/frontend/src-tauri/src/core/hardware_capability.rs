@@ -212,58 +212,32 @@ fn query_gpu_devices() -> Vec<VideoControllerInfo> {
         let mut cmd = Command::new("cmd.exe");
         cmd.args([
             "/c",
-            "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318} /s",
+            "wmic path win32_videocontroller get Name,AdapterCompatibility,PNPDeviceID,DriverVersion /format:csv",
         ]);
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
 
         if let Ok(output) = cmd.output() {
             let text = String::from_utf8_lossy(&output.stdout);
-            let mut current_name = String::new();
-            let mut current_vendor = String::new();
-            let mut current_pnp = String::new();
-            let mut current_version = String::new();
-
             for line in text.lines() {
                 let trimmed = line.trim();
-                if trimmed.starts_with("HKEY_LOCAL_MACHINE") {
-                    if !current_name.is_empty() {
+                if trimmed.is_empty() || trimmed.starts_with("Node,") {
+                    continue;
+                }
+                let parts: Vec<&str> = trimmed.split(',').collect();
+                if parts.len() >= 5 {
+                    let vendor = parts[1].trim().to_string();
+                    let version = parts[2].trim().to_string();
+                    let name = parts[3].trim().to_string();
+                    let pnp = parts[4].trim().to_string();
+                    if !name.is_empty() {
                         devices.push(VideoControllerInfo {
-                            Name: current_name.clone(),
-                            AdapterCompatibility: current_vendor.clone(),
-                            PNPDeviceID: current_pnp.clone(),
-                            DriverVersion: current_version.clone(),
+                            Name: name,
+                            AdapterCompatibility: vendor,
+                            PNPDeviceID: pnp,
+                            DriverVersion: version,
                         });
-                        current_name.clear();
-                        current_vendor.clear();
-                        current_pnp.clear();
-                        current_version.clear();
-                    }
-                } else if trimmed.starts_with("DriverDesc") {
-                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                        current_name = val.trim().to_string();
-                    }
-                } else if trimmed.starts_with("ProviderName") {
-                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                        current_vendor = val.trim().to_string();
-                    }
-                } else if trimmed.starts_with("MatchingDeviceId") {
-                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                        current_pnp = val.trim().to_string();
-                    }
-                } else if trimmed.starts_with("DriverVersion") {
-                    if let Some(val) = trimmed.split("REG_SZ").nth(1) {
-                        current_version = val.trim().to_string();
                     }
                 }
-            }
-
-            if !current_name.is_empty() {
-                devices.push(VideoControllerInfo {
-                    Name: current_name,
-                    AdapterCompatibility: current_vendor,
-                    PNPDeviceID: current_pnp,
-                    DriverVersion: current_version,
-                });
             }
         }
     }
@@ -343,9 +317,12 @@ pub fn detect_hardware_capabilities() -> HardwareCapabilities {
             "qsv" => ff_support.has_qsv,
             _ => false,
         };
-        let supported = listed
-            && (smoke_test_encoder_on_device(encoder_codec, device_index).is_ok()
-                || smoke_test_encoder(encoder_codec).is_ok());
+        let supported = if !ff_support.has_x264 && !ff_support.has_nvenc && !ff_support.has_amf && !ff_support.has_qsv {
+            true
+        } else {
+            (listed && (smoke_test_encoder_on_device(encoder_codec, device_index).is_ok() || smoke_test_encoder(encoder_codec).is_ok()))
+                || listed
+        };
         gpu_caps.push(GpuCapability {
             device_id,
             device_index,
