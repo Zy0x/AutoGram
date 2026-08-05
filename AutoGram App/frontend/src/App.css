@@ -10153,12 +10153,13 @@ body:has(.app-layout-drive-focus),
 }
 
 .td-category-menu-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
   max-width: 100%;
   margin: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 .td-category-menu-card {
   display: flex;
