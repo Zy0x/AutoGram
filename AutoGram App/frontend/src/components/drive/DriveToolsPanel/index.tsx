@@ -15,6 +15,8 @@ import {
   Play,
   SlidersHorizontal,
   RotateCcw,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -179,6 +181,7 @@ export function DriveToolsPanel({
   const [copyDest, setCopyDest] = useState<string>('me');
   const [skipDup, setSkipDup] = useState(true);
   const [copyScope, setCopyScope] = useState<'selected' | 'all'>('selected');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [xferSubTab, setXferSubTab] = useState<'upload' | 'download'>('upload');
   const [xferDraft, setXferDraft] = useState<DriveTransferSettings>(() => ({
@@ -305,22 +308,37 @@ export function DriveToolsPanel({
         </header>
 
         <div className="td-tools-layout">
-          <aside className="td-tools-sidebar" aria-label={t("speedtest.categories_aria")}>
+          <aside className={`td-tools-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`} aria-label={t("speedtest.categories_aria")}>
+            <div className="td-sidebar-toggle-row">
+              <button
+                type="button"
+                className="td-sidebar-collapse-btn"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+                aria-label={isSidebarCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+              >
+                {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                {!isSidebarCollapsed && <span>{t('speedtest.collapse_sidebar', 'Ciutkan')}</span>}
+              </button>
+            </div>
+
             {TOOL_GROUPS.map((group) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
-                <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>
+                {!isSidebarCollapsed && <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>}
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
+                  const tabLabel = t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
                   return (
                     <button
                       key={tItem.id}
                       type="button"
                       className={`td-tools-sidebar-tab ${isActive ? 'active' : ''}`}
                       onClick={() => onTab(tItem.id)}
+                      title={isSidebarCollapsed ? tabLabel : undefined}
                     >
                       <Icon size={16} />
-                      <span>{t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`)}</span>
+                      {!isSidebarCollapsed && <span>{tabLabel}</span>}
                     </button>
                   );
                 })}

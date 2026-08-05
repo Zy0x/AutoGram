@@ -10630,6 +10630,58 @@ body:has(.app-layout-drive-focus),
 }
 
 /* SLIDER ROW BOX */
+.td-tools-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.22);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s ease;
+  box-sizing: border-box;
+}
+
+.td-tools-sidebar.is-collapsed {
+  width: 60px;
+  padding: 14px 8px;
+}
+
+.td-sidebar-toggle-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.td-sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.td-sidebar-collapse-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.td-tools-sidebar.is-collapsed .td-tools-sidebar-tab {
+  justify-content: center;
+  padding: 10px 0;
+  width: 100%;
+}
 .td-slider-row-box {
   display: flex;
   flex-direction: column;
