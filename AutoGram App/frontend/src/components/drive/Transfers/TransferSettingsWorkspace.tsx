@@ -17,7 +17,9 @@ import {
   ChevronUp,
   Trash2,
   AlertTriangle,
-  Check,
+  Sparkles,
+  Layers,
+  CheckCircle2,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -202,7 +204,9 @@ export function TransferSettingsWorkspace({
       {/* Header bar */}
       <header className="td-xfer-workspace-head">
         <div className="td-xfer-workspace-title">
-          <Sliders size={20} className="td-xfer-icon-glow" />
+          <div className="td-xfer-head-avatar">
+            <Sliders size={22} className="td-xfer-icon-glow" />
+          </div>
           <div>
             <h3>{t('speedtest.transfer_settings_title')}</h3>
             <p>{t('speedtest.transfer_settings_subtitle')}</p>
@@ -212,7 +216,8 @@ export function TransferSettingsWorkspace({
         <div className="td-xfer-workspace-head-right">
           {isDirty && (
             <span className="td-dirty-badge" role="status">
-              ● {t('speedtest.unsaved_changes', 'Unsaved changes')}
+              <span className="td-dirty-dot" />
+              {t('speedtest.unsaved_changes', 'Perubahan belum disimpan')}
             </span>
           )}
 
@@ -222,6 +227,7 @@ export function TransferSettingsWorkspace({
               className={`td-segmented-btn ${basicMode ? 'active' : ''}`}
               onClick={() => setBasicMode(true)}
             >
+              <Zap size={13} />
               {t('speedtest.mode_toggle_basic')}
             </button>
             <button
@@ -229,6 +235,7 @@ export function TransferSettingsWorkspace({
               className={`td-segmented-btn ${!basicMode ? 'active' : ''}`}
               onClick={() => setBasicMode(false)}
             >
+              <Layers size={13} />
               {t('speedtest.mode_toggle_advanced')}
             </button>
           </div>
@@ -245,7 +252,7 @@ export function TransferSettingsWorkspace({
           onClick={() => setTab('upload')}
         >
           <Upload size={15} />
-          {t('speedtest.upload_tab', 'Upload')}
+          {t('speedtest.upload_tab', 'Unggah')}
         </button>
         <button
           type="button"
@@ -255,7 +262,7 @@ export function TransferSettingsWorkspace({
           onClick={() => setTab('download')}
         >
           <Download size={15} />
-          {t('speedtest.download_tab', 'Download')}
+          {t('speedtest.download_tab', 'Unduh')}
         </button>
         <button
           type="button"
@@ -312,7 +319,10 @@ export function TransferSettingsWorkspace({
             <div className="td-system-presets-grid">
               {SYSTEM_TRANSFER_PRESETS.map((preset) => (
                 <div key={preset.id} className="td-system-preset-card">
-                  <h4>{preset.name}</h4>
+                  <div className="td-preset-card-head">
+                    <Sparkles size={16} className="td-preset-icon" />
+                    <h4>{preset.name}</h4>
+                  </div>
                   <p>{preset.description}</p>
                   <button
                     type="button"
@@ -320,13 +330,13 @@ export function TransferSettingsWorkspace({
                     disabled={!!transferActive}
                     onClick={() => applyPreset(preset.settings)}
                   >
-                    <Check size={13} /> {t('speedtest.apply_preset', 'Terapkan Preset')}
+                    <CheckCircle2 size={14} /> {t('speedtest.apply_preset', 'Terapkan Preset')}
                   </button>
                 </div>
               ))}
             </div>
 
-            <h3 style={{ marginTop: '24px' }}>{t('speedtest.transfer_profiles_title')}</h3>
+            <h3 style={{ marginTop: '28px' }}>{t('speedtest.transfer_profiles_title')}</h3>
             <p className="td-xfer-hint">{t('speedtest.transfer_profiles_desc')}</p>
             <div className="td-profile-mgr-card">
               <div className="td-profile-row">
@@ -377,7 +387,7 @@ export function TransferSettingsWorkspace({
         {/* UPLOAD TAB */}
         {tab === 'upload' && (
           <section id="transfer-quality" className="td-xfer-section" aria-label={t('speedtest.upload_settings_aria')}>
-            <h3>{t('speedtest.upload_quality_header', 'UPLOAD QUALITY')}</h3>
+            <h3>{t('speedtest.upload_quality_header', 'KUALITAS UNGGAHAN')}</h3>
             <p className="td-xfer-hint">{t('speedtest.upload_quality_hint')}</p>
             <div className="td-xfer-radio-list" role="radiogroup">
               {QUALITY_MODE_OPTIONS.map((opt: any) => (
@@ -401,9 +411,9 @@ export function TransferSettingsWorkspace({
             {/* UNIFIED 4-MODE ENCODER ARCHITECTURE */}
             <h3 id="transfer-encoder-mode">{t('speedtest.encoder_mode_title')}</h3>
             <p className="td-xfer-hint">{t('speedtest.encoder_mode_desc')}</p>
-            <div className="td-xfer-radio-list" role="radiogroup">
+            <div className="td-encoder-modes-grid" role="radiogroup">
               {/* MODE 1: AUTO */}
-              <label className={`td-xfer-radio ${currentEncoderMode === 'automatic' ? 'is-on' : ''}`}>
+              <label className={`td-xfer-radio td-encoder-card ${currentEncoderMode === 'automatic' ? 'is-on' : ''}`}>
                 <input
                   type="radio"
                   name="encoderUnifiedMode"
@@ -414,7 +424,9 @@ export function TransferSettingsWorkspace({
                 />
                 <span>
                   <strong className="td-mode-flex-title">
-                    <Zap size={16} className="td-mode-icon-auto" />
+                    <span className="td-mode-icon-badge is-auto">
+                      <Zap size={16} />
+                    </span>
                     {t('speedtest.encoder_mode_auto_title')}
                   </strong>
                   <small>{t('speedtest.encoder_mode_auto_desc')}</small>
@@ -422,7 +434,7 @@ export function TransferSettingsWorkspace({
               </label>
 
               {/* MODE 2: HARDWARE GPU */}
-              <label className={`td-xfer-radio ${currentEncoderMode === 'hardware' ? 'is-on' : ''}`}>
+              <label className={`td-xfer-radio td-encoder-card ${currentEncoderMode === 'hardware' ? 'is-on' : ''}`}>
                 <input
                   type="radio"
                   name="encoderUnifiedMode"
@@ -439,28 +451,17 @@ export function TransferSettingsWorkspace({
                 />
                 <span>
                   <strong className="td-mode-flex-title">
-                    <Film size={16} className="td-mode-icon-gpu" />
+                    <span className="td-mode-icon-badge is-gpu">
+                      <Film size={16} />
+                    </span>
                     {t('speedtest.encoder_mode_hardware_title')}
                   </strong>
                   <small>{t('speedtest.encoder_mode_hardware_desc')}</small>
                 </span>
               </label>
 
-              {currentEncoderMode === 'hardware' && (
-                <div className="td-xfer-nested-select">
-                  <MediaSelect
-                    value={draft.reencodeHardware}
-                    disabled={!!transferActive}
-                    onChange={(val) => patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw: val as ReencodeHardware }))}
-                    onOpen={fetchHardwareCapabilities}
-                    ariaLabel={t('speedtest.hardware_reencode_header')}
-                    options={hardwareOptions}
-                  />
-                </div>
-              )}
-
               {/* MODE 3: SOFTWARE CPU */}
-              <label className={`td-xfer-radio ${currentEncoderMode === 'software' ? 'is-on' : ''}`}>
+              <label className={`td-xfer-radio td-encoder-card ${currentEncoderMode === 'software' ? 'is-on' : ''}`}>
                 <input
                   type="radio"
                   name="encoderUnifiedMode"
@@ -471,7 +472,9 @@ export function TransferSettingsWorkspace({
                 />
                 <span>
                   <strong className="td-mode-flex-title">
-                    <Cpu size={16} className="td-mode-icon-cpu" />
+                    <span className="td-mode-icon-badge is-cpu">
+                      <Cpu size={16} />
+                    </span>
                     {t('speedtest.encoder_mode_software_title')}
                   </strong>
                   <small>{t('speedtest.encoder_mode_software_desc')}</small>
@@ -479,7 +482,7 @@ export function TransferSettingsWorkspace({
               </label>
 
               {/* MODE 4: DISABLE REENCODE */}
-              <label className={`td-xfer-radio ${currentEncoderMode === 'disabled' ? 'is-on' : ''}`}>
+              <label className={`td-xfer-radio td-encoder-card ${currentEncoderMode === 'disabled' ? 'is-on' : ''}`}>
                 <input
                   type="radio"
                   name="encoderUnifiedMode"
@@ -490,20 +493,35 @@ export function TransferSettingsWorkspace({
                 />
                 <span>
                   <strong className="td-mode-flex-title">
-                    <Sliders size={16} className="td-mode-icon-disable" />
+                    <span className="td-mode-icon-badge is-disable">
+                      <Sliders size={16} />
+                    </span>
                     {t('speedtest.encoder_mode_disable_title')}
                   </strong>
                   <small>{t('speedtest.encoder_mode_disable_desc')}</small>
                 </span>
               </label>
-
-              {currentEncoderMode === 'disabled' && (
-                <div className="td-xfer-note td-xfer-note-warning">
-                  <ShieldAlert size={15} />
-                  <span>{t('speedtest.encoder_mode_disable_warning')}</span>
-                </div>
-              )}
             </div>
+
+            {currentEncoderMode === 'hardware' && (
+              <div className="td-xfer-nested-select">
+                <MediaSelect
+                  value={draft.reencodeHardware}
+                  disabled={!!transferActive}
+                  onChange={(val) => patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw: val as ReencodeHardware }))}
+                  onOpen={fetchHardwareCapabilities}
+                  ariaLabel={t('speedtest.hardware_reencode_header')}
+                  options={hardwareOptions}
+                />
+              </div>
+            )}
+
+            {currentEncoderMode === 'disabled' && (
+              <div className="td-xfer-note td-xfer-note-warning">
+                <ShieldAlert size={16} />
+                <span>{t('speedtest.encoder_mode_disable_warning')}</span>
+              </div>
+            )}
 
             <h3>{t('speedtest.upload_parallelism_header')}</h3>
             <p className="td-xfer-hint">{t('speedtest.upload_parallelism_hint')}</p>
