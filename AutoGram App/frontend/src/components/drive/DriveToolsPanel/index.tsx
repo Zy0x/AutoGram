@@ -14,25 +14,18 @@ import {
   Loader2,
   Play,
   SlidersHorizontal,
-  Upload,
-  Download,
   RotateCcw,
-  Save,
-  Search,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
-import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings, DriveTransferSettingsProfile, QualityMode } from '../../../lib/telegram/driveTypes';
+import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
 import {
   DEFAULT_TRANSFER_SETTINGS,
-  QUALITY_MODE_OPTIONS,
   clampConcurrency,
   canShowDriveThumb,
   driveFileDisplayName,
   formatDriveBytes,
   driveItemKind,
   isVideoDriveFile,
-  loadTransferSettingsProfiles,
-  saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
 import { getCachedThumb, requestThumb } from '../../../lib/media/thumbBatcher';
 import {
@@ -47,9 +40,7 @@ import {
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
-import { useTransferHardwareCapabilities } from '../../../stores/transferProgressStore';
-import { TransferOrchestrationSettings } from '../Transfers/TransferOrchestrationSettings';
-import { buildEncoderHardwareOptions, isExplicitEncoderDevice } from '../Transfers/encoderHardwareOptions';
+import { TransferSettingsWorkspace } from '../Transfers/TransferSettingsWorkspace';
 export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
@@ -759,11 +750,7 @@ export function DriveToolsPanel({
 function TransferTabContent({
   draft,
   onChange,
-  onSave,
-  onReset,
   transferActive,
-  subTab,
-  onSubTab,
 }: {
   draft: DriveTransferSettings;
   onChange: (partial: Partial<DriveTransferSettings>) => void;
@@ -773,406 +760,13 @@ function TransferTabContent({
   subTab: 'upload' | 'download';
   onSubTab: (t: 'upload' | 'download') => void;
 }) {
-  const { t } = useTranslation();
-  const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
-  const [profiles, setProfiles] = useState<DriveTransferSettingsProfile[]>(() => loadTransferSettingsProfiles());
-  const [selectedProfileId, setSelectedProfileId] = useState('');
-  const [profileName, setProfileName] = useState('');
-  const [settingsQuery, setSettingsQuery] = useState('');
-
-  useEffect(() => {
-    // fetchHardwareCapabilities(); // Temporarily disabled
-  }, []);
-
-  const loadProfile = (id: string) => {
-    setSelectedProfileId(id);
-    const profile = profiles.find((candidate) => candidate.id === id);
-    if (!profile) return;
-    setProfileName(profile.name);
-    onChange({ ...DEFAULT_TRANSFER_SETTINGS, ...profile.settings });
-  };
-
-  const saveProfile = () => {
-    const name = profileName.trim().slice(0, 80);
-    if (!name) return;
-    const id = selectedProfileId || (globalThis.crypto?.randomUUID?.() ?? `profile-${Date.now()}`);
-    const nextProfile: DriveTransferSettingsProfile = { id, name, updatedAt: Date.now(), settings: { ...draft } };
-    const next = [nextProfile, ...profiles.filter((candidate) => candidate.id !== id)];
-    setProfiles(next);
-    setSelectedProfileId(id);
-    saveTransferSettingsProfiles(next);
-  };
-
-  const deleteProfile = () => {
-    if (!selectedProfileId) return;
-    const next = profiles.filter((candidate) => candidate.id !== selectedProfileId);
-    setProfiles(next);
-    setSelectedProfileId('');
-    setProfileName('');
-    saveTransferSettingsProfiles(next);
-  };
-
-  const searchResults = useMemo(() => {
-    const query = settingsQuery.trim().toLocaleLowerCase();
-    if (!query) return [];
-    return [
-      { tab: 'upload' as const, id: 'tools-transfer-quality', label: String(t('speedtest.upload_quality_header')) },
-      { tab: 'upload' as const, id: 'transfer-orchestration', label: String(t('speedtest.album_orchestration_title')) },
-      { tab: 'upload' as const, id: 'transfer-encoder', label: String(t('speedtest.encoder_orchestration_title')) },
-      { tab: 'download' as const, id: 'tools-transfer-download', label: String(t('speedtest.download_reliability_title')) },
-    ].filter((entry) => entry.label.toLocaleLowerCase().includes(query));
-  }, [settingsQuery, t]);
-
-  const jumpToSetting = (tab: 'upload' | 'download', id: string) => {
-    onSubTab(tab);
-    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
-  };
-
-  const hardwareOptions = useMemo(() => {
-    return buildEncoderHardwareOptions(hardwareCapabilities, t, isDetectingHardware);
-  }, [hardwareCapabilities, isDetectingHardware, t]);
-
   return (
-    <div className="td-tools-xfer-container">
-      <div className="td-xfer-settings-tabs" role="tablist" aria-label={t('speedtest.settings_sections_aria')}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'upload'}
-          className={`td-xfer-tab ${subTab === 'upload' ? 'active' : ''}`}
-          onClick={() => onSubTab('upload')}
-        >
-          <Upload size={15} />
-          {t('speedtest.upload_tab')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'download'}
-          className={`td-xfer-tab ${subTab === 'download' ? 'active' : ''}`}
-          onClick={() => onSubTab('download')}
-        >
-          <Download size={15} />
-          {t('speedtest.download_tab')}
-        </button>
-      </div>
-
-      <div className="td-xfer-settings-body">
-        <div className="td-transfer-profile-card">
-          <div className="td-profile-mgr-head">
-            <h3>{t('speedtest.transfer_profiles_title')}</h3>
-            <p className="td-xfer-hint">{t('speedtest.transfer_profiles_desc')}</p>
-          </div>
-          <div className="td-profile-mgr-controls">
-            <select
-              value={selectedProfileId}
-              disabled={!!transferActive}
-              onChange={(event) => loadProfile(event.target.value)}
-              aria-label={t('speedtest.transfer_profiles_select')}
-              className="td-tools-select"
-            >
-              <option value="">{t('speedtest.transfer_profiles_new')}</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-            <input
-              value={profileName}
-              maxLength={80}
-              disabled={!!transferActive}
-              onChange={(event) => setProfileName(event.target.value)}
-              placeholder={t('speedtest.transfer_profiles_name')}
-              aria-label={t('speedtest.transfer_profiles_name')}
-              className="td-tools-input"
-            />
-            <button
-              type="button"
-              className="td-chip-btn is-primary"
-              onClick={saveProfile}
-              disabled={!!transferActive || !profileName.trim()}
-            >
-              <Save size={13} /> {t('speedtest.transfer_profiles_save')}
-            </button>
-            <button
-              type="button"
-              className="td-chip-btn is-danger"
-              onClick={deleteProfile}
-              disabled={!!transferActive || !selectedProfileId}
-            >
-              <Trash2 size={13} /> {t('speedtest.transfer_profiles_delete')}
-            </button>
-          </div>
-
-          <div className="td-profile-search-row">
-            <Search size={14} className="td-search-icon" aria-hidden />
-            <input
-              type="search"
-              value={settingsQuery}
-              onChange={(event) => setSettingsQuery(event.target.value)}
-              placeholder={t('speedtest.transfer_settings_search')}
-              aria-label={t('speedtest.transfer_settings_search')}
-              className="td-tools-input td-search-input"
-            />
-          </div>
-
-          {settingsQuery.trim() && (
-            <div className="td-profile-search-results" role="navigation" aria-label={t('speedtest.transfer_settings_search_results')}>
-              {searchResults.length ? (
-                searchResults.map((result) => (
-                  <button key={result.id} type="button" className="td-chip-btn" onClick={() => jumpToSetting(result.tab, result.id)}>
-                    {result.label}
-                  </button>
-                ))
-              ) : (
-                <span className="td-xfer-hint">{t('speedtest.transfer_settings_search_empty')}</span>
-              )}
-            </div>
-          )}
-        </div>
-        {subTab === 'upload' && (
-          <section id="tools-transfer-quality" className="td-xfer-section" aria-label={t("speedtest.upload_settings_aria")}>
-            <h3>{t('speedtest.upload_quality_header')}</h3>
-            <p className="td-xfer-hint">
-              {t("speedtest.upload_quality_hint")}
-            </p>
-            <div className="td-xfer-radio-list" role="radiogroup" aria-label={t("speedtest.upload_quality")}>
-              {QUALITY_MODE_OPTIONS.map((opt: any) => (
-                <label
-                  key={opt.id}
-                  className={`td-xfer-radio ${draft.qualityMode === opt.id ? 'is-on' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="qualityMode"
-                    value={opt.id}
-                    checked={draft.qualityMode === opt.id}
-                    disabled={!!transferActive}
-                    onChange={() => {
-                      onChange({
-                        qualityMode: opt.id as QualityMode,
-                        forceDocumentDefault: false,
-                      });
-                    }}
-                  />
-                  <span>
-                    <strong>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_label`))}</strong>
-                    <small>{String(t(`speedtest.quality_mode_${opt.id.toLowerCase()}_desc`))}</small>
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            <h3>{t('speedtest.hardware_reencode_header')}</h3>
-            <p className="td-xfer-hint">
-              {t("speedtest.gpu_accel_desc")}
-            </p>
-            <label className="td-xfer-range-row">
-              <MediaSelect
-                value={draft.reencodeHardware}
-                disabled={!!transferActive}
-                onChange={(value: any) => onChange({ reencodeHardware: value as any })}
-                onOpen={fetchHardwareCapabilities}
-                ariaLabel={t("speedtest.hardware_reencode_header")}
-                options={hardwareOptions}
-              />
-            </label>
-            {draft.encoderStrategy === 'specific_device' && !isExplicitEncoderDevice(draft.reencodeHardware) && (
-              <p className="td-xfer-note" role="alert">{t('speedtest.encoder_specific_device_required')}</p>
-            )}
-
-            <h3>{t('speedtest.reencode_mode_header')}</h3>
-            <p className="td-xfer-hint">
-              {t("speedtest.reencode_mode_desc")}
-            </p>
-            <label className="td-xfer-range-row">
-              <MediaSelect
-                value={draft.reencodePreset}
-                disabled={!!transferActive}
-                onChange={(value: any) => onChange({ reencodePreset: value as any })}
-                ariaLabel={t("speedtest.reencode_mode_header")}
-                options={[
-                  { value: 'speed', label: String(t('speedtest.preset_speed_label')), description: String(t('speedtest.preset_speed_desc')) },
-                  { value: 'balanced', label: String(t('speedtest.preset_balanced_label')), description: String(t('speedtest.preset_balanced_desc')) },
-                  { value: 'quality', label: String(t('speedtest.preset_quality_label')), description: String(t('speedtest.preset_quality_desc')) },
-                ]}
-              />
-            </label>
-
-            <h3>{t('speedtest.upload_parallelism_header')}</h3>
-            <p className="td-xfer-hint">
-              {t("speedtest.upload_parallelism_hint")}
-            </p>
-            <label className="td-xfer-range-row">
-              <input
-                type="range"
-                min={1}
-                max={8}
-                value={draft.uploadConcurrency}
-                disabled={!!transferActive}
-                onChange={(e) => onChange({ uploadConcurrency: Number(e.target.value) })}
-                aria-label={t("speedtest.upload_parallelism_header")}
-              />
-              <span className="td-xfer-range-val">{draft.uploadConcurrency}</span>
-            </label>
-
-            <h3>{t('speedtest.send_options')}</h3>
-            <div className="td-xfer-checks">
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.groupAsAlbum}
-                  disabled={!!transferActive}
-                  onChange={(e) => onChange({ groupAsAlbum: e.target.checked })}
-                />
-                <span>
-                  <strong>{t('speedtest.send_as_album')}</strong>
-                  <small>{t('speedtest.send_as_album_desc')}</small>
-                </span>
-              </label>
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.silent}
-                  disabled={!!transferActive}
-                  onChange={(e) => onChange({ silent: e.target.checked })}
-                />
-                <span>
-                  <strong>{t('speedtest.silent_send')}</strong>
-                  <small>{t('speedtest.silent_send_desc')}</small>
-                </span>
-              </label>
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.spoiler}
-                  disabled={!!transferActive}
-                  onChange={(e) => onChange({ spoiler: e.target.checked })}
-                />
-                <span>
-                  <strong>{t('speedtest.spoiler_media')}</strong>
-                  <small>{t('speedtest.spoiler_media_desc')}</small>
-                </span>
-              </label>
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.presentationOverride === 'force_document'}
-                  disabled={!!transferActive}
-                  onChange={(e) => {
-                    const on = e.target.checked;
-                    onChange({
-                      forceDocumentDefault: on,
-                      presentationOverride: on ? 'force_document' : 'automatic',
-                    });
-                  }}
-                />
-                <span>
-                  <strong>{t('speedtest.force_document')}</strong>
-                  <small>{t('speedtest.force_document_desc')}</small>
-                </span>
-              </label>
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.duplicatePolicy === 'SKIP'}
-                  disabled={!!transferActive}
-                  onChange={(e) => onChange({ duplicatePolicy: e.target.checked ? 'SKIP' : 'FORCE_UPLOAD' })}
-                />
-                <span>
-                  <strong>{t('speedtest.skip_uploaded_files')}</strong>
-                  <small>{t('speedtest.skip_uploaded_desc')}</small>
-                </span>
-              </label>
-            </div>
-
-            <TransferOrchestrationSettings
-              mode="upload"
-              settings={draft}
-              onChange={onChange}
-              disabled={!!transferActive}
-            />
-
-            <h3>{t('speedtest.default_caption')}</h3>
-            <textarea
-              className="td-xfer-textarea"
-              rows={3}
-              maxLength={1024}
-              placeholder={t("speedtest.default_caption_ph")}
-              value={draft.globalCaption}
-              disabled={!!transferActive}
-              onChange={(e) => onChange({ globalCaption: e.target.value })}
-            />
-            <div className="td-xfer-charcount">{draft.globalCaption.length}/1024</div>
-          </section>
-        )}
-
-        {subTab === 'download' && (
-          <section id="tools-transfer-download" className="td-xfer-section" aria-label={t('speedtest.download_settings_aria')}>
-            <h3>{t('speedtest.download_parallel')}</h3>
-            <p className="td-xfer-hint">
-              {t('speedtest.download_parallel_desc')}
-            </p>
-            <label className="td-xfer-range-row">
-              <input
-                type="range"
-                min={1}
-                max={8}
-                value={draft.downloadConcurrency}
-                disabled={!!transferActive}
-                onChange={(e) => onChange({ downloadConcurrency: Number(e.target.value) })}
-                aria-label={t('speedtest.download_parallel_header')}
-              />
-              <span className="td-xfer-range-val">{draft.downloadConcurrency}</span>
-            </label>
-
-            <h3>{t('speedtest.download_behavior')}</h3>
-            <div className="td-xfer-checks">
-              <label className="td-xfer-check">
-                <input
-                  type="checkbox"
-                  checked={draft.notifyDownloadDone}
-                  onChange={(e) => onChange({ notifyDownloadDone: e.target.checked })}
-                />
-                <span>
-                  <strong>{t('speedtest.download_notice_title')}</strong>
-                  <small>{t('speedtest.download_notice_desc')}</small>
-                </span>
-              </label>
-            </div>
-            <TransferOrchestrationSettings
-              mode="download"
-              settings={draft}
-              onChange={onChange}
-              disabled={!!transferActive}
-            />
-          </section>
-        )}
-      </div>
-
-      <footer className="td-xfer-settings-foot">
-        <button
-          type="button"
-          className="td-btn-secondary"
-          disabled={!!transferActive}
-          onClick={onReset}
-          title={t("speedtest.restore_defaults")}
-        >
-          <RotateCcw size={14} />
-          {t('speedtest.btn_reset_default')}
-        </button>
-        <button
-          type="button"
-          className="td-btn-primary"
-          onClick={onSave}
-          title={t('speedtest.save_transfer_settings')}
-        >
-          <Check size={14} />
-          {t('speedtest.save_transfer_settings')}
-        </button>
-      </footer>
-    </div>
+    <TransferSettingsWorkspace
+      settings={draft}
+      onChange={(next) => onChange(next)}
+      transferActive={transferActive}
+      embedded={true}
+    />
   );
 }
 
