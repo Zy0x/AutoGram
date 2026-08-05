@@ -1711,6 +1711,12 @@ The implementing agent may append entries below. Do not delete previous entries.
 ## Decisions verified during implementation
 
 - Unified `TransferSettingsWorkspace` successfully replaces both standalone portal modal and embedded tools drawer tab content with zero regression.
+- **User Verified Hybrid Layout Architecture:**
+  1. Hero section at top with 3 Instant System Presets Cards (Cepat, Seimbang [Default], Kualitas Maksimal).
+  2. Clean 2-column layout below presets: Left sidebar for vertical category navigation (Ringkasan, Kualitas Upload, Encoding Video, Kecepatan & Paralelisme, Pengelompokan Album, Penanganan Duplikat, Batas Ukuran & Fallback, Download, Pengaturan Lanjutan); Right panel for settings content.
+  3. No nested card borders or stacked containers. Use clean spacing, subtle section background tints, and dividers.
+  4. Strict Progressive Disclosure: Child fields (GPU selection, custom album size, alternate account routing) ONLY render dynamically when parent feature is enabled.
+  5. Mobile & Tablet responsive: Vertical sidebar turns into a clean category dropdown/segmented selector on small viewports.
 
 ---
 
