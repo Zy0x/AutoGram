@@ -1152,9 +1152,6 @@ export function TransferSettingsWorkspace({
         </button>
 
         <div className="td-footer-right">
-          <span className="td-autosave-badge">
-            <CheckCircle2 size={13} /> {t('speedtest.auto_saved_tag', 'Tersimpan Otomatis')}
-          </span>
           {onClose && (
             <button type="button" className="td-chip-btn td-chip-primary" onClick={onClose}>
               {t('speedtest.topbar_close', 'Selesai')}
