@@ -1930,17 +1930,18 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* INNER SECTION 1: MODE DEKODER GPU PEMUTARAN VIDEO */}
+              {/* UNIFIED SINGLE CARD: MESIN PEMUTARAN VIDEO LOKAL */}
               <div className="td-settings-card is-nested-card">
                 <div className="td-card-head">
-                  <Tv size={18} style={{ color: '#10b981' }} />
+                  <Tv size={20} style={{ color: '#10b981' }} />
                   <div>
-                    <h4>{t('speedtest.playback_decoder_title', 'Mode Strategi Pemutaran Video (Local Playback Engine)')}</h4>
-                    <p>{t('speedtest.playback_decoder_desc', 'Pilih bagaimana sistem memproses dekoding video saat diputar atau dipratinjau di aplikasi')}</p>
+                    <h4>{t('speedtest.playback_unified_title', 'Mesin Akselerasi Pemutaran Video (Local Playback Engine)')}</h4>
+                    <p>{t('speedtest.playback_unified_desc', 'Pengaturan mesin ini khusus mengontrol akselerasi GPU, kelancaran FPS, dan pemuatan pratinjau instan di AutoGram.')}</p>
                   </div>
                 </div>
 
-                <div className="td-encoder-4x-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                {/* 1. THREE STRATEGY TILES */}
+                <div className="td-encoder-4x-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', margin: '16px 0' }}>
                   {/* AUTO */}
                   <label className={`td-encoder-tile ${(!draft.playbackHwDecoding || draft.playbackHwDecoding === 'auto') ? 'is-selected' : ''}`}>
                     <input
@@ -1954,9 +1955,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Zap size={16} className="td-tile-icon is-auto" />
-                        <strong>{t('speedtest.playback_auto_title', 'Otomatis (Hardware Adaptif)')}</strong>
+                        <strong>{t('speedtest.playback_auto_title', 'Otomatis (GPU Adaptif)')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_auto_desc', 'Pilih dekoder GPU terbaik secara otomatis dengan kemampuan fallback aman ke CPU jika GPU sibuk.')}</p>
+                      <p>{t('speedtest.playback_auto_desc', 'Rekomendasi terbaik. Sistem mendeteksi GPU otomatis untuk pemutaran instan tanpa lag.')}</p>
                     </div>
                   </label>
 
@@ -1973,9 +1974,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Film size={16} className="td-tile-icon is-gpu" />
-                        <strong>{t('speedtest.playback_gpu_title', 'Paksa Hardware Decoder')}</strong>
+                        <strong>{t('speedtest.playback_gpu_title', 'Paksa GPU Hardware')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_gpu_desc', 'Wajib menggunakan GPU fisik (D3D11VA/NVDEC) tanpa fallback diam-diam ke CPU untuk performa maksimal.')}</p>
+                      <p>{t('speedtest.playback_gpu_desc', 'Performa maksimal untuk video 4K, HDR & 120 FPS+ tanpa fallback CPU.')}</p>
                     </div>
                   </label>
 
@@ -1992,129 +1993,80 @@ export function TransferSettingsWorkspace({
                     <div style={{ flex: 1 }}>
                       <div className="td-tile-head">
                         <Cpu size={16} className="td-tile-icon is-cpu" />
-                        <strong>{t('speedtest.playback_cpu_title', 'Software CPU Decoding')}</strong>
+                        <strong>{t('speedtest.playback_cpu_title', 'Software (CPU)')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_cpu_desc', 'Memaksa dekoding video sepenuhnya menggunakan prosessor CPU bawaan tanpa membuat context GPU.')}</p>
+                      <p>{t('speedtest.playback_cpu_desc', 'Gunakan prosesor CPU bawaan sistem jika GPU bermasalah.')}</p>
                     </div>
                   </label>
                 </div>
-              </div>
 
-              {/* INNER SECTION 2: HARDWARE BACKEND API & ZERO-COPY INTEROP */}
-              <div className="td-settings-card is-nested-card" style={{ marginTop: '20px', opacity: draft.playbackHwDecoding === 'software' ? 0.6 : 1 }}>
-                <div className="td-card-head">
-                  <Activity size={18} style={{ color: '#38bdf8' }} />
-                  <div>
-                    <h4>{t('speedtest.playback_backend_title', 'Target Hardware API & Zero-Copy Interop')}</h4>
-                    <p>{t('speedtest.playback_backend_desc', 'Spesifikasi API fisik GPU dan manajemen transfer memori Zero-Copy DXGI')}</p>
-                  </div>
-                </div>
-
-                <div className="td-form-row-grid">
+                {/* 2. TWO PRIMARY PERFORMANCE DROPDOWNS */}
+                <div className="td-form-row-grid" style={{ marginTop: '16px' }}>
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_backend_label', 'Spesifikasi API Hardware GPU')}</label>
-                    <select
-                      value={draft.playbackHwDecoding === 'software' ? 'software' : (draft.playbackBackendChoice || 'auto')}
-                      disabled={!!transferActive || draft.playbackHwDecoding === 'software'}
-                      onChange={(e) => patch({ playbackBackendChoice: e.target.value as any })}
-                    >
-                      <option value="auto">{t('speedtest.playback_backend_auto', 'Auto API (Sistem Memilih D3D11VA / NVDEC Terbaik)')}</option>
-                      <option value="d3d11va">{t('speedtest.playback_backend_d3d11va', 'Direct3D11 Video Acceleration (D3D11VA)')}</option>
-                      <option value="d3d12va">{t('speedtest.playback_backend_d3d12va', 'Direct3D12 Video Acceleration (D3D12VA)')}</option>
-                      <option value="nvdec">{t('speedtest.playback_backend_nvdec', 'NVIDIA NVDEC Hardware Decoder')}</option>
-                      <option value="vulkan">{t('speedtest.playback_backend_vulkan', 'Vulkan Video Decode API')}</option>
-                      {draft.playbackHwDecoding === 'software' && (
-                        <option value="software">{t('speedtest.playback_backend_cpu', 'Software CPU Decoder Active')}</option>
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_fps_mode_label', 'Mode Penjadwalan Frame (FPS Scheduler)')}</label>
+                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Kelancaran Framerate (FPS)')}</label>
                     <select
                       value={draft.playbackFpsMode || 'adaptive'}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ playbackFpsMode: e.target.value as any })}
                     >
                       <option value="adaptive">{t('speedtest.playback_fps_mode_adaptive', 'Adaptive (Otomatis Sync PTS, Source FPS & Monitor Refresh)')}</option>
-                      <option value="follow_source">{t('speedtest.playback_fps_mode_source', 'Follow Source (Mengikuti Framerate Asli Video)')}</option>
-                      <option value="follow_display">{t('speedtest.playback_fps_mode_display', 'Follow Display (Mengikuti Refresh Rate Monitor 120/144/240Hz+)')}</option>
-                      <option value="manual_cap">{t('speedtest.playback_fps_mode_manual', 'Manual Cap (Batas Manual)')}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="td-switch-row" style={{ marginTop: '16px' }}>
-                  <div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px' }}>
-                      {t('speedtest.playback_zerocopy_title', 'Akselerasi Zero-Copy DXGI Texture Sharing')}
-                    </strong>
-                    <p style={{ color: '#94a3b8', fontSize: '12px', margin: '2px 0 0 0' }}>
-                      {t('speedtest.playback_zerocopy_desc', 'Mentransfer frame video langsung di memori VRAM GPU tanpa menyalin ulang ke RAM CPU.')}
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={draft.playbackZeroCopy !== false}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ playbackZeroCopy: e.target.checked })}
-                  />
-                </div>
-
-                <div className="td-switch-row" style={{ marginTop: '12px' }}>
-                  <div>
-                    <strong style={{ color: '#f8fafc', fontSize: '13px' }}>
-                      {t('speedtest.playback_diag_toggle_title', 'Tampilkan Panel Telemetri Diagnostik GPU Real-Time')}
-                    </strong>
-                    <p style={{ color: '#94a3b8', fontSize: '12px', margin: '2px 0 0 0' }}>
-                      {t('speedtest.playback_diag_toggle_desc', 'Menampilkan statistik decoder aktif, FPS riil, dropped frames, dan VRAM di atas pemutar video.')}
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(draft.playbackShowDiagnostics)}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ playbackShowDiagnostics: e.target.checked })}
-                  />
-                </div>
-              </div>
-
-              {/* INNER SECTION 3: PENGATURAN FRAMERATE & THUMBS SEEKING */}
-              <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
-                <div className="td-card-head">
-                  <SlidersHorizontal size={18} />
-                  <div>
-                    <h4>{t('speedtest.playback_opt_title', 'Optimasi Target FPS & Pre-Seek Thumbs')}</h4>
-                    <p>{t('speedtest.playback_opt_desc', 'Konfigurasi batas FPS manual dan kecepatan pemuatan cache frame')}</p>
-                  </div>
-                </div>
-
-                <div className="td-form-row-grid">
-                  <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Batas Target FPS Manual')}</label>
-                    <select
-                      value={draft.playbackTargetFps ?? 0}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) })}
-                    >
-                      <option value={0}>{t('speedtest.playback_fps_unlimited', 'Maksimal / Tanpa Batas (Native Display / 120+ FPS)')}</option>
-                      <option value={120}>{t('speedtest.playback_fps_120', '120 FPS (High Refresh Rate Monitor)')}</option>
-                      <option value={60}>{t('speedtest.playback_fps_60', '60 FPS (Sangat Halus & Responsif)')}</option>
-                      <option value={30}>{t('speedtest.playback_fps_30', '30 FPS (Standard / Hemat GPU)')}</option>
+                      <option value="follow_source">{t('speedtest.playback_fps_mode_source', 'Follow Source (Framerate Asli Video)')}</option>
+                      <option value="follow_display">{t('speedtest.playback_fps_mode_display', 'Follow Display (Monitor 120Hz/144Hz/240Hz+)')}</option>
+                      <option value="manual_cap">{t('speedtest.playback_fps_mode_manual', 'Manual Cap (Batas Manual 30/60/120 FPS)')}</option>
                     </select>
                   </div>
 
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_preseek_label', 'Pre-Seek Cache Frame')}</label>
+                    <label className="td-field-label">{t('speedtest.playback_zerocopy_label', 'Transfer Memori Zero-Copy DXGI')}</label>
                     <select
-                      value="enabled"
-                      disabled={!!transferActive}
+                      value={draft.playbackZeroCopy !== false ? 'enabled' : 'disabled'}
+                      disabled={!!transferActive || draft.playbackHwDecoding === 'software'}
+                      onChange={(e) => patch({ playbackZeroCopy: e.target.value === 'enabled' })}
                     >
-                      <option value="enabled">{t('speedtest.playback_preseek_enabled', 'Aktif (Pre-seek Cepat / Instant Frame Grab)')}</option>
-                      <option value="disabled">{t('speedtest.playback_preseek_disabled', 'Nonaktif (Load On Demand)')}</option>
+                      <option value="enabled">{t('speedtest.playback_zerocopy_on', 'Aktif (Langsung di VRAM GPU - Tanpa Salin CPU)')}</option>
+                      <option value="disabled">{t('speedtest.playback_zerocopy_off', 'Nonaktif (Mode Kompatibilitas)')}</option>
                     </select>
                   </div>
                 </div>
+
+                {/* 3. ADVANCED HARDWARE API & DIAGNOSTICS TOGGLE (DETAILS) */}
+                <details style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                  <summary style={{ cursor: 'pointer', color: '#38bdf8', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={16} />
+                    {t('speedtest.playback_advanced_toggle', 'Tampilkan Pengaturan Lanjutan API GPU & Telemetri Diagnostik')}
+                  </summary>
+
+                  <div style={{ marginTop: '16px' }}>
+                    <div className="td-form-row-grid">
+                      <div className="td-field-group">
+                        <label className="td-field-label">{t('speedtest.playback_backend_label', 'Target Hardware API Spesifik')}</label>
+                        <select
+                          value={draft.playbackHwDecoding === 'software' ? 'software' : (draft.playbackBackendChoice || 'auto')}
+                          disabled={!!transferActive || draft.playbackHwDecoding === 'software'}
+                          onChange={(e) => patch({ playbackBackendChoice: e.target.value as any })}
+                        >
+                          <option value="auto">{t('speedtest.playback_backend_auto', 'Auto API (Sistem Memilih D3D11VA / NVDEC Terbaik)')}</option>
+                          <option value="d3d11va">{t('speedtest.playback_backend_d3d11va', 'Direct3D11 Video Acceleration (D3D11VA)')}</option>
+                          <option value="d3d12va">{t('speedtest.playback_backend_d3d12va', 'Direct3D12 Video Acceleration (D3D12VA)')}</option>
+                          <option value="nvdec">{t('speedtest.playback_backend_nvdec', 'NVIDIA NVDEC Hardware Decoder')}</option>
+                          <option value="vulkan">{t('speedtest.playback_backend_vulkan', 'Vulkan Video Decode API')}</option>
+                        </select>
+                      </div>
+
+                      <div className="td-field-group">
+                        <label className="td-field-label">{t('speedtest.playback_diag_label', 'Panel Telemetri Diagnostik Overlay')}</label>
+                        <select
+                          value={draft.playbackShowDiagnostics ? 'enabled' : 'disabled'}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ playbackShowDiagnostics: e.target.value === 'enabled' })}
+                        >
+                          <option value="disabled">{t('speedtest.playback_diag_off', 'Sembunyikan Panel Diagnostik')}</option>
+                          <option value="enabled">{t('speedtest.playback_diag_on', 'Tampilkan Statistik GPU Real-Time di Pemutar')}</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
           </div>
