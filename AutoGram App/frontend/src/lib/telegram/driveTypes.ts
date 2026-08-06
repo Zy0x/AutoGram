@@ -659,8 +659,8 @@ export type DriveTransferSettings = {
   downloadIntegrity: DownloadIntegrity;
   /** Local playback / preview GPU acceleration hardware mode */
   playbackHwDecoding?: 'auto' | 'gpu_hardware' | 'software' | 'disabled';
-  /** Max FPS target for local video preview */
-  playbackTargetFps?: 30 | 60;
+  /** Max FPS target for local video preview (0 = Unlimited / Native display refresh rate) */
+  playbackTargetFps?: number;
 };
 
 export type DriveTransferSettingsProfile = {

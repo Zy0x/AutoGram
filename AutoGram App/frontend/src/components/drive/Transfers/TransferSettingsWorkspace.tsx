@@ -2013,10 +2013,12 @@ export function TransferSettingsWorkspace({
                   <div className="td-field-group">
                     <label className="td-field-label">{t('speedtest.playback_fps_label', 'Target Framerate Pratinjau')}</label>
                     <select
-                      value={draft.playbackTargetFps || 60}
+                      value={draft.playbackTargetFps ?? 60}
                       disabled={!!transferActive}
-                      onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) as 30 | 60 })}
+                      onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) })}
                     >
+                      <option value={0}>{t('speedtest.playback_fps_unlimited', 'Maksimal / Tanpa Batas (Native Display / 120+ FPS)')}</option>
+                      <option value={120}>{t('speedtest.playback_fps_120', '120 FPS (High Refresh Rate Monitor)')}</option>
                       <option value={60}>{t('speedtest.playback_fps_60', '60 FPS (Sangat Halus & Responsif)')}</option>
                       <option value={30}>{t('speedtest.playback_fps_30', '30 FPS (Standard / Hemat GPU)')}</option>
                     </select>
