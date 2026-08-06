@@ -8,8 +8,9 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
+import { tgAuthStatus, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
 import { invalidateSessionListCache } from '../../lib/telegram';
+import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 
@@ -292,12 +293,13 @@ export function Accounts() {
       setSessions(
         list.map((s) => {
           const meta = getSessionMetadata(s.name);
+          const cachedUrl = getCachedAvatar(0, s.name);
           return {
             name: s.name,
             status: s.status,
             userFullName: meta?.userFullName,
             username: meta?.username,
-            photoBase64: undefined, // Default to clean flat icon until real MTProto profile photo is fetched
+            photoBase64: cachedUrl || undefined,
             isPremium: Boolean(meta?.isPremium),
           };
         })
@@ -334,22 +336,21 @@ export function Accounts() {
           const isPremium = Boolean(user?.isPremium);
 
           // REAL-SYNC PHOTO DIRECTLY FROM RUST TELEGRAM BACKEND FOR THIS EXACT SESSION
-          let realPhoto = user?.photoBase64 || undefined;
+          let realPhoto = user?.photoBase64 || getCachedAvatar(0, saved.name) || undefined;
 
           if (connected) {
-            // If get_me photo thumb is missing, fetch full high-res profile photo via photos.GetUserPhotos RPC
+            // Fetch via requestAvatar (same engine used by Media Drives sidebar)
             if (!realPhoto) {
               try {
-                const downloaded = await tgDownloadProfilePhoto({
-                  session: saved.name,
-                  apiId: Number(apiId),
-                  apiHash,
-                });
+                const downloaded = await requestAvatar(
+                  { session: saved.name, apiId: String(apiId), apiHash },
+                  0
+                );
                 if (downloaded) {
                   realPhoto = downloaded;
                 }
               } catch (err) {
-                console.warn(`[Accounts] tgDownloadProfilePhoto error for ${saved.name}:`, err);
+                console.warn(`[Accounts] requestAvatar error for ${saved.name}:`, err);
               }
             }
           }
