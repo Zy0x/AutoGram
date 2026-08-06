@@ -276,14 +276,13 @@ export function Accounts() {
       setSessions(
         list.map((s) => {
           const meta = getSessionMetadata(s.name);
-          const isSimulatedPremium = s.name.toLowerCase().includes('mantan') || (meta?.userFullName && meta.userFullName.toLowerCase().includes('mantan'));
           return {
             name: s.name,
             status: s.status,
             userFullName: meta?.userFullName,
             username: meta?.username,
             photoBase64: meta?.photoBase64,
-            isPremium: Boolean(meta?.isPremium || isSimulatedPremium),
+            isPremium: Boolean(meta?.isPremium),
           };
         })
       );
@@ -317,8 +316,6 @@ export function Accounts() {
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
           const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
-          const isSimulatedPremium = saved.name.toLowerCase().includes('mantan') || (userFullName && userFullName.toLowerCase().includes('mantan'));
-          const effectiveIsPremium = Boolean(isPremium || isSimulatedPremium);
 
           if (connected || user) {
             saveSessionMetadata(saved.name, {
@@ -341,7 +338,7 @@ export function Accounts() {
                     username,
                     photoBase64,
                     latencyMs,
-                    isPremium: effectiveIsPremium,
+                    isPremium,
                   }
                 : row
             )
