@@ -2205,15 +2205,16 @@ export function TransferSettingsWorkspace({
           <div className="td-xfer-focused-panel" id="section-duplicates-main">
             <div className="td-settings-card">
               <div className="td-card-head">
-                <CopyCheck size={18} />
+                <CopyCheck size={20} style={{ color: '#38bdf8' }} />
                 <div>
-                  <h4>Penanganan & Kebijakan Duplikat</h4>
-                  <p>Konfigurasikan bagaimana sistem mendeteksi dan menangani berkas yang sudah pernah diunggah.</p>
+                  <h4>{t('speedtest.duplicate_title', 'Penanganan & Kebijakan Duplikat (Duplicate Engine)')}</h4>
+                  <p>{t('speedtest.duplicate_desc', 'Konfigurasikan bagaimana sistem mendeteksi, menangani, dan memverifikasi berkas yang sudah pernah diunggah.')}</p>
                 </div>
               </div>
 
-              <div className="td-radio-tiles-grid">
-                <label className={`td-radio-tile ${draft.duplicatePolicy === 'SKIP' ? 'is-selected' : ''}`}>
+              {/* 1. MAIN DUPLICATE POLICY TILES */}
+              <div className="td-encoder-4x-grid" style={{ marginTop: '16px' }}>
+                <label className={`td-encoder-tile ${draft.duplicatePolicy === 'SKIP' ? 'is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="duplicatePolicy"
@@ -2223,12 +2224,15 @@ export function TransferSettingsWorkspace({
                     onChange={() => patch({ duplicatePolicy: 'SKIP' })}
                   />
                   <div>
-                    <strong>Lewati Duplikat (Rekomendasi)</strong>
-                    <p>Berkas yang sudah ada di riwayat akan otomatis dilewati.</p>
+                    <div className="td-tile-head">
+                      <Zap size={16} className="td-tile-icon is-auto" />
+                      <strong>{t('speedtest.dup_skip_title', 'Lewati Duplikat (Rekomendasi Utama)')}</strong>
+                    </div>
+                    <p>{t('speedtest.dup_skip_desc', 'Berkas yang terdeteksi sudah ada di riwayat akan otomatis dilewati untuk menghemat waktu & kuota.')}</p>
                   </div>
                 </label>
 
-                <label className={`td-radio-tile ${draft.duplicatePolicy === 'FORCE_UPLOAD' ? 'is-selected' : ''}`}>
+                <label className={`td-encoder-tile ${draft.duplicatePolicy === 'FORCE_UPLOAD' ? 'is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="duplicatePolicy"
@@ -2238,21 +2242,114 @@ export function TransferSettingsWorkspace({
                     onChange={() => patch({ duplicatePolicy: 'FORCE_UPLOAD' })}
                   />
                   <div>
-                    <strong>Tetap Unggah Ulang</strong>
-                    <p>Selalu unggah berkas tanpa memeriksa riwayat duplikat.</p>
+                    <div className="td-tile-head">
+                      <Sliders size={16} className="td-tile-icon is-disable" />
+                      <strong>{t('speedtest.dup_force_title', 'Tetap Unggah Ulang (Paksa Re-upload)')}</strong>
+                    </div>
+                    <p>{t('speedtest.dup_force_desc', 'Selalu mengunggah berkas baru tanpa mengecek riwayat duplikasi database.')}</p>
                   </div>
                 </label>
               </div>
 
-              {/* 4-LEVEL INSPECTION DETAILS INFO */}
-              <div className="td-dup-inspection-info">
-                <strong>Metode Verifikasi 4-Level Internal:</strong>
-                <div className="td-dup-chips-row">
-                  <span className="td-dup-chip">1. Message ID</span>
-                  <span className="td-dup-chip">2. Unique ID Telegram</span>
-                  <span className="td-dup-chip">3. SHA-256 Checksum</span>
-                  <span className="td-dup-chip">4. Nama + Ukuran File</span>
+              {/* 2. MODERN 4-LEVEL VERIFICATION GRID (RESPONSIVE CARDS) */}
+              <div style={{ marginTop: '24px' }}>
+                <h5 style={{ color: '#f8fafc', fontSize: '13px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldAlert size={16} style={{ color: '#10b981' }} />
+                  {t('speedtest.dup_levels_title', 'Metode Verifikasi Duplikat 4-Level Engine:')}
+                </h5>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  {/* LEVEL 1 */}
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 1</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                    </div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Telegram Message ID</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Pencocokan ID Pesan Telegram terenkripsi dalam database SQLite lokal.</p>
+                  </div>
+
+                  {/* LEVEL 2 */}
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 2</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                    </div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Telegram Unique File ID</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Verifikasi atribut file_unique_id resmi dari server Telegram API.</p>
+                  </div>
+
+                  {/* LEVEL 3 */}
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 3</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                    </div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>SHA-256 Checksum Hash</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Verifikasi integritas biner berkas secara bit-per-bit tanpa salah baca.</p>
+                  </div>
+
+                  {/* LEVEL 4 */}
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Level 4</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Active</span>
+                    </div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px', display: 'block', marginBottom: '2px' }}>Filename + Exact Byte Size</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>Pencocokan presisi nama berkas & ukuran byte fisik berkas.</p>
+                  </div>
                 </div>
+              </div>
+
+              {/* 3. SCAN MODE & GUARDRAIL ADVANCED CONTROLS */}
+              <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
+                <div className="td-form-row-grid">
+                  <div className="td-field-group">
+                    <label className="td-field-label">{t('speedtest.dup_scan_mode_label', 'Kedalaman Pemindaian Prescan')}</label>
+                    <select
+                      value={draft.scanMode || 'smart'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ scanMode: e.target.value as any })}
+                    >
+                      <option value="smart">Smart (Prescan Cerdas Cache & Indeks Local) [Recommended]</option>
+                      <option value="normal">Normal (Pemindaian Standar Riwayat Messaging)</option>
+                      <option value="forensic">Forensic (Inspeksi Mendalam Hingga Berkas Terlama)</option>
+                    </select>
+                  </div>
+
+                  <div className="td-field-group">
+                    <label className="td-field-label">{t('speedtest.dup_guardrail_label', 'Ambang Batas Guardrail Re-Upload')}</label>
+                    <div className="td-slider-row-box">
+                      <input
+                        type="range"
+                        min={3}
+                        max={30}
+                        value={draft.guardrailThresholdDays || 7}
+                        disabled={!!transferActive || !draft.guardrailEnabled}
+                        onChange={(e) => patch({ guardrailThresholdDays: Number(e.target.value) })}
+                      />
+                      <div className="td-slider-value-bar">
+                        <span className="td-slider-val">{draft.guardrailThresholdDays || 7} Hari</span>
+                        <span className="td-concurrency-badge">
+                          Peringatan jika berkas diunggah ulang dalam {draft.guardrailThresholdDays || 7} hari terakhir
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <label className="td-switch-row" style={{ marginTop: '16px' }}>
+                  <div>
+                    <strong>{t('speedtest.dup_guardrail_toggle', 'Aktifkan Guardrail Perlindungan Re-Upload')}</strong>
+                    <p>{t('speedtest.dup_guardrail_toggle_desc', 'Tampilkan dialog konfirmasi jika mengunggah ulang berkas yang baru saja dihapus.')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.guardrailEnabled !== false}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ guardrailEnabled: e.target.checked })}
+                  />
+                </label>
               </div>
             </div>
           </div>
