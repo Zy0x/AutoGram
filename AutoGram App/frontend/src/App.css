@@ -17403,3 +17403,24 @@ video.drive-zip-img {
   color: #38bdf8 !important;
   text-decoration: underline !important;
 }
+
+.td-tg-ul, .td-tg-ol {
+  margin: 6px 0 6px 20px !important;
+  padding-left: 4px !important;
+  list-style-position: outside !important;
+}
+
+.td-tg-ul {
+  list-style-type: disc !important;
+}
+
+.td-tg-ol {
+  list-style-type: decimal !important;
+}
+
+.td-tg-ul li, .td-tg-ol li {
+  margin-bottom: 4px !important;
+  padding-left: 4px !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+}

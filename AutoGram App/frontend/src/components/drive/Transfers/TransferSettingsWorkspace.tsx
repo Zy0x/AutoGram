@@ -142,6 +142,79 @@ export function TransferSettingsWorkspace({
     }
   };
 
+  const handleCaptionKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      const el = e.currentTarget;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const val = el.value;
+
+      // Find current line
+      const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+      const currentLine = val.slice(lineStart, start);
+
+      const bulletMatch = currentLine.match(/^(\s*)(•|☑)\s*(.*)/);
+      const numMatch = currentLine.match(/^(\s*)(\d+)\.\s*(.*)/);
+
+      if (bulletMatch) {
+        const [, indent, symbol, content] = bulletMatch;
+        if (!content.trim()) {
+          // Empty bullet line -> clear bullet and cancel list mode
+          e.preventDefault();
+          const newVal = val.slice(0, lineStart) + val.slice(start);
+          patch({ globalCaption: newVal });
+          setTimeout(() => {
+            if (captionTextareaRef.current) {
+              captionTextareaRef.current.setSelectionRange(lineStart, lineStart);
+            }
+          }, 0);
+          return;
+        }
+        // Continue bullet on new line
+        e.preventDefault();
+        const insertText = `\n${indent}${symbol} `;
+        const newVal = val.slice(0, start) + insertText + val.slice(end);
+        patch({ globalCaption: newVal });
+        setTimeout(() => {
+          if (captionTextareaRef.current) {
+            const nextPos = start + insertText.length;
+            captionTextareaRef.current.setSelectionRange(nextPos, nextPos);
+          }
+        }, 0);
+        return;
+      }
+
+      if (numMatch) {
+        const [, indent, numStr, content] = numMatch;
+        if (!content.trim()) {
+          // Empty number line -> clear number and cancel numbering mode
+          e.preventDefault();
+          const newVal = val.slice(0, lineStart) + val.slice(start);
+          patch({ globalCaption: newVal });
+          setTimeout(() => {
+            if (captionTextareaRef.current) {
+              captionTextareaRef.current.setSelectionRange(lineStart, lineStart);
+            }
+          }, 0);
+          return;
+        }
+        // Continue numbered list on new line
+        e.preventDefault();
+        const nextNum = parseInt(numStr, 10) + 1;
+        const insertText = `\n${indent}${nextNum}. `;
+        const newVal = val.slice(0, start) + insertText + val.slice(end);
+        patch({ globalCaption: newVal });
+        setTimeout(() => {
+          if (captionTextareaRef.current) {
+            const nextPos = start + insertText.length;
+            captionTextareaRef.current.setSelectionRange(nextPos, nextPos);
+          }
+        }, 0);
+        return;
+      }
+    }
+  };
+
   const applyCaptionFormatting = (formatType: string) => {
     if (!captionTextareaRef.current) return;
     const el = captionTextareaRef.current;
@@ -155,7 +228,21 @@ export function TransferSettingsWorkspace({
     let after = text.slice(end);
     let wrapped = selectedText;
 
-    if (parseMode === 'MarkdownV2') {
+    if (formatType === 'bullet') {
+      const lines = selectedText.split('\n');
+      wrapped = lines.map((l) => (l.startsWith('• ') ? l : `• ${l}`)).join('\n');
+    } else if (formatType === 'numbered') {
+      const lines = selectedText.split('\n');
+      wrapped = lines
+        .map((l, idx) => {
+          const cleaned = l.replace(/^\d+\.\s*/, '');
+          return `${idx + 1}. ${cleaned}`;
+        })
+        .join('\n');
+    } else if (formatType === 'checklist') {
+      const lines = selectedText.split('\n');
+      wrapped = lines.map((l) => (l.startsWith('☑ ') ? l : `☑ ${l}`)).join('\n');
+    } else if (parseMode === 'MarkdownV2') {
       switch (formatType) {
         case 'bold': wrapped = `*${selectedText}*`; break;
         case 'italic': wrapped = `_${selectedText}_`; break;
@@ -166,9 +253,6 @@ export function TransferSettingsWorkspace({
         case 'pre': wrapped = `\`\`\`\n${selectedText}\n\`\`\``; break;
         case 'quote': wrapped = `> ${selectedText}`; break;
         case 'expandable': wrapped = `> ${selectedText}||\n`; break;
-        case 'bullet': wrapped = `• ${selectedText}`; break;
-        case 'numbered': wrapped = `1. ${selectedText}`; break;
-        case 'checklist': wrapped = `☑ ${selectedText}`; break;
         case 'link': {
           const url = prompt('Masukkan URL Telegram / Web:', 'https://t.me/tokokita') || 'https://t.me/tokokita';
           wrapped = `[${selectedText}](${url})`;
@@ -195,9 +279,6 @@ export function TransferSettingsWorkspace({
         case 'pre': wrapped = `<pre>${selectedText}</pre>`; break;
         case 'quote': wrapped = `<blockquote>${selectedText}</blockquote>`; break;
         case 'expandable': wrapped = `<blockquote expandable>${selectedText}</blockquote>`; break;
-        case 'bullet': wrapped = `• ${selectedText}`; break;
-        case 'numbered': wrapped = `1. ${selectedText}`; break;
-        case 'checklist': wrapped = `☑ ${selectedText}`; break;
         case 'link': {
           const url = prompt('Masukkan URL Telegram / Web:', 'https://t.me/tokokita') || 'https://t.me/tokokita';
           wrapped = `<a href="${url}">${selectedText}</a>`;
@@ -215,9 +296,6 @@ export function TransferSettingsWorkspace({
       }
     } else {
       switch (formatType) {
-        case 'bullet': wrapped = `• ${selectedText}`; break;
-        case 'numbered': wrapped = `1. ${selectedText}`; break;
-        case 'checklist': wrapped = `☑ ${selectedText}`; break;
         case 'removeFormat': {
           wrapped = selectedText.replace(/<[^>]*>/g, '').replace(/[*_~`|>[\]()]/g, '');
           break;
@@ -240,33 +318,61 @@ export function TransferSettingsWorkspace({
     if (!text) return '<span style="color: #64748b; font-style: italic;">Pratinjau caption kosong…</span>';
     const mode = draft.captionParseMode || 'MarkdownV2';
 
-    if (mode === 'HTML') {
-      return text
-        .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
-        .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="Kutipan dapat diperluas">$1</blockquote>')
-        .replace(/<blockquote>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote">$1</blockquote>')
-        .replace(/<code>(.*?)<\/code>/gi, '<code class="td-tg-code">$1</code>')
-        .replace(/<pre>(.*?)<\/pre>/gi, '<pre class="td-tg-pre">$1</pre>')
-        .replace(/<a href="(.*?)">(.*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noreferrer" class="td-tg-link">$2</a>')
-        .replace(/\n/g, '<br/>');
+    const parseInline = (str: string) => {
+      if (mode === 'HTML') {
+        return str
+          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
+          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="Kutipan dapat diperluas">$1</blockquote>')
+          .replace(/<blockquote>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote">$1</blockquote>')
+          .replace(/<code>(.*?)<\/code>/gi, '<code class="td-tg-code">$1</code>')
+          .replace(/<pre>(.*?)<\/pre>/gi, '<pre class="td-tg-pre">$1</pre>')
+          .replace(/<a href="(.*?)">(.*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noreferrer" class="td-tg-link">$2</a>');
+      }
+      if (mode === 'MarkdownV2') {
+        return str
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
+          .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+          .replace(/_(.*?)_/g, '<em>$1</em>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/~(.*?)~/g, '<s>$1</s>')
+          .replace(/```\n?([\s\S]*?)\n?```/g, '<pre class="td-tg-pre">$1</pre>')
+          .replace(/`([^`]+)`/g, '<code class="td-tg-code">$1</code>')
+          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="td-tg-link">$1</a>')
+          .replace(/^&gt;\s?(.*)$/gm, '<blockquote class="td-tg-quote">$1</blockquote>');
+      }
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+
+    const lines = text.split('\n');
+    let html = '';
+    let inUl = false;
+    let inOl = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const bulletMatch = line.match(/^•\s+(.*)/);
+      const numMatch = line.match(/^(\d+)\\\.\s+(.*)/) || line.match(/^(\d+)\.\s+(.*)/);
+
+      if (bulletMatch) {
+        if (inOl) { html += '</ol>'; inOl = false; }
+        if (!inUl) { html += '<ul class="td-tg-ul">'; inUl = true; }
+        html += `<li>${parseInline(bulletMatch[1])}</li>`;
+      } else if (numMatch) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (!inOl) { html += '<ol class="td-tg-ol">'; inOl = true; }
+        html += `<li>${parseInline(numMatch[2])}</li>`;
+      } else {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (inOl) { html += '</ol>'; inOl = false; }
+        html += (i > 0 && lines[i - 1] !== '' && !lines[i - 1].startsWith('•') && !lines[i - 1].match(/^\d+[\.\\]\./) ? '<br/>' : '') + parseInline(line);
+      }
     }
 
-    if (mode === 'MarkdownV2') {
-      return text
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
-        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
-        .replace(/_(.*?)_/g, '<em>$1</em>')
-        .replace(/__(.*?)__/g, '<u>$1</u>')
-        .replace(/~(.*?)~/g, '<s>$1</s>')
-        .replace(/```\n?([\s\S]*?)\n?```/g, '<pre class="td-tg-pre">$1</pre>')
-        .replace(/`([^`]+)`/g, '<code class="td-tg-code">$1</code>')
-        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="td-tg-link">$1</a>')
-        .replace(/^&gt;\s?(.*)$/gm, '<blockquote class="td-tg-quote">$1</blockquote>')
-        .replace(/\n/g, '<br/>');
-    }
+    if (inUl) html += '</ul>';
+    if (inOl) html += '</ol>';
 
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+    return html;
   }, [draft.globalCaption, draft.captionParseMode]);
 
   const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
@@ -874,6 +980,7 @@ export function TransferSettingsWorkspace({
                       value={draft.globalCaption || ''}
                       disabled={!!transferActive}
                       placeholder="Tulis caption Telegram di sini… Gunakan toolbar di atas untuk format bold, italic, link, spoiler, dll."
+                      onKeyDown={handleCaptionKeyDown}
                       onChange={(e) => patch({ globalCaption: e.target.value })}
                     />
                   </div>
