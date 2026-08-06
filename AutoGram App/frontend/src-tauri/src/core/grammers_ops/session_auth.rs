@@ -480,7 +480,7 @@ pub fn download_profile_photo_blocking(
                                 let location = tl::enums::InputFileLocation::InputPeerPhotoFileLocation(
                                     tl::types::InputPeerPhotoFileLocation {
                                         big: false,
-                                        peer: tl::enums::InputPeer::Self,
+                                        peer: tl::enums::InputPeer::PeerSelf,
                                         photo_id: p.photo_id,
                                     },
                                 );
