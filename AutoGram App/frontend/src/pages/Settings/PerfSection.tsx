@@ -43,7 +43,7 @@ export const PerfSection = memo(function PerfSection() {
   ];
 
   return (
-    <div className="glass-panel card">
+    <div className="td-settings-card glass-panel card">
       <div className="card-header">
         <Sliders size={20} color="var(--primary)" />
         <h3>{t('settings.perf_title')}</h3>

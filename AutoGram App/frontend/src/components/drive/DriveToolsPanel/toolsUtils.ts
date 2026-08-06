@@ -68,7 +68,7 @@ export const TOOL_GROUPS: {
     tabs: [
       { id: 'upload', icon: Upload, labelDefault: 'Upload' },
       { id: 'download', icon: Download, labelDefault: 'Download' },
-      { id: 'encoding', icon: Film, labelDefault: 'Encoding Video' },
+      { id: 'encoding', icon: Film, labelDefault: 'Performance & Encoding Video' },
       { id: 'album', icon: FolderTree, labelDefault: 'Pengelompokan Album' },
       { id: 'duplicate', icon: CopyCheck, labelDefault: 'Penanganan Duplikat' },
       { id: 'oversize', icon: HardDriveUpload, labelDefault: 'Penanganan Berkas Besar' },

@@ -46,6 +46,7 @@ import type {
   DriveTransferSettingsProfile,
   ReencodeHardware,
 } from '../../../lib/telegram/driveTypes';
+import { PerfSection } from '../../../pages/Settings/PerfSection';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   loadTransferSettingsProfiles,
@@ -951,7 +952,7 @@ export function TransferSettingsWorkspace({
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
     { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
     { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
-    { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
+    { id: 'encoding', label: t('speedtest.tab_encoding', 'Performance & Encoding Video'), desc: 'Mode optimasi performa perangkat, encoder GPU/CPU & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
     { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Penanganan Berkas Besar'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
@@ -1851,9 +1852,14 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* DEDICATED PAGE: ENCODING VIDEO */}
+        {/* DEDICATED PAGE: PERFORMANCE & ENCODING VIDEO */}
         {activeTab === 'encoding' && (
           <div className="td-xfer-focused-panel" id="section-encoding-mode">
+            {/* DEVICE PERFORMANCE OPTIMIZATION MODE */}
+            <div style={{ marginBottom: '16px' }}>
+              <PerfSection />
+            </div>
+
             {/* MASTER PARENT SECTION: PENGODEAN & TRANSCODING PENGUNGGAH */}
             <div className="td-encoding-master-card">
               <div className="td-encoding-master-header">

@@ -656,6 +656,7 @@
   "close_esc": "Tutup (Esc)",
   "tab_upload": "Unggah",
   "tab_download": "Unduh",
+  "tab_encoding": "Performance & Encoding Video",
   "upload_settings_aria": "Pengaturan unggahan",
   "upload_quality_hint": "Menentukan bagaimana berkas dikirim ke Telegram (media native vs dokumen).",
   "gpu_nvidia_desc": "CUDA/NVDEC dengan fallback aman",
