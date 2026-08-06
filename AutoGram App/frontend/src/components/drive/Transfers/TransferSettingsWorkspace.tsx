@@ -111,10 +111,12 @@ function captionToEditorHtml(text: string, mode: 'MarkdownV2' | 'HTML' | 'Plain'
 
 function domToCaptionText(container: HTMLElement, parseMode: 'MarkdownV2' | 'HTML' | 'Plain'): string {
   const escapeMd = (s: string) => s.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+  const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const processNode = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
-      return parseMode === 'MarkdownV2' ? escapeMd(node.nodeValue || '') : (node.nodeValue || '');
+      const val = node.nodeValue || '';
+      return parseMode === 'MarkdownV2' ? escapeMd(val) : parseMode === 'HTML' ? escapeHtml(val) : val;
     }
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
@@ -244,6 +246,44 @@ export function TransferSettingsWorkspace({
     }
     setIsDropdownOpen((prev) => !prev);
   };
+
+  // High-Level Intelligence Engine: Conflict Resolution Hints
+  const conflictAnalysis = useMemo(() => {
+    const hints: Array<{ id: string; title: string; desc: string }> = [];
+
+    if ((draft.presentationOverride === 'force_document' || draft.forceDocumentDefault) && draft.spoiler) {
+      hints.push({
+        id: 'doc-spoiler',
+        title: 'Kecerdasan Auto-Suppress Spoiler Dokumen',
+        desc: 'Telegram API menolak efek spoiler pada dokumen (file). AutoGram secara otomatis hanya akan menerapkan spoiler pada foto/video native.',
+      });
+    }
+
+    if (draft.groupAsAlbum) {
+      hints.push({
+        id: 'album-orchestration',
+        title: 'Kecerdasan Orkes Album Multi-Kategori',
+        desc: 'Telegram memisahkan album Foto/Video, Dokumen, dan Audio. AutoGram secara otomatis membagi berkas menjadi batch album terpisah yang 100% kompatibel.',
+      });
+    }
+
+    if ((draft.globalCaption?.length || 0) > 1024 && draft.captionOverflowPolicy === 'split') {
+      hints.push({
+        id: 'caption-split',
+        title: 'Kecerdasan Auto-Split Caption Panjang',
+        desc: 'Caption melebihi 1.024 karakter. 1.024 karakter pertama dikirim bersama media, dan sisanya dikirim otomatis sebagai pesan balasan teks lanjutan.',
+      });
+    }
+
+    return hints;
+  }, [
+    draft.presentationOverride,
+    draft.forceDocumentDefault,
+    draft.spoiler,
+    draft.groupAsAlbum,
+    draft.globalCaption,
+    draft.captionOverflowPolicy,
+  ]);
 
   // Telegram Caption Studio State & Helpers
   const [captionTab, setCaptionTab] = useState<'editor' | 'preview'>('editor');
@@ -853,6 +893,21 @@ export function TransferSettingsWorkspace({
                 );
               })}
             </div>
+
+            {/* High-Level Intelligence Engine Badges */}
+            {conflictAnalysis.length > 0 && (
+              <div className="td-intelligence-hints-box" style={{ marginTop: '16px' }}>
+                {conflictAnalysis.map((hint) => (
+                  <div key={hint.id} className="td-intel-hint-card">
+                    <Zap size={16} className="td-intel-icon" />
+                    <div>
+                      <strong>{hint.title}</strong>
+                      <p>{hint.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Validation Warnings inside Summary */}
             {validation.warnings.length > 0 && (

@@ -17507,3 +17507,41 @@ video.drive-zip-img {
   line-height: 1.6 !important;
   word-break: break-word !important;
 }
+
+.td-intelligence-hints-box {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.td-intel-hint-card {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-radius: 10px !important;
+  color: #f1f5f9 !important;
+}
+
+.td-intel-icon {
+  color: #38bdf8 !important;
+  margin-top: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+.td-intel-hint-card strong {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #38bdf8 !important;
+  margin-bottom: 3px !important;
+}
+
+.td-intel-hint-card p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+  line-height: 1.45 !important;
+}
