@@ -266,6 +266,7 @@ export function Accounts() {
   const loadSessions = async () => {
     setIsLoading(true);
     setErrorMsg('');
+    setAvatarErrors(new Set());
     try {
       // Purge legacy corrupted photoBase64 fields from local storage session metadata
       try {
@@ -349,6 +350,14 @@ export function Accounts() {
                 }
               } catch {}
             }
+          }
+
+          if (realPhoto) {
+            setAvatarErrors((prev) => {
+              const next = new Set(prev);
+              next.delete(saved.name);
+              return next;
+            });
           }
 
           if (connected || user) {
