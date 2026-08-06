@@ -16782,3 +16782,38 @@ video.drive-zip-img {
   font-size: 0.8rem !important;
   color: #64748b !important;
 }
+
+/* ==========================================
+   SIDE-BY-SIDE UPLOAD & DOWNLOAD DUO GRID
+   ========================================== */
+.td-transfer-duo-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 20px !important;
+  align-items: start !important;
+  width: 100% !important;
+}
+
+.td-duo-column {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.td-duo-column-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: #38bdf8 !important;
+  padding: 4px 6px !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
+}
+
+@media (max-width: 960px) {
+  .td-transfer-duo-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

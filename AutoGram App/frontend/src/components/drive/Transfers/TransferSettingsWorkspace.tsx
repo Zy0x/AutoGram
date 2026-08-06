@@ -21,9 +21,6 @@ import {
   HardDriveUpload,
   SlidersHorizontal,
   X,
-  Clock,
-  FileCode,
-  DownloadCloud,
   ArrowLeft,
   ChevronRight,
   Plus,
@@ -226,11 +223,10 @@ export function TransferSettingsWorkspace({
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
+    { id: 'upload', label: t('speedtest.tab_upload_download', 'Transfer Media (Upload & Download)'), desc: 'Paralelisme unggah/unduh, format pengiriman media, caption & kebijakan konflik berkas', icon: Upload },
     { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
-    { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
     { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload },
     { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
@@ -378,193 +374,231 @@ export function TransferSettingsWorkspace({
 
         {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (SHOWS ALL SETTINGS DIRECTLY INCLUDING ADVANCED OPTIONS) */}
 
-        {/* DEDICATED PAGE: UPLOAD */}
-        {activeTab === 'upload' && (
+        {/* DEDICATED PAGE: UPLOAD & DOWNLOAD IN HIERARCHICAL SEQUENCE */}
+        {(activeTab === 'upload' || activeTab === 'download') && (
           <div className="td-xfer-focused-panel" id="section-upload-format">
-            {/* FORMAT PENGIRIMAN */}
+            {/* ==========================================
+                CARD 1: PENGATURAN UNGGAHAN (UPLOAD)
+                ========================================== */}
             <div className="td-settings-card">
               <div className="td-card-head">
-                <Upload size={18} />
+                <Upload size={20} className="td-card-icon-primary" />
                 <div>
-                  <h4>{t('speedtest.delivery_format_title', 'Format Pengiriman Media')}</h4>
-                  <p>{t('speedtest.delivery_format_desc', 'Menentukan bagaimana Telegram menampilkan dan mengirim media Anda')}</p>
+                  <h4>1. {t('speedtest.tab_upload_title', 'Pengaturan Unggahan (Upload)')}</h4>
+                  <p>{t('speedtest.tab_upload_desc', 'Atur paralelisme unggah, format pengiriman media, caption global & penjadwalan')}</p>
                 </div>
               </div>
 
-              <div className="td-radio-tiles-grid">
-                <label className={`td-radio-tile ${currentDeliveryFormat === 'auto' ? 'is-selected' : ''}`}>
+              {/* SUB-SECTION 1.1: PARALEL UNGGAH */}
+              <div className="td-settings-subcard">
+                <label className="td-field-label">Jumlah Unggahan Paralel (Upload Slots)</label>
+                <div className="td-slider-row-box">
                   <input
-                    type="radio"
-                    name="deliveryFormat"
-                    value="auto"
-                    checked={currentDeliveryFormat === 'auto'}
+                    type="range"
+                    min={1}
+                    max={8}
+                    value={draft.uploadConcurrency}
                     disabled={!!transferActive}
-                    onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
+                    onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
                   />
-                  <div>
-                    <strong>Otomatis (Direkomendasikan)</strong>
-                    <p>Telegram secara cerdas menentukan format terbaik per berkas.</p>
+                  <div className="td-slider-value-bar">
+                    <span className="td-slider-val">{draft.uploadConcurrency} Berkas</span>
+                    <span className="td-concurrency-badge">
+                      {draft.uploadConcurrency <= 2 && '🐢 Stabil'}
+                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
+                      {draft.uploadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
+                    </span>
                   </div>
-                </label>
-
-                <label className={`td-radio-tile ${currentDeliveryFormat === 'telegram' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="deliveryFormat"
-                    value="telegram"
-                    checked={currentDeliveryFormat === 'telegram'}
-                    disabled={!!transferActive}
-                    onChange={() => patch(applyDeliveryFormatMode(draft, 'telegram'))}
-                  />
-                  <div>
-                    <strong>Media Native Telegram</strong>
-                    <p>Kirim sebagai foto / video yang dapat diputar langsung di chat.</p>
-                  </div>
-                </label>
-
-                <label className={`td-radio-tile ${currentDeliveryFormat === 'document' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="deliveryFormat"
-                    value="document"
-                    checked={currentDeliveryFormat === 'document'}
-                    disabled={!!transferActive}
-                    onChange={() => patch(applyDeliveryFormatMode(draft, 'document'))}
-                  />
-                  <div>
-                    <strong>Dokumen Asli (Uncompressed)</strong>
-                    <p>Kirim berkas mentah tanpa pemrosesan pratinjau media.</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* CAPTION GLOBAL */}
-            <div className="td-settings-card" id="section-upload-caption">
-              <div className="td-card-head">
-                <FileCode size={18} />
-                <div>
-                  <h4>{t('speedtest.default_caption_title', 'Caption Global')}</h4>
-                  <p>{t('speedtest.default_caption_hint', 'Keterangan otomatis yang akan disertakan pada pengiriman')}</p>
                 </div>
               </div>
 
-              <div className="td-caption-input-box">
-                <textarea
-                  rows={3}
-                  value={draft.globalCaption || ''}
-                  disabled={!!transferActive}
-                  placeholder={t('speedtest.caption_placeholder', 'Tulis caption di sini…')}
-                  onChange={(e) => patch({ globalCaption: e.target.value })}
-                />
-                <div className="td-caption-meta">
-                  <span className="td-caption-char-count">
-                    {[...(draft.globalCaption || '')].length} / 1024 karakter
-                  </span>
-                  <div className="td-caption-overflow-select">
-                    <label>{t('speedtest.caption_overflow_label', 'Perilaku jika terlalu panjang')}:</label>
-                    <select
-                      value={draft.captionOverflowPolicy || 'truncate'}
+              {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
+              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
+                <label className="td-field-label">Format Pengiriman Media</label>
+                <div className="td-radio-tiles-grid">
+                  <label className={`td-radio-tile ${currentDeliveryFormat === 'auto' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="deliveryFormat"
+                      value="auto"
+                      checked={currentDeliveryFormat === 'auto'}
                       disabled={!!transferActive}
-                      onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
-                    >
-                      <option value="truncate">Potong dengan peringatan</option>
-                      <option value="fail">Batalkan pengiriman</option>
-                      <option value="split">Bagi otomatis</option>
-                    </select>
+                      onChange={() => patch(applyDeliveryFormatMode(draft, 'auto'))}
+                    />
+                    <div>
+                      <strong>Otomatis (Direkomendasikan)</strong>
+                      <p>Telegram secara cerdas menentukan format terbaik per berkas.</p>
+                    </div>
+                  </label>
+
+                  <label className={`td-radio-tile ${currentDeliveryFormat === 'telegram' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="deliveryFormat"
+                      value="telegram"
+                      checked={currentDeliveryFormat === 'telegram'}
+                      disabled={!!transferActive}
+                      onChange={() => patch(applyDeliveryFormatMode(draft, 'telegram'))}
+                    />
+                    <div>
+                      <strong>Media Native Telegram</strong>
+                      <p>Kirim sebagai foto / video yang dapat diputar langsung di chat.</p>
+                    </div>
+                  </label>
+
+                  <label className={`td-radio-tile ${currentDeliveryFormat === 'document' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="deliveryFormat"
+                      value="document"
+                      checked={currentDeliveryFormat === 'document'}
+                      disabled={!!transferActive}
+                      onChange={() => patch(applyDeliveryFormatMode(draft, 'document'))}
+                    />
+                    <div>
+                      <strong>Dokumen Asli (Uncompressed)</strong>
+                      <p>Kirim berkas mentah tanpa pemrosesan pratinjau media.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* SUB-SECTION 1.3: CAPTION GLOBAL & OPERASI UNGGAH */}
+              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
+                <label className="td-field-label">Caption Global & Opsi Pengiriman</label>
+                <div className="td-caption-input-box">
+                  <textarea
+                    rows={2}
+                    value={draft.globalCaption || ''}
+                    disabled={!!transferActive}
+                    placeholder={t('speedtest.caption_placeholder', 'Tulis caption di sini…')}
+                    onChange={(e) => patch({ globalCaption: e.target.value })}
+                  />
+                  <div className="td-caption-meta">
+                    <span className="td-caption-char-count">
+                      {[...(draft.globalCaption || '')].length} / 1024 karakter
+                    </span>
+                    <div className="td-caption-overflow-select">
+                      <label>{t('speedtest.caption_overflow_label', 'Perilaku panjang')}:</label>
+                      <select
+                        value={draft.captionOverflowPolicy || 'truncate'}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
+                      >
+                        <option value="truncate">Potong dengan peringatan</option>
+                        <option value="fail">Batalkan pengiriman</option>
+                        <option value="split">Bagi otomatis</option>
+                      </select>
+                    </div>
                   </div>
+                </div>
+
+                <div className="td-switches-list" style={{ marginTop: '14px' }}>
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('speedtest.send_silent', 'Kirim Tanpa Suara (Silent Send)')}</strong>
+                      <p>{t('speedtest.send_silent_desc', 'Penerima tidak menerima suara notifikasi')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.silent}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ silent: e.target.checked })}
+                    />
+                  </label>
+
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>{t('speedtest.send_spoiler', 'Efek Spoiler')}</strong>
+                      <p>{t('speedtest.send_spoiler_desc', 'Tutup media dengan efek buram spoiler')}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.spoiler}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ spoiler: e.target.checked })}
+                    />
+                  </label>
                 </div>
               </div>
             </div>
 
-            {/* PENGIRIMAN & IDENTITAS */}
-            <div className="td-settings-card">
+            {/* ==========================================
+                CARD 2: PENGATURAN UNDUHAN (DOWNLOAD)
+                ========================================== */}
+            <div className="td-settings-card" id="section-download-performance" style={{ marginTop: '20px' }}>
               <div className="td-card-head">
-                <Clock size={18} />
+                <Download size={20} className="td-card-icon-primary" />
                 <div>
-                  <h4>{t('speedtest.delivery_scheduling_title', 'Penjadwalan & Identitas Pengirim')}</h4>
-                  <p>{t('speedtest.delivery_scheduling_desc', 'Atur waktu pengiriman dan identitas peer yang digunakan')}</p>
+                  <h4>2. {t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}</h4>
+                  <p>{t('speedtest.tab_download_desc', 'Atur paralelisme unduhan, kebijakan konflik nama berkas & keandalan resume')}</p>
                 </div>
               </div>
 
-              <div className="td-form-row-grid">
-                <div className="td-field-group">
-                  <label className="td-field-label">Jadwalkan Pengiriman</label>
+              {/* SUB-SECTION 2.1: PARALEL UNDUHAN */}
+              <div className="td-settings-subcard">
+                <label className="td-field-label">Jumlah Unduhan Paralel (Download Slots)</label>
+                <div className="td-slider-row-box">
                   <input
-                    type="datetime-local"
-                    value={draft.scheduleAt || ''}
+                    type="range"
+                    min={1}
+                    max={8}
+                    value={draft.downloadConcurrency}
                     disabled={!!transferActive}
-                    onChange={(e) => patch({ scheduleAt: e.target.value })}
+                    onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
                   />
-                </div>
-
-                <div className="td-field-group">
-                  <label className="td-field-label">Send As (Identitas Pengirim)</label>
-                  <input
-                    type="text"
-                    value={draft.sendAs || ''}
-                    disabled={!!transferActive}
-                    placeholder="@channel_username atau ID channel"
-                    onChange={(e) => patch({ sendAs: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="td-switches-list">
-                <label className="td-switch-row">
-                  <div>
-                    <strong>{t('speedtest.send_silent', 'Kirim Tanpa Suara (Silent Send)')}</strong>
-                    <p>{t('speedtest.send_silent_desc', 'Penerima tidak menerima suara notifikasi')}</p>
+                  <div className="td-slider-value-bar">
+                    <span className="td-slider-val">{draft.downloadConcurrency} Berkas</span>
+                    <span className="td-concurrency-badge">
+                      {draft.downloadConcurrency <= 2 && '🐢 Stabil'}
+                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
+                      {draft.downloadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
+                    </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={draft.silent}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ silent: e.target.checked })}
-                  />
-                </label>
-
-                <label className="td-switch-row">
-                  <div>
-                    <strong>{t('speedtest.send_spoiler', 'Efek Spoiler')}</strong>
-                    <p>{t('speedtest.send_spoiler_desc', 'Tutup media dengan efek buram spoiler')}</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={draft.spoiler}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ spoiler: e.target.checked })}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* PERFORMA UNGGAH */}
-            <div className="td-settings-card" id="section-upload-performance">
-              <div className="td-card-head">
-                <Zap size={18} />
-                <div>
-                  <h4>{t('speedtest.upload_parallelism_header', 'Jumlah Unggahan Paralel')}</h4>
-                  <p>{t('speedtest.upload_parallelism_hint', 'Kecepatan upload ditentukan oleh jumlah slot berkas bersamaan')}</p>
                 </div>
               </div>
 
-              <div className="td-slider-row-box">
-                <input
-                  type="range"
-                  min={1}
-                  max={8}
-                  value={draft.uploadConcurrency}
+              {/* SUB-SECTION 2.2: KONFLIK FILE & KEANDALAN */}
+              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
+                <label className="td-field-label">Kebijakan Konflik Nama Berkas Di Komputer</label>
+                <select
+                  value={draft.downloadConflictPolicy || 'ask'}
                   disabled={!!transferActive}
-                  onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
-                />
-                <div className="td-slider-value-bar">
-                  <span className="td-slider-val">{draft.uploadConcurrency} Berkas</span>
-                  <span className="td-concurrency-badge">
-                    {draft.uploadConcurrency <= 2 && '🐢 Stabil'}
-                    {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
-                    {draft.uploadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
-                  </span>
+                  onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
+                  style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '10px', background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.12)', color: '#f8fafc' }}
+                >
+                  <option value="ask">Tanyakan sebelum mengunduh</option>
+                  <option value="rename">Ganti nama otomatis (tambah angka)</option>
+                  <option value="overwrite">Timpa berkas yang ada</option>
+                  <option value="skip">Lewati berkas</option>
+                </select>
+
+                <div className="td-switches-list" style={{ marginTop: '16px' }}>
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>Lanjutkan Unduhan Parsial (Resume)</strong>
+                      <p>Lanjutkan unduhan yang terputus tanpa mulai dari awal.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.downloadResumePartial ?? true}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ downloadResumePartial: e.target.checked })}
+                    />
+                  </label>
+
+                  <label className="td-switch-row">
+                    <div>
+                      <strong>Notifikasi Setelah Unduhan Selesai</strong>
+                      <p>Tampilkan pemberitahuan banner saat batch unduhan rampung.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={draft.notifyDownloadDone}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ notifyDownloadDone: e.target.checked })}
+                    />
+                  </label>
                 </div>
               </div>
             </div>
@@ -860,92 +894,6 @@ export function TransferSettingsWorkspace({
                   <span className="td-dup-chip">3. SHA-256 Checksum</span>
                   <span className="td-dup-chip">4. Nama + Ukuran File</span>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* DEDICATED PAGE: DOWNLOAD */}
-        {activeTab === 'download' && (
-          <div className="td-xfer-focused-panel" id="section-download-performance">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Download size={18} />
-                <div>
-                  <h4>{t('speedtest.download_parallel_header', 'Paralel Unduhan')}</h4>
-                  <p>{t('speedtest.download_parallelism_hint', 'Atur jumlah berkas diunduh secara bersamaan')}</p>
-                </div>
-              </div>
-
-              <div className="td-slider-row-box">
-                <input
-                  type="range"
-                  min={1}
-                  max={8}
-                  value={draft.downloadConcurrency}
-                  disabled={!!transferActive}
-                  onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
-                />
-                <div className="td-slider-value-bar">
-                  <span className="td-slider-val">{draft.downloadConcurrency} Berkas</span>
-                  <span className="td-concurrency-badge">
-                    {draft.downloadConcurrency <= 2 && '🐢 Stabil'}
-                    {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
-                    {draft.downloadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="td-settings-card" id="section-download-conflict">
-              <div className="td-card-head">
-                <DownloadCloud size={18} />
-                <div>
-                  <h4>{t('speedtest.download_reliability_title', 'Konflik File & Keandalan Unduhan')}</h4>
-                  <p>{t('speedtest.download_reliability_desc', 'Atur tindakan jika nama berkas sudah ada di folder komputer')}</p>
-                </div>
-              </div>
-
-              <div className="td-field-group">
-                <label className="td-field-label">Kebijakan Konflik Berkas</label>
-                <select
-                  value={draft.downloadConflictPolicy || 'ask'}
-                  disabled={!!transferActive}
-                  onChange={(e) => patch({ downloadConflictPolicy: e.target.value as any })}
-                >
-                  <option value="ask">Tanyakan sebelum mengunduh</option>
-                  <option value="rename">Ganti nama otomatis (tambah angka)</option>
-                  <option value="overwrite">Timpa berkas yang ada</option>
-                  <option value="skip">Lewati berkas</option>
-                </select>
-              </div>
-
-              <div className="td-switches-list" style={{ marginTop: '16px' }}>
-                <label className="td-switch-row">
-                  <div>
-                    <strong>Lanjutkan Unduhan Parsial (Resume)</strong>
-                    <p>Lanjutkan unduhan yang terputus tanpa mulai dari awal.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={draft.downloadResumePartial ?? true}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ downloadResumePartial: e.target.checked })}
-                  />
-                </label>
-
-                <label className="td-switch-row">
-                  <div>
-                    <strong>Notifikasi Setelah Unduhan Selesai</strong>
-                    <p>Tampilkan pemberitahuan banner saat batch unduhan rampung.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={draft.notifyDownloadDone}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ notifyDownloadDone: e.target.checked })}
-                  />
-                </label>
               </div>
             </div>
           </div>
