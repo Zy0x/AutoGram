@@ -2511,6 +2511,69 @@ export function TransferSettingsWorkspace({
                             const meta = getSessionMetadata(sess.name);
                             const displayName = sess.label || getSessionDisplayName(sess.name);
                             const usernameTag = meta?.username ? (meta.username.startsWith('@') ? meta.username : `@${meta.username}`) : '';
+                            
+                            // Strict session status & Premium accuracy checks
+                            const isProblematic = sess.status === 'error' || sess.status === 'expired' || sess.status === 'revoked' || sess.status === 'unauthorized';
+                            const isPremium = meta?.isPremium === true || (meta as any)?.is_premium === true;
+
+                            if (isProblematic) {
+                              return (
+                                <div
+                                  key={sess.name}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: '#fca5a5',
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    cursor: 'not-allowed',
+                                    opacity: 0.7,
+                                  }}
+                                  title="Sesi ini bermasalah atau expired. Tidak dapat digunakan untuk transfer."
+                                >
+                                  <span>🔴</span>
+                                  <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <strong style={{ color: '#fca5a5' }}>{displayName}</strong>
+                                    <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>[Bermasalah / Expired]</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (!isPremium && meta && (meta.isPremium === false || (meta as any).is_premium === false)) {
+                              return (
+                                <div
+                                  key={sess.name}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    color: '#64748b',
+                                    padding: '6px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    cursor: 'not-allowed',
+                                    opacity: 0.6,
+                                  }}
+                                  title="Akun Standar gratis hanya mendukung batas 2 GB. Tidak dapat dimasukkan ke Pool Premium 4 GB."
+                                >
+                                  <span>⚪</span>
+                                  <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span>{displayName}</span>
+                                    {usernameTag && <span style={{ fontSize: '11px', color: '#64748b' }}>({usernameTag})</span>}
+                                    <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
+                                      Standar 2GB (Non-Premium)
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
 
                             return (
                               <button
