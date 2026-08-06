@@ -8,8 +8,7 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
-import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
+import { tgAuthStatus, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
@@ -268,6 +267,22 @@ export function Accounts() {
     setIsLoading(true);
     setErrorMsg('');
     try {
+      // Purge legacy corrupted photoBase64 fields from local storage session metadata
+      try {
+        const rawMeta = localStorage.getItem('AUTOGRAM_SESSION_METADATA');
+        if (rawMeta) {
+          const store = JSON.parse(rawMeta);
+          let changed = false;
+          for (const k of Object.keys(store)) {
+            if (store[k]?.photoBase64) {
+              delete store[k].photoBase64;
+              changed = true;
+            }
+          }
+          if (changed) localStorage.setItem('AUTOGRAM_SESSION_METADATA', JSON.stringify(store));
+        }
+      } catch {}
+
       // Ensure API credentials recovered (secure store / worker .env) before list
       const { bootstrapSecureCredentials } = await import('../../lib/tauri/secureCredentials');
       const { apiId, apiHash } = await bootstrapSecureCredentials();
@@ -276,14 +291,12 @@ export function Accounts() {
       setSessions(
         list.map((s) => {
           const meta = getSessionMetadata(s.name);
-          const cachedAvatar = getCachedAvatar(0, s.name);
-          const photoBase64 = meta?.photoBase64 || (typeof cachedAvatar === 'string' ? cachedAvatar : undefined);
           return {
             name: s.name,
             status: s.status,
             userFullName: meta?.userFullName,
             username: meta?.username,
-            photoBase64,
+            photoBase64: undefined, // Default to clean flat icon until real MTProto profile photo is fetched
             isPremium: Boolean(meta?.isPremium),
           };
         })
@@ -319,16 +332,13 @@ export function Accounts() {
           const username = user?.username ? `@${user.username}` : undefined;
           const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
 
-          // Check disk/memory avatar cache first (peer 0 = self)
-          const cachedAvatar = getCachedAvatar(0, saved.name);
-          const meta = getSessionMetadata(saved.name);
-          const photoBase64 = user?.photoBase64 || meta?.photoBase64 || (typeof cachedAvatar === 'string' ? cachedAvatar : undefined);
+          // REAL-SYNC PHOTO DIRECTLY FROM RUST TELEGRAM BACKEND FOR THIS EXACT SESSION
+          const realPhoto = user?.photoBase64 || undefined;
 
           if (connected || user) {
             saveSessionMetadata(saved.name, {
               userFullName,
               username: user?.username || undefined,
-              photoBase64,
               isPremium,
             });
           }
@@ -341,54 +351,13 @@ export function Accounts() {
                     status: connected ? 'connected' : result?.error ? 'error' : 'expired',
                     userFullName,
                     username,
-                    photoBase64: photoBase64 || row.photoBase64,
+                    photoBase64: realPhoto,
                     latencyMs,
                     isPremium,
                   }
                 : row
             )
           );
-
-          // Fast avatar fetch via avatarBatcher (peer 0 = self), fallback to tgDownloadProfilePhoto
-          if (connected) {
-            requestAvatar({ session: saved.name, apiId: String(apiId), apiHash }, 0)
-              .then((avatarUrl) => {
-                if (avatarUrl) {
-                  setSessions((current) =>
-                    current.map((row) =>
-                      row.name === saved.name ? { ...row, photoBase64: avatarUrl } : row
-                    )
-                  );
-                  saveSessionMetadata(saved.name, { photoBase64: avatarUrl });
-                  setAvatarErrors((prev) => {
-                    const next = new Set(prev);
-                    next.delete(saved.name);
-                    return next;
-                  });
-                } else {
-                  return tgDownloadProfilePhoto({
-                    session: saved.name,
-                    apiId: Number(apiId),
-                    apiHash,
-                  }).then((realPhoto) => {
-                    if (realPhoto) {
-                      setSessions((current) =>
-                        current.map((row) =>
-                          row.name === saved.name ? { ...row, photoBase64: realPhoto } : row
-                        )
-                      );
-                      saveSessionMetadata(saved.name, { photoBase64: realPhoto });
-                      setAvatarErrors((prev) => {
-                        const next = new Set(prev);
-                        next.delete(saved.name);
-                        return next;
-                      });
-                    }
-                  });
-                }
-              })
-              .catch(() => { /* Silently ignore photo download errors */ });
-          }
         })
       );
     } catch (e) {
