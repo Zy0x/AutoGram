@@ -31,6 +31,7 @@ import {
   AtSign,
   List,
   ListOrdered,
+  Send,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -1197,38 +1198,6 @@ export function TransferSettingsWorkspace({
                         </button>
                         <div className="td-ribbon-group-title">TAUTAN & DAFTAR</div>
                       </div>
-
-                      {/* GROUP 5: PENGIRIMAN & TELEGRAM PARSE MODE */}
-                      <div className="td-ribbon-group" style={{ flexGrow: 1 }}>
-                        <div className="td-mode-grid">
-                          <label>
-                            Format Output
-                            <select
-                              value={draft.captionParseMode || 'MarkdownV2'}
-                              disabled={!!transferActive}
-                              onChange={(e) => patch({ captionParseMode: e.target.value as any })}
-                            >
-                              <option value="MarkdownV2">MarkdownV2 (Telegram Official)</option>
-                              <option value="HTML">HTML (Telegram HTML)</option>
-                              <option value="Plain">Teks Biasa (Plain Text)</option>
-                            </select>
-                          </label>
-
-                          <label>
-                            Perilaku Teks Panjang
-                            <select
-                              value={draft.captionOverflowPolicy || 'truncate_with_warning'}
-                              disabled={!!transferActive}
-                              onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
-                            >
-                              <option value="truncate_with_warning">Potong dengan Peringatan</option>
-                              <option value="fail">Batalkan Pengiriman (Reject)</option>
-                              <option value="split">Bagi Pesan Lanjutan (Split)</option>
-                            </select>
-                          </label>
-                        </div>
-                        <div className="td-ribbon-group-title">PENGIRIMAN TELEGRAM</div>
-                      </div>
                     </div>
                   </div>
 
@@ -1277,31 +1246,62 @@ export function TransferSettingsWorkspace({
                     )}
                   </div>
 
-                  {/* CAPTION OPTIONS ROW */}
-                  <div className="td-caption-options-row">
-                    <label className="td-caption-above-switch">
-                      <input
-                        type="checkbox"
-                        checked={draft.captionAbove ?? false}
-                        disabled={!!transferActive}
-                        onChange={(e) => patch({ captionAbove: e.target.checked })}
-                      />
-                      <span>Tampilkan caption di <strong>ATAS</strong> media (Caption Above Media)</span>
-                    </label>
-                  </div>
-
-                  {/* STATUS BAR */}
+                  {/* STATUS BAR (BADGES + CHAR COUNT + INLINE CAPTION ABOVE CHECKBOX) */}
                   <div className="td-caption-statusbar">
                     <div className="td-status-left">
                       <span className="td-status-pill">{draft.captionParseMode || 'MarkdownV2'}</span>
                       <span className="td-status-pill">
                         {draft.captionAbove ? 'Caption Di Atas Media' : 'Caption Di Bawah Media'}
                       </span>
-                    </div>
-                    <div className="td-status-right">
                       <span className={`td-char-count ${[...(draft.globalCaption || '')].length > 1024 ? 'error' : ''}`}>
                         {[...(draft.globalCaption || '')].length.toLocaleString('id-ID')} / 1.024 Karakter
                       </span>
+                    </div>
+                    <div className="td-status-right">
+                      <label className="td-caption-above-inline">
+                        <input
+                          type="checkbox"
+                          checked={draft.captionAbove ?? false}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ captionAbove: e.target.checked })}
+                        />
+                        <span>Tampilkan caption di <strong>ATAS</strong> media (Caption Above Media)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* DEDICATED PENGIRIMAN TELEGRAM PANEL (BELOW CAPTION EDITOR) */}
+                  <div className="td-caption-delivery-panel">
+                    <div className="td-delivery-panel-title">
+                      <Send size={15} />
+                      <span>Pengaturan Pengiriman Telegram</span>
+                    </div>
+                    <div className="td-mode-grid">
+                      <label>
+                        Format Output
+                        <select
+                          value={draft.captionParseMode || 'MarkdownV2'}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ captionParseMode: e.target.value as any })}
+                        >
+                          <option value="MarkdownV2">MarkdownV2 (Telegram Official)</option>
+                          <option value="HTML">HTML (Telegram HTML)</option>
+                          <option value="Plain">Teks Biasa (Plain Text)</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        Perilaku Teks Panjang
+                        <select
+                          value={draft.captionOverflowPolicy || 'truncate_with_warning'}
+                          disabled={!!transferActive}
+                          onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
+                        >
+                          <option value="truncate_with_warning">Potong dengan Peringatan</option>
+                          <option value="fail">Batalkan Pengiriman (Reject)</option>
+                          <option value="split">Bagi Pesan Lanjutan (Split)</option>
+                        </select>
+                      </label>
                     </div>
                   </div>
                 </div>

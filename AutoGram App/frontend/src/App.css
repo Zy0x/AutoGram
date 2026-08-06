@@ -17151,12 +17151,60 @@ video.drive-zip-img {
 }
 
 .td-char-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(16, 185, 129, 0.12) !important;
   color: #10b981 !important;
   font-weight: 800 !important;
+  font-size: 10px !important;
 }
 
 .td-char-count.error {
+  background: rgba(239, 68, 68, 0.12) !important;
   color: #ef4444 !important;
+}
+
+.td-caption-above-inline {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.td-caption-above-inline input[type="checkbox"] {
+  accent-color: #38bdf8 !important;
+  width: 15px !important;
+  height: 15px !important;
+  cursor: pointer !important;
+}
+
+.td-caption-above-inline strong {
+  color: #38bdf8 !important;
+}
+
+.td-caption-delivery-panel {
+  margin-top: 14px !important;
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+}
+
+.td-delivery-panel-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #38bdf8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
 }
 
 /* TELEGRAM PHONE MOCKUP PREVIEW */
