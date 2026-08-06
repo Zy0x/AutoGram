@@ -320,7 +320,7 @@ export function DriveToolsPanel({
             <div className="td-header-search-box">
               <Search size={14} className="td-header-search-icon" />
               <input
-                type="search"
+                type="text"
                 value={toolsSearchQuery}
                 onChange={(e) => {
                   setToolsSearchQuery(e.target.value);

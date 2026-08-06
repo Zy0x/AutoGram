@@ -875,7 +875,7 @@ export function TransferSettingsWorkspace({
             </span>
           )}
 
-          {/* Search Results Dropdown Popover */}
+          {/* Search Results Floating Command Palette Dropdown */}
           {(propsSearchQuery === undefined || settingsQuery.trim() !== '') && (
             <div className={`td-xfer-search-wrapper ${propsSearchQuery !== undefined ? 'is-popover-only' : ''}`}>
               {propsSearchQuery === undefined && (
@@ -883,30 +883,66 @@ export function TransferSettingsWorkspace({
                   <Search size={14} className="td-search-icon" />
                   <input
                     id={searchInputId}
-                    type="search"
+                    type="text"
                     value={settingsQuery}
                     onChange={(e) => setSettingsQuery(e.target.value)}
                     placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
                   />
+                  {settingsQuery.trim() !== '' && (
+                    <button
+                      type="button"
+                      className="td-header-search-clear"
+                      onClick={() => setSettingsQuery('')}
+                      title="Bersihkan pencarian"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </>
               )}
 
               {settingsQuery.trim() !== '' && (
-                <div className="td-xfer-search-results">
-                  {searchResults.length ? (
-                    searchResults.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="td-chip-btn"
-                        onClick={() => handleSearchResultClick(item)}
-                      >
-                        <span className="td-search-item-tab">[{item.tab.toUpperCase()}]</span> {item.label}
-                      </button>
-                    ))
-                  ) : (
-                    <span className="td-xfer-hint">{t('speedtest.transfer_settings_search_empty', 'Tidak ada hasil')}</span>
-                  )}
+                <div className="td-search-popover-dropdown">
+                  <div className="td-popover-head">
+                    <span>Hasil Pencarian ({searchResults.length})</span>
+                    <button
+                      type="button"
+                      className="td-popover-close-btn"
+                      onClick={() => setSettingsQuery('')}
+                      title="Tutup Hasil"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                  <div className="td-popover-list">
+                    {searchResults.length ? (
+                      searchResults.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="td-search-result-row"
+                          onClick={() => {
+                            handleSearchResultClick(item);
+                            setSettingsQuery('');
+                          }}
+                        >
+                          <span className="td-result-tab-badge">
+                            {item.tab.toUpperCase()}
+                          </span>
+                          <div className="td-result-info">
+                            <strong className="td-result-title">{item.label}</strong>
+                            <span className="td-result-snippet">{item.description || `Pengaturan ${item.label}`}</span>
+                          </div>
+                          <ChevronRight size={14} className="td-result-arrow" />
+                        </button>
+                      ))
+                    ) : (
+                      <div className="td-popover-empty">
+                        <Search size={18} style={{ color: '#64748b' }} />
+                        <span>Tidak ada pengaturan yang cocok dengan "{settingsQuery}"</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
