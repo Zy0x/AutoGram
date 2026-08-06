@@ -427,8 +427,9 @@ export function DriveToolsPanel({
             aria-label={t("speedtest.categories_aria")}
           >
             {/* SIDEBAR NAV GROUPS & ITEMS */}
-            {TOOL_GROUPS.map((group) => (
+            {TOOL_GROUPS.map((group, groupIdx) => (
               <div key={group.titleKey} className="td-tools-sidebar-group">
+                {groupIdx > 0 && <div className="td-tools-sidebar-divider" />}
                 {!isSidebarCollapsed && <span className="td-tools-sidebar-header">{t(group.titleKey)}</span>}
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;

@@ -16146,6 +16146,22 @@ video.drive-zip-img {
   margin: 4px 0 !important;
 }
 
+.td-tools-sidebar-divider {
+  width: calc(100% - 16px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  margin: 12px 8px 8px 8px;
+}
+
+.td-tools-sidebar.is-collapsed .td-tools-sidebar-divider {
+  width: 24px !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.65), rgba(56, 189, 248, 0.2)) !important;
+  margin: 10px auto 6px auto !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3) !important;
+}
+
 .td-tools-sidebar.is-collapsed .td-tools-sidebar-group {
   display: flex !important;
   flex-direction: column !important;
