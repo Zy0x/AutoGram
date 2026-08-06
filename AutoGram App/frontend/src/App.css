@@ -10781,18 +10781,41 @@ body:has(.app-layout-drive-focus),
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.22);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 14px 10px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
   overflow-y: auto;
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s ease;
   box-sizing: border-box;
 }
 
+/* Hide scrollbar thumb by default; reveal smoothly on sidebar hover */
+.td-tools-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.td-tools-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.td-tools-sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.td-tools-sidebar:hover::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.35);
+}
+
+.td-tools-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
+}
+
 .td-tools-sidebar.is-collapsed {
   width: 60px;
-  padding: 14px 8px;
+  padding: 10px 6px;
 }
 
 .td-sidebar-toggle-row {
@@ -16150,14 +16173,14 @@ video.drive-zip-img {
   width: calc(100% - 16px);
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
-  margin: 6px 8px 4px 8px;
+  margin: 4px 8px 2px 8px;
 }
 
 .td-tools-sidebar.is-collapsed .td-tools-sidebar-divider {
   width: 22px !important;
   height: 2px !important;
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.65), rgba(56, 189, 248, 0.2)) !important;
-  margin: 4px auto 3px auto !important;
+  margin: 2px auto 2px auto !important;
   border-radius: 2px !important;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.3) !important;
 }
