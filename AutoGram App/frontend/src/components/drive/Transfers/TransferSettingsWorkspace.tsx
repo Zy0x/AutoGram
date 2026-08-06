@@ -25,6 +25,12 @@ import {
   ChevronRight,
   Plus,
   ChevronDown,
+  Copy,
+  Code,
+  Link,
+  AtSign,
+  List,
+  ListOrdered,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -116,6 +122,152 @@ export function TransferSettingsWorkspace({
     }
     setIsDropdownOpen((prev) => !prev);
   };
+
+  // Telegram Caption Studio State & Helpers
+  const [captionTab, setCaptionTab] = useState<'editor' | 'preview'>('editor');
+  const [captionToast, setCaptionToast] = useState<string | null>(null);
+  const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const triggerCaptionToast = (msg: string) => {
+    setCaptionToast(msg);
+    setTimeout(() => setCaptionToast(null), 1800);
+  };
+
+  const copyCaptionOutput = async () => {
+    try {
+      await navigator.clipboard.writeText(draft.globalCaption || '');
+      triggerCaptionToast('⚡ Output Caption tersalin!');
+    } catch {
+      triggerCaptionToast('❌ Gagal menyalin caption');
+    }
+  };
+
+  const applyCaptionFormatting = (formatType: string) => {
+    if (!captionTextareaRef.current) return;
+    const el = captionTextareaRef.current;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = draft.globalCaption || '';
+    const selectedText = text.slice(start, end) || 'teks';
+    const parseMode = draft.captionParseMode || 'MarkdownV2';
+
+    let before = text.slice(0, start);
+    let after = text.slice(end);
+    let wrapped = selectedText;
+
+    if (parseMode === 'MarkdownV2') {
+      switch (formatType) {
+        case 'bold': wrapped = `*${selectedText}*`; break;
+        case 'italic': wrapped = `_${selectedText}_`; break;
+        case 'underline': wrapped = `__${selectedText}__`; break;
+        case 'strike': wrapped = `~${selectedText}~`; break;
+        case 'spoiler': wrapped = `||${selectedText}||`; break;
+        case 'code': wrapped = `\`${selectedText}\``; break;
+        case 'pre': wrapped = `\`\`\`\n${selectedText}\n\`\`\``; break;
+        case 'quote': wrapped = `> ${selectedText}`; break;
+        case 'expandable': wrapped = `> ${selectedText}||\n`; break;
+        case 'bullet': wrapped = `• ${selectedText}`; break;
+        case 'numbered': wrapped = `1. ${selectedText}`; break;
+        case 'checklist': wrapped = `☑ ${selectedText}`; break;
+        case 'link': {
+          const url = prompt('Masukkan URL Telegram / Web:', 'https://t.me/tokokita') || 'https://t.me/tokokita';
+          wrapped = `[${selectedText}](${url})`;
+          break;
+        }
+        case 'mention': {
+          const userId = prompt('Masukkan Telegram User ID:', '123456789') || '123456789';
+          wrapped = `[${selectedText}](tg://user?id=${userId})`;
+          break;
+        }
+        case 'removeFormat': {
+          wrapped = selectedText.replace(/[*_~`|>[\]()]/g, '');
+          break;
+        }
+      }
+    } else if (parseMode === 'HTML') {
+      switch (formatType) {
+        case 'bold': wrapped = `<b>${selectedText}</b>`; break;
+        case 'italic': wrapped = `<i>${selectedText}</i>`; break;
+        case 'underline': wrapped = `<u>${selectedText}</u>`; break;
+        case 'strike': wrapped = `<s>${selectedText}</s>`; break;
+        case 'spoiler': wrapped = `<tg-spoiler>${selectedText}</tg-spoiler>`; break;
+        case 'code': wrapped = `<code>${selectedText}</code>`; break;
+        case 'pre': wrapped = `<pre>${selectedText}</pre>`; break;
+        case 'quote': wrapped = `<blockquote>${selectedText}</blockquote>`; break;
+        case 'expandable': wrapped = `<blockquote expandable>${selectedText}</blockquote>`; break;
+        case 'bullet': wrapped = `• ${selectedText}`; break;
+        case 'numbered': wrapped = `1. ${selectedText}`; break;
+        case 'checklist': wrapped = `☑ ${selectedText}`; break;
+        case 'link': {
+          const url = prompt('Masukkan URL Telegram / Web:', 'https://t.me/tokokita') || 'https://t.me/tokokita';
+          wrapped = `<a href="${url}">${selectedText}</a>`;
+          break;
+        }
+        case 'mention': {
+          const userId = prompt('Masukkan Telegram User ID:', '123456789') || '123456789';
+          wrapped = `<a href="tg://user?id=${userId}">${selectedText}</a>`;
+          break;
+        }
+        case 'removeFormat': {
+          wrapped = selectedText.replace(/<[^>]*>/g, '');
+          break;
+        }
+      }
+    } else {
+      switch (formatType) {
+        case 'bullet': wrapped = `• ${selectedText}`; break;
+        case 'numbered': wrapped = `1. ${selectedText}`; break;
+        case 'checklist': wrapped = `☑ ${selectedText}`; break;
+        case 'removeFormat': {
+          wrapped = selectedText.replace(/<[^>]*>/g, '').replace(/[*_~`|>[\]()]/g, '');
+          break;
+        }
+      }
+    }
+
+    const nextText = before + wrapped + after;
+    patch({ globalCaption: nextText });
+    setTimeout(() => {
+      if (captionTextareaRef.current) {
+        captionTextareaRef.current.focus();
+        captionTextareaRef.current.setSelectionRange(start + wrapped.length, start + wrapped.length);
+      }
+    }, 15);
+  };
+
+  const telegramPreviewHtml = useMemo(() => {
+    const text = draft.globalCaption || '';
+    if (!text) return '<span style="color: #64748b; font-style: italic;">Pratinjau caption kosong…</span>';
+    const mode = draft.captionParseMode || 'MarkdownV2';
+
+    if (mode === 'HTML') {
+      return text
+        .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
+        .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote expandable" title="Kutipan dapat diperluas">$1</blockquote>')
+        .replace(/<blockquote>(.*?)<\/blockquote>/gi, '<blockquote class="td-tg-quote">$1</blockquote>')
+        .replace(/<code>(.*?)<\/code>/gi, '<code class="td-tg-code">$1</code>')
+        .replace(/<pre>(.*?)<\/pre>/gi, '<pre class="td-tg-pre">$1</pre>')
+        .replace(/<a href="(.*?)">(.*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noreferrer" class="td-tg-link">$2</a>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    if (mode === 'MarkdownV2') {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\|\|(.*?)\|\|/g, '<span class="td-tg-spoiler" title="Spoiler Telegram">$1</span>')
+        .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+        .replace(/_(.*?)_/g, '<em>$1</em>')
+        .replace(/__(.*?)__/g, '<u>$1</u>')
+        .replace(/~(.*?)~/g, '<s>$1</s>')
+        .replace(/```\n?([\s\S]*?)\n?```/g, '<pre class="td-tg-pre">$1</pre>')
+        .replace(/`([^`]+)`/g, '<code class="td-tg-code">$1</code>')
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="td-tg-link">$1</a>')
+        .replace(/^&gt;\s?(.*)$/gm, '<blockquote class="td-tg-quote">$1</blockquote>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+  }, [draft.globalCaption, draft.captionParseMode]);
 
   const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
@@ -496,45 +648,340 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* ==========================================
-                SECTION CARD 2: CAPTION GLOBAL & OPERASI TEKS
+                SECTION CARD 2: CAPTION GLOBAL & TELEGRAM CAPTION STUDIO
                 ========================================== */}
             <div className="td-settings-card" style={{ marginTop: '20px' }}>
-              <div className="td-card-head">
-                <Sparkles size={20} className="td-card-icon-primary" />
-                <div>
-                  <h4>2. Caption Global & Penanganan Teks</h4>
-                  <p>Tulis caption default otomatis & atur batas panjang karakter</p>
+              <div className="td-card-head" style={{ justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Sparkles size={20} className="td-card-icon-primary" />
+                  <div>
+                    <h4>2. Caption Global & Telegram Caption Studio</h4>
+                    <p>Format caption kaya dengan dukungan resmi Telegram MarkdownV2 & HTML</p>
+                  </div>
+                </div>
+                <div className="td-caption-studio-tabs">
+                  <button
+                    type="button"
+                    className={`td-studio-tab-btn ${captionTab === 'editor' ? 'active' : ''}`}
+                    onClick={() => setCaptionTab('editor')}
+                  >
+                    Editor
+                  </button>
+                  <button
+                    type="button"
+                    className={`td-studio-tab-btn ${captionTab === 'preview' ? 'active' : ''}`}
+                    onClick={() => setCaptionTab('preview')}
+                  >
+                    Preview Telegram
+                  </button>
                 </div>
               </div>
 
-              <div className="td-settings-subcard">
-                <div className="td-caption-input-box">
-                  <textarea
-                    rows={3}
-                    value={draft.globalCaption || ''}
-                    disabled={!!transferActive}
-                    placeholder={t('speedtest.caption_placeholder', 'Tulis caption di sini…')}
-                    onChange={(e) => patch({ globalCaption: e.target.value })}
-                  />
-                  <div className="td-caption-meta">
-                    <span className="td-caption-char-count">
-                      {[...(draft.globalCaption || '')].length} / 1024 karakter
-                    </span>
-                    <div className="td-caption-overflow-select">
-                      <label>{t('speedtest.caption_overflow_label', 'Perilaku panjang')}:</label>
-                      <select
-                        value={draft.captionOverflowPolicy || 'truncate'}
+              {captionTab === 'editor' ? (
+                <div className="td-caption-studio-shell">
+                  {/* TOP RIBBON TOOLBAR */}
+                  <div className="td-caption-ribbon-wrap">
+                    <div className="td-caption-ribbon">
+                      {/* GROUP 1: CLIPBOARD & RIWAYAT */}
+                      <div className="td-ribbon-group">
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={copyCaptionOutput}
+                          title="Salin Output Text"
+                        >
+                          <Copy size={15} />
+                          <span>Salin</span>
+                        </button>
+                        <div className="td-ribbon-group-title">CLIPBOARD</div>
+                      </div>
+
+                      {/* GROUP 2: FORMAT TEKS */}
+                      <div className="td-ribbon-group">
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('bold')}
+                          title="Tebal (*bold*)"
+                        >
+                          <b>B</b>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('italic')}
+                          title="Miring (_italic_)"
+                        >
+                          <i>I</i>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('underline')}
+                          title="Garis Bawah (__underline__)"
+                        >
+                          <u>U</u>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('strike')}
+                          title="Coret (~strikethrough~)"
+                        >
+                          <s>S</s>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('spoiler')}
+                          title="Spoiler (||spoiler||)"
+                        >
+                          <span style={{ letterSpacing: '-1px' }}>▩</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool"
+                          onClick={() => applyCaptionFormatting('removeFormat')}
+                          title="Hapus Format"
+                        >
+                          <span style={{ fontSize: '11px', fontWeight: 800 }}>Tx</span>
+                        </button>
+                        <div className="td-ribbon-group-title">FORMAT TEKS</div>
+                      </div>
+
+                      {/* GROUP 3: KUTIPAN & KODE */}
+                      <div className="td-ribbon-group">
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('quote')}
+                          title="Kutipan Teks (> Quote)"
+                        >
+                          <span style={{ fontSize: '15px' }}>❝</span>
+                          <span>Kutipan</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('expandable')}
+                          title="Kutipan Dapat Diperluas (> Expandable||)"
+                        >
+                          <span style={{ fontSize: '15px' }}>❞+</span>
+                          <span>Expand</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('code')}
+                          title="Kode Inline (`code`)"
+                        >
+                          <Code size={15} />
+                          <span>Code</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('pre')}
+                          title="Blok Kode (```code```)"
+                        >
+                          <span style={{ fontSize: '12px', fontWeight: 800 }}>{`{ }`}</span>
+                          <span>Block</span>
+                        </button>
+                        <div className="td-ribbon-group-title">KUTIPAN & KODE</div>
+                      </div>
+
+                      {/* GROUP 4: TAUTAN & DAFTAR */}
+                      <div className="td-ribbon-group">
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('link')}
+                          title="Sisipkan Link Tautan ([Label](URL))"
+                        >
+                          <Link size={15} />
+                          <span>Tautan</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('mention')}
+                          title="Mention Pengguna ([User](tg://user?id=X))"
+                        >
+                          <AtSign size={15} />
+                          <span>Mention</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('bullet')}
+                          title="Daftar Bullet (•)"
+                        >
+                          <List size={15} />
+                          <span>Bullet</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => applyCaptionFormatting('numbered')}
+                          title="Daftar Bernomor (1.)"
+                        >
+                          <ListOrdered size={15} />
+                          <span>Nomor</span>
+                        </button>
+                        <div className="td-ribbon-group-title">TAUTAN & DAFTAR</div>
+                      </div>
+
+                      {/* GROUP 5: PENGIRIMAN & TELEGRAM PARSE MODE */}
+                      <div className="td-ribbon-group" style={{ flexGrow: 1 }}>
+                        <div className="td-mode-grid">
+                          <label>
+                            Format Output
+                            <select
+                              value={draft.captionParseMode || 'MarkdownV2'}
+                              disabled={!!transferActive}
+                              onChange={(e) => patch({ captionParseMode: e.target.value as any })}
+                            >
+                              <option value="MarkdownV2">MarkdownV2 (Telegram Official)</option>
+                              <option value="HTML">HTML (Telegram HTML)</option>
+                              <option value="Plain">Teks Biasa (Plain Text)</option>
+                            </select>
+                          </label>
+
+                          <label>
+                            Perilaku Teks Panjang
+                            <select
+                              value={draft.captionOverflowPolicy || 'truncate_with_warning'}
+                              disabled={!!transferActive}
+                              onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
+                            >
+                              <option value="truncate_with_warning">Potong dengan Peringatan</option>
+                              <option value="fail">Batalkan Pengiriman (Reject)</option>
+                              <option value="split">Bagi Pesan Lanjutan (Split)</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div className="td-ribbon-group-title">PENGIRIMAN TELEGRAM</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MAIN EDITOR DOCUMENT */}
+                  <div className="td-caption-document">
+                    <textarea
+                      ref={captionTextareaRef}
+                      className="td-caption-editor-textarea"
+                      rows={5}
+                      value={draft.globalCaption || ''}
+                      disabled={!!transferActive}
+                      placeholder="Tulis caption Telegram di sini… Gunakan toolbar di atas untuk format bold, italic, link, spoiler, dll."
+                      onChange={(e) => patch({ globalCaption: e.target.value })}
+                    />
+                  </div>
+
+                  {/* CAPTION OPTIONS ROW */}
+                  <div className="td-caption-options-row">
+                    <label className="td-caption-above-switch">
+                      <input
+                        type="checkbox"
+                        checked={draft.captionAbove ?? false}
                         disabled={!!transferActive}
-                        onChange={(e) => patch({ captionOverflowPolicy: e.target.value as any })}
-                      >
-                        <option value="truncate">Potong dengan peringatan</option>
-                        <option value="fail">Batalkan pengiriman</option>
-                        <option value="split">Bagi otomatis</option>
-                      </select>
+                        onChange={(e) => patch({ captionAbove: e.target.checked })}
+                      />
+                      <span>Tampilkan caption di <strong>ATAS</strong> media (Caption Above Media)</span>
+                    </label>
+                  </div>
+
+                  {/* STATUS BAR */}
+                  <div className="td-caption-statusbar">
+                    <div className="td-status-left">
+                      <span className="td-status-pill">{draft.captionParseMode || 'MarkdownV2'}</span>
+                      <span className="td-status-pill">
+                        {draft.captionAbove ? 'Caption Di Atas Media' : 'Caption Di Bawah Media'}
+                      </span>
+                    </div>
+                    <div className="td-status-right">
+                      <span className={`td-char-count ${[...(draft.globalCaption || '')].length > 1024 ? 'error' : ''}`}>
+                        {[...(draft.globalCaption || '')].length.toLocaleString('id-ID')} / 1.024 Karakter
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* PREVIEW WORKSPACE WITH TELEGRAM PHONE MOCKUP */
+                <div className="td-caption-preview-shell">
+                  <div className="td-preview-grid">
+                    {/* PHONE MOCKUP */}
+                    <div className="td-phone-frame">
+                      <div className="td-phone-head">
+                        <div className="td-phone-avatar">TG</div>
+                        <div>
+                          <strong>Telegram Media Bot</strong>
+                          <small>bot • online</small>
+                        </div>
+                      </div>
+                      <div className="td-phone-chat">
+                        <div className="td-chat-date">Hari ini</div>
+                        <div className="td-chat-bubble">
+                          {/* IF CAPTION ABOVE */}
+                          {draft.captionAbove && (
+                            <div
+                              className="td-caption-preview-content above"
+                              dangerouslySetInnerHTML={{ __html: telegramPreviewHtml }}
+                            />
+                          )}
+
+                          <div className="td-preview-media">
+                            <span>Pratinjau Media (Photo / Video)</span>
+                            <span className="td-media-tag">Album Media</span>
+                          </div>
+
+                          {/* IF CAPTION BELOW */}
+                          {!draft.captionAbove && (
+                            <div
+                              className="td-caption-preview-content below"
+                              dangerouslySetInnerHTML={{ __html: telegramPreviewHtml }}
+                            />
+                          )}
+
+                          <div className="td-bubble-time">10:48 ✓✓</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RAW TELEGRAM PARSED OUTPUT CARD */}
+                    <div className="td-raw-output-card">
+                      <div className="td-output-head">
+                        <strong>Raw Output Syntax ({draft.captionParseMode || 'MarkdownV2'})</strong>
+                        <button
+                          type="button"
+                          className="td-mini-btn primary"
+                          onClick={copyCaptionOutput}
+                        >
+                          <Copy size={13} />
+                          Salin Output
+                        </button>
+                      </div>
+                      <pre className="td-raw-output-code">
+                        {draft.globalCaption || '(Caption kosong)'}
+                      </pre>
+                      <div className="td-output-notice">
+                        {[...(draft.globalCaption || '')].length > 1024 ? (
+                          <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                            ⚠️ Caption melebihi 1.024 karakter! {draft.captionOverflowPolicy === 'fail' ? 'Pengiriman akan diblokir.' : draft.captionOverflowPolicy === 'split' ? 'Akan dibagi menjadi pesan teks lanjutan.' : 'Akan dipotong otomatis.'}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#10b981' }}>
+                            ✓ Caption valid & siap dikirim melalui Telegram API.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TOAST POPUP */}
+              {captionToast && <div className="td-caption-toast">{captionToast}</div>}
             </div>
 
             {/* ==========================================

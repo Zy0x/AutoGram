@@ -579,7 +579,7 @@ export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software
 export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
 export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
 export type DownloadIntegrity = 'size' | 'sha256';
-export type CaptionOverflowPolicy = 'truncate_with_warning' | 'fail';
+export type CaptionOverflowPolicy = 'truncate_with_warning' | 'fail' | 'split';
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
@@ -622,6 +622,10 @@ export type DriveTransferSettings = {
   globalCaption: string;
   /** Explicit behavior when Telegram's live UTF-16 caption limit is exceeded. */
   captionOverflowPolicy: CaptionOverflowPolicy;
+  /** Telegram parse mode for global caption: MarkdownV2 | HTML | Plain */
+  captionParseMode?: 'MarkdownV2' | 'HTML' | 'Plain';
+  /** Show caption above media in message bubble */
+  captionAbove?: boolean;
   /** After upload finishes, refresh file list (recommended) */
   refreshAfterUpload: boolean;
   /** After download finishes, show status with folder path */
@@ -685,6 +689,8 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   maxReuploadPerHour: 10,
   globalCaption: '',
   captionOverflowPolicy: 'truncate_with_warning',
+  captionParseMode: 'MarkdownV2',
+  captionAbove: false,
   refreshAfterUpload: true,
   notifyDownloadDone: true,
   reencodeHardware: 'auto',

@@ -16933,3 +16933,473 @@ video.drive-zip-img {
   padding: 0 !important;
   height: auto !important;
 }
+
+/* ==========================================================================
+   TELEGRAM CAPTION STUDIO WORKSPACE STYLES
+   ========================================================================== */
+.td-caption-studio-tabs {
+  display: flex !important;
+  gap: 4px !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  padding: 3px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-studio-tab-btn {
+  padding: 6px 14px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.td-studio-tab-btn:hover {
+  color: #e2e8f0 !important;
+}
+
+.td-studio-tab-btn.active {
+  background: #38bdf8 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3) !important;
+}
+
+.td-caption-studio-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  overflow: hidden !important;
+  margin-top: 12px !important;
+}
+
+.td-caption-ribbon-wrap {
+  overflow-x: auto !important;
+  padding: 10px 12px 6px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+  scrollbar-width: thin !important;
+}
+
+.td-caption-ribbon {
+  display: flex !important;
+  min-width: max-content !important;
+  gap: 10px !important;
+}
+
+.td-ribbon-group {
+  position: relative !important;
+  min-height: 86px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 5px !important;
+  padding: 8px 10px 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+
+.td-ribbon-group-title {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 5px !important;
+  color: #64748b !important;
+  text-align: center !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.4px !important;
+  pointer-events: none !important;
+}
+
+.td-ribbon-tool {
+  min-width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 9px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-ribbon-tool:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+}
+
+.td-ribbon-tool.small-label {
+  flex-direction: column !important;
+  gap: 2px !important;
+  height: 48px !important;
+  padding: 4px 8px !important;
+  font-size: 10px !important;
+}
+
+.td-mode-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  width: 320px !important;
+  padding-top: 2px !important;
+}
+
+.td-mode-grid label {
+  color: #94a3b8 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.td-mode-grid select {
+  width: 100% !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 6px !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #f1f5f9 !important;
+  font-size: 11px !important;
+  outline: none !important;
+}
+
+.td-caption-document {
+  padding: 16px !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+.td-caption-editor-textarea {
+  width: 100% !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  color: #f8fafc !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  resize: vertical !important;
+  outline: none !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+}
+
+.td-caption-editor-textarea:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
+}
+
+.td-caption-options-row {
+  padding: 10px 16px !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-caption-above-switch {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #cbd5e1 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+}
+
+.td-caption-above-switch input[type="checkbox"] {
+  accent-color: #38bdf8 !important;
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer !important;
+}
+
+.td-caption-statusbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  font-size: 11px !important;
+}
+
+.td-status-left {
+  display: flex !important;
+  gap: 8px !important;
+}
+
+.td-status-pill {
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+}
+
+.td-char-count {
+  color: #10b981 !important;
+  font-weight: 800 !important;
+}
+
+.td-char-count.error {
+  color: #ef4444 !important;
+}
+
+/* TELEGRAM PHONE MOCKUP PREVIEW */
+.td-caption-preview-shell {
+  padding: 16px !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-radius: 14px !important;
+  margin-top: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-preview-grid {
+  display: grid !important;
+  grid-template-columns: minmax(300px, 380px) 1fr !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+
+.td-phone-frame {
+  width: 100% !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 20px !important;
+  background: #0f172a !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.td-phone-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  background: #1e293b !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-phone-avatar {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 50% !important;
+  background: #229ed9 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+}
+
+.td-phone-head strong {
+  display: block !important;
+  font-size: 13px !important;
+  color: #f8fafc !important;
+}
+
+.td-phone-head small {
+  color: #64748b !important;
+  font-size: 10px !important;
+}
+
+.td-phone-chat {
+  min-height: 360px !important;
+  padding: 16px 12px !important;
+  background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%) !important;
+}
+
+.td-chat-date {
+  width: max-content !important;
+  margin: 0 auto 12px !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+.td-chat-bubble {
+  width: 100% !important;
+  overflow: hidden !important;
+  border-radius: 14px 14px 14px 4px !important;
+  background: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.td-preview-media {
+  position: relative !important;
+  min-height: 160px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.td-media-tag {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  color: #e2e8f0 !important;
+  font-size: 10px !important;
+}
+
+.td-caption-preview-content {
+  padding: 10px 12px !important;
+  color: #f1f5f9 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+}
+
+.td-caption-preview-content.above {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-caption-preview-content.below {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-bubble-time {
+  padding: 0 10px 6px !important;
+  color: #64748b !important;
+  text-align: right !important;
+  font-size: 9px !important;
+}
+
+.td-raw-output-card {
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 14px !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+.td-output-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+}
+
+.td-output-head strong {
+  font-size: 12px !important;
+  color: #f1f5f9 !important;
+}
+
+.td-mini-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-mini-btn:hover {
+  background: #38bdf8 !important;
+  color: #0f172a !important;
+}
+
+.td-raw-output-code {
+  min-height: 240px !important;
+  max-height: 320px !important;
+  overflow: auto !important;
+  margin: 0 !important;
+  padding: 14px !important;
+  background: #020617 !important;
+  color: #38bdf8 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
+.td-output-notice {
+  padding: 10px 14px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  font-size: 11px !important;
+}
+
+.td-caption-toast {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 24px !important;
+  z-index: 9999 !important;
+  transform: translateX(-50%) !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  animation: tdFadeInUp 0.2s ease !important;
+}
+
+/* Telegram formatting tags in preview */
+.td-tg-spoiler {
+  background: #475569 !important;
+  color: transparent !important;
+  border-radius: 3px !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+.td-tg-spoiler:hover {
+  color: #f8fafc !important;
+}
+.td-tg-quote {
+  border-left: 3px solid #38bdf8 !important;
+  margin: 4px 0 !important;
+  padding: 2px 8px !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+.td-tg-code {
+  background: rgba(255, 255, 255, 0.1) !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  font-family: monospace !important;
+}
+.td-tg-pre {
+  background: #020617 !important;
+  padding: 8px !important;
+  border-radius: 6px !important;
+  font-family: monospace !important;
+  white-space: pre-wrap !important;
+}
+.td-tg-link {
+  color: #38bdf8 !important;
+  text-decoration: underline !important;
+}
