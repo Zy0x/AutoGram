@@ -276,12 +276,14 @@ export function Accounts() {
       setSessions(
         list.map((s) => {
           const meta = getSessionMetadata(s.name);
+          const cachedAvatar = getCachedAvatar(0, s.name);
+          const photoBase64 = meta?.photoBase64 || (typeof cachedAvatar === 'string' ? cachedAvatar : undefined);
           return {
             name: s.name,
             status: s.status,
             userFullName: meta?.userFullName,
             username: meta?.username,
-            photoBase64: meta?.photoBase64,
+            photoBase64,
             isPremium: Boolean(meta?.isPremium),
           };
         })
@@ -317,17 +319,20 @@ export function Accounts() {
           const username = user?.username ? `@${user.username}` : undefined;
           const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
 
+          // Check disk/memory avatar cache first (peer 0 = self)
+          const cachedAvatar = getCachedAvatar(0, saved.name);
+          const meta = getSessionMetadata(saved.name);
+          const photoBase64 = user?.photoBase64 || meta?.photoBase64 || (typeof cachedAvatar === 'string' ? cachedAvatar : undefined);
+
           if (connected || user) {
             saveSessionMetadata(saved.name, {
               userFullName,
               username: user?.username || undefined,
-              photoBase64: user?.photoBase64 || undefined,
+              photoBase64,
               isPremium,
             });
           }
-          // Check disk/memory avatar cache first (peer 0 = self)
-          const cachedAvatar = getCachedAvatar(0, saved.name);
-          const photoBase64 = user?.photoBase64 || cachedAvatar || undefined;
+
           setSessions((current) =>
             current.map((row) =>
               row.name === saved.name
@@ -336,7 +341,7 @@ export function Accounts() {
                     status: connected ? 'connected' : result?.error ? 'error' : 'expired',
                     userFullName,
                     username,
-                    photoBase64,
+                    photoBase64: photoBase64 || row.photoBase64,
                     latencyMs,
                     isPremium,
                   }
@@ -354,6 +359,7 @@ export function Accounts() {
                       row.name === saved.name ? { ...row, photoBase64: avatarUrl } : row
                     )
                   );
+                  saveSessionMetadata(saved.name, { photoBase64: avatarUrl });
                   setAvatarErrors((prev) => {
                     const next = new Set(prev);
                     next.delete(saved.name);
@@ -371,6 +377,7 @@ export function Accounts() {
                           row.name === saved.name ? { ...row, photoBase64: realPhoto } : row
                         )
                       );
+                      saveSessionMetadata(saved.name, { photoBase64: realPhoto });
                       setAvatarErrors((prev) => {
                         const next = new Set(prev);
                         next.delete(saved.name);
