@@ -44,21 +44,9 @@ pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
         (false, false) => String::new(),
     };
 
-    let (photo_base64, is_premium) = match &u.raw {
-        grammers_client::tl::enums::User::User(raw_user) => {
-            let photo = if let Some(grammers_client::tl::enums::UserProfilePhoto::Photo(p)) = &raw_user.photo {
-                p.stripped_thumb
-                    .as_ref()
-                    .and_then(|st| {
-                        let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(st).unwrap_or_else(|| st.clone());
-                        crate::core::grammers::thumbs::to_data_url(&jpeg)
-                    })
-            } else {
-                None
-            };
-            (photo, raw_user.premium)
-        }
-        _ => (None, false),
+    let is_premium = match &u.raw {
+        grammers_client::tl::enums::User::User(raw_user) => raw_user.premium,
+        _ => false,
     };
 
     UserProfile {
@@ -69,7 +57,7 @@ pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
             Some(full_name)
         },
         username: u.username().map(|s| s.to_string()),
-        photo_base64,
+        photo_base64: None,
         is_premium,
     }
 }
