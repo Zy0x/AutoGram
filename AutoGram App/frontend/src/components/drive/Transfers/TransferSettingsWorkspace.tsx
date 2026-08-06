@@ -830,9 +830,8 @@ export function TransferSettingsWorkspace({
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
+    { id: 'upload', label: 'Unggahan & Encoding Video', desc: 'Format pengiriman, akselerasi GPU/CPU encoder, caption global & paralel unggah', icon: Upload },
     { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
-    { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
     { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload },
@@ -863,11 +862,15 @@ export function TransferSettingsWorkspace({
             <h3>
               {activeTab === 'menu'
                 ? t('speedtest.transfer_settings_title', 'Transfer Settings')
+                : (activeTab === 'upload' || activeTab === 'encoding')
+                ? 'Unggahan & Encoding Video'
                 : subMenuCategories.find((c) => c.id === activeTab)?.label || 'Detail Pengaturan'}
             </h3>
             <p>
               {activeTab === 'menu'
                 ? t('speedtest.transfer_settings_subtitle', 'Konfigurasi unggah, unduh, dan pengodean media')
+                : (activeTab === 'upload' || activeTab === 'encoding')
+                ? 'Format pengiriman, akselerasi GPU/CPU encoder, caption global & paralel unggah'
                 : subMenuCategories.find((c) => c.id === activeTab)?.desc}
             </p>
           </div>
@@ -1036,8 +1039,8 @@ export function TransferSettingsWorkspace({
 
         {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (SHOWS ALL SETTINGS DIRECTLY INCLUDING ADVANCED OPTIONS) */}
 
-        {/* DEDICATED PAGE: UPLOAD */}
-        {activeTab === 'upload' && (
+        {/* DEDICATED PAGE: UPLOAD & VIDEO ENCODING */}
+        {(activeTab === 'upload' || activeTab === 'encoding') && (
           <div className="td-xfer-focused-panel" id="section-upload-format">
             {/* ==========================================
                 SECTION CARD 1: PENGATURAN UNGGAHAN & FORMAT
@@ -1122,6 +1125,193 @@ export function TransferSettingsWorkspace({
                       <p>Kirim berkas mentah tanpa pemrosesan pratinjau media.</p>
                     </div>
                   </label>
+                </div>
+              </div>
+            </div>
+
+            {/* ==========================================
+                SECTION CARD 2: VIDEO ENCODING & ACCELERATION MODE
+                ========================================== */}
+            <div className="td-settings-card" id="section-encoding-mode" style={{ marginTop: '20px' }}>
+              <div className="td-card-head">
+                <Film size={20} className="td-card-icon-primary" />
+                <div>
+                  <h4>2. Video Encoding & Acceleration Mode</h4>
+                  <p>Pilih bagaimana sistem memproses berkas video sebelum diunggah ke Telegram</p>
+                </div>
+              </div>
+
+              <div className="td-encoder-4x-grid">
+                {/* AUTO */}
+                <label className={`td-encoder-tile ${currentEncoderMode === 'automatic' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="encoderUnifiedMode"
+                    value="automatic"
+                    checked={currentEncoderMode === 'automatic'}
+                    disabled={!!transferActive}
+                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'automatic'))}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Zap size={16} className="td-tile-icon is-auto" />
+                      <strong>Otomatis (GPU Adaptif)</strong>
+                    </div>
+                    <p>Sistem mendeteksi GPU secara otomatis. Jika gagal, fallback ke CPU.</p>
+                  </div>
+                </label>
+
+                {/* HARDWARE GPU */}
+                <label className={`td-encoder-tile ${currentEncoderMode === 'hardware' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="encoderUnifiedMode"
+                    value="hardware"
+                    checked={currentEncoderMode === 'hardware'}
+                    disabled={!!transferActive}
+                    onChange={() => {
+                      const firstGpu = hardwareOptions.find(
+                        (o) => o.value !== 'auto' && o.value !== 'cpu' && o.value !== 'detecting'
+                      );
+                      const targetHw = (firstGpu ? firstGpu.value : 'auto') as ReencodeHardware;
+                      patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw }));
+                    }}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Film size={16} className="td-tile-icon is-gpu" />
+                      <strong>Akselerasi GPU Hardware</strong>
+                    </div>
+                    <p>Gunakan chip GPU khusus (NVIDIA NVENC, AMD AMF, Intel QSV).</p>
+                  </div>
+                </label>
+
+                {/* SOFTWARE CPU */}
+                <label className={`td-encoder-tile ${currentEncoderMode === 'software' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="encoderUnifiedMode"
+                    value="software"
+                    checked={currentEncoderMode === 'software'}
+                    disabled={!!transferActive}
+                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'software'))}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div className="td-tile-head">
+                      <Cpu size={16} className="td-tile-icon is-cpu" />
+                      <strong>Software CPU Encoding</strong>
+                    </div>
+                    <p>Kompresi menggunakan prosessor CPU. Sangat presisi namun memakan beban CPU.</p>
+                    {currentEncoderMode === 'software' && (
+                      <div className="td-tile-cpu-badge">
+                        <span className="td-cpu-dot" />
+                        <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
+                      </div>
+                    )}
+                  </div>
+                </label>
+
+                {/* DISABLE REENCODE */}
+                <label className={`td-encoder-tile ${currentEncoderMode === 'disabled' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="encoderUnifiedMode"
+                    value="disabled"
+                    checked={currentEncoderMode === 'disabled'}
+                    disabled={!!transferActive}
+                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'disabled'))}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Sliders size={16} className="td-tile-icon is-disable" />
+                      <strong>Matikan Re-encode</strong>
+                    </div>
+                    <p>Kirim video tanpa kompresi ulang. Format non-native dikirim sebagai dokumen.</p>
+                  </div>
+                </label>
+              </div>
+
+              {/* HARDWARE DEVICE SELECTOR (SHOWS CONDITIONALLY) */}
+              {currentEncoderMode === 'hardware' && (
+                <div className="td-conditional-box">
+                  <label className="td-field-label">Pilih Perangkat GPU Fisik</label>
+                  <MediaSelect
+                    value={draft.reencodeHardware}
+                    disabled={!!transferActive}
+                    onChange={(val) => patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw: val as ReencodeHardware }))}
+                    onOpen={fetchHardwareCapabilities}
+                    ariaLabel="Pilih Perangkat GPU Fisik"
+                    options={hardwareOptions}
+                  />
+                </div>
+              )}
+
+              {/* SOFTWARE CPU SPEC DETAILS (SHOWS CONDITIONALLY WHEN SOFTWARE MODE IS SELECTED) */}
+              {currentEncoderMode === 'software' && (
+                <div className="td-conditional-box is-cpu-details">
+                  <Cpu size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                  <div>
+                    <div className="td-cpu-title">
+                      <strong>Prosesor CPU Aktif:</strong>
+                      <span className="td-cpu-name">
+                        {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}
+                      </span>
+                    </div>
+                    <p className="td-cpu-sub">
+                      {hardwareCapabilities?.cpu?.cores
+                        ? `Spesifikasi Hardware: ${hardwareCapabilities.cpu.cores} Physical Cores / ${hardwareCapabilities.cpu.threads} Threads (FFmpeg libx264 software encoder)`
+                        : `Spesifikasi Hardware: ${navigator.hardwareConcurrency || 8} Logical Threads (FFmpeg libx264 software encoder)`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* DISABLE WARNING (SHOWS CONDITIONALLY) */}
+              {currentEncoderMode === 'disabled' && (
+                <div className="td-conditional-box is-warning">
+                  <ShieldAlert size={18} className="td-warning-icon" />
+                  <div>
+                    <div className="td-warning-head">
+                      <strong>Mode Passthrough (Re-encode Dinonaktifkan)</strong>
+                      <span className="td-warning-badge">Original Uncompressed</span>
+                    </div>
+                    <p className="td-warning-body">
+                      Video tidak akan dikompresi ulang. Berkas format non-native (seperti <code>.mkv</code>, <code>.avi</code>, <code>.flv</code>) akan dikirimkan secara utuh sebagai berkas dokumen murni tanpa pratinjau media.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ENCODING TECHNICAL OPTIONS */}
+              <div className="td-settings-subcard" style={{ marginTop: '20px' }}>
+                <label className="td-field-label">Pengaturan Teknis Encoder Lanjutan</label>
+                <div className="td-form-row-grid">
+                  <div className="td-field-group">
+                    <label className="td-field-label">Jumlah Encoder Paralel</label>
+                    <select
+                      value={draft.encoderMaxParallel || 1}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
+                    >
+                      <option value={1}>1 Proses (Stabil)</option>
+                      <option value={2}>2 Proses Parallel</option>
+                      <option value={3}>3 Proses Parallel</option>
+                      <option value={4}>4 Proses Parallel (Max GPU)</option>
+                    </select>
+                  </div>
+
+                  <div className="td-field-group">
+                    <label className="td-field-label">Resource Profile</label>
+                    <select
+                      value={draft.encoderResourceProfile || 'balanced'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
+                    >
+                      <option value="eco">Hemat Daya (Eco)</option>
+                      <option value="balanced">Seimbang (Recommended)</option>
+                      <option value="performance">Performa Maksimal</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1686,201 +1876,7 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* DEDICATED PAGE: ENCODING VIDEO */}
-        {activeTab === 'encoding' && (
-          <div className="td-xfer-focused-panel" id="section-encoding-mode">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Film size={18} />
-                <div>
-                  <h4>{t('speedtest.encoder_mode_title', 'Mode Encoding Video')}</h4>
-                  <p>{t('speedtest.encoder_mode_desc', 'Pilih bagaimana sistem memproses berkas video sebelum diunggah')}</p>
-                </div>
-              </div>
 
-              <div className="td-encoder-4x-grid">
-                {/* AUTO */}
-                <label className={`td-encoder-tile ${currentEncoderMode === 'automatic' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="encoderUnifiedMode"
-                    value="automatic"
-                    checked={currentEncoderMode === 'automatic'}
-                    disabled={!!transferActive}
-                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'automatic'))}
-                  />
-                  <div>
-                    <div className="td-tile-head">
-                      <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>Otomatis (GPU Adaptif)</strong>
-                    </div>
-                    <p>Sistem mendeteksi GPU secara otomatis. Jika gagal, fallback ke CPU.</p>
-                  </div>
-                </label>
-
-                {/* HARDWARE GPU */}
-                <label className={`td-encoder-tile ${currentEncoderMode === 'hardware' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="encoderUnifiedMode"
-                    value="hardware"
-                    checked={currentEncoderMode === 'hardware'}
-                    disabled={!!transferActive}
-                    onChange={() => {
-                      const firstGpu = hardwareOptions.find(
-                        (o) => o.value !== 'auto' && o.value !== 'cpu' && o.value !== 'detecting'
-                      );
-                      const targetHw = (firstGpu ? firstGpu.value : 'auto') as ReencodeHardware;
-                      patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw }));
-                    }}
-                  />
-                  <div>
-                    <div className="td-tile-head">
-                      <Film size={16} className="td-tile-icon is-gpu" />
-                      <strong>Akselerasi GPU Hardware</strong>
-                    </div>
-                    <p>Gunakan chip GPU khusus (NVIDIA NVENC, AMD AMF, Intel QSV).</p>
-                  </div>
-                </label>
-
-                {/* SOFTWARE CPU */}
-                <label className={`td-encoder-tile ${currentEncoderMode === 'software' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="encoderUnifiedMode"
-                    value="software"
-                    checked={currentEncoderMode === 'software'}
-                    disabled={!!transferActive}
-                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'software'))}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div className="td-tile-head">
-                      <Cpu size={16} className="td-tile-icon is-cpu" />
-                      <strong>Software CPU Encoding</strong>
-                    </div>
-                    <p>Kompresi menggunakan prosessor CPU. Sangat presisi namun memakan beban CPU.</p>
-                    {currentEncoderMode === 'software' && (
-                      <div className="td-tile-cpu-badge">
-                        <span className="td-cpu-dot" />
-                        <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
-                      </div>
-                    )}
-                  </div>
-                </label>
-
-                {/* DISABLE REENCODE */}
-                <label className={`td-encoder-tile ${currentEncoderMode === 'disabled' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="encoderUnifiedMode"
-                    value="disabled"
-                    checked={currentEncoderMode === 'disabled'}
-                    disabled={!!transferActive}
-                    onChange={() => patch(applyUnifiedEncodingMode(draft, 'disabled'))}
-                  />
-                  <div>
-                    <div className="td-tile-head">
-                      <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>Matikan Re-encode</strong>
-                    </div>
-                    <p>Kirim video tanpa kompresi ulang. Format non-native dikirim sebagai dokumen.</p>
-                  </div>
-                </label>
-              </div>
-
-              {/* HARDWARE DEVICE SELECTOR (SHOWS CONDITIONALLY) */}
-              {currentEncoderMode === 'hardware' && (
-                <div className="td-conditional-box">
-                  <label className="td-field-label">Pilih Perangkat GPU Fisik</label>
-                  <MediaSelect
-                    value={draft.reencodeHardware}
-                    disabled={!!transferActive}
-                    onChange={(val) => patch(applyUnifiedEncodingMode(draft, 'hardware', { targetHw: val as ReencodeHardware }))}
-                    onOpen={fetchHardwareCapabilities}
-                    ariaLabel="Pilih Perangkat GPU Fisik"
-                    options={hardwareOptions}
-                  />
-                </div>
-              )}
-
-              {/* SOFTWARE CPU SPEC DETAILS (SHOWS CONDITIONALLY WHEN SOFTWARE MODE IS SELECTED) */}
-              {currentEncoderMode === 'software' && (
-                <div className="td-conditional-box is-cpu-details">
-                  <Cpu size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
-                  <div>
-                    <div className="td-cpu-title">
-                      <strong>Prosesor CPU Aktif:</strong>
-                      <span className="td-cpu-name">
-                        {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}
-                      </span>
-                    </div>
-                    <p className="td-cpu-sub">
-                      {hardwareCapabilities?.cpu?.cores
-                        ? `Spesifikasi Hardware: ${hardwareCapabilities.cpu.cores} Physical Cores / ${hardwareCapabilities.cpu.threads} Threads (FFmpeg libx264 software encoder)`
-                        : `Spesifikasi Hardware: ${navigator.hardwareConcurrency || 8} Logical Threads (FFmpeg libx264 software encoder)`}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* DISABLE WARNING (SHOWS CONDITIONALLY) */}
-              {currentEncoderMode === 'disabled' && (
-                <div className="td-conditional-box is-warning">
-                  <ShieldAlert size={18} className="td-warning-icon" />
-                  <div>
-                    <div className="td-warning-head">
-                      <strong>Mode Passthrough (Re-encode Dinonaktifkan)</strong>
-                      <span className="td-warning-badge">Original Uncompressed</span>
-                    </div>
-                    <p className="td-warning-body">
-                      Video tidak akan dikompresi ulang. Berkas format non-native (seperti <code>.mkv</code>, <code>.avi</code>, <code>.flv</code>) akan dikirimkan secara utuh sebagai berkas dokumen murni tanpa pratinjau media.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ENCODING TECHNICAL OPTIONS (DIRECTLY DISPLAYED) */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <SlidersHorizontal size={18} />
-                <div>
-                  <h4>Pengaturan Teknis Encoder Lanjutan</h4>
-                  <p>Konfigurasi beban kerja prosesor dan jumlah thread encoding parallel</p>
-                </div>
-              </div>
-
-              <div className="td-form-row-grid">
-                <div className="td-field-group">
-                  <label className="td-field-label">Jumlah Encoder Paralel</label>
-                  <select
-                    value={draft.encoderMaxParallel || 1}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ encoderMaxParallel: Number(e.target.value) })}
-                  >
-                    <option value={1}>1 Proses (Stabil)</option>
-                    <option value={2}>2 Proses Parallel</option>
-                    <option value={3}>3 Proses Parallel</option>
-                    <option value={4}>4 Proses Parallel (Max GPU)</option>
-                  </select>
-                </div>
-
-                <div className="td-field-group">
-                  <label className="td-field-label">Resource Profile</label>
-                  <select
-                    value={draft.encoderResourceProfile || 'balanced'}
-                    disabled={!!transferActive}
-                    onChange={(e) => patch({ encoderResourceProfile: e.target.value as any })}
-                  >
-                    <option value="eco">Hemat Daya (Eco)</option>
-                    <option value="balanced">Seimbang (Recommended)</option>
-                    <option value="performance">Performa Maksimal</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* DEDICATED PAGE: PENGELOMPOKAN ALBUM */}
         {activeTab === 'albums' && (
