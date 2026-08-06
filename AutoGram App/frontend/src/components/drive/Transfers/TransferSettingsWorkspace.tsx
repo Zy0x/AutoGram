@@ -28,6 +28,7 @@ import {
   Copy,
   Undo,
   Redo,
+  MessageSquare,
   Code,
   Link,
   AtSign,
@@ -1045,73 +1046,61 @@ export function TransferSettingsWorkspace({
                 SECTION CARD 2: CAPTION GLOBAL & TELEGRAM CAPTION STUDIO
                 ========================================== */}
             <div className="td-settings-card" style={{ marginTop: '20px' }}>
-              <div className="td-card-head" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="td-card-head td-caption-head-flex">
+                <div className="td-caption-head-title">
                   <Sparkles size={20} className="td-card-icon-primary" />
                   <div>
                     <h4>2. Caption Global & Telegram Caption Studio</h4>
                     <p>Format caption kaya dengan dukungan resmi Telegram MarkdownV2 & HTML</p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  {draft.enableGlobalCaption && (
+
+                {/* SINGLE SLEEK COMPACT MASTER TOGGLE SWITCH */}
+                <label className="td-caption-toggle-switch" title="Aktifkan/Matikan Caption Global">
+                  <input
+                    type="checkbox"
+                    checked={draft.enableGlobalCaption ?? false}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ enableGlobalCaption: e.target.checked })}
+                  />
+                  <span className="td-toggle-slider" />
+                  <span className="td-toggle-text">
+                    {draft.enableGlobalCaption ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </label>
+              </div>
+
+              {!draft.enableGlobalCaption ? (
+                /* OFF STATE: CLEAN SLEEK 1-LINE HINT BAR */
+                <div className="td-caption-off-hint">
+                  <MessageSquare size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                  <span>Caption global nonaktif. Seluruh berkas media akan diunggah tanpa lampiran teks caption.</span>
+                </div>
+              ) : (
+                /* ON STATE: TELEGRAM CAPTION STUDIO WORKSPACE */
+                <div className="td-caption-studio-shell" style={{ marginTop: '16px' }}>
+                  {/* STUDIO TOP NAVIGATION TABS BAR */}
+                  <div className="td-studio-top-bar">
                     <div className="td-caption-studio-tabs">
                       <button
                         type="button"
                         className={`td-studio-tab-btn ${captionTab === 'editor' ? 'active' : ''}`}
                         onClick={() => setCaptionTab('editor')}
                       >
-                        Editor
+                        ✏️ Visual Editor Studio
                       </button>
                       <button
                         type="button"
                         className={`td-studio-tab-btn ${captionTab === 'preview' ? 'active' : ''}`}
                         onClick={() => setCaptionTab('preview')}
                       >
-                        Preview Telegram
+                        👁️ Preview Telegram
                       </button>
                     </div>
-                  )}
-
-                  {/* MASTER TOGGLE SWITCH */}
-                  <label className="td-master-switch-tile" title="Aktifkan/Matikan Caption Global">
-                    <input
-                      type="checkbox"
-                      checked={draft.enableGlobalCaption ?? false}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ enableGlobalCaption: e.target.checked })}
-                    />
-                    <span className="td-switch-slider" />
-                    <span className="td-switch-label">
-                      {draft.enableGlobalCaption ? 'Caption Aktif' : 'Caption Nonaktif'}
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {!draft.enableGlobalCaption ? (
-                /* CAPTION DISABLED PLACEHOLDER BANNER */
-                <div className="td-caption-disabled-banner">
-                  <Sparkles size={28} className="text-slate-500" />
-                  <div className="td-disabled-text">
-                    <strong>Caption Global Tidak Aktif</strong>
-                    <p>Aktifkan sakelar di kanan atas jika Anda ingin menyematkan teks caption seragam untuk seluruh berkas media yang diunggah.</p>
                   </div>
-                  <button
-                    type="button"
-                    className="td-enable-caption-btn"
-                    disabled={!!transferActive}
-                    onClick={() => patch({ enableGlobalCaption: true })}
-                  >
-                    <Sparkles size={14} />
-                    <span>Aktifkan Telegram Caption Studio</span>
-                  </button>
-                </div>
-              ) : (
-                /* CAPTION ENABLED: FULL EDITOR & PREVIEW WORKSPACE */
-                <>
+
                   {captionTab === 'editor' ? (
-                    <div className="td-caption-studio-shell">
+                    <>
                       {/* TOP RIBBON TOOLBAR */}
                       <div className="td-caption-ribbon-wrap">
                         <div className="td-caption-ribbon">
@@ -1405,7 +1394,7 @@ export function TransferSettingsWorkspace({
                           </label>
                         </div>
                       </div>
-                    </div>
+                    </>
                   ) : (
                     /* PREVIEW WORKSPACE WITH TELEGRAM PHONE MOCKUP */
                     <div className="td-caption-preview-shell">
@@ -1479,7 +1468,7 @@ export function TransferSettingsWorkspace({
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* TOAST POPUP */}
