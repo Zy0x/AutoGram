@@ -515,15 +515,31 @@ pub fn download_profile_photo_blocking(
                 };
 
                 // ── Strategy 3: Download smallest non-stripped PhotoSize ──
-                let preferred_types = ["s", "m", "a", "b", "c"];
-                let chosen_type = preferred_types.iter().find_map(|&t| {
-                    photo.sizes.iter().find_map(|s| match s {
-                        tl::enums::PhotoSize::Size(sz) if sz.r#type == t && sz.size > 0 => {
-                            Some(t.to_string())
-                        }
-                        _ => None,
+                let preferred_types = ["s", "m", "a", "b", "c", "x", "y", "z"];
+                let chosen_type = preferred_types
+                    .iter()
+                    .find_map(|&t| {
+                        photo.sizes.iter().find_map(|s| match s {
+                            tl::enums::PhotoSize::Size(sz) if sz.r#type == t && sz.size > 0 => {
+                                Some(t.to_string())
+                            }
+                            tl::enums::PhotoSize::Progressive(sz) if sz.r#type == t => {
+                                Some(t.to_string())
+                            }
+                            _ => None,
+                        })
                     })
-                });
+                    .or_else(|| {
+                        photo.sizes.iter().find_map(|s| match s {
+                            tl::enums::PhotoSize::Size(sz) if !sz.r#type.is_empty() => {
+                                Some(sz.r#type.clone())
+                            }
+                            tl::enums::PhotoSize::Progressive(sz) if !sz.r#type.is_empty() => {
+                                Some(sz.r#type.clone())
+                            }
+                            _ => None,
+                        })
+                    });
 
                 let size_type = match chosen_type {
                     Some(t) => t,
