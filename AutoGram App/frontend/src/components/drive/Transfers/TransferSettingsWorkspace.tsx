@@ -1712,8 +1712,16 @@ export function TransferSettingsWorkspace({
               {/* DISABLE WARNING (SHOWS CONDITIONALLY) */}
               {currentEncoderMode === 'disabled' && (
                 <div className="td-conditional-box is-warning">
-                  <ShieldAlert size={16} />
-                  <span>Re-encode dinonaktifkan. Video format non-native (MKV/AVI) akan dikirim sebagai berkas dokumen.</span>
+                  <ShieldAlert size={18} className="td-warning-icon" />
+                  <div>
+                    <div className="td-warning-head">
+                      <strong>Mode Passthrough (Re-encode Dinonaktifkan)</strong>
+                      <span className="td-warning-badge">Original Uncompressed</span>
+                    </div>
+                    <p className="td-warning-body">
+                      Video tidak akan dikompresi ulang. Berkas format non-native (seperti <code>.mkv</code>, <code>.avi</code>, <code>.flv</code>) akan dikirimkan secara utuh sebagai berkas dokumen murni tanpa pratinjau media.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

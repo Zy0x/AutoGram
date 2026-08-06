@@ -17304,6 +17304,68 @@ video.drive-zip-img {
   color: #94a3b8 !important;
 }
 
+/* MODERN LUXURY DISABLE WARNING CARD */
+.td-conditional-box.is-warning {
+  margin-top: 14px !important;
+  padding: 14px 18px !important;
+  border-radius: 12px !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.td-warning-icon {
+  color: #fbbf24 !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+}
+
+.td-warning-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+.td-warning-head strong {
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  color: #fef3c7 !important;
+}
+
+.td-warning-badge {
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(245, 158, 11, 0.2) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  color: #fef3c7 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.td-warning-body {
+  margin: 4px 0 0 !important;
+  font-size: 12px !important;
+  color: #cbd5e1 !important;
+  line-height: 1.5 !important;
+}
+
+.td-warning-body code {
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fbbf24 !important;
+  font-family: monospace !important;
+  font-size: 11px !important;
+}
+
 .td-mode-grid-3 {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
