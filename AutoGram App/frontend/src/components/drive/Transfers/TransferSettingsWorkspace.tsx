@@ -839,7 +839,7 @@ export function TransferSettingsWorkspace({
     { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
-    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload },
+    { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Penanganan Berkas Besar'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
     { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
 
@@ -2332,53 +2332,115 @@ export function TransferSettingsWorkspace({
           </div>
         )}
 
-        {/* DEDICATED PAGE: BATAS UKURAN & PEMULIHAN */}
+        {/* DEDICATED PAGE: PENANGANAN BERKAS BESAR (OVERSIZE FILES) */}
         {activeTab === 'limits_recovery' && (
           <div className="td-xfer-focused-panel" id="section-limits-recovery">
             <div className="td-settings-card">
               <div className="td-card-head">
-                <HardDriveUpload size={18} />
+                <HardDriveUpload size={20} style={{ color: '#10b981' }} />
                 <div>
-                  <h4>Batas Ukuran & Penanganan Berkas Oversize</h4>
-                  <p>Tindakan otomatis saat ukuran berkas melebihi batas Telegram (2 GB / 4 GB Premium).</p>
+                  <h4>{t('speedtest.oversize_title', 'Penanganan Berkas Besar (Oversize Files Handling)')}</h4>
+                  <p>{t('speedtest.oversize_desc', 'Tindakan otomatis sistem saat mengunggah berkas yang melebihi batas Telegram (2 GB biasa / 4 GB Premium).')}</p>
                 </div>
               </div>
 
-              <div className="td-field-group">
-                <label className="td-field-label">Tindakan Berkas Oversize</label>
-                <select
-                  value={draft.oversizeAction || 'split'}
-                  disabled={!!transferActive}
-                  onChange={(e) => patch({ oversizeAction: e.target.value as any })}
-                >
-                  <option value="split">Pecah berkas otomatis (Split ZIP/Parts)</option>
-                  <option value="alternate_account">Gunakan Akun Alternatif (Premium 4GB Pool)</option>
-                  <option value="skip">Batalkan & Beri Tahu</option>
-                </select>
+              {/* 1. THREE STRATEGY TILES (5-SECOND READABILITY) */}
+              <div className="td-encoder-4x-grid" style={{ marginTop: '16px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                {/* SPLIT */}
+                <label className={`td-encoder-tile ${(!draft.oversizeAction || draft.oversizeAction === 'split') ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="oversizeAction"
+                    value="split"
+                    checked={!draft.oversizeAction || draft.oversizeAction === 'split'}
+                    disabled={!!transferActive}
+                    onChange={() => patch({ oversizeAction: 'split' })}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Zap size={16} className="td-tile-icon is-auto" />
+                      <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Otomatis (Split Parts)')}</strong>
+                    </div>
+                    <p>{t('speedtest.oversize_split_desc', 'Rekomendasi Utama. Membagi berkas besar >2GB menjadi bagian volume <2GB agar sukses terkirim di akun standar.')}</p>
+                  </div>
+                </label>
+
+                {/* ALTERNATE ACCOUNT */}
+                <label className={`td-encoder-tile ${draft.oversizeAction === 'alternate_account' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="oversizeAction"
+                    value="alternate_account"
+                    checked={draft.oversizeAction === 'alternate_account'}
+                    disabled={!!transferActive}
+                    onChange={() => patch({ oversizeAction: 'alternate_account' })}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Film size={16} className="td-tile-icon is-gpu" />
+                      <strong>{t('speedtest.oversize_pool_title', 'Gunakan Akun Premium (4 GB)')}</strong>
+                    </div>
+                    <p>{t('speedtest.oversize_pool_desc', 'Mengalihkan pengunggahan berkas besar ke sesi akun Telegram Premium yang mendukung hingga 4 GB per berkas.')}</p>
+                  </div>
+                </label>
+
+                {/* SKIP */}
+                <label className={`td-encoder-tile ${draft.oversizeAction === 'skip' ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="oversizeAction"
+                    value="skip"
+                    checked={draft.oversizeAction === 'skip'}
+                    disabled={!!transferActive}
+                    onChange={() => patch({ oversizeAction: 'skip' })}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div className="td-tile-head">
+                      <Sliders size={16} className="td-tile-icon is-disable" />
+                      <strong>{t('speedtest.oversize_skip_title', 'Lewati Berkas Oversize')}</strong>
+                    </div>
+                    <p>{t('speedtest.oversize_skip_desc', 'Abaikan dan lewati pengunggahan berkas besar yang melebihi batas Telegram.')}</p>
+                  </div>
+                </label>
               </div>
 
-              {/* ALTERNATE ACCOUNT ROUTING SUBSECTION */}
+              {/* 2. ALTERNATE ACCOUNT ROUTING SUBSECTION */}
               {draft.oversizeAction === 'alternate_account' && (
-                <div className="td-conditional-box">
-                  <div className="td-field-group">
-                    <label className="td-field-label">Pool Akun Alternatif</label>
-                    <input
-                      type="text"
-                      value={draft.alternateAccountPool || ''}
-                      disabled={!!transferActive}
-                      placeholder="account1, account2"
-                      onChange={(e) => patch({ alternateAccountPool: e.target.value })}
-                    />
+                <div className="td-conditional-box" style={{ marginTop: '20px' }}>
+                  <div className="td-form-row-grid">
+                    <div className="td-field-group">
+                      <label className="td-field-label">{t('speedtest.oversize_pool_label', 'Pool Sesi Akun Premium Alternatif')}</label>
+                      <input
+                        type="text"
+                        value={draft.alternateAccountPool || ''}
+                        disabled={!!transferActive}
+                        placeholder="session_premium1, session_premium2"
+                        onChange={(e) => patch({ alternateAccountPool: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="td-field-group">
+                      <label className="td-field-label">{t('speedtest.oversize_strategy_label', 'Strategi Berkas Album Oversize')}</label>
+                      <select
+                        value={draft.albumAlternateStrategy || 'cancel_group'}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ albumAlternateStrategy: e.target.value as any })}
+                      >
+                        <option value="cancel_group">Batal Kirim Album Oversize (Rekomendasi Aman)</option>
+                        <option value="separate_item">Pisahkan Berkas Oversize Keluar dari Album</option>
+                        <option value="move_whole_group">Pindahkan Seluruh Album ke Akun Premium</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <label className="td-switch-row" style={{ marginTop: '12px' }}>
+                  <label className="td-switch-row" style={{ marginTop: '16px' }}>
                     <div>
-                      <strong>Persetujuan Identitas Akun Alternatif</strong>
-                      <p>Izinkan sistem menggunakan identitas dari pool akun yang ditentukan.</p>
+                      <strong>{t('speedtest.oversize_approved_toggle', 'Izinkan Pengalihan Identitas Akun Alternatif Otomatis')}</strong>
+                      <p>{t('speedtest.oversize_approved_desc', 'Izinkan sistem mengalihkan identitas sesi pengunggah ke pool akun Telegram Premium tanpa konfirmasi manual.')}</p>
                     </div>
                     <input
                       type="checkbox"
-                      checked={draft.alternateIdentityApproved}
+                      checked={Boolean(draft.alternateIdentityApproved)}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ alternateIdentityApproved: e.target.checked })}
                     />
