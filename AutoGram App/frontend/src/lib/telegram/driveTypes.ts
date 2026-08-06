@@ -635,6 +635,12 @@ export type DriveTransferSettings = {
   captionPosition?: CaptionPosition;
   /** After upload finishes, refresh file list (recommended) */
   refreshAfterUpload: boolean;
+  /** Automatically retry transfers on connection timeout or network drops */
+  autoRetryOnNetworkError?: boolean;
+  /** Smart Rate Controller auto-pause & resume on FloodWaitError */
+  smartRateControlEnabled?: boolean;
+  /** Enable verbose debugging log outputs for system diagnostics */
+  debugLoggingEnabled?: boolean;
   /** After download finishes, show status with folder path */
   notifyDownloadDone: boolean;
   reencodeHardware: ReencodeHardware;
