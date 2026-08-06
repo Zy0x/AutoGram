@@ -453,7 +453,7 @@ export function DriveToolsPanel({
           </aside>
 
           <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
-          {!['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'advanced'].includes(tab) && (
+          {!['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
             <ToolTabIntro
               tab={tab}
               locationLabel={locationLabel}
@@ -852,7 +852,7 @@ export function DriveToolsPanel({
             </div>
           )}
 
-          {['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'advanced'].includes(tab) && (
+          {['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
             <TransferTabContent
               draft={xferDraft}
               onChange={patchXfer}

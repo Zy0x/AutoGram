@@ -19,6 +19,7 @@ import {
   FolderTree,
   CopyCheck,
   HardDriveUpload,
+  Network,
   SlidersHorizontal,
   X,
   ArrowLeft,
@@ -47,6 +48,7 @@ import type {
   ReencodeHardware,
 } from '../../../lib/telegram/driveTypes';
 import { PerfSection } from '../../../pages/Settings/PerfSection';
+import { NetworkSection } from '../../../pages/Settings/NetworkSection';
 import {
   DEFAULT_TRANSFER_SETTINGS,
   loadTransferSettingsProfiles,
@@ -956,6 +958,7 @@ export function TransferSettingsWorkspace({
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
     { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Penanganan Berkas Besar'), desc: 'Opsi pemotongan berkas (>2GB/4GB) & pengalihan akun Premium', icon: HardDriveUpload },
+    { id: 'network', label: t('speedtest.tab_network', 'Proxy & Network'), desc: 'SOCKS5/HTTP/MTProto routing, akselerasi timeout & pengoptimalan VPN', icon: Network },
     { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
 
@@ -3205,6 +3208,13 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* DEDICATED PAGE: PROXY & NETWORK */}
+        {activeTab === 'network' && (
+          <div className="td-xfer-focused-panel" id="section-network-proxy">
+            <NetworkSection />
           </div>
         )}
       </main>

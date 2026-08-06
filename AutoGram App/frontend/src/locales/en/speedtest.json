@@ -657,6 +657,7 @@
   "tab_upload": "Upload",
   "tab_download": "Download",
   "tab_encoding": "Performance & Encoding Video",
+  "tab_network": "Proxy & Network",
   "upload_settings_aria": "Upload settings",
   "upload_quality_hint": "Determines how files are sent to Telegram (native media vs document).",
   "gpu_nvidia_desc": "CUDA/NVDEC with safe fallback",

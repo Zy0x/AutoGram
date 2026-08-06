@@ -10,6 +10,7 @@ import {
   FolderTree,
   CopyCheck,
   HardDriveUpload,
+  Network,
   SlidersHorizontal,
 } from 'lucide-react';
 import type { DupGroup } from '../../../lib/telegram';
@@ -27,6 +28,7 @@ export type DriveToolsTab =
   | 'album'
   | 'duplicate'
   | 'oversize'
+  | 'network'
   | 'advanced';
 
 export function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
@@ -72,6 +74,7 @@ export const TOOL_GROUPS: {
       { id: 'album', icon: FolderTree, labelDefault: 'Pengelompokan Album' },
       { id: 'duplicate', icon: CopyCheck, labelDefault: 'Penanganan Duplikat' },
       { id: 'oversize', icon: HardDriveUpload, labelDefault: 'Penanganan Berkas Besar' },
+      { id: 'network', icon: Network, labelDefault: 'Proxy & Network' },
       { id: 'advanced', icon: SlidersHorizontal, labelDefault: 'Pengaturan Lanjutan' },
     ],
   },

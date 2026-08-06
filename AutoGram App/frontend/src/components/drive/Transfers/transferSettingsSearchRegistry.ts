@@ -9,6 +9,7 @@ export type SubMenuCategory =
   | 'download'
   | 'limits_recovery'
   | 'advanced'
+  | 'network'
   | 'profiles'
   | 'copy'
   | 'dups'
