@@ -10781,36 +10781,48 @@ body:has(.app-layout-drive-focus),
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.22);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px 8px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s ease;
   box-sizing: border-box;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 /* Hide scrollbar thumb by default; reveal smoothly on sidebar hover */
 .td-tools-sidebar::-webkit-scrollbar {
-  width: 4px;
+  width: 0px !important;
+  background: transparent !important;
 }
 
 .td-tools-sidebar::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 .td-tools-sidebar::-webkit-scrollbar-thumb {
-  background: transparent;
+  background: transparent !important;
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
+.td-tools-sidebar:hover {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(56, 189, 248, 0.35) transparent !important;
+}
+
+.td-tools-sidebar:hover::-webkit-scrollbar {
+  width: 4px !important;
+}
+
 .td-tools-sidebar:hover::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.35) !important;
 }
 
 .td-tools-sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.6);
+  background: rgba(56, 189, 248, 0.6) !important;
 }
 
 .td-tools-sidebar.is-collapsed {
@@ -10854,9 +10866,11 @@ body:has(.app-layout-drive-focus),
 .td-slider-row-box {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 12px;
+  padding: 8px 6px;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -13371,11 +13385,13 @@ body:has(.app-layout-drive-focus),
   flex-shrink: 0;
   background: rgba(0, 0, 0, 0.22);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 14px 10px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
   overflow-y: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 .td-tools-sidebar-group {
