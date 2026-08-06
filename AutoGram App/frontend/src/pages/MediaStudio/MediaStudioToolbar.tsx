@@ -4,7 +4,6 @@ import {
   Grid,
   List,
   Upload,
-  ArrowUpDown,
   Image as ImageIcon,
   Film,
   FileText,
@@ -78,21 +77,17 @@ export const MediaStudioToolbar: React.FC<MediaStudioToolbarProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative">
-          <select
-            value={sortMode}
-            onChange={(e) => onSortModeChange(e.target.value as DriveSortMode)}
-            className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 transition-all appearance-none pr-8 cursor-pointer font-mono"
-          >
-            <option value="newest">{t('speedtest.sort_newest_first')}</option>
-            <option value="oldest">{t('speedtest.sort_oldest_first')}</option>
-            <option value="name_asc">{t('speedtest.sort_name_asc')}</option>
-            <option value="name_desc">{t('speedtest.sort_name_desc')}</option>
-            <option value="size_desc">{t('speedtest.sort_size_desc')}</option>
-            <option value="size_asc">{t('speedtest.sort_size_asc')}</option>
-          </select>
-          <ArrowUpDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-        </div>
+        <select
+          value={sortMode}
+          onChange={(e) => onSortModeChange(e.target.value as DriveSortMode)}
+        >
+          <option value="newest">{t('speedtest.sort_newest_first')}</option>
+          <option value="oldest">{t('speedtest.sort_oldest_first')}</option>
+          <option value="name_asc">{t('speedtest.sort_name_asc')}</option>
+          <option value="name_desc">{t('speedtest.sort_name_desc')}</option>
+          <option value="size_desc">{t('speedtest.sort_size_desc')}</option>
+          <option value="size_asc">{t('speedtest.sort_size_asc')}</option>
+        </select>
 
         <div className="flex items-center bg-slate-950 border border-slate-800 p-0.5 rounded-xl">
           <button

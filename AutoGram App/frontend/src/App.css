@@ -1719,42 +1719,85 @@
   font-weight: 600;
 }
 
+/* UNIVERSAL LUXURY MODERN DARK DROPDOWN THEME */
+select,
 .td-select,
 .td-sort,
-.td-search {
-  background: #1a2430;
-  background-color: #1a2430;
-  border: 1px solid var(--td-border);
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 0.85rem;
-  padding: 7px 10px;
-  outline: none;
-  color-scheme: dark;
-  -webkit-appearance: none;
-  appearance: none;
-  box-shadow: none;
+.input-field select,
+.td-input-field select,
+.job-editor-tools .profile-select-wrap select {
+  color-scheme: dark !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #0f172a !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px 14px !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-radius: 10px !important;
+  color: #f8fafc !important;
+  font-family: Inter, system-ui, -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 8px 36px 8px 12px !important;
+  min-height: 40px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+select:hover,
+.td-select:hover,
+.td-sort:hover {
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  background-color: #1e293b !important;
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18) !important;
+}
+
+select:focus,
+select:focus-visible,
 .td-select:focus,
-.td-sort:focus,
-.td-search:focus {
-  border-color: color-mix(in srgb, var(--td-primary) 50%, transparent);
-  color: #ffffff;
+.td-sort:focus {
+  border-color: #38bdf8 !important;
+  background-color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Native <option> list: prevent white text on light OS popup */
+select:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* UNIVERSAL LUXURY OPTION LIST STYLING (POPUP ITEMS RE-STYLED FOR MODERN ELEGANCE) */
+option,
+select option,
 .td-select option,
 .td-sort option {
-  background: #1a2430;
-  background-color: #1a2430;
-  color: #f8fafc;
-  font-weight: 600;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
 }
+
+option:hover,
+option:focus,
+option:active,
+option:checked,
+select option:checked,
+select option:selected,
 .td-select option:checked,
 .td-sort option:checked {
-  background-color: #2a4a6b;
-  color: #ffffff;
+  background-color: #0284c7 !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .td-conn-indicator {
