@@ -26,6 +26,8 @@ import {
   Plus,
   ChevronDown,
   Copy,
+  Undo,
+  Redo,
   Code,
   Link,
   AtSign,
@@ -342,7 +344,9 @@ export function TransferSettingsWorkspace({
   const execCaptionFormatting = (formatType: string) => {
     if (editorMode === 'visual' && editableDivRef.current) {
       editableDivRef.current.focus();
-      if (formatType === 'bold') document.execCommand('bold', false);
+      if (formatType === 'undo') document.execCommand('undo', false);
+      else if (formatType === 'redo') document.execCommand('redo', false);
+      else if (formatType === 'bold') document.execCommand('bold', false);
       else if (formatType === 'italic') document.execCommand('italic', false);
       else if (formatType === 'underline') document.execCommand('underline', false);
       else if (formatType === 'strike') document.execCommand('strikeThrough', false);
@@ -1073,13 +1077,31 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
+                          onClick={() => execCaptionFormatting('undo')}
+                          title="Urungkan Perubahan (Undo - Ctrl+Z)"
+                        >
+                          <Undo size={15} />
+                          <span>Undo</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
+                          onClick={() => execCaptionFormatting('redo')}
+                          title="Ulangi Perubahan (Redo - Ctrl+Y)"
+                        >
+                          <Redo size={15} />
+                          <span>Redo</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="td-ribbon-tool small-label"
                           onClick={copyCaptionOutput}
                           title="Salin Output Text"
                         >
                           <Copy size={15} />
                           <span>Salin</span>
                         </button>
-                        <div className="td-ribbon-group-title">CLIPBOARD</div>
+                        <div className="td-ribbon-group-title">CLIPBOARD & RIWAYAT</div>
                       </div>
 
                       {/* GROUP 2: FORMAT TEKS */}
