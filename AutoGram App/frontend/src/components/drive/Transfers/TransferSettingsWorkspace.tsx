@@ -2113,8 +2113,14 @@ export function TransferSettingsWorkspace({
                       disabled={!!transferActive}
                       onChange={(e) => patch({ albumGroupSize: Number(e.target.value) })}
                     >
-                      <option value={10}>Otomatis Standard Telegram (10 media / album)</option>
+                      <option value={10}>Otomatis Standard Telegram (10 media / album) [Maksimal]</option>
+                      <option value={9}>9 media / album</option>
+                      <option value={8}>8 media / album</option>
+                      <option value={7}>7 media / album</option>
+                      <option value={6}>6 media / album</option>
                       <option value={5}>Ringkas (5 media / album)</option>
+                      <option value={4}>4 media / album</option>
+                      <option value={3}>3 media / album</option>
                       <option value={2}>Pasangan (2 media / album)</option>
                     </select>
                   </div>
