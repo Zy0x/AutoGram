@@ -657,6 +657,10 @@ export type DriveTransferSettings = {
   downloadConflictPolicy: DownloadConflictPolicy;
   downloadResumePartial: boolean;
   downloadIntegrity: DownloadIntegrity;
+  /** Local playback / preview GPU acceleration hardware mode */
+  playbackHwDecoding?: 'auto' | 'gpu_hardware' | 'software' | 'disabled';
+  /** Max FPS target for local video preview */
+  playbackTargetFps?: 30 | 60;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -721,6 +725,8 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   downloadConflictPolicy: 'ask',
   downloadResumePartial: true,
   downloadIntegrity: 'size',
+  playbackHwDecoding: 'auto',
+  playbackTargetFps: 60,
 };
 
 export const QUALITY_MODE_OPTIONS: {

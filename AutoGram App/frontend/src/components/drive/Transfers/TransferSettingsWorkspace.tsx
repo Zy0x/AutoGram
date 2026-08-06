@@ -35,6 +35,9 @@ import {
   List,
   ListOrdered,
   Send,
+  Play,
+  Tv,
+  MonitorPlay,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -1898,6 +1901,154 @@ export function TransferSettingsWorkspace({
                       <option value="eco">Hemat Daya (Eco)</option>
                       <option value="balanced">Seimbang (Recommended)</option>
                       <option value="performance">Performa Maksimal</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MASTER PARENT SECTION 2: AKSELERASI PRATINJAU & PEMUTARAN LOKAL */}
+            <div className="td-playback-master-card" style={{ marginTop: '24px' }}>
+              <div className="td-playback-master-header">
+                <div className="td-playback-master-head-left">
+                  <div className="td-playback-icon-badge">
+                    <MonitorPlay size={22} style={{ color: '#10b981' }} />
+                  </div>
+                  <div>
+                    <div className="td-master-title-flex">
+                      <h3>2. Akselerasi Pratinjau & Pemutaran Lokal (Local Media Playback Engine)</h3>
+                      <span className="td-playback-tag">
+                        <Play size={12} />
+                        Local Playback & Preview Engine
+                      </span>
+                    </div>
+                    <p className="td-playback-desc">
+                      Pengaturan mesin ini <strong>khusus memproses akselerasi dekoder GPU/CPU untuk pemutaran video, frame seeking 60FPS</strong>, dan pemuatan pratinjau instan di AutoGram Explorer & Media Studio. Pengaturan ini <em>tidak memengaruhi</em> kompresi atau format berkas yang diunggah ke Telegram.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* INNER SECTION 1: MODE DEKODER GPU PEMUTARAN VIDEO */}
+              <div className="td-settings-card is-nested-card">
+                <div className="td-card-head">
+                  <Tv size={18} style={{ color: '#10b981' }} />
+                  <div>
+                    <h4>Mode Dekoder GPU Pemutaran Video (Local Playback GPU Decoder)</h4>
+                    <p>Pilih bagaimana sistem memproses dekoding video saat diputar atau dipratinjau di aplikasi</p>
+                  </div>
+                </div>
+
+                <div className="td-encoder-4x-grid">
+                  {/* AUTO */}
+                  <label className={`td-encoder-tile ${(!draft.playbackHwDecoding || draft.playbackHwDecoding === 'auto') ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="playbackHwDecoding"
+                      value="auto"
+                      checked={!draft.playbackHwDecoding || draft.playbackHwDecoding === 'auto'}
+                      disabled={!!transferActive}
+                      onChange={() => patch({ playbackHwDecoding: 'auto' })}
+                    />
+                    <div>
+                      <div className="td-tile-head">
+                        <Zap size={16} className="td-tile-icon is-auto" />
+                        <strong>Otomatis (GPU Hardware)</strong>
+                      </div>
+                      <p>Sistem mendeteksi dekoder GPU (NVDEC/DXVA2) otomatis untuk pemutaran instan tanpa lag.</p>
+                    </div>
+                  </label>
+
+                  {/* HARDWARE GPU */}
+                  <label className={`td-encoder-tile ${draft.playbackHwDecoding === 'gpu_hardware' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="playbackHwDecoding"
+                      value="gpu_hardware"
+                      checked={draft.playbackHwDecoding === 'gpu_hardware'}
+                      disabled={!!transferActive}
+                      onChange={() => patch({ playbackHwDecoding: 'gpu_hardware' })}
+                    />
+                    <div>
+                      <div className="td-tile-head">
+                        <Film size={16} className="td-tile-icon is-gpu" />
+                        <strong>Akselerasi Hardware GPU Fisik</strong>
+                      </div>
+                      <p>Gunakan Direct3D11/NVDEC GPU secara penuh untuk pemutaran video 4K/HDR & instant seek.</p>
+                    </div>
+                  </label>
+
+                  {/* SOFTWARE CPU */}
+                  <label className={`td-encoder-tile ${draft.playbackHwDecoding === 'software' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="playbackHwDecoding"
+                      value="software"
+                      checked={draft.playbackHwDecoding === 'software'}
+                      disabled={!!transferActive}
+                      onChange={() => patch({ playbackHwDecoding: 'software' })}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div className="td-tile-head">
+                        <Cpu size={16} className="td-tile-icon is-cpu" />
+                        <strong>Software CPU Decoding</strong>
+                      </div>
+                      <p>Dekoding pemutaran video menggunakan prosessor CPU bawaan sistem.</p>
+                    </div>
+                  </label>
+
+                  {/* DISABLE DECODER */}
+                  <label className={`td-encoder-tile ${draft.playbackHwDecoding === 'disabled' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="playbackHwDecoding"
+                      value="disabled"
+                      checked={draft.playbackHwDecoding === 'disabled'}
+                      disabled={!!transferActive}
+                      onChange={() => patch({ playbackHwDecoding: 'disabled' })}
+                    />
+                    <div>
+                      <div className="td-tile-head">
+                        <Sliders size={16} className="td-tile-icon is-disable" />
+                        <strong>Matikan Akselerasi (Pratinjau Ringan)</strong>
+                      </div>
+                      <p>Matikan dekoding video otomatis. Pratinjau hanya menampilkan thumbnail gambar statis.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* INNER SECTION 2: PENGATURAN FRAMERATE & THUMBS SEEKING */}
+              <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
+                <div className="td-card-head">
+                  <SlidersHorizontal size={18} />
+                  <div>
+                    <h4>Optimasi Framerate & Pre-Seek Thumbs</h4>
+                    <p>Konfigurasi kelancaran gerakan pratinjau dan kecepatan pemuatan cache frame</p>
+                  </div>
+                </div>
+
+                <div className="td-form-row-grid">
+                  <div className="td-field-group">
+                    <label className="td-field-label">Target Framerate Pratinjau</label>
+                    <select
+                      value={draft.playbackTargetFps || 60}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) as 30 | 60 })}
+                    >
+                      <option value={60}>60 FPS (Sangat Halus & Responsif)</option>
+                      <option value={30}>30 FPS (Standard / Hemat GPU)</option>
+                    </select>
+                  </div>
+
+                  <div className="td-field-group">
+                    <label className="td-field-label">Pre-Seek Cache Frame</label>
+                    <select
+                      value="enabled"
+                      disabled={!!transferActive}
+                    >
+                      <option value="enabled">Aktif (Pre-seek Cepat / Instant Frame Grab)</option>
+                      <option value="disabled">Nonaktif (Load On Demand)</option>
                     </select>
                   </div>
                 </div>

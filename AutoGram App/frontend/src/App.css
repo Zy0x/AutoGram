@@ -17739,6 +17739,79 @@ input[type="search"]::-webkit-search-decoration {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
+/* MASTER PLAYBACK & PREVIEW ENGINE PARENT SECTION (EMERALD TEAL THEME) */
+.td-playback-master-card {
+  background: linear-gradient(145deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  border-radius: 20px !important;
+  padding: 22px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 28px rgba(16, 185, 129, 0.15) !important;
+  position: relative !important;
+}
+
+.td-playback-master-header {
+  margin-bottom: 20px !important;
+  padding: 16px 18px !important;
+  background: linear-gradient(90deg, rgba(4, 120, 87, 0.35) 0%, rgba(6, 78, 59, 0.2) 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.28) !important;
+  border-radius: 14px !important;
+}
+
+.td-playback-master-head-left {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+}
+
+.td-playback-icon-badge {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  background: rgba(16, 185, 129, 0.2) !important;
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25) !important;
+}
+
+.td-playback-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(52, 211, 153, 0.2) !important;
+  border: 1px solid rgba(52, 211, 153, 0.45) !important;
+  color: #6ee7b7 !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2) !important;
+}
+
+.td-playback-desc {
+  font-size: 12px !important;
+  color: #cbd5e1 !important;
+  line-height: 1.55 !important;
+  margin-top: 6px !important;
+  margin-bottom: 0 !important;
+}
+
+.td-playback-desc strong {
+  color: #34d399 !important;
+  font-weight: 750 !important;
+}
+
+.td-playback-desc em {
+  color: #f1f5f9 !important;
+  font-style: normal !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(52, 211, 153, 0.5) !important;
+}
+
 /* STUDIO TOP BAR WITH TABS */
 .td-studio-top-bar {
   display: flex !important;
