@@ -408,16 +408,19 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: UPLOAD */}
         {activeTab === 'upload' && (
           <div className="td-xfer-focused-panel" id="section-upload-format">
+            {/* ==========================================
+                SECTION CARD 1: PENGATURAN UNGGAHAN & FORMAT
+                ========================================== */}
             <div className="td-settings-card">
               <div className="td-card-head">
                 <Upload size={20} className="td-card-icon-primary" />
                 <div>
-                  <h4>{t('speedtest.tab_upload_title', 'Pengaturan Unggahan (Upload)')}</h4>
-                  <p>{t('speedtest.tab_upload_desc', 'Atur paralelisme unggah, format pengiriman media, caption global & penjadwalan')}</p>
+                  <h4>1. Pengaturan Unggahan (Upload)</h4>
+                  <p>Atur paralelisme slots unggah & pilih format pengiriman media</p>
                 </div>
               </div>
 
-              {/* SUB-SECTION: PARALEL UNGGAH */}
+              {/* SUB-SECTION 1.1: PARALEL UNGGAH */}
               <div className="td-settings-subcard">
                 <label className="td-field-label">Jumlah Unggahan Paralel (Upload Slots)</label>
                 <div className="td-slider-row-box">
@@ -440,7 +443,7 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* SUB-SECTION: FORMAT PENGIRIMAN MEDIA */}
+              {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
                 <label className="td-field-label">Format Pengiriman Media</label>
                 <div className="td-radio-tiles-grid">
@@ -490,13 +493,24 @@ export function TransferSettingsWorkspace({
                   </label>
                 </div>
               </div>
+            </div>
 
-              {/* SUB-SECTION: CAPTION GLOBAL & OPERASI UNGGAH */}
-              <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
-                <label className="td-field-label">Caption Global & Opsi Pengiriman</label>
+            {/* ==========================================
+                SECTION CARD 2: CAPTION GLOBAL & OPERASI TEKS
+                ========================================== */}
+            <div className="td-settings-card" style={{ marginTop: '20px' }}>
+              <div className="td-card-head">
+                <Sparkles size={20} className="td-card-icon-primary" />
+                <div>
+                  <h4>2. Caption Global & Penanganan Teks</h4>
+                  <p>Tulis caption default otomatis & atur batas panjang karakter</p>
+                </div>
+              </div>
+
+              <div className="td-settings-subcard">
                 <div className="td-caption-input-box">
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={draft.globalCaption || ''}
                     disabled={!!transferActive}
                     placeholder={t('speedtest.caption_placeholder', 'Tulis caption di sini…')}
@@ -520,8 +534,23 @@ export function TransferSettingsWorkspace({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="td-switches-list" style={{ marginTop: '14px' }}>
+            {/* ==========================================
+                SECTION CARD 3: MODE & EFEK PENGIRIMAN (SILENT, SPOILER)
+                ========================================== */}
+            <div className="td-settings-card" style={{ marginTop: '20px' }}>
+              <div className="td-card-head">
+                <SlidersHorizontal size={20} className="td-card-icon-primary" />
+                <div>
+                  <h4>3. Mode & Efek Pengiriman (Silent & Spoiler)</h4>
+                  <p>Kontrol suara notifikasi penerima dan efek buram media</p>
+                </div>
+              </div>
+
+              <div className="td-settings-subcard">
+                <div className="td-switches-list">
                   <label className="td-switch-row">
                     <div>
                       <strong>{t('speedtest.send_silent', 'Kirim Tanpa Suara (Silent Send)')}</strong>
