@@ -2424,7 +2424,7 @@ export function TransferSettingsWorkspace({
                           <Zap size={16} className="td-tile-icon is-auto" />
                           <strong>{t('speedtest.oversize_fit_title', 'Fit-to-Limit Saja')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Hitung bitrate ideal agar dikompresi tepat mendekati 1.95GB/3.9GB tanpa split.')}</p>
+                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Hitung bitrate ideal dan kompres video otomatis agar ukurannya tepat berada di bawah limit sesi (1.95 GB / 3.9 GB) tanpa perlu split.')}</p>
                       </div>
                     </label>
 
@@ -2443,7 +2443,7 @@ export function TransferSettingsWorkspace({
                           <Sliders size={16} className="td-tile-icon is-auto" />
                           <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Saja (Split Parts)')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_split_desc', 'Selalu membagi berkas besar >2GB menjadi bagian volume <2GB.')}</p>
+                        <p>{t('speedtest.oversize_split_desc_new', 'Potong berkas berukuran besar (>2 GB / >4 GB) menjadi beberapa bagian volume aman (<1.95 GB / <3.9 GB) beserta berkas pemulihan (manifest).')}</p>
                       </div>
                     </label>
 
@@ -2462,7 +2462,7 @@ export function TransferSettingsWorkspace({
                           <Film size={16} className="td-tile-icon is-gpu" />
                           <strong>{t('speedtest.oversize_pool_title', 'Pool Akun Premium (4 GB)')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_pool_desc', 'Mengalihkan pengunggahan ke sesi akun Telegram Premium.')}</p>
+                        <p>{t('speedtest.oversize_pool_desc', 'Alihkan pengunggahan berkas besar (>2 GB hingga 4 GB) secara otomatis ke sesi akun Telegram Premium yang aktif.')}</p>
                       </div>
                     </label>
 
@@ -2481,7 +2481,7 @@ export function TransferSettingsWorkspace({
                           <Sliders size={16} className="td-tile-icon is-disable" />
                           <strong>{t('speedtest.oversize_skip_title', 'Lewati Saja (Skip)')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_skip_desc', 'Abaikan dan lewati pengunggahan berkas oversize.')}</p>
+                        <p>{t('speedtest.oversize_skip_desc_new', 'Abaikan dan lewati pengunggahan berkas yang melebihi batas limit sesi tanpa melakukan kompresi atau split (disertai catatan audit).')}</p>
                       </div>
                     </label>
                   </div>
