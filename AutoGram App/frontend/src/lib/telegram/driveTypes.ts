@@ -619,6 +619,8 @@ export type DriveTransferSettings = {
   topicScope: TopicScope;
   /** Max re-uploads per hour rate limit */
   maxReuploadPerHour: number;
+  /** Whether global caption feature is active */
+  enableGlobalCaption?: boolean;
   /** Batch caption; album mode assigns it to exactly one surviving item. */
   globalCaption: string;
   /** Explicit behavior when Telegram's live UTF-16 caption limit is exceeded. */
@@ -677,6 +679,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   uploadConcurrency: 4,
   downloadConcurrency: 4,
   groupAsAlbum: false,
+
   silent: false,
   spoiler: false,
   spoilerItemPositions: '',
@@ -689,6 +692,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   guardrailThresholdDays: 7,
   topicScope: 'selected_plus_general',
   maxReuploadPerHour: 10,
+  enableGlobalCaption: false,
   globalCaption: '',
   captionOverflowPolicy: 'truncate_with_warning',
   captionParseMode: 'MarkdownV2',
