@@ -726,7 +726,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   albumPacking: 'maximum',
   albumGroupSize: 10,
   albumAvoidSingle: true,
-  albumFailurePolicy: 'atomic_strict',
+  albumFailurePolicy: 'send_failed_separately',
   groupDocuments: true,
   groupAudio: true,
   groupOriginalDocuments: true,

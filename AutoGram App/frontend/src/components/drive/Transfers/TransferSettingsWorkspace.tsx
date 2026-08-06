@@ -2184,13 +2184,13 @@ export function TransferSettingsWorkspace({
                     <div className="td-field-group" style={{ marginTop: '16px' }}>
                       <label className="td-field-label">Strategi Penanganan Gagal Item Album</label>
                       <select
-                        value={draft.albumFailurePolicy || 'atomic_strict'}
+                        value={draft.albumFailurePolicy || 'send_failed_separately'}
                         disabled={!!transferActive}
                         onChange={(e) => patch({ albumFailurePolicy: e.target.value as any })}
                       >
+                        <option value="send_failed_separately">Best Effort — Kirim Item Berhasil sebagai Album, Ulangi Item Gagal Terpisah (Recommended ⭐)</option>
                         <option value="atomic_strict">Strict (Atomik) — Batal Kirim Album & Ulangi Paket</option>
-                        <option value="best_effort">Best Effort — Kirim Item Berhasil sebagai Album, Ulangi Item Gagal Terpisah</option>
-                        <option value="retry_separate">Fallback Individual — Konversi Item Tersisa Menjadi Pesan Tunggal</option>
+                        <option value="send_remaining">Fallback Individual — Konversi Item Tersisa Menjadi Pesan Tunggal</option>
                       </select>
                     </div>
                   </div>
