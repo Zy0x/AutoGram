@@ -17207,6 +17207,18 @@ video.drive-zip-img {
   letter-spacing: 0.5px !important;
 }
 
+.td-mode-grid-3 {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 768px) {
+  .td-mode-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* TELEGRAM PHONE MOCKUP PREVIEW */
 .td-caption-preview-shell {
   padding: 16px !important;

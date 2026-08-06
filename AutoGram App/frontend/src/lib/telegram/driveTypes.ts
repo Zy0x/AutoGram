@@ -580,6 +580,7 @@ export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custo
 export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
 export type DownloadIntegrity = 'size' | 'sha256';
 export type CaptionOverflowPolicy = 'truncate_with_warning' | 'fail' | 'split';
+export type CaptionPosition = 'on_media' | 'on_media_above' | 'before_media' | 'after_media' | 'none';
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
@@ -626,11 +627,12 @@ export type DriveTransferSettings = {
   captionParseMode?: 'MarkdownV2' | 'HTML' | 'Plain';
   /** Show caption above media in message bubble */
   captionAbove?: boolean;
+  /** Caption placement strategy: on_media | on_media_above | before_media | after_media | none */
+  captionPosition?: CaptionPosition;
   /** After upload finishes, refresh file list (recommended) */
   refreshAfterUpload: boolean;
   /** After download finishes, show status with folder path */
   notifyDownloadDone: boolean;
-  /** Hardware to use for video re-encoding */
   reencodeHardware: ReencodeHardware;
   /** Quality/speed tradeoff for video re-encoding */
   reencodePreset: ReencodePreset;
@@ -691,6 +693,7 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   captionOverflowPolicy: 'truncate_with_warning',
   captionParseMode: 'MarkdownV2',
   captionAbove: false,
+  captionPosition: 'on_media',
   refreshAfterUpload: true,
   notifyDownloadDone: true,
   reencodeHardware: 'auto',

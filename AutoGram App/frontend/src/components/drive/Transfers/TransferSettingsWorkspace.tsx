@@ -34,6 +34,7 @@ import {
   Send,
 } from 'lucide-react';
 import type {
+  CaptionPosition,
   DriveTransferSettings,
   DriveTransferSettingsProfile,
   ReencodeHardware,
@@ -43,6 +44,23 @@ import {
   loadTransferSettingsProfiles,
   saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
+
+function getEffectiveCaptionPosition(draft: { captionPosition?: CaptionPosition; captionAbove?: boolean }): CaptionPosition {
+  if (draft.captionPosition) return draft.captionPosition;
+  if (draft.captionAbove) return 'on_media_above';
+  return 'on_media';
+}
+
+function getCaptionPositionBadgeLabel(pos: CaptionPosition): string {
+  switch (pos) {
+    case 'on_media_above': return 'Caption di ATAS Media';
+    case 'before_media': return 'Pesan Sebelum Media';
+    case 'after_media': return 'Pesan Setelah Media';
+    case 'none': return 'Tanpa Caption';
+    case 'on_media':
+    default: return 'Caption Pada Media';
+  }
+}
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { useTransferHardwareCapabilities } from '../../../stores/transferProgressStore';
 import { buildEncoderHardwareOptions } from './encoderHardwareOptions';
@@ -1246,37 +1264,28 @@ export function TransferSettingsWorkspace({
                     )}
                   </div>
 
-                  {/* STATUS BAR (BADGES + CHAR COUNT + INLINE CAPTION ABOVE CHECKBOX) */}
+                  {/* STATUS BAR (BADGES ON LEFT, CHAR COUNT ON RIGHT) */}
                   <div className="td-caption-statusbar">
                     <div className="td-status-left">
                       <span className="td-status-pill">{draft.captionParseMode || 'MarkdownV2'}</span>
                       <span className="td-status-pill">
-                        {draft.captionAbove ? 'Caption Di Atas Media' : 'Caption Di Bawah Media'}
+                        {getCaptionPositionBadgeLabel(getEffectiveCaptionPosition(draft))}
                       </span>
+                    </div>
+                    <div className="td-status-right">
                       <span className={`td-char-count ${[...(draft.globalCaption || '')].length > 1024 ? 'error' : ''}`}>
                         {[...(draft.globalCaption || '')].length.toLocaleString('id-ID')} / 1.024 Karakter
                       </span>
                     </div>
-                    <div className="td-status-right">
-                      <label className="td-caption-above-inline">
-                        <input
-                          type="checkbox"
-                          checked={draft.captionAbove ?? false}
-                          disabled={!!transferActive}
-                          onChange={(e) => patch({ captionAbove: e.target.checked })}
-                        />
-                        <span>Tampilkan caption di <strong>ATAS</strong> media (Caption Above Media)</span>
-                      </label>
-                    </div>
                   </div>
 
-                  {/* DEDICATED PENGIRIMAN TELEGRAM PANEL (BELOW CAPTION EDITOR) */}
+                  {/* DEDICATED PENGATURAN PENGIRIMAN CAPTION PANEL (3 COLUMNS) */}
                   <div className="td-caption-delivery-panel">
                     <div className="td-delivery-panel-title">
                       <Send size={15} />
-                      <span>Pengaturan Pengiriman Telegram</span>
+                      <span>Pengaturan pengiriman caption</span>
                     </div>
-                    <div className="td-mode-grid">
+                    <div className="td-mode-grid td-mode-grid-3">
                       <label>
                         Format Output
                         <select
@@ -1300,6 +1309,27 @@ export function TransferSettingsWorkspace({
                           <option value="truncate_with_warning">Potong dengan Peringatan</option>
                           <option value="fail">Batalkan Pengiriman (Reject)</option>
                           <option value="split">Bagi Pesan Lanjutan (Split)</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        Posisi Teks / Caption
+                        <select
+                          value={getEffectiveCaptionPosition(draft)}
+                          disabled={!!transferActive}
+                          onChange={(e) => {
+                            const pos = e.target.value as CaptionPosition;
+                            patch({
+                              captionPosition: pos,
+                              captionAbove: pos === 'on_media_above',
+                            });
+                          }}
+                        >
+                          <option value="on_media">Caption pada media</option>
+                          <option value="on_media_above">Caption di ATAS media</option>
+                          <option value="before_media">Pesan sebelum media</option>
+                          <option value="after_media">Pesan setelah media</option>
+                          <option value="none">Tanpa caption</option>
                         </select>
                       </label>
                     </div>
