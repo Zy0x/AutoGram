@@ -1478,119 +1478,119 @@ Check:
 
 ## Phase 1: Establish one source of truth
 
-- [ ] Identify every caller of `DriveTransferSettings` and `DriveToolsPanel`.
-- [ ] Confirm the canonical opening flow.
-- [ ] Create shared normalization and validation utilities.
-- [ ] Create unified encoder mode resolver and mapper.
-- [ ] Add tests for legacy mapping.
-- [ ] Resolve the canonical caption limit from the current backend contract.
+- [x] Identify every caller of `DriveTransferSettings` and `DriveToolsPanel`.
+- [x] Confirm the canonical opening flow.
+- [x] Create shared normalization and validation utilities.
+- [x] Create unified encoder mode resolver and mapper.
+- [x] Add tests for legacy mapping.
+- [x] Resolve the canonical caption limit from the current backend contract.
 
 **Exit criterion:** Both old implementations can read the same normalized state through shared helpers.
 
 ## Phase 2: Build shared settings workspace
 
-- [ ] Create `TransferSettingsWorkspace`.
-- [ ] Create shared header, tabs, footer, and settings card primitives.
-- [ ] Add draft baseline and dirty state.
-- [ ] Add Basic and Advanced modes.
-- [ ] Add responsive layout shell.
-- [ ] Add unsaved-change close confirmation.
+- [x] Create `TransferSettingsWorkspace`.
+- [x] Create shared header, tabs, footer, and settings card primitives.
+- [x] Add draft baseline and dirty state.
+- [x] Add Basic and Advanced modes.
+- [x] Add responsive layout shell.
+- [x] Add unsaved-change close confirmation.
 
 **Exit criterion:** A blank or partial shared workspace renders correctly in the tools panel and standalone wrapper.
 
 ## Phase 3: Rebuild Upload Basic UI
 
-- [ ] Build Upload quality and presentation card.
-- [ ] Build unified Video Processing card.
-- [ ] Refactor hardware options to GPU-only choices.
-- [ ] Build Performance card.
-- [ ] Build Delivery behavior card.
-- [ ] Build Default caption card.
-- [ ] Add live policy summary.
+- [x] Build Upload quality and presentation card.
+- [x] Build unified Video Processing card.
+- [x] Refactor hardware options to GPU-only choices.
+- [x] Build Performance card.
+- [x] Build Delivery behavior card.
+- [x] Build Default caption card.
+- [x] Add live policy summary.
 
 **Exit criterion:** Common upload settings work without opening Advanced mode.
 
 ## Phase 4: Rebuild Upload Advanced UI
 
-- [ ] Build Album and grouping card.
-- [ ] Build Failure recovery card with three presets.
-- [ ] Build Large-file handling card.
-- [ ] Build Scheduling and identity card.
-- [ ] Build Item targeting card.
-- [ ] Build Encoder tuning card.
-- [ ] Add scoped card resets.
+- [x] Build Album and grouping card.
+- [x] Build Failure recovery card with three presets.
+- [x] Build Large-file handling card.
+- [x] Build Scheduling and identity card.
+- [x] Build Item targeting card.
+- [x] Build Encoder tuning card.
+- [x] Add scoped card resets.
 
 **Exit criterion:** All existing advanced upload capabilities remain accessible without the old long orchestration form.
 
 ## Phase 5: Rebuild Download UI
 
-- [ ] Build Download performance card.
-- [ ] Build Existing-file behavior card.
-- [ ] Build Recovery and completion card.
-- [ ] Build Advanced integrity card.
-- [ ] Add download policy summary.
-- [ ] Add scoped reset behavior.
+- [x] Build Download performance card.
+- [x] Build Existing-file behavior card.
+- [x] Build Recovery and completion card.
+- [x] Build Advanced integrity card.
+- [x] Add download policy summary.
+- [x] Add scoped reset behavior.
 
 **Exit criterion:** All existing download settings remain accessible and understandable.
 
 ## Phase 6: Rebuild Profiles and search
 
-- [ ] Move profile management into Profiles tab.
-- [ ] Add system presets.
-- [ ] Add user profile list and overflow actions.
-- [ ] Add legacy profile badges and migration handling.
-- [ ] Build structured search registry.
-- [ ] Add scoped scroll and focus targeting.
-- [ ] Add responsive mobile search.
+- [x] Move profile management into Profiles tab.
+- [x] Add system presets.
+- [x] Add user profile list and overflow actions.
+- [x] Add legacy profile badges and migration handling.
+- [x] Build structured search registry.
+- [x] Add scoped scroll and focus targeting.
+- [x] Add responsive mobile search.
 
 **Exit criterion:** Profiles no longer consume permanent space above Upload and Download settings.
 
 ## Phase 7: Remove duplicate implementation
 
-- [ ] Replace `TransferTabContent` in `index.tsx` with the shared workspace.
-- [ ] Convert `DriveTransferSettings.tsx` into a wrapper or remove it.
-- [ ] Remove old encoder and hardware selectors.
-- [ ] Remove obsolete duplicate state and handlers.
-- [ ] Remove global duplicated section IDs.
-- [ ] Confirm all entry points render the same UI.
+- [x] Replace `TransferTabContent` in `index.tsx` with the shared workspace.
+- [x] Convert `DriveTransferSettings.tsx` into a wrapper or remove it.
+- [x] Remove old encoder and hardware selectors.
+- [x] Remove obsolete duplicate state and handlers.
+- [x] Remove global duplicated section IDs.
+- [x] Confirm all entry points render the same UI.
 
 **Exit criterion:** Only one settings form implementation remains.
 
 ## Phase 8: Preflight and Transfer Manager alignment
 
-- [ ] Redesign preflight summary and item disclosure.
-- [ ] Add resolved policy information.
-- [ ] Add Back to settings targeting.
-- [ ] Align Transfer Manager policy badges.
-- [ ] Verify frozen snapshot behavior.
-- [ ] Verify fallback reporting.
+- [x] Redesign preflight summary and item disclosure.
+- [x] Add resolved policy information.
+- [x] Add Back to settings targeting.
+- [x] Align Transfer Manager policy badges.
+- [x] Verify frozen snapshot behavior.
+- [x] Verify fallback reporting.
 
 **Exit criterion:** Settings, preflight, and active transfer tell the same story.
 
 ## Phase 9: Responsive and accessibility hardening
 
-- [ ] Implement desktop, laptop, tablet, and mobile layouts.
-- [ ] Add drawer navigation below 1024 px.
-- [ ] Add safe-area handling.
-- [ ] Add focus trap and focus restore.
-- [ ] Add keyboard tab behavior.
-- [ ] Add reduced-motion handling.
-- [ ] Verify 44 px touch targets.
-- [ ] Run contrast checks.
+- [x] Implement desktop, laptop, tablet, and mobile layouts.
+- [x] Add drawer navigation below 1024 px.
+- [x] Add safe-area handling.
+- [x] Add focus trap and focus restore.
+- [x] Add keyboard tab behavior.
+- [x] Add reduced-motion handling.
+- [x] Verify 44 px touch targets.
+- [x] Run contrast checks.
 
 **Exit criterion:** All target viewport and accessibility checks pass.
 
 ## Phase 10: Cleanup and verification
 
-- [ ] Remove unused imports and legacy styles.
-- [ ] Remove dead components only after usage search.
-- [ ] Run TypeScript type check.
-- [ ] Run lint.
-- [ ] Run unit and component tests.
-- [ ] Run responsive visual checks.
-- [ ] Verify all i18n keys.
-- [ ] Verify settings persistence and profile migration.
-- [ ] Verify no existing tool tab regressed.
+- [x] Remove unused imports and legacy styles.
+- [x] Remove dead components only after usage search.
+- [x] Run TypeScript type check.
+- [x] Run lint.
+- [x] Run unit and component tests.
+- [x] Run responsive visual checks.
+- [x] Verify all i18n keys.
+- [x] Verify settings persistence and profile migration.
+- [x] Verify no existing tool tab regressed.
 
 **Exit criterion:** All acceptance criteria below pass.
 
@@ -1602,57 +1602,57 @@ The implementation is complete only when all items below are true.
 
 ## Architecture
 
-- [ ] One canonical Transfer Settings workspace exists.
-- [ ] `index.tsx` no longer contains a separately maintained full Transfer Settings form.
-- [ ] `DriveTransferSettings.tsx` is only a wrapper or has been safely removed.
-- [ ] Shared normalization, validation, and encoder mapping are used everywhere.
+- [x] One canonical Transfer Settings workspace exists.
+- [x] `index.tsx` no longer contains a separately maintained full Transfer Settings form.
+- [x] `DriveTransferSettings.tsx` is only a wrapper or has been safely removed.
+- [x] Shared normalization, validation, and encoder mapping are used everywhere.
 
 ## UI and UX
 
-- [ ] Upload, Download, and Profiles are clear top-level tabs.
-- [ ] Basic mode exposes only common controls.
-- [ ] Advanced mode preserves all supported power features.
-- [ ] Profile controls no longer occupy permanent space above every tab.
-- [ ] Settings are grouped into consistent cards.
-- [ ] Dirty state and unsaved-change confirmation work.
-- [ ] Reset scope is explicit.
-- [ ] Search finds all major settings.
+- [x] Upload, Download, and Profiles are clear top-level tabs.
+- [x] Basic mode exposes only common controls.
+- [x] Advanced mode preserves all supported power features.
+- [x] Profile controls no longer occupy permanent space above every tab.
+- [x] Settings are grouped into consistent cards.
+- [x] Dirty state and unsaved-change confirmation work.
+- [x] Reset scope is explicit.
+- [x] Search finds all major settings.
 
 ## Encoder
 
-- [ ] Hardware Reencode and Encoder Strategy are not shown as separate user controls.
-- [ ] Four unified modes exist.
-- [ ] Hardware mode shows Auto GPU and detected GPUs only.
-- [ ] Software mode uses CPU-only semantics.
-- [ ] Disable re-encode hides irrelevant quality tuning and displays guardrails.
-- [ ] Legacy profiles remain readable.
-- [ ] Invalid or unavailable GPU choices cannot be silently saved.
+- [x] Hardware Reencode and Encoder Strategy are not shown as separate user controls.
+- [x] Four unified modes exist.
+- [x] Hardware mode shows Auto GPU and detected GPUs only.
+- [x] Software mode uses CPU-only semantics.
+- [x] Disable re-encode hides irrelevant quality tuning and displays guardrails.
+- [x] Legacy profiles remain readable.
+- [x] Invalid or unavailable GPU choices cannot be silently saved.
 
 ## Responsive behavior
 
-- [ ] Desktop layout remains elegant at 1440 and 1280 widths.
-- [ ] Tablet layout removes the permanent sidebar.
-- [ ] Mobile layout becomes full-screen and touch-friendly.
-- [ ] No horizontal scroll appears at supported sizes.
-- [ ] Footer never covers the last control.
-- [ ] Search and dropdowns stay within the viewport.
+- [x] Desktop layout remains elegant at 1440 and 1280 widths.
+- [x] Tablet layout removes the permanent sidebar.
+- [x] Mobile layout becomes full-screen and touch-friendly.
+- [x] No horizontal scroll appears at supported sizes.
+- [x] Footer never covers the last control.
+- [x] Search and dropdowns stay within the viewport.
 
 ## Accessibility
 
-- [ ] Focus is trapped and restored.
-- [ ] Tabs support keyboard navigation.
-- [ ] All fields have labels and associated help or error text.
-- [ ] Touch targets meet 44 px minimum.
-- [ ] Reduced motion works.
-- [ ] Contrast meets WCAG AA.
+- [x] Focus is trapped and restored.
+- [x] Tabs support keyboard navigation.
+- [x] All fields have labels and associated help or error text.
+- [x] Touch targets meet 44 px minimum.
+- [x] Reduced motion works.
+- [x] Contrast meets WCAG AA.
 
 ## Workflow
 
-- [ ] Settings save into the expected persistent state.
-- [ ] Active transfer uses a frozen snapshot.
-- [ ] Preflight reflects the saved policy.
-- [ ] Transfer Manager reflects the actual resolved encoder and fallback.
-- [ ] Current Duplicates, Space Usage, Rename, Copy, and Filter tools still open and function.
+- [x] Settings save into the expected persistent state.
+- [x] Active transfer uses a frozen snapshot.
+- [x] Preflight reflects the saved policy.
+- [x] Transfer Manager reflects the actual resolved encoder and fallback.
+- [x] Current Duplicates, Space Usage, Rename, Copy, and Filter tools still open and function.
 
 ---
 
