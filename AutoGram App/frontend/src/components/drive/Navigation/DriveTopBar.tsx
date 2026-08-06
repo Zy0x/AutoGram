@@ -490,17 +490,6 @@ export function DriveTopBar({
             {spaceLabel ? <span className="td-count-space"> · {spaceLabel}</span> : null}
           </span>
 
-          {(onOpenTools || onOpenTransferSettings) && (
-            <button
-              type="button"
-              className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
-              onClick={onOpenTools || onOpenTransferSettings}
-              title="Drive Tools & Settings"
-              aria-label="Drive Tools & Settings"
-            >
-              <SlidersHorizontal size={16} />
-            </button>
-          )}
         </div>
 
         <div className="td-topbar-actions">
@@ -567,6 +556,20 @@ export function DriveTopBar({
           >
             <RefreshCw size={16} className={loading ? 'spin' : undefined} />
           </button>
+
+          {(onOpenTools || onOpenTransferSettings) && (
+            <button
+              type="button"
+              className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
+              onClick={onOpenTools || onOpenTransferSettings}
+              disabled={!!actionsDisabled}
+              title="Drive Tools & Settings"
+              aria-label="Drive Tools & Settings"
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          )}
+
           {onOpenTransferManager && (
             <button
               type="button"
