@@ -7,9 +7,10 @@ type Props = {
   report: QualityPreflightReport | null;
   onConfirm: () => void;
   onCancel: () => void;
+  onBackToSettings?: () => void;
 };
 
-export function TransferPreflightDialog({ report, onConfirm, onCancel }: Props) {
+export function TransferPreflightDialog({ report, onConfirm, onCancel, onBackToSettings }: Props) {
   const { t } = useTranslation();
   if (!report) return null;
 
@@ -101,6 +102,11 @@ export function TransferPreflightDialog({ report, onConfirm, onCancel }: Props) 
         </div>
 
         <footer className="td-xfer-settings-foot">
+          {onBackToSettings && (
+            <button type="button" className="td-chip-btn" onClick={onBackToSettings}>
+              {t('speedtest.tools_tab_settings') || 'Pengaturan'}
+            </button>
+          )}
           <button type="button" className="td-chip-btn" onClick={onCancel}>{t('speedtest.topbar_cancel')}</button>
           <button type="button" className="td-btn-primary" onClick={onConfirm} disabled={report.hasBlockingIssues}>{t('speedtest.preflight_confirm')}</button>
         </footer>
