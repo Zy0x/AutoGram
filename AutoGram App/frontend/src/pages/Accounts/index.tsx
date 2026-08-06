@@ -348,9 +348,13 @@ export function Accounts() {
                 if (downloaded) {
                   realPhoto = downloaded;
                 }
-              } catch {}
+              } catch (err) {
+                console.warn(`[Accounts] tgDownloadProfilePhoto error for ${saved.name}:`, err);
+              }
             }
           }
+
+          console.log(`[Accounts] Session '${saved.name}': connected=${connected}, photoBase64 length=${realPhoto ? realPhoto.length : 0}`);
 
           if (realPhoto) {
             setAvatarErrors((prev) => {
@@ -830,7 +834,10 @@ export function Accounts() {
                                   src={s.photoBase64}
                                   alt={displayForAvatar}
                                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-                                  onError={() => setAvatarErrors(prev => new Set([...prev, s.name]))}
+                                  onError={() => {
+                                    console.error(`[Accounts] Avatar image failed to load for session ${s.name}:`, s.photoBase64?.slice(0, 60));
+                                    setAvatarErrors(prev => new Set([...prev, s.name]));
+                                  }}
                                 />
                               ) : (
                                 <Users size={20} color="var(--primary)" aria-hidden />

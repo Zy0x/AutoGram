@@ -371,72 +371,32 @@ pub fn auth_status_blocking(
 
                             if has_real_id {
                                 // Profile already resolved — serve from cache.
-                                // If photo is still None, the frontend's tgDownloadProfilePhoto handles it.
                                 profile = cached;
                             } else {
                                 match client.get_me().await {
                                     Ok(u) => {
                                         let mut p = user_profile_from(&u);
 
-                                        // If get_me() returned a user with a photo marker but
-                                        // stripped_thumb was absent (common), download the photo now
-                                        // so we don't need a separate tgDownloadProfilePhoto round-trip.
-                                        if p.photo_base64.is_none() {
-                                            let has_photo_marker = matches!(
-                                                &u.raw,
-                                                grammers_client::tl::enums::User::User(raw)
-                                                    if matches!(
-                                                        &raw.photo,
-                                                        Some(grammers_client::tl::enums::UserProfilePhoto::Photo(_))
-                                                    )
-                                            );
-                                            if has_photo_marker {
-                                                // Download via InputPeerPhotoFileLocation (fast, ~128KB)
-                                                let location = {
-                                                    use grammers_client::tl;
-                                                    if let grammers_client::tl::enums::User::User(raw) = &u.raw {
-                                                        if let Some(tl::enums::UserProfilePhoto::Photo(ph)) = &raw.photo {
-                                                            Some(tl::enums::InputFileLocation::InputPeerPhotoFileLocation(
-                                                                tl::types::InputPeerPhotoFileLocation {
-                                                                    big: false,
-                                                                    peer: tl::enums::InputPeer::PeerSelf,
-                                                                    photo_id: ph.photo_id,
-                                                                },
-                                                            ))
-                                                        } else { None }
-                                                    } else { None }
-                                                };
-                                                if let Some(loc) = location {
-                                                    use grammers_client::tl;
-                                                    let mut bytes: Vec<u8> = Vec::new();
-                                                    let mut offset = 0i64;
-                                                    let chunk = 128 * 1024i32;
-                                                    loop {
-                                                        match client.invoke(&tl::functions::upload::GetFile {
-                                                            precise: false,
-                                                            cdn_supported: false,
-                                                            location: loc.clone(),
-                                                            offset,
-                                                            limit: chunk,
-                                                        }).await {
-                                                            Ok(tl::enums::upload::File::File(f)) => {
-                                                                let done = (f.bytes.len() as i32) < chunk;
-                                                                bytes.extend_from_slice(&f.bytes);
-                                                                if done || bytes.len() > 2 * 1024 * 1024 { break; }
-                                                                offset += f.bytes.len() as i64;
-                                                            }
-                                                            _ => break,
-                                                        }
-                                                    }
+                                        // Fetch profile photo via Grammers peer.photo(false) and client.download_media
+                                        let user_peer = grammers_client::peer::Peer::User(u);
+                                        if let Some(photo) = user_peer.photo(false).await.ok().flatten() {
+                                            let tmp_path = std::env::temp_dir().join(format!(
+                                                "ag_avatar_auth_{}_{}.jpg",
+                                                session_name,
+                                                std::process::id()
+                                            ));
+                                            let _ = std::fs::remove_file(&tmp_path);
+                                            if client.download_media(&photo, &tmp_path).await.is_ok() {
+                                                if let Ok(bytes) = std::fs::read(&tmp_path) {
                                                     if !bytes.is_empty() {
                                                         p.photo_base64 = crate::core::grammers::thumbs::to_data_url(&bytes);
-                                                        tg_log::info(BACKEND, "profile_photo_inline", "downloaded during auth_status");
+                                                        tg_log::info(BACKEND, "profile_photo_inline", "downloaded via Grammers download_media");
                                                     }
                                                 }
-                                            } else {
-                                                // No photo marker — account genuinely has no photo
-                                                tg_log::info(BACKEND, "profile_photo_inline", "account has no profile photo");
+                                                let _ = std::fs::remove_file(&tmp_path);
                                             }
+                                        } else {
+                                            tg_log::info(BACKEND, "profile_photo_inline", "account has no profile photo");
                                         }
 
                                         set_cached_user_profile(&session_name, p.clone());
@@ -515,205 +475,43 @@ pub fn download_profile_photo_blocking(
     identity: &TelegramIdentity,
 ) -> Result<Option<String>, TgError> {
     let rt = runtime()?;
+    let session_name = identity.session.clone();
     rt.block_on(async {
         with_client(sessions_dir, identity, false, move |client| {
+            let session_name = session_name.clone();
             Box::pin(async move {
-                use grammers_client::tl;
-
-                // ── Strategy 0: Check get_me() raw user profile photo stripped_thumb or InputPeerPhotoFileLocation ──
-                if let Ok(me) = client.get_me().await {
-                    if let grammers_client::tl::enums::User::User(raw_user) = &me.raw {
-                        match &raw_user.photo {
-                            Some(tl::enums::UserProfilePhoto::Photo(p)) => {
-                                // 1. Try stripped_thumb first for instant 0ms rendering
-                                if let Some(st) = &p.stripped_thumb {
-                                    let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(st)
-                                        .unwrap_or_else(|| st.clone());
-                                    if let Some(url) =
-                                        crate::core::grammers::thumbs::to_data_url(&jpeg)
-                                    {
-                                        tg_log::info(
-                                            BACKEND,
-                                            "profile_photo",
-                                            "using get_me() stripped_thumb",
-                                        );
-                                        return Ok(Some(url));
-                                    }
-                                }
-
-                                // 2. Download via official Telegram InputPeerPhotoFileLocation
-                                let location = tl::enums::InputFileLocation::InputPeerPhotoFileLocation(
-                                    tl::types::InputPeerPhotoFileLocation {
-                                        big: false,
-                                        peer: tl::enums::InputPeer::PeerSelf,
-                                        photo_id: p.photo_id,
-                                    },
-                                );
-
-                                let mut bytes = Vec::new();
-                                let mut offset = 0i64;
-                                let chunk_size = 128 * 1024i32;
-
-                                loop {
-                                    let res = client
-                                        .invoke(&tl::functions::upload::GetFile {
-                                            precise: false,
-                                            cdn_supported: false,
-                                            location: location.clone(),
-                                            offset,
-                                            limit: chunk_size,
-                                        })
-                                        .await;
-
-                                    match res {
-                                        Ok(tl::enums::upload::File::File(f)) => {
-                                            let is_done = (f.bytes.len() as i32) < chunk_size;
-                                            bytes.extend_from_slice(&f.bytes);
-                                            if is_done || bytes.len() > 2 * 1024 * 1024 {
-                                                break;
-                                            }
-                                            offset += f.bytes.len() as i64;
-                                        }
-                                        _ => break,
-                                    }
-                                }
-
-                                if !bytes.is_empty() {
-                                    tg_log::info(
-                                        BACKEND,
-                                        "profile_photo",
-                                        "downloaded via InputPeerPhotoFileLocation",
-                                    );
-                                    return Ok(crate::core::grammers::thumbs::to_data_url(&bytes));
-                                }
-                            }
-                            Some(tl::enums::UserProfilePhoto::Empty) | None => {
-                                tg_log::info(BACKEND, "profile_photo", "account has no profile photo");
-                                return Ok(None);
-                            }
-                        }
-                    }
-                }
-
-                // Request the 1 most recent profile photo for the current user
-                let result = client
-                    .invoke(&tl::functions::photos::GetUserPhotos {
-                        user_id: tl::enums::InputUser::UserSelf,
-                        offset: 0,
-                        max_id: 0,
-                        limit: 1,
-                    })
-                    .await
-                    .map_err(|e| map_invocation(&e))?;
-
-                let (photos, _users) = match result {
-                    tl::enums::photos::Photos::Photos(p) => (p.photos, p.users),
-                    tl::enums::photos::Photos::Slice(s) => (s.photos, s.users),
-                };
-
-                let Some(photo_enum) = photos.into_iter().next() else {
+                let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
+                let user_peer = grammers_client::peer::Peer::User(me);
+                let Some(photo) = user_peer.photo(false).await.ok().flatten() else {
+                    tg_log::info(BACKEND, "profile_photo", "account has no profile photo");
                     return Ok(None);
                 };
 
-                let media_photo = grammers_client::media::Photo::from_raw(photo_enum);
-                for thumb in media_photo.thumbs() {
-                    if let Some(data) = thumb.to_data() {
-                        if !data.is_empty() {
-                            let jpeg =
-                                crate::core::grammers::ffmpeg::unstrip_jpeg(&data).unwrap_or(data);
-                            tg_log::info(BACKEND, "profile_photo", "using inline photo bytes");
-                            return Ok(crate::core::grammers::thumbs::to_data_url(&jpeg));
-                        }
-                    }
+                let tmp_path = std::env::temp_dir().join(format!(
+                    "ag_self_avatar_{}_{}.jpg",
+                    session_name,
+                    std::process::id()
+                ));
+                let _ = std::fs::remove_file(&tmp_path);
+
+                if let Err(e) = client.download_media(&photo, &tmp_path).await {
+                    let _ = std::fs::remove_file(&tmp_path);
+                    tg_log::warn(BACKEND, "profile_photo", format!("download_media failed: {e}"));
+                    return Ok(None);
                 }
 
-                let Some(tl::enums::Photo::Photo(photo)) = &media_photo.raw.photo else {
+                let bytes = std::fs::read(&tmp_path).ok();
+                let _ = std::fs::remove_file(&tmp_path);
+
+                let Some(bytes) = bytes else {
                     return Ok(None);
                 };
-
-                // ── Strategy 3: Download smallest non-stripped PhotoSize ──
-                let preferred_types = ["s", "m", "a", "b", "c", "x", "y", "z"];
-                let chosen_type = preferred_types
-                    .iter()
-                    .find_map(|&t| {
-                        photo.sizes.iter().find_map(|s| match s {
-                            tl::enums::PhotoSize::Size(sz) if sz.r#type == t && sz.size > 0 => {
-                                Some(t.to_string())
-                            }
-                            tl::enums::PhotoSize::Progressive(sz) if sz.r#type == t => {
-                                Some(t.to_string())
-                            }
-                            _ => None,
-                        })
-                    })
-                    .or_else(|| {
-                        photo.sizes.iter().find_map(|s| match s {
-                            tl::enums::PhotoSize::Size(sz) if !sz.r#type.is_empty() => {
-                                Some(sz.r#type.clone())
-                            }
-                            tl::enums::PhotoSize::Progressive(sz) if !sz.r#type.is_empty() => {
-                                Some(sz.r#type.clone())
-                            }
-                            _ => None,
-                        })
-                    });
-
-                let size_type = match chosen_type {
-                    Some(t) => t,
-                    None => {
-                        tg_log::warn(BACKEND, "profile_photo", "no downloadable size found");
-                        return Ok(None);
-                    }
-                };
-
-                tg_log::info(
-                    BACKEND,
-                    "profile_photo",
-                    format!("downloading via GetFile size_type={size_type}"),
-                );
-
-                let location = tl::enums::InputFileLocation::InputPhotoFileLocation(
-                    tl::types::InputPhotoFileLocation {
-                        id: photo.id,
-                        access_hash: photo.access_hash,
-                        file_reference: photo.file_reference.clone(),
-                        thumb_size: size_type,
-                    },
-                );
-
-                let mut bytes = Vec::new();
-                let mut offset = 0i64;
-                let chunk_size = 128 * 1024i32;
-
-                loop {
-                    let res = client
-                        .invoke(&tl::functions::upload::GetFile {
-                            precise: false,
-                            cdn_supported: false,
-                            location: location.clone(),
-                            offset,
-                            limit: chunk_size,
-                        })
-                        .await
-                        .map_err(|e| map_invocation(&e))?;
-
-                    match res {
-                        tl::enums::upload::File::File(f) => {
-                            let is_done = (f.bytes.len() as i32) < chunk_size;
-                            bytes.extend_from_slice(&f.bytes);
-                            if is_done || bytes.len() > 2 * 1024 * 1024 {
-                                break;
-                            }
-                            offset += f.bytes.len() as i64;
-                        }
-                        _ => break,
-                    }
-                }
 
                 if bytes.is_empty() {
                     return Ok(None);
                 }
 
+                tg_log::info(BACKEND, "profile_photo", "downloaded successfully via Grammers download_media");
                 Ok(crate::core::grammers::thumbs::to_data_url(&bytes))
             })
         })
