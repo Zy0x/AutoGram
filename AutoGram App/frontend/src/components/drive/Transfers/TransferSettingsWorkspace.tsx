@@ -251,6 +251,7 @@ export function TransferSettingsWorkspace({
   const [captionToast, setCaptionToast] = useState<string | null>(null);
   const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editableDivRef = useRef<HTMLDivElement | null>(null);
+  const captionSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (editorMode === 'visual' && editableDivRef.current) {
@@ -263,10 +264,20 @@ export function TransferSettingsWorkspace({
     }
   }, [captionTab, editorMode, draft.captionParseMode]);
 
-  const handleEditableInput = () => {
-    if (!editableDivRef.current) return;
-    const parsedText = domToCaptionText(editableDivRef.current, draft.captionParseMode || 'MarkdownV2');
-    patch({ globalCaption: parsedText });
+  const handleEditableInput = (immediate = false) => {
+    if (captionSyncTimerRef.current) clearTimeout(captionSyncTimerRef.current);
+
+    const doSync = () => {
+      if (!editableDivRef.current) return;
+      const parsedText = domToCaptionText(editableDivRef.current, draft.captionParseMode || 'MarkdownV2');
+      patch({ globalCaption: parsedText });
+    };
+
+    if (immediate === true) {
+      doSync();
+    } else {
+      captionSyncTimerRef.current = setTimeout(doSync, 180);
+    }
   };
 
   const execCaptionFormatting = (formatType: string) => {
@@ -317,7 +328,7 @@ export function TransferSettingsWorkspace({
         document.execCommand('createLink', false, `tg://user?id=${userId}`);
       }
 
-      handleEditableInput();
+      handleEditableInput(true);
     } else {
       applyCaptionFormatting(formatType);
     }
@@ -1193,9 +1204,8 @@ export function TransferSettingsWorkspace({
                         ref={editableDivRef}
                         className="td-caption-editor-contenteditable"
                         contentEditable={!transferActive}
-                        onInput={handleEditableInput}
-                        onBlur={handleEditableInput}
-                        onKeyUp={handleEditableInput}
+                        onInput={() => handleEditableInput(false)}
+                        onBlur={() => handleEditableInput(true)}
                         suppressContentEditableWarning
                       />
                     ) : (
