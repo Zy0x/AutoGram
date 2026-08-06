@@ -573,7 +573,7 @@ export type ReencodePreset = 'speed' | 'balanced' | 'quality';
 export type PresentationOverride = 'automatic' | 'force_document' | 'force_native_media';
 export type AlbumPacking = 'maximum' | 'balanced' | 'custom' | 'follow_selection' | 'never';
 export type AlbumFailurePolicy = 'atomic_strict' | 'retry_prepare' | 'replan_group' | 'send_remaining' | 'send_failed_separately' | 'cancel_group' | 'best_effort_advanced';
-export type OversizeAction = 'split' | 'alternate_account' | 'skip';
+export type OversizeAction = 'split' | 'fit_to_limit' | 'alternate_account' | 'skip';
 export type AlbumAlternateStrategy = 'separate_item' | 'move_whole_group' | 'cancel_group';
 export type EncoderStrategy = 'auto_adaptive' | 'hardware_preferred' | 'software_preferred' | 'hardware_only' | 'software_only' | 'specific_device' | 'disable_reencode';
 export type EncoderResourceProfile = 'eco' | 'balanced' | 'performance' | 'custom';
@@ -845,7 +845,7 @@ export function loadTransferSettings(): DriveTransferSettings {
       groupDocuments: p.groupDocuments !== false,
       groupAudio: p.groupAudio !== false,
       groupOriginalDocuments: p.groupOriginalDocuments !== false,
-      oversizeAction: ['split', 'alternate_account', 'skip'].includes(String(p.oversizeAction)) ? p.oversizeAction! : DEFAULT_TRANSFER_SETTINGS.oversizeAction,
+      oversizeAction: ['split', 'fit_to_limit', 'alternate_account', 'skip'].includes(String(p.oversizeAction)) ? p.oversizeAction! : DEFAULT_TRANSFER_SETTINGS.oversizeAction,
       alternateAccountPool: typeof p.alternateAccountPool === 'string'
         ? p.alternateAccountPool.replace(/[^a-zA-Z0-9_.\-,\s]/g, '').slice(0, 512)
         : '',

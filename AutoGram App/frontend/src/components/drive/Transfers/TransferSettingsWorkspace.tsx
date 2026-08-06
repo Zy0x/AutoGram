@@ -2344,24 +2344,43 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* 1. THREE STRATEGY TILES (5-SECOND READABILITY) */}
-              <div className="td-encoder-4x-grid" style={{ marginTop: '16px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+              {/* 1. FOUR STRATEGY TILES (5-SECOND READABILITY) */}
+              <div className="td-encoder-4x-grid" style={{ marginTop: '16px' }}>
+                {/* FIT TO LIMIT (RECOMMENDED SMART TARGET RE-ENCODE) */}
+                <label className={`td-encoder-tile ${(!draft.oversizeAction || draft.oversizeAction === 'fit_to_limit') ? 'is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="oversizeAction"
+                    value="fit_to_limit"
+                    checked={!draft.oversizeAction || draft.oversizeAction === 'fit_to_limit'}
+                    disabled={!!transferActive}
+                    onChange={() => patch({ oversizeAction: 'fit_to_limit' })}
+                  />
+                  <div>
+                    <div className="td-tile-head">
+                      <Zap size={16} className="td-tile-icon is-auto" />
+                      <strong>{t('speedtest.oversize_fit_title', 'Re-encode Fit-to-Limit (Target Limit <2GB/4GB)')}</strong>
+                    </div>
+                    <p>{t('speedtest.oversize_fit_desc', 'Rekomendasi Cerdas. Menghitung bitrate ideal agar video dikompresi tepat mendekati 1.95GB/3.9GB agar tetap 1 file utuh tanpa split.')}</p>
+                  </div>
+                </label>
+
                 {/* SPLIT */}
-                <label className={`td-encoder-tile ${(!draft.oversizeAction || draft.oversizeAction === 'split') ? 'is-selected' : ''}`}>
+                <label className={`td-encoder-tile ${draft.oversizeAction === 'split' ? 'is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="oversizeAction"
                     value="split"
-                    checked={!draft.oversizeAction || draft.oversizeAction === 'split'}
+                    checked={draft.oversizeAction === 'split'}
                     disabled={!!transferActive}
                     onChange={() => patch({ oversizeAction: 'split' })}
                   />
                   <div>
                     <div className="td-tile-head">
-                      <Zap size={16} className="td-tile-icon is-auto" />
+                      <Sliders size={16} className="td-tile-icon is-auto" />
                       <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Otomatis (Split Parts)')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_split_desc', 'Rekomendasi Utama. Membagi berkas besar >2GB menjadi bagian volume <2GB agar sukses terkirim di akun standar.')}</p>
+                    <p>{t('speedtest.oversize_split_desc', 'Membagi berkas besar >2GB menjadi beberapa bagian volume <2GB agar sukses terkirim di akun standar.')}</p>
                   </div>
                 </label>
 
