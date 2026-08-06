@@ -49,8 +49,10 @@ pub fn user_profile_from(u: &grammers_client::peer::User) -> UserProfile {
             let photo = if let Some(grammers_client::tl::enums::UserProfilePhoto::Photo(p)) = &raw_user.photo {
                 p.stripped_thumb
                     .as_ref()
-                    .and_then(|st| crate::core::grammers::ffmpeg::unstrip_jpeg(st))
-                    .and_then(|jpeg| crate::core::grammers::thumbs::to_data_url(&jpeg))
+                    .and_then(|st| {
+                        let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(st).unwrap_or_else(|| st.clone());
+                        crate::core::grammers::thumbs::to_data_url(&jpeg)
+                    })
             } else {
                 None
             };

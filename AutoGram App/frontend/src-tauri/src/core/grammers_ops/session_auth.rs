@@ -455,13 +455,15 @@ pub fn download_profile_photo_blocking(
             Box::pin(async move {
                 use grammers_client::tl;
 
-                // ── Strategy 0: Check get_me() raw user profile photo stripped_thumb ──
+                // ── Strategy 0: Check get_me() raw user profile photo stripped_thumb or InputPeerPhotoFileLocation ──
                 if let Ok(me) = client.get_me().await {
                     if let grammers_client::tl::enums::User::User(raw_user) = &me.raw {
-                        if let Some(tl::enums::UserProfilePhoto::Photo(p)) = &raw_user.photo {
-                            if let Some(st) = &p.stripped_thumb {
-                                if let Some(jpeg) = crate::core::grammers::ffmpeg::unstrip_jpeg(st)
-                                {
+                        match &raw_user.photo {
+                            Some(tl::enums::UserProfilePhoto::Photo(p)) => {
+                                // 1. Try stripped_thumb first for instant 0ms rendering
+                                if let Some(st) = &p.stripped_thumb {
+                                    let jpeg = crate::core::grammers::ffmpeg::unstrip_jpeg(st)
+                                        .unwrap_or_else(|| st.clone());
                                     if let Some(url) =
                                         crate::core::grammers::thumbs::to_data_url(&jpeg)
                                     {
@@ -473,6 +475,56 @@ pub fn download_profile_photo_blocking(
                                         return Ok(Some(url));
                                     }
                                 }
+
+                                // 2. Download via official Telegram InputPeerPhotoFileLocation
+                                let location = tl::enums::InputFileLocation::InputPeerPhotoFileLocation(
+                                    tl::types::InputPeerPhotoFileLocation {
+                                        big: false,
+                                        peer: tl::enums::InputPeer::Self,
+                                        photo_id: p.photo_id,
+                                    },
+                                );
+
+                                let mut bytes = Vec::new();
+                                let mut offset = 0i64;
+                                let chunk_size = 128 * 1024i32;
+
+                                loop {
+                                    let res = client
+                                        .invoke(&tl::functions::upload::GetFile {
+                                            precise: false,
+                                            cdn_supported: false,
+                                            location: location.clone(),
+                                            offset,
+                                            limit: chunk_size,
+                                        })
+                                        .await;
+
+                                    match res {
+                                        Ok(tl::enums::upload::File::File(f)) => {
+                                            let is_done = (f.bytes.len() as i32) < chunk_size;
+                                            bytes.extend_from_slice(&f.bytes);
+                                            if is_done || bytes.len() > 2 * 1024 * 1024 {
+                                                break;
+                                            }
+                                            offset += f.bytes.len() as i64;
+                                        }
+                                        _ => break,
+                                    }
+                                }
+
+                                if !bytes.is_empty() {
+                                    tg_log::info(
+                                        BACKEND,
+                                        "profile_photo",
+                                        "downloaded via InputPeerPhotoFileLocation",
+                                    );
+                                    return Ok(crate::core::grammers::thumbs::to_data_url(&bytes));
+                                }
+                            }
+                            Some(tl::enums::UserProfilePhoto::Empty) | None => {
+                                tg_log::info(BACKEND, "profile_photo", "account has no profile photo");
+                                return Ok(None);
                             }
                         }
                     }
