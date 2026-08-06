@@ -766,6 +766,94 @@ export function TransferSettingsWorkspace({
     setShowResetConfirm(false);
   };
 
+  const resetCurrentSection = (cat: WorkspaceTabState) => {
+    const defaults = DEFAULT_TRANSFER_SETTINGS;
+    let sectionFields: Partial<DriveTransferSettings> = {};
+
+    switch (cat) {
+      case 'upload':
+        sectionFields = {
+          qualityMode: defaults.qualityMode,
+          uploadConcurrency: defaults.uploadConcurrency,
+          groupAsAlbum: defaults.groupAsAlbum,
+          silent: defaults.silent,
+          spoiler: defaults.spoiler,
+          spoilerItemPositions: defaults.spoilerItemPositions,
+          scheduleAt: defaults.scheduleAt,
+          sendAs: defaults.sendAs,
+          forceDocumentDefault: defaults.forceDocumentDefault,
+          enableGlobalCaption: defaults.enableGlobalCaption,
+          globalCaption: defaults.globalCaption,
+          captionOverflowPolicy: defaults.captionOverflowPolicy,
+          captionParseMode: defaults.captionParseMode,
+          captionAbove: defaults.captionAbove,
+          captionPosition: defaults.captionPosition,
+        };
+        break;
+      case 'download':
+        sectionFields = {
+          downloadConcurrency: defaults.downloadConcurrency,
+          downloadConflictPolicy: defaults.downloadConflictPolicy,
+          downloadResumePartial: defaults.downloadResumePartial,
+          downloadIntegrity: defaults.downloadIntegrity,
+          notifyDownloadDone: defaults.notifyDownloadDone,
+        };
+        break;
+      case 'encoding':
+        sectionFields = {
+          reencodeHardware: defaults.reencodeHardware,
+          reencodePreset: defaults.reencodePreset,
+          presentationOverride: defaults.presentationOverride,
+          encoderStrategy: defaults.encoderStrategy,
+          encoderResourceProfile: defaults.encoderResourceProfile,
+          encoderMaxParallel: defaults.encoderMaxParallel,
+          encoderAllowSoftwareFallback: defaults.encoderAllowSoftwareFallback,
+        };
+        break;
+      case 'albums':
+        sectionFields = {
+          albumPacking: defaults.albumPacking,
+          albumGroupSize: defaults.albumGroupSize,
+          albumAvoidSingle: defaults.albumAvoidSingle,
+          albumFailurePolicy: defaults.albumFailurePolicy,
+          groupDocuments: defaults.groupDocuments,
+          groupAudio: defaults.groupAudio,
+          groupOriginalDocuments: defaults.groupOriginalDocuments,
+        };
+        break;
+      case 'duplicates':
+        sectionFields = {
+          duplicatePolicy: defaults.duplicatePolicy,
+          scanMode: defaults.scanMode,
+          guardrailEnabled: defaults.guardrailEnabled,
+          guardrailThresholdDays: defaults.guardrailThresholdDays,
+          topicScope: defaults.topicScope,
+          maxReuploadPerHour: defaults.maxReuploadPerHour,
+        };
+        break;
+      case 'limits_recovery':
+        sectionFields = {
+          oversizeAction: defaults.oversizeAction,
+          alternateAccountPool: defaults.alternateAccountPool,
+          alternateIdentityApproved: defaults.alternateIdentityApproved,
+          albumAlternateStrategy: defaults.albumAlternateStrategy,
+        };
+        break;
+      case 'advanced':
+        sectionFields = {
+          refreshAfterUpload: defaults.refreshAfterUpload,
+          autoRetryOnNetworkError: defaults.autoRetryOnNetworkError,
+          smartRateControlEnabled: defaults.smartRateControlEnabled,
+          debugLoggingEnabled: defaults.debugLoggingEnabled,
+        };
+        break;
+    }
+
+    patch(sectionFields);
+    const catLabel = subMenuCategories.find((c) => c.id === cat)?.label || 'halaman ini';
+    triggerCaptionToast(`✨ Pengaturan ${catLabel} berhasil di-reset ke default.`);
+  };
+
   const applyPreset = (presetSettings: Partial<DriveTransferSettings>) => {
     const next = normalizeTransferSettings({ ...draft, ...presetSettings });
     const validResult = validateTransferSettings(next, hardwareCapabilities);
@@ -873,7 +961,7 @@ export function TransferSettingsWorkspace({
       {/* TOP HEADER BAR */}
       <header className="td-xfer-header">
         <div className="td-xfer-header-left">
-          {activeTab !== 'menu' ? (
+          {!embedded && activeTab !== 'menu' && (
             <button
               type="button"
               className="td-back-nav-btn"
@@ -882,10 +970,6 @@ export function TransferSettingsWorkspace({
               <ArrowLeft size={16} />
               <span>{t('speedtest.back_to_settings', 'Kembali')}</span>
             </button>
-          ) : (
-            <div className="td-xfer-avatar">
-              <SlidersHorizontal size={20} />
-            </div>
           )}
 
           <div>
@@ -3118,14 +3202,34 @@ export function TransferSettingsWorkspace({
       </main>
 
       {/* FOOTER ACTION BAR */}
-      <footer className="td-xfer-footer">
+      <footer className="td-xfer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {activeTab !== 'menu' && (
+          <button
+            type="button"
+            className="td-chip-btn"
+            onClick={() => resetCurrentSection(activeTab)}
+            disabled={!!transferActive}
+            title="Kembalikan hanya pengaturan pada sub-menu ini ke default"
+            style={{
+              borderColor: 'rgba(56, 189, 248, 0.3)',
+              color: '#38bdf8',
+              background: 'rgba(56, 189, 248, 0.08)',
+            }}
+          >
+            <RotateCcw size={13} />
+            <span>Reset {subMenuCategories.find((c) => c.id === activeTab)?.label || 'Sub-menu'} Saja</span>
+          </button>
+        )}
+
         <button
           type="button"
           className="td-chip-btn"
           onClick={() => setShowResetConfirm(true)}
           disabled={!!transferActive}
+          title="Kembalikan seluruh pengaturan transfer ke default sistem"
         >
-          <RotateCcw size={13} /> {t('speedtest.btn_reset_default', 'Reset Default')}
+          <RotateCcw size={13} />
+          <span>Reset Total (Semua)</span>
         </button>
 
         <div className="td-footer-right">

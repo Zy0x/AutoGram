@@ -452,7 +452,7 @@ export function DriveToolsPanel({
           </aside>
 
           <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
-          {tab !== 'transfer' && (
+          {!['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'advanced'].includes(tab) && (
             <ToolTabIntro
               tab={tab}
               locationLabel={locationLabel}
