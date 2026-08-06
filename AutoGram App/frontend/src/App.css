@@ -17424,3 +17424,86 @@ video.drive-zip-img {
   line-height: 1.5 !important;
   word-break: break-word !important;
 }
+
+.td-editor-mode-bar {
+  padding: 8px 14px !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.td-editor-mode-tabs {
+  display: flex !important;
+  gap: 6px !important;
+}
+
+.td-mode-tab {
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.td-mode-tab:hover {
+  color: #f1f5f9 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.td-mode-tab.active {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+.td-caption-editor-contenteditable {
+  width: 100% !important;
+  min-height: 140px !important;
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  color: #f8fafc !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+}
+
+.td-caption-editor-contenteditable:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
+}
+
+.td-caption-editor-contenteditable ul,
+.td-caption-editor-contenteditable ol,
+.td-editable-ul,
+.td-editable-ol {
+  margin: 6px 0 6px 26px !important;
+  padding-left: 4px !important;
+  list-style-position: outside !important;
+}
+
+.td-caption-editor-contenteditable ul,
+.td-editable-ul {
+  list-style-type: disc !important;
+}
+
+.td-caption-editor-contenteditable ol,
+.td-editable-ol {
+  list-style-type: decimal !important;
+}
+
+.td-caption-editor-contenteditable li,
+.td-editable-ul li,
+.td-editable-ol li {
+  margin-bottom: 4px !important;
+  padding-left: 4px !important;
+  line-height: 1.6 !important;
+  word-break: break-word !important;
+}

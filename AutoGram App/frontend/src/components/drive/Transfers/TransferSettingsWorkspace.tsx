@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Upload,
@@ -60,6 +60,128 @@ import {
   type SearchableSettingItem,
   type SubMenuCategory,
 } from './transferSettingsSearchRegistry';
+
+function captionToEditorHtml(text: string, mode: 'MarkdownV2' | 'HTML' | 'Plain'): string {
+  if (!text) return '<p><br></p>';
+  const lines = text.split('\n');
+  let html = '';
+  let inUl = false;
+  let inOl = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const bulletMatch = line.match(/^•\s+(.*)/);
+    const numMatch = line.match(/^(\d+)[\.\\]\.\s+(.*)/) || line.match(/^(\d+)\.\s+(.*)/);
+
+    const formatLineText = (s: string) => {
+      if (mode === 'MarkdownV2') {
+        return s
+          .replace(/\|\|(.*?)\|\|/g, '<span class="spoiler">$1</span>')
+          .replace(/\*(.*?)\*/g, '<b>$1</b>')
+          .replace(/_(.*?)_/g, '<i>$1</i>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/~(.*?)~/g, '<s>$1</s>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+      }
+      if (mode === 'HTML') {
+        return s.replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="spoiler">$1</span>');
+      }
+      return s;
+    };
+
+    if (bulletMatch) {
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (!inUl) { html += '<ul class="td-editable-ul">'; inUl = true; }
+      html += `<li>${formatLineText(bulletMatch[1])}</li>`;
+    } else if (numMatch) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (!inOl) { html += '<ol class="td-editable-ol">'; inOl = true; }
+      html += `<li>${formatLineText(numMatch[2])}</li>`;
+    } else {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+      html += line ? `<p>${formatLineText(line)}</p>` : '<p><br></p>';
+    }
+  }
+  if (inUl) html += '</ul>';
+  if (inOl) html += '</ol>';
+  return html;
+}
+
+function domToCaptionText(container: HTMLElement, parseMode: 'MarkdownV2' | 'HTML' | 'Plain'): string {
+  const escapeMd = (s: string) => s.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+
+  const processNode = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return parseMode === 'MarkdownV2' ? escapeMd(node.nodeValue || '') : (node.nodeValue || '');
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    const children = () => Array.from(el.childNodes).map(processNode).join('');
+    const rawText = () => el.textContent || '';
+
+    if (tag === 'br') return '\n';
+    if (tag === 'b' || tag === 'strong') {
+      return parseMode === 'HTML' ? `<b>${children()}</b>` : parseMode === 'MarkdownV2' ? `*${children()}*` : children();
+    }
+    if (tag === 'i' || tag === 'em') {
+      return parseMode === 'HTML' ? `<i>${children()}</i>` : parseMode === 'MarkdownV2' ? `_${children()}_` : children();
+    }
+    if (tag === 'u') {
+      return parseMode === 'HTML' ? `<u>${children()}</u>` : parseMode === 'MarkdownV2' ? `__${children()}__` : children();
+    }
+    if (tag === 's' || tag === 'strike') {
+      return parseMode === 'HTML' ? `<s>${children()}</s>` : parseMode === 'MarkdownV2' ? `~${children()}~` : children();
+    }
+    if (tag === 'span' && (el.classList.contains('spoiler') || el.classList.contains('td-tg-spoiler'))) {
+      return parseMode === 'HTML' ? `<tg-spoiler>${children()}</tg-spoiler>` : parseMode === 'MarkdownV2' ? `||${children()}||` : children();
+    }
+    if (tag === 'code') {
+      return parseMode === 'HTML' ? `<code>${children()}</code>` : parseMode === 'MarkdownV2' ? `\`${rawText()}\`` : rawText();
+    }
+    if (tag === 'pre') {
+      return parseMode === 'HTML' ? `<pre>${children()}</pre>\n` : parseMode === 'MarkdownV2' ? `\`\`\`\n${rawText().trimEnd()}\n\`\`\`\n` : rawText() + '\n';
+    }
+    if (tag === 'a') {
+      const href = el.getAttribute('href') || '';
+      return parseMode === 'HTML' ? `<a href="${href}">${children()}</a>` : parseMode === 'MarkdownV2' ? `[${children()}](${href})` : children();
+    }
+    if (tag === 'blockquote') {
+      const isExpandable = el.getAttribute('data-expandable') === 'true' || el.hasAttribute('expandable');
+      if (parseMode === 'HTML') {
+        return isExpandable ? `<blockquote expandable>${children()}</blockquote>\n` : `<blockquote>${children()}</blockquote>\n`;
+      }
+      if (parseMode === 'MarkdownV2') {
+        const lines = rawText().trim().split('\n').map((l) => `> ${escapeMd(l)}`).join('\n');
+        return isExpandable ? `${lines}||\n` : `${lines}\n`;
+      }
+      return rawText() + '\n';
+    }
+    if (tag === 'ul') {
+      return Array.from(el.children)
+        .map((li) => `• ${processNode(li).trim()}`)
+        .join('\n') + '\n';
+    }
+    if (tag === 'ol') {
+      return Array.from(el.children)
+        .map((li, idx) => `${idx + 1}. ${processNode(li).trim()}`)
+        .join('\n') + '\n';
+    }
+    if (tag === 'li') return children();
+    if (tag === 'p' || tag === 'div') return children().trimEnd() + '\n';
+
+    return children();
+  };
+
+  return Array.from(container.childNodes)
+    .map(processNode)
+    .join('')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 export type WorkspaceTabState = 'menu' | SubMenuCategory;
 
@@ -125,8 +247,81 @@ export function TransferSettingsWorkspace({
 
   // Telegram Caption Studio State & Helpers
   const [captionTab, setCaptionTab] = useState<'editor' | 'preview'>('editor');
+  const [editorMode, setEditorMode] = useState<'visual' | 'raw'>('visual');
   const [captionToast, setCaptionToast] = useState<string | null>(null);
   const captionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editableDivRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (editorMode === 'visual' && editableDivRef.current) {
+      if (document.activeElement !== editableDivRef.current) {
+        editableDivRef.current.innerHTML = captionToEditorHtml(
+          draft.globalCaption || '',
+          draft.captionParseMode || 'MarkdownV2'
+        );
+      }
+    }
+  }, [captionTab, editorMode, draft.captionParseMode]);
+
+  const handleEditableInput = () => {
+    if (!editableDivRef.current) return;
+    const parsedText = domToCaptionText(editableDivRef.current, draft.captionParseMode || 'MarkdownV2');
+    patch({ globalCaption: parsedText });
+  };
+
+  const execCaptionFormatting = (formatType: string) => {
+    if (editorMode === 'visual' && editableDivRef.current) {
+      editableDivRef.current.focus();
+      if (formatType === 'bold') document.execCommand('bold', false);
+      else if (formatType === 'italic') document.execCommand('italic', false);
+      else if (formatType === 'underline') document.execCommand('underline', false);
+      else if (formatType === 'strike') document.execCommand('strikeThrough', false);
+      else if (formatType === 'bullet') document.execCommand('insertUnorderedList', false);
+      else if (formatType === 'numbered') document.execCommand('insertOrderedList', false);
+      else if (formatType === 'removeFormat') document.execCommand('removeFormat', false);
+      else if (formatType === 'spoiler') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          const span = document.createElement('span');
+          span.className = 'spoiler';
+          span.textContent = range.toString() || 'spoiler';
+          range.deleteContents();
+          range.insertNode(span);
+        }
+      } else if (formatType === 'quote') {
+        document.execCommand('formatBlock', false, 'blockquote');
+      } else if (formatType === 'code') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          const code = document.createElement('code');
+          code.textContent = range.toString() || 'code';
+          range.deleteContents();
+          range.insertNode(code);
+        }
+      } else if (formatType === 'pre') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount) {
+          const range = sel.getRangeAt(0);
+          const pre = document.createElement('pre');
+          pre.textContent = range.toString() || 'code block';
+          range.deleteContents();
+          range.insertNode(pre);
+        }
+      } else if (formatType === 'link') {
+        const url = prompt('Masukkan URL Telegram / Web:', 'https://t.me/tokokita') || 'https://t.me/tokokita';
+        document.execCommand('createLink', false, url);
+      } else if (formatType === 'mention') {
+        const userId = prompt('Masukkan Telegram User ID:', '123456789') || '123456789';
+        document.execCommand('createLink', false, `tg://user?id=${userId}`);
+      }
+
+      handleEditableInput();
+    } else {
+      applyCaptionFormatting(formatType);
+    }
+  };
 
   const triggerCaptionToast = (msg: string) => {
     setCaptionToast(msg);
@@ -807,7 +1002,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('bold')}
+                          onClick={() => execCaptionFormatting('bold')}
                           title="Tebal (*bold*)"
                         >
                           <b>B</b>
@@ -815,7 +1010,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('italic')}
+                          onClick={() => execCaptionFormatting('italic')}
                           title="Miring (_italic_)"
                         >
                           <i>I</i>
@@ -823,7 +1018,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('underline')}
+                          onClick={() => execCaptionFormatting('underline')}
                           title="Garis Bawah (__underline__)"
                         >
                           <u>U</u>
@@ -831,7 +1026,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('strike')}
+                          onClick={() => execCaptionFormatting('strike')}
                           title="Coret (~strikethrough~)"
                         >
                           <s>S</s>
@@ -839,7 +1034,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('spoiler')}
+                          onClick={() => execCaptionFormatting('spoiler')}
                           title="Spoiler (||spoiler||)"
                         >
                           <span style={{ letterSpacing: '-1px' }}>▩</span>
@@ -847,7 +1042,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool"
-                          onClick={() => applyCaptionFormatting('removeFormat')}
+                          onClick={() => execCaptionFormatting('removeFormat')}
                           title="Hapus Format"
                         >
                           <span style={{ fontSize: '11px', fontWeight: 800 }}>Tx</span>
@@ -860,7 +1055,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('quote')}
+                          onClick={() => execCaptionFormatting('quote')}
                           title="Kutipan Teks (> Quote)"
                         >
                           <span style={{ fontSize: '15px' }}>❝</span>
@@ -869,7 +1064,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('expandable')}
+                          onClick={() => execCaptionFormatting('expandable')}
                           title="Kutipan Dapat Diperluas (> Expandable||)"
                         >
                           <span style={{ fontSize: '15px' }}>❞+</span>
@@ -878,7 +1073,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('code')}
+                          onClick={() => execCaptionFormatting('code')}
                           title="Kode Inline (`code`)"
                         >
                           <Code size={15} />
@@ -887,7 +1082,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('pre')}
+                          onClick={() => execCaptionFormatting('pre')}
                           title="Blok Kode (```code```)"
                         >
                           <span style={{ fontSize: '12px', fontWeight: 800 }}>{`{ }`}</span>
@@ -901,7 +1096,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('link')}
+                          onClick={() => execCaptionFormatting('link')}
                           title="Sisipkan Link Tautan ([Label](URL))"
                         >
                           <Link size={15} />
@@ -910,7 +1105,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('mention')}
+                          onClick={() => execCaptionFormatting('mention')}
                           title="Mention Pengguna ([User](tg://user?id=X))"
                         >
                           <AtSign size={15} />
@@ -919,7 +1114,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('bullet')}
+                          onClick={() => execCaptionFormatting('bullet')}
                           title="Daftar Bullet (•)"
                         >
                           <List size={15} />
@@ -928,7 +1123,7 @@ export function TransferSettingsWorkspace({
                         <button
                           type="button"
                           className="td-ribbon-tool small-label"
-                          onClick={() => applyCaptionFormatting('numbered')}
+                          onClick={() => execCaptionFormatting('numbered')}
                           title="Daftar Bernomor (1.)"
                         >
                           <ListOrdered size={15} />
@@ -971,18 +1166,50 @@ export function TransferSettingsWorkspace({
                     </div>
                   </div>
 
+                  {/* MODE TOGGLE ROW: VISUAL WORD VS RAW CODE */}
+                  <div className="td-editor-mode-bar">
+                    <div className="td-editor-mode-tabs">
+                      <button
+                        type="button"
+                        className={`td-mode-tab ${editorMode === 'visual' ? 'active' : ''}`}
+                        onClick={() => setEditorMode('visual')}
+                      >
+                        📄 Document Editor (Hanging Indents)
+                      </button>
+                      <button
+                        type="button"
+                        className={`td-mode-tab ${editorMode === 'raw' ? 'active' : ''}`}
+                        onClick={() => setEditorMode('raw')}
+                      >
+                        &lt;/&gt; Raw Code Syntax
+                      </button>
+                    </div>
+                  </div>
+
                   {/* MAIN EDITOR DOCUMENT */}
                   <div className="td-caption-document">
-                    <textarea
-                      ref={captionTextareaRef}
-                      className="td-caption-editor-textarea"
-                      rows={5}
-                      value={draft.globalCaption || ''}
-                      disabled={!!transferActive}
-                      placeholder="Tulis caption Telegram di sini… Gunakan toolbar di atas untuk format bold, italic, link, spoiler, dll."
-                      onKeyDown={handleCaptionKeyDown}
-                      onChange={(e) => patch({ globalCaption: e.target.value })}
-                    />
+                    {editorMode === 'visual' ? (
+                      <div
+                        ref={editableDivRef}
+                        className="td-caption-editor-contenteditable"
+                        contentEditable={!transferActive}
+                        onInput={handleEditableInput}
+                        onBlur={handleEditableInput}
+                        onKeyUp={handleEditableInput}
+                        suppressContentEditableWarning
+                      />
+                    ) : (
+                      <textarea
+                        ref={captionTextareaRef}
+                        className="td-caption-editor-textarea"
+                        rows={5}
+                        value={draft.globalCaption || ''}
+                        disabled={!!transferActive}
+                        placeholder="Tulis caption Telegram di sini… Gunakan toolbar di atas untuk format bold, italic, link, spoiler, dll."
+                        onKeyDown={handleCaptionKeyDown}
+                        onChange={(e) => patch({ globalCaption: e.target.value })}
+                      />
+                    )}
                   </div>
 
                   {/* CAPTION OPTIONS ROW */}
