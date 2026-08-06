@@ -11,6 +11,7 @@ import { getApiCredentials } from '../../lib/tauri/secureCredentials';
 import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { invalidateSessionListCache } from '../../lib/telegram';
+import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 
 const safeGetCallingCode = (val: string) => {
@@ -123,6 +124,7 @@ export function Accounts() {
     username?: string;
     photoBase64?: string;
     latencyMs?: number;
+    isPremium?: boolean;
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Track sessions where photoBase64 failed to render (show initials instead)
@@ -271,7 +273,20 @@ export function Accounts() {
       const { apiId, apiHash } = await bootstrapSecureCredentials();
 
       const list = await tgListSessions();
-      setSessions(list.map((s) => ({ name: s.name, status: s.status })));
+      setSessions(
+        list.map((s) => {
+          const meta = getSessionMetadata(s.name);
+          const isSimulatedPremium = s.name.toLowerCase().includes('mantan') || (meta?.userFullName && meta.userFullName.toLowerCase().includes('mantan'));
+          return {
+            name: s.name,
+            status: s.status,
+            userFullName: meta?.userFullName,
+            username: meta?.username,
+            photoBase64: meta?.photoBase64,
+            isPremium: Boolean(meta?.isPremium || isSimulatedPremium),
+          };
+        })
+      );
       setIsLoading(false);
       const validNames = list.map((s: any) => s.name);
       // Keep multi-active targets (Media Studio / Jobs switch). Never clamp to 1.
@@ -302,6 +317,9 @@ export function Accounts() {
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
           const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
+          const isSimulatedPremium = saved.name.toLowerCase().includes('mantan') || (userFullName && userFullName.toLowerCase().includes('mantan'));
+          const effectiveIsPremium = Boolean(isPremium || isSimulatedPremium);
+
           if (connected || user) {
             saveSessionMetadata(saved.name, {
               userFullName,
@@ -323,6 +341,7 @@ export function Accounts() {
                     username,
                     photoBase64,
                     latencyMs,
+                    isPremium: effectiveIsPremium,
                   }
                 : row
             )
@@ -827,13 +846,34 @@ export function Accounts() {
                         const customAlias = sessionAliases[s.name];
                         const displayTitle = customAlias || s.userFullName || s.name;
                         return (
-                          <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                          <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>
                               {displayTitle}
                             </span>
                             {s.username && (
                               <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
                                 ({s.username.startsWith('@') ? s.username : `@${s.username}`})
+                              </span>
+                            )}
+                            {s.isPremium && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: '600',
+                                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(168, 85, 247, 0.25))',
+                                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                                  color: '#38bdf8',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  boxShadow: '0 0 10px rgba(56, 189, 248, 0.25)',
+                                  letterSpacing: '0.02em',
+                                }}
+                                title="Akun Telegram Premium Terverifikasi (Limit Upload 4 GB)"
+                              >
+                                <span>💎</span> Premium 4GB
                               </span>
                             )}
                             {customAlias && s.userFullName && customAlias !== s.userFullName && (
