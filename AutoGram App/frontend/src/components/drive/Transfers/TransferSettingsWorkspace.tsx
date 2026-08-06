@@ -1108,51 +1108,57 @@ export function TransferSettingsWorkspace({
                       <div className="td-ribbon-group">
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('bold')}
                           title="Tebal (*bold*)"
                         >
                           <b>B</b>
+                          <span>Tebal</span>
                         </button>
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('italic')}
                           title="Miring (_italic_)"
                         >
                           <i>I</i>
+                          <span>Miring</span>
                         </button>
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('underline')}
                           title="Garis Bawah (__underline__)"
                         >
                           <u>U</u>
+                          <span>Garis Bawah</span>
                         </button>
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('strike')}
                           title="Coret (~strikethrough~)"
                         >
                           <s>S</s>
+                          <span>Coret</span>
                         </button>
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('spoiler')}
                           title="Spoiler (||spoiler||)"
                         >
                           <span style={{ letterSpacing: '-1px' }}>▩</span>
+                          <span>Spoiler</span>
                         </button>
                         <button
                           type="button"
-                          className="td-ribbon-tool"
+                          className="td-ribbon-tool small-label"
                           onClick={() => execCaptionFormatting('removeFormat')}
                           title="Hapus Format"
                         >
                           <span style={{ fontSize: '11px', fontWeight: 800 }}>Tx</span>
+                          <span>Hapus Format</span>
                         </button>
                         <div className="td-ribbon-group-title">FORMAT TEKS</div>
                       </div>
