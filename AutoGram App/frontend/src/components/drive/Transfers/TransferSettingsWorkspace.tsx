@@ -2344,84 +2344,133 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* 1. FOUR STRATEGY TILES (5-SECOND READABILITY) */}
+              {/* 1. MASTER STRATEGY SELECTION (5-SECOND READABILITY) */}
               <div className="td-encoder-4x-grid" style={{ marginTop: '16px' }}>
-                {/* FIT TO LIMIT (RECOMMENDED SMART TARGET RE-ENCODE) */}
-                <label className={`td-encoder-tile ${(!draft.oversizeAction || draft.oversizeAction === 'fit_to_limit') ? 'is-selected' : ''}`}>
+                {/* AUTO ADAPTIVE SMART ENGINE (PRIMARY MASTER TILE) */}
+                <label className={`td-encoder-tile ${(!draft.oversizeAction || draft.oversizeAction === 'auto_adaptive') ? 'is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="oversizeAction"
-                    value="fit_to_limit"
-                    checked={!draft.oversizeAction || draft.oversizeAction === 'fit_to_limit'}
+                    value="auto_adaptive"
+                    checked={!draft.oversizeAction || draft.oversizeAction === 'auto_adaptive'}
                     disabled={!!transferActive}
-                    onChange={() => patch({ oversizeAction: 'fit_to_limit' })}
+                    onChange={() => patch({ oversizeAction: 'auto_adaptive' })}
                   />
                   <div>
                     <div className="td-tile-head">
                       <Zap size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.oversize_fit_title', 'Re-encode Fit-to-Limit (Target Limit <2GB/4GB)')}</strong>
+                      <strong>{t('speedtest.oversize_auto_title', 'Auto-Adaptive Smart Engine (Rekomendasi Utama)')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_fit_desc', 'Rekomendasi Cerdas. Menghitung bitrate ideal agar video dikompresi tepat mendekati 1.95GB/3.9GB agar tetap 1 file utuh tanpa split.')}</p>
+                    <p>{t('speedtest.oversize_auto_desc', 'Satu mode cerdas untuk semua kasus. Otomatis Fit-to-Limit untuk video, Split untuk ISO/ZIP, dan Routing Akun Premium jika tersedia.')}</p>
                   </div>
                 </label>
 
-                {/* SPLIT */}
-                <label className={`td-encoder-tile ${draft.oversizeAction === 'split' ? 'is-selected' : ''}`}>
+                {/* MANUAL OVERRIDE SELECTION */}
+                <label className={`td-encoder-tile ${draft.oversizeAction !== 'auto_adaptive' ? 'is-selected' : ''}`}>
                   <input
                     type="radio"
                     name="oversizeAction"
                     value="split"
-                    checked={draft.oversizeAction === 'split'}
+                    checked={draft.oversizeAction !== 'auto_adaptive'}
                     disabled={!!transferActive}
                     onChange={() => patch({ oversizeAction: 'split' })}
                   />
                   <div>
                     <div className="td-tile-head">
-                      <Sliders size={16} className="td-tile-icon is-auto" />
-                      <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Otomatis (Split Parts)')}</strong>
-                    </div>
-                    <p>{t('speedtest.oversize_split_desc', 'Membagi berkas besar >2GB menjadi beberapa bagian volume <2GB agar sukses terkirim di akun standar.')}</p>
-                  </div>
-                </label>
-
-                {/* ALTERNATE ACCOUNT */}
-                <label className={`td-encoder-tile ${draft.oversizeAction === 'alternate_account' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="oversizeAction"
-                    value="alternate_account"
-                    checked={draft.oversizeAction === 'alternate_account'}
-                    disabled={!!transferActive}
-                    onChange={() => patch({ oversizeAction: 'alternate_account' })}
-                  />
-                  <div>
-                    <div className="td-tile-head">
-                      <Film size={16} className="td-tile-icon is-gpu" />
-                      <strong>{t('speedtest.oversize_pool_title', 'Gunakan Akun Premium (4 GB)')}</strong>
-                    </div>
-                    <p>{t('speedtest.oversize_pool_desc', 'Mengalihkan pengunggahan berkas besar ke sesi akun Telegram Premium yang mendukung hingga 4 GB per berkas.')}</p>
-                  </div>
-                </label>
-
-                {/* SKIP */}
-                <label className={`td-encoder-tile ${draft.oversizeAction === 'skip' ? 'is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="oversizeAction"
-                    value="skip"
-                    checked={draft.oversizeAction === 'skip'}
-                    disabled={!!transferActive}
-                    onChange={() => patch({ oversizeAction: 'skip' })}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div className="td-tile-head">
                       <Sliders size={16} className="td-tile-icon is-disable" />
-                      <strong>{t('speedtest.oversize_skip_title', 'Lewati Berkas Oversize')}</strong>
+                      <strong>{t('speedtest.oversize_manual_title', 'Manual & Strategi Khusus')}</strong>
                     </div>
-                    <p>{t('speedtest.oversize_skip_desc', 'Abaikan dan lewati pengunggahan berkas besar yang melebihi batas Telegram.')}</p>
+                    <p>{t('speedtest.oversize_manual_desc', 'Tentukan tindakan manual secara spesifik (Selalu Split, Fit-to-Limit saja, Akun Premium saja, atau Skip).')}</p>
                   </div>
                 </label>
               </div>
+
+              {/* 2. COLLAPSIBLE MANUAL STRATEGY OPTIONS (IF MANUAL SELECTED) */}
+              {draft.oversizeAction !== 'auto_adaptive' && (
+                <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                  <h5 style={{ color: '#f8fafc', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
+                    {t('speedtest.oversize_manual_heading', 'Pilih Tindakan Manual Berkas Oversize:')}
+                  </h5>
+
+                  <div className="td-encoder-4x-grid">
+                    {/* FIT TO LIMIT */}
+                    <label className={`td-encoder-tile ${draft.oversizeAction === 'fit_to_limit' ? 'is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="manualOversizeAction"
+                        value="fit_to_limit"
+                        checked={draft.oversizeAction === 'fit_to_limit'}
+                        disabled={!!transferActive}
+                        onChange={() => patch({ oversizeAction: 'fit_to_limit' })}
+                      />
+                      <div>
+                        <div className="td-tile-head">
+                          <Zap size={16} className="td-tile-icon is-auto" />
+                          <strong>{t('speedtest.oversize_fit_title', 'Fit-to-Limit Saja')}</strong>
+                        </div>
+                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Hitung bitrate ideal agar dikompresi tepat mendekati 1.95GB/3.9GB tanpa split.')}</p>
+                      </div>
+                    </label>
+
+                    {/* SPLIT */}
+                    <label className={`td-encoder-tile ${draft.oversizeAction === 'split' ? 'is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="manualOversizeAction"
+                        value="split"
+                        checked={draft.oversizeAction === 'split'}
+                        disabled={!!transferActive}
+                        onChange={() => patch({ oversizeAction: 'split' })}
+                      />
+                      <div>
+                        <div className="td-tile-head">
+                          <Sliders size={16} className="td-tile-icon is-auto" />
+                          <strong>{t('speedtest.oversize_split_title', 'Pecah Berkas Saja (Split Parts)')}</strong>
+                        </div>
+                        <p>{t('speedtest.oversize_split_desc', 'Selalu membagi berkas besar >2GB menjadi bagian volume <2GB.')}</p>
+                      </div>
+                    </label>
+
+                    {/* ALTERNATE ACCOUNT */}
+                    <label className={`td-encoder-tile ${draft.oversizeAction === 'alternate_account' ? 'is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="manualOversizeAction"
+                        value="alternate_account"
+                        checked={draft.oversizeAction === 'alternate_account'}
+                        disabled={!!transferActive}
+                        onChange={() => patch({ oversizeAction: 'alternate_account' })}
+                      />
+                      <div>
+                        <div className="td-tile-head">
+                          <Film size={16} className="td-tile-icon is-gpu" />
+                          <strong>{t('speedtest.oversize_pool_title', 'Pool Akun Premium (4 GB)')}</strong>
+                        </div>
+                        <p>{t('speedtest.oversize_pool_desc', 'Mengalihkan pengunggahan ke sesi akun Telegram Premium.')}</p>
+                      </div>
+                    </label>
+
+                    {/* SKIP */}
+                    <label className={`td-encoder-tile ${draft.oversizeAction === 'skip' ? 'is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="manualOversizeAction"
+                        value="skip"
+                        checked={draft.oversizeAction === 'skip'}
+                        disabled={!!transferActive}
+                        onChange={() => patch({ oversizeAction: 'skip' })}
+                      />
+                      <div>
+                        <div className="td-tile-head">
+                          <Sliders size={16} className="td-tile-icon is-disable" />
+                          <strong>{t('speedtest.oversize_skip_title', 'Lewati Saja (Skip)')}</strong>
+                        </div>
+                        <p>{t('speedtest.oversize_skip_desc', 'Abaikan dan lewati pengunggahan berkas oversize.')}</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {/* 2. ALTERNATE ACCOUNT ROUTING SUBSECTION */}
               {draft.oversizeAction === 'alternate_account' && (
