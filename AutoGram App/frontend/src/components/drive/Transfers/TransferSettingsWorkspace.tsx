@@ -26,6 +26,8 @@ import {
   DownloadCloud,
   ArrowLeft,
   ChevronRight,
+  Plus,
+  ChevronDown,
 } from 'lucide-react';
 import type {
   DriveTransferSettings,
@@ -93,6 +95,7 @@ export function TransferSettingsWorkspace({
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [profileName, setProfileName] = useState('');
   const [pendingProfileLoad, setPendingProfileLoad] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
@@ -1082,22 +1085,70 @@ export function TransferSettingsWorkspace({
                 <h5 className="td-drawer-section-title" style={{ marginTop: '22px' }}>Manajemen Profil Tersimpan</h5>
                 <div className="td-profile-mgr-card">
                   <div className="td-profile-row">
-                    {/* MODERN STYLED PROFILE DROPDOWN */}
-                    <div className="td-profile-select-wrapper">
-                      <Bookmark size={15} className="td-select-left-icon" />
-                      <select
-                        value={selectedProfileId}
+                    {/* CUSTOM GLASSMORPHIC PROFILE SELECTOR */}
+                    <div className="td-custom-select-container">
+                      <button
+                        type="button"
+                        className={`td-custom-select-trigger ${isDropdownOpen ? 'is-active' : ''}`}
+                        onClick={() => setIsDropdownOpen((prev) => !prev)}
                         disabled={!!transferActive}
-                        onChange={(e) => loadProfile(e.target.value)}
-                        className="td-modern-profile-select"
                       >
-                        <option value="">{t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}</option>
-                        {profiles.map((profile) => (
-                          <option key={profile.id} value={profile.id}>
-                            {profile.name}
-                          </option>
-                        ))}
-                      </select>
+                        <div className="td-trigger-left">
+                          <Bookmark size={15} className="td-trigger-icon" />
+                          <span className="td-trigger-text">
+                            {selectedProfileId
+                              ? profiles.find((p) => p.id === selectedProfileId)?.name || 'Profil Kustom'
+                              : t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}
+                          </span>
+                        </div>
+                        <ChevronDown size={14} className={`td-trigger-chevron ${isDropdownOpen ? 'is-open' : ''}`} />
+                      </button>
+
+                      {/* FLOATING GLASSMORPHIC MENU */}
+                      {isDropdownOpen && (
+                        <>
+                          <div className="td-select-backdrop" onClick={() => setIsDropdownOpen(false)} />
+                          <div className="td-custom-select-menu">
+                            <div
+                              className={`td-select-option ${!selectedProfileId ? 'is-selected' : ''}`}
+                              onClick={() => {
+                                setSelectedProfileId('');
+                                setProfileName('');
+                                setIsDropdownOpen(false);
+                              }}
+                            >
+                              <Plus size={14} className="td-opt-icon" />
+                              <span>{t('speedtest.transfer_profiles_new', '+ Buat Profil Baru')}</span>
+                            </div>
+
+                            <div className="td-select-divider" />
+
+                            <div className="td-select-scroll-area">
+                              {profiles.length > 0 ? (
+                                profiles.map((p) => {
+                                  const isSelected = selectedProfileId === p.id;
+                                  return (
+                                    <div
+                                      key={p.id}
+                                      className={`td-select-option ${isSelected ? 'is-selected' : ''}`}
+                                      onClick={() => {
+                                        loadProfile(p.id);
+                                        setIsDropdownOpen(false);
+                                      }}
+                                    >
+                                      <Bookmark size={14} className="td-opt-icon" />
+                                      <span className="td-opt-name">{p.name}</span>
+                                      {isSelected && <CheckCircle2 size={13} className="td-opt-check" />}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div className="td-select-empty">Belum ada profil tersimpan</div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* PROFILE NAME INPUT */}
@@ -1117,16 +1168,22 @@ export function TransferSettingsWorkspace({
                     <button
                       type="button"
                       className="td-chip-btn td-chip-primary"
-                      onClick={saveProfile}
+                      onClick={() => {
+                        saveProfile();
+                        setIsDropdownOpen(false);
+                      }}
                       disabled={!!transferActive || !profileName.trim()}
                     >
-                      <Save size={14} /> {t('speedtest.transfer_profiles_save', 'Simpan Profil')}
+                      <Save size={14} /> {selectedProfileId ? 'Update Profil' : 'Simpan Profil Baru'}
                     </button>
                     {selectedProfileId && (
                       <button
                         type="button"
                         className="td-chip-btn td-chip-danger"
-                        onClick={deleteProfile}
+                        onClick={() => {
+                          deleteProfile();
+                          setIsDropdownOpen(false);
+                        }}
                         disabled={!!transferActive}
                       >
                         <Trash2 size={14} /> {t('speedtest.transfer_profiles_delete', 'Hapus Profil')}
