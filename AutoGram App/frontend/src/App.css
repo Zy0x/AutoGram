@@ -17209,9 +17209,10 @@ video.drive-zip-img {
 
 .td-mode-grid-3 {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
-  gap: 16px !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
   align-items: end !important;
+  width: 100% !important;
 }
 
 .td-mode-grid-3 label {
@@ -17236,6 +17237,13 @@ video.drive-zip-img {
   font-weight: 600 !important;
   outline: none !important;
   cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 640px) {
+  .td-mode-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* TELEGRAM PHONE MOCKUP PREVIEW */
