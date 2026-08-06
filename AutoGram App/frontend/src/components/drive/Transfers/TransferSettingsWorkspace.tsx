@@ -54,7 +54,6 @@ import {
 import {
   loadSelectableSessions,
   getSessionMetadata,
-  getSessionDisplayName,
   type SessionOption,
 } from '../../../lib/telegram/core/sessionPicker';
 
@@ -2509,9 +2508,20 @@ export function TransferSettingsWorkspace({
                           availableSessions.map((sess) => {
                             const isSelected = (draft.alternateAccountPool || '').split(',').map(s => s.trim()).includes(sess.name);
                             const meta = getSessionMetadata(sess.name);
-                            const displayName = sess.label || getSessionDisplayName(sess.name);
-                            const usernameTag = meta?.username ? (meta.username.startsWith('@') ? meta.username : `@${meta.username}`) : '';
                             
+                            // Construct clean, non-redundant label: "Name (@username)" or "Name" or "@username" or sess.name
+                            let cleanLabel = sess.name;
+                            if (meta?.userFullName && meta?.username) {
+                              const u = meta.username.startsWith('@') ? meta.username : `@${meta.username}`;
+                              cleanLabel = `${meta.userFullName.trim()} (${u})`;
+                            } else if (meta?.userFullName) {
+                              cleanLabel = meta.userFullName.trim();
+                            } else if (meta?.username) {
+                              cleanLabel = meta.username.startsWith('@') ? meta.username : `@${meta.username}`;
+                            } else if (sess.label) {
+                              cleanLabel = sess.label;
+                            }
+
                             // Strict session status & Premium accuracy checks
                             const isProblematic = sess.status === 'error' || sess.status === 'expired' || sess.status === 'revoked' || sess.status === 'unauthorized';
                             const isPremium = meta?.isPremium === true || (meta as any)?.is_premium === true;
@@ -2536,10 +2546,8 @@ export function TransferSettingsWorkspace({
                                   title="Sesi ini bermasalah atau expired. Tidak dapat digunakan untuk transfer."
                                 >
                                   <span>🔴</span>
-                                  <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <strong style={{ color: '#fca5a5' }}>{displayName}</strong>
-                                    <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>[Bermasalah / Expired]</span>
-                                  </div>
+                                  <strong style={{ color: '#fca5a5' }}>{cleanLabel}</strong>
+                                  <span style={{ color: '#ef4444', fontSize: '10px', fontWeight: 600 }}>[Bermasalah]</span>
                                 </div>
                               );
                             }
@@ -2564,13 +2572,10 @@ export function TransferSettingsWorkspace({
                                   title="Akun Standar gratis hanya mendukung batas 2 GB. Tidak dapat dimasukkan ke Pool Premium 4 GB."
                                 >
                                   <span>⚪</span>
-                                  <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span>{displayName}</span>
-                                    {usernameTag && <span style={{ fontSize: '11px', color: '#64748b' }}>({usernameTag})</span>}
-                                    <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
-                                      Standar 2GB (Non-Premium)
-                                    </span>
-                                  </div>
+                                  <span>{cleanLabel}</span>
+                                  <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
+                                    Standar 2GB
+                                  </span>
                                 </div>
                               );
                             }
@@ -2601,19 +2606,9 @@ export function TransferSettingsWorkspace({
                                 }}
                               >
                                 <span>💎</span>
-                                <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <strong style={{ color: isSelected ? '#38bdf8' : '#f8fafc' }}>
-                                    {displayName}
-                                  </strong>
-                                  {usernameTag && usernameTag !== displayName && (
-                                    <span style={{ color: '#94a3b8', fontSize: '11px' }}>
-                                      ({usernameTag})
-                                    </span>
-                                  )}
-                                  <span style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px', fontStyle: 'italic' }}>
-                                    [{sess.name}]
-                                  </span>
-                                </div>
+                                <strong style={{ color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                                  {cleanLabel}
+                                </strong>
                                 <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
                                   Premium 4GB
                                 </span>
