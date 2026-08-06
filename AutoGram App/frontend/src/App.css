@@ -17644,6 +17644,97 @@ input[type="search"]::-webkit-search-decoration {
   display: none !important;
 }
 
+/* MASTER ENCODING UPLOADER PARENT SECTION */
+.td-encoding-master-card {
+  background: rgba(15, 23, 42, 0.45) !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 20px rgba(56, 189, 248, 0.08) !important;
+  position: relative !important;
+}
+
+.td-encoding-master-header {
+  margin-bottom: 20px !important;
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.td-encoding-master-head-left {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+}
+
+.td-master-icon-badge {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15) !important;
+}
+
+.td-master-title-flex {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+.td-master-title-flex h3 {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #f8fafc !important;
+  margin: 0 !important;
+  letter-spacing: -0.2px !important;
+}
+
+.td-uploader-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 3px 9px !important;
+  border-radius: 999px !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #38bdf8 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.td-master-desc {
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+  line-height: 1.5 !important;
+  margin-top: 6px !important;
+  margin-bottom: 0 !important;
+}
+
+.td-master-desc strong {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+}
+
+.td-master-desc em {
+  color: #cbd5e1 !important;
+  font-style: normal !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+.td-settings-card.is-nested-card {
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
 /* STUDIO TOP BAR WITH TABS */
 .td-studio-top-bar {
   display: flex !important;
