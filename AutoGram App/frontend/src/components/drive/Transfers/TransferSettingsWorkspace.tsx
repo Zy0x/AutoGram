@@ -228,6 +228,7 @@ export interface TransferSettingsWorkspaceProps {
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
   onSelectTool?: (toolTab: string) => void;
+  activeCategory?: SubMenuCategory;
 }
 
 export function TransferSettingsWorkspace({
@@ -239,12 +240,19 @@ export function TransferSettingsWorkspace({
   searchQuery: propsSearchQuery,
   onSearchQueryChange: propsOnSearchQueryChange,
   onSelectTool,
+  activeCategory: propsActiveCategory,
 }: TransferSettingsWorkspaceProps) {
   const { t } = useTranslation();
   const searchInputId = useId();
 
-  // Navigation state: 'menu' (main overview list) or direct sub-menu category
-  const [activeTab, setActiveTab] = useState<WorkspaceTabState>('menu');
+  // Navigation state: direct sub-menu category or fallback 'menu'
+  const [activeTab, setActiveTab] = useState<WorkspaceTabState>(() => propsActiveCategory || 'upload');
+
+  useEffect(() => {
+    if (propsActiveCategory) {
+      setActiveTab(propsActiveCategory);
+    }
+  }, [propsActiveCategory]);
   const [internalSettingsQuery, setInternalSettingsQuery] = useState('');
 
   const settingsQuery = propsSearchQuery !== undefined ? propsSearchQuery : internalSettingsQuery;
@@ -975,6 +983,56 @@ export function TransferSettingsWorkspace({
 
       {/* MAIN FOCUSED WORKSPACE VIEWPORT */}
       <main className="td-xfer-panel-viewport">
+        {/* TOP MINI PRESET BAR (VISIBLE ON ALL CONFIGURATION PAGES) */}
+        {activeTab !== 'menu' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(15, 23, 42, 0.45)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              padding: '8px 14px',
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <Sparkles size={15} style={{ color: '#38bdf8' }} />
+              <span style={{ color: '#94a3b8' }}>Preset Konfigurasi:</span>
+              <strong style={{ color: '#38bdf8', fontWeight: 600 }}>{activePresetName}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {SYSTEM_TRANSFER_PRESETS.map((preset) => {
+                const isSelected = activePresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    disabled={!!transferActive}
+                    onClick={() => applyPreset(preset.settings)}
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: '11px',
+                      borderRadius: '14px',
+                      background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                      border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      color: isSelected ? '#38bdf8' : '#cbd5e1',
+                      cursor: 'pointer',
+                      fontWeight: isSelected ? 600 : 400,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {preset.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* LEVEL 1: MAIN MENU OVERVIEW (PRESET ACTIVE STRIP + CATEGORY LIST BUTTONS) */}
         {activeTab === 'menu' && (
           <div className="td-xfer-menu-page">

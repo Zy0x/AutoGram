@@ -433,7 +433,7 @@ export function DriveToolsPanel({
                 {group.tabs.map((tItem) => {
                   const Icon = tItem.icon;
                   const isActive = tab === tItem.id;
-                  const tabLabel = t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
+                  const tabLabel = tItem.labelDefault || t(`speedtest.tools_tab_${tItem.id === 'transfer' ? 'settings' : tItem.id}`);
                   return (
                     <button
                       key={tItem.id}
@@ -851,7 +851,7 @@ export function DriveToolsPanel({
             </div>
           )}
 
-          {tab === 'transfer' && (
+          {['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'advanced'].includes(tab) && (
             <TransferTabContent
               draft={xferDraft}
               onChange={patchXfer}
@@ -863,6 +863,17 @@ export function DriveToolsPanel({
               searchQuery={toolsSearchQuery}
               onSearchQueryChange={setToolsSearchQuery}
               onSelectTool={(toolId) => onTab(toolId as any)}
+              activeCategory={
+                tab === 'album'
+                  ? 'albums'
+                  : tab === 'duplicate'
+                  ? 'duplicates'
+                  : tab === 'oversize'
+                  ? 'limits_recovery'
+                  : tab === 'transfer'
+                  ? 'upload'
+                  : (tab as any)
+              }
             />
           )}
           </main>
@@ -882,6 +893,7 @@ function TransferTabContent({
   searchQuery,
   onSearchQueryChange,
   onSelectTool,
+  activeCategory,
 }: {
   draft: DriveTransferSettings;
   onChange: (partial: Partial<DriveTransferSettings>) => void;
@@ -893,6 +905,7 @@ function TransferTabContent({
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
   onSelectTool?: (toolTab: DriveToolsTab) => void;
+  activeCategory?: any;
 }) {
   return (
     <TransferSettingsWorkspace
@@ -903,6 +916,7 @@ function TransferTabContent({
       searchQuery={searchQuery}
       onSearchQueryChange={onSearchQueryChange}
       onSelectTool={(tool) => onSelectTool?.(tool as DriveToolsTab)}
+      activeCategory={activeCategory}
     />
   );
 }

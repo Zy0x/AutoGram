@@ -1,7 +1,33 @@
-import { Copy, HardDrive, Layers, Type, Filter, Settings2 } from 'lucide-react';
+import {
+  Copy,
+  HardDrive,
+  Layers,
+  Type,
+  Filter,
+  Upload,
+  Download,
+  Film,
+  FolderTree,
+  CopyCheck,
+  HardDriveUpload,
+  SlidersHorizontal,
+} from 'lucide-react';
 import type { DupGroup } from '../../../lib/telegram';
 
-export type DriveToolsTab = 'dups' | 'space' | 'rename' | 'copy' | 'filter' | 'transfer';
+export type DriveToolsTab =
+  | 'dups'
+  | 'space'
+  | 'rename'
+  | 'copy'
+  | 'filter'
+  | 'transfer'
+  | 'upload'
+  | 'download'
+  | 'encoding'
+  | 'album'
+  | 'duplicate'
+  | 'oversize'
+  | 'advanced';
 
 export function smartDeleteIds(groups: DupGroup[], keepNewest: boolean): Set<number> {
   const out = new Set<number>();
@@ -25,7 +51,7 @@ export function preferredKeepId(g: DupGroup, keepNewest: boolean): number | null
 
 export const TOOL_GROUPS: {
   titleKey: string;
-  tabs: { id: DriveToolsTab; icon: any }[];
+  tabs: { id: DriveToolsTab; icon: any; labelDefault?: string }[];
 }[] = [
   {
     titleKey: 'speedtest.tools_group_drive',
@@ -40,7 +66,13 @@ export const TOOL_GROUPS: {
   {
     titleKey: 'speedtest.tools_group_settings',
     tabs: [
-      { id: 'transfer', icon: Settings2 },
+      { id: 'upload', icon: Upload, labelDefault: 'Upload' },
+      { id: 'download', icon: Download, labelDefault: 'Download' },
+      { id: 'encoding', icon: Film, labelDefault: 'Encoding Video' },
+      { id: 'album', icon: FolderTree, labelDefault: 'Pengelompokan Album' },
+      { id: 'duplicate', icon: CopyCheck, labelDefault: 'Penanganan Duplikat' },
+      { id: 'oversize', icon: HardDriveUpload, labelDefault: 'Penanganan Berkas Besar' },
+      { id: 'advanced', icon: SlidersHorizontal, labelDefault: 'Pengaturan Lanjutan' },
     ],
   },
 ];
