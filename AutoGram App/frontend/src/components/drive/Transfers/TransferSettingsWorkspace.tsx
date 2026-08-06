@@ -1940,8 +1940,8 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                {/* 1. THREE STRATEGY TILES */}
-                <div className="td-encoder-4x-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', margin: '16px 0' }}>
+                {/* 1. STRATEGY TILES (MATCHED WITH UPLOAD ENGINE LAYOUT) */}
+                <div className="td-encoder-4x-grid">
                   {/* AUTO */}
                   <label className={`td-encoder-tile ${(!draft.playbackHwDecoding || draft.playbackHwDecoding === 'auto') ? 'is-selected' : ''}`}>
                     <input
@@ -1996,6 +1996,12 @@ export function TransferSettingsWorkspace({
                         <strong>{t('speedtest.playback_cpu_title', 'Software (CPU)')}</strong>
                       </div>
                       <p>{t('speedtest.playback_cpu_desc', 'Gunakan prosesor CPU bawaan sistem jika GPU bermasalah.')}</p>
+                      {draft.playbackHwDecoding === 'software' && (
+                        <div className="td-tile-cpu-badge">
+                          <span className="td-cpu-dot" />
+                          <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
+                        </div>
+                      )}
                     </div>
                   </label>
                 </div>
