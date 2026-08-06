@@ -442,13 +442,43 @@ fn handle_oversize_prepared(
                 }
             }
             let approved_sessions = approved_alternate_sessions(rec);
-            let alternate = grammers_ops::resolve_approved_alternate_identity(
+            let alternate = match grammers_ops::resolve_approved_alternate_identity(
                 sessions,
                 identity,
                 &rec.chat_id,
                 actual_size,
                 &approved_sessions,
-            )?;
+            ) {
+                Ok(alt) => alt,
+                Err(err) => {
+                    let fallback_action = rec
+                        .options
+                        .get("oversize_fallback_action")
+                        .or_else(|| rec.options.get("oversizeFallbackAction"))
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("split");
+
+                    crate::core::tg_log::warn(
+                        "studio_orch",
+                        "alternate_account_fallback",
+                        format!("No eligible premium session ({err}). Using fallback strategy '{fallback_action}'"),
+                    );
+
+                    match fallback_action {
+                        "skip" => {
+                            let message = format!("oversize_skip: {actual_size} bytes exceeds limit {limit} and no premium session is available");
+                            let state = ItemState::Skipped;
+                            job_queue::update_item(tid, item_index, state.clone(), None, Some(message.clone()))?;
+                            emit_album_item_result(app, item_index, &state, None, Some(message));
+                            return Ok(Some(true));
+                        }
+                        _ => {
+                            // Fall back to split parts engine
+                            return Ok(None);
+                        }
+                    }
+                }
+            };
             let result = grammers_ops::upload_file_blocking_topic_with_delivery(
                 sessions,
                 &alternate,
