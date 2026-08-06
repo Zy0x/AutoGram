@@ -51,6 +51,12 @@ import {
   loadTransferSettingsProfiles,
   saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
+import {
+  loadSelectableSessions,
+  getSessionMetadata,
+  getSessionDisplayName,
+  type SessionOption,
+} from '../../../lib/telegram/core/sessionPicker';
 
 function getEffectiveCaptionPosition(draft: { captionPosition?: CaptionPosition; captionAbove?: boolean }): CaptionPosition {
   if (draft.captionPosition) return draft.captionPosition;
@@ -248,7 +254,18 @@ export function TransferSettingsWorkspace({
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Baseline vs Draft state
+  // Session picker state for alternate account pool
+  const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    loadSelectableSessions({ verify: false }).then((res) => {
+      if (active && Array.isArray(res)) {
+        setAvailableSessions(res);
+      }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const [baseline, setBaseline] = useState<DriveTransferSettings>(() => normalizeTransferSettings(settings));
   const [draft, setDraft] = useState<DriveTransferSettings>(() => normalizeTransferSettings(settings));
 
@@ -2488,61 +2505,63 @@ export function TransferSettingsWorkspace({
                     {/* INTERACTIVE PREMIUM SESSIONS CHIPS & SELECTOR */}
                     <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                        {/* DETECTED SESSIONS EXAMPLE CHIPS */}
-                        {['session_premium_1', 'session_premium_2'].map((sess) => {
-                          const isSelected = (draft.alternateAccountPool || '').includes(sess);
-                          return (
-                            <button
-                              key={sess}
-                              type="button"
-                              disabled={!!transferActive}
-                              onClick={() => {
-                                const current = (draft.alternateAccountPool || '').split(',').map(s => s.trim()).filter(Boolean);
-                                const next = isSelected ? current.filter(c => c !== sess) : [...current, sess];
-                                patch({ alternateAccountPool: next.join(', ') });
-                              }}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.04)',
-                                border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
-                                color: isSelected ? '#38bdf8' : '#94a3b8',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: 500,
-                              }}
-                            >
-                              <span>💎</span>
-                              <strong>{sess}</strong>
-                              <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 5px', borderRadius: '4px' }}>Premium 4GB</span>
-                            </button>
-                          );
-                        })}
+                        {availableSessions.length > 0 ? (
+                          availableSessions.map((sess) => {
+                            const isSelected = (draft.alternateAccountPool || '').split(',').map(s => s.trim()).includes(sess.name);
+                            const meta = getSessionMetadata(sess.name);
+                            const displayName = sess.label || getSessionDisplayName(sess.name);
+                            const usernameTag = meta?.username ? (meta.username.startsWith('@') ? meta.username : `@${meta.username}`) : '';
 
-                        {/* NON-PREMIUM DISABLED SESSION SAMPLE */}
-                        <div
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            color: '#64748b',
-                            padding: '4px 10px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            opacity: 0.6,
-                            cursor: 'not-allowed',
-                          }}
-                          title="Akun Standar gratis hanya mendukung maksimal 2 GB (Bukan Premium)"
-                        >
-                          <span>⚪</span>
-                          <span>session_standard (Gratis 2GB)</span>
-                          <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#64748b', padding: '1px 4px', borderRadius: '4px' }}>Non-Premium</span>
-                        </div>
+                            return (
+                              <button
+                                key={sess.name}
+                                type="button"
+                                disabled={!!transferActive}
+                                onClick={() => {
+                                  const current = (draft.alternateAccountPool || '').split(',').map(s => s.trim()).filter(Boolean);
+                                  const next = isSelected ? current.filter(c => c !== sess.name) : [...current, sess.name];
+                                  patch({ alternateAccountPool: next.join(', ') });
+                                }}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.04)',
+                                  border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                                  color: isSelected ? '#38bdf8' : '#e2e8f0',
+                                  padding: '6px 12px',
+                                  borderRadius: '20px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  fontWeight: 500,
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <span>💎</span>
+                                <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <strong style={{ color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                                    {displayName}
+                                  </strong>
+                                  {usernameTag && usernameTag !== displayName && (
+                                    <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                                      ({usernameTag})
+                                    </span>
+                                  )}
+                                  <span style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px', fontStyle: 'italic' }}>
+                                    [{sess.name}]
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                                  Premium 4GB
+                                </span>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div style={{ fontSize: '12px', color: '#94a3b8', padding: '4px 0' }}>
+                            💡 Belum ada sesi terdeteksi secara otomatis. Silakan pilih atau ketik nama file sesi di bawah ini:
+                          </div>
+                        )}
                       </div>
 
                       {/* RAW INPUT FALLBACK */}
@@ -2550,9 +2569,9 @@ export function TransferSettingsWorkspace({
                         type="text"
                         value={draft.alternateAccountPool || ''}
                         disabled={!!transferActive}
-                        placeholder="Atau ketik nama sesi tambahan dipisah koma (contoh: session_premium1, session_premium2)"
+                        placeholder="Atau ketik nama sesi tambahan dipisah koma (contoh: main_account, premium_user)"
                         onChange={(e) => patch({ alternateAccountPool: e.target.value })}
-                        style={{ fontSize: '12px', padding: '8px 10px' }}
+                        style={{ fontSize: '12px', padding: '8px 10px', width: '100%' }}
                       />
                     </div>
                   </div>
