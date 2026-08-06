@@ -2107,22 +2107,25 @@ export function TransferSettingsWorkspace({
               {draft.groupAsAlbum && (
                 <div className="td-conditional-box">
                   <div className="td-field-group">
-                    <label className="td-field-label">Ukuran Kelompok Album</label>
-                    <select
-                      value={draft.albumGroupSize || 10}
-                      disabled={!!transferActive}
-                      onChange={(e) => patch({ albumGroupSize: Number(e.target.value) })}
-                    >
-                      <option value={10}>Otomatis Standard Telegram (10 media / album) [Maksimal]</option>
-                      <option value={9}>9 media / album</option>
-                      <option value={8}>8 media / album</option>
-                      <option value={7}>7 media / album</option>
-                      <option value={6}>6 media / album</option>
-                      <option value={5}>Ringkas (5 media / album)</option>
-                      <option value={4}>4 media / album</option>
-                      <option value={3}>3 media / album</option>
-                      <option value={2}>Pasangan (2 media / album)</option>
-                    </select>
+                    <label className="td-field-label">Ukuran Kelompok Album (Maximum Media Items)</label>
+                    <div className="td-slider-row-box">
+                      <input
+                        type="range"
+                        min={2}
+                        max={10}
+                        value={draft.albumGroupSize || 10}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ albumGroupSize: Number(e.target.value) })}
+                      />
+                      <div className="td-slider-value-bar">
+                        <span className="td-slider-val">{draft.albumGroupSize || 10} Media / Album</span>
+                        <span className="td-concurrency-badge">
+                          {(draft.albumGroupSize || 10) === 10 && '⚡ Standard Maksimal Telegram (10 Media)'}
+                          {(draft.albumGroupSize || 10) >= 5 && (draft.albumGroupSize || 10) <= 9 && '📦 Kelompok Sedang'}
+                          {(draft.albumGroupSize || 10) >= 2 && (draft.albumGroupSize || 10) <= 4 && '👥 Kelompok Ringkas'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="td-switches-list" style={{ marginTop: '16px' }}>
