@@ -3,7 +3,6 @@ import {
   List,
   Upload,
   Download,
-  ListTodo,
   Trash2,
   RefreshCw,
   Menu,
@@ -17,7 +16,6 @@ import {
   SendHorizontal,
   MousePointerClick,
   SlidersHorizontal,
-  Settings2,
   Pin,
   PinOff,
   Copy,
@@ -165,7 +163,7 @@ export function DriveTopBar({
   onMoveSelected,
   onRefresh,
   onOpenTransferSettings,
-  onOpenTransferManager,
+  onOpenTransferManager: _onOpenTransferManager,
   transferBusy,
   actionsDisabled,
   transferHasHistory,
@@ -571,38 +569,22 @@ export function DriveTopBar({
           {onOpenTransferSettings && (
             <button
               type="button"
-              className="td-icon-btn"
-              onClick={onOpenTransferSettings}
-              disabled={!!actionsDisabled}
-              title={t('speedtest.topbar_open_transfer_settings')}
-              aria-label={t('speedtest.topbar_open_transfer_settings')}
-            >
-              <Settings2 size={16} />
-            </button>
-          )}
-          {onOpenTransferManager && (
-            <button
-              type="button"
               className={`td-icon-btn td-transfer-open-btn ${transferBusy ? 'is-busy' : ''} ${
                 transferHasHistory ? 'has-history' : ''
               } badge-${transferBadgeKind}`}
-              onClick={onOpenTransferManager}
+              onClick={onOpenTransferSettings}
               title={
                 transferBusy
-                  ? `Transfer Manager — ${transferBadgeCount} file berjalan`
+                  ? `Drive Tools & Settings — ${transferBadgeCount} file berjalan`
                   : transferBadgeKind === 'error'
-                    ? `Transfer Manager — ${transferBadgeCount} gagal`
+                    ? `Drive Tools & Settings — ${transferBadgeCount} gagal`
                     : transferBadgeKind === 'done'
-                      ? `Transfer Manager — ${transferBadgeCount} selesai`
-                      : t('speedtest.topbar_open_transfer_manager')
+                      ? `Drive Tools & Settings — ${transferBadgeCount} selesai`
+                      : 'Drive Tools & Settings'
               }
-              aria-label={
-                transferBadgeCount > 0
-                  ? `Transfer Manager, ${transferBadgeCount} item`
-                  : 'Transfer Manager'
-              }
+              aria-label="Drive Tools & Settings"
             >
-              <ListTodo size={16} />
+              <SlidersHorizontal size={16} />
               {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
                 <span
                   className={`td-transfer-badge kind-${transferBadgeKind}`}
