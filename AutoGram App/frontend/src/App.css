@@ -17209,14 +17209,33 @@ video.drive-zip-img {
 
 .td-mode-grid-3 {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
   gap: 16px !important;
+  align-items: end !important;
 }
 
-@media (max-width: 768px) {
-  .td-mode-grid-3 {
-    grid-template-columns: 1fr !important;
-  }
+.td-mode-grid-3 label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  min-width: 0 !important;
+}
+
+.td-mode-grid-3 select {
+  width: 100% !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  color: #f8fafc !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  cursor: pointer !important;
 }
 
 /* TELEGRAM PHONE MOCKUP PREVIEW */
