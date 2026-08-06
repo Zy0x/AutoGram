@@ -16817,3 +16817,40 @@ video.drive-zip-img {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ==========================================
+   SMART UPWARD / DOWNWARD DROPDOWN POSITIONING
+   ========================================== */
+.td-custom-select-menu.open-downward {
+  top: calc(100% + 6px) !important;
+  bottom: auto !important;
+  animation: tdSelectFadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.td-custom-select-menu.open-upward {
+  bottom: calc(100% + 6px) !important;
+  top: auto !important;
+  animation: tdSelectFadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes tdSelectFadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tdSelectFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

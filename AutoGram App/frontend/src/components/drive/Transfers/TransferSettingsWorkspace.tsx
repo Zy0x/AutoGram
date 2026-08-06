@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Upload,
@@ -93,6 +93,22 @@ export function TransferSettingsWorkspace({
   const [profileName, setProfileName] = useState('');
   const [pendingProfileLoad, setPendingProfileLoad] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down');
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const toggleDropdown = () => {
+    if (!isDropdownOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < 230 && spaceAbove > spaceBelow) {
+        setDropdownDirection('up');
+      } else {
+        setDropdownDirection('down');
+      }
+    }
+    setIsDropdownOpen((prev) => !prev);
+  };
 
   const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
@@ -1036,9 +1052,10 @@ export function TransferSettingsWorkspace({
                     {/* CUSTOM GLASSMORPHIC PROFILE SELECTOR */}
                     <div className="td-custom-select-container">
                       <button
+                        ref={triggerRef}
                         type="button"
                         className={`td-custom-select-trigger ${isDropdownOpen ? 'is-active' : ''}`}
-                        onClick={() => setIsDropdownOpen((prev) => !prev)}
+                        onClick={toggleDropdown}
                         disabled={!!transferActive}
                       >
                         <div className="td-trigger-left">
@@ -1056,7 +1073,7 @@ export function TransferSettingsWorkspace({
                       {isDropdownOpen && (
                         <>
                           <div className="td-select-backdrop" onClick={() => setIsDropdownOpen(false)} />
-                          <div className="td-custom-select-menu">
+                          <div className={`td-custom-select-menu ${dropdownDirection === 'up' ? 'open-upward' : 'open-downward'}`}>
                             <div
                               className={`td-select-option ${!selectedProfileId ? 'is-selected' : ''}`}
                               onClick={() => {
