@@ -811,7 +811,7 @@ export function Accounts() {
                 <div key={idx} className="list-row">
                   <div className="list-row-main">
                     {(() => {
-                        const showPhoto = !!s.photoBase64 && !avatarErrors.has(s.name);
+                        const showPhoto = !!s.photoBase64 && s.photoBase64.length > 0 && !avatarErrors.has(s.name);
                         const displayForAvatar = sessionAliases[s.name] || s.userFullName || s.name;
                         return (
                           <div style={{ position: 'relative', flexShrink: 0 }}>

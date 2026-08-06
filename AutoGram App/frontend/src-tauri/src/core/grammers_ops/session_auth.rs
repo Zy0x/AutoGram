@@ -377,26 +377,41 @@ pub fn auth_status_blocking(
                                     Ok(u) => {
                                         let mut p = user_profile_from(&u);
 
-                                        // Fetch profile photo via Grammers peer.photo(false) and client.download_media
-                                        let user_peer = grammers_client::peer::Peer::User(u);
-                                        if let Some(photo) = user_peer.photo(false).await.ok().flatten() {
-                                            let tmp_path = std::env::temp_dir().join(format!(
-                                                "ag_avatar_auth_{}_{}.jpg",
-                                                session_name,
-                                                std::process::id()
-                                            ));
-                                            let _ = std::fs::remove_file(&tmp_path);
-                                            if client.download_media(&photo, &tmp_path).await.is_ok() {
-                                                if let Ok(bytes) = std::fs::read(&tmp_path) {
-                                                    if !bytes.is_empty() {
-                                                        p.photo_base64 = crate::core::grammers::thumbs::to_data_url(&bytes);
-                                                        tg_log::info(BACKEND, "profile_photo_inline", "downloaded via Grammers download_media");
-                                                    }
-                                                }
+                                        // Fetch profile photo via official Telegram photos.GetUserPhotos RPC
+                                        use grammers_client::tl;
+                                        let photo_res = client.invoke(&tl::functions::photos::GetUserPhotos {
+                                            user_id: tl::enums::InputUser::UserSelf,
+                                            offset: 0,
+                                            max_id: 0,
+                                            limit: 1,
+                                        }).await;
+
+                                        if let Ok(photos_enum) = photo_res {
+                                            let photos_vec = match photos_enum {
+                                                tl::enums::photos::Photos::Photos(p) => p.photos,
+                                                tl::enums::photos::Photos::Slice(s) => s.photos,
+                                            };
+                                            if let Some(photo_raw) = photos_vec.into_iter().next() {
+                                                let media_photo = grammers_client::media::Photo::from_raw(photo_raw);
+                                                let tmp_path = std::env::temp_dir().join(format!(
+                                                    "ag_avatar_auth_{}_{}.jpg",
+                                                    session_name,
+                                                    std::process::id()
+                                                ));
                                                 let _ = std::fs::remove_file(&tmp_path);
+                                                if client.download_media(&media_photo, &tmp_path).await.is_ok() {
+                                                    if let Ok(bytes) = std::fs::read(&tmp_path) {
+                                                        if !bytes.is_empty() {
+                                                            p.photo_base64 = crate::core::grammers::thumbs::to_data_url(&bytes);
+                                                            tg_log::info(BACKEND, "profile_photo_inline", format!("downloaded user photo bytes={}", bytes.len()));
+                                                        }
+                                                    }
+                                                    let _ = std::fs::remove_file(&tmp_path);
+                                                }
+                                            } else {
+                                                p.photo_base64 = Some(String::new());
+                                                tg_log::info(BACKEND, "profile_photo_inline", "account has no profile photo");
                                             }
-                                        } else {
-                                            tg_log::info(BACKEND, "profile_photo_inline", "account has no profile photo");
                                         }
 
                                         set_cached_user_profile(&session_name, p.clone());
@@ -465,11 +480,6 @@ pub fn auth_status_blocking(
 
 /// Download the actual Telegram profile photo for the current session user.
 /// Returns a base64 data-URL string (JPEG), or None if unavailable.
-///
-/// Strategy (same as Drive thumbnail pipeline):
-///  1. PhotoCachedSize   → inline bytes, zero network (fastest)
-///  2. PhotoStrippedSize → unstrip JPEG, zero network
-///  3. PhotoSize         → download via upload.GetFile (fallback)
 pub fn download_profile_photo_blocking(
     sessions_dir: &Path,
     identity: &TelegramIdentity,
@@ -480,13 +490,25 @@ pub fn download_profile_photo_blocking(
         with_client(sessions_dir, identity, false, move |client| {
             let session_name = session_name.clone();
             Box::pin(async move {
-                let me = client.get_me().await.map_err(|e| map_invocation(&e))?;
-                let user_peer = grammers_client::peer::Peer::User(me);
-                let Some(photo) = user_peer.photo(false).await.ok().flatten() else {
+                use grammers_client::tl;
+                let photo_res = client.invoke(&tl::functions::photos::GetUserPhotos {
+                    user_id: tl::enums::InputUser::UserSelf,
+                    offset: 0,
+                    max_id: 0,
+                    limit: 1,
+                }).await.map_err(|e| map_invocation(&e))?;
+
+                let photos_vec = match photo_res {
+                    tl::enums::photos::Photos::Photos(p) => p.photos,
+                    tl::enums::photos::Photos::Slice(s) => s.photos,
+                };
+
+                let Some(photo_raw) = photos_vec.into_iter().next() else {
                     tg_log::info(BACKEND, "profile_photo", "account has no profile photo");
                     return Ok(None);
                 };
 
+                let media_photo = grammers_client::media::Photo::from_raw(photo_raw);
                 let tmp_path = std::env::temp_dir().join(format!(
                     "ag_self_avatar_{}_{}.jpg",
                     session_name,
@@ -494,7 +516,7 @@ pub fn download_profile_photo_blocking(
                 ));
                 let _ = std::fs::remove_file(&tmp_path);
 
-                if let Err(e) = client.download_media(&photo, &tmp_path).await {
+                if let Err(e) = client.download_media(&media_photo, &tmp_path).await {
                     let _ = std::fs::remove_file(&tmp_path);
                     tg_log::warn(BACKEND, "profile_photo", format!("download_media failed: {e}"));
                     return Ok(None);
@@ -511,7 +533,7 @@ pub fn download_profile_photo_blocking(
                     return Ok(None);
                 }
 
-                tg_log::info(BACKEND, "profile_photo", "downloaded successfully via Grammers download_media");
+                tg_log::info(BACKEND, "profile_photo", format!("downloaded successfully via photos.GetUserPhotos bytes={}", bytes.len()));
                 Ok(crate::core::grammers::thumbs::to_data_url(&bytes))
             })
         })
