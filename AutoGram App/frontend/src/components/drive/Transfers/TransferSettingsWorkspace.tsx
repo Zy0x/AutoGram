@@ -646,6 +646,10 @@ export function TransferSettingsWorkspace({
 
   const { hardwareCapabilities, isDetectingHardware, fetchHardwareCapabilities } = useTransferHardwareCapabilities();
 
+  useEffect(() => {
+    fetchHardwareCapabilities();
+  }, [fetchHardwareCapabilities]);
+
   // Search registry
   const searchRegistry = useMemo(() => buildSearchRegistry(t), [t]);
   const searchResults = useMemo(
@@ -1635,12 +1639,18 @@ export function TransferSettingsWorkspace({
                     disabled={!!transferActive}
                     onChange={() => patch(applyUnifiedEncodingMode(draft, 'software'))}
                   />
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div className="td-tile-head">
                       <Cpu size={16} className="td-tile-icon is-cpu" />
                       <strong>Software CPU Encoding</strong>
                     </div>
                     <p>Kompresi menggunakan prosessor CPU. Sangat presisi namun memakan beban CPU.</p>
+                    {currentEncoderMode === 'software' && (
+                      <div className="td-tile-cpu-badge">
+                        <span className="td-cpu-dot" />
+                        <span><strong>CPU:</strong> {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}</span>
+                      </div>
+                    )}
                   </div>
                 </label>
 
@@ -1676,6 +1686,26 @@ export function TransferSettingsWorkspace({
                     ariaLabel="Pilih Perangkat GPU Fisik"
                     options={hardwareOptions}
                   />
+                </div>
+              )}
+
+              {/* SOFTWARE CPU SPEC DETAILS (SHOWS CONDITIONALLY WHEN SOFTWARE MODE IS SELECTED) */}
+              {currentEncoderMode === 'software' && (
+                <div className="td-conditional-box is-cpu-details">
+                  <Cpu size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                  <div>
+                    <div className="td-cpu-title">
+                      <strong>Prosesor CPU Aktif:</strong>
+                      <span className="td-cpu-name">
+                        {hardwareCapabilities?.cpu?.processor_name || `Prosessor Sistem (${navigator.hardwareConcurrency || 8} Threads)`}
+                      </span>
+                    </div>
+                    <p className="td-cpu-sub">
+                      {hardwareCapabilities?.cpu?.cores
+                        ? `Spesifikasi Hardware: ${hardwareCapabilities.cpu.cores} Physical Cores / ${hardwareCapabilities.cpu.threads} Threads (FFmpeg libx264 software encoder)`
+                        : `Spesifikasi Hardware: ${navigator.hardwareConcurrency || 8} Logical Threads (FFmpeg libx264 software encoder)`}
+                    </p>
+                  </div>
                 </div>
               )}
 
