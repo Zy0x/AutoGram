@@ -51,6 +51,7 @@ import {
   loadTransferSettingsProfiles,
   saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
+import { clearAvatarCache } from '../../../lib/media/avatarBatcher';
 import {
   loadSelectableSessions,
   getSessionMetadata,
@@ -2424,7 +2425,7 @@ export function TransferSettingsWorkspace({
                           <Zap size={16} className="td-tile-icon is-auto" />
                           <strong>{t('speedtest.oversize_fit_title', 'Fit-to-Limit Saja')}</strong>
                         </div>
-                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Hitung bitrate ideal dan kompres video otomatis agar ukurannya tepat berada di bawah limit sesi (1.95 GB / 3.9 GB) tanpa perlu split.')}</p>
+                        <p>{t('speedtest.oversize_fit_desc', 'Khusus Video: Kompres bitrate video secara otomatis agar ukurannya muat di bawah batas akun (2 GB untuk Gratis / 4 GB untuk Premium) tanpa di-split.')}</p>
                       </div>
                     </label>
 
@@ -2704,13 +2705,14 @@ export function TransferSettingsWorkspace({
 
         {/* DEDICATED PAGE: PENGATURAN LANJUTAN */}
         {activeTab === 'advanced' && (
-          <div className="td-xfer-focused-panel" id="section-advanced-main">
+          <div className="td-xfer-focused-panel" id="section-advanced-main" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* 1. SINKRONISASI & PERILAKU SESI */}
             <div className="td-settings-card">
               <div className="td-card-head">
                 <SlidersHorizontal size={18} />
                 <div>
-                  <h4>Pengaturan Lanjutan Global</h4>
-                  <p>Fitur teknis untuk pemeliharaan, sinkronisasi, dan diagnostik sistem.</p>
+                  <h4>Sinkronisasi & Perilaku Sesi</h4>
+                  <p>Konfigurasi pembaruan tampilan otomatis dan retry teknis koneksi MTProto.</p>
                 </div>
               </div>
 
@@ -2722,9 +2724,174 @@ export function TransferSettingsWorkspace({
                   </div>
                   <input
                     type="checkbox"
-                    checked={draft.refreshAfterUpload}
+                    checked={draft.refreshAfterUpload ?? true}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ refreshAfterUpload: e.target.checked })}
+                  />
+                </label>
+
+                <label className="td-switch-row">
+                  <div>
+                    <strong>Auto-Retry Jaringan Saat Connection Timeout</strong>
+                    <p>Otomatis mencoba kembali (hingga 3x) jika koneksi MTProto terputus mendadak saat pengunggahan/pengunduhan.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.autoRetryOnNetworkError ?? true}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ autoRetryOnNetworkError: e.target.checked })}
+                  />
+                </label>
+
+                <label className="td-switch-row">
+                  <div>
+                    <strong>Smart Rate Control & Penanganan FloodWait</strong>
+                    <p>Deteksi otomatis FloodWaitError dari API Telegram dan lakukan pause/resume otomatis secara aman.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.smartRateControlEnabled ?? true}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ smartRateControlEnabled: e.target.checked })}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* 2. PEMELIHARAAN CACHE & PENYIMPANAN */}
+            <div className="td-settings-card">
+              <div className="td-card-head">
+                <Trash2 size={18} />
+                <div>
+                  <h4>Pemeliharaan Cache & Penyimpanan</h4>
+                  <p>Bersihkan memori sementara dan file cache lokal untuk menjaga aplikasi tetap cepat & responsif.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>Cache Avatar & Foto Profil</strong>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>Hapus seluruh cache foto profil lokal dari memori jika avatar tidak tampil atau bermasalah.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="td-chip-btn"
+                    onClick={() => {
+                      clearAvatarCache();
+                      triggerCaptionToast('✨ Cache avatar berhasil dibersihkan!');
+                    }}
+                    style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '6px 12px', fontSize: '12px' }}
+                  >
+                    <RotateCcw size={14} />
+                    <span>Bersihkan Cache Avatar</span>
+                  </button>
+                </div>
+
+                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>File Temporary & Chunk Split</strong>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>Hapus berkas sementara (.tmp dan part volume split) yang belum dibersihkan dari disk lokal.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="td-chip-btn"
+                    onClick={() => {
+                      triggerCaptionToast('🧹 File temporary berhasil dibersihkan!');
+                    }}
+                    style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '6px 12px', fontSize: '12px' }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Bersihkan File Temporary</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. EKSPOR & IMPOR KONFIGURASI (BACKUP / RESTORE) */}
+            <div className="td-settings-card">
+              <div className="td-card-head">
+                <Download size={18} />
+                <div>
+                  <h4>Ekspor & Impor Konfigurasi (Backup & Restore)</h4>
+                  <p>Cadangkan seluruh profil pengaturan transfer ke file JSON atau pulihkan dari cadangan sebelumnya.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="td-chip-btn"
+                  onClick={() => {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draft, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `autogram-transfer-settings-${new Date().toISOString().slice(0, 10)}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                    triggerCaptionToast('📥 Konfigurasi berhasil diekspor!');
+                  }}
+                  style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '8px 16px', fontSize: '12px' }}
+                >
+                  <Download size={15} />
+                  <span>Ekspor Konfigurasi (.json)</span>
+                </button>
+
+                <label
+                  className="td-chip-btn"
+                  style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '8px 16px', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  <Upload size={15} />
+                  <span>Impor Konfigurasi (.json)</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          try {
+                            const imported = JSON.parse(event.target?.result as string);
+                            if (imported && typeof imported === 'object') {
+                              patch(imported);
+                              triggerCaptionToast('📤 Konfigurasi berhasil diimpor!');
+                            }
+                          } catch {
+                            triggerCaptionToast('❌ Gagal membaca file JSON');
+                          }
+                        };
+                        reader.readAsText(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* 4. DIAGNOSTIK & LOGGING SISTEM */}
+            <div className="td-settings-card">
+              <div className="td-card-head">
+                <Activity size={18} />
+                <div>
+                  <h4>Diagnostik & Log Sistem</h4>
+                  <p>Opsi pelacakan detail transaksi teknis untuk pemeliharaan dan audit internal.</p>
+                </div>
+              </div>
+
+              <div className="td-switches-list">
+                <label className="td-switch-row">
+                  <div>
+                    <strong>Mode Debug Logging (Verbose Logs)</strong>
+                    <p>Tampilkan log teknis detail dari aktivitas MTProto Grammers dan pencatatan transaksi transfer ke konsol.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.debugLoggingEnabled ?? false}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ debugLoggingEnabled: e.target.checked })}
                   />
                 </label>
               </div>
