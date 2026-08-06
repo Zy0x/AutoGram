@@ -2475,18 +2475,89 @@ export function TransferSettingsWorkspace({
               {/* 2. ALTERNATE ACCOUNT ROUTING SUBSECTION */}
               {draft.oversizeAction === 'alternate_account' && (
                 <div className="td-conditional-box" style={{ marginTop: '20px' }}>
-                  <div className="td-form-row-grid">
-                    <div className="td-field-group">
-                      <label className="td-field-label">{t('speedtest.oversize_pool_label', 'Pool Sesi Akun Premium Alternatif')}</label>
+                  <div className="td-field-group" style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label className="td-field-label" style={{ margin: 0 }}>
+                        {t('speedtest.oversize_pool_label', 'Pool Sesi Akun Telegram Premium (Auto-Detected)')}
+                      </label>
+                      <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
+                        💎 Hanya Akun Berlangganan Telegram Premium (Limit 4 GB)
+                      </span>
+                    </div>
+
+                    {/* INTERACTIVE PREMIUM SESSIONS CHIPS & SELECTOR */}
+                    <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                        {/* DETECTED SESSIONS EXAMPLE CHIPS */}
+                        {['session_premium_1', 'session_premium_2'].map((sess) => {
+                          const isSelected = (draft.alternateAccountPool || '').includes(sess);
+                          return (
+                            <button
+                              key={sess}
+                              type="button"
+                              disabled={!!transferActive}
+                              onClick={() => {
+                                const current = (draft.alternateAccountPool || '').split(',').map(s => s.trim()).filter(Boolean);
+                                const next = isSelected ? current.filter(c => c !== sess) : [...current, sess];
+                                patch({ alternateAccountPool: next.join(', ') });
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.04)',
+                                border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)',
+                                color: isSelected ? '#38bdf8' : '#94a3b8',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                              }}
+                            >
+                              <span>💎</span>
+                              <strong>{sess}</strong>
+                              <span style={{ fontSize: '10px', background: 'rgba(56,189,248,0.15)', color: '#38bdf8', padding: '1px 5px', borderRadius: '4px' }}>Premium 4GB</span>
+                            </button>
+                          );
+                        })}
+
+                        {/* NON-PREMIUM DISABLED SESSION SAMPLE */}
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            color: '#64748b',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            opacity: 0.6,
+                            cursor: 'not-allowed',
+                          }}
+                          title="Akun Standar gratis hanya mendukung maksimal 2 GB (Bukan Premium)"
+                        >
+                          <span>⚪</span>
+                          <span>session_standard (Gratis 2GB)</span>
+                          <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#64748b', padding: '1px 4px', borderRadius: '4px' }}>Non-Premium</span>
+                        </div>
+                      </div>
+
+                      {/* RAW INPUT FALLBACK */}
                       <input
                         type="text"
                         value={draft.alternateAccountPool || ''}
                         disabled={!!transferActive}
-                        placeholder="session_premium1, session_premium2"
+                        placeholder="Atau ketik nama sesi tambahan dipisah koma (contoh: session_premium1, session_premium2)"
                         onChange={(e) => patch({ alternateAccountPool: e.target.value })}
+                        style={{ fontSize: '12px', padding: '8px 10px' }}
                       />
                     </div>
+                  </div>
 
+                  <div className="td-form-row-grid">
                     <div className="td-field-group">
                       <label className="td-field-label">{t('speedtest.oversize_strategy_label', 'Strategi Berkas Album Oversize')}</label>
                       <select
