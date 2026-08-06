@@ -138,6 +138,7 @@ pub async fn ensure_authorized(client: &Client, session_name: &str) -> Result<()
                     first_name: None,
                     username: None,
                     photo_base64: None,
+                    is_premium: false,
                 },
             );
         }

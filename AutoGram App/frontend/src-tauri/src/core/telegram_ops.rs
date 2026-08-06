@@ -47,6 +47,7 @@ pub struct UserProfile {
     pub first_name: Option<String>,
     pub username: Option<String>,
     pub photo_base64: Option<String>,
+    pub is_premium: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
