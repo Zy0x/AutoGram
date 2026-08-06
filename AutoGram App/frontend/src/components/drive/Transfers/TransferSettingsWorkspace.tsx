@@ -1919,11 +1919,11 @@ export function TransferSettingsWorkspace({
                       <h3>2. Akselerasi Pratinjau & Pemutaran Lokal (Local Media Playback Engine)</h3>
                       <span className="td-playback-tag">
                         <Play size={12} />
-                        Local Playback & Preview Engine
+                        {t('speedtest.playback_engine_tag', 'Local Playback & Preview Engine')}
                       </span>
                     </div>
                     <p className="td-playback-desc">
-                      Pengaturan mesin ini <strong>khusus memproses akselerasi dekoder GPU/CPU untuk pemutaran video, frame seeking 60FPS</strong>, dan pemuatan pratinjau instan di AutoGram Explorer & Media Studio. Pengaturan ini <em>tidak memengaruhi</em> kompresi atau format berkas yang diunggah ke Telegram.
+                      {t('speedtest.playback_engine_desc', 'Pengaturan mesin ini khusus memproses akselerasi dekoder GPU/CPU untuk pemutaran video, frame seeking 60FPS, dan pemuatan pratinjau instan di AutoGram Explorer & Media Studio. Pengaturan ini tidak memengaruhi kompresi atau format berkas yang diunggah ke Telegram.')}
                     </p>
                   </div>
                 </div>
@@ -1934,8 +1934,8 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <Tv size={18} style={{ color: '#10b981' }} />
                   <div>
-                    <h4>Mode Dekoder GPU Pemutaran Video (Local Playback GPU Decoder)</h4>
-                    <p>Pilih bagaimana sistem memproses dekoding video saat diputar atau dipratinjau di aplikasi</p>
+                    <h4>{t('speedtest.playback_decoder_title', 'Mode Dekoder GPU Pemutaran Video (Local Playback GPU Decoder)')}</h4>
+                    <p>{t('speedtest.playback_decoder_desc', 'Pilih bagaimana sistem memproses dekoding video saat diputar atau dipratinjau di aplikasi')}</p>
                   </div>
                 </div>
 
@@ -1953,9 +1953,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Zap size={16} className="td-tile-icon is-auto" />
-                        <strong>Otomatis (GPU Hardware)</strong>
+                        <strong>{t('speedtest.playback_auto_title', 'Otomatis (GPU Hardware)')}</strong>
                       </div>
-                      <p>Sistem mendeteksi dekoder GPU (NVDEC/DXVA2) otomatis untuk pemutaran instan tanpa lag.</p>
+                      <p>{t('speedtest.playback_auto_desc', 'Sistem mendeteksi dekoder GPU (NVDEC/DXVA2) otomatis untuk pemutaran instan tanpa lag.')}</p>
                     </div>
                   </label>
 
@@ -1972,9 +1972,9 @@ export function TransferSettingsWorkspace({
                     <div>
                       <div className="td-tile-head">
                         <Film size={16} className="td-tile-icon is-gpu" />
-                        <strong>Akselerasi Hardware GPU Fisik</strong>
+                        <strong>{t('speedtest.playback_gpu_title', 'Akselerasi Hardware GPU Fisik')}</strong>
                       </div>
-                      <p>Gunakan Direct3D11/NVDEC GPU secara penuh untuk pemutaran video 4K/HDR & instant seek.</p>
+                      <p>{t('speedtest.playback_gpu_desc', 'Gunakan Direct3D11/NVDEC GPU secara penuh untuk pemutaran video 4K/HDR & instant seek.')}</p>
                     </div>
                   </label>
 
@@ -1991,9 +1991,9 @@ export function TransferSettingsWorkspace({
                     <div style={{ flex: 1 }}>
                       <div className="td-tile-head">
                         <Cpu size={16} className="td-tile-icon is-cpu" />
-                        <strong>Software CPU Decoding</strong>
+                        <strong>{t('speedtest.playback_cpu_title', 'Software CPU Decoding')}</strong>
                       </div>
-                      <p>Dekoding pemutaran video menggunakan prosessor CPU bawaan sistem.</p>
+                      <p>{t('speedtest.playback_cpu_desc', 'Dekoding pemutaran video menggunakan prosessor CPU bawaan sistem.')}</p>
                     </div>
                   </label>
                 </div>
@@ -2004,32 +2004,32 @@ export function TransferSettingsWorkspace({
                 <div className="td-card-head">
                   <SlidersHorizontal size={18} />
                   <div>
-                    <h4>Optimasi Framerate & Pre-Seek Thumbs</h4>
-                    <p>Konfigurasi kelancaran gerakan pratinjau dan kecepatan pemuatan cache frame</p>
+                    <h4>{t('speedtest.playback_opt_title', 'Optimasi Framerate & Pre-Seek Thumbs')}</h4>
+                    <p>{t('speedtest.playback_opt_desc', 'Konfigurasi kelancaran gerakan pratinjau dan kecepatan pemuatan cache frame')}</p>
                   </div>
                 </div>
 
                 <div className="td-form-row-grid">
                   <div className="td-field-group">
-                    <label className="td-field-label">Target Framerate Pratinjau</label>
+                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Target Framerate Pratinjau')}</label>
                     <select
                       value={draft.playbackTargetFps || 60}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) as 30 | 60 })}
                     >
-                      <option value={60}>60 FPS (Sangat Halus & Responsif)</option>
-                      <option value={30}>30 FPS (Standard / Hemat GPU)</option>
+                      <option value={60}>{t('speedtest.playback_fps_60', '60 FPS (Sangat Halus & Responsif)')}</option>
+                      <option value={30}>{t('speedtest.playback_fps_30', '30 FPS (Standard / Hemat GPU)')}</option>
                     </select>
                   </div>
 
                   <div className="td-field-group">
-                    <label className="td-field-label">Pre-Seek Cache Frame</label>
+                    <label className="td-field-label">{t('speedtest.playback_preseek_label', 'Pre-Seek Cache Frame')}</label>
                     <select
                       value="enabled"
                       disabled={!!transferActive}
                     >
-                      <option value="enabled">Aktif (Pre-seek Cepat / Instant Frame Grab)</option>
-                      <option value="disabled">Nonaktif (Load On Demand)</option>
+                      <option value="enabled">{t('speedtest.playback_preseek_enabled', 'Aktif (Pre-seek Cepat / Instant Frame Grab)')}</option>
+                      <option value="disabled">{t('speedtest.playback_preseek_disabled', 'Nonaktif (Load On Demand)')}</option>
                     </select>
                   </div>
                 </div>
