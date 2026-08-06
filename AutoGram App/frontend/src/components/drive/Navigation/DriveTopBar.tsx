@@ -3,6 +3,7 @@ import {
   List,
   Upload,
   Download,
+  ListTodo,
   Trash2,
   RefreshCw,
   Menu,
@@ -163,7 +164,7 @@ export function DriveTopBar({
   onMoveSelected,
   onRefresh,
   onOpenTransferSettings,
-  onOpenTransferManager: _onOpenTransferManager,
+  onOpenTransferManager,
   transferBusy,
   actionsDisabled,
   transferHasHistory,
@@ -489,13 +490,13 @@ export function DriveTopBar({
             {spaceLabel ? <span className="td-count-space"> · {spaceLabel}</span> : null}
           </span>
 
-          {onOpenTools && (
+          {(onOpenTools || onOpenTransferSettings) && (
             <button
               type="button"
               className={`td-icon-btn ${toolsActive ? 'active' : ''}`}
-              onClick={onOpenTools}
-              title={t('speedtest.tools_panel_tooltip')}
-              aria-label="Buka alat & pengaturan Drive"
+              onClick={onOpenTools || onOpenTransferSettings}
+              title="Drive Tools & Settings"
+              aria-label="Drive Tools & Settings"
             >
               <SlidersHorizontal size={16} />
             </button>
@@ -566,25 +567,25 @@ export function DriveTopBar({
           >
             <RefreshCw size={16} className={loading ? 'spin' : undefined} />
           </button>
-          {onOpenTransferSettings && (
+          {onOpenTransferManager && (
             <button
               type="button"
               className={`td-icon-btn td-transfer-open-btn ${transferBusy ? 'is-busy' : ''} ${
                 transferHasHistory ? 'has-history' : ''
               } badge-${transferBadgeKind}`}
-              onClick={onOpenTransferSettings}
+              onClick={onOpenTransferManager}
               title={
                 transferBusy
-                  ? `Drive Tools & Settings — ${transferBadgeCount} file berjalan`
+                  ? `Transfer Manager — ${transferBadgeCount} file berjalan`
                   : transferBadgeKind === 'error'
-                    ? `Drive Tools & Settings — ${transferBadgeCount} gagal`
+                    ? `Transfer Manager — ${transferBadgeCount} gagal`
                     : transferBadgeKind === 'done'
-                      ? `Drive Tools & Settings — ${transferBadgeCount} selesai`
-                      : 'Drive Tools & Settings'
+                      ? `Transfer Manager — ${transferBadgeCount} selesai`
+                      : t('speedtest.topbar_open_transfer_manager', 'Buka Transfer Manager')
               }
-              aria-label="Drive Tools & Settings"
+              aria-label="Transfer Manager"
             >
-              <SlidersHorizontal size={16} />
+              <ListTodo size={16} />
               {transferBadgeCount > 0 && transferBadgeKind !== 'none' && (
                 <span
                   className={`td-transfer-badge kind-${transferBadgeKind}`}
