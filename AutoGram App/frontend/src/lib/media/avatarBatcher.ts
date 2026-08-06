@@ -18,7 +18,7 @@ const emptyAt = new Map<string, number>();
 const SOFT_FAIL_MS = 5 * 60_000;
 const EMPTY_MS = 24 * 60 * 60_000;
 
-function avatarKey(peerId: number, session = lastCreds?.session || 'unscoped'): string {
+function avatarKey(peerId: number, session?: string): string {
   const s = String(session || '').trim() || 'unscoped';
   return `${s}:${Number(peerId)}`;
 }
@@ -33,10 +33,15 @@ function maxQueue(): number {
   return getDrivePerfProfile().avatarQueueMax;
 }
 
-const queue = new Map<number, Entry[]>();
+type QueueItem = {
+  creds: DriveCredentials;
+  peerId: number;
+  waiters: Entry[];
+};
+
+const queue = new Map<string, QueueItem>();
 let timer: ReturnType<typeof setTimeout> | null = null;
 let flushBusy = false;
-let lastCreds: DriveCredentials | null = null;
 let avatarsPaused = false;
 
 /**
@@ -44,7 +49,8 @@ let avatarsPaused = false;
  * string = data URL
  * null = soft-failed / empty recently
  */
-export function getCachedAvatar(peerId: number, session = lastCreds?.session || 'unscoped'): string | null | undefined {
+export function getCachedAvatar(peerId: number, session?: string): string | null | undefined {
+  if (!session) return undefined;
   const k = avatarKey(peerId, session);
   if (memCache.has(k)) return memCache.get(k)!;
   const empty = emptyAt.get(k);
@@ -59,7 +65,6 @@ export function clearAvatarCache() {
   softFailAt.clear();
   emptyAt.clear();
   queue.clear();
-  lastCreds = null;
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -87,53 +92,57 @@ function scheduleFlush() {
 }
 
 async function flushQueue() {
-  if (flushBusy || !lastCreds) return;
-  if (queue.size === 0) return;
+  if (flushBusy || queue.size === 0) return;
   if (avatarsPaused) {
     scheduleFlush();
     return;
   }
   flushBusy = true;
 
-  const creds = lastCreds;
-  const session = creds.session || 'unscoped';
-  const ids: number[] = [];
-  const waiterSnap = new Map<number, Entry[]>();
+  // Group pending queue items by session
+  const itemsBySession = new Map<string, QueueItem[]>();
+  const keysToRemove: string[] = [];
+
+  for (const [key, item] of queue.entries()) {
+    const session = item.creds.session || 'unscoped';
+    const list = itemsBySession.get(session) || [];
+    list.push(item);
+    itemsBySession.set(session, list);
+    keysToRemove.push(key);
+  }
+
+  for (const key of keysToRemove) {
+    queue.delete(key);
+  }
+
   const BATCH = batchSize();
 
-  for (const [pid, entries] of queue) {
-    waiterSnap.set(pid, entries);
-    ids.push(pid);
-    queue.delete(pid);
-    if (ids.length >= BATCH) break;
-  }
+  for (const [session, items] of itemsBySession.entries()) {
+    const creds = items[0].creds;
+    const batchItems = items.slice(0, BATCH);
+    const peerIds = batchItems.map((i) => i.peerId);
 
-  if (!ids.length) {
-    flushBusy = false;
-    return;
-  }
-
-  try {
-    const res = await driveAvatarsBatch(creds, ids, { batchSize: BATCH });
-    const avatars = (res?.avatars || {}) as Record<string, string | null>;
-    for (const pid of ids) {
-      const k = avatarKey(pid, session);
-      const url = avatars[String(pid)] ?? null;
-      if (url) {
-        memCache.set(k, url);
-        softFailAt.delete(k);
-        emptyAt.delete(k);
-      } else {
-        // Treat null as empty/no-photo (backend marks disk .empty)
-        emptyAt.set(k, Date.now());
+    try {
+      const res = await driveAvatarsBatch(creds, peerIds, { batchSize: BATCH });
+      const avatars = (res?.avatars || {}) as Record<string, string | null>;
+      for (const item of batchItems) {
+        const k = avatarKey(item.peerId, session);
+        const url = avatars[String(item.peerId)] ?? null;
+        if (url) {
+          memCache.set(k, url);
+          softFailAt.delete(k);
+          emptyAt.delete(k);
+        } else {
+          emptyAt.set(k, Date.now());
+        }
+        for (const w of item.waiters) w.resolve(url);
       }
-      for (const e of waiterSnap.get(pid) || []) e.resolve(url);
-    }
-  } catch {
-    for (const pid of ids) {
-      const k = avatarKey(pid, session);
-      softFailAt.set(k, Date.now());
-      for (const e of waiterSnap.get(pid) || []) e.resolve(null);
+    } catch {
+      for (const item of batchItems) {
+        const k = avatarKey(item.peerId, session);
+        softFailAt.set(k, Date.now());
+        for (const w of item.waiters) w.resolve(null);
+      }
     }
   }
 
@@ -141,12 +150,11 @@ async function flushQueue() {
   if (queue.size) scheduleFlush();
 }
 
-/** Request one profile photo; coalesces with other sidebar rows. */
+/** Request one profile photo; coalesces with other sidebar rows safely per session. */
 export function requestAvatar(
   creds: DriveCredentials,
   peerId: number
 ): Promise<string | null> {
-  lastCreds = creds;
   const pid = Number(peerId);
   if (!Number.isFinite(pid)) return Promise.resolve(null);
 
@@ -166,16 +174,15 @@ export function requestAvatar(
   }
 
   return new Promise((resolve) => {
-    const list = queue.get(pid) || [];
-    list.push({ resolve });
-    queue.set(pid, list);
+    const item = queue.get(k) || { creds, peerId: pid, waiters: [] };
+    item.waiters.push({ resolve });
+    queue.set(k, item);
     scheduleFlush();
   });
 }
 
-/** Prefetch many peers (e.g. visible virtual rows only — not entire 10k list). */
+/** Prefetch many peers per session. */
 export function prefetchAvatars(creds: DriveCredentials, peerIds: number[]) {
-  lastCreds = creds;
   const session = creds.session || 'unscoped';
   const BATCH = batchSize();
   const MAX_QUEUE = maxQueue();
@@ -190,10 +197,10 @@ export function prefetchAvatars(creds: DriveCredentials, peerIds: number[]) {
     if (empty != null && Date.now() - empty < EMPTY_MS) continue;
     const failAt = softFailAt.get(k);
     if (failAt != null && Date.now() - failAt < SOFT_FAIL_MS) continue;
-    if (queue.has(pid)) continue;
-    queue.set(pid, [{ resolve: () => {} }]);
+    if (queue.has(k)) continue;
+    queue.set(k, { creds, peerId: pid, waiters: [{ resolve: () => {} }] });
     added++;
-    if (added >= BATCH * 2) break; // never enqueue more than 2 batches at once
+    if (added >= BATCH * 2) break;
   }
   if (queue.size) scheduleFlush();
 }
