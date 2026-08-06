@@ -63,6 +63,8 @@ export interface TransferSettingsWorkspaceProps {
   onClose?: () => void;
   transferActive?: boolean;
   embedded?: boolean;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
 }
 
 export function TransferSettingsWorkspace({
@@ -71,13 +73,18 @@ export function TransferSettingsWorkspace({
   onClose,
   transferActive,
   embedded = false,
+  searchQuery: propsSearchQuery,
+  onSearchQueryChange: propsOnSearchQueryChange,
 }: TransferSettingsWorkspaceProps) {
   const { t } = useTranslation();
   const searchInputId = useId();
 
   // Navigation state: 'menu' (main overview list) or direct sub-menu category
   const [activeTab, setActiveTab] = useState<WorkspaceTabState>('menu');
-  const [settingsQuery, setSettingsQuery] = useState('');
+  const [internalSettingsQuery, setInternalSettingsQuery] = useState('');
+
+  const settingsQuery = propsSearchQuery !== undefined ? propsSearchQuery : internalSettingsQuery;
+  const setSettingsQuery = propsOnSearchQueryChange || setInternalSettingsQuery;
 
   // Drawer / Modal overlays
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
@@ -290,17 +297,22 @@ export function TransferSettingsWorkspace({
             </span>
           )}
 
-          {/* Search Box */}
+          {/* Search Box / Search Results Dropdown */}
           <div className="td-xfer-search-wrapper">
-            <Search size={14} className="td-search-icon" />
-            <input
-              id={searchInputId}
-              type="search"
-              value={settingsQuery}
-              onChange={(e) => setSettingsQuery(e.target.value)}
-              placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
-            />
-            {settingsQuery.trim() && (
+            {propsSearchQuery === undefined && (
+              <>
+                <Search size={14} className="td-search-icon" />
+                <input
+                  id={searchInputId}
+                  type="search"
+                  value={settingsQuery}
+                  onChange={(e) => setSettingsQuery(e.target.value)}
+                  placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+                />
+              </>
+            )}
+
+            {settingsQuery.trim() !== '' && (
               <div className="td-xfer-search-results">
                 {searchResults.length ? (
                   searchResults.map((item) => (

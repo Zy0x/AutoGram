@@ -17,6 +17,7 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -182,6 +183,7 @@ export function DriveToolsPanel({
   const [skipDup, setSkipDup] = useState(true);
   const [copyScope, setCopyScope] = useState<'selected' | 'all'>('selected');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [toolsSearchQuery, setToolsSearchQuery] = useState('');
 
   const [xferSubTab, setXferSubTab] = useState<'upload' | 'download'>('upload');
   const [xferDraft, setXferDraft] = useState<DriveTransferSettings>(() => ({
@@ -313,9 +315,38 @@ export function DriveToolsPanel({
               </div>
             </button>
           </div>
-          <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
-            <X size={18} />
-          </button>
+          <div className="td-tools-head-actions">
+            {/* UNIVERSAL HEADER SEARCH INPUT */}
+            <div className="td-header-search-box">
+              <Search size={14} className="td-header-search-icon" />
+              <input
+                type="search"
+                value={toolsSearchQuery}
+                onChange={(e) => {
+                  setToolsSearchQuery(e.target.value);
+                  if (tab !== 'transfer' && e.target.value.trim()) {
+                    onTab('transfer');
+                  }
+                }}
+                placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+                className="td-header-search-input"
+              />
+              {toolsSearchQuery.trim() !== '' && (
+                <button
+                  type="button"
+                  className="td-header-search-clear"
+                  onClick={() => setToolsSearchQuery('')}
+                  title="Bersihkan Pencarian"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <button type="button" className="td-icon-btn td-tools-close" onClick={onClose} aria-label={t("speedtest.close_esc")}>
+              <X size={18} />
+            </button>
+          </div>
         </header>
 
         <div className="td-tools-layout">
@@ -757,6 +788,8 @@ export function DriveToolsPanel({
               transferActive={transferActive}
               subTab={xferSubTab}
               onSubTab={setXferSubTab}
+              searchQuery={toolsSearchQuery}
+              onSearchQueryChange={setToolsSearchQuery}
             />
           )}
           </main>
@@ -773,6 +806,8 @@ function TransferTabContent({
   draft,
   onChange,
   transferActive,
+  searchQuery,
+  onSearchQueryChange,
 }: {
   draft: DriveTransferSettings;
   onChange: (partial: Partial<DriveTransferSettings>) => void;
@@ -781,6 +816,8 @@ function TransferTabContent({
   transferActive?: boolean;
   subTab: 'upload' | 'download';
   onSubTab: (t: 'upload' | 'download') => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
 }) {
   return (
     <TransferSettingsWorkspace
@@ -788,6 +825,8 @@ function TransferTabContent({
       onChange={(next) => onChange(next)}
       transferActive={transferActive}
       embedded={true}
+      searchQuery={searchQuery}
+      onSearchQueryChange={onSearchQueryChange}
     />
   );
 }
