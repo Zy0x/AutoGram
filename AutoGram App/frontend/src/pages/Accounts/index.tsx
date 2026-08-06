@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getApiCredentials } from '../../lib/tauri/secureCredentials';
-import { tgAuthStatus, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
+import { tgAuthStatus, tgDownloadProfilePhoto, tgListSessions, tgLogin, saveSessionMetadata, notifySessionMetadataChanged } from '../../lib/telegram';
 import { invalidateSessionListCache } from '../../lib/telegram';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
@@ -333,7 +333,23 @@ export function Accounts() {
           const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
 
           // REAL-SYNC PHOTO DIRECTLY FROM RUST TELEGRAM BACKEND FOR THIS EXACT SESSION
-          const realPhoto = user?.photoBase64 || undefined;
+          let realPhoto = user?.photoBase64 || undefined;
+
+          if (connected) {
+            // If get_me photo thumb is missing, fetch full high-res profile photo via photos.GetUserPhotos RPC
+            if (!realPhoto) {
+              try {
+                const downloaded = await tgDownloadProfilePhoto({
+                  session: saved.name,
+                  apiId: Number(apiId),
+                  apiHash,
+                });
+                if (downloaded) {
+                  realPhoto = downloaded;
+                }
+              } catch {}
+            }
+          }
 
           if (connected || user) {
             saveSessionMetadata(saved.name, {
