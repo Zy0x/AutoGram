@@ -2633,6 +2633,39 @@ export function TransferSettingsWorkspace({
                         onChange={(e) => patch({ alternateAccountPool: e.target.value })}
                         style={{ fontSize: '12px', padding: '8px 10px', width: '100%' }}
                       />
+
+                      {/* NO PREMIUM SESSIONS DETECTED WARNING BANNER */}
+                      {(() => {
+                        const hasPremiumSession = availableSessions.some((sess) => {
+                          const meta = getSessionMetadata(sess.name);
+                          const isPremium = meta?.isPremium === true || (meta as any)?.is_premium === true;
+                          const isProblematic = sess.status === 'error' || sess.status === 'expired' || sess.status === 'revoked' || sess.status === 'unauthorized';
+                          return isPremium && !isProblematic;
+                        });
+                        if (hasPremiumSession) return null;
+                        return (
+                          <div
+                            style={{
+                              marginTop: '12px',
+                              padding: '12px 14px',
+                              background: 'rgba(245, 158, 11, 0.08)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              color: '#fbbf24',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, marginBottom: '4px' }}>
+                              <AlertTriangle size={15} color="#f59e0b" />
+                              <span>Sistem Informasi: Tidak Ada Akun Premium Aktif Saat Ini</span>
+                            </div>
+                            <p style={{ margin: 0, color: '#cbd5e1', fontSize: '11px' }}>
+                              Seluruh sesi terhubung adalah <strong>Akun Standar (Limit 2 GB)</strong>. Jika terdapat berkas berukuran &gt; 2 GB, pengunggahan utuh 4 GB tidak dapat dilakukan lewat pool ini. Sistem akan otomatis beralih ke skenario cadangan <strong>Pecah Berkas (Split Parts &lt; 2 GB)</strong> atau <strong>Fit-to-Limit (Video Bitrate Compress)</strong> agar transfer tetap berhasil tanpa error limit Telegram.
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
