@@ -9,7 +9,12 @@ export type SubMenuCategory =
   | 'download'
   | 'limits_recovery'
   | 'advanced'
-  | 'profiles';
+  | 'profiles'
+  | 'copy'
+  | 'dups'
+  | 'rename'
+  | 'space'
+  | 'filter';
 
 export interface SearchableSettingItem {
   id: string;
@@ -19,10 +24,62 @@ export interface SearchableSettingItem {
   label: string;
   description: string;
   keywords: string[];
+  isDriveTool?: boolean;
 }
 
 export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
   return [
+    // DRIVE POWER TOOLS
+    {
+      id: 'tool-copy',
+      tab: 'copy',
+      mode: 'basic',
+      sectionId: 'drive-tool-copy',
+      label: 'Batch Copy (Salin Massal)',
+      description: 'Salin media & folder massal ke Saved Messages, Channel, atau Grup Telegram',
+      keywords: ['copy', 'salin', 'duplicate', 'batch copy', 'clone', 'salin massal', 'saved messages', 'channel', 'group'],
+      isDriveTool: true,
+    },
+    {
+      id: 'tool-dups',
+      tab: 'dups',
+      mode: 'basic',
+      sectionId: 'drive-tool-dups',
+      label: 'Pencari Duplikat (Duplicates)',
+      description: 'Pindai dan hapus berkas duplikat berdasarkan Hash SHA256 & Nama File',
+      keywords: ['duplicates', 'duplikat', 'ganda', 'sama', 'hapus duplikat', 'sha256', 'hash', 'clean'],
+      isDriveTool: true,
+    },
+    {
+      id: 'tool-rename',
+      tab: 'rename',
+      mode: 'basic',
+      sectionId: 'drive-tool-rename',
+      label: 'Bulk Rename (Ubah Nama Massal)',
+      description: 'Ubah nama banyak berkas sekaligus menggunakan pola format tag otomatis',
+      keywords: ['rename', 'ubah nama', 'ganti nama', 'bulk rename', 'pattern', 'pola', 'prefix', 'suffix', 'penomoran'],
+      isDriveTool: true,
+    },
+    {
+      id: 'tool-space',
+      tab: 'space',
+      mode: 'basic',
+      sectionId: 'drive-tool-space',
+      label: 'Space Usage (Analisis Penyimpanan)',
+      description: 'Lihat rincian penggunaan ruang drive, ukuran total, dan statistik kategori berkas',
+      keywords: ['space', 'storage', 'ruang', 'penyimpanan', 'kapasitas', 'ukuran', 'bytes', 'usage', 'kuota'],
+      isDriveTool: true,
+    },
+    {
+      id: 'tool-filter',
+      tab: 'filter',
+      mode: 'basic',
+      sectionId: 'drive-tool-filter',
+      label: 'Advanced Filter (Filter Lanjutan)',
+      description: 'Filter berkas berdasarkan rentang ukuran, ekstensi, rentang tanggal & tipe media',
+      keywords: ['filter', 'penyaring', 'advanced filter', 'ukuran', 'tanggal', 'ext', 'ekstensi', 'video', 'foto', 'dokumen'],
+      isDriveTool: true,
+    },
     {
       id: 'upload-quality',
       tab: 'upload',

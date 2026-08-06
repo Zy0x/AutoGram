@@ -217,6 +217,7 @@ export interface TransferSettingsWorkspaceProps {
   embedded?: boolean;
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
+  onSelectTool?: (toolTab: string) => void;
 }
 
 export function TransferSettingsWorkspace({
@@ -227,6 +228,7 @@ export function TransferSettingsWorkspace({
   embedded = false,
   searchQuery: propsSearchQuery,
   onSearchQueryChange: propsOnSearchQueryChange,
+  onSelectTool,
 }: TransferSettingsWorkspaceProps) {
   const { t } = useTranslation();
   const searchInputId = useId();
@@ -791,6 +793,10 @@ export function TransferSettingsWorkspace({
   };
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
+    if (item.isDriveTool) {
+      onSelectTool?.(item.tab);
+      return;
+    }
     setActiveTab(item.tab);
     window.setTimeout(() => {
       const el = document.getElementById(item.sectionId);

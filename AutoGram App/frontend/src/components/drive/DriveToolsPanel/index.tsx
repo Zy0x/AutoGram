@@ -790,6 +790,7 @@ export function DriveToolsPanel({
               onSubTab={setXferSubTab}
               searchQuery={toolsSearchQuery}
               onSearchQueryChange={setToolsSearchQuery}
+              onSelectTool={(toolId) => onTab(toolId as any)}
             />
           )}
           </main>
@@ -808,6 +809,7 @@ function TransferTabContent({
   transferActive,
   searchQuery,
   onSearchQueryChange,
+  onSelectTool,
 }: {
   draft: DriveTransferSettings;
   onChange: (partial: Partial<DriveTransferSettings>) => void;
@@ -818,6 +820,7 @@ function TransferTabContent({
   onSubTab: (t: 'upload' | 'download') => void;
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
+  onSelectTool?: (toolTab: DriveToolsTab) => void;
 }) {
   return (
     <TransferSettingsWorkspace
@@ -827,6 +830,7 @@ function TransferTabContent({
       embedded={true}
       searchQuery={searchQuery}
       onSearchQueryChange={onSearchQueryChange}
+      onSelectTool={(tool) => onSelectTool?.(tool as DriveToolsTab)}
     />
   );
 }
