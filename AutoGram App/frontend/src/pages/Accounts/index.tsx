@@ -331,7 +331,7 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
-          const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
+          const isPremium = Boolean(user?.isPremium);
 
           // REAL-SYNC PHOTO DIRECTLY FROM RUST TELEGRAM BACKEND FOR THIS EXACT SESSION
           let realPhoto = user?.photoBase64 || undefined;

@@ -362,18 +362,83 @@ pub fn auth_status_blocking(
                             .map_err(|e| map_invocation(&e))?;
                         let mut profile = None;
                         if authorized {
-                            // Skip placeholder profiles (id==0 inserted by client_pool before get_me).
-                            // Also re-fetch if photo is missing so first-run after avatar feature update works.
+                            // Gate on id != 0 only — break infinite re-fetch loop.
+                            // Accounts without stripped_thumb would otherwise re-call get_me()
+                            // on every tg_auth_status. The photo download is done inline below
+                            // on first call (when id==0 / placeholder), then cached permanently.
                             let cached = get_cached_user_profile(&session_name);
-                            let has_real_profile = cached
-                                .as_ref()
-                                .map_or(false, |p| p.id != 0 && p.photo_base64.is_some());
-                            if has_real_profile {
+                            let has_real_id = cached.as_ref().map_or(false, |p| p.id != 0);
+
+                            if has_real_id {
+                                // Profile already resolved — serve from cache.
+                                // If photo is still None, the frontend's tgDownloadProfilePhoto handles it.
                                 profile = cached;
                             } else {
                                 match client.get_me().await {
                                     Ok(u) => {
-                                        let p = user_profile_from(&u);
+                                        let mut p = user_profile_from(&u);
+
+                                        // If get_me() returned a user with a photo marker but
+                                        // stripped_thumb was absent (common), download the photo now
+                                        // so we don't need a separate tgDownloadProfilePhoto round-trip.
+                                        if p.photo_base64.is_none() {
+                                            let has_photo_marker = matches!(
+                                                &u.raw,
+                                                grammers_client::tl::enums::User::User(raw)
+                                                    if matches!(
+                                                        &raw.photo,
+                                                        Some(grammers_client::tl::enums::UserProfilePhoto::Photo(_))
+                                                    )
+                                            );
+                                            if has_photo_marker {
+                                                // Download via InputPeerPhotoFileLocation (fast, ~128KB)
+                                                let location = {
+                                                    use grammers_client::tl;
+                                                    if let grammers_client::tl::enums::User::User(raw) = &u.raw {
+                                                        if let Some(tl::enums::UserProfilePhoto::Photo(ph)) = &raw.photo {
+                                                            Some(tl::enums::InputFileLocation::InputPeerPhotoFileLocation(
+                                                                tl::types::InputPeerPhotoFileLocation {
+                                                                    big: false,
+                                                                    peer: tl::enums::InputPeer::PeerSelf,
+                                                                    photo_id: ph.photo_id,
+                                                                },
+                                                            ))
+                                                        } else { None }
+                                                    } else { None }
+                                                };
+                                                if let Some(loc) = location {
+                                                    use grammers_client::tl;
+                                                    let mut bytes: Vec<u8> = Vec::new();
+                                                    let mut offset = 0i64;
+                                                    let chunk = 128 * 1024i32;
+                                                    loop {
+                                                        match client.invoke(&tl::functions::upload::GetFile {
+                                                            precise: false,
+                                                            cdn_supported: false,
+                                                            location: loc.clone(),
+                                                            offset,
+                                                            limit: chunk,
+                                                        }).await {
+                                                            Ok(tl::enums::upload::File::File(f)) => {
+                                                                let done = (f.bytes.len() as i32) < chunk;
+                                                                bytes.extend_from_slice(&f.bytes);
+                                                                if done || bytes.len() > 2 * 1024 * 1024 { break; }
+                                                                offset += f.bytes.len() as i64;
+                                                            }
+                                                            _ => break,
+                                                        }
+                                                    }
+                                                    if !bytes.is_empty() {
+                                                        p.photo_base64 = crate::core::grammers::thumbs::to_data_url(&bytes);
+                                                        tg_log::info(BACKEND, "profile_photo_inline", "downloaded during auth_status");
+                                                    }
+                                                }
+                                            } else {
+                                                // No photo marker — account genuinely has no photo
+                                                tg_log::info(BACKEND, "profile_photo_inline", "account has no profile photo");
+                                            }
+                                        }
+
                                         set_cached_user_profile(&session_name, p.clone());
                                         profile = Some(p);
                                     }
