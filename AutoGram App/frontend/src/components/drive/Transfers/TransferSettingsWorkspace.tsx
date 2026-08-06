@@ -115,26 +115,33 @@ export function TransferSettingsWorkspace({
   );
 
   const patch = (partial: Partial<DriveTransferSettings>) => {
-    setDraft((prev) => normalizeTransferSettings({ ...prev, ...partial }));
-  };
-
-  const applySave = () => {
-    if (!validation.valid) return;
-    const next = validation.normalized;
-    onChange(next);
-    setBaseline(next);
-    setDraft(next);
+    setDraft((prev) => {
+      const next = normalizeTransferSettings({ ...prev, ...partial });
+      const validResult = validateTransferSettings(next, hardwareCapabilities);
+      if (validResult.valid) {
+        onChange(validResult.normalized);
+        setBaseline(validResult.normalized);
+      }
+      return next;
+    });
   };
 
   const resetAll = () => {
     const next = normalizeTransferSettings(DEFAULT_TRANSFER_SETTINGS);
     setDraft(next);
+    setBaseline(next);
+    onChange(next);
     setShowResetConfirm(false);
   };
 
   const applyPreset = (presetSettings: Partial<DriveTransferSettings>) => {
     const next = normalizeTransferSettings({ ...draft, ...presetSettings });
+    const validResult = validateTransferSettings(next, hardwareCapabilities);
     setDraft(next);
+    if (validResult.valid) {
+      onChange(validResult.normalized);
+      setBaseline(validResult.normalized);
+    }
   };
 
   const loadProfile = (id: string) => {
@@ -1145,19 +1152,14 @@ export function TransferSettingsWorkspace({
         </button>
 
         <div className="td-footer-right">
+          <span className="td-autosave-badge">
+            <CheckCircle2 size={13} /> {t('speedtest.auto_saved_tag', 'Tersimpan Otomatis')}
+          </span>
           {onClose && (
-            <button type="button" className="td-chip-btn" onClick={onClose}>
-              {t('speedtest.topbar_cancel', 'Batal')}
+            <button type="button" className="td-chip-btn td-chip-primary" onClick={onClose}>
+              {t('speedtest.topbar_close', 'Selesai')}
             </button>
           )}
-          <button
-            type="button"
-            className="td-btn-primary"
-            onClick={applySave}
-            disabled={!!transferActive || !isDirty || !validation.valid}
-          >
-            <Save size={14} /> {isDirty ? t('speedtest.btn_save', 'Simpan Perubahan') : t('speedtest.saved', 'Tersimpan')}
-          </button>
         </div>
       </footer>
 

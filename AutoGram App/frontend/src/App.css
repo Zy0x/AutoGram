@@ -16580,3 +16580,20 @@ video.drive-zip-img {
   align-items: center !important;
   gap: 10px !important;
 }
+
+/* ==========================================
+   LIVE AUTO-SAVE BADGE STYLING
+   ========================================== */
+.td-autosave-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  border-radius: 9999px !important;
+  color: #34d399 !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+}
