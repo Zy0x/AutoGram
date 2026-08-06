@@ -301,11 +301,13 @@ export function Accounts() {
           const user = result?.data?.user;
           const userFullName = user?.firstName || undefined;
           const username = user?.username ? `@${user.username}` : undefined;
+          const isPremium = Boolean((user as any)?.isPremium || (user as any)?.is_premium);
           if (connected || user) {
             saveSessionMetadata(saved.name, {
               userFullName,
               username: user?.username || undefined,
               photoBase64: user?.photoBase64 || undefined,
+              isPremium,
             });
           }
           // Check disk/memory avatar cache first (peer 0 = self)

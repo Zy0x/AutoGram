@@ -2524,6 +2524,7 @@ export function TransferSettingsWorkspace({
 
                             // Strict session status & Premium accuracy checks
                             const isProblematic = sess.status === 'error' || sess.status === 'expired' || sess.status === 'revoked' || sess.status === 'unauthorized';
+                            // ONLY explicit true counts as verified Premium
                             const isPremium = meta?.isPremium === true || (meta as any)?.is_premium === true;
 
                             if (isProblematic) {
@@ -2552,7 +2553,8 @@ export function TransferSettingsWorkspace({
                               );
                             }
 
-                            if (!isPremium && meta && (meta.isPremium === false || (meta as any).is_premium === false)) {
+                            // NON-PREMIUM (DEFAULT FOR FREE ACCOUNTS) -> Render Standard 2GB
+                            if (!isPremium) {
                               return (
                                 <div
                                   key={sess.name}
@@ -2562,19 +2564,19 @@ export function TransferSettingsWorkspace({
                                     gap: '6px',
                                     background: 'rgba(255,255,255,0.02)',
                                     border: '1px solid rgba(255,255,255,0.06)',
-                                    color: '#64748b',
+                                    color: '#94a3b8',
                                     padding: '6px 12px',
                                     borderRadius: '20px',
                                     fontSize: '12px',
                                     cursor: 'not-allowed',
-                                    opacity: 0.6,
+                                    opacity: 0.65,
                                   }}
-                                  title="Akun Standar gratis hanya mendukung batas 2 GB. Tidak dapat dimasukkan ke Pool Premium 4 GB."
+                                  title="Akun Standar gratis hanya mendukung batas 2 GB. Hanya akun Telegram Premium terverifikasi yang dapat dimasukkan ke Pool 4 GB."
                                 >
                                   <span>⚪</span>
                                   <span>{cleanLabel}</span>
-                                  <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
-                                    Standar 2GB
+                                  <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.05)', color: '#64748b', padding: '1px 5px', borderRadius: '4px', marginLeft: '4px' }}>
+                                    Standar 2GB (Non-Premium)
                                   </span>
                                 </div>
                               );
