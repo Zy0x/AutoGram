@@ -812,31 +812,56 @@ export function Accounts() {
                         const showPhoto = !!s.photoBase64 && !avatarErrors.has(s.name);
                         const displayForAvatar = sessionAliases[s.name] || s.userFullName || s.name;
                         return (
-                          <div
-                            className="avatar-circle"
-                            style={{
-                              width: '44px',
-                              height: '44px',
-                              borderRadius: '50%',
-                              overflow: 'hidden',
-                              padding: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              position: 'relative',
-                              background: showPhoto ? 'transparent' : 'rgba(255, 174, 0, 0.15)',
-                            }}
-                          >
-                            {showPhoto ? (
-                              <img
-                                src={s.photoBase64}
-                                alt={displayForAvatar}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
-                                onError={() => setAvatarErrors(prev => new Set([...prev, s.name]))}
-                              />
-                            ) : (
-                              <Users size={20} color="var(--primary)" aria-hidden />
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <div
+                              className="avatar-circle"
+                              style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: showPhoto ? 'transparent' : 'rgba(255, 174, 0, 0.15)',
+                              }}
+                            >
+                              {showPhoto ? (
+                                <img
+                                  src={s.photoBase64}
+                                  alt={displayForAvatar}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                                  onError={() => setAvatarErrors(prev => new Set([...prev, s.name]))}
+                                />
+                              ) : (
+                                <Users size={20} color="var(--primary)" aria-hidden />
+                              )}
+                            </div>
+                            {/* OFFICIAL TELEGRAM PREMIUM GRADIENT STAR BADGE */}
+                            {s.isPremium && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '-2px',
+                                  right: '-2px',
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)',
+                                  border: '2px solid var(--bg-primary, #0f172a)',
+                                  zIndex: 2,
+                                }}
+                                title="Akun Telegram Premium Terverifikasi"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="#ffffff">
+                                  <path d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z"/>
+                                </svg>
+                              </div>
                             )}
                           </div>
                         );
@@ -853,27 +878,6 @@ export function Accounts() {
                             {s.username && (
                               <span style={{ fontSize: '0.825rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
                                 ({s.username.startsWith('@') ? s.username : `@${s.username}`})
-                              </span>
-                            )}
-                            {s.isPremium && (
-                              <span
-                                style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: '600',
-                                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(168, 85, 247, 0.25))',
-                                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                                  color: '#38bdf8',
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  boxShadow: '0 0 10px rgba(56, 189, 248, 0.25)',
-                                  letterSpacing: '0.02em',
-                                }}
-                                title="Akun Telegram Premium Terverifikasi (Limit Upload 4 GB)"
-                              >
-                                <span>💎</span> Premium 4GB
                               </span>
                             )}
                             {customAlias && s.userFullName && customAlias !== s.userFullName && (
