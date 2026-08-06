@@ -1939,7 +1939,7 @@ export function TransferSettingsWorkspace({
                   </div>
                 </div>
 
-                <div className="td-encoder-4x-grid">
+                <div className="td-encoder-4x-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                   {/* AUTO */}
                   <label className={`td-encoder-tile ${(!draft.playbackHwDecoding || draft.playbackHwDecoding === 'auto') ? 'is-selected' : ''}`}>
                     <input
@@ -1994,25 +1994,6 @@ export function TransferSettingsWorkspace({
                         <strong>Software CPU Decoding</strong>
                       </div>
                       <p>Dekoding pemutaran video menggunakan prosessor CPU bawaan sistem.</p>
-                    </div>
-                  </label>
-
-                  {/* DISABLE DECODER */}
-                  <label className={`td-encoder-tile ${draft.playbackHwDecoding === 'disabled' ? 'is-selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name="playbackHwDecoding"
-                      value="disabled"
-                      checked={draft.playbackHwDecoding === 'disabled'}
-                      disabled={!!transferActive}
-                      onChange={() => patch({ playbackHwDecoding: 'disabled' })}
-                    />
-                    <div>
-                      <div className="td-tile-head">
-                        <Sliders size={16} className="td-tile-icon is-disable" />
-                        <strong>Matikan Akselerasi (Pratinjau Ringan)</strong>
-                      </div>
-                      <p>Matikan dekoding video otomatis. Pratinjau hanya menampilkan thumbnail gambar statis.</p>
                     </div>
                   </label>
                 </div>
