@@ -721,7 +721,7 @@ export const QUALITY_MODE_OPTIONS: {
 export function clampConcurrency(n: unknown, fallback = 4): number {
   const x = Math.round(Number(n));
   if (!Number.isFinite(x)) return fallback;
-  return Math.max(1, Math.min(8, x));
+  return Math.max(1, Math.min(10, x));
 }
 
 export function isQualityMode(v: unknown): v is QualityMode {

@@ -427,7 +427,7 @@ export function TransferSettingsWorkspace({
                   <input
                     type="range"
                     min={1}
-                    max={8}
+                    max={10}
                     value={draft.uploadConcurrency}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ uploadConcurrency: Number(e.target.value) })}
@@ -436,8 +436,8 @@ export function TransferSettingsWorkspace({
                     <span className="td-slider-val">{draft.uploadConcurrency} Berkas</span>
                     <span className="td-concurrency-badge">
                       {draft.uploadConcurrency <= 2 && '🐢 Stabil'}
-                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
-                      {draft.uploadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
+                      {draft.uploadConcurrency >= 3 && draft.uploadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
+                      {draft.uploadConcurrency >= 7 && '🚀 Kecepatan Tinggi (Maks 10)'}
                     </span>
                   </div>
                 </div>
@@ -601,7 +601,7 @@ export function TransferSettingsWorkspace({
                   <input
                     type="range"
                     min={1}
-                    max={8}
+                    max={10}
                     value={draft.downloadConcurrency}
                     disabled={!!transferActive}
                     onChange={(e) => patch({ downloadConcurrency: Number(e.target.value) })}
@@ -610,8 +610,8 @@ export function TransferSettingsWorkspace({
                     <span className="td-slider-val">{draft.downloadConcurrency} Berkas</span>
                     <span className="td-concurrency-badge">
                       {draft.downloadConcurrency <= 2 && '🐢 Stabil'}
-                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 5 && '⚡ Seimbang (Rekomendasi)'}
-                      {draft.downloadConcurrency >= 6 && '🚀 Kecepatan Tinggi'}
+                      {draft.downloadConcurrency >= 3 && draft.downloadConcurrency <= 6 && '⚡ Seimbang (Rekomendasi)'}
+                      {draft.downloadConcurrency >= 7 && '🚀 Kecepatan Tinggi (Maks 10)'}
                     </span>
                   </div>
                 </div>
