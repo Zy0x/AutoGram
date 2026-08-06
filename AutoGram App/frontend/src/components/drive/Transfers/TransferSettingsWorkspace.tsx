@@ -404,11 +404,57 @@ export function TransferSettingsWorkspace({
   };
 
   const copyCaptionOutput = async () => {
+    const rawText = draft.globalCaption || '';
+    if (!rawText) {
+      triggerCaptionToast('⚠️ Caption kosong');
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(draft.globalCaption || '');
-      triggerCaptionToast('⚡ Output Caption tersalin!');
+      const mode = draft.captionParseMode || 'MarkdownV2';
+      let htmlSnippet = rawText;
+
+      if (mode === 'HTML') {
+        htmlSnippet = rawText
+          .replace(/<tg-spoiler>(.*?)<\/tg-spoiler>/gi, '<span class="tg-spoiler">$1</span>')
+          .replace(/<blockquote expandable>(.*?)<\/blockquote>/gi, '<blockquote>$1</blockquote>');
+      } else if (mode === 'MarkdownV2') {
+        htmlSnippet = rawText
+          .replace(/\|\|(.*?)\|\|/g, '<span class="tg-spoiler">$1</span>')
+          .replace(/\*(.*?)\*/g, '<b>$1</b>')
+          .replace(/_(.*?)_/g, '<i>$1</i>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/~(.*?)~/g, '<s>$1</s>')
+          .replace(/```\n?([\s\S]*?)\n?```/g, '<pre>$1</pre>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
+          .replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>');
+      }
+
+      htmlSnippet = htmlSnippet.replace(/\n/g, '<br/>');
+
+      const textBlob = new Blob([rawText], { type: 'text/plain' });
+      const htmlBlob = new Blob([htmlSnippet], { type: 'text/html' });
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob,
+          }),
+        ]);
+        triggerCaptionToast('⚡ Tersalin! Format otomatis terkonversi di Telegram (Ctrl+V)');
+      } else {
+        await navigator.clipboard.writeText(rawText);
+        triggerCaptionToast('⚡ Teks tersalin!');
+      }
     } catch {
-      triggerCaptionToast('❌ Gagal menyalin caption');
+      try {
+        await navigator.clipboard.writeText(rawText);
+        triggerCaptionToast('⚡ Teks tersalin!');
+      } catch {
+        triggerCaptionToast('❌ Gagal menyalin caption');
+      }
     }
   };
 
