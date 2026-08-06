@@ -44,6 +44,11 @@ import { FileTypeIcon } from '../Explorer/FileTypeIcon';
 import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
 import { TransferSettingsWorkspace } from '../Transfers/TransferSettingsWorkspace';
+import {
+  buildSearchRegistry,
+  searchSettingsRegistry,
+  type SearchableSettingItem,
+} from '../Transfers/transferSettingsSearchRegistry';
 export type { DriveToolsTab };
 
 /** Prefer keep one file per group (newest or oldest by message id). Rest → delete set. */
@@ -275,6 +280,31 @@ export function DriveToolsPanel({
 
   const wasteTotal = groups.reduce((s: any, g: any) => s + g.wasteBytes, 0);
 
+  const searchRegistry = useMemo(() => buildSearchRegistry(t), [t]);
+  const searchResults = useMemo(
+    () => searchSettingsRegistry(searchRegistry, toolsSearchQuery),
+    [searchRegistry, toolsSearchQuery]
+  );
+
+  const handleSearchResultClick = (item: SearchableSettingItem) => {
+    setToolsSearchQuery('');
+    if (item.isDriveTool) {
+      onTab(item.tab as DriveToolsTab);
+    } else {
+      if (tab !== 'transfer') {
+        onTab('transfer');
+      }
+      window.setTimeout(() => {
+        const el = document.getElementById(item.sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('td-search-highlight');
+          window.setTimeout(() => el.classList.remove('td-search-highlight'), 1800);
+        }
+      }, 100);
+    }
+  };
+
   const node = (
     <div
       className="td-tools-overlay"
@@ -324,9 +354,6 @@ export function DriveToolsPanel({
                 value={toolsSearchQuery}
                 onChange={(e) => {
                   setToolsSearchQuery(e.target.value);
-                  if (tab !== 'transfer' && e.target.value.trim()) {
-                    onTab('transfer');
-                  }
                 }}
                 placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
                 className="td-header-search-input"
@@ -340,6 +367,51 @@ export function DriveToolsPanel({
                 >
                   <X size={12} />
                 </button>
+              )}
+
+              {/* FLOATING COMMAND PALETTE DROPDOWN ANCHORED RIGHT UNDER HEADER SEARCH INPUT */}
+              {toolsSearchQuery.trim() !== '' && (
+                <div className="td-search-popover-dropdown">
+                  <div className="td-popover-head">
+                    <span>Hasil Pencarian ({searchResults.length})</span>
+                    <button
+                      type="button"
+                      className="td-popover-close-btn"
+                      onClick={() => setToolsSearchQuery('')}
+                      title="Tutup Hasil"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                  <div className="td-popover-list">
+                    {searchResults.length ? (
+                      searchResults.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="td-search-result-row"
+                          onClick={() => handleSearchResultClick(item)}
+                        >
+                          <span className="td-result-tab-badge">
+                            {item.tab.toUpperCase()}
+                          </span>
+                          <div className="td-result-info">
+                            <strong className="td-result-title">{item.label}</strong>
+                            <span className="td-result-snippet">
+                              {item.description || `Pengaturan ${item.label}`}
+                            </span>
+                          </div>
+                          <ChevronRight size={14} className="td-result-arrow" />
+                        </button>
+                      ))
+                    ) : (
+                      <div className="td-popover-empty">
+                        <Search size={18} style={{ color: '#64748b' }} />
+                        <span>Tidak ada pengaturan yang cocok dengan "{toolsSearchQuery}"</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 

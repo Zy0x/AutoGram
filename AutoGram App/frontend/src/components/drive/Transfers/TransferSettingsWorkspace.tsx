@@ -881,30 +881,26 @@ export function TransferSettingsWorkspace({
             </span>
           )}
 
-          {/* Search Results Floating Command Palette Dropdown */}
-          {(propsSearchQuery === undefined || settingsQuery.trim() !== '') && (
-            <div className={`td-xfer-search-wrapper ${propsSearchQuery !== undefined ? 'is-popover-only' : ''}`}>
-              {propsSearchQuery === undefined && (
-                <>
-                  <Search size={14} className="td-search-icon" />
-                  <input
-                    id={searchInputId}
-                    type="text"
-                    value={settingsQuery}
-                    onChange={(e) => setSettingsQuery(e.target.value)}
-                    placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
-                  />
-                  {settingsQuery.trim() !== '' && (
-                    <button
-                      type="button"
-                      className="td-header-search-clear"
-                      onClick={() => setSettingsQuery('')}
-                      title="Bersihkan pencarian"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </>
+          {/* Standalone Search Bar Input & Dropdown */}
+          {propsSearchQuery === undefined && (
+            <div className="td-xfer-search-wrapper">
+              <Search size={14} className="td-search-icon" />
+              <input
+                id={searchInputId}
+                type="text"
+                value={settingsQuery}
+                onChange={(e) => setSettingsQuery(e.target.value)}
+                placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+              />
+              {settingsQuery.trim() !== '' && (
+                <button
+                  type="button"
+                  className="td-header-search-clear"
+                  onClick={() => setSettingsQuery('')}
+                  title="Bersihkan pencarian"
+                >
+                  <X size={12} />
+                </button>
               )}
 
               {settingsQuery.trim() !== '' && (
