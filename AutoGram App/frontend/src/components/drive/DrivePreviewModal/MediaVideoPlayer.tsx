@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { formatDriveDuration } from '../../../lib/telegram/driveTypes';
+import { PlaybackDiagnosticsPanel } from './PlaybackDiagnosticsPanel';
 
 type MediaVideoPlayerProps = {
   src: string;
@@ -13,6 +14,7 @@ type MediaVideoPlayerProps = {
   bufferedPct?: number;
   qualityLabel?: string;
   onQualityMenuToggle?: () => void;
+  showDiagnostics?: boolean;
 };
 
 export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
@@ -25,6 +27,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
   bufferedPct = 0,
   qualityLabel,
   onQualityMenuToggle,
+  showDiagnostics = false,
 }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,6 +41,7 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [browserBufferedPct, setBrowserBufferedPct] = useState(0);
+  const [showDiagPanel, setShowDiagPanel] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const logStreamDiag = useCallback((event: string) => {
@@ -279,6 +283,12 @@ export const MediaVideoPlayer: React.FC<MediaVideoPlayerProps> = ({
           </div>
         </div>
       </div>
+
+      {showDiagnostics && showDiagPanel && (
+        <PlaybackDiagnosticsPanel
+          onClose={() => setShowDiagPanel(false)}
+        />
+      )}
     </div>
   );
 };

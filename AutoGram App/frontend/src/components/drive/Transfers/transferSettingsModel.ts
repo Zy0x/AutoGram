@@ -145,6 +145,15 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
   // Sync forceDocumentDefault with presentationOverride
   const presentationOverride = base.forceDocumentDefault ? 'force_document' : base.presentationOverride || 'automatic';
 
+  const playbackTargetFps = Math.max(0, Math.min(360, Number(base.playbackTargetFps) || 0));
+  const playbackMaxVramMb = Math.max(256, Math.min(16384, Number(base.playbackMaxVramMb) || 1024));
+  const playbackSeekCacheMb = Math.max(64, Math.min(4096, Number(base.playbackSeekCacheMb) || 256));
+  const playbackHwDecoding = base.playbackHwDecoding || 'auto';
+  const playbackBackendChoice = base.playbackBackendChoice || 'auto';
+  const playbackFpsMode = base.playbackFpsMode || 'adaptive';
+  const playbackZeroCopy = base.playbackZeroCopy !== false;
+  const playbackShowDiagnostics = Boolean(base.playbackShowDiagnostics);
+
   return {
     ...base,
     uploadConcurrency,
@@ -153,6 +162,14 @@ export function normalizeTransferSettings(raw?: Partial<DriveTransferSettings>):
     encoderMaxParallel,
     globalCaption,
     presentationOverride,
+    playbackHwDecoding,
+    playbackBackendChoice,
+    playbackFpsMode,
+    playbackTargetFps,
+    playbackMaxVramMb,
+    playbackSeekCacheMb,
+    playbackZeroCopy,
+    playbackShowDiagnostics,
   };
 }
 

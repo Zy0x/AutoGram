@@ -38,6 +38,7 @@ import {
   Play,
   Tv,
   MonitorPlay,
+  Activity,
 } from 'lucide-react';
 import type {
   CaptionPosition,
@@ -1955,7 +1956,7 @@ export function TransferSettingsWorkspace({
                         <Zap size={16} className="td-tile-icon is-auto" />
                         <strong>{t('speedtest.playback_auto_title', 'Otomatis (GPU Hardware)')}</strong>
                       </div>
-                      <p>{t('speedtest.playback_auto_desc', 'Sistem mendeteksi dekoder GPU (NVDEC/DXVA2) otomatis untuk pemutaran instan tanpa lag.')}</p>
+                      <p>{t('speedtest.playback_auto_desc', 'Sistem mendeteksi dekoder GPU (NVDEC/DXVA2/D3D11VA) otomatis untuk pemutaran instan tanpa lag.')}</p>
                     </div>
                   </label>
 
@@ -1999,21 +2000,98 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* INNER SECTION 2: PENGATURAN FRAMERATE & THUMBS SEEKING */}
+              {/* INNER SECTION 2: HARDWARE BACKEND & ZERO-COPY INTEROP */}
               <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
                 <div className="td-card-head">
-                  <SlidersHorizontal size={18} />
+                  <Activity size={18} style={{ color: '#38bdf8' }} />
                   <div>
-                    <h4>{t('speedtest.playback_opt_title', 'Optimasi Framerate & Pre-Seek Thumbs')}</h4>
-                    <p>{t('speedtest.playback_opt_desc', 'Konfigurasi kelancaran gerakan pratinjau dan kecepatan pemuatan cache frame')}</p>
+                    <h4>{t('speedtest.playback_backend_title', 'Hardware Decoder Backend & Zero-Copy Interop')}</h4>
+                    <p>{t('speedtest.playback_backend_desc', 'Konfigurasi backend akselerasi fisik GPU dan transfer memori Zero-Copy DXGI')}</p>
                   </div>
                 </div>
 
                 <div className="td-form-row-grid">
                   <div className="td-field-group">
-                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Target Framerate Pratinjau')}</label>
+                    <label className="td-field-label">{t('speedtest.playback_backend_label', 'Pilihan Backend Decoder')}</label>
                     <select
-                      value={draft.playbackTargetFps ?? 60}
+                      value={draft.playbackBackendChoice || 'auto'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ playbackBackendChoice: e.target.value as any })}
+                    >
+                      <option value="auto">{t('speedtest.playback_backend_auto', 'Otomatis (Rekomendasi Terbaik D3D11VA / NVDEC)')}</option>
+                      <option value="d3d11va">{t('speedtest.playback_backend_d3d11va', 'Direct3D11 Video Acceleration (D3D11VA)')}</option>
+                      <option value="d3d12va">{t('speedtest.playback_backend_d3d12va', 'Direct3D12 Video Acceleration (D3D12VA)')}</option>
+                      <option value="nvdec">{t('speedtest.playback_backend_nvdec', 'NVIDIA NVDEC Hardware Decoder')}</option>
+                      <option value="vulkan">{t('speedtest.playback_backend_vulkan', 'Vulkan Video Decode API')}</option>
+                      <option value="software">{t('speedtest.playback_backend_cpu', 'Software CPU (FFmpeg Fallback)')}</option>
+                    </select>
+                  </div>
+
+                  <div className="td-field-group">
+                    <label className="td-field-label">{t('speedtest.playback_fps_mode_label', 'Mode Penjadwalan Frame (FPS Scheduler)')}</label>
+                    <select
+                      value={draft.playbackFpsMode || 'adaptive'}
+                      disabled={!!transferActive}
+                      onChange={(e) => patch({ playbackFpsMode: e.target.value as any })}
+                    >
+                      <option value="adaptive">{t('speedtest.playback_fps_mode_adaptive', 'Adaptive (Otomatis Sync PTS, Source FPS & Monitor Refresh)')}</option>
+                      <option value="follow_source">{t('speedtest.playback_fps_mode_source', 'Follow Source (Mengikuti Framerate Asli Video)')}</option>
+                      <option value="follow_display">{t('speedtest.playback_fps_mode_display', 'Follow Display (Mengikuti Refresh Rate Monitor 120/144/240Hz+)')}</option>
+                      <option value="manual_cap">{t('speedtest.playback_fps_mode_manual', 'Manual Cap (Batas Manual)')}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="td-switch-row" style={{ marginTop: '16px' }}>
+                  <div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px' }}>
+                      {t('speedtest.playback_zerocopy_title', 'Akselerasi Zero-Copy DXGI Texture Sharing')}
+                    </strong>
+                    <p style={{ color: '#94a3b8', fontSize: '12px', margin: '2px 0 0 0' }}>
+                      {t('speedtest.playback_zerocopy_desc', 'Mentransfer frame video langsung di memori VRAM GPU tanpa menyalin ulang ke RAM CPU.')}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={draft.playbackZeroCopy !== false}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ playbackZeroCopy: e.target.checked })}
+                  />
+                </div>
+
+                <div className="td-switch-row" style={{ marginTop: '12px' }}>
+                  <div>
+                    <strong style={{ color: '#f8fafc', fontSize: '13px' }}>
+                      {t('speedtest.playback_diag_toggle_title', 'Tampilkan Panel Telemetri Diagnostik GPU Real-Time')}
+                    </strong>
+                    <p style={{ color: '#94a3b8', fontSize: '12px', margin: '2px 0 0 0' }}>
+                      {t('speedtest.playback_diag_toggle_desc', 'Menampilkan statistik decoder aktif, FPS riil, dropped frames, dan VRAM di atas pemutar video.')}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(draft.playbackShowDiagnostics)}
+                    disabled={!!transferActive}
+                    onChange={(e) => patch({ playbackShowDiagnostics: e.target.checked })}
+                  />
+                </div>
+              </div>
+
+              {/* INNER SECTION 3: PENGATURAN FRAMERATE & THUMBS SEEKING */}
+              <div className="td-settings-card is-nested-card" style={{ marginTop: '20px' }}>
+                <div className="td-card-head">
+                  <SlidersHorizontal size={18} />
+                  <div>
+                    <h4>{t('speedtest.playback_opt_title', 'Optimasi Target FPS & Pre-Seek Thumbs')}</h4>
+                    <p>{t('speedtest.playback_opt_desc', 'Konfigurasi batas FPS manual dan kecepatan pemuatan cache frame')}</p>
+                  </div>
+                </div>
+
+                <div className="td-form-row-grid">
+                  <div className="td-field-group">
+                    <label className="td-field-label">{t('speedtest.playback_fps_label', 'Batas Target FPS Manual')}</label>
+                    <select
+                      value={draft.playbackTargetFps ?? 0}
                       disabled={!!transferActive}
                       onChange={(e) => patch({ playbackTargetFps: Number(e.target.value) })}
                     >

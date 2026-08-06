@@ -581,6 +581,8 @@ export type DownloadConflictPolicy = 'ask' | 'rename' | 'overwrite' | 'skip';
 export type DownloadIntegrity = 'size' | 'sha256';
 export type CaptionOverflowPolicy = 'truncate_with_warning' | 'fail' | 'split';
 export type CaptionPosition = 'on_media' | 'on_media_above' | 'before_media' | 'after_media' | 'none';
+export type PlaybackBackendChoice = 'auto' | 'd3d11va' | 'd3d12va' | 'nvdec' | 'vulkan' | 'software';
+export type PlaybackFpsMode = 'adaptive' | 'follow_source' | 'follow_display' | 'manual_cap';
 
 export type ScanMode = 'normal' | 'smart' | 'forensic';
 export type TopicScope = 'selected_only' | 'selected_plus_general' | 'all_topics';
@@ -659,8 +661,22 @@ export type DriveTransferSettings = {
   downloadIntegrity: DownloadIntegrity;
   /** Local playback / preview GPU acceleration hardware mode */
   playbackHwDecoding?: 'auto' | 'gpu_hardware' | 'software' | 'disabled';
+  /** Preferred playback hardware decoder backend */
+  playbackBackendChoice?: PlaybackBackendChoice;
+  /** Specific DXGI GPU adapter LUID or identifier */
+  playbackAdapterId?: string;
+  /** Direct GPU texture sharing to prevent CPU memory copies */
+  playbackZeroCopy?: boolean;
+  /** Frame scheduling policy for high-refresh rate displays & VFR sources */
+  playbackFpsMode?: PlaybackFpsMode;
   /** Max FPS target for local video preview (0 = Unlimited / Native display refresh rate) */
   playbackTargetFps?: number;
+  /** Maximum VRAM cap for seek frame buffers in MB */
+  playbackMaxVramMb?: number;
+  /** RAM seek cache size in MB */
+  playbackSeekCacheMb?: number;
+  /** Show real-time telemetry overlay on video player */
+  playbackShowDiagnostics?: boolean;
 };
 
 export type DriveTransferSettingsProfile = {
@@ -726,7 +742,14 @@ export const DEFAULT_TRANSFER_SETTINGS: DriveTransferSettings = {
   downloadResumePartial: true,
   downloadIntegrity: 'size',
   playbackHwDecoding: 'auto',
-  playbackTargetFps: 60,
+  playbackBackendChoice: 'auto',
+  playbackAdapterId: '',
+  playbackZeroCopy: true,
+  playbackFpsMode: 'adaptive',
+  playbackTargetFps: 0,
+  playbackMaxVramMb: 1024,
+  playbackSeekCacheMb: 256,
+  playbackShowDiagnostics: false,
 };
 
 export const QUALITY_MODE_OPTIONS: {

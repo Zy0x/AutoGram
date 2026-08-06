@@ -1605,6 +1605,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             backend_capabilities,
+            features::playback_probe::probe_hardware_playback_capabilities,
             streaming_config_for_size,
             preview_local_document,
             path_policy_check,
