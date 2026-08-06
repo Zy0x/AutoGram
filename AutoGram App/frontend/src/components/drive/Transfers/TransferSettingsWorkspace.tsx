@@ -2144,6 +2144,32 @@ export function TransferSettingsWorkspace({
 
                     <label className="td-switch-row">
                       <div>
+                        <strong>Kelompokkan Berkas Audio & Musik (Audio Playlist)</strong>
+                        <p>Gabungkan beberapa berkas MP3/FLAC menjadi satu paket Playlist Musik Telegram.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={draft.groupAudio ?? true}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ groupAudio: e.target.checked })}
+                      />
+                    </label>
+
+                    <label className="td-switch-row">
+                      <div>
+                        <strong>Kelompokkan Berkas Dokumen Mentah (Document Album)</strong>
+                        <p>Gabungkan berkas dokumen mentah non-media (ZIP, PDF, APK) ke dalam satu grup berkas.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={draft.groupOriginalDocuments ?? true}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ groupOriginalDocuments: e.target.checked })}
+                      />
+                    </label>
+
+                    <label className="td-switch-row">
+                      <div>
                         <strong>Hindari Album Satu Item</strong>
                         <p>Jika tersisa 1 item, kirim sebagai pesan tunggal tanpa frame album.</p>
                       </div>
@@ -2154,6 +2180,19 @@ export function TransferSettingsWorkspace({
                         onChange={(e) => patch({ albumAvoidSingle: e.target.checked })}
                       />
                     </label>
+
+                    <div className="td-field-group" style={{ marginTop: '16px' }}>
+                      <label className="td-field-label">Strategi Penanganan Gagal Item Album</label>
+                      <select
+                        value={draft.albumFailurePolicy || 'atomic_strict'}
+                        disabled={!!transferActive}
+                        onChange={(e) => patch({ albumFailurePolicy: e.target.value as any })}
+                      >
+                        <option value="atomic_strict">Strict (Atomik) — Batal Kirim Album & Ulangi Paket</option>
+                        <option value="best_effort">Best Effort — Kirim Item Berhasil sebagai Album, Ulangi Item Gagal Terpisah</option>
+                        <option value="retry_separate">Fallback Individual — Konversi Item Tersisa Menjadi Pesan Tunggal</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
