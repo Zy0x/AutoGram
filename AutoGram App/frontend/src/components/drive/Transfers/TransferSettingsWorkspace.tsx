@@ -245,14 +245,16 @@ export function TransferSettingsWorkspace({
   const { t } = useTranslation();
   const searchInputId = useId();
 
-  // Navigation state: direct sub-menu category or fallback 'menu'
+  // Navigation state: direct sub-menu category (never default to intermediate menu)
   const [activeTab, setActiveTab] = useState<WorkspaceTabState>(() => propsActiveCategory || 'upload');
 
   useEffect(() => {
     if (propsActiveCategory) {
       setActiveTab(propsActiveCategory);
+    } else if (activeTab === 'menu') {
+      setActiveTab('upload');
     }
-  }, [propsActiveCategory]);
+  }, [propsActiveCategory, activeTab]);
   const [internalSettingsQuery, setInternalSettingsQuery] = useState('');
 
   const settingsQuery = propsSearchQuery !== undefined ? propsSearchQuery : internalSettingsQuery;

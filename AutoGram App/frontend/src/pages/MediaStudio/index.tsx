@@ -7486,8 +7486,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
             }}
             onRefresh={refreshFiles}
             onOpenTransferSettings={() => {
-              setToolsOpen(false);
-              setTransferSettingsOpen(true);
+              setToolsTab('upload');
+              setToolsOpen(true);
             }}
             onOpenTransferManager={openTransferManager}
             transferHasHistory={

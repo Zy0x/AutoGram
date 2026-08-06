@@ -34,6 +34,7 @@ export function DriveTransferSettings({
           onClose={onClose}
           transferActive={transferActive}
           embedded={false}
+          activeCategory="upload"
         />
       </div>
     </div>
