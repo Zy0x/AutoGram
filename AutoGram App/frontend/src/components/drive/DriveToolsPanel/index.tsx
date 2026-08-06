@@ -276,15 +276,15 @@ export function DriveToolsPanel({
     return opts;
   }, [folders, chats]);
 
-  if (!open) return null;
-
-  const wasteTotal = groups.reduce((s: any, g: any) => s + g.wasteBytes, 0);
-
   const searchRegistry = useMemo(() => buildSearchRegistry(t), [t]);
   const searchResults = useMemo(
     () => searchSettingsRegistry(searchRegistry, toolsSearchQuery),
     [searchRegistry, toolsSearchQuery]
   );
+
+  if (!open) return null;
+
+  const wasteTotal = groups.reduce((s: any, g: any) => s + g.wasteBytes, 0);
 
   const handleSearchResultClick = (item: SearchableSettingItem) => {
     setToolsSearchQuery('');
