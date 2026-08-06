@@ -297,40 +297,42 @@ export function TransferSettingsWorkspace({
             </span>
           )}
 
-          {/* Search Box / Search Results Dropdown */}
-          <div className="td-xfer-search-wrapper">
-            {propsSearchQuery === undefined && (
-              <>
-                <Search size={14} className="td-search-icon" />
-                <input
-                  id={searchInputId}
-                  type="search"
-                  value={settingsQuery}
-                  onChange={(e) => setSettingsQuery(e.target.value)}
-                  placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
-                />
-              </>
-            )}
+          {/* Search Results Dropdown Popover */}
+          {(propsSearchQuery === undefined || settingsQuery.trim() !== '') && (
+            <div className={`td-xfer-search-wrapper ${propsSearchQuery !== undefined ? 'is-popover-only' : ''}`}>
+              {propsSearchQuery === undefined && (
+                <>
+                  <Search size={14} className="td-search-icon" />
+                  <input
+                    id={searchInputId}
+                    type="search"
+                    value={settingsQuery}
+                    onChange={(e) => setSettingsQuery(e.target.value)}
+                    placeholder={t('speedtest.search_placeholder_short', 'Cari pengaturan…')}
+                  />
+                </>
+              )}
 
-            {settingsQuery.trim() !== '' && (
-              <div className="td-xfer-search-results">
-                {searchResults.length ? (
-                  searchResults.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="td-chip-btn"
-                      onClick={() => handleSearchResultClick(item)}
-                    >
-                      <span className="td-search-item-tab">[{item.tab.toUpperCase()}]</span> {item.label}
-                    </button>
-                  ))
-                ) : (
-                  <span className="td-xfer-hint">{t('speedtest.transfer_settings_search_empty', 'Tidak ada hasil')}</span>
-                )}
-              </div>
-            )}
-          </div>
+              {settingsQuery.trim() !== '' && (
+                <div className="td-xfer-search-results">
+                  {searchResults.length ? (
+                    searchResults.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="td-chip-btn"
+                        onClick={() => handleSearchResultClick(item)}
+                      >
+                        <span className="td-search-item-tab">[{item.tab.toUpperCase()}]</span> {item.label}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="td-xfer-hint">{t('speedtest.transfer_settings_search_empty', 'Tidak ada hasil')}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 

@@ -16924,3 +16924,12 @@ video.drive-zip-img {
   background: rgba(239, 68, 68, 0.35) !important;
   color: #f8fafc !important;
 }
+
+.td-xfer-search-wrapper.is-popover-only {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+}
