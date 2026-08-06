@@ -223,10 +223,11 @@ export function TransferSettingsWorkspace({
 
   // Sub-Menu Categories List (Displays ALL categories directly)
   const subMenuCategories: { id: SubMenuCategory; label: string; desc: string; icon: any }[] = [
-    { id: 'upload', label: t('speedtest.tab_upload_download', 'Transfer Media (Upload & Download)'), desc: 'Paralelisme unggah/unduh, format pengiriman media, caption & kebijakan konflik berkas', icon: Upload },
+    { id: 'upload', label: t('speedtest.tab_upload', 'Upload'), desc: 'Format pengiriman, caption global, penjadwalan & performa paralel unggah', icon: Upload },
     { id: 'encoding', label: t('speedtest.tab_encoding', 'Encoding Video'), desc: 'Mode encoder GPU/CPU, akselerasi hardware & kompresi video', icon: Film },
     { id: 'albums', label: t('speedtest.tab_albums', 'Pengelompokan Album'), desc: 'Grouping foto/video menjadi album Telegram & penanganan dokumen', icon: FolderTree },
     { id: 'duplicates', label: t('speedtest.tab_duplicates', 'Penanganan Duplikat'), desc: 'Pencegahan file duplikat & verifikasi 4-level', icon: CopyCheck },
+    { id: 'download', label: t('speedtest.tab_download', 'Download'), desc: 'Paralelisme unduh, kebijakan konflik nama file, resume & notifikasi', icon: Download },
     { id: 'limits_recovery', label: t('speedtest.tab_limits_recovery', 'Batas Ukuran & Pemulihan'), desc: 'Penanganan berkas oversize (>2GB/4GB), split, pool akun alternatif', icon: HardDriveUpload },
     { id: 'advanced', label: t('speedtest.tab_advanced', 'Pengaturan Lanjutan'), desc: 'Sinkronisasi tampilan, retry teknis & ekspor/impor konfigurasi', icon: SlidersHorizontal },
   ];
@@ -374,22 +375,19 @@ export function TransferSettingsWorkspace({
 
         {/* LEVEL 2: DEDICATED CLEAN SUB-MENU PAGES (SHOWS ALL SETTINGS DIRECTLY INCLUDING ADVANCED OPTIONS) */}
 
-        {/* DEDICATED PAGE: UPLOAD & DOWNLOAD IN HIERARCHICAL SEQUENCE */}
-        {(activeTab === 'upload' || activeTab === 'download') && (
+        {/* DEDICATED PAGE: UPLOAD */}
+        {activeTab === 'upload' && (
           <div className="td-xfer-focused-panel" id="section-upload-format">
-            {/* ==========================================
-                CARD 1: PENGATURAN UNGGAHAN (UPLOAD)
-                ========================================== */}
             <div className="td-settings-card">
               <div className="td-card-head">
                 <Upload size={20} className="td-card-icon-primary" />
                 <div>
-                  <h4>1. {t('speedtest.tab_upload_title', 'Pengaturan Unggahan (Upload)')}</h4>
+                  <h4>{t('speedtest.tab_upload_title', 'Pengaturan Unggahan (Upload)')}</h4>
                   <p>{t('speedtest.tab_upload_desc', 'Atur paralelisme unggah, format pengiriman media, caption global & penjadwalan')}</p>
                 </div>
               </div>
 
-              {/* SUB-SECTION 1.1: PARALEL UNGGAH */}
+              {/* SUB-SECTION: PARALEL UNGGAH */}
               <div className="td-settings-subcard">
                 <label className="td-field-label">Jumlah Unggahan Paralel (Upload Slots)</label>
                 <div className="td-slider-row-box">
@@ -412,7 +410,7 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* SUB-SECTION 1.2: FORMAT PENGIRIMAN MEDIA */}
+              {/* SUB-SECTION: FORMAT PENGIRIMAN MEDIA */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
                 <label className="td-field-label">Format Pengiriman Media</label>
                 <div className="td-radio-tiles-grid">
@@ -463,7 +461,7 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* SUB-SECTION 1.3: CAPTION GLOBAL & OPERASI UNGGAH */}
+              {/* SUB-SECTION: CAPTION GLOBAL & OPERASI UNGGAH */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
                 <label className="td-field-label">Caption Global & Opsi Pengiriman</label>
                 <div className="td-caption-input-box">
@@ -522,20 +520,22 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* ==========================================
-                CARD 2: PENGATURAN UNDUHAN (DOWNLOAD)
-                ========================================== */}
-            <div className="td-settings-card" id="section-download-performance" style={{ marginTop: '20px' }}>
+        {/* DEDICATED PAGE: DOWNLOAD */}
+        {activeTab === 'download' && (
+          <div className="td-xfer-focused-panel" id="section-download-performance">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Download size={20} className="td-card-icon-primary" />
                 <div>
-                  <h4>2. {t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}</h4>
+                  <h4>{t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}</h4>
                   <p>{t('speedtest.tab_download_desc', 'Atur paralelisme unduhan, kebijakan konflik nama berkas & keandalan resume')}</p>
                 </div>
               </div>
 
-              {/* SUB-SECTION 2.1: PARALEL UNDUHAN */}
+              {/* SUB-SECTION: PARALEL UNDUHAN */}
               <div className="td-settings-subcard">
                 <label className="td-field-label">Jumlah Unduhan Paralel (Download Slots)</label>
                 <div className="td-slider-row-box">
@@ -558,7 +558,7 @@ export function TransferSettingsWorkspace({
                 </div>
               </div>
 
-              {/* SUB-SECTION 2.2: KONFLIK FILE & KEANDALAN */}
+              {/* SUB-SECTION: KONFLIK FILE & KEANDALAN */}
               <div className="td-settings-subcard" style={{ marginTop: '16px' }}>
                 <label className="td-field-label">Kebijakan Konflik Nama Berkas Di Komputer</label>
                 <select
