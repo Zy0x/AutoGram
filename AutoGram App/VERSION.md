@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.8
+AutoGram Version: v2.8.9
 
 Current State:
+v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak tampilan komparasi duplikat agar 100% mencocokkan desain mockup: 2 kartu komparasi utama di bagian atas (Preview A & Preview B) dengan header badge + tombol `Simpan Ini`, serta daftar grup duplikat horizontal strip di bagian bawah dengan badge indikator A/B dan kontrol radio Simpan/Hapus.
+
+Previous:
 v2.8.8 Mobile-First & Touch-Friendly Duplicate Compare Sidebar Architecture — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak panel kanan anggota grup pada modal komparasi duplikat agar bertransformasi menjadi Bottom Sheet & Mini-Bar Toggle ringkas pada layar mobile (< 900px) dan menyusun komparasi media secara vertikal (stacked), serta menjamin ukuran target sentuh minimal 44px untuk kenyamanan sentuh jari.
 
 Previous:

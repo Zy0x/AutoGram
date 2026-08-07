@@ -10034,80 +10034,133 @@ body:has(.app-layout-drive-focus),
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
-/* Responsive Mobile-First Bottom Sheet & Stacked Vertical View (< 900px) */
+/* Mockup-Identical Duplicate Viewer Styling (v2.8.9) */
+.dup-viewer-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0f19;
+}
+
+.dup-viewer-stage {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dup-viewer-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  min-height: 320px;
+}
+
+.dup-viewer-card.is-card-a {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.dup-viewer-card.is-card-b {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.dup-viewer-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #131d31;
+  border-bottom: 1px solid #1e293b;
+}
+
+.dup-viewer-card-media {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: #070b14;
+  position: relative;
+  overflow: hidden;
+}
+
+.dup-viewer-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #111827;
+  border-top: 1px solid #1f2937;
+}
+
+.dup-viewer-keep-btn {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.15s ease;
+}
+
+.dup-viewer-keep-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.dup-viewer-bottom-bar {
+  background: #0e1626;
+  border-top: 1px solid #1e293b;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dup-viewer-thumb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dup-viewer-thumb-card {
+  width: 170px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #0a0f1d;
+  border: 1px solid #1e293b;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dup-viewer-thumb-card.is-badge-a {
+  border-color: #f43f5e;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.35);
+}
+
+.dup-viewer-thumb-card.is-badge-b {
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
 @media (max-width: 900px) {
-  .drive-preview-split-wrapper {
+  .dup-viewer-stage {
     flex-direction: column;
-  }
-
-  .drive-preview-split-stage {
-    flex-direction: column;
-    padding: 12px;
-    padding-bottom: 74px; /* Room for collapsed bottom sheet bar */
-    gap: 12px;
-    overflow-y: auto;
-  }
-
-  .drive-preview-split-col {
-    width: 100%;
-    min-height: 260px;
-    height: auto;
-  }
-
-  .drive-preview-split-divider {
-    flex-direction: row;
-    padding: 4px 14px;
-    background: rgba(15, 23, 42, 0.85);
-    border-radius: 9999px;
-    border: 1px solid rgba(56, 189, 248, 0.35);
-  }
-
-  .drive-preview-dup-sidebar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: auto;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6);
-    background: rgba(15, 23, 42, 0.96);
-    backdrop-filter: blur(24px);
-    padding: 10px 14px;
-    z-index: 50;
-  }
-
-  .drive-preview-dup-sidebar.is-collapsed {
-    max-height: 52px;
-    overflow: hidden;
-  }
-
-  .drive-preview-dup-sidebar.is-collapsed .drive-preview-dup-sidebar-list,
-  .drive-preview-dup-sidebar.is-collapsed .drive-preview-dup-quick-keep-btn {
-    display: none;
-  }
-
-  .drive-preview-dup-sidebar.is-expanded {
-    max-height: 65vh;
-    overflow-y: auto;
-  }
-
-  .drive-preview-dup-sidebar-head {
-    margin-bottom: 4px;
-    padding-bottom: 4px;
-    border-bottom: none;
-  }
-
-  .drive-preview-dup-sidebar.is-expanded .drive-preview-dup-sidebar-head {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 6px;
-    margin-bottom: 8px;
-  }
-
-  .drive-preview-split-meta button {
-    min-height: 44px; /* Touch target requirement */
   }
 }
 .td-xfer-settings-foot {

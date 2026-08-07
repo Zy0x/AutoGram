@@ -38,12 +38,7 @@ import {
   Copy,
   Printer,
   Repeat,
-  Scale,
   Columns,
-  ShieldCheck,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -459,7 +454,6 @@ export function DrivePreviewModal({
   }, [duplicateContext]);
 
   const [selectedBIndex, setSelectedBIndex] = useState<number>(1);
-  const [isDupSidebarExpanded, setIsDupSidebarExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     if (currentDupGroup) {
@@ -3561,166 +3555,169 @@ export function DrivePreviewModal({
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
-            <div className="drive-preview-split-wrapper">
-              <div className="drive-preview-split-stage">
-                {/* LEFT PANE: FILE A (Reference / Main kept file) */}
+            <div className="dup-viewer-wrapper flex flex-col w-full h-full overflow-hidden bg-slate-950/80">
+              {/* TOP SECTION: SPLIT PREVIEW CARDS (Preview A vs Preview B) */}
+              <div className="dup-viewer-stage flex-1 flex flex-col md:flex-row gap-4 p-4 min-h-0 overflow-y-auto">
+                {/* PREVIEW A CARD */}
                 {(() => {
                   const fileA = currentDupGroup.files[0];
-                  const isMarkedA = duplicateContext.markedDelete.has(fileA.id);
                   const thumbA = fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                  const grpPillStr = `g${duplicateContext.currentGroupIndex + 1}-1`;
                   return (
-                    <div className={`drive-preview-split-col ${isMarkedA ? 'is-marked-delete' : 'is-keep'}`}>
-                      <div className="drive-preview-split-badge">
-                        <span className={`td-tools-dup-badge ${isMarkedA ? 'is-del' : 'is-keep'}`}>
-                          {isMarkedA ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
-                        </span>
-                        <span className="drive-preview-split-tag">{t('speedtest.preview_file_a')}</span>
+                    <div className="dup-viewer-card is-card-a flex-1 flex flex-col rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden min-h-[300px]">
+                      {/* Header */}
+                      <div className="dup-viewer-card-head flex items-center justify-between px-4 py-2.5 bg-slate-900/95 border-b border-slate-800/80">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase">Preview A</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                            {grpPillStr}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-slate-400 hover:text-slate-200 p-1 rounded-full hover:bg-slate-800/60 transition"
+                            title={t('common.close')}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="drive-preview-split-media-wrap">
+                      {/* Media Display */}
+                      <div className="dup-viewer-card-media flex-1 flex items-center justify-center p-3 bg-slate-950/50 overflow-hidden relative">
                         {isImageDriveFile(fileA) && thumbA ? (
                           <img
                             src={thumbA}
                             alt={fileA.name}
-                            className="drive-preview-split-media"
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-md"
                           />
                         ) : (
-                          <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                            <Film size={36} />
-                            <span className="text-xs text-slate-400">{fileA.name}</span>
+                          <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
+                            <Film size={42} className="text-slate-500" />
+                            <span className="text-xs font-semibold text-slate-400 truncate max-w-[200px]">{fileA.name}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="drive-preview-split-meta">
-                        <strong className="drive-preview-split-fname" title={fileA.name}>{fileA.name}</strong>
-                        <div className="drive-preview-split-sub">
-                          <span>#{fileA.id}</span>
-                          <span>{formatDriveBytes(fileA.size)}</span>
+                      {/* Footer Meta & Action */}
+                      <div className="dup-viewer-card-foot flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 border-t border-slate-800/80">
+                        <div className="flex flex-col text-xs text-slate-300 min-w-0">
+                          <div className="truncate">
+                            <span className="text-slate-400">Nama: </span>
+                            <span className="font-bold text-slate-100">{fileA.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Ukuran: </span>
+                            <span className="font-bold text-slate-100">{formatDriveBytes(fileA.size)}</span>
+                          </div>
                         </div>
+
                         <button
                           type="button"
-                          className={`td-btn-primary ${!isMarkedA ? 'is-active-keep' : ''}`}
                           onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileA.id)}
-                          style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
+                          className="dup-viewer-keep-btn bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-xs font-extrabold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all flex-shrink-0 cursor-pointer"
                         >
-                          <ShieldCheck size={14} /> {t('speedtest.preview_keep_a')}
+                          <Check size={14} strokeWidth={3} />
+                          <span>Simpan Ini (1)</span>
                         </button>
                       </div>
                     </div>
                   );
                 })()}
 
-                <div className="drive-preview-split-divider">
-                  <Scale size={24} style={{ color: '#38bdf8' }} />
-                  <span>VS</span>
-                </div>
-
-                {/* RIGHT PANE: FILE B (Inspected member selected from sidebar) */}
+                {/* PREVIEW B CARD */}
                 {(() => {
                   const fileB = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0];
-                  const isMarkedB = duplicateContext.markedDelete.has(fileB.id);
                   const thumbB = fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                  const grpPillStr = `g${duplicateContext.currentGroupIndex + 1}-2`;
                   return (
-                    <div className={`drive-preview-split-col ${isMarkedB ? 'is-marked-delete' : 'is-keep'}`}>
-                      <div className="drive-preview-split-badge">
-                        <span className={`td-tools-dup-badge ${isMarkedB ? 'is-del' : 'is-keep'}`}>
-                          {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
-                        </span>
-                        <span className="drive-preview-split-tag">{t('speedtest.preview_file_b')}</span>
+                    <div className="dup-viewer-card is-card-b flex-1 flex flex-col rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden min-h-[300px]">
+                      {/* Header */}
+                      <div className="dup-viewer-card-head flex items-center justify-between px-4 py-2.5 bg-slate-900/95 border-b border-slate-800/80">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase">Preview B</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            {grpPillStr}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-slate-400 hover:text-slate-200 p-1 rounded-full hover:bg-slate-800/60 transition"
+                            title={t('common.close')}
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="drive-preview-split-media-wrap">
+                      {/* Media Display */}
+                      <div className="dup-viewer-card-media flex-1 flex items-center justify-center p-3 bg-slate-950/50 overflow-hidden relative">
                         {isImageDriveFile(fileB) && thumbB ? (
                           <img
                             src={thumbB}
                             alt={fileB.name}
-                            className="drive-preview-split-media"
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-md"
                           />
                         ) : (
-                          <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                            <Film size={36} />
-                            <span className="text-xs text-slate-400">{fileB.name}</span>
+                          <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
+                            <Film size={42} className="text-slate-500" />
+                            <span className="text-xs font-semibold text-slate-400 truncate max-w-[200px]">{fileB.name}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="drive-preview-split-meta">
-                        <strong className="drive-preview-split-fname" title={fileB.name}>{fileB.name}</strong>
-                        <div className="drive-preview-split-sub">
-                          <span>#{fileB.id}</span>
-                          <span>{formatDriveBytes(fileB.size)}</span>
+                      {/* Footer Meta & Action */}
+                      <div className="dup-viewer-card-foot flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 border-t border-slate-800/80">
+                        <div className="flex flex-col text-xs text-slate-300 min-w-0">
+                          <div className="truncate">
+                            <span className="text-slate-400">Nama: </span>
+                            <span className="font-bold text-slate-100">{fileB.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Ukuran: </span>
+                            <span className="font-bold text-slate-100">{formatDriveBytes(fileB.size)}</span>
+                          </div>
                         </div>
-                        <div className="flex gap-2 w-full">
-                          <button
-                            type="button"
-                            className={`td-btn-primary flex-1 ${isMarkedB ? 'is-danger' : ''}`}
-                            onClick={() => duplicateContext.onToggleMark(fileB.id)}
-                            style={{ padding: '8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}
-                          >
-                            {isMarkedB ? <Trash2 size={14} /> : <ShieldCheck size={14} />}
-                            {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_mark_this_del')}
-                          </button>
-                          <button
-                            type="button"
-                            className={`td-btn-primary ${!isMarkedB ? 'is-active-keep' : ''}`}
-                            onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
-                            style={{ padding: '8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}
-                            title={t('speedtest.preview_keep_this')}
-                          >
-                            <ShieldCheck size={14} /> {t('speedtest.preview_keep_this')}
-                          </button>
-                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
+                          className="dup-viewer-keep-btn bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white text-xs font-extrabold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all flex-shrink-0 cursor-pointer"
+                        >
+                          <Check size={14} strokeWidth={3} />
+                          <span>Simpan Ini (2)</span>
+                        </button>
                       </div>
                     </div>
                   );
                 })()}
               </div>
 
-              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST (Mobile bottom-sheet + Desktop sidebar) */}
-              <aside className={`drive-preview-dup-sidebar ${isDupSidebarExpanded ? 'is-expanded' : 'is-collapsed'}`}>
-                <div
-                  className="drive-preview-dup-sidebar-head cursor-pointer select-none"
-                  onClick={() => setIsDupSidebarExpanded((prev) => !prev)}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="drive-preview-dup-sidebar-title truncate">
-                      {t('speedtest.preview_sidebar_title')} ({currentDupGroup.files.length})
-                    </span>
-                    <span className="text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 flex-shrink-0">
-                      {t('speedtest.preview_group_pill', {
-                        index: duplicateContext.currentGroupIndex + 1,
-                        total: duplicateContext.activeFilteredGroups.length,
-                      })}
+              {/* BOTTOM SECTION: DAFTAR GRUP DUPLIKAT (KLIK UNTUK ISI SPLIT A / B) */}
+              <div className="dup-viewer-bottom-bar bg-slate-900/95 border-t border-slate-800/90 p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen size={16} className="text-sky-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      DAFTAR GRUP DUPLIKAT (KLIK UNTUK ISI SPLIT A / B)
                     </span>
                   </div>
-
-                  <button
-                    type="button"
-                    className="drive-preview-dup-toggle-btn text-slate-400 hover:text-white p-1 rounded-md"
-                    aria-label="Toggle group members"
-                  >
-                    {isDupSidebarExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-                  </button>
+                  <span className="text-xs text-slate-400 font-semibold">
+                    Total item di grup ini: {currentDupGroup.files.length}
+                  </span>
                 </div>
 
-                {/* 1-Click Action: Keep Only Currently Active File */}
-                <button
-                  type="button"
-                  className="drive-preview-dup-quick-keep-btn"
-                  onClick={() => {
-                    const activeBFile = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[0];
-                    if (activeBFile) duplicateContext.onKeepOnly(currentDupGroup, activeBFile.id);
-                  }}
-                  title={t('speedtest.preview_keep_only_active_short')}
-                >
-                  <ShieldCheck size={14} />
-                  <span>{t('speedtest.preview_keep_only_active_short')}</span>
-                </button>
-
-                <div className="drive-preview-dup-sidebar-list">
+                {/* HORIZONTAL CAROUSEL OF THUMBNAILS */}
+                <div className="dup-viewer-thumb-row flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
                   {currentDupGroup.files.map((f, idx) => {
-                    const isSel = idx === selectedBIndex;
+                    const isA = idx === 0;
+                    const isB = idx === selectedBIndex;
                     const isDel = duplicateContext.markedDelete.has(f.id);
                     const sizeStr = formatDriveBytes(f.size || 0);
                     const cardThumb = f.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
@@ -3729,70 +3726,82 @@ export function DrivePreviewModal({
                       <div
                         key={f.id}
                         onClick={() => setSelectedBIndex(idx)}
-                        className={`drive-preview-dup-card ${isSel ? 'is-active' : ''} ${
-                          isDel ? 'is-marked-delete' : ''
+                        className={`dup-viewer-thumb-card flex flex-col w-[170px] flex-shrink-0 rounded-xl bg-slate-950/80 border p-2 cursor-pointer transition-all ${
+                          isA
+                            ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/50'
+                            : isB
+                            ? 'border-emerald-500 shadow-[0_0_12px_rgba(52,211,153,0.3)] ring-1 ring-emerald-500/50'
+                            : 'border-slate-800 hover:border-slate-600'
                         }`}
                       >
-                        {/* Checkbox for quick toggle mark */}
-                        <label
-                          className="td-tools-dup-check flex-shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                          title={t('speedtest.check_delete_tooltip')}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isDel}
-                            onChange={() => duplicateContext.onToggleMark(f.id)}
-                          />
-                          <span className="td-tools-dup-check-ui" aria-hidden>
-                            {isDel ? <Check size={11} strokeWidth={3} /> : null}
-                          </span>
-                        </label>
-
-                        {/* Thumbnail */}
-                        {isImageDriveFile(f) && cardThumb ? (
-                          <img src={cardThumb} alt={f.name} className="drive-preview-dup-card-thumb" />
-                        ) : (
-                          <div className="drive-preview-dup-card-thumb flex items-center justify-center text-slate-400">
-                            <Film size={18} />
-                          </div>
-                        )}
-
-                        {/* Compact Info (Truncated Filename + Size) */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="flex items-center gap-1">
-                            {idx === 0 && (
-                              <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-300 px-1 rounded flex-shrink-0">
-                                A
-                              </span>
-                            )}
-                            {isSel && (
-                              <span className="text-[9px] font-black bg-sky-500/20 text-sky-300 px-1 rounded flex-shrink-0">
-                                B
-                              </span>
-                            )}
-                            <span className="text-xs font-bold text-slate-200 truncate" title={f.name}>
-                              {f.name}
+                        {/* Thumb Preview Box */}
+                        <div className="relative w-full h-[100px] rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center mb-2">
+                          {isA && (
+                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-rose-500 px-1.5 py-0.5 rounded shadow">
+                              A
                             </span>
-                          </div>
-                          <span className="text-[11px] text-slate-400 font-semibold">{sizeStr}</span>
+                          )}
+                          {isB && !isA && (
+                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-emerald-500 px-1.5 py-0.5 rounded shadow">
+                              B
+                            </span>
+                          )}
+
+                          {isImageDriveFile(f) && cardThumb ? (
+                            <img src={cardThumb} alt={f.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Film size={28} className="text-slate-500" />
+                          )}
                         </div>
 
-                        {/* Compact Status Pill */}
-                        <span
-                          className={`flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded ${
-                            isDel
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          }`}
-                        >
-                          {isDel ? t('speedtest.preview_status_del') : t('speedtest.preview_status_keep')}
-                        </span>
+                        {/* Text Info */}
+                        <div className="flex flex-col gap-1 px-1">
+                          <span className="text-xs font-bold text-slate-200 truncate" title={f.name}>
+                            {f.name}
+                          </span>
+
+                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                            <span>{sizeStr}</span>
+
+                            {/* Radio Options: Simpan / Hapus */}
+                            <div className="flex items-center gap-2 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                              <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-300">
+                                <input
+                                  type="radio"
+                                  name={`dup-act-${f.id}`}
+                                  checked={!isDel}
+                                  onChange={() => {
+                                    if (duplicateContext.markedDelete.has(f.id)) {
+                                      duplicateContext.onToggleMark(f.id);
+                                    }
+                                  }}
+                                  className="accent-emerald-500"
+                                />
+                                <span>Simpan</span>
+                              </label>
+
+                              <label className="flex items-center gap-1 cursor-pointer hover:text-rose-400">
+                                <input
+                                  type="radio"
+                                  name={`dup-act-${f.id}`}
+                                  checked={isDel}
+                                  onChange={() => {
+                                    if (!duplicateContext.markedDelete.has(f.id)) {
+                                      duplicateContext.onToggleMark(f.id);
+                                    }
+                                  }}
+                                  className="accent-rose-500"
+                                />
+                                <span>Hapus</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              </aside>
+              </div>
             </div>
           ) : (
             <>

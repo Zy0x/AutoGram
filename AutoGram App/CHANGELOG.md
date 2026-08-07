@@ -1,3 +1,11 @@
+## v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel
+
+### Perombakan Komparasi Duplikat Sesuai Desain Mockup (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Presisi Visual Mockup**: Merombak tampilan modal komparasi duplikat menjadi 2 kartu komparasi utama berdampingan di bagian atas (Preview A & Preview B) dan 1 strip carousel horizontal daftar grup duplikat di bagian bawah (`DAFTAR GRUP DUPLIKAT`).
+- **Kartu Preview A & Preview B**: Menyajikan dot indikator warna (Red untuk A, Emerald untuk B), badge pill grup (`g3-1` / `g3-2`), info Nama + Ukuran file, dan tombol utama `✓ Simpan Ini (1)` / `✓ Simpan Ini (2)`.
+- **Carousel Strip Anggota Grup**: Menampilkan seluruh file dalam grup duplikat secara horizontal dengan indikator badge `A` / `B` di atas thumbnail, border glow sesuai warna role, dan radio tombol langsung `Simpan` / `Hapus`.
+- **Mobile Responsive**: Kartu Preview A & Preview B stack secara vertikal pada layar HP (< 900px) sementara strip bawah tetap scrollable horizontal.
+
 ## v2.8.8 Mobile-First & Touch-Friendly Duplicate Compare Sidebar Architecture
 
 ### Merombak Layout Komparasi Duplikat & Responsive Bottom Sheet (`DrivePreviewModal/index.tsx`, `App.css`)
