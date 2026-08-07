@@ -1741,6 +1741,23 @@ export function DrivePreviewModal({
         window.setTimeout(() => {
           navLock.current = false;
         }, 180);
+        if (duplicateContext && duplicateContext.activeFilteredGroups.length > 0) {
+          if (e.key === 'ArrowRight') {
+            const nextIdx = duplicateContext.currentGroupIndex + 1;
+            const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+            if (nextGroup && duplicateContext.onNavigateGroup) {
+              duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+            }
+          } else if (e.key === 'ArrowLeft') {
+            const prevIdx = duplicateContext.currentGroupIndex - 1;
+            const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+            if (prevGroup && duplicateContext.onNavigateGroup) {
+              duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+            }
+          }
+          return;
+        }
+
         if (e.key === 'ArrowRight' && hasNext && onNext) onNext();
         if (e.key === 'ArrowLeft' && hasPrev && onPrev) onPrev();
         return;
@@ -1769,7 +1786,7 @@ export function DrivePreviewModal({
     return () => window.removeEventListener('keydown', onKey);
     // applyZoomAt / resetZoom read latest via refs / setState — stable enough
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onClose, onNext, onPrev, hasNext, hasPrev, qualityOpen, rateOpen, file]);
+  }, [onClose, onNext, onPrev, hasNext, hasPrev, qualityOpen, rateOpen, file, duplicateContext]);
 
   /** Place fixed menus near trigger — never clipped by toolbar; flip up if near bottom */
   const placeMenuNear = useCallback((btn: HTMLElement | null, estH = 240) => {
@@ -2892,26 +2909,62 @@ export function DrivePreviewModal({
             <button
               type="button"
               className="td-icon-btn"
-              disabled={!hasPrev}
+              disabled={
+                duplicateContext
+                  ? duplicateContext.currentGroupIndex <= 0
+                  : !hasPrev
+              }
               onClick={(e) => {
                 e.stopPropagation();
-                onPrev?.();
+                if (duplicateContext) {
+                  const prevIdx = duplicateContext.currentGroupIndex - 1;
+                  const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+                  if (prevGroup && duplicateContext.onNavigateGroup) {
+                    duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+                  }
+                } else {
+                  onPrev?.();
+                }
               }}
               aria-label="Previous"
-              title={hasPrev ? t('speedtest.preview_prev_file') : t('speedtest.preview_no_prev')}
+              title={
+                duplicateContext
+                  ? t('speedtest.preview_prev_group')
+                  : hasPrev
+                  ? t('speedtest.preview_prev_file')
+                  : t('speedtest.preview_no_prev')
+              }
             >
               <ChevronLeft size={18} />
             </button>
             <button
               type="button"
               className="td-icon-btn"
-              disabled={!hasNext}
+              disabled={
+                duplicateContext
+                  ? duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1
+                  : !hasNext
+              }
               onClick={(e) => {
                 e.stopPropagation();
-                onNext?.();
+                if (duplicateContext) {
+                  const nextIdx = duplicateContext.currentGroupIndex + 1;
+                  const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+                  if (nextGroup && duplicateContext.onNavigateGroup) {
+                    duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+                  }
+                } else {
+                  onNext?.();
+                }
               }}
               aria-label="Next"
-              title={hasNext ? t('speedtest.preview_next_file') : t('speedtest.preview_no_next')}
+              title={
+                duplicateContext
+                  ? t('speedtest.preview_next_group')
+                  : hasNext
+                  ? t('speedtest.preview_next_file')
+                  : t('speedtest.preview_no_next')
+              }
             >
               <ChevronRight size={18} />
             </button>
