@@ -3577,6 +3577,13 @@ export function DrivePreviewModal({
                   className="drive-preview-video-poster-fallback"
                   draggable={false}
                   style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    zIndex: 0,
+                    pointerEvents: 'none',
                     transform: needsMediaTransform ? mediaTransform : 'none',
                     transformOrigin: 'center center',
                   }}
@@ -4146,7 +4153,7 @@ export function DrivePreviewModal({
                     <div className="drive-preview-time-label">
                       <span className="active">{formatDriveDuration(videoCurrentTime)}</span>
                       <span> / </span>
-                      <span>{formatDriveDuration(videoDuration)}</span>
+                      <span>{videoDuration > 0 ? formatDriveDuration(videoDuration) : '--:--'}</span>
                     </div>
                   </div>
 
