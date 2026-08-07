@@ -3527,23 +3527,40 @@ export function TransferSettingsWorkspace({
       {showTabResetConfirm && (
         <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowTabResetConfirm(false)}>
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <AlertTriangle size={24} className="td-confirm-icon" />
+            <AlertTriangle size={26} className="td-confirm-icon" style={{ color: '#f87171' }} />
             <h4>Reset Pengaturan Sub-menu Ini?</h4>
             <p>
               Apakah Anda yakin ingin mengembalikan seluruh konfigurasi pada bagian{' '}
               <strong>{subMenuCategories.find((c) => c.id === activeTab)?.label || 'Sub-menu'}</strong> ke default pabrik?
             </p>
             <div className="td-confirm-actions">
-              <button type="button" className="td-chip-btn" onClick={() => setShowTabResetConfirm(false)}>
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={() => setShowTabResetConfirm(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#cbd5e1',
+                  fontWeight: 600,
+                }}
+              >
                 {t('speedtest.topbar_cancel', 'Batal')}
               </button>
               <button
                 type="button"
-                className="td-chip-btn td-chip-primary"
+                className="td-chip-btn td-chip-danger"
                 onClick={() => {
                   resetCurrentSection(activeTab);
                   setShowTabResetConfirm(false);
                   triggerCaptionToast('✓ Pengaturan sub-menu berhasil dikembalikan ke default!');
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
                 }}
               >
                 Ya, Reset Pengaturan Ini
@@ -3557,11 +3574,21 @@ export function TransferSettingsWorkspace({
       {showResetConfirm && (
         <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowResetConfirm(false)}>
           <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <AlertTriangle size={24} className="td-confirm-icon" style={{ color: '#ef4444' }} />
+            <AlertTriangle size={26} className="td-confirm-icon" style={{ color: '#ef4444' }} />
             <h4>Reset Total Semua Pengaturan System?</h4>
             <p>Seluruh draf pengaturan transfer pada semua sub-menu akan dikembalikan ke nilai default pabrik.</p>
             <div className="td-confirm-actions">
-              <button type="button" className="td-chip-btn" onClick={() => setShowResetConfirm(false)}>
+              <button
+                type="button"
+                className="td-chip-btn"
+                onClick={() => setShowResetConfirm(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#cbd5e1',
+                  fontWeight: 600,
+                }}
+              >
                 {t('speedtest.topbar_cancel', 'Batal')}
               </button>
               <button
@@ -3570,6 +3597,13 @@ export function TransferSettingsWorkspace({
                 onClick={() => {
                   resetAll();
                   setShowResetConfirm(false);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.35)',
                 }}
               >
                 {t('speedtest.btn_reset_default', 'Ya, Reset Total Default')}
