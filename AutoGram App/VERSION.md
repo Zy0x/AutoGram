@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.2
+AutoGram Version: v3.0.3
 
 Current State:
+v3.0.3 Floating Glass Action Pill & Max Canvas Expansion Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merestrukturisasi kartu perbandingan A & B dengan *Floating Glass Action Pill Overlay* yang melayang bersih di bagian bawah media canvas. Mengalokasikan 100% tinggi kartu untuk area gambar, mengeliminasi baris meta bawah yang membuang ruang, dan memperluas panggung gambar media secara maksimal tanpa ada yang terpotong di seluruh resolusi layar.
+
+Previous:
 v3.0.2 Ultra-Compact Split Header & Full-Bleed Zero-Chop Stage Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah header modal saat mode perbandingan duplikat (Split View) menjadi 1-line bar super ringkas (`.drive-preview-header.is-split-header`) setinggi 44px, menghemat 45px+ ruang vertikal. Mengatur panggung perbandingan agar 100% *full-bleed* responsif dinamis dengan `object-fit: contain` presisi tinggi sehingga seluruh gambar karakter (dari ujung kepala hingga ujung kaki), lencana A/B, dan tombol aksi Keep/Delete tampil 100% utuh tanpa terpotong di resolusi layar mana pun.
 
 Previous:

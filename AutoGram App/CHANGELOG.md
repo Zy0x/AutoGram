@@ -1,3 +1,9 @@
+## v3.0.3 Floating Glass Action Pill & Max Canvas Expansion Engine
+
+### Floating Action Pill Overlay & Maksimasi Panggung Gambar (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Floating Glass Action Pill Overlay**: Memindahkan tombol aksi `✓ Keep A/B` & `🗑 Delete` menjadi pill melayang transparan berteknologi glassmorphism di bagian bawah media canvas (`backdrop-blur-xl border border-white/10`).
+- **Maksimasi Panggung Media (100% Canvas Height)**: Mengintegrasikan ukuran berkas ke header badge atas dan menghapus footer meta bawah, sehingga area gambar mendapatkan 100% tinggi kartu perbandingan secara utuh tanpa ada yang terpotong.
+
 ## v3.0.2 Ultra-Compact Split Header & Full-Bleed Zero-Chop Stage Engine
 
 ### Header Super Ringkas 1-Baris & Responsivitas Kanvas 100% Utuh (`DrivePreviewModal/index.tsx`, `App.css`)

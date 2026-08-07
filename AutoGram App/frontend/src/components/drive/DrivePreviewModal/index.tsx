@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import {
   X,
-  MoreVertical,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -3642,9 +3641,11 @@ export function DrivePreviewModal({
                               <span className="drive-preview-card-title">{fileA ? fileA.name : t('speedtest.preview_card_title_a')}</span>
                             </div>
                             <div className="drive-preview-badge-right">
-                              <button type="button" className="drive-dup-more-btn" title="More options">
-                                <MoreVertical size={16} />
-                              </button>
+                              {fileA && (
+                                <span className="text-slate-400 text-xs font-semibold mr-1">
+                                  {formatDriveBytes(fileA.size)}
+                                </span>
+                              )}
                               {!isSlotAEmpty && (
                                 <button
                                   type="button"
@@ -3667,45 +3668,38 @@ export function DrivePreviewModal({
                               <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('speedtest.preview_click_to_load')}</span>
                             </div>
                           ) : (
-                            <>
-                              <div className="drive-preview-split-media-wrap">
-                                {isImageDriveFile(fileA) && thumbA ? (
-                                  <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" />
-                                ) : (
-                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                                    <Film size={36} />
-                                    <span className="text-xs text-slate-400">{fileA.name}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="drive-preview-split-meta">
-                                <span className="text-slate-400 text-xs font-medium">
-                                  {formatDriveBytes(fileA.size)}
-                                </span>
-
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="drive-dup-btn-keep"
-                                    onClick={() => handleKeepAndAdvance(fileA.id)}
-                                    title={t('speedtest.preview_keep_only_active_short')}
-                                  >
-                                    <Check size={14} />
-                                    <span>{t('speedtest.preview_keep_btn_a')}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="drive-dup-btn-delete"
-                                    onClick={() => duplicateContext.onToggleMark(fileA.id)}
-                                    title={t('speedtest.preview_mark_delete')}
-                                  >
-                                    <Trash2 size={14} />
-                                    <span>{t('speedtest.preview_delete_btn')}</span>
-                                  </button>
+                            <div className="drive-preview-split-media-wrap relative group">
+                              {isImageDriveFile(fileA) && thumbA ? (
+                                <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" />
+                              ) : (
+                                <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
+                                  <Film size={36} />
+                                  <span className="text-xs text-slate-400">{fileA.name}</span>
                                 </div>
+                              )}
+
+                              {/* FLOATING ACTION PILL OVERLAY */}
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-2xl z-20 transition-all duration-200 hover:bg-slate-950">
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-keep"
+                                  onClick={() => handleKeepAndAdvance(fileA.id)}
+                                  title={t('speedtest.preview_keep_only_active_short')}
+                                >
+                                  <Check size={14} />
+                                  <span>{t('speedtest.preview_keep_btn_a')}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-delete"
+                                  onClick={() => duplicateContext.onToggleMark(fileA.id)}
+                                  title={t('speedtest.preview_mark_delete')}
+                                >
+                                  <Trash2 size={14} />
+                                  <span>{t('speedtest.preview_delete_btn')}</span>
+                                </button>
                               </div>
-                            </>
+                            </div>
                           )}
                         </div>
                       );
@@ -3724,9 +3718,11 @@ export function DrivePreviewModal({
                               <span className="drive-preview-card-title">{fileB ? fileB.name : t('speedtest.preview_card_title_b')}</span>
                             </div>
                             <div className="drive-preview-badge-right">
-                              <button type="button" className="drive-dup-more-btn" title="More options">
-                                <MoreVertical size={16} />
-                              </button>
+                              {fileB && (
+                                <span className="text-slate-400 text-xs font-semibold mr-1">
+                                  {formatDriveBytes(fileB.size)}
+                                </span>
+                              )}
                               {!isSlotBEmpty && (
                                 <button
                                   type="button"
@@ -3749,45 +3745,38 @@ export function DrivePreviewModal({
                               <span className="text-xs text-slate-400 max-w-[200px] text-center">{t('speedtest.preview_click_to_load')}</span>
                             </div>
                           ) : (
-                            <>
-                              <div className="drive-preview-split-media-wrap">
-                                {isImageDriveFile(fileB) && thumbB ? (
-                                  <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" />
-                                ) : (
-                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                                    <Film size={36} />
-                                    <span className="text-xs text-slate-400">{fileB.name}</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="drive-preview-split-meta">
-                                <span className="text-slate-400 text-xs font-medium">
-                                  {formatDriveBytes(fileB.size)}
-                                </span>
-
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="drive-dup-btn-keep"
-                                    onClick={() => handleKeepAndAdvance(fileB.id)}
-                                    title={t('speedtest.preview_keep_only_active_short')}
-                                  >
-                                    <Check size={14} />
-                                    <span>{t('speedtest.preview_keep_btn_b')}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="drive-dup-btn-delete"
-                                    onClick={() => duplicateContext.onToggleMark(fileB.id)}
-                                    title={t('speedtest.preview_mark_delete')}
-                                  >
-                                    <Trash2 size={14} />
-                                    <span>{t('speedtest.preview_delete_btn')}</span>
-                                  </button>
+                            <div className="drive-preview-split-media-wrap relative group">
+                              {isImageDriveFile(fileB) && thumbB ? (
+                                <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" />
+                              ) : (
+                                <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
+                                  <Film size={36} />
+                                  <span className="text-xs text-slate-400">{fileB.name}</span>
                                 </div>
+                              )}
+
+                              {/* FLOATING ACTION PILL OVERLAY */}
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-2xl z-20 transition-all duration-200 hover:bg-slate-950">
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-keep"
+                                  onClick={() => handleKeepAndAdvance(fileB.id)}
+                                  title={t('speedtest.preview_keep_only_active_short')}
+                                >
+                                  <Check size={14} />
+                                  <span>{t('speedtest.preview_keep_btn_b')}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="drive-dup-btn-delete"
+                                  onClick={() => duplicateContext.onToggleMark(fileB.id)}
+                                  title={t('speedtest.preview_mark_delete')}
+                                >
+                                  <Trash2 size={14} />
+                                  <span>{t('speedtest.preview_delete_btn')}</span>
+                                </button>
                               </div>
-                            </>
+                            </div>
                           )}
                         </div>
                       );
