@@ -1,3 +1,9 @@
+## v2.9.5 Universal Drive Media Header Restoration & Seamless Mode Switch Engine
+
+### Pemulihan Sempurna Media Preview Header & Tombol Sakelar Split View (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Pemulihan Header Utama Universal**: Memastikan `drive-preview-header` utama selalu aktif dirender pada Single View maupun Split View.
+- **Kelengkapan Navigasi & Alat**: Menampilkan nama berkas, metadata ukuran & dimensi, alat nav/download/open/folder/fullscreen, serta tombol sakelar utama **`Compare Duplicates (Split View)`** dan **`Toggle Sidepanel`**.
+
 ## v2.9.4 Perfect Top Header Visibility & Modal Shell Containment Engine
 
 ### Pemunculan Sempurna Top Header Bar (`DrivePreviewModal/index.tsx`, `App.css`)

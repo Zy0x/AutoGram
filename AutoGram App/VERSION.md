@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.4
+AutoGram Version: v2.9.5
 
 Current State:
+v2.9.5 Universal Drive Media Header Restoration & Seamless Mode Switch Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memulihkan keberadaan `drive-preview-header` utama agar selalu aktif dan terlihat sempurna baik pada Single View maupun Split Compare View. Menampilkan judul media, ukuran, alat nav/download/folder, navigasi grup duplikat, serta tombol sakelar `Compare Duplicates (Split View)` dan `Toggle Sidepanel` secara lengkap dan tajam.
+
+Previous:
 v2.9.4 Perfect Top Header Visibility & Modal Shell Containment Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki pembungkusan shell modal (`.drive-preview-modal.is-split-compare`) agar Top Header Bar perbandingan duplikat (`Duplicate Group #1 (2 files)` + tombol `✕ Close`) tampil 100% utuh dan tajam tanpa terpotong oleh overflow shell modal.
 
 Previous:

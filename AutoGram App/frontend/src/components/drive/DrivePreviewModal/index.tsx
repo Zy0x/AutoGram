@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import {
   X,
-  ArrowLeft,
   MoreVertical,
   Trash2,
   ChevronLeft,
@@ -2945,7 +2944,7 @@ export function DrivePreviewModal({
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {!isZip && !isSplitCompareMode && (
+        {!isZip && (
           <>
             <header className="drive-preview-header">
           {/* Row A: title + close — title never shares width with icon cluster */}
@@ -3610,36 +3609,6 @@ export function DrivePreviewModal({
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div className="flex flex-col w-full h-full bg-[#090d16] text-slate-100 overflow-hidden">
-              {/* TOP HEADER BAR */}
-              <header className="drive-dup-header">
-                <div className="drive-dup-header-left">
-                  <button
-                    type="button"
-                    className="drive-dup-back-btn"
-                    onClick={onClose}
-                    title={t('speedtest.preview_close_btn')}
-                  >
-                    <ArrowLeft size={18} />
-                  </button>
-                  <h2 className="drive-dup-header-title">
-                    {t('speedtest.preview_dup_header_title', { index: duplicateContext.currentGroupIndex + 1 })}
-                  </h2>
-                  <span className="drive-dup-files-badge">
-                    {t('speedtest.preview_files_badge', { count: currentDupGroup.files.length })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="drive-dup-close-btn"
-                    onClick={onClose}
-                  >
-                    <X size={14} />
-                    <span>{t('speedtest.preview_close_btn')}</span>
-                  </button>
-                </div>
-              </header>
-
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
               <div className="flex-1 flex w-full min-h-0 overflow-hidden relative">
                 <div className="drive-preview-split-wrapper flex-1 h-full">
