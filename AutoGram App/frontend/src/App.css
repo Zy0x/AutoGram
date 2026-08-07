@@ -10006,15 +10006,53 @@ body:has(.app-layout-drive-focus),
   background: #090d16 !important;
   display: flex !important;
   flex-direction: column !important;
-  width: 96vw !important;
-  height: 94vh !important;
-  max-width: 1600px !important;
-  max-height: 1000px !important;
+  width: min(98vw, 1600px) !important;
+  height: min(96vh, 96dvh, 1080px) !important;
+  max-height: 100dvh !important;
   box-sizing: border-box !important;
 }
 
-.drive-preview-modal.is-split-compare .drive-preview-header {
+.drive-preview-header.is-split-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 4px 12px !important;
+  gap: 8px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
   flex-shrink: 0 !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  grid-template-areas: none !important;
+}
+
+.drive-preview-header.is-split-header .drive-preview-title {
+  grid-area: unset !important;
+  margin-bottom: 0 !important;
+  max-width: 32% !important;
+  flex-shrink: 1 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.drive-preview-header.is-split-header .drive-preview-title strong {
+  font-size: 0.82rem !important;
+}
+
+.drive-preview-header.is-split-header .drive-preview-title .drive-muted {
+  display: none !important;
+}
+
+.drive-preview-header.is-split-header .drive-preview-nav {
+  grid-area: unset !important;
+  border-top: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 1 !important;
+  justify-content: flex-end !important;
+  gap: 4px !important;
 }
 
 .drive-preview-modal.is-split-compare .drive-preview-body {

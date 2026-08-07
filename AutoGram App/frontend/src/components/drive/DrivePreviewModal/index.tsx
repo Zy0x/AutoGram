@@ -2962,7 +2962,7 @@ export function DrivePreviewModal({
       >
         {!isZip && (
           <>
-            <header className="drive-preview-header">
+            <header className={`drive-preview-header${isSplitCompareMode ? ' is-split-header' : ''}`}>
           {/* Row A: title + close — title never shares width with icon cluster */}
           <div className="drive-preview-title">
             <strong title={displayName}>{displayName}</strong>

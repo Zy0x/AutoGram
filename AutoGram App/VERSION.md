@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.1
+AutoGram Version: v3.0.2
 
 Current State:
+v3.0.2 Ultra-Compact Split Header & Full-Bleed Zero-Chop Stage Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah header modal saat mode perbandingan duplikat (Split View) menjadi 1-line bar super ringkas (`.drive-preview-header.is-split-header`) setinggi 44px, menghemat 45px+ ruang vertikal. Mengatur panggung perbandingan agar 100% *full-bleed* responsif dinamis dengan `object-fit: contain` presisi tinggi sehingga seluruh gambar karakter (dari ujung kepala hingga ujung kaki), lencana A/B, dan tombol aksi Keep/Delete tampil 100% utuh tanpa terpotong di resolusi layar mana pun.
+
+Previous:
 v3.0.1 Strict Flex Height & Sidepanel Text Wrap Fix Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki kalkulasi tinggi flexbox `height: 0 !important; flex: 1 1 0% !important;` pada kontainer modal `.drive-preview-modal.is-split-compare .drive-preview-body` sehingga header utama atas, kartu Preview A & B (termasuk tombol Keep/Delete), dan footer navigasi bawah terisi 100% utuh tanpa ada yang terdorong keluar atau terpotong. Serta menambahkan `white-space: nowrap` pada `.drive-dup-sidebar-size` untuk menghentikan pemotongan teks ukuran berkas secara vertikal.
 
 Previous:

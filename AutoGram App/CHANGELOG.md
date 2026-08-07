@@ -1,3 +1,9 @@
+## v3.0.2 Ultra-Compact Split Header & Full-Bleed Zero-Chop Stage Engine
+
+### Header Super Ringkas 1-Baris & Responsivitas Kanvas 100% Utuh (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Header Ultra-Ringkas 44px (`.is-split-header`)**: Mengondisikan toolbar atas menjadi 1 baris flex horizontal super tipis (setinggi 44px), menghemat lebih dari 45px ruang vertikal untuk kanvas gambar.
+- **Panggung Gambar 100% Utuh (Zero-Chop)**: Mengatur kontainer modal (`min(98vw, 1600px)` x `min(96vh, 1080px)`) dan panggung `object-fit: contain` sehingga seluruh gambar (ujung kepala hingga kaki), header kartu A/B, dan tombol aksi Keep/Delete tampil utuh tanpa terpotong di layar mana pun.
+
 ## v3.0.1 Strict Flex Height & Sidepanel Text Wrap Fix Engine
 
 ### Perbaikan Kalkulasi Flex Height & Pembungkusan Teks Sidepanel (`DrivePreviewModal/index.tsx`, `App.css`)
