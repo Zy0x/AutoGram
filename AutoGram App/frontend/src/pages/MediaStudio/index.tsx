@@ -7716,6 +7716,7 @@ function MediaDriveDesktop({
             locationStatsAccurate={statsAccurate}
             locationByType={statsByType}
             filesHasMore={filesHasMore}
+            onLoadMoreFiles={loadMoreFiles}
             topicFilter={topicFilter}
             isForum={isForumChat}
             transferSettings={transferSettings}

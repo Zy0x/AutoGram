@@ -17,6 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Layers,
+  HardDrive,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -137,6 +139,7 @@ type Props = {
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
+  onLoadMoreFiles?: () => Promise<void>;
   onSmartCopy?: (opts: {
     messageIds: number[];
     toFolderId: number | null;
@@ -167,6 +170,7 @@ export function DriveToolsPanel({
   locationStatsAccurate = false,
   locationByType = null,
   filesHasMore = false,
+  onLoadMoreFiles,
   topicFilter = null,
   isForum = false,
   transferSettings,
@@ -178,7 +182,9 @@ export function DriveToolsPanel({
   onSmartCopy: _onSmartCopy,
 }: Props) {
   const { t } = useTranslation();
-  const [dupMode, setDupMode] = useState<'name_size' | 'both'>('name_size');
+  const [dupMode, setDupMode] = useState<
+    'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone'
+  >('all_levels');
   const [pattern, setPattern] = useState('{name}_{n:2}.{ext}');
   const [startAt, setStartAt] = useState(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -218,7 +224,7 @@ export function DriveToolsPanel({
   };
 
   const groups = useMemo(
-    () => findDuplicateGroups(files, dupMode),
+    () => findDuplicateGroups(files, dupMode as any),
     [files, dupMode]
   );
   const space = useMemo(() => computeSpaceUsage(files), [files]);
@@ -449,6 +455,10 @@ export function DriveToolsPanel({
               folderId={folderId}
               onPreviewFile={onPreviewFile}
               onDeleteIds={onDeleteIds}
+              totalFileCount={locationTotalCount || files.length}
+              filesHasMore={filesHasMore}
+              onLoadMoreFiles={onLoadMoreFiles}
+              loadedCount={files.length}
             />
           )}
 
@@ -924,35 +934,94 @@ function DupTab({
   folderId,
   onPreviewFile,
   onDeleteIds,
+  totalFileCount,
+  filesHasMore,
+  onLoadMoreFiles,
+  loadedCount = 0,
 }: {
   groups: DupGroup[];
   wasteTotal: number;
-  dupMode: 'name_size' | 'both';
-  onDupMode: (m: 'name_size' | 'both') => void;
+  dupMode: 'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone';
+  onDupMode: (m: 'all_levels' | 'hash_unique' | 'name_size' | 'size_only' | 'message_clone') => void;
   busy?: boolean;
   creds: DriveCredentials | null;
   folderId: number | null;
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
+  totalFileCount?: number;
+  filesHasMore?: boolean;
+  onLoadMoreFiles?: () => Promise<void>;
+  loadedCount?: number;
 }) {
   const { t } = useTranslation();
   const [keepNewest, setKeepNewest] = useState(true);
-  /** Message ids marked for deletion (checked = salinan yang akan dihapus). */
   const [markedDelete, setMarkedDelete] = useState<Set<number>>(() => new Set());
-  /** Fingerprint of last smart-apply so we re-seed when groups/mode change. */
+  const [filterType, setFilterType] = useState<'all' | 'image' | 'video' | 'document' | 'audio'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // DEEP SCAN STATE
+  const [isScanning, setIsScanning] = useState(false);
+  const scanStopRef = useState({ stop: false })[0];
+
+  const startDeepScan = async () => {
+    if (!onLoadMoreFiles || !filesHasMore || isScanning) return;
+    setIsScanning(true);
+    scanStopRef.stop = false;
+
+    try {
+      while (!scanStopRef.stop && filesHasMore) {
+        await onLoadMoreFiles();
+        // Smart Rate Controller 100ms throttle between pages to avoid Telegram FloodWait
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    } catch {
+      /* ignore scan errors */
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const stopDeepScan = () => {
+    scanStopRef.stop = true;
+    setIsScanning(false);
+  };
+
   const smartKey = useMemo(() => {
     const parts = groups.map((g) => `${g.key}:${g.files.map((f: any) => f.id).join(',')}`);
     return `${dupMode}|${keepNewest ? 'n' : 'o'}|${parts.join(';')}`;
   }, [groups, dupMode, keepNewest]);
 
-  // Smart defaults: keep 1 per group (newest/oldest), mark the rest.
-  // Re-applies when detection mode / keep preference / group membership changes.
   useEffect(() => {
     setMarkedDelete(smartDeleteIds(groups, keepNewest));
-  }, [smartKey]); // eslint-disable-line react-hooks/exhaustive-deps -- smartKey encodes groups+keepNewest
+  }, [smartKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FILTERED GROUPS BY MEDIA TYPE & SEARCH QUERY
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      // 1. Media Type Filter
+      if (filterType !== 'all') {
+        const matchesType = g.files.some((f) => {
+          const type = ((f as any).file_type || f.mime_type || '').toLowerCase();
+          const name = f.name.toLowerCase();
+          if (filterType === 'image') return type.includes('image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(name);
+          if (filterType === 'video') return type.includes('video') || /\.(mp4|mkv|webm|avi|mov)$/i.test(name);
+          if (filterType === 'audio') return type.includes('audio') || /\.(mp3|flac|wav|ogg|m4a)$/i.test(name);
+          if (filterType === 'document') return type.includes('pdf') || type.includes('zip') || /\.(pdf|zip|rar|7z|doc|docx|txt)$/i.test(name);
+          return true;
+        });
+        if (!matchesType) return false;
+      }
+      // 2. Search Query Filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        const matchesName = g.files.some((f) => f.name.toLowerCase().includes(q) || (f.original_name || '').toLowerCase().includes(q));
+        if (!matchesName) return false;
+      }
+      return true;
+    });
+  }, [groups, filterType, searchQuery]);
 
   const idsToDelete = useMemo(() => {
-    // Only delete ids that still exist in current groups (stale safety)
     const valid = new Set<number>();
     for (const g of groups) for (const f of g.files) valid.add(f.id);
     return [...markedDelete].filter((id) => valid.has(id));
@@ -969,7 +1038,6 @@ function DupTab({
   }, [groups, markedDelete]);
 
   const selectedWaste = useMemo(() => {
-    // Approximate freed bytes = sum of sizes of marked files
     let bytes = 0;
     for (const g of groups) {
       for (const f of g.files) {
@@ -1017,77 +1085,310 @@ function DupTab({
   const applySmartAll = () => setMarkedDelete(smartDeleteIds(groups, keepNewest));
   const clearAllMarks = () => setMarkedDelete(new Set());
 
+  const targetTotal = totalFileCount || loadedCount;
+  const scanProgressPct = targetTotal > 0 ? Math.min(100, Math.round((loadedCount / targetTotal) * 100)) : 0;
+
   return (
-    <div className="td-tools-section">
-      <p className="td-tools-lead">
-        {groups.length === 0 ? (
-          t('speedtest.dup_none_detected')
-        ) : (
-          <>
-          {t('speedtest.dup_lead_summary', { groups: groups.length, size: formatDriveBytes(wasteTotal) })}
-          <br />
-            <span className="td-tools-dup-lead-hint">
-              {t('speedtest.dup_lead_hint')}
-            </span>
-          </>
-        )}
-      </p>
-      <div className="td-tools-actions-bar">
-        <div className="td-tools-segmented" role="radiogroup" aria-label={t("speedtest.dup_detection_mode")}>
-          <button
-            type="button"
-            className={`td-segmented-item ${dupMode === 'name_size' ? 'active' : ''}`}
-            onClick={() => onDupMode('name_size')}
-          >
-            {t('speedtest.dup_mode_name_size_label')}
-          </button>
-          <button
-            type="button"
-            className={`td-segmented-item ${dupMode === 'both' ? 'active' : ''}`}
-            onClick={() => onDupMode('both')}
-          >
-            {t('speedtest.dup_mode_both_label')}
-          </button>
+    <div className="td-tools-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      
+      {/* 🔍 FULL CHANNEL DEEP SCAN CARD */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)',
+          border: '1px solid rgba(56, 189, 248, 0.25)',
+          borderRadius: '14px',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Search size={16} style={{ color: '#38bdf8' }} />
+              <span>Pemindaian Berkas Chat ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} items)</span>
+            </h4>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+              {filesHasMore
+                ? `Baru ${loadedCount.toLocaleString('id-ID')} berkas ter-fetch di memori. Klik tombol di kanan untuk memindai seluruh ${targetTotal.toLocaleString('id-ID')} berkas secara otomatis!`
+                : `✓ Seluruh ${loadedCount.toLocaleString('id-ID')} berkas di lokasi ini sudah selesai dipindai.`}
+            </p>
+          </div>
+
+          {filesHasMore && (
+            <div>
+              {!isScanning ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void startDeepScan()}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+                  }}
+                >
+                  <Search size={14} />
+                  <span>Pindai Seluruh Chat ({targetTotal.toLocaleString('id-ID')} Items)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopDeepScan}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    color: '#fca5a5',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Loader2 size={14} className="spin" />
+                  <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")}>
-          <input
-            type="checkbox"
-            checked={keepNewest}
-            onChange={(e) => setKeepNewest(e.target.checked)}
-          />
-          <span>{t('speedtest.default_keep_newest')}</span>
-        </label>
+
+        {/* PROGRESS BAR */}
+        {isScanning && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
+              <span>Memindai index Telegram...</span>
+              <span>{loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} ({scanProgressPct}%)</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${scanProgressPct}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)',
+                  borderRadius: '3px',
+                  transition: 'width 0.2s ease',
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {groups.length > 0 && (
-        <div className="td-tools-dup-toolbar">
+      {/* 📊 SUMMARY HERO STATS CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.6)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Layers size={18} style={{ color: '#38bdf8' }} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Grup Duplikat</span>
+            <strong style={{ fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>{filteredGroups.length}</strong>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.6)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Trash2 size={18} style={{ color: '#f87171' }} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Salinan Akan Dihapus</span>
+            <strong style={{ fontSize: '1.1rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} Berkas</strong>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.6)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(74, 222, 128, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HardDrive size={18} style={{ color: '#4ade80' }} />
+          </div>
+          <div>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Potensi Hemat Ruang</span>
+            <strong style={{ fontSize: '1.1rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* ⚙️ 4-LEVEL DETECTION MODE SELECTOR & PREFERENCE */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(15, 23, 42, 0.4)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Modus Deteksi 4-Level (AutoGram Rule #5):</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {[
+            { id: 'all_levels', label: '✨ Semua Level (1-4)' },
+            { id: 'hash_unique', label: 'L1: Hash & Unique ID' },
+            { id: 'name_size', label: 'L2: Nama + Ukuran' },
+            { id: 'size_only', label: 'L3: Ukuran Byte Sama' },
+            { id: 'message_clone', label: 'L4: Forward Clone' },
+          ].map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onDupMode(m.id as any)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: dupMode === m.id ? 700 : 500,
+                background: dupMode === m.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                border: dupMode === m.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                color: dupMode === m.id ? '#38bdf8' : '#cbd5e1',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
+          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")}>
+            <input
+              type="checkbox"
+              checked={keepNewest}
+              onChange={(e) => setKeepNewest(e.target.checked)}
+            />
+            <span>{t('speedtest.default_keep_newest')}</span>
+          </label>
+        </div>
+      </div>
+
+      {/* 📁 MEDIA CATEGORY FILTER TABS & SEARCH INPUT */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[
+            { id: 'all', label: 'Semua' },
+            { id: 'image', label: '📷 Foto' },
+            { id: 'video', label: '🎥 Video' },
+            { id: 'document', label: '📄 Dokumen' },
+            { id: 'audio', label: '🎵 Audio' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFilterType(tab.id as any)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '7px',
+                fontSize: '0.75rem',
+                fontWeight: filterType === tab.id ? 700 : 500,
+                background: filterType === tab.id ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                border: 'none',
+                color: filterType === tab.id ? '#ffffff' : '#94a3b8',
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ position: 'relative', width: '200px' }}>
+          <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+          <input
+            type="text"
+            placeholder="Cari file duplikat..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '5px 8px 5px 28px',
+              borderRadius: '8px',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#f8fafc',
+              fontSize: '0.78rem',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* DUP TOOLBAR ACTIONS */}
+      {filteredGroups.length > 0 && (
+        <div className="td-tools-dup-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={applySmartAll}
+              title={t('speedtest.per_group_keep_one')}
+            >
+              <Check size={14} /> {t('speedtest.smart_selection_btn')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={clearAllMarks}
+              title={t('speedtest.keep_all_groups')}
+            >
+              {t('speedtest.keep_all_groups')}
+            </button>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8', alignSelf: 'center', fontWeight: 600 }}>
+              Dipertahankan: <strong style={{ color: '#4ade80' }}>{keepCount}</strong> berkas
+            </span>
+          </div>
+
           <button
             type="button"
-            className="btn btn-ghost"
-            disabled={busy}
-            onClick={applySmartAll}
-            title={t('speedtest.per_group_keep_one')}
+            className="btn btn-danger"
+            disabled={busy || !idsToDelete.length}
+            onClick={() => onDeleteIds(idsToDelete)}
+            style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              border: 'none',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)',
+            }}
           >
-            <Check size={14} /> {t('speedtest.smart_selection_btn')}
+            <Trash2 size={14} /> Hapus {idsToDelete.length} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})
           </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={busy}
-            onClick={clearAllMarks}
-            title={t('speedtest.keep_all_groups')}
-          >
-            {t('speedtest.keep_all_groups')}
-          </button>
-          <span className="td-tools-dup-summary">
-            {t('speedtest.dup_stats_summary', { keep: keepCount, delete: idsToDelete.length })}
-            {selectedWaste > 0 ? (
-              <>
-                {' '}
-                · ~{formatDriveBytes(selectedWaste)}
-              </>
-            ) : null}
-          </span>
         </div>
       )}
 
@@ -1097,19 +1398,15 @@ function DupTab({
         </p>
       )}
 
-      {groups.length > 0 && (
-        <button
-          type="button"
-          className="btn btn-danger"
-          disabled={busy || !idsToDelete.length}
-          onClick={() => onDeleteIds(idsToDelete)}
-        >
-          <Trash2 size={14} /> {t('speedtest.delete_checked_btn', { count: idsToDelete.length })}
-        </button>
+      {filteredGroups.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>Tidak ada berkas duplikat yang terdeteksi pada filter saat ini.</p>
+        </div>
       )}
 
+      {/* DUP GROUPS LIST */}
       <ul className="td-tools-dup-groups">
-        {groups.slice(0, 40).map((g) => {
+        {filteredGroups.slice(0, 50).map((g) => {
           const keepId = preferredKeepId(g, keepNewest);
           const markedInGroup = g.files.filter((f: any) => markedDelete.has(f.id)).length;
           const keepInGroup = g.files.length - markedInGroup;
@@ -1118,7 +1415,7 @@ function DupTab({
               <div className="td-tools-dup-head">
                 <AlertTriangle size={12} />
                 <span className="td-tools-dup-head-main">
-                  {t(g.reason === 'name_size' ? 'speedtest.dup_reason_name_size' : 'speedtest.dup_reason_size_only')}
+                  {g.reasonLabel || g.reason}
                   {' · '}{t('speedtest.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
                 </span>
                 <span className="td-tools-dup-head-actions">
