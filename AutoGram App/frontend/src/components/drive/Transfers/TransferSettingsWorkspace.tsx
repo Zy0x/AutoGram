@@ -266,6 +266,7 @@ export function TransferSettingsWorkspace({
   // Drawer / Modal overlays
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showTabResetConfirm, setShowTabResetConfirm] = useState(false);
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
@@ -3049,6 +3050,30 @@ export function TransferSettingsWorkspace({
                 </label>
               </div>
             </div>
+
+            {/* 5. RESET TOTAL SELURUH PENGATURAN SYSTEM */}
+            <div className="td-settings-card" style={{ borderColor: 'rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.05)' }}>
+              <div className="td-card-head">
+                <RotateCcw size={18} style={{ color: '#f87171' }} />
+                <div>
+                  <h4 style={{ color: '#f87171' }}>Reset Total Seluruh Pengaturan System</h4>
+                  <p>Kembalikan seluruh parameter konfigurasi transfer, upload, download, encoding, dan network ke nilai default pabrik.</p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '14px' }}>
+                <button
+                  type="button"
+                  className="td-chip-btn td-chip-danger"
+                  onClick={() => setShowResetConfirm(true)}
+                  disabled={!!transferActive}
+                  style={{ padding: '10px 20px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <RotateCcw size={15} />
+                  <span>Reset Total (Semua Pengaturan System)</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -3220,37 +3245,26 @@ export function TransferSettingsWorkspace({
       </main>
 
       {/* FOOTER ACTION BAR */}
-      <footer className="td-xfer-footer" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        {activeTab !== 'menu' && (
-          <button
-            type="button"
-            className="td-chip-btn"
-            onClick={() => resetCurrentSection(activeTab)}
-            disabled={!!transferActive}
-            title="Kembalikan hanya pengaturan pada sub-menu ini ke default"
-            style={{
-              borderColor: 'rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
-              background: 'rgba(56, 189, 248, 0.08)',
-            }}
-          >
-            <RotateCcw size={13} />
-            <span>Reset {subMenuCategories.find((c) => c.id === activeTab)?.label || 'Sub-menu'} Saja</span>
-          </button>
-        )}
+      <footer className="td-xfer-footer" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+        <div className="td-footer-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {activeTab !== 'menu' && (
+            <button
+              type="button"
+              className="td-chip-btn"
+              onClick={() => setShowTabResetConfirm(true)}
+              disabled={!!transferActive}
+              title="Kembalikan pengaturan pada bagian ini ke default"
+              style={{
+                borderColor: 'rgba(56, 189, 248, 0.35)',
+                color: '#38bdf8',
+                background: 'rgba(56, 189, 248, 0.08)',
+              }}
+            >
+              <RotateCcw size={13} />
+              <span>Reset {subMenuCategories.find((c) => c.id === activeTab)?.label || 'Pengaturan'} Saja</span>
+            </button>
+          )}
 
-        <button
-          type="button"
-          className="td-chip-btn"
-          onClick={() => setShowResetConfirm(true)}
-          disabled={!!transferActive}
-          title="Kembalikan seluruh pengaturan transfer ke default sistem"
-        >
-          <RotateCcw size={13} />
-          <span>Reset Total (Semua)</span>
-        </button>
-
-        <div className="td-footer-right">
           {onClose && (
             <button type="button" className="td-chip-btn td-chip-primary" onClick={onClose}>
               {t('speedtest.topbar_close', 'Selesai')}
@@ -3259,19 +3273,56 @@ export function TransferSettingsWorkspace({
         </div>
       </footer>
 
-      {/* RESET OVERLAY */}
-      {showResetConfirm && (
-        <div className="td-xfer-confirm-overlay" role="presentation">
-          <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true">
+      {/* SINGLE SUB-MENU TAB RESET CONFIRMATION OVERLAY */}
+      {showTabResetConfirm && (
+        <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowTabResetConfirm(false)}>
+          <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <AlertTriangle size={24} className="td-confirm-icon" />
-            <h4>{t('speedtest.reset_confirm_title', 'Reset Semua Pengaturan?')}</h4>
-            <p>{t('speedtest.reset_confirm_desc', 'Seluruh draf pengaturan transfer akan dikembalikan ke nilai default sistem.')}</p>
+            <h4>Reset Pengaturan Sub-menu Ini?</h4>
+            <p>
+              Apakah Anda yakin ingin mengembalikan seluruh konfigurasi pada bagian{' '}
+              <strong>{subMenuCategories.find((c) => c.id === activeTab)?.label || 'Sub-menu'}</strong> ke default pabrik?
+            </p>
+            <div className="td-confirm-actions">
+              <button type="button" className="td-chip-btn" onClick={() => setShowTabResetConfirm(false)}>
+                {t('speedtest.topbar_cancel', 'Batal')}
+              </button>
+              <button
+                type="button"
+                className="td-chip-btn td-chip-primary"
+                onClick={() => {
+                  resetCurrentSection(activeTab);
+                  setShowTabResetConfirm(false);
+                  triggerCaptionToast('✓ Pengaturan sub-menu berhasil dikembalikan ke default!');
+                }}
+              >
+                Ya, Reset Pengaturan Ini
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GLOBAL MASTER RESET ALL OVERLAY */}
+      {showResetConfirm && (
+        <div className="td-xfer-confirm-overlay" role="presentation" onClick={() => setShowResetConfirm(false)}>
+          <div className="td-xfer-confirm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <AlertTriangle size={24} className="td-confirm-icon" style={{ color: '#ef4444' }} />
+            <h4>Reset Total Semua Pengaturan System?</h4>
+            <p>Seluruh draf pengaturan transfer pada semua sub-menu akan dikembalikan ke nilai default pabrik.</p>
             <div className="td-confirm-actions">
               <button type="button" className="td-chip-btn" onClick={() => setShowResetConfirm(false)}>
                 {t('speedtest.topbar_cancel', 'Batal')}
               </button>
-              <button type="button" className="td-chip-btn td-chip-danger" onClick={resetAll}>
-                {t('speedtest.btn_reset_default', 'Ya, Reset Default')}
+              <button
+                type="button"
+                className="td-chip-btn td-chip-danger"
+                onClick={() => {
+                  resetAll();
+                  setShowResetConfirm(false);
+                }}
+              >
+                {t('speedtest.btn_reset_default', 'Ya, Reset Total Default')}
               </button>
             </div>
           </div>
