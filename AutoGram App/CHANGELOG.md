@@ -1,3 +1,13 @@
+## v2.9.0 Speed-Cleaning Duplicate Viewer Pro Architecture & 1-Click Auto-Select Engine
+
+### Implementasi Speed Edition Duplicate Viewer Pro (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Presisi Prototipe HTML Speed Edition**: Mengimplementasikan total struktur, kelas, dan komponen sesuai prototipe HTML Duplicate Viewer Pro.
+- **Header Navbar & Metric Counter**: Menampilkan header berdesain dark-indigo dengan metric counter `Dihemat: X MB` real-time, indicator `Grup: X dari Y`, serta navigasi `Grup Selanjutnya`.
+- **Sub-toolbar Akses Cepat**: Menyediakan tombol `Auto-Pilih File Terbaik (R)` yang secara cerdas memilih file berukuran terbesar dan menandai duplikat lainnya untuk dihapus 1-click, info pintas keyboard, dan tombol `Terapkan Penghapusan`.
+- **Preview Slot A & B dengan Clear Action (X)**: Kartu komparasi Preview A & Preview B dilengkapi tombol reset slot `(X)` di pojok kanan atas untuk mengosongkan slot dan memuat item baru dari carousel bawah.
+- **Bottom Carousel & Visual Overlay Status**: Carousel thumbnail horizontal menyajikan status overlay `AKAN DIHAPUS` / border hijau `SIMPAN`, badge A/B, serta radio pilihan instan `Simpan` / `Hapus`.
+- **Dukungan Full Keyboard Shortcuts**: Mengaktifkan tombol `1` (Simpan A), `2` (Simpan B), `R` (Auto-select terbaik), dan `ArrowRight` (Next group).
+
 ## v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel
 
 ### Perombakan Komparasi Duplikat Sesuai Desain Mockup (`DrivePreviewModal/index.tsx`, `App.css`)

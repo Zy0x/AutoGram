@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.9
+AutoGram Version: v2.9.0
 
 Current State:
+v2.9.0 Speed-Cleaning Duplicate Viewer Pro Architecture & 1-Click Auto-Select Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan arsitektur komparasi duplikat Speed Edition lengkap sesuai prototipe HTML: Header Navbar dengan metric counter `Dihemat: X MB` dan navigasi grup, Sub-toolbar akses cepat `Auto-Pilih File Terbaik (R)` dan tombol `Terapkan Penghapusan`, Split View Preview A & B dengan tombol pengosongan slot `(X)`, carousel thumbnail bawah dengan overlay visual status `AKAN DIHAPUS`, badge A/B, serta dukungan penuh pintas keyboard (1, 2, R, ArrowRight).
+
+Previous:
 v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak tampilan komparasi duplikat agar 100% mencocokkan desain mockup: 2 kartu komparasi utama di bagian atas (Preview A & Preview B) dengan header badge + tombol `Simpan Ini`, serta daftar grup duplikat horizontal strip di bagian bawah dengan badge indikator A/B dan kontrol radio Simpan/Hapus.
 
 Previous:
