@@ -1163,12 +1163,39 @@ export function TransferSettingsWorkspace({
             {/* ==========================================
                 SECTION CARD 1: PENGATURAN UNGGAHAN & FORMAT
                 ========================================== */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Upload size={20} className="td-card-icon-primary" />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Upload size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>1. Pengaturan Unggahan (Upload)</h4>
-                  <p>Atur paralelisme slots unggah & pilih format pengiriman media</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. Pengaturan Unggahan (Upload)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Atur paralelisme slots unggah & pilih format pengiriman media
+                  </p>
                 </div>
               </div>
 
@@ -1250,13 +1277,41 @@ export function TransferSettingsWorkspace({
             {/* ==========================================
                 SECTION CARD 2: CAPTION GLOBAL & TELEGRAM CAPTION STUDIO
                 ========================================== */}
-            <div className="td-settings-card" style={{ marginTop: '20px' }}>
-              <div className="td-card-head td-caption-head-flex">
-                <div className="td-caption-head-title">
-                  <Sparkles size={20} className="td-card-icon-primary" />
+            <div
+              className="td-settings-card"
+              style={{
+                marginTop: '20px',
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div className="td-card-head td-caption-head-flex" style={{ marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Sparkles size={18} style={{ color: '#38bdf8' }} />
+                  </div>
                   <div>
-                    <h4>2. Caption Global & Telegram Caption Studio</h4>
-                    <p>Format caption kaya dengan dukungan resmi Telegram MarkdownV2 & HTML</p>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                      2. Caption Global & Telegram Caption Studio
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                      Format caption kaya dengan dukungan resmi Telegram MarkdownV2 & HTML
+                    </p>
                   </div>
                 </div>
 
@@ -1683,12 +1738,40 @@ export function TransferSettingsWorkspace({
             {/* ==========================================
                 SECTION CARD 3: MODE & EFEK PENGIRIMAN (SILENT, SPOILER)
                 ========================================== */}
-            <div className="td-settings-card" style={{ marginTop: '20px' }}>
-              <div className="td-card-head">
-                <SlidersHorizontal size={20} className="td-card-icon-primary" />
+            <div
+              className="td-settings-card"
+              style={{
+                marginTop: '20px',
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <SlidersHorizontal size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>3. Mode & Efek Pengiriman (Silent & Spoiler)</h4>
-                  <p>Kontrol suara notifikasi penerima dan efek buram media</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    3. Mode & Efek Pengiriman (Silent & Spoiler)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Kontrol suara notifikasi penerima dan efek buram media
+                  </p>
                 </div>
               </div>
 
