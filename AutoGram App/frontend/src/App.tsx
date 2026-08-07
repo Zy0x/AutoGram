@@ -195,7 +195,10 @@ function App() {
                 }
               >
                 <MediaStudio
-                  onExitToApp={() => setActiveTab('dashboard')}
+                  onExitToApp={() => {
+                    setAppMode('launcher');
+                    localStorage.setItem('autogram_app_mode', 'launcher');
+                  }}
                   onNavigateToAccounts={() => setActiveTab('accounts')}
                   onSwitchMode={handleSwitchMode}
                   onBackToLauncher={() => {
