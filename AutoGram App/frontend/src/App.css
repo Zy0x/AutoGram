@@ -10016,7 +10016,9 @@ body:has(.app-layout-drive-focus),
   padding: 0 !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 100% !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: auto !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;

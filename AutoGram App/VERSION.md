@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.5
+AutoGram Version: v2.9.6
 
 Current State:
+v2.9.6 Flex Body Layout Fix & Zero-Chop Split Compare Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti `height: 100%` dengan `flex: 1 1 0% !important; min-height: 0 !important;` pada `.drive-preview-modal.is-split-compare .drive-preview-body` sehingga kartu Preview A & B serta Item 1 sidepanel tampil 100% utuh tanpa terpotong di bagian atas atau bawah di bawah `drive-preview-header`.
+
+Previous:
 v2.9.5 Universal Drive Media Header Restoration & Seamless Mode Switch Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memulihkan keberadaan `drive-preview-header` utama agar selalu aktif dan terlihat sempurna baik pada Single View maupun Split Compare View. Menampilkan judul media, ukuran, alat nav/download/folder, navigasi grup duplikat, serta tombol sakelar `Compare Duplicates (Split View)` dan `Toggle Sidepanel` secara lengkap dan tajam.
 
 Previous:

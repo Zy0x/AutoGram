@@ -3608,7 +3608,7 @@ export function DrivePreviewModal({
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
-            <div className="flex flex-col w-full h-full bg-[#090d16] text-slate-100 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col w-full h-full bg-[#090d16] text-slate-100 overflow-hidden">
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
               <div className="flex-1 flex w-full min-h-0 overflow-hidden relative">
                 <div className="drive-preview-split-wrapper flex-1 h-full">

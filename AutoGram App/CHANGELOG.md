@@ -1,3 +1,9 @@
+## v2.9.6 Flex Body Layout Fix & Zero-Chop Split Compare Engine
+
+### Perbaikan Pemotongan Kartu A/B & Sidepanel (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Fix Flex Body Height**: Memperbaiki aturan CSS `.drive-preview-modal.is-split-compare .drive-preview-body` dari `height: 100%` menjadi `flex: 1 1 0% !important; min-height: 0 !important;`.
+- **Tampilan 100% Utuh**: Kartu Preview A, Preview B (termasuk header kartu `A photo_43218.jpg`) dan Item 1 sidepanel kini terisi 100% utuh tanpa terdorong atau terpotong oleh `drive-preview-header`.
+
 ## v2.9.5 Universal Drive Media Header Restoration & Seamless Mode Switch Engine
 
 ### Pemulihan Sempurna Media Preview Header & Tombol Sakelar Split View (`DrivePreviewModal/index.tsx`, `App.css`)
