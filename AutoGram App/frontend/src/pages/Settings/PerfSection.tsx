@@ -57,9 +57,9 @@ export const PerfSection = memo(function PerfSection() {
       <div
         style={{
           position: 'sticky',
-          top: '-1px',
-          zIndex: 10,
-          background: 'rgba(11, 16, 26, 0.92)',
+          top: '0px',
+          zIndex: 20,
+          background: 'rgba(11, 16, 26, 0.95)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           padding: '14px 18px',

@@ -1012,25 +1012,13 @@ export function TransferSettingsWorkspace({
 
           <div>
             <h3>
-              {activeTab === 'menu' ? (
-                t('speedtest.transfer_settings_title', 'Transfer Settings')
-              ) : activeSectionTitle ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#94a3b8', fontSize: '0.9em', fontWeight: 600 }}>
-                    {subMenuCategories.find((c) => c.id === activeTab)?.label}
-                  </span>
-                  <span style={{ color: '#64748b' }}>›</span>
-                  <span style={{ color: '#38bdf8', fontWeight: 800 }}>{activeSectionTitle}</span>
-                </span>
-              ) : (
-                subMenuCategories.find((c) => c.id === activeTab)?.label || 'Detail Pengaturan'
-              )}
+              {activeTab === 'menu'
+                ? t('speedtest.transfer_settings_title', 'Transfer Settings')
+                : subMenuCategories.find((c) => c.id === activeTab)?.label || 'Detail Pengaturan'}
             </h3>
             <p>
               {activeTab === 'menu'
                 ? t('speedtest.transfer_settings_subtitle', 'Konfigurasi unggah, unduh, dan pengodean media')
-                : activeSectionTitle
-                ? `Sedang mengonfigurasi bagian: ${activeSectionTitle}`
                 : subMenuCategories.find((c) => c.id === activeTab)?.desc}
             </p>
           </div>
