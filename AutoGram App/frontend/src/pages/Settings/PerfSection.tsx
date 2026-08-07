@@ -45,6 +45,7 @@ export const PerfSection = memo(function PerfSection() {
   return (
     <div
       style={{
+        position: 'relative',
         background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '16px',
@@ -52,8 +53,26 @@ export const PerfSection = memo(function PerfSection() {
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
       }}
     >
-      {/* SECTION HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+      {/* STICKY SECTION HEADER */}
+      <div
+        style={{
+          position: 'sticky',
+          top: '-1px',
+          zIndex: 10,
+          background: 'rgba(11, 16, 26, 0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          padding: '14px 18px',
+          margin: '-24px -24px 18px -24px',
+          borderBottom: '1px solid rgba(56, 189, 248, 0.25)',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        }}
+      >
         <div
           style={{
             width: '34px',
@@ -69,13 +88,15 @@ export const PerfSection = memo(function PerfSection() {
         >
           <Sliders size={18} style={{ color: '#38bdf8' }} />
         </div>
-        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-          {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
-        </h3>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+            {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
+          </h3>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.3 }}>
+            {t('settings.perf_subtitle', 'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.')}
+          </p>
+        </div>
       </div>
-      <p style={{ margin: '0 0 18px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
-        {t('settings.perf_subtitle', 'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.')}
-      </p>
 
       {/* OPTIONS LIST */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

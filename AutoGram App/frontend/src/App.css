@@ -10517,12 +10517,22 @@ body:has(.app-layout-drive-focus),
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 .td-card-head {
+  position: sticky;
+  top: -1px;
+  z-index: 10;
+  background: rgba(11, 16, 26, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   gap: 10px;
   color: #38bdf8;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  margin: -16px -16px 14px -16px;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .td-card-head h4 {
   margin: 0;
@@ -17812,11 +17822,18 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 .td-encoding-master-header {
-  margin-bottom: 20px !important;
+  position: sticky !important;
+  top: -1px !important;
+  z-index: 10 !important;
+  margin: -22px -22px 20px -22px !important;
   padding: 16px 18px !important;
-  background: rgba(15, 23, 42, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 14px !important;
+  background: rgba(11, 16, 26, 0.94) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
 }
 
 .td-encoding-master-head-left {
@@ -17905,11 +17922,18 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 .td-playback-master-header {
-  margin-bottom: 20px !important;
+  position: sticky !important;
+  top: -1px !important;
+  z-index: 10 !important;
+  margin: -22px -22px 20px -22px !important;
   padding: 16px 18px !important;
-  background: rgba(15, 23, 42, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 14px !important;
+  background: rgba(11, 16, 26, 0.94) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
 }
 
 .td-playback-master-head-left {
