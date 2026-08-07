@@ -1,3 +1,10 @@
+## v3.0.0 Next-Gen Split View Overhaul & Instant Resolution Engine
+
+### Rombak Total Split View Duplicate Comparison (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Desain Deep Slate OLED Glassmorphism**: Merestrukturisasi panggung perbandingan dengan warna OLED ultra-dark (`#090d16`), `backdrop-blur-xl`, `1px` hairline borders, lencana gradien Card A (biru `#2563eb`) & Card B (ungu `#7c3aed`).
+- **Alur Instan 1-Tap (`handleKeepAndAdvance`)**: Mengeklik `✓ Keep A` atau `✓ Keep B` secara langsung menyimpan berkas pilihan, menandai berkas lain untuk dihapus, dan **secara instan berpindah ke grup duplikat berikutnya** tanpa navigasi manual.
+- **Collapsible Floating Glass Drawer**: Sidepanel samping dapat di-collapse/expand dalam 1 klik dengan ikon `[◀/▶]`, sehingga kartu perbandingan dapat mengembang hingga **100% lebar modal overlay**.
+
 ## v2.9.6 Flex Body Layout Fix & Zero-Chop Split Compare Engine
 
 ### Perbaikan Pemotongan Kartu A/B & Sidepanel (`DrivePreviewModal/index.tsx`, `App.css`)

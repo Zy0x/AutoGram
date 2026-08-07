@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.6
+AutoGram Version: v3.0.0
 
 Current State:
+v3.0.0 Next-Gen Split View Overhaul & Instant Resolution Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak total tampilan Split View perbandingan duplikat menjadi interface *Deep Slate OLED Glassmorphism* yang ultra-minimalis, fleksibel, dan instan. Menyediakan alur eksekusi instan 1-tap (`handleKeepAndAdvance`), di mana mengeklik `✓ Keep A` atau `✓ Keep B` secara langsung menyimpan berkas pilihan, menandai sisanya untuk dihapus, dan otomatis berpindah ke grup duplikat berikutnya. Serta menambahkan *Collapsible Floating Glass Drawer* yang dapat ditutup/buka dalam 1 klik untuk memperluas area gambar hingga 100% lebar modal.
+
+Previous:
 v2.9.6 Flex Body Layout Fix & Zero-Chop Split Compare Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengganti `height: 100%` dengan `flex: 1 1 0% !important; min-height: 0 !important;` pada `.drive-preview-modal.is-split-compare .drive-preview-body` sehingga kartu Preview A & B serta Item 1 sidepanel tampil 100% utuh tanpa terpotong di bagian atas atau bawah di bawah `drive-preview-header`.
 
 Previous:

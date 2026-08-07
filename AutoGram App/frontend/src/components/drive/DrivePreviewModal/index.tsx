@@ -496,6 +496,22 @@ export function DrivePreviewModal({
     }
   }, [isSlotAEmpty, isSlotBEmpty, selectedAIndex, selectedBIndex]);
 
+  const handleKeepAndAdvance = useCallback((fileToKeepId: number) => {
+    if (!duplicateContext || !currentDupGroup) return;
+    duplicateContext.onKeepOnly(currentDupGroup, fileToKeepId);
+
+    // Auto advance to next group seamlessly after instant one-tap selection
+    if (duplicateContext.currentGroupIndex < duplicateContext.activeFilteredGroups.length - 1) {
+      setTimeout(() => {
+        const nextIdx = duplicateContext.currentGroupIndex + 1;
+        const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+        if (nextGroup && duplicateContext.onNavigateGroup) {
+          duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+        }
+      }, 120);
+    }
+  }, [duplicateContext, currentDupGroup]);
+
   const handleSequentialNext = useCallback(() => {
     if (!currentDupGroup) return;
     const totalB = currentDupGroup.files.length;
@@ -3672,7 +3688,7 @@ export function DrivePreviewModal({
                                   <button
                                     type="button"
                                     className="drive-dup-btn-keep"
-                                    onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileA.id)}
+                                    onClick={() => handleKeepAndAdvance(fileA.id)}
                                     title={t('speedtest.preview_keep_only_active_short')}
                                   >
                                     <Check size={14} />
@@ -3754,7 +3770,7 @@ export function DrivePreviewModal({
                                   <button
                                     type="button"
                                     className="drive-dup-btn-keep"
-                                    onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
+                                    onClick={() => handleKeepAndAdvance(fileB.id)}
                                     title={t('speedtest.preview_keep_only_active_short')}
                                   >
                                     <Check size={14} />
