@@ -3,7 +3,7 @@
  * Portaled to document.body — avoids vertical-strip layout when nested in .td-page.
  */
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -964,8 +964,18 @@ function DupTab({
   const [floodWaitSeconds, setFloodWaitSeconds] = useState<number | null>(null);
   const scanStopRef = useState({ stop: false })[0];
 
+  const loadedCountRef = useRef(loadedCount);
+  useEffect(() => {
+    loadedCountRef.current = loadedCount;
+  }, [loadedCount]);
+
+  const filesHasMoreRef = useRef(filesHasMore);
+  useEffect(() => {
+    filesHasMoreRef.current = filesHasMore;
+  }, [filesHasMore]);
+
   const startDeepScan = async () => {
-    if (!onLoadMoreFiles || !filesHasMore || isScanning) return;
+    if (!onLoadMoreFiles || !filesHasMoreRef.current || isScanning) return;
     setIsScanning(true);
     scanStopRef.stop = false;
     setFloodWaitSeconds(null);
@@ -974,22 +984,23 @@ function DupTab({
     let sameCountStuck = 0;
 
     try {
-      while (!scanStopRef.stop && filesHasMore) {
+      while (!scanStopRef.stop && filesHasMoreRef.current) {
         try {
           // Request Turbo Page Size (250 items per page for 5x-10x faster scan!)
           await onLoadMoreFiles({ pageSize: 250 });
           setFloodWaitSeconds(null);
           // Wait briefly for React state batching to propagate loadedCount
-          await new Promise((r) => setTimeout(r, 80));
+          await new Promise((r) => setTimeout(r, 60));
 
-          if (loadedCount === lastCount) {
+          const currentCount = loadedCountRef.current;
+          if (currentCount === lastCount) {
             sameCountStuck++;
-            if (sameCountStuck >= 5) {
+            if (sameCountStuck >= 10) {
               break;
             }
           } else {
             sameCountStuck = 0;
-            lastCount = loadedCount;
+            lastCount = currentCount;
           }
         } catch (err: any) {
           const errMsg = String(err?.message || err || '');
