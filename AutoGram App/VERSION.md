@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.9
+AutoGram Version: v2.9.0
 
 Current State:
+v2.9.0 Clear Preview Action & Smart Dual-Slot Allocation Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan tombol Kosongkan Preview `[X]` di kanan atas header kartu Preview A dan Preview B. Mengimplementasikan logika pengisian slot cerdas di mana mengeklik item sidepanel secara otomatis memprioritaskan slot yang kosong terlebih dahulu (Slot A -> Slot B), dan jika kedua slot terisi maka secara default akan menggantikan slot Preview B.
+
+Previous:
 v2.8.9 Ultra-Compact Collapsible Duplicate Group Sidepanel & Mockup Card Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan sidepanel perbandingan duplikat yang ultra-compact (~170px) dan collapsible (tombol toggle sembunyikan/tampilkan) sehingga area kartu perbandingan Preview A & B dapat mengembang hingga 100% full-bleed width. Merender kartu anggota grup duplikat persis sesuai acuan mockup pengguna (lencana A/B pada thumbnail, judul berkas, ukuran, dan toggle radio Simpan/Hapus).
 
 Previous:

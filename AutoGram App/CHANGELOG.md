@@ -1,3 +1,13 @@
+## v2.9.0 Clear Preview Action & Smart Dual-Slot Allocation Engine
+
+### Tombol Kosongkan Preview `[X]` & Logika Pengisian Slot Cerdas (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Tombol Kosongkan Preview `[X]`**: Menambahkan tombol icon `[X]` di kanan atas header kartu Preview A dan Preview B untuk mengosongkan gambar slot tersebut secara instan.
+- **Empty State Placeholder**: Merender wadah kosong bergaris putus-putus (*dashed border empty state*) yang elegan dengan petunjuk "Klik item di sidepanel untuk memuat berkas" ketika slot A atau B dikosongkan.
+- **Logika Pengisian Slot Prioritas**: Saat pengguna mengeklik item berkas di sidepanel:
+  1. Jika **Preview A kosong**, berkas baru langsung mengisi **Preview A**.
+  2. Jika **Preview B kosong**, berkas baru langsung mengisi **Preview B**.
+  3. Jika **kedua slot terisi**, berkas baru secara default **menggantikan isi Preview B**.
+
 ## v2.8.9 Ultra-Compact Collapsible Duplicate Group Sidepanel & Mockup Card Engine
 
 ### Redesain Sidepanel Duplikat Mockup & Full-Width Collapse (`DrivePreviewModal/index.tsx`, `App.css`)
