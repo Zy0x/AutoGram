@@ -12,6 +12,9 @@ import {
   loadSelectableSessions,
   type SessionOption,
 } from '../../lib/telegram';
+import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
+
+import { bootstrapSecureCredentials } from '../../lib/tauri/secureCredentials';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -26,6 +29,8 @@ export function SessionLauncher({
 }: SessionLauncherProps) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
+  const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
   const [defaultSession, setDefaultSession] = useState<string>(() => {
     return localStorage.getItem('autogram_default_session') || '';
   });
@@ -39,6 +44,28 @@ export function SessionLauncher({
           if (!defaultSession && res.length > 0) {
             setDefaultSession(res[0].name);
           }
+
+          // Fetch self profile photo for each session
+          bootstrapSecureCredentials()
+            .then(({ apiId, apiHash }) => {
+              res.forEach((sess) => {
+                const cached = (sess as any).photoBase64 || getCachedAvatar(0, sess.name);
+                if (cached) {
+                  setAvatars((prev) => ({ ...prev, [sess.name]: cached }));
+                }
+                requestAvatar(
+                  { session: sess.name, apiId: String(apiId || ''), apiHash: String(apiHash || '') },
+                  0
+                )
+                  .then((url) => {
+                    if (active && url) {
+                      setAvatars((prev) => ({ ...prev, [sess.name]: url }));
+                    }
+                  })
+                  .catch(() => {});
+              });
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {});
@@ -187,6 +214,8 @@ export function SessionLauncher({
           {displaySessions.map((sess) => {
             const isDefault = defaultSession === sess.name;
             const displayName = sess.label || sess.name;
+            const avatarUrl = avatars[sess.name] || getCachedAvatar(0, sess.name);
+            const showAvatar = Boolean(avatarUrl && !avatarErrors.has(sess.name));
 
             return (
               <div
@@ -261,9 +290,20 @@ export function SessionLauncher({
                       fontSize: '1.3rem',
                       fontWeight: 700,
                       color: '#38bdf8',
+                      overflow: 'hidden',
+                      flexShrink: 0,
                     }}
                   >
-                    {displayName.charAt(0).toUpperCase()}
+                    {showAvatar ? (
+                      <img
+                        src={avatarUrl!}
+                        alt={displayName}
+                        onError={() => setAvatarErrors((prev) => new Set(prev).add(sess.name))}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      displayName.charAt(0).toUpperCase()
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
