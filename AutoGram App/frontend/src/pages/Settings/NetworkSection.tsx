@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { Network, Wifi, Save, Loader2, Zap } from 'lucide-react';
+import { Network, Wifi, Save, Loader2, Zap, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { detectTauriRuntime } from '../../lib/tauri/platform';
 import { invoke } from '@tauri-apps/api/core';
@@ -35,6 +35,69 @@ const DEFAULT_NET_CFG: NetConfig = {
     aggressiveRetry: true,
   },
 };
+
+function CustomCheckbox({
+  checked,
+  onChange,
+  label,
+  icon,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  label: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
+      onClick={() => onChange(!checked)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onChange(!checked);
+        }
+      }}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '10px',
+        cursor: 'pointer',
+        userSelect: 'none',
+        padding: '8px 14px',
+        borderRadius: '10px',
+        background: checked ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+        border: checked ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+        transition: 'all 0.18s ease',
+      }}
+    >
+      <div
+        style={{
+          width: '18px',
+          height: '18px',
+          borderRadius: '5px',
+          background: checked
+            ? 'linear-gradient(135deg, #00aeef 0%, #0284c7 100%)'
+            : 'rgba(15, 23, 42, 0.8)',
+          border: checked ? 'none' : '1.5px solid #475569',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: checked ? '0 0 10px rgba(56, 189, 248, 0.4)' : 'none',
+          transition: 'all 0.18s ease',
+          flexShrink: 0,
+        }}
+      >
+        {checked && <Check size={13} style={{ color: '#ffffff', strokeWidth: 3 }} />}
+      </div>
+      {icon}
+      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: checked ? '#38bdf8' : '#f8fafc' }}>
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export const NetworkSection = memo(function NetworkSection() {
   const { t } = useTranslation();
@@ -173,32 +236,19 @@ export const NetworkSection = memo(function NetworkSection() {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* ENABLE PROXY TOGGLE */}
-        <label
-          style={{
-            gap: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: '0.92rem',
-            fontWeight: 700,
-            color: '#f8fafc',
-            userSelect: 'none',
-          }}
-        >
-          <input
-            type="checkbox"
+        {/* ENABLE PROXY SLEEK CUSTOM CHECKBOX */}
+        <div>
+          <CustomCheckbox
             checked={netCfg.proxy.enabled}
-            onChange={(e) =>
+            onChange={(val) =>
               setNetCfg({
                 ...netCfg,
-                proxy: { ...netCfg.proxy, enabled: e.target.checked },
+                proxy: { ...netCfg.proxy, enabled: val },
               })
             }
-            style={{ width: '16px', height: '16px', accentColor: '#00aeef', cursor: 'pointer' }}
+            label={t('settings.enable_proxy', 'Aktifkan Proxy')}
           />
-          <span>{t('settings.enable_proxy', 'Aktifkan Proxy')}</span>
-        </label>
+        </div>
 
         {/* PROXY FORM FIELDS */}
         {netCfg.proxy.enabled && (
@@ -386,33 +436,20 @@ export const NetworkSection = memo(function NetworkSection() {
 
         <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
 
-        {/* VPN OPTIMIZER TOGGLE */}
-        <label
-          style={{
-            gap: '10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            fontSize: '0.92rem',
-            fontWeight: 700,
-            color: '#f8fafc',
-            userSelect: 'none',
-          }}
-        >
-          <input
-            type="checkbox"
+        {/* VPN OPTIMIZER SLEEK CUSTOM CHECKBOX */}
+        <div>
+          <CustomCheckbox
             checked={netCfg.vpn.enabled}
-            onChange={(e) =>
+            onChange={(val) =>
               setNetCfg({
                 ...netCfg,
-                vpn: { ...netCfg.vpn, enabled: e.target.checked },
+                vpn: { ...netCfg.vpn, enabled: val },
               })
             }
-            style={{ width: '16px', height: '16px', accentColor: '#00aeef', cursor: 'pointer' }}
+            icon={<Zap size={16} style={{ color: '#38bdf8' }} />}
+            label={t('settings.vpn_optimizer', 'VPN Optimizer (Timeout & Retry Agresif)')}
           />
-          <Zap size={16} style={{ color: '#38bdf8' }} />
-          <span>{t('settings.vpn_optimizer', 'VPN Optimizer (Timeout & Retry Agresif)')}</span>
-        </label>
+        </div>
 
         {/* ACTION BUTTONS */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
