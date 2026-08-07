@@ -198,6 +198,8 @@
   "preview_next_group_transition": "➔ Next Group ({{index}}/{{total}})",
   "preview_prev_group_transition": "◀️ Prev Group ({{index}}/{{total}})",
   "preview_shift_group_hint": "Shift + Arrow to jump group",
+  "preview_group_pill": "Group {{index}} of {{total}}",
+  "preview_sidebar_title": "Group Members",
   "zip_contents": "ZIP File Contents",
   "zip_entries_count": "entries",
   "zip_extract_selected": "Extract Selected",

@@ -198,6 +198,8 @@
   "preview_next_group_transition": "➔ Grup {{index}} dari {{total}}",
   "preview_prev_group_transition": "◀️ Grup {{index}} dari {{total}}",
   "preview_shift_group_hint": "Shift + Panah untuk lompat grup",
+  "preview_group_pill": "Grup {{index}} dari {{total}}",
+  "preview_sidebar_title": "Anggota Grup",
   "zip_contents": "Isi Berkas ZIP",
   "zip_entries_count": "entri",
   "zip_extract_selected": "Ekstrak Terpilih",
