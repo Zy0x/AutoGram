@@ -1,5 +1,5 @@
-import { useState, memo } from 'react';
-import { Sliders, Cpu } from 'lucide-react';
+import { useState, memo, useMemo } from 'react';
+import { Sliders, Cpu, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { setPerfTierOverride, type PerfTier } from '../../lib/utils/devicePerformance';
 
@@ -15,64 +15,79 @@ export const PerfSection = memo(function PerfSection() {
     return 'mid';
   });
 
+  const [hoveredTier, setHoveredTier] = useState<PerfTier | null>(null);
+
+  // Detect Hardware Recommendation (CPU cores)
+  const recommendedTier = useMemo<PerfTier>(() => {
+    try {
+      const cores = navigator.hardwareConcurrency || 4;
+      if (cores >= 8) return 'high';
+      if (cores >= 4) return 'mid';
+      return 'low';
+    } catch {
+      return 'mid';
+    }
+  }, []);
+
   const handleSelectTier = (newTier: PerfTier) => {
     setTier(newTier);
     setPerfTierOverride(newTier);
   };
 
-  const options: { id: PerfTier; title: string; desc: string; badge?: string; icon: string }[] = [
+  const options: {
+    id: PerfTier;
+    title: string;
+    desc: string;
+    badge?: string;
+    metric: string;
+    icon: string;
+  }[] = [
     {
       id: 'low',
       icon: '🍃',
       title: t('settings.perf_tier_low_title', 'Saver Mode'),
-      desc: t('settings.perf_tier_low_desc', 'Saves RAM & CPU usage. Small thumbnail batching (20 items per request).'),
+      desc: t(
+        'settings.perf_tier_low_desc',
+        'Saves RAM & CPU usage. Small thumbnail batching (20 items per request).'
+      ),
+      metric: t('settings.perf_metric_low', '20 Batch · Low RAM'),
     },
     {
       id: 'mid',
       icon: '⚡',
       title: t('settings.perf_tier_mid_title', 'Standard Mode'),
       badge: 'DEFAULT',
-      desc: t('settings.perf_tier_mid_desc', 'Ideal balance of MTProto transfer speed & visual smoothness (48 batch).'),
+      desc: t(
+        'settings.perf_tier_mid_desc',
+        'Ideal balance of MTProto transfer speed & visual smoothness (48 batch).'
+      ),
+      metric: t('settings.perf_metric_mid', '48 Batch · Balanced'),
     },
     {
       id: 'high',
       icon: '🚀',
       title: t('settings.perf_tier_high_title', 'Turbo Mode'),
-      desc: t('settings.perf_tier_high_desc', 'Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).'),
+      desc: t(
+        'settings.perf_tier_high_desc',
+        'Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).'
+      ),
+      metric: t('settings.perf_metric_high', '96 Batch · 6x Parallel Stream'),
     },
   ];
 
   return (
     <div
       style={{
-        position: 'relative',
-        background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+        background:
+          'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '16px',
         padding: '24px',
         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
       }}
     >
-      {/* STICKY SECTION HEADER */}
-      <div
-        style={{
-          position: 'sticky',
-          top: '0px',
-          zIndex: 20,
-          background: 'rgba(11, 16, 26, 0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          padding: '14px 18px',
-          margin: '-24px -24px 18px -24px',
-          borderBottom: '1px solid rgba(56, 189, 248, 0.25)',
-          borderTopLeftRadius: '16px',
-          borderTopRightRadius: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-        }}
-      >
+      {/* SECTION HEADER */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
         <div
           style={{
             width: '34px',
@@ -88,26 +103,40 @@ export const PerfSection = memo(function PerfSection() {
         >
           <Sliders size={18} style={{ color: '#38bdf8' }} />
         </div>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-            {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
-          </h3>
-          <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.3 }}>
-            {t('settings.perf_subtitle', 'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.')}
-          </p>
-        </div>
+        <h3
+          style={{
+            margin: 0,
+            fontSize: '1.15rem',
+            fontWeight: 800,
+            color: '#f8fafc',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
+        </h3>
       </div>
+      <p style={{ margin: '0 0 18px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
+        {t(
+          'settings.perf_subtitle',
+          'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.'
+        )}
+      </p>
 
       {/* OPTIONS LIST */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {options.map((opt) => {
           const isSelected = tier === opt.id;
+          const isHovered = hoveredTier === opt.id;
+          const isRecommended = recommendedTier === opt.id;
+
           return (
             <div
               key={opt.id}
               role="button"
               tabIndex={0}
               onClick={() => handleSelectTier(opt.id)}
+              onMouseEnter={() => setHoveredTier(opt.id)}
+              onMouseLeave={() => setHoveredTier(null)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
@@ -124,11 +153,19 @@ export const PerfSection = memo(function PerfSection() {
                 transition: 'all 0.18s ease',
                 border: isSelected
                   ? '1.5px solid #00aeef'
+                  : isHovered
+                  ? '1px solid rgba(56, 189, 248, 0.35)'
                   : '1px solid rgba(255, 255, 255, 0.08)',
                 background: isSelected
                   ? 'rgba(56, 189, 248, 0.07)'
+                  : isHovered
+                  ? 'rgba(56, 189, 248, 0.03)'
                   : 'rgba(15, 23, 42, 0.4)',
-                boxShadow: isSelected ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
+                boxShadow: isSelected
+                  ? '0 0 16px rgba(56, 189, 248, 0.15)'
+                  : isHovered
+                  ? '0 0 12px rgba(56, 189, 248, 0.08)'
+                  : 'none',
               }}
             >
               <div
@@ -149,33 +186,76 @@ export const PerfSection = memo(function PerfSection() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '8px',
-                    fontWeight: 700,
-                    fontSize: '0.95rem',
-                    color: isSelected ? '#00aeef' : '#f8fafc',
                     marginBottom: '4px',
                     flexWrap: 'wrap',
                   }}
                 >
-                  <span>
-                    {opt.icon} {opt.title}
-                  </span>
-                  {opt.badge && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       style={{
-                        fontSize: '0.65rem',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: '#0284c7',
-                        color: '#ffffff',
                         fontWeight: 700,
-                        letterSpacing: '0.5px',
+                        fontSize: '0.95rem',
+                        color: isSelected ? '#00aeef' : '#f8fafc',
                       }}
                     >
-                      {opt.badge}
+                      {opt.icon} {opt.title}
                     </span>
-                  )}
+
+                    {opt.badge && (
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: '#0284c7',
+                          color: '#ffffff',
+                          fontWeight: 700,
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        {opt.badge}
+                      </span>
+                    )}
+
+                    {isRecommended && (
+                      <span
+                        style={{
+                          fontSize: '0.62rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          color: '#34d399',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Sparkles size={11} />
+                        <span>{t('settings.perf_recommended_badge', 'Recommended For Your Device')}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* QUANTITATIVE METRIC BADGE */}
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      padding: '3px 9px',
+                      borderRadius: '8px',
+                      background: isSelected ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      border: isSelected ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      color: isSelected ? '#38bdf8' : '#94a3b8',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {opt.metric}
+                  </span>
                 </div>
+
                 <div
                   style={{
                     fontSize: '0.82rem',

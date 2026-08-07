@@ -267,37 +267,6 @@ export function TransferSettingsWorkspace({
   const [showPresetDrawer, setShowPresetDrawer] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showTabResetConfirm, setShowTabResetConfirm] = useState(false);
-  const [activeSectionTitle, setActiveSectionTitle] = useState<string | null>(null);
-
-  useEffect(() => {
-    setActiveSectionTitle(null);
-  }, [activeTab]);
-
-  const handleViewportScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    if (target.scrollTop < 40) {
-      if (activeSectionTitle !== null) setActiveSectionTitle(null);
-      return;
-    }
-
-    const sections = target.querySelectorAll<HTMLElement>('[data-section-title]');
-    if (!sections.length) return;
-
-    let currentTitle: string | null = null;
-    const viewportTop = target.getBoundingClientRect().top;
-
-    sections.forEach((sec) => {
-      const rect = sec.getBoundingClientRect();
-      const relativeTop = rect.top - viewportTop;
-      if (relativeTop <= 140) {
-        currentTitle = sec.getAttribute('data-section-title');
-      }
-    });
-
-    if (currentTitle && currentTitle !== activeSectionTitle) {
-      setActiveSectionTitle(currentTitle);
-    }
-  };
 
   // Session picker state for alternate account pool
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
@@ -1104,7 +1073,7 @@ export function TransferSettingsWorkspace({
       </header>
 
       {/* MAIN FOCUSED WORKSPACE VIEWPORT */}
-      <main className="td-xfer-panel-viewport" onScroll={handleViewportScroll}>
+      <main className="td-xfer-panel-viewport">
 
         {/* LEVEL 1: MAIN MENU OVERVIEW (PRESET ACTIVE STRIP + CATEGORY LIST BUTTONS) */}
         {activeTab === 'menu' && (
@@ -1194,7 +1163,7 @@ export function TransferSettingsWorkspace({
             {/* ==========================================
                 SECTION CARD 1: PENGATURAN UNGGAHAN & FORMAT
                 ========================================== */}
-            <div className="td-settings-card" data-section-title="1. Pengaturan Unggahan (Upload)">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Upload size={20} className="td-card-icon-primary" />
                 <div>
@@ -1714,7 +1683,7 @@ export function TransferSettingsWorkspace({
             {/* ==========================================
                 SECTION CARD 3: MODE & EFEK PENGIRIMAN (SILENT, SPOILER)
                 ========================================== */}
-            <div className="td-settings-card" style={{ marginTop: '20px' }} data-section-title="3. Mode & Efek Pengiriman (Silent & Spoiler)">
+            <div className="td-settings-card" style={{ marginTop: '20px' }}>
               <div className="td-card-head">
                 <SlidersHorizontal size={20} className="td-card-icon-primary" />
                 <div>
@@ -1759,7 +1728,7 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: DOWNLOAD */}
         {activeTab === 'download' && (
           <div className="td-xfer-focused-panel" id="section-download-performance">
-            <div className="td-settings-card" data-section-title="1. Paralelisme & Batas Kecepatan Unduh">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Download size={20} className="td-card-icon-primary" />
                 <div>
@@ -1847,7 +1816,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* MASTER PARENT SECTION: PENGODEAN & TRANSCODING PENGUNGGAH */}
-            <div className="td-encoding-master-card" data-section-title="2. Mesin Pengodean & Transcoding Video">
+            <div className="td-encoding-master-card">
               <div className="td-encoding-master-header">
                 <div className="td-encoding-master-head-left">
                   <div className="td-master-icon-badge">
@@ -2062,7 +2031,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* MASTER PARENT SECTION 2: AKSELERASI PRATINJAU & PEMUTARAN LOKAL */}
-            <div className="td-playback-master-card" style={{ marginTop: '24px' }} data-section-title="3. Akselerasi Pratinjau & Pemutaran Lokal">
+            <div className="td-playback-master-card" style={{ marginTop: '24px' }}>
               <div className="td-playback-master-header">
                 <div className="td-playback-master-head-left">
                   <div className="td-playback-icon-badge">
@@ -2234,7 +2203,7 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENGELOMPOKAN ALBUM */}
         {activeTab === 'albums' && (
           <div className="td-xfer-focused-panel" id="section-albums-main">
-            <div className="td-settings-card" data-section-title="1. Pengelompokan Media Album">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <FolderTree size={18} />
                 <div>
@@ -2356,7 +2325,7 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENANGANAN DUPLIKAT */}
         {activeTab === 'duplicates' && (
           <div className="td-xfer-focused-panel" id="section-duplicates-main">
-            <div className="td-settings-card" data-section-title="1. Penanganan File Duplikat & Verifikasi 4-Level">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <CopyCheck size={20} style={{ color: '#38bdf8' }} />
                 <div>
@@ -2488,7 +2457,7 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENANGANAN BERKAS BESAR (OVERSIZE FILES) */}
         {activeTab === 'limits_recovery' && (
           <div className="td-xfer-focused-panel" id="section-limits-recovery">
-            <div className="td-settings-card" data-section-title="1. Penanganan Berkas Besar (>2GB / >4GB)">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <HardDriveUpload size={20} style={{ color: '#10b981' }} />
                 <div>
@@ -2843,7 +2812,7 @@ export function TransferSettingsWorkspace({
         {activeTab === 'advanced' && (
           <div className="td-xfer-focused-panel" id="section-advanced-main" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. SINKRONISASI & PERILAKU SESI */}
-            <div className="td-settings-card" data-section-title="1. Sinkronisasi & Perilaku Sesi">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <SlidersHorizontal size={18} />
                 <div>
@@ -2895,7 +2864,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 2. PEMELIHARAAN CACHE & PENYIMPANAN */}
-            <div className="td-settings-card" data-section-title="2. Pemeliharaan Cache & Penyimpanan">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Trash2 size={18} />
                 <div>
@@ -2945,7 +2914,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 3. EKSPOR & IMPOR KONFIGURASI (BACKUP / RESTORE) */}
-            <div className="td-settings-card" data-section-title="3. Ekspor & Impor Konfigurasi">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Download size={18} />
                 <div>
@@ -3008,7 +2977,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 4. DIAGNOSTIK & LOGGING SISTEM */}
-            <div className="td-settings-card" data-section-title="4. Diagnostik & Log Sistem">
+            <div className="td-settings-card">
               <div className="td-card-head">
                 <Activity size={18} />
                 <div>
@@ -3034,7 +3003,7 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 5. RESET TOTAL SELURUH PENGATURAN SYSTEM */}
-            <div className="td-settings-card" style={{ borderColor: 'rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.05)' }} data-section-title="5. Reset Total Seluruh Pengaturan System">
+            <div className="td-settings-card" style={{ borderColor: 'rgba(239, 68, 68, 0.35)', background: 'rgba(239, 68, 68, 0.05)' }}>
               <div className="td-card-head">
                 <RotateCcw size={18} style={{ color: '#f87171' }} />
                 <div>
