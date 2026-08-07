@@ -9864,6 +9864,7 @@ body:has(.app-layout-drive-focus),
   padding: 10px;
   z-index: 10;
   overflow-x: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
 }
 
 .drive-preview-dup-sidebar-head {
@@ -10031,6 +10032,83 @@ body:has(.app-layout-drive-focus),
   border-color: #34d399;
   color: #ffffff;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive Mobile-First Bottom Sheet & Stacked Vertical View (< 900px) */
+@media (max-width: 900px) {
+  .drive-preview-split-wrapper {
+    flex-direction: column;
+  }
+
+  .drive-preview-split-stage {
+    flex-direction: column;
+    padding: 12px;
+    padding-bottom: 74px; /* Room for collapsed bottom sheet bar */
+    gap: 12px;
+    overflow-y: auto;
+  }
+
+  .drive-preview-split-col {
+    width: 100%;
+    min-height: 260px;
+    height: auto;
+  }
+
+  .drive-preview-split-divider {
+    flex-direction: row;
+    padding: 4px 14px;
+    background: rgba(15, 23, 42, 0.85);
+    border-radius: 9999px;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+
+  .drive-preview-dup-sidebar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6);
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(24px);
+    padding: 10px 14px;
+    z-index: 50;
+  }
+
+  .drive-preview-dup-sidebar.is-collapsed {
+    max-height: 52px;
+    overflow: hidden;
+  }
+
+  .drive-preview-dup-sidebar.is-collapsed .drive-preview-dup-sidebar-list,
+  .drive-preview-dup-sidebar.is-collapsed .drive-preview-dup-quick-keep-btn {
+    display: none;
+  }
+
+  .drive-preview-dup-sidebar.is-expanded {
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+
+  .drive-preview-dup-sidebar-head {
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: none;
+  }
+
+  .drive-preview-dup-sidebar.is-expanded .drive-preview-dup-sidebar-head {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+
+  .drive-preview-split-meta button {
+    min-height: 44px; /* Touch target requirement */
+  }
 }
 .td-xfer-settings-foot {
   display: flex;

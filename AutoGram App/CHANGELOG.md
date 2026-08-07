@@ -1,3 +1,11 @@
+## v2.8.8 Mobile-First & Touch-Friendly Duplicate Compare Sidebar Architecture
+
+### Merombak Layout Komparasi Duplikat & Responsive Bottom Sheet (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Responsive Bottom Sheet & Mini-Bar Toggle**: Merombak panel kanan anggota grup (`drive-preview-dup-sidebar`) agar bertransformasi menjadi Bottom Sheet ringkas di layar mobile (< 900px) dengan tombol toggle header (expand/collapse) sehingga tidak lagi memaksa layout 3 kolom yang sempit.
+- **Initial Collapsed State di Mobile**: Menetapkan tampilan awal di mobile sebagai mini-bar ringkas di bagian bawah yang menampilkan info grup & tombol toggle, memberikan area komparasi media fokus 100% penuh.
+- **Stacked Vertical Media Comparison**: Menata susunan media komparasi (File A vs File B) secara vertikal di orientasi portrait mobile dengan pembatas VS di tengah, memanfaatkan 100% lebar layar HP tanpa terpotong.
+- **Touch-First Accessibility**: Menyesuaikan seluruh tombol aksi utama dengan tinggi dan target sentuh minimal 44px.
+
 ## v2.8.7 Smart 3x3 Grid Album Chunking Engine (Max 9 Per Album)
 
 ### Optimalisasi Chunking Album 3x3 Grid (`studio_orch.rs`)

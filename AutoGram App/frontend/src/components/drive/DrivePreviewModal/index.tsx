@@ -42,6 +42,8 @@ import {
   Columns,
   ShieldCheck,
   Trash2,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -457,6 +459,7 @@ export function DrivePreviewModal({
   }, [duplicateContext]);
 
   const [selectedBIndex, setSelectedBIndex] = useState<number>(1);
+  const [isDupSidebarExpanded, setIsDupSidebarExpanded] = useState<boolean>(false);
 
   useEffect(() => {
     if (currentDupGroup) {
@@ -3674,18 +3677,31 @@ export function DrivePreviewModal({
                 })()}
               </div>
 
-              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST */}
-              <aside className="drive-preview-dup-sidebar">
-                <div className="drive-preview-dup-sidebar-head">
-                  <span className="drive-preview-dup-sidebar-title">
-                    {t('speedtest.preview_sidebar_title')} ({currentDupGroup.files.length})
-                  </span>
-                  <span className="text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
-                    {t('speedtest.preview_group_pill', {
-                      index: duplicateContext.currentGroupIndex + 1,
-                      total: duplicateContext.activeFilteredGroups.length,
-                    })}
-                  </span>
+              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST (Mobile bottom-sheet + Desktop sidebar) */}
+              <aside className={`drive-preview-dup-sidebar ${isDupSidebarExpanded ? 'is-expanded' : 'is-collapsed'}`}>
+                <div
+                  className="drive-preview-dup-sidebar-head cursor-pointer select-none"
+                  onClick={() => setIsDupSidebarExpanded((prev) => !prev)}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="drive-preview-dup-sidebar-title truncate">
+                      {t('speedtest.preview_sidebar_title')} ({currentDupGroup.files.length})
+                    </span>
+                    <span className="text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 flex-shrink-0">
+                      {t('speedtest.preview_group_pill', {
+                        index: duplicateContext.currentGroupIndex + 1,
+                        total: duplicateContext.activeFilteredGroups.length,
+                      })}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="drive-preview-dup-toggle-btn text-slate-400 hover:text-white p-1 rounded-md"
+                    aria-label="Toggle group members"
+                  >
+                    {isDupSidebarExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                  </button>
                 </div>
 
                 {/* 1-Click Action: Keep Only Currently Active File */}
