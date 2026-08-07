@@ -2836,7 +2836,7 @@ function MediaDriveDesktop({
     };
   }, [processPendingActions]);
 
-  const loadMoreFiles = useCallback(async () => {
+  const loadMoreFiles = useCallback(async (opts?: { pageSize?: number }) => {
     if (!creds || !filesHasMore || loadingMoreFiles || loadMoreLock.current) return;
     if (nextOffsetId == null) {
       setFilesHasMore(false);
@@ -2853,12 +2853,15 @@ function MediaDriveDesktop({
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
     const offsetAtStart = nextOffsetId;
+    const requestedPageSize =
+      opts?.pageSize ||
+      stagedLoadMorePageSize(
+        getDrivePerfProfile().tier,
+        getDrivePerfProfile().loadMorePage
+      );
     try {
       const res = await driveListFiles(creds, peerId, {
-        pageSize: stagedLoadMorePageSize(
-          getDrivePerfProfile().tier,
-          getDrivePerfProfile().loadMorePage
-        ),
+        pageSize: requestedPageSize,
         offsetId: offsetAtStart,
         topicId: tid,
         quickStats: false,
@@ -2949,8 +2952,15 @@ function MediaDriveDesktop({
       }
     } catch (e: any) {
       if (gen === peerGen.current) {
+        const errMsg = String(e?.message || e || '');
+        const fwMatch = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);
+        if (fwMatch) {
+          const sec = parseInt(fwMatch[1], 10) || 10;
+          throw new Error(`FLOOD_WAIT_${sec}`);
+        }
         setError(friendlyDriveError(e));
         setStatusText('Load more gagal');
+        throw e;
       }
     } finally {
       if (pauseThumbsForPaging) setThumbsPaused(false);

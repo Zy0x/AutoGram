@@ -139,7 +139,7 @@ type Props = {
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
-  onLoadMoreFiles?: () => Promise<void>;
+  onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
   onSmartCopy?: (opts: {
     messageIds: number[];
     toFolderId: number | null;
@@ -950,7 +950,7 @@ function DupTab({
   onDeleteIds: (ids: number[]) => void;
   totalFileCount?: number;
   filesHasMore?: boolean;
-  onLoadMoreFiles?: () => Promise<void>;
+  onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
   loadedCount?: number;
 }) {
   const { t } = useTranslation();
@@ -959,31 +959,55 @@ function DupTab({
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video' | 'document' | 'audio'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // DEEP SCAN STATE
+  // DEEP SCAN & FLOODWAIT STATE
   const [isScanning, setIsScanning] = useState(false);
+  const [floodWaitSeconds, setFloodWaitSeconds] = useState<number | null>(null);
   const scanStopRef = useState({ stop: false })[0];
 
   const startDeepScan = async () => {
     if (!onLoadMoreFiles || !filesHasMore || isScanning) return;
     setIsScanning(true);
     scanStopRef.stop = false;
+    setFloodWaitSeconds(null);
 
     try {
       while (!scanStopRef.stop && filesHasMore) {
-        await onLoadMoreFiles();
-        // Smart Rate Controller 100ms throttle between pages to avoid Telegram FloodWait
-        await new Promise((r) => setTimeout(r, 100));
+        try {
+          // Request Turbo Page Size (250 items per page for 5x-10x faster scan!)
+          await onLoadMoreFiles({ pageSize: 250 });
+          setFloodWaitSeconds(null);
+          // Zero delay between successful pages for maximum throughput!
+          await new Promise((r) => setTimeout(r, 10));
+        } catch (err: any) {
+          const errMsg = String(err?.message || err || '');
+          const match = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);
+          if (match) {
+            const sec = parseInt(match[1], 10) || 10;
+            // FLOODWAIT BADGE & COUNTDOWN
+            for (let s = sec; s > 0; s--) {
+              if (scanStopRef.stop) break;
+              setFloodWaitSeconds(s);
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+            setFloodWaitSeconds(null);
+          } else {
+            // Brief pause on standard error before retrying next batch
+            await new Promise((r) => setTimeout(r, 800));
+          }
+        }
       }
     } catch {
       /* ignore scan errors */
     } finally {
       setIsScanning(false);
+      setFloodWaitSeconds(null);
     }
   };
 
   const stopDeepScan = () => {
     scanStopRef.stop = true;
     setIsScanning(false);
+    setFloodWaitSeconds(null);
   };
 
   const smartKey = useMemo(() => {
@@ -1184,6 +1208,35 @@ function DupTab({
                   transition: 'width 0.2s ease',
                 }}
               />
+            </div>
+          </div>
+        )}
+
+        {/* ⚠️ FLOODWAIT BADGE INDICATOR */}
+        {floodWaitSeconds !== null && (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.4) 100%)',
+              border: '1px solid #ef4444',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#fca5a5',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={16} style={{ color: '#ef4444' }} />
+              <span>
+                <strong>⚠️ Telegram FloodWait Detected:</strong> Pemindaian otomatis dijeda sementara &amp; akan dilanjutkan secara otomatis saat limit berakhir...
+              </span>
+            </div>
+            <div style={{ background: '#ef4444', color: '#ffffff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+              {floodWaitSeconds}s
             </div>
           </div>
         )}
