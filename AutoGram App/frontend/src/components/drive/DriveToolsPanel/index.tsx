@@ -21,6 +21,12 @@ import {
   ChevronDown,
   ChevronUp,
   Settings2,
+  Grid,
+  Image,
+  Film,
+  FileText,
+  Music,
+  RefreshCw,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -1046,6 +1052,26 @@ function DupTab({
     setMarkedDelete(smartDeleteIds(groups, keepNewest));
   }, [smartKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const categoryCounts = useMemo(() => {
+    const counts = { all: groups.length, image: 0, video: 0, document: 0, audio: 0 };
+    for (const g of groups) {
+      let isImg = false, isVid = false, isDoc = false, isAud = false;
+      for (const f of g.files) {
+        const type = ((f as any).file_type || f.mime_type || '').toLowerCase();
+        const name = f.name.toLowerCase();
+        if (type.includes('image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(name)) isImg = true;
+        else if (type.includes('video') || /\.(mp4|mkv|webm|avi|mov)$/i.test(name)) isVid = true;
+        else if (type.includes('audio') || /\.(mp3|flac|wav|ogg|m4a)$/i.test(name)) isAud = true;
+        else if (type.includes('pdf') || type.includes('zip') || /\.(pdf|zip|rar|7z|doc|docx|txt)$/i.test(name)) isDoc = true;
+      }
+      if (isImg) counts.image++;
+      if (isVid) counts.video++;
+      if (isDoc) counts.document++;
+      if (isAud) counts.audio++;
+    }
+    return counts;
+  }, [groups]);
+
   // FILTERED GROUPS BY MEDIA TYPE & SEARCH QUERY
   const filteredGroups = useMemo(() => {
     return groups.filter((g) => {
@@ -1188,56 +1214,59 @@ function DupTab({
             </div>
           </div>
 
-          {/* DEEP SCAN ACTION BUTTON */}
-          {filesHasMore && (
-            <div>
-              {!isScanning ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void startDeepScan()}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '9px',
-                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 12px rgba(56, 189, 248, 0.3)',
-                  }}
-                >
-                  <Search size={14} />
-                  <span>Pindai Seluruh Chat ({targetTotal.toLocaleString('id-ID')} Items)</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={stopDeepScan}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '9px',
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    border: '1px solid rgba(239, 68, 68, 0.5)',
-                    color: '#fca5a5',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Loader2 size={14} className="spin" />
-                  <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
-                </button>
-              )}
-            </div>
-          )}
+          {/* DEEP SCAN ACTION BUTTON (ALWAYS VISIBLE & WORKING) */}
+          <div>
+            {!isScanning ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void startDeepScan()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '9px',
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(14, 165, 233, 0.35)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {filesHasMore ? <Search size={14} /> : <RefreshCw size={14} />}
+                <span>
+                  {filesHasMore
+                    ? `Pindai Indeks Chat (${targetTotal.toLocaleString('id-ID')} items)`
+                    : `Pindai Ulang Indeks (${loadedCount.toLocaleString('id-ID')} items)`}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopDeepScan}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '9px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.5)',
+                  color: '#fca5a5',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <Loader2 size={14} className="spin" />
+                <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* PROGRESS BAR & FLOODWAIT INDICATOR */}
@@ -1351,34 +1380,69 @@ function DupTab({
         )}
       </div>
 
-      {/* 📁 2. MEDIA CATEGORY TABS & SEARCH BAR */}
+      {/* 📁 2. SEGMENTED MEDIA CATEGORY TABS & TOOLBAR */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px' }}>
+        {/* SLEEK SEGMENTED CONTROL BAR */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            background: 'rgba(15, 23, 42, 0.7)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '10px',
+            padding: '3px',
+          }}
+        >
           {[
-            { id: 'all', label: 'Semua' },
-            { id: 'image', label: '📷 Foto' },
-            { id: 'video', label: '🎥 Video' },
-            { id: 'document', label: '📄 Dokumen' },
-            { id: 'audio', label: '🎵 Audio' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilterType(tab.id as any)}
-              style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: filterType === tab.id ? 700 : 500,
-                background: filterType === tab.id ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                border: 'none',
-                color: filterType === tab.id ? '#ffffff' : '#94a3b8',
-                cursor: 'pointer',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { id: 'all', label: 'Semua', icon: Grid, count: categoryCounts.all },
+            { id: 'image', label: 'Foto', icon: Image, count: categoryCounts.image },
+            { id: 'video', label: 'Video', icon: Film, count: categoryCounts.video },
+            { id: 'document', label: 'Dokumen', icon: FileText, count: categoryCounts.document },
+            { id: 'audio', label: 'Audio', icon: Music, count: categoryCounts.audio },
+          ].map((tab) => {
+            const IconComp = tab.icon;
+            const isActive = filterType === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilterType(tab.id as any)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '5px 11px',
+                  borderRadius: '7px',
+                  fontSize: '0.78rem',
+                  fontWeight: isActive ? 700 : 500,
+                  background: isActive
+                    ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
+                    : 'transparent',
+                  border: 'none',
+                  color: isActive ? '#ffffff' : '#94a3b8',
+                  cursor: 'pointer',
+                  boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.35)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <IconComp size={13} style={{ color: isActive ? '#ffffff' : '#94a3b8' }} />
+                <span>{tab.label}</span>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.06)',
+                    color: isActive ? '#ffffff' : '#64748b',
+                    fontWeight: 700,
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
