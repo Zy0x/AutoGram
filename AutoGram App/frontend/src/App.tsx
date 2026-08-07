@@ -1,16 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import './App.css';
-import { Sidebar } from './components/layout/Sidebar';
-import { Dashboard } from './pages/Dashboard';
-import { Settings } from './pages/Settings';
-import { Accounts } from './pages/Accounts';
-import { Jobs } from './pages/Jobs';
-import { Sync } from './pages/Sync';
-import { Statistics } from './pages/Statistics';
-import { Profiles } from './pages/Profiles';
-import { Automation } from './pages/Automation';
 import { SplashScreen } from './components/layout/SplashScreen';
+import { ApiSetupScreen } from './pages/ApiSetupScreen';
 import { SessionLauncher } from './pages/SessionLauncher';
 import { ForwarderWorkspace } from './pages/ForwarderWorkspace';
 
@@ -48,19 +40,11 @@ const MediaStudio = lazyWithRetry(() =>
   import('./pages/MediaStudio').then((m) => ({ default: m.MediaStudio }))
 );
 
-const DESKTOP_ONLY_TABS = new Set(['speedtest', 'media-studio']);
-
-function initialTab(): string {
-  const saved = localStorage.getItem('lastActiveTab') || 'media-studio';
-  if (DESKTOP_ONLY_TABS.has(saved) && !isMediaStudioAvailable()) {
-    return 'dashboard';
-  }
-  return saved;
-}
-
 function App() {
   const { t } = useTranslation();
   const [showSplash, setShowSplash] = useState(true);
+  const [apiChecked, setApiChecked] = useState(false);
+  const [apiValid, setApiValid] = useState(true);
   const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder'>(() => {
     return (localStorage.getItem('autogram_app_mode') as any) || 'launcher';
   });
@@ -71,20 +55,25 @@ function App() {
       'Lavender'
     );
   });
-  const [activeTab, setActiveTab] = useState(initialTab);
 
+  // Check Telegram API Credentials on boot
   useEffect(() => {
-    localStorage.setItem('lastActiveTab', activeTab);
-  }, [activeTab]);
+    let active = true;
+    bootstrapSecureCredentials()
+      .then(({ apiId, apiHash }) => {
+        if (active) {
+          const valid = Boolean(apiId && apiHash && String(apiId).trim() && String(apiHash).trim());
+          setApiValid(valid);
+          setApiChecked(true);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setApiValid(false);
+          setApiChecked(true);
+        }
+      });
 
-  useEffect(() => {
-    if (DESKTOP_ONLY_TABS.has(activeTab) && !isMediaStudioAvailable()) {
-      setActiveTab('dashboard');
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    void bootstrapSecureCredentials().catch(() => undefined);
     void bootstrapDebugMode()
       .then((on) => {
         if (on) debugLog('app', 'Debug Mode active after boot');
@@ -100,6 +89,7 @@ function App() {
     }, 15 * 60 * 1000);
 
     return () => {
+      active = false;
       clearTimeout(timer);
       clearInterval(interval);
     };
@@ -110,17 +100,11 @@ function App() {
     localStorage.setItem('autogram_drive_session', sessionName);
     setAppMode(mode);
     localStorage.setItem('autogram_app_mode', mode);
-    if (mode === 'drives') {
-      setActiveTab('media-studio');
-    }
   };
 
   const handleSwitchMode = (mode: 'drives' | 'forwarder') => {
     setAppMode(mode);
     localStorage.setItem('autogram_app_mode', mode);
-    if (mode === 'drives') {
-      setActiveTab('media-studio');
-    }
   };
 
   // 1. ANIMATED SPLASH SCREEN (Shown once on boot)
@@ -128,24 +112,35 @@ function App() {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  // 2. LANDING LAUNCHER SESSION HUB
+  // 2. TELEGRAM API CREDENTIALS ONBOARDING (If API ID / Hash missing)
+  if (apiChecked && !apiValid) {
+    return (
+      <ApiSetupScreen
+        onComplete={() => {
+          setApiValid(true);
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
+        }}
+      />
+    );
+  }
+
+  // 3. LANDING LAUNCHER SESSION HUB
   if (appMode === 'launcher') {
     return (
       <SessionLauncher
         onSelectMode={handleSelectMode}
         onOpenAccounts={() => {
-          setActiveTab('accounts');
           setAppMode('drives');
         }}
         onOpenSettings={() => {
-          setActiveTab('settings');
           setAppMode('drives');
         }}
       />
     );
   }
 
-  // 3. DEDICATED FORWARDER WORKSPACE SUITE
+  // 4. DEDICATED FORWARDER WORKSPACE SUITE
   if (appMode === 'forwarder') {
     return (
       <ForwarderWorkspace
@@ -156,59 +151,49 @@ function App() {
           localStorage.setItem('autogram_app_mode', 'launcher');
         }}
         onOpenSettings={() => {
-          setActiveTab('settings');
           setAppMode('drives');
         }}
       />
     );
   }
 
-  // 4. DRIVES WORKSPACE (MEDIA STUDIO)
-  const driveFocus =
-    (activeTab === 'speedtest' || activeTab === 'media-studio') && isMediaStudioAvailable();
-
+  // 5. DRIVES WORKSPACE (MEDIA STUDIO)
   return (
-    <div className={`app-layout ${driveFocus ? 'app-layout-drive-focus' : ''}`}>
-      {!driveFocus && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />}
-
-      <div className={`app-content ${driveFocus ? 'app-content-drive' : ''}`} id="app-content">
+    <div className="app-layout app-layout-drive-focus">
+      <div className="app-content app-content-drive" id="app-content">
         <ErrorBoundary
           fallbackTitle={t('nav.error_title', 'Terjadi Kesalahan pada Halaman Ini')}
-          onReset={() => setActiveTab('dashboard')}
+          onReset={() => {
+            setAppMode('launcher');
+            localStorage.setItem('autogram_app_mode', 'launcher');
+          }}
         >
-          {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
-          {activeTab === 'jobs' && <Jobs />}
-          {activeTab === 'sync' && <Sync />}
-          {activeTab === 'stats' && <Statistics />}
-          {activeTab === 'accounts' && <Accounts />}
-          {activeTab === 'profiles' && <Profiles />}
-          {activeTab === 'automation' && <Automation />}
-          {(activeTab === 'speedtest' || activeTab === 'media-studio') &&
-            isMediaStudioAvailable() && (
-              <Suspense
-                fallback={
-                  <main className="main-content main-content-fill td-page">
-                    <div className="td-boot-fallback" role="status">
-                      Memuat Drives…
-                    </div>
-                  </main>
-                }
-              >
-                <MediaStudio
-                  onExitToApp={() => {
-                    setAppMode('launcher');
-                    localStorage.setItem('autogram_app_mode', 'launcher');
-                  }}
-                  onNavigateToAccounts={() => setActiveTab('accounts')}
-                  onSwitchMode={handleSwitchMode}
-                  onBackToLauncher={() => {
-                    setAppMode('launcher');
-                    localStorage.setItem('autogram_app_mode', 'launcher');
-                  }}
-                />
-              </Suspense>
-            )}
-          {activeTab === 'settings' && <Settings />}
+          {isMediaStudioAvailable() && (
+            <Suspense
+              fallback={
+                <main className="main-content main-content-fill td-page">
+                  <div className="td-boot-fallback" role="status">
+                    Memuat Drives…
+                  </div>
+                </main>
+              }
+            >
+              <MediaStudio
+                onExitToApp={() => {
+                  setAppMode('launcher');
+                  localStorage.setItem('autogram_app_mode', 'launcher');
+                }}
+                onNavigateToAccounts={() => {
+                  setAppMode('drives');
+                }}
+                onSwitchMode={handleSwitchMode}
+                onBackToLauncher={() => {
+                  setAppMode('launcher');
+                  localStorage.setItem('autogram_app_mode', 'launcher');
+                }}
+              />
+            </Suspense>
+          )}
         </ErrorBoundary>
       </div>
     </div>
