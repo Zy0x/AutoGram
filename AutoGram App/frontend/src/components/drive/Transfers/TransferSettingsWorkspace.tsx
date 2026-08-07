@@ -1811,12 +1811,39 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: DOWNLOAD */}
         {activeTab === 'download' && (
           <div className="td-xfer-focused-panel" id="section-download-performance">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Download size={20} className="td-card-icon-primary" />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Download size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>{t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}</h4>
-                  <p>{t('speedtest.tab_download_desc', 'Atur paralelisme unduhan, kebijakan konflik nama berkas & keandalan resume')}</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. {t('speedtest.tab_download_title', 'Pengaturan Unduhan (Download)')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('speedtest.tab_download_desc', 'Atur paralelisme unduhan, kebijakan konflik nama berkas & keandalan resume')}
+                  </p>
                 </div>
               </div>
 
@@ -2286,12 +2313,39 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENGELOMPOKAN ALBUM */}
         {activeTab === 'albums' && (
           <div className="td-xfer-focused-panel" id="section-albums-main">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <FolderTree size={18} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <FolderTree size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>{t('speedtest.album_orchestration_title', 'Pengelompokan Media Album')}</h4>
-                  <p>{t('speedtest.album_orchestration_desc', 'Kirim foto dan video dalam satu album grup Telegram')}</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. {t('speedtest.album_orchestration_title', 'Pengelompokan Media Album')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('speedtest.album_orchestration_desc', 'Kirim foto dan video dalam satu album grup Telegram')}
+                  </p>
                 </div>
               </div>
 
@@ -2408,12 +2462,39 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENANGANAN DUPLIKAT */}
         {activeTab === 'duplicates' && (
           <div className="td-xfer-focused-panel" id="section-duplicates-main">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <CopyCheck size={20} style={{ color: '#38bdf8' }} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <CopyCheck size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>{t('speedtest.duplicate_title', 'Penanganan Duplikat (Duplicate Engine)')}</h4>
-                  <p>{t('speedtest.duplicate_desc', 'Atur kebijakan deteksi dan pencegahan pengunggahan berkas ganda di AutoGram.')}</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. {t('speedtest.duplicate_title', 'Penanganan Duplikat (Duplicate Engine)')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('speedtest.duplicate_desc', 'Atur kebijakan deteksi dan pencegahan pengunggahan berkas ganda di AutoGram.')}
+                  </p>
                 </div>
               </div>
 
@@ -2540,12 +2621,39 @@ export function TransferSettingsWorkspace({
         {/* DEDICATED PAGE: PENANGANAN BERKAS BESAR (OVERSIZE FILES) */}
         {activeTab === 'limits_recovery' && (
           <div className="td-xfer-focused-panel" id="section-limits-recovery">
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <HardDriveUpload size={20} style={{ color: '#10b981' }} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <HardDriveUpload size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>{t('speedtest.oversize_title', 'Penanganan Berkas Besar (Oversize Files Handling)')}</h4>
-                  <p>{t('speedtest.oversize_desc', 'Tindakan otomatis sistem saat mengunggah berkas yang melebihi batas Telegram (2 GB biasa / 4 GB Premium).')}</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. {t('speedtest.oversize_title', 'Penanganan Berkas Besar (Oversize Files Handling)')}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    {t('speedtest.oversize_desc', 'Tindakan otomatis sistem saat mengunggah berkas yang melebihi batas Telegram (2 GB biasa / 4 GB Premium).')}
+                  </p>
                 </div>
               </div>
 
@@ -2895,12 +3003,39 @@ export function TransferSettingsWorkspace({
         {activeTab === 'advanced' && (
           <div className="td-xfer-focused-panel" id="section-advanced-main" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. SINKRONISASI & PERILAKU SESI */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <SlidersHorizontal size={18} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <SlidersHorizontal size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>Sinkronisasi & Perilaku Sesi</h4>
-                  <p>Konfigurasi pembaruan tampilan otomatis dan retry teknis koneksi MTProto.</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    1. Sinkronisasi & Perilaku Sesi
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Konfigurasi pembaruan tampilan otomatis dan retry teknis koneksi MTProto.
+                  </p>
                 </div>
               </div>
 
@@ -2947,12 +3082,39 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 2. PEMELIHARAAN CACHE & PENYIMPANAN */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Trash2 size={18} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Trash2 size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>Pemeliharaan Cache & Penyimpanan</h4>
-                  <p>Bersihkan memori sementara dan file cache lokal untuk menjaga aplikasi tetap cepat & responsif.</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    2. Pemeliharaan Cache & Penyimpanan
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Bersihkan memori sementara dan file cache lokal untuk menjaga aplikasi tetap cepat & responsif.
+                  </p>
                 </div>
               </div>
 
@@ -2997,12 +3159,39 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 3. EKSPOR & IMPOR KONFIGURASI (BACKUP / RESTORE) */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Download size={18} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Download size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>Ekspor & Impor Konfigurasi (Backup & Restore)</h4>
-                  <p>Cadangkan seluruh profil pengaturan transfer ke file JSON atau pulihkan dari cadangan sebelumnya.</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    3. Ekspor & Impor Konfigurasi (Backup & Restore)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Cadangkan seluruh profil pengaturan transfer ke file JSON atau pulihkan dari cadangan sebelumnya.
+                  </p>
                 </div>
               </div>
 
@@ -3060,12 +3249,39 @@ export function TransferSettingsWorkspace({
             </div>
 
             {/* 4. DIAGNOSTIK & LOGGING SISTEM */}
-            <div className="td-settings-card">
-              <div className="td-card-head">
-                <Activity size={18} />
+            <div
+              className="td-settings-card"
+              style={{
+                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Activity size={18} style={{ color: '#38bdf8' }} />
+                </div>
                 <div>
-                  <h4>Diagnostik & Log Sistem</h4>
-                  <p>Opsi pelacakan detail transaksi teknis untuk pemeliharaan dan audit internal.</p>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                    4. Diagnostik & Log Sistem
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
+                    Opsi pelacakan detail transaksi teknis untuk pemeliharaan dan audit internal.
+                  </p>
                 </div>
               </div>
 
