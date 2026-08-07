@@ -463,6 +463,36 @@ export function DrivePreviewModal({
       setSelectedBIndex(currentDupGroup.files.length > 1 ? 1 : 0);
     }
   }, [currentDupGroup]);
+
+  const handleSequentialNext = useCallback(() => {
+    if (!currentDupGroup) return;
+    const totalB = currentDupGroup.files.length;
+    if (selectedBIndex < totalB - 1) {
+      setSelectedBIndex((i) => i + 1);
+    } else if (
+      duplicateContext &&
+      duplicateContext.currentGroupIndex < duplicateContext.activeFilteredGroups.length - 1
+    ) {
+      const nextIdx = duplicateContext.currentGroupIndex + 1;
+      const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+      if (nextGroup && duplicateContext.onNavigateGroup) {
+        duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+      }
+    }
+  }, [currentDupGroup, selectedBIndex, duplicateContext]);
+
+  const handleSequentialPrev = useCallback(() => {
+    if (!currentDupGroup) return;
+    if (selectedBIndex > 0) {
+      setSelectedBIndex((i) => i - 1);
+    } else if (duplicateContext && duplicateContext.currentGroupIndex > 0) {
+      const prevIdx = duplicateContext.currentGroupIndex - 1;
+      const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+      if (prevGroup && duplicateContext.onNavigateGroup) {
+        duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+      }
+    }
+  }, [currentDupGroup, selectedBIndex, duplicateContext]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -1742,17 +1772,27 @@ export function DrivePreviewModal({
           navLock.current = false;
         }, 180);
         if (duplicateContext && duplicateContext.activeFilteredGroups.length > 0) {
-          if (e.key === 'ArrowRight') {
-            const nextIdx = duplicateContext.currentGroupIndex + 1;
-            const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
-            if (nextGroup && duplicateContext.onNavigateGroup) {
-              duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+          if (e.shiftKey) {
+            // Shift + Arrow = Direct Group Jump
+            if (e.key === 'ArrowRight') {
+              const nextIdx = duplicateContext.currentGroupIndex + 1;
+              const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+              if (nextGroup && duplicateContext.onNavigateGroup) {
+                duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+              }
+            } else if (e.key === 'ArrowLeft') {
+              const prevIdx = duplicateContext.currentGroupIndex - 1;
+              const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+              if (prevGroup && duplicateContext.onNavigateGroup) {
+                duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+              }
             }
-          } else if (e.key === 'ArrowLeft') {
-            const prevIdx = duplicateContext.currentGroupIndex - 1;
-            const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
-            if (prevGroup && duplicateContext.onNavigateGroup) {
-              duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+          } else {
+            // Normal Arrow = Intelligent Sequential Intra-Group First
+            if (e.key === 'ArrowRight') {
+              handleSequentialNext();
+            } else if (e.key === 'ArrowLeft') {
+              handleSequentialPrev();
             }
           }
           return;
@@ -1786,7 +1826,19 @@ export function DrivePreviewModal({
     return () => window.removeEventListener('keydown', onKey);
     // applyZoomAt / resetZoom read latest via refs / setState — stable enough
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onClose, onNext, onPrev, hasNext, hasPrev, qualityOpen, rateOpen, file, duplicateContext]);
+  }, [
+    onClose,
+    onNext,
+    onPrev,
+    hasNext,
+    hasPrev,
+    qualityOpen,
+    rateOpen,
+    file,
+    duplicateContext,
+    handleSequentialNext,
+    handleSequentialPrev,
+  ]);
 
   /** Place fixed menus near trigger — never clipped by toolbar; flip up if near bottom */
   const placeMenuNear = useCallback((btn: HTMLElement | null, estH = 240) => {
@@ -3573,27 +3625,74 @@ export function DrivePreviewModal({
                         {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
                       </span>
 
-                      {/* File B Slideshow Controls */}
-                      <div className="flex items-center gap-1.5 bg-slate-950/60 px-2 py-0.5 rounded-lg border border-white/10">
+                      {/* File B Progress Dots & Slideshow Controls */}
+                      <div className="flex items-center gap-2 bg-slate-950/60 px-2 py-0.5 rounded-lg border border-white/10">
                         <button
                           type="button"
                           className="td-icon-btn text-xs p-1 h-6 w-6 disabled:opacity-30"
-                          disabled={selectedBIndex <= 0}
-                          onClick={() => setSelectedBIndex((i) => Math.max(0, i - 1))}
-                          title={t('speedtest.preview_prev_file_b')}
+                          disabled={
+                            selectedBIndex <= 0 && duplicateContext.currentGroupIndex <= 0
+                          }
+                          onClick={handleSequentialPrev}
+                          title={
+                            selectedBIndex <= 0
+                              ? t('speedtest.preview_prev_group')
+                              : t('speedtest.preview_prev_file_b')
+                          }
                         >
                           <ChevronLeft size={12} />
                         </button>
-                        <span className="text-[11px] font-bold text-sky-400">
-                          {t('speedtest.preview_file_b_counter', { index: selectedBIndex + 1, total: totalB })}
-                        </span>
+
+                        {/* Member Progress Dots */}
+                        <div className="flex items-center gap-1 mx-1" title="Indikator status anggota grup">
+                          {currentDupGroup.files.map((f, idx) => {
+                            const isSel = idx === selectedBIndex;
+                            const isDel = duplicateContext.markedDelete.has(f.id);
+                            return (
+                              <span
+                                key={f.id}
+                                onClick={() => setSelectedBIndex(idx)}
+                                className={`w-2.5 h-2.5 rounded-full cursor-pointer transition-all ${
+                                  isSel
+                                    ? 'ring-2 ring-sky-400 scale-125 ' + (isDel ? 'bg-red-500' : 'bg-green-400')
+                                    : isDel
+                                    ? 'bg-red-500/60'
+                                    : 'bg-green-500/60'
+                                }`}
+                                title={`#${idx + 1}: ${f.name} (${isDel ? 'Ditandai Hapus' : 'Dipertahankan'})`}
+                              />
+                            );
+                          })}
+                        </div>
+
                         <button
                           type="button"
-                          className="td-icon-btn text-xs p-1 h-6 w-6 disabled:opacity-30"
-                          disabled={selectedBIndex >= totalB - 1}
-                          onClick={() => setSelectedBIndex((i) => Math.min(totalB - 1, i + 1))}
-                          title={t('speedtest.preview_next_file_b')}
+                          className={`td-btn-secondary text-xs px-2 py-0.5 h-6 flex items-center gap-1 text-[11px] font-bold ${
+                            selectedBIndex >= totalB - 1 &&
+                            duplicateContext.currentGroupIndex < duplicateContext.activeFilteredGroups.length - 1
+                              ? 'border-sky-500/40 bg-sky-500/20 text-sky-300'
+                              : ''
+                          }`}
+                          disabled={
+                            selectedBIndex >= totalB - 1 &&
+                            duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1
+                          }
+                          onClick={handleSequentialNext}
+                          title={
+                            selectedBIndex >= totalB - 1
+                              ? t('speedtest.preview_next_group')
+                              : t('speedtest.preview_next_file_b')
+                          }
                         >
+                          <span>
+                            {selectedBIndex >= totalB - 1 &&
+                            duplicateContext.currentGroupIndex < duplicateContext.activeFilteredGroups.length - 1
+                              ? t('speedtest.preview_next_group_transition', {
+                                  index: duplicateContext.currentGroupIndex + 2,
+                                  total: duplicateContext.activeFilteredGroups.length,
+                                })
+                              : t('speedtest.preview_file_b_counter', { index: selectedBIndex + 1, total: totalB })}
+                          </span>
                           <ChevronRight size={12} />
                         </button>
                       </div>
