@@ -1,25 +1,10 @@
-## v2.8.10 Duplicate File Media Preview Resolution Engine & Instant Background Prefetch
+## v2.8.8 DrivePreviewModal Simplified Redesign & Aesthetic Duplicate Comparison Cards Engine
 
-### Perbaikan Resolusi Gambar & Prefetch Otomatis Komparasi Duplikat (`DrivePreviewModal/index.tsx`)
-- **Independensi Resolusi Media per Berkas**: Mengisolasi pemuatan gambar thumbnail/pratinjau untuk `Preview A`, `Preview B`, dan kartu carousel bawah melalui `resolveFileThumbnail(f)`. Menghilangkan ketergantungan pada variabel state file modal tunggal (`gridThumb`/`poster`) yang sebelumnya menyebabkan File B menampilkan thumbnail milik File A (atau terhenti tanpa gambar).
-- **Multi-Source Fallback Resolution**: Meresolusi visual media dari multiple layer: base64 inline (`thumb_data_url`), cache memori/disk `thumbBatcher`, `previewCache`, hingga berkas lokal `convertFileSrc`.
-- **Background Prefetch via `requestThumb`**: Menjadwalkan pengunduhan thumbnail otomatis via MTProto Telegram untuk berkas duplikat yang belum memiliki cache di latar belakang dan merender ulang UI secara langsung begitu thumbnail tiba.
-
-## v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel
-
-### Perombakan Komparasi Duplikat Sesuai Desain Mockup (`DrivePreviewModal/index.tsx`, `App.css`)
-- **Presisi Visual Mockup**: Merombak tampilan modal komparasi duplikat menjadi 2 kartu komparasi utama berdampingan di bagian atas (Preview A & Preview B) dan 1 strip carousel horizontal daftar grup duplikat di bagian bawah (`DAFTAR GRUP DUPLIKAT`).
-- **Kartu Preview A & Preview B**: Menyajikan dot indikator warna (Red untuk A, Emerald untuk B), badge pill grup (`g3-1` / `g3-2`), info Nama + Ukuran file, dan tombol utama `✓ Simpan Ini (1)` / `✓ Simpan Ini (2)`.
-- **Carousel Strip Anggota Grup**: Menampilkan seluruh file dalam grup duplikat secara horizontal dengan indikator badge `A` / `B` di atas thumbnail, border glow sesuai warna role, dan radio tombol langsung `Simpan` / `Hapus`.
-- **Mobile Responsive**: Kartu Preview A & Preview B stack secara vertikal pada layar HP (< 900px) sementara strip bawah tetap scrollable horizontal.
-
-## v2.8.8 Mobile-First & Touch-Friendly Duplicate Compare Sidebar Architecture
-
-### Merombak Layout Komparasi Duplikat & Responsive Bottom Sheet (`DrivePreviewModal/index.tsx`, `App.css`)
-- **Responsive Bottom Sheet & Mini-Bar Toggle**: Merombak panel kanan anggota grup (`drive-preview-dup-sidebar`) agar bertransformasi menjadi Bottom Sheet ringkas di layar mobile (< 900px) dengan tombol toggle header (expand/collapse) sehingga tidak lagi memaksa layout 3 kolom yang sempit.
-- **Initial Collapsed State di Mobile**: Menetapkan tampilan awal di mobile sebagai mini-bar ringkas di bagian bawah yang menampilkan info grup & tombol toggle, memberikan area komparasi media fokus 100% penuh.
-- **Stacked Vertical Media Comparison**: Menata susunan media komparasi (File A vs File B) secara vertikal di orientasi portrait mobile dengan pembatas VS di tengah, memanfaatkan 100% lebar layar HP tanpa terpotong.
-- **Touch-First Accessibility**: Menyesuaikan seluruh tombol aksi utama dengan tinggi dan target sentuh minimal 44px.
+### Redesain & Simplifikasi Visual Perbandingan Duplikat (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Tampilan Minimalis & Clean Card Layout**: Mengadopsi tata letak kartu perbandingan Split View yang bersih, modern, dan minimalis sesuai screenshot acuan (Preview A vs Preview B).
+- **Pembersihan Toolbar Crowded**: Menghilangkan tumpukan tombol toolbar di atas gambar saat dalam mode Split View perbandingan duplikat untuk mengeliminasi gangguan visual.
+- **Card Header & Indicator**: Menambahkan dot indikator status warna (🟢 untuk Simpan/Kept, 🔴 untuk Ditandai Hapus), judul kartu ringkas ("Preview A" / "Preview B"), dan lencana ID berkas (misal `g1-1`, `g1-2`).
+- **Footer Kartu Metadata & Aksi Utama 1-Klik**: Menampilkan informasi `Nama: <filename>` dan `Ukuran: <filesize>` dengan rapi di sisi kiri, serta tombol aksi utama yang menonjol di sisi kanan (`✓ Simpan Ini (1)` / `✓ Simpan Ini (2)`) dengan warna hijau emerald yang intuitif.
 
 ## v2.8.7 Smart 3x3 Grid Album Chunking Engine (Max 9 Per Album)
 

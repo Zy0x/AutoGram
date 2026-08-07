@@ -9732,7 +9732,7 @@ body:has(.app-layout-drive-focus),
   border-radius: 0 !important;
 }
 
-/* Duplicate Comparison Side-by-Side Split View */
+/* Duplicate Comparison Side-by-Side Split View (Sederhana & Estetik) */
 .drive-preview-split-stage {
   display: flex;
   align-items: center;
@@ -9752,23 +9752,25 @@ body:has(.app-layout-drive-focus),
   justify-content: space-between;
   height: 100%;
   max-height: 100%;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 16px;
   box-sizing: border-box;
   position: relative;
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .drive-preview-split-col.is-marked-delete {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.08);
 }
 
 .drive-preview-split-col.is-keep {
-  border-color: rgba(74, 222, 128, 0.3);
-  background: rgba(74, 222, 128, 0.04);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.08);
 }
 
 .drive-preview-split-badge {
@@ -9776,7 +9778,49 @@ body:has(.app-layout-drive-focus),
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 12px;
+  padding-bottom: 8px;
+}
+
+.drive-preview-badge-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drive-preview-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.drive-preview-status-dot.is-green {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.drive-preview-status-dot.is-red {
+  background-color: #f43f5e;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+}
+
+.drive-preview-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.drive-preview-id-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: monospace;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 8px;
 }
 
 .drive-preview-split-tag {
@@ -9795,52 +9839,106 @@ body:has(.app-layout-drive-focus),
   justify-content: center;
   overflow: hidden;
   position: relative;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
 }
 
 .drive-preview-split-media {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
+  transition: transform 0.2s ease;
 }
 
 .drive-preview-split-meta {
   width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.drive-preview-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  overflow: hidden;
 }
 
 .drive-preview-split-fname {
-  font-size: 0.85rem;
-  color: #f8fafc;
-  font-weight: 700;
-  text-align: center;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: 220px;
 }
 
 .drive-preview-split-sub {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
   color: #94a3b8;
+  font-weight: 700;
+}
+
+.drive-preview-btn-save {
+  background: #059669;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
+  flex-shrink: 0;
+}
+
+.drive-preview-btn-save:hover {
+  background: #10b981;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.drive-preview-btn-save.is-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  box-shadow: none;
+}
+
+.drive-preview-btn-save.is-secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.drive-preview-btn-save.is-del {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.2);
+}
+
+.drive-preview-btn-save.is-del:hover {
+  background: #ef4444;
 }
 
 .drive-preview-split-divider {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: #38bdf8;
-  font-weight: 900;
-  font-size: 0.85rem;
+  display: none;
 }
 
 /* Sidebar Panel for Duplicate Group Members (Reference UI) */
@@ -9864,7 +9962,6 @@ body:has(.app-layout-drive-focus),
   padding: 10px;
   z-index: 10;
   overflow-x: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
 }
 
 .drive-preview-dup-sidebar-head {
@@ -10032,164 +10129,6 @@ body:has(.app-layout-drive-focus),
   border-color: #34d399;
   color: #ffffff;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-}
-
-/* Mockup-Identical Duplicate Viewer Styling (v2.8.9) */
-.dup-viewer-wrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
-  background: #0b0f19;
-  box-sizing: border-box;
-}
-
-.dup-viewer-stage {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: 16px;
-  padding: 12px 16px;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.dup-viewer-card {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border-radius: 14px;
-  background: #111827;
-  border: 1px solid #1f2937;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.dup-viewer-card.is-card-a {
-  border-color: rgba(244, 63, 94, 0.35);
-}
-
-.dup-viewer-card.is-card-b {
-  border-color: rgba(52, 211, 153, 0.35);
-}
-
-.dup-viewer-card-head {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  background: #131d31;
-  border-bottom: 1px solid #1e293b;
-}
-
-.dup-viewer-card-media {
-  flex: 1;
-  min-height: 0;
-  height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  background: #070b14;
-  position: relative;
-  overflow: hidden;
-}
-
-.dup-viewer-card-media img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.dup-viewer-card-foot {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: #111827;
-  border-top: 1px solid #1f2937;
-}
-
-.dup-viewer-keep-btn {
-  background: #10b981;
-  color: #ffffff;
-  font-weight: 800;
-  border-radius: 8px;
-  padding: 8px 16px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.dup-viewer-keep-btn:hover {
-  background: #059669;
-  transform: translateY(-1px);
-}
-
-.dup-viewer-bottom-bar {
-  flex-shrink: 0;
-  background: #0e1626;
-  border-top: 1px solid #1e293b;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10;
-}
-
-.dup-viewer-thumb-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.dup-viewer-thumb-card {
-  width: 150px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  background: #0a0f1d;
-  border: 1px solid #1e293b;
-  padding: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.dup-viewer-thumb-card.is-badge-a {
-  border-color: #f43f5e;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.35);
-}
-
-.dup-viewer-thumb-card.is-badge-b {
-  border-color: #10b981;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
-}
-
-@media (max-width: 900px) {
-  .dup-viewer-stage {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .dup-viewer-card {
-    min-height: 250px;
-    height: auto;
-  }
 }
 .td-xfer-settings-foot {
   display: flex;

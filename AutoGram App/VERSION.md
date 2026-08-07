@@ -1,13 +1,7 @@
-AutoGram Version: v2.8.10
+AutoGram Version: v2.8.8
 
 Current State:
-v2.8.10 Duplicate File Media Preview Resolution Engine & Instant Background Prefetch — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana Preview B dan thumbnail carousel bawah pada Duplicate Compare Mode menampilkan fallback gambar milik File A (atau fail load) karena ketergantungan pada variabel state file modal tunggal (`gridThumb`/`poster`). Mengimplementasikan helper `resolveFileThumbnail(f)` yang secara otomatis meresolusi thumbnail/preview khusus milik masing-masing file (`fileA`, `fileB`, dan item carousel) dari `thumbBatcher`, `previewCache`, base64 inline, atau file lokal, serta mengaktifkan prefetch otomatis di latar belakang via `requestThumb` jika thumbnail belum tersedia di cache.
-
-Previous:
-v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak tampilan komparasi duplikat agar 100% mencocokkan desain mockup: 2 kartu komparasi utama di bagian atas (Preview A & Preview B) dengan header badge + tombol `Simpan Ini`, serta daftar grup duplikat horizontal strip di bagian bawah dengan badge indikator A/B dan kontrol radio Simpan/Hapus.
-
-Previous:
-v2.8.8 Mobile-First & Touch-Friendly Duplicate Compare Sidebar Architecture — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak panel kanan anggota grup pada modal komparasi duplikat agar bertransformasi menjadi Bottom Sheet & Mini-Bar Toggle ringkas pada layar mobile (< 900px) dan menyusun komparasi media secara vertikal (stacked), serta menjamin ukuran target sentuh minimal 44px untuk kenyamanan sentuh jari.
+v2.8.8 DrivePreviewModal Simplified Redesign & Aesthetic Duplicate Comparison Cards Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menyederhanakan dan mempercantik antarmuka pratinjau media dan perbandingan duplikat (Split View) sesuai acuan visual minimalis (Preview A vs Preview B). Membersihkan toolbar atas yang bertumpuk, memperbarui kartu perbandingan dengan dot status warna (🟢/🔴), tag ID berkas, latar belakang glassmorphism yang elegan, metadata Nama & Ukuran yang rapi, serta tombol aksi utama 1-klik "✓ Simpan Ini (1)" / "✓ Simpan Ini (2)" yang jelas dan intuitif.
 
 Previous:
 v2.8.7 Smart 3x3 Grid Album Chunking Engine (Max 9 Per Album) — membenahi `studio_orch.rs`, `VERSION.md`, dan `CHANGELOG.md`. Menyesuaikan batas maksimal chunking album di AutoGram dari 10 item menjadi 9 item per album. Mengatur seluruh batch pengunggahan media agar selalu membentuk kisi simetris sempurna 3 × 3 (9 foto) di Telegram Web/Desktop/Mobile, menghilangkan pemisahan foto ke-10 oleh server Telegram dan menjamin 100% album terposting secara bersih dan rapi.
