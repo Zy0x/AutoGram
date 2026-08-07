@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.3
+AutoGram Version: v2.9.4
 
 Current State:
+v2.9.4 Perfect Top Header Visibility & Modal Shell Containment Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki pembungkusan shell modal (`.drive-preview-modal.is-split-compare`) agar Top Header Bar perbandingan duplikat (`Duplicate Group #1 (2 files)` + tombol `✕ Close`) tampil 100% utuh dan tajam tanpa terpotong oleh overflow shell modal.
+
+Previous:
 v2.9.3 Ultra-Responsive Dynamic Split Compare & Double-Header Fix Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Menghilangkan penumpukan header modal lama saat mode perbandingan duplikat (Split View) aktif. Mengatur ulang porsi tata letak agar kartu Preview A & B serta sidepanel mengembang secara 100% responsif dinamis tanpa terpotong (*overflow containment*) pada seluruh resolusi layar (720p hingga 4K, lanskap maupun potret).
 
 Previous:

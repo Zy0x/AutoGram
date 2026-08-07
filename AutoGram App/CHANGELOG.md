@@ -1,3 +1,9 @@
+## v2.9.4 Perfect Top Header Visibility & Modal Shell Containment Engine
+
+### Pemunculan Sempurna Top Header Bar (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Penyesuaian Modal Shell (`.is-split-compare`)**: Membenahi pembungkusan kontainer modal agar **Top Header Bar mockup** (`Duplicate Group #<index>`, lencana jumlah berkas, dan tombol `✕ Close`) muncul 100% utuh dan tajam di baris paling atas modal overlay.
+- **Visual Overflow Containment**: Menjamin area pratinjau media dan sidepanel terbentang sempurna di bawah header tanpa terpotong atau tertekan ke atas.
+
 ## v2.9.3 Ultra-Responsive Dynamic Split Compare & Double-Header Fix Engine
 
 ### Perbaikan Header Ganda & Responsivitas Dinamis 100% (`DrivePreviewModal/index.tsx`, `App.css`)

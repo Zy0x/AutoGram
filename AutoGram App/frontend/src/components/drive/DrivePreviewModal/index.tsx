@@ -2937,7 +2937,7 @@ export function DrivePreviewModal({
       onClick={onBackdropPointerDown}
     >
       <div
-        className={`drive-preview-modal${isFullscreen ? ' is-fullscreen' : ''}`}
+        className={`drive-preview-modal${isFullscreen ? ' is-fullscreen' : ''}${isSplitCompareMode ? ' is-split-compare' : ''}`}
         ref={shellRef}
         role="dialog"
         aria-modal="true"

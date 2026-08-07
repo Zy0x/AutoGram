@@ -9999,6 +9999,29 @@ body:has(.app-layout-drive-focus),
   display: none;
 }
 
+.drive-preview-modal.is-split-compare {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: #090d16 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 96vw !important;
+  height: 94vh !important;
+  max-width: 1600px !important;
+  max-height: 1000px !important;
+}
+
+.drive-preview-modal.is-split-compare .drive-preview-body {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 /* Sidebar Panel for Duplicate Group Members (Reference UI) */
 .drive-preview-split-wrapper {
   display: flex;
