@@ -444,7 +444,7 @@ export function DriveToolsPanel({
           </aside>
 
           <main className={`td-tools-main ${tab === 'transfer' ? 'is-transfer-tab' : ''}`}>
-          {!['transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
+          {!['dups', 'transfer', 'upload', 'download', 'encoding', 'album', 'duplicate', 'oversize', 'network', 'advanced'].includes(tab) && (
             <ToolTabIntro
               tab={tab}
               locationLabel={locationLabel}
@@ -467,6 +467,7 @@ export function DriveToolsPanel({
               filesHasMore={filesHasMore}
               onLoadMoreFiles={onLoadMoreFiles}
               loadedCount={files.length}
+              locationLabel={locationLabel}
             />
           )}
 
@@ -946,6 +947,7 @@ function DupTab({
   filesHasMore,
   onLoadMoreFiles,
   loadedCount = 0,
+  locationLabel = '',
 }: {
   groups: DupGroup[];
   wasteTotal: number;
@@ -960,6 +962,7 @@ function DupTab({
   filesHasMore?: boolean;
   onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
   loadedCount?: number;
+  locationLabel?: string;
 }) {
   const { t } = useTranslation();
   const [keepNewest, setKeepNewest] = useState(true);
@@ -1445,7 +1448,7 @@ function DupTab({
           })}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button
             type="button"
             disabled={busy}
@@ -1455,17 +1458,17 @@ function DupTab({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '4px 10px',
-              borderRadius: '6px',
+              padding: '5px 11px',
+              borderRadius: '7px',
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1px solid rgba(56, 189, 248, 0.25)',
               color: '#38bdf8',
               fontWeight: 700,
-              fontSize: '0.75rem',
+              fontSize: '0.76rem',
               cursor: 'pointer',
             }}
           >
-            <Check size={12} /> {t('speedtest.smart_selection_btn')}
+            <Check size={12} /> Seleksi Cerdas
           </button>
           <button
             type="button"
@@ -1476,17 +1479,17 @@ function DupTab({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '4px 10px',
-              borderRadius: '6px',
+              padding: '5px 11px',
+              borderRadius: '7px',
               background: 'rgba(255, 255, 255, 0.06)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               color: '#cbd5e1',
               fontWeight: 600,
-              fontSize: '0.75rem',
+              fontSize: '0.76rem',
               cursor: 'pointer',
             }}
           >
-            {t('speedtest.keep_all_groups')}
+            Batal Semua
           </button>
 
           <div style={{ position: 'relative', width: '160px' }}>
@@ -1498,8 +1501,8 @@ function DupTab({
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '4px 8px 4px 24px',
-                borderRadius: '6px',
+                padding: '5px 8px 5px 24px',
+                borderRadius: '7px',
                 background: 'rgba(15, 23, 42, 0.8)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 color: '#f8fafc',
@@ -1519,8 +1522,42 @@ function DupTab({
       )}
 
       {filteredGroups.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
-          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>Tidak ada berkas duplikat yang terdeteksi pada filter saat ini.</p>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '48px 24px',
+            textAlign: 'center',
+            background: 'rgba(15, 23, 42, 0.4)',
+            border: '1px border-dashed rgba(56, 189, 248, 0.18)',
+            borderRadius: '16px',
+            margin: 'auto 0',
+          }}
+        >
+          <div
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '14px',
+              background: 'rgba(74, 222, 128, 0.12)',
+              border: '1px solid rgba(74, 222, 128, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '14px',
+              boxShadow: '0 0 20px rgba(74, 222, 128, 0.15)',
+            }}
+          >
+            <ShieldCheck size={26} style={{ color: '#4ade80' }} />
+          </div>
+          <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#f8fafc' }}>
+            Semua Berkas Rapi &amp; Bebas Duplikat
+          </h4>
+          <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', maxWidth: '420px', lineHeight: 1.5 }}>
+            Tidak ditemukan salinan ganda pada lokasi <strong style={{ color: '#cbd5e1' }}>{locationLabel}</strong> ({loadedCount.toLocaleString('id-ID')} berkas). Ruang penyimpanan Anda dalam kondisi optimal.
+          </p>
         </div>
       )}
 
