@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { Network, Wifi, Save, Loader2, Zap, Check } from 'lucide-react';
+import { Network, Wifi, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { detectTauriRuntime } from '../../lib/tauri/platform';
 import { invoke } from '@tauri-apps/api/core';
@@ -36,69 +36,6 @@ const DEFAULT_NET_CFG: NetConfig = {
   },
 };
 
-function CustomCheckbox({
-  checked,
-  onChange,
-  label,
-  icon,
-}: {
-  checked: boolean;
-  onChange: (val: boolean) => void;
-  label: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <div
-      role="checkbox"
-      aria-checked={checked}
-      tabIndex={0}
-      onClick={() => onChange(!checked)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onChange(!checked);
-        }
-      }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer',
-        userSelect: 'none',
-        padding: '8px 14px',
-        borderRadius: '10px',
-        background: checked ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-        border: checked ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
-        transition: 'all 0.18s ease',
-      }}
-    >
-      <div
-        style={{
-          width: '18px',
-          height: '18px',
-          borderRadius: '5px',
-          background: checked
-            ? 'linear-gradient(135deg, #00aeef 0%, #0284c7 100%)'
-            : 'rgba(15, 23, 42, 0.8)',
-          border: checked ? 'none' : '1.5px solid #475569',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: checked ? '0 0 10px rgba(56, 189, 248, 0.4)' : 'none',
-          transition: 'all 0.18s ease',
-          flexShrink: 0,
-        }}
-      >
-        {checked && <Check size={13} style={{ color: '#ffffff', strokeWidth: 3 }} />}
-      </div>
-      {icon}
-      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: checked ? '#38bdf8' : '#f8fafc' }}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
 export const NetworkSection = memo(function NetworkSection() {
   const { t } = useTranslation();
   const [netCfg, setNetCfg] = useState<NetConfig>(() => {
@@ -113,7 +50,6 @@ export const NetworkSection = memo(function NetworkSection() {
     return DEFAULT_NET_CFG;
   });
 
-  const [netMsg, setNetMsg] = useState<string | null>(null);
   const [netAvail, setNetAvail] = useState<boolean | null>(null);
   const [vpnHint, setVpnHint] = useState<boolean | null>(null);
   const [proxyStatus, setProxyStatus] = useState<{
@@ -142,24 +78,18 @@ export const NetworkSection = memo(function NetworkSection() {
     };
   }, []);
 
-  const saveNetwork = async () => {
-    if (!netCfg) return;
-    setNetBusy(true);
-    setNetMsg(null);
+  // AUTO-SAVE FUNCTION: Persists instantly on any setting change
+  const updateNetCfg = (next: NetConfig) => {
+    setNetCfg(next);
     try {
+      localStorage.setItem('autogram_network_cfg', JSON.stringify(next));
       if (detectTauriRuntime()) {
-        try {
-          await invoke('set_network_config', { json: JSON.stringify(netCfg) });
-        } catch {
-          /* fallback to local storage if backend command is missing */
-        }
+        invoke('set_network_config', { json: JSON.stringify(next) }).catch(() => {
+          /* fallback to local storage */
+        });
       }
-      localStorage.setItem('autogram_network_cfg', JSON.stringify(netCfg));
-      setNetMsg('✓ Pengaturan Jaringan & Proxy berhasil disimpan!');
-    } catch (e: any) {
-      setNetMsg(`✕ Gagal menyimpan: ${e?.message || e}`);
-    } finally {
-      setNetBusy(false);
+    } catch {
+      /* ignore */
     }
   };
 
@@ -236,21 +166,27 @@ export const NetworkSection = memo(function NetworkSection() {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* ENABLE PROXY SLEEK CUSTOM CHECKBOX */}
-        <div>
-          <CustomCheckbox
-            checked={netCfg.proxy.enabled}
-            onChange={(val) =>
-              setNetCfg({
-                ...netCfg,
-                proxy: { ...netCfg.proxy, enabled: val },
-              })
-            }
-            label={t('settings.enable_proxy', 'Aktifkan Proxy')}
-          />
+        {/* ENABLE PROXY TOGGLE SWITCH (AUTO-SAVE) */}
+        <div className="td-switches-list">
+          <label className="td-switch-row">
+            <div>
+              <strong>{t('settings.enable_proxy', 'Aktifkan Proxy')}</strong>
+              <p>Rute lalu lintas Telegram melalui server SOCKS5/HTTP/MTProto kustom</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={netCfg.proxy.enabled}
+              onChange={(e) =>
+                updateNetCfg({
+                  ...netCfg,
+                  proxy: { ...netCfg.proxy, enabled: e.target.checked },
+                })
+              }
+            />
+          </label>
         </div>
 
-        {/* PROXY FORM FIELDS */}
+        {/* PROXY FORM FIELDS (AUTO-SAVE ON CHANGE) */}
         {netCfg.proxy.enabled && (
           <div
             style={{
@@ -280,7 +216,7 @@ export const NetworkSection = memo(function NetworkSection() {
                 }}
                 value={netCfg.proxy.proxyType}
                 onChange={(e) =>
-                  setNetCfg({
+                  updateNetCfg({
                     ...netCfg,
                     proxy: { ...netCfg.proxy, proxyType: e.target.value },
                   })
@@ -311,7 +247,7 @@ export const NetworkSection = memo(function NetworkSection() {
                 }}
                 value={netCfg.proxy.host}
                 onChange={(e) =>
-                  setNetCfg({
+                  updateNetCfg({
                     ...netCfg,
                     proxy: { ...netCfg.proxy, host: e.target.value },
                   })
@@ -339,7 +275,7 @@ export const NetworkSection = memo(function NetworkSection() {
                 }}
                 value={netCfg.proxy.port}
                 onChange={(e) =>
-                  setNetCfg({
+                  updateNetCfg({
                     ...netCfg,
                     proxy: {
                       ...netCfg.proxy,
@@ -368,7 +304,7 @@ export const NetworkSection = memo(function NetworkSection() {
                 }}
                 value={netCfg.proxy.username}
                 onChange={(e) =>
-                  setNetCfg({
+                  updateNetCfg({
                     ...netCfg,
                     proxy: { ...netCfg.proxy, username: e.target.value },
                   })
@@ -395,7 +331,7 @@ export const NetworkSection = memo(function NetworkSection() {
                 }}
                 value={netCfg.proxy.password}
                 onChange={(e) =>
-                  setNetCfg({
+                  updateNetCfg({
                     ...netCfg,
                     proxy: { ...netCfg.proxy, password: e.target.value },
                   })
@@ -422,7 +358,7 @@ export const NetworkSection = memo(function NetworkSection() {
                   }}
                   value={netCfg.proxy.secret || ''}
                   onChange={(e) =>
-                    setNetCfg({
+                    updateNetCfg({
                       ...netCfg,
                       proxy: { ...netCfg.proxy, secret: e.target.value },
                     })
@@ -436,46 +372,31 @@ export const NetworkSection = memo(function NetworkSection() {
 
         <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
 
-        {/* VPN OPTIMIZER SLEEK CUSTOM CHECKBOX */}
-        <div>
-          <CustomCheckbox
-            checked={netCfg.vpn.enabled}
-            onChange={(val) =>
-              setNetCfg({
-                ...netCfg,
-                vpn: { ...netCfg.vpn, enabled: val },
-              })
-            }
-            icon={<Zap size={16} style={{ color: '#38bdf8' }} />}
-            label={t('settings.vpn_optimizer', 'VPN Optimizer (Timeout & Retry Agresif)')}
-          />
+        {/* VPN OPTIMIZER TOGGLE SWITCH (AUTO-SAVE) */}
+        <div className="td-switches-list">
+          <label className="td-switch-row">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Zap size={16} style={{ color: '#38bdf8' }} />
+                <strong>{t('settings.vpn_optimizer', 'VPN Optimizer (Timeout & Retry Agresif)')}</strong>
+              </div>
+              <p>Perpendek timeout koneksi & lakukan re-try otomatis saat VPN/jaringan tidak stabil</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={netCfg.vpn.enabled}
+              onChange={(e) =>
+                updateNetCfg({
+                  ...netCfg,
+                  vpn: { ...netCfg.vpn, enabled: e.target.checked },
+                })
+              }
+            />
+          </label>
         </div>
 
-        {/* ACTION BUTTONS */}
+        {/* TEST CONNECTION ACTION BUTTON */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
-          <button
-            type="button"
-            disabled={netBusy}
-            onClick={() => void saveNetwork()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              color: '#ffffff',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: netBusy ? 'not-allowed' : 'pointer',
-              boxShadow: '0 4px 12px rgba(56, 189, 248, 0.25)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {netBusy ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-            <span>{t('settings.save_network', 'Simpan Pengaturan Jaringan')}</span>
-          </button>
           <button
             type="button"
             disabled={netBusy}
@@ -486,10 +407,10 @@ export const NetworkSection = memo(function NetworkSection() {
               gap: '8px',
               padding: '10px 18px',
               borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#f8fafc',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              fontWeight: 600,
+              background: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              fontWeight: 700,
               fontSize: '0.85rem',
               cursor: netBusy ? 'not-allowed' : 'pointer',
               transition: 'all 0.15s ease',
@@ -501,7 +422,6 @@ export const NetworkSection = memo(function NetworkSection() {
         </div>
 
         {/* STATUS MESSAGES */}
-        {netMsg && <p style={{ color: '#38bdf8', fontSize: '0.8rem', margin: '4px 0 0 0', fontWeight: 600 }}>{netMsg}</p>}
         {proxyStatus && (
           <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
             Proxy TCP:{' '}
