@@ -2991,7 +2991,7 @@ export function DrivePreviewModal({
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {!isZip && (
+        {!isZip && !isSplitCompareMode && (
           <>
             <header className="drive-preview-header">
           {/* Row A: title + close — title never shares width with icon cluster */}
@@ -3742,6 +3742,48 @@ export function DrivePreviewModal({
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>{t('speedtest.dup_viewer_apply_delete')}</span>
+                  </button>
+
+                  <div className="w-px h-5 bg-slate-800 mx-0.5 hidden sm:block" />
+
+                  {/* Mode Switch to Single Preview */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSplitCompareMode(false);
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white p-1.5 rounded-xl border border-slate-700 transition cursor-pointer flex items-center gap-1.5 text-xs px-2.5 shadow-sm"
+                    title={t('speedtest.preview_single_mode')}
+                  >
+                    <Columns className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="hidden sm:inline font-medium text-[11px]">{t('speedtest.preview_single_mode')}</span>
+                  </button>
+
+                  {/* Fullscreen Toggle */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void toggleFullscreen();
+                    }}
+                    className="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white p-2 rounded-xl border border-slate-700 transition cursor-pointer shadow-sm"
+                    title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {/* Close Modal */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    className="bg-rose-500/10 hover:bg-rose-600 active:scale-95 text-rose-300 hover:text-white p-2 rounded-xl border border-rose-500/20 hover:border-rose-500 transition cursor-pointer shadow-sm"
+                    title={t("speedtest.close_esc_tooltip")}
+                  >
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </header>

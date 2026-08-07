@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.1
+AutoGram Version: v2.9.2
 
 Current State:
+v2.9.2 Single Unified Header & Complete Stack De-cluttering — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi masalah 6 tumpukan header/toolbar yang membuat antarmuka modal komparasi "hancur" dengan menyembunyikan header luar (`drive-preview-header`) dan toolbar luar (`drive-preview-toolbar`) secara total ketika mode komparasi split viewer aktif. Menyediakan 1 baris header terpadu beresolusi tinggi di bagian teratas Duplicate Viewer Pro yang secara langsung memuat kontrol aplikasi, metric hemat penyimpanan, grup navigator, hotkey, tombol `Single Mode`, tombol `Fullscreen`, dan tombol `Close Modal (X)`.
+
+Previous:
 v2.9.1 High-End Visual Design Duplicate Viewer Architecture & Zero Hardcoded Strings i18n — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merombak Duplicate Viewer Pro dengan Double-Bezel Architecture (Doppelrand) ber-haptic depth, mengonsolidasi header & toolbar menjadi satu kontrol bar presisi tanpa tumpang-tindih (overlay/clutter removal), menyembunyikan toolbar luar pratinjau yang redundan saat mode komparasi aktif, mengoptimalkan kartu pratinjau split A/B dengan aksen obsidian-glow & framing media fleksibel, serta menerapkan i18n 100% Zero Hardcoded Strings untuk Bahasa Indonesia dan Inggris.
 
 Previous:

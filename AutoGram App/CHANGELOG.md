@@ -1,3 +1,10 @@
+## v2.9.2 Single Unified Header & Complete Stack De-cluttering
+
+### Pembersihan Total Tumpukan Header & Toolbar Modal (`DrivePreviewModal/index.tsx`)
+- **Eliminasi 6 Baris Toolbar Menumpuk**: Memperbaiki bug akar masalah di mana header luar `drive-preview-header` (Row A & Row B) dan toolbar pratinjau `drive-preview-toolbar` tetap terender bersamaan dengan header inner Duplicate Viewer.
+- **Unified Workspace Header**: Ketika `isSplitCompareMode` aktif, seluruh header luar disembunyikan. Header Duplicate Viewer Pro bertindak sebagai satu-satunya navbar utama yang memuat nama file, info hemat penyimpanan, grup navigator, hotkey, tombol `Pratinjau Tunggal`, tombol `Fullscreen`, dan tombol `Tutup Modal (X)`.
+- **Layout Maximize & 100% Height Stage**: Modal komparasi duplikat kini menggunakan 100% tinggi viewport modal secara bersih tanpa penyempitan atau pemotongan area preview media.
+
 ## v2.9.1 High-End Visual Design Duplicate Viewer Architecture & Zero Hardcoded Strings i18n
 
 ### Perbaikan Visual & Penyempurnaan Tata Letak Modal Komparasi Duplikat (`DrivePreviewModal/index.tsx`, `App.css`, `locales/`)
