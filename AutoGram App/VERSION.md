@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.0
+AutoGram Version: v2.9.1
 
 Current State:
+v2.9.1 Active Slot Duplicate Overwrite Prevention Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui `handleSelectSidepanelItem` untuk mencegah penimpaan/duplikasi berkas yang sedang aktif di-preview. Jika berkas sudah tampil di Preview A (atau Preview B), mengeklik kartu berkas tersebut di sidepanel secara cerdas diabaikan (tidak akan menggantikan Preview B), menjaga lencana A/B di sidepanel tetap 100% konsisten dan presisi.
+
+Previous:
 v2.9.0 Clear Preview Action & Smart Dual-Slot Allocation Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan tombol Kosongkan Preview `[X]` di kanan atas header kartu Preview A dan Preview B. Mengimplementasikan logika pengisian slot cerdas di mana mengeklik item sidepanel secara otomatis memprioritaskan slot yang kosong terlebih dahulu (Slot A -> Slot B), dan jika kedua slot terisi maka secara default akan menggantikan slot Preview B.
 
 Previous:

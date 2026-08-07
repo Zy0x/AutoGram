@@ -472,6 +472,16 @@ export function DrivePreviewModal({
   }, [currentDupGroup]);
 
   const handleSelectSidepanelItem = useCallback((idx: number) => {
+    // 1. Jika media sudah tampil di Preview A, jangan timpa ke Preview B
+    if (!isSlotAEmpty && idx === selectedAIndex) {
+      return;
+    }
+    // 2. Jika media sudah tampil di Preview B, jangan timpa ke Preview A
+    if (!isSlotBEmpty && idx === selectedBIndex) {
+      return;
+    }
+
+    // 3. Media belum tampil: isi slot kosong terlebih dahulu atau gantikan B
     if (isSlotAEmpty) {
       setSelectedAIndex(idx);
       setIsSlotAEmpty(false);
@@ -479,11 +489,11 @@ export function DrivePreviewModal({
       setSelectedBIndex(idx);
       setIsSlotBEmpty(false);
     } else {
-      // Both occupied: replace Preview B by default
+      // Kedua slot terisi: gantikan Preview B secara default
       setSelectedBIndex(idx);
       setIsSlotBEmpty(false);
     }
-  }, [isSlotAEmpty, isSlotBEmpty]);
+  }, [isSlotAEmpty, isSlotBEmpty, selectedAIndex, selectedBIndex]);
 
   const handleSequentialNext = useCallback(() => {
     if (!currentDupGroup) return;

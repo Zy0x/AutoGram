@@ -1,3 +1,10 @@
+## v2.9.1 Active Slot Duplicate Overwrite Prevention Engine
+
+### Proteksi Penimpaan Berkas Aktif & Konsistensi Lencana A/B (`DrivePreviewModal/index.tsx`)
+- **Pencegahan Duplikasi Slot**: Memperbarui `handleSelectSidepanelItem` agar memverifikasi apakah berkas yang diklik di sidepanel sudah sedang aktif di Preview A atau Preview B.
+- **Perilaku Cerdas**: Jika Gambar A sudah aktif di Preview A, mengeklik Gambar A di sidepanel tidak akan memicu penggantian Gambar A ke Preview B.
+- **Konsistensi Lencana A/B**: Lencana `A` (crimson red) dan `B` (emerald green) pada kartu sidepanel kini selalu 100% konsisten dan unik per berkas yang sedang aktif di-preview.
+
 ## v2.9.0 Clear Preview Action & Smart Dual-Slot Allocation Engine
 
 ### Tombol Kosongkan Preview `[X]` & Logika Pengisian Slot Cerdas (`DrivePreviewModal/index.tsx`, `App.css`)
