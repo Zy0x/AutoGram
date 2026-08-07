@@ -19,6 +19,7 @@ import {
   Search,
   Layers,
   HardDrive,
+  ShieldCheck,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -1427,44 +1428,109 @@ function DupTab({
 
       {/* DUP TOOLBAR ACTIONS */}
       {filteredGroups.length > 0 && (
-        <div className="td-tools-dup-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={busy}
-              onClick={applySmartAll}
-              title={t('speedtest.per_group_keep_one')}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            background: 'rgba(15, 23, 42, 0.5)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '14px',
+            padding: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={applySmartAll}
+                title={t('speedtest.per_group_keep_one')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '9px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: '#38bdf8',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <Check size={14} /> {t('speedtest.smart_selection_btn')}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={clearAllMarks}
+                title={t('speedtest.keep_all_groups')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '9px',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#e2e8f0',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('speedtest.keep_all_groups')}
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(74, 222, 128, 0.1)',
+                border: '1px solid rgba(74, 222, 128, 0.25)',
+                color: '#4ade80',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+              }}
             >
-              <Check size={14} /> {t('speedtest.smart_selection_btn')}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={busy}
-              onClick={clearAllMarks}
-              title={t('speedtest.keep_all_groups')}
-            >
-              {t('speedtest.keep_all_groups')}
-            </button>
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', alignSelf: 'center', fontWeight: 600 }}>
-              Dipertahankan: <strong style={{ color: '#4ade80' }}>{keepCount}</strong> berkas
-            </span>
+              <ShieldCheck size={14} />
+              <span>Dipertahankan: <strong>{keepCount.toLocaleString('id-ID')}</strong> berkas</span>
+            </div>
           </div>
 
           <button
             type="button"
-            className="btn btn-danger"
             disabled={busy || !idsToDelete.length}
             onClick={() => onDeleteIds(idsToDelete)}
             style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              border: 'none',
-              fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)',
+              width: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '12px 20px',
+              borderRadius: '11px',
+              background: idsToDelete.length
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'rgba(255, 255, 255, 0.05)',
+              border: idsToDelete.length ? '1px solid #f87171' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: idsToDelete.length ? '#ffffff' : '#64748b',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              letterSpacing: '0.3px',
+              cursor: idsToDelete.length && !busy ? 'pointer' : 'not-allowed',
+              boxShadow: idsToDelete.length ? '0 4px 18px rgba(239, 68, 68, 0.45)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            <Trash2 size={14} /> Hapus {idsToDelete.length} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})
+            <Trash2 size={16} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b' }} />
+            <span>Hapus {idsToDelete.length.toLocaleString('id-ID')} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})</span>
           </button>
         </div>
       )}
