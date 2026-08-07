@@ -3274,6 +3274,7 @@ export function DrivePreviewModal({
         )}
 
         {/* Adaptive labeled toolbar — always above stage, never covered */}
+        {!isSplitCompareMode && (
         <div
           className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
           role="toolbar"
@@ -3518,6 +3519,7 @@ export function DrivePreviewModal({
             </div>
           </div>
         </div>
+        )}
           </>
         )}
 
@@ -3637,83 +3639,115 @@ export function DrivePreviewModal({
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
-            <div className="dup-viewer-wrapper flex flex-col w-full h-full overflow-hidden bg-slate-900 text-slate-100 font-sans select-none">
-              {/* Header / Navbar */}
-              <header className="bg-slate-800 border-b border-slate-700 px-6 py-2.5 flex flex-wrap items-center justify-between gap-4 shadow-md flex-shrink-0 z-20">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-600/30">
-                    <Layers className="w-5 h-5" />
+            <div className="dup-viewer-wrapper flex flex-col w-full h-full overflow-hidden bg-[#090d16] text-slate-100 font-sans select-none relative">
+              {/* Ambient mesh background glows */}
+              <div className="absolute top-0 left-1/4 w-96 h-48 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-1/3 left-0 w-80 h-80 bg-rose-600/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-1/3 right-0 w-80 h-80 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Consolidated Header & Action Bar */}
+              <header className="bg-slate-900/90 border-b border-slate-800/80 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur-xl flex-shrink-0 z-20">
+                {/* Brand & App Title */}
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20 flex-shrink-0">
+                    <Layers className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h1 className="text-sm font-bold tracking-wide flex items-center gap-2 text-slate-100">
-                      Duplicate Viewer Pro
-                      <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-mono">
-                        Speed-Cleaning UI
+                  <div className="min-w-0">
+                    <h1 className="text-xs md:text-sm font-bold tracking-tight flex items-center gap-2 text-slate-100 truncate">
+                      {t('speedtest.dup_viewer_title')}
+                      <span className="bg-indigo-500/15 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-mono tracking-normal font-medium flex-shrink-0">
+                        {t('speedtest.dup_viewer_tag')}
                       </span>
                     </h1>
-                    <p className="text-[11px] text-slate-400">Pembersih Media & File Cerdas</p>
+                    <p className="text-[11px] text-slate-400 truncate">{t('speedtest.dup_viewer_subtitle')}</p>
                   </div>
                 </div>
 
-                {/* Metric Hemat Ruang Penyimpanan & Panduan Hotkey */}
-                <div className="flex items-center space-x-3">
-                  <div className="bg-slate-900/80 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center space-x-2">
-                    <HardDrive className="w-4 h-4 text-emerald-400" />
-                    <div className="text-xs">
-                      <span className="text-slate-400">Dihemat:</span>
-                      <span className="font-bold text-emerald-400 font-mono ml-1">
-                        {formatDriveBytes(totalSavedBytes)}
-                      </span>
-                    </div>
+                {/* Center: Storage Saved & Group Navigation */}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="bg-emerald-500/10 border border-emerald-500/25 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.1)]">
+                    <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs text-slate-300 font-medium">
+                      {t('speedtest.dup_viewer_saved')}{' '}
+                      <strong className="font-bold text-emerald-400 font-mono">{formatDriveBytes(totalSavedBytes)}</strong>
+                    </span>
                   </div>
 
-                  <span className="bg-slate-700 px-3 py-1.5 rounded-xl text-xs font-medium text-indigo-300 border border-slate-600">
-                    Grup: {duplicateContext.currentGroupIndex + 1} dari {duplicateContext.activeFilteredGroups.length}
-                  </span>
+                  {/* Group Nav Control Group */}
+                  <div className="flex items-center bg-slate-800/80 p-0.5 rounded-xl border border-slate-700/80 text-xs shadow-inner">
+                    <button
+                      type="button"
+                      disabled={duplicateContext.currentGroupIndex <= 0}
+                      onClick={() => {
+                        const prevIdx = duplicateContext.currentGroupIndex - 1;
+                        const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+                        if (prevGroup && duplicateContext.onNavigateGroup) {
+                          duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+                        }
+                      }}
+                      className="px-2 py-1 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded-lg transition cursor-pointer"
+                      title={t('speedtest.dup_viewer_prev_group')}
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="px-2.5 text-[11px] font-semibold text-indigo-300 font-mono border-x border-slate-700/60">
+                      {t('speedtest.dup_viewer_group_counter', {
+                        index: duplicateContext.currentGroupIndex + 1,
+                        total: duplicateContext.activeFilteredGroups.length,
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1}
+                      onClick={nextDupGroup}
+                      className="px-2 py-1 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded-lg transition cursor-pointer"
+                      title={t('speedtest.dup_viewer_next_group')}
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                   <button
                     type="button"
                     onClick={nextDupGroup}
-                    className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-600/20 cursor-pointer"
+                    className="bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 shadow-md shadow-indigo-600/25 cursor-pointer flex-shrink-0"
                   >
-                    <span>Grup Selanjutnya</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <span>{t('speedtest.dup_viewer_next_group')}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Right: Auto-Select, Hotkeys & Apply Action */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={autoSelectBest}
+                    className="bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-[0.97] text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer font-medium text-xs shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{t('speedtest.dup_viewer_auto_select')}</span>
+                  </button>
+
+                  <div className="hidden lg:flex items-center gap-1 bg-slate-950/60 border border-slate-800 px-2.5 py-1 rounded-xl text-[10px] text-slate-400 font-mono">
+                    <span className="text-slate-500">{t('speedtest.dup_viewer_hotkeys_label')}</span>
+                    <kbd className="bg-slate-800 text-indigo-300 px-1 py-0.2 rounded border border-slate-700">1</kbd> A
+                    <kbd className="bg-slate-800 text-emerald-300 px-1 py-0.2 rounded border border-slate-700 ml-1">2</kbd> B
+                    <kbd className="bg-slate-800 text-slate-200 px-1 py-0.2 rounded border border-slate-700 ml-1">→</kbd>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={nextDupGroup}
+                    className="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-[0.97] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-600/25 cursor-pointer flex-shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('speedtest.dup_viewer_apply_delete')}</span>
                   </button>
                 </div>
               </header>
 
-              {/* Toolbar Akses Cepat & Auto-Select */}
-              <div className="bg-slate-800/60 border-b border-slate-700/80 px-6 py-1.5 flex items-center justify-between text-xs text-slate-400 flex-shrink-0 z-20">
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={autoSelectBest}
-                    className="bg-emerald-600/20 hover:bg-emerald-600/30 active:scale-[0.98] text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-lg flex items-center space-x-1.5 transition cursor-pointer font-medium"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Auto-Pilih File Terbaik (R)</span>
-                  </button>
-                  <span className="text-slate-600">|</span>
-                  <span className="text-slate-400">Pintas Keyboard:</span>
-                  <kbd className="bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded border border-slate-600 font-mono text-[10px]">1</kbd> Pilih A
-                  <kbd className="bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded border border-slate-600 font-mono text-[10px]">2</kbd> Pilih B
-                  <kbd className="bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded border border-slate-600 font-mono text-[10px]">→</kbd> Next
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={nextDupGroup}
-                    className="bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white px-3 py-1 rounded-lg font-semibold transition flex items-center space-x-1 shadow-md shadow-rose-600/20 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Terapkan Penghapusan</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Main Content Area: Split View (Kiri-Kanan) */}
-              <main className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 md:p-6 overflow-hidden min-h-0">
+              {/* Main Content Area: Double-Bezel Split View */}
+              <main className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 md:p-5 overflow-hidden min-h-0 z-10">
                 {/* PREVIEW A */}
                 {(() => {
                   const fileA = slotAIndex !== null ? currentDupGroup.files[slotAIndex] : null;
@@ -3721,65 +3755,71 @@ export function DrivePreviewModal({
                   const badgeAStr = fileA ? `g${duplicateContext.currentGroupIndex + 1}-${(slotAIndex ?? 0) + 1}` : '-';
 
                   return (
-                    <section className="bg-slate-800/80 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-xl backdrop-blur min-h-0 h-full">
-                      <div className="bg-slate-800 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
-                          <h2 className="text-sm font-semibold tracking-wide text-slate-200">Preview A</h2>
-                        </div>
-                        <span className="text-xs px-2.5 py-0.5 rounded-md bg-slate-700 text-slate-300 font-mono">
-                          {badgeAStr}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 flex items-center justify-center p-4 bg-slate-950/40 relative group overflow-hidden min-h-0 h-0">
-                        {fileA && (
-                          <button
-                            type="button"
-                            onClick={() => setSlotAIndex(null)}
-                            className="absolute top-3 right-3 z-10 bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white p-1.5 rounded-full border border-slate-700 hover:border-rose-500 transition shadow-md backdrop-blur cursor-pointer"
-                            title="Kosongkan Preview A"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        {fileA ? (
-                          isImageDriveFile(fileA) && thumbA ? (
-                            <img
-                              src={thumbA}
-                              alt={fileA.name}
-                              className="max-h-full max-w-full w-auto h-auto object-contain rounded-lg shadow-lg"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
-                              <Film size={42} className="text-slate-500" />
-                              <span className="text-xs font-semibold text-slate-400 truncate max-w-[200px]">{fileA.name}</span>
-                            </div>
-                          )
-                        ) : (
-                          <div className="text-center">
-                            <p className="text-slate-500 text-sm font-medium">Preview A Kosong</p>
-                            <p className="text-slate-600 text-xs mt-1">Klik media di carousel bawah untuk mengisi</p>
+                    <section className="p-1.5 rounded-[22px] bg-slate-900/70 border border-slate-800/80 shadow-2xl backdrop-blur-xl flex flex-col min-h-0 h-full ring-1 ring-white/5 relative group/cardA">
+                      {/* Inner Core */}
+                      <div className="flex-1 rounded-[calc(22px-0.375rem)] bg-slate-950/80 border border-rose-500/20 shadow-[inset_0_1px_1px_rgba(244,63,94,0.1)] flex flex-col overflow-hidden min-h-0 h-full">
+                        {/* Header */}
+                        <div className="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-[0_0_10px_rgba(244,63,94,0.8)] animate-pulse" />
+                            <h2 className="text-xs font-bold tracking-wider uppercase text-rose-300">{t('speedtest.dup_viewer_preview_a')}</h2>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="p-3 bg-slate-800/50 border-t border-slate-700 flex items-center justify-between flex-shrink-0">
-                        <div className="text-xs text-slate-400 space-y-0.5 min-w-0 flex-1">
-                          <p className="truncate">Nama: <span className="text-slate-200 font-medium">{fileA ? fileA.name : '-'}</span></p>
-                          <p>Ukuran: <span className="text-slate-200 font-medium">{fileA ? formatDriveBytes(fileA.size) : '-'}</span></p>
+                          <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-rose-500/10 text-rose-300 font-mono border border-rose-500/20 font-medium">
+                            {badgeAStr}
+                          </span>
                         </div>
-                        {fileA && (
-                          <button
-                            type="button"
-                            onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileA.id)}
-                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1 cursor-pointer shadow flex-shrink-0"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Simpan Ini (1)</span>
-                          </button>
-                        )}
+
+                        {/* Media Viewport */}
+                        <div className="flex-1 flex items-center justify-center p-4 bg-slate-950 relative overflow-hidden min-h-0 h-0 group/media">
+                          {fileA && (
+                            <button
+                              type="button"
+                              onClick={() => setSlotAIndex(null)}
+                              className="absolute top-3 right-3 z-20 bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white p-2 rounded-xl border border-slate-700/80 hover:border-rose-500 transition-all backdrop-blur-md shadow-lg cursor-pointer active:scale-95"
+                              title={t('speedtest.dup_viewer_clear_a')}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {fileA ? (
+                            isImageDriveFile(fileA) && thumbA ? (
+                              <img
+                                src={thumbA}
+                                alt={fileA.name}
+                                className="max-h-full max-w-full w-auto h-auto object-contain rounded-xl shadow-2xl transition-transform duration-300 group-hover/media:scale-[1.01]"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
+                                <Film size={44} className="text-rose-400/80" />
+                                <span className="text-xs font-semibold text-slate-300 truncate max-w-[220px]">{fileA.name}</span>
+                              </div>
+                            )
+                          ) : (
+                            <div className="text-center p-6 space-y-1">
+                              <p className="text-slate-400 text-xs font-semibold">{t('speedtest.dup_viewer_empty_a')}</p>
+                              <p className="text-slate-500 text-[11px] max-w-[220px]">{t('speedtest.dup_viewer_click_to_fill')}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer Info & Keep CTA */}
+                        <div className="p-3 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-3 flex-shrink-0">
+                          <div className="text-[11px] text-slate-400 space-y-0.5 min-w-0 flex-1 font-mono">
+                            <p className="truncate"><span className="text-slate-500 font-sans">{t('speedtest.dup_viewer_file_name')}</span> <span className="text-slate-200 font-medium">{fileA ? fileA.name : '-'}</span></p>
+                            <p><span className="text-slate-500 font-sans">{t('speedtest.dup_viewer_file_size')}</span> <span className="text-emerald-400 font-semibold">{fileA ? formatDriveBytes(fileA.size) : '-'}</span></p>
+                          </div>
+                          {fileA && (
+                            <button
+                              type="button"
+                              onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileA.id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/25 flex-shrink-0"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{t('speedtest.dup_viewer_keep_a')}</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </section>
                   );
@@ -3792,88 +3832,94 @@ export function DrivePreviewModal({
                   const badgeBStr = fileB ? `g${duplicateContext.currentGroupIndex + 1}-${(slotBIndex ?? 0) + 1}` : '-';
 
                   return (
-                    <section className="bg-slate-800/80 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-xl backdrop-blur min-h-0 h-full">
-                      <div className="bg-slate-800 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
-                          <h2 className="text-sm font-semibold tracking-wide text-slate-200">Preview B</h2>
-                        </div>
-                        <span className="text-xs px-2.5 py-0.5 rounded-md bg-slate-700 text-slate-300 font-mono">
-                          {badgeBStr}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 flex items-center justify-center p-4 bg-slate-950/40 relative group overflow-hidden min-h-0 h-0">
-                        {fileB && (
-                          <button
-                            type="button"
-                            onClick={() => setSlotBIndex(null)}
-                            className="absolute top-3 right-3 z-10 bg-slate-800/80 hover:bg-rose-600 text-slate-400 hover:text-white p-1.5 rounded-full border border-slate-700 hover:border-rose-500 transition shadow-md backdrop-blur cursor-pointer"
-                            title="Kosongkan Preview B"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        {fileB ? (
-                          isImageDriveFile(fileB) && thumbB ? (
-                            <img
-                              src={thumbB}
-                              alt={fileB.name}
-                              className="max-h-full max-w-full w-auto h-auto object-contain rounded-lg shadow-lg"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
-                              <Film size={42} className="text-slate-500" />
-                              <span className="text-xs font-semibold text-slate-400 truncate max-w-[200px]">{fileB.name}</span>
-                            </div>
-                          )
-                        ) : (
-                          <div className="text-center">
-                            <p className="text-slate-500 text-sm font-medium">Preview B Kosong</p>
-                            <p className="text-slate-600 text-xs mt-1">Klik media di carousel bawah untuk mengisi</p>
+                    <section className="p-1.5 rounded-[22px] bg-slate-900/70 border border-slate-800/80 shadow-2xl backdrop-blur-xl flex flex-col min-h-0 h-full ring-1 ring-white/5 relative group/cardB">
+                      {/* Inner Core */}
+                      <div className="flex-1 rounded-[calc(22px-0.375rem)] bg-slate-950/80 border border-emerald-500/20 shadow-[inset_0_1px_1px_rgba(16,185,129,0.1)] flex flex-col overflow-hidden min-h-0 h-full">
+                        {/* Header */}
+                        <div className="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
+                            <h2 className="text-xs font-bold tracking-wider uppercase text-emerald-300">{t('speedtest.dup_viewer_preview_b')}</h2>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="p-3 bg-slate-800/50 border-t border-slate-700 flex items-center justify-between flex-shrink-0">
-                        <div className="text-xs text-slate-400 space-y-0.5 min-w-0 flex-1">
-                          <p className="truncate">Nama: <span className="text-slate-200 font-medium">{fileB ? fileB.name : '-'}</span></p>
-                          <p>Ukuran: <span className="text-slate-200 font-medium">{fileB ? formatDriveBytes(fileB.size) : '-'}</span></p>
+                          <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 font-mono border border-emerald-500/20 font-medium">
+                            {badgeBStr}
+                          </span>
                         </div>
-                        {fileB && (
-                          <button
-                            type="button"
-                            onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
-                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1 cursor-pointer shadow flex-shrink-0"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Simpan Ini (2)</span>
-                          </button>
-                        )}
+
+                        {/* Media Viewport */}
+                        <div className="flex-1 flex items-center justify-center p-4 bg-slate-950 relative overflow-hidden min-h-0 h-0 group/media">
+                          {fileB && (
+                            <button
+                              type="button"
+                              onClick={() => setSlotBIndex(null)}
+                              className="absolute top-3 right-3 z-20 bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white p-2 rounded-xl border border-slate-700/80 hover:border-rose-500 transition-all backdrop-blur-md shadow-lg cursor-pointer active:scale-95"
+                              title={t('speedtest.dup_viewer_clear_b')}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {fileB ? (
+                            isImageDriveFile(fileB) && thumbB ? (
+                              <img
+                                src={thumbB}
+                                alt={fileB.name}
+                                className="max-h-full max-w-full w-auto h-auto object-contain rounded-xl shadow-2xl transition-transform duration-300 group-hover/media:scale-[1.01]"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
+                                <Film size={44} className="text-emerald-400/80" />
+                                <span className="text-xs font-semibold text-slate-300 truncate max-w-[220px]">{fileB.name}</span>
+                              </div>
+                            )
+                          ) : (
+                            <div className="text-center p-6 space-y-1">
+                              <p className="text-slate-400 text-xs font-semibold">{t('speedtest.dup_viewer_empty_b')}</p>
+                              <p className="text-slate-500 text-[11px] max-w-[220px]">{t('speedtest.dup_viewer_click_to_fill')}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer Info & Keep CTA */}
+                        <div className="p-3 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between gap-3 flex-shrink-0">
+                          <div className="text-[11px] text-slate-400 space-y-0.5 min-w-0 flex-1 font-mono">
+                            <p className="truncate"><span className="text-slate-500 font-sans">{t('speedtest.dup_viewer_file_name')}</span> <span className="text-slate-200 font-medium">{fileB ? fileB.name : '-'}</span></p>
+                            <p><span className="text-slate-500 font-sans">{t('speedtest.dup_viewer_file_size')}</span> <span className="text-emerald-400 font-semibold">{fileB ? formatDriveBytes(fileB.size) : '-'}</span></p>
+                          </div>
+                          {fileB && (
+                            <button
+                              type="button"
+                              onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
+                              className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-600/25 flex-shrink-0"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>{t('speedtest.dup_viewer_keep_b')}</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </section>
                   );
                 })()}
               </main>
 
-              {/* Bottom Carousel / Daftar Thumbnail Grup Duplikat */}
-              <footer className="bg-slate-800 border-t border-slate-700 p-4 shadow-lg flex-shrink-0 z-20">
-                <div className="max-w-7xl mx-auto flex flex-col space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+              {/* Bottom Carousel / Media Strip */}
+              <footer className="bg-slate-900/90 border-t border-slate-800/80 p-3.5 shadow-2xl backdrop-blur-xl flex-shrink-0 z-20">
+                <div className="max-w-7xl mx-auto flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
                       <FolderOpen className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                        Daftar Grup Duplikat (Klik untuk Isi Split A / B)
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                        {t('speedtest.dup_viewer_group_list_title')}
                       </span>
                     </div>
-                    <span className="text-xs text-slate-400">
-                      Total item di grup ini: {currentDupGroup.files.length}
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {t('speedtest.dup_viewer_group_total_items', { count: currentDupGroup.files.length })}
                     </span>
                   </div>
 
-                  {/* Carousel Wrapper */}
-                  <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-600">
+                  {/* Carousel Cards Track */}
+                  <div className="flex gap-3 overflow-x-auto pb-1.5 pt-1 scrollbar-thin scrollbar-thumb-slate-700 px-0.5">
                     {currentDupGroup.files.map((f, idx) => {
                       const isSelectedA = slotAIndex === idx;
                       const isSelectedB = slotBIndex === idx;
@@ -3882,52 +3928,52 @@ export function DrivePreviewModal({
                       const sizeStr = formatDriveBytes(f.size || 0);
                       const cardThumb = f.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
 
-                      let borderStyle = 'border-slate-700 hover:border-indigo-500';
-                      if (isSelectedA) borderStyle = 'border-rose-500 ring-2 ring-rose-500/40';
-                      if (isSelectedB) borderStyle = 'border-emerald-500 ring-2 ring-emerald-500/40';
+                      let cardBorder = 'border-slate-800 hover:border-indigo-500/60';
+                      if (isSelectedA) cardBorder = 'border-rose-500/80 ring-2 ring-rose-500/30';
+                      if (isSelectedB) cardBorder = 'border-emerald-500/80 ring-2 ring-emerald-500/30';
 
                       return (
                         <div
                           key={f.id}
                           onClick={() => selectItemToSlot(idx)}
-                          className={`relative flex-shrink-0 w-36 bg-slate-900 border ${borderStyle} rounded-xl overflow-hidden cursor-pointer transition transform hover:-translate-y-0.5`}
+                          className={`relative flex-shrink-0 w-36 bg-slate-950 border ${cardBorder} rounded-xl overflow-hidden cursor-pointer transition-all duration-200 transform hover:-translate-y-1 shadow-md hover:shadow-xl group/thumb`}
                         >
                           <div className="h-20 w-full overflow-hidden bg-slate-950 relative flex items-center justify-center">
                             {isImageDriveFile(f) && cardThumb ? (
-                              <img src={cardThumb} alt={f.name} className="w-full h-full object-cover" />
+                              <img src={cardThumb} alt={f.name} className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300" />
                             ) : (
-                              <Film size={28} className="text-slate-500" />
+                              <Film size={28} className="text-slate-600" />
                             )}
 
-                            {/* Overlay Status Visual */}
+                            {/* Status Overlay */}
                             {isDelete && (
-                              <div className="absolute inset-0 bg-rose-900/70 flex items-center justify-center font-bold text-[10px] text-rose-200 backdrop-blur-[1px]">
-                                AKAN DIHAPUS
+                              <div className="absolute inset-0 bg-rose-950/85 backdrop-blur-[2px] flex items-center justify-center font-extrabold text-[10px] text-rose-200 tracking-wider uppercase border-2 border-rose-500/40">
+                                {t('speedtest.dup_viewer_will_delete')}
                               </div>
                             )}
                             {isSave && (
-                              <div className="absolute inset-0 bg-emerald-900/30 border-2 border-emerald-500 pointer-events-none"></div>
+                              <div className="absolute inset-0 border-2 border-emerald-500/50 pointer-events-none rounded-t-xl" />
                             )}
 
-                            {/* Badge Slot Preview A / B */}
+                            {/* Slot A / B Pill Badges */}
                             {isSelectedA && (
-                              <span className="absolute top-1 left-1 bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow">
+                              <span className="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold shadow-md ring-1 ring-white/20">
                                 A
                               </span>
                             )}
                             {isSelectedB && !isSelectedA && (
-                              <span className="absolute top-1 left-1 bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow">
+                              <span className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold shadow-md ring-1 ring-white/20">
                                 B
                               </span>
                             )}
                           </div>
 
-                          <div className="p-2 flex flex-col justify-between">
-                            <p className="text-[11px] font-medium text-slate-300 truncate" title={f.name}>{f.name}</p>
-                            <div className="flex items-center justify-between mt-1">
-                              <span className="text-[10px] text-slate-500">{sizeStr}</span>
-                              <div onClick={(e) => e.stopPropagation()} className="flex space-x-1.5">
-                                <label className="cursor-pointer flex items-center space-x-0.5" title="Simpan">
+                          <div className="p-2 flex flex-col justify-between bg-slate-900/90 border-t border-slate-800/80">
+                            <p className="text-[11px] font-medium text-slate-200 truncate font-sans" title={f.name}>{f.name}</p>
+                            <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-800/60">
+                              <span className="text-[10px] text-emerald-400 font-mono font-medium">{sizeStr}</span>
+                              <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5">
+                                <label className="cursor-pointer flex items-center gap-1" title={t('speedtest.dup_viewer_action_keep')}>
                                   <input
                                     type="radio"
                                     name={`action-${f.id}`}
@@ -3939,9 +3985,9 @@ export function DrivePreviewModal({
                                     }}
                                     className="accent-emerald-500 w-3 h-3 cursor-pointer"
                                   />
-                                  <span className="text-[9px] text-slate-300">Simpan</span>
+                                  <span className={`text-[10px] font-medium ${isSave ? 'text-emerald-400' : 'text-slate-400'}`}>{t('speedtest.dup_viewer_action_keep')}</span>
                                 </label>
-                                <label className="cursor-pointer flex items-center space-x-0.5" title="Hapus">
+                                <label className="cursor-pointer flex items-center gap-1" title={t('speedtest.dup_viewer_action_delete')}>
                                   <input
                                     type="radio"
                                     name={`action-${f.id}`}
@@ -3953,7 +3999,7 @@ export function DrivePreviewModal({
                                     }}
                                     className="accent-rose-500 w-3 h-3 cursor-pointer"
                                   />
-                                  <span className="text-[9px] text-slate-300">Hapus</span>
+                                  <span className={`text-[10px] font-medium ${isDelete ? 'text-rose-400' : 'text-slate-400'}`}>{t('speedtest.dup_viewer_action_delete')}</span>
                                 </label>
                               </div>
                             </div>

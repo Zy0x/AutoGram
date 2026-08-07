@@ -1,3 +1,12 @@
+## v2.9.1 High-End Visual Design Duplicate Viewer Architecture & Zero Hardcoded Strings i18n
+
+### Perbaikan Visual & Penyempurnaan Tata Letak Modal Komparasi Duplikat (`DrivePreviewModal/index.tsx`, `App.css`, `locales/`)
+- **Konsolidasi Navbar & Eliminasi Dual-Toolbar**: Menyembunyikan toolbar luar pratinjau saat mode split viewer aktif untuk mencegah tumpang-tindih toolbar, serta menyatukan kontrol grup, statistik hemat ruang, hotkey, dan tombol aksi ke dalam 1 baris header terpadu beresolusi responsif.
+- **Double-Bezel Architecture (Doppelrand)**: Menerapkan struktur doppelrand dua lapis (`rounded-[22px]` outer shell + `rounded-[calc(22px-0.375rem)]` inner core) dengan aksen pendaran Obsidian Glow (Rose/Ruby untuk Pratinjau A, Emerald/Teal untuk Pratinjau B).
+- **Framing Media & Tombol Pengosongan Slot (X) Refined**: Mengoptimalkan ukuran gambar pratinjau dengan `object-contain max-h-full max-w-full rounded-xl shadow-2xl`, plus tombol reset slot mengambang berdesain frosted glass pill (`backdrop-blur-md`).
+- **Media Carousel Strip Elevasi**: Menyajikan kartu thumbnail bawah bertaraf agency dengan hover state scale `hover:-translate-y-1`, indikator badge slot A/B beresolusi tinggi, dan frosted crimson overlay untuk file yang akan dihapus.
+- **100% Zero Hardcoded Strings Rule**: Seluruh teks antarmuka Duplicate Viewer kini diekstrak ke dalam berkas i18n `src/locales/id/speedtest.json` dan `src/locales/en/speedtest.json` secara sinkron (100% Key Parity).
+
 ## v2.9.0 Speed-Cleaning Duplicate Viewer Pro Architecture & 1-Click Auto-Select Engine
 
 ### Implementasi Speed Edition Duplicate Viewer Pro (`DrivePreviewModal/index.tsx`, `App.css`)

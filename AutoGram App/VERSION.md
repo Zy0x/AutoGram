@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.0
+AutoGram Version: v2.9.1
 
 Current State:
+v2.9.1 High-End Visual Design Duplicate Viewer Architecture & Zero Hardcoded Strings i18n — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merombak Duplicate Viewer Pro dengan Double-Bezel Architecture (Doppelrand) ber-haptic depth, mengonsolidasi header & toolbar menjadi satu kontrol bar presisi tanpa tumpang-tindih (overlay/clutter removal), menyembunyikan toolbar luar pratinjau yang redundan saat mode komparasi aktif, mengoptimalkan kartu pratinjau split A/B dengan aksen obsidian-glow & framing media fleksibel, serta menerapkan i18n 100% Zero Hardcoded Strings untuk Bahasa Indonesia dan Inggris.
+
+Previous:
 v2.9.0 Speed-Cleaning Duplicate Viewer Pro Architecture & 1-Click Auto-Select Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan arsitektur komparasi duplikat Speed Edition lengkap sesuai prototipe HTML: Header Navbar dengan metric counter `Dihemat: X MB` dan navigasi grup, Sub-toolbar akses cepat `Auto-Pilih File Terbaik (R)` dan tombol `Terapkan Penghapusan`, Split View Preview A & B dengan tombol pengosongan slot `(X)`, carousel thumbnail bawah dengan overlay visual status `AKAN DIHAPUS`, badge A/B, serta dukungan penuh pintas keyboard (1, 2, R, ArrowRight).
 
 Previous:
