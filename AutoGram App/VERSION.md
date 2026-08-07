@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.3
+AutoGram Version: v3.0.4
 
 Current State:
+v3.0.4 Direct Reference UI Match & Dedicated Split Compare Modal Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak modal perbandingan duplikat secara 100% presisi sesuai screenshot acuan pengguna. Menyembunyikan header preview media tunggal saat mode Split View aktif, menyediakan topbar dedikasi `Duplicate Group #7`, kartu perbandingan A & B dengan header badge 3-dots dan meta footer `1.24 MB` + `✓ Keep A/B` & `🗑 Delete`, footer navigasi grup bawah (`< Previous Group`, `7 of 24 groups`, `Next Group >`), serta panel samping `Files in this group (2)` dengan item list dan indikator radio aksi.
+
+Previous:
 v3.0.3 Floating Glass Action Pill & Max Canvas Expansion Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merestrukturisasi kartu perbandingan A & B dengan *Floating Glass Action Pill Overlay* yang melayang bersih di bagian bawah media canvas. Mengalokasikan 100% tinggi kartu untuk area gambar, mengeliminasi baris meta bawah yang membuang ruang, dan memperluas panggung gambar media secara maksimal tanpa ada yang terpotong di seluruh resolusi layar.
 
 Previous:

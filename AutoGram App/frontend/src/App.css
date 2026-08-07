@@ -10002,57 +10002,16 @@ body:has(.app-layout-drive-focus),
 .drive-preview-modal.is-split-compare {
   padding: 0 !important;
   border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   overflow: hidden !important;
-  background: #090d16 !important;
+  background: #0d1117 !important;
   display: flex !important;
   flex-direction: column !important;
-  width: min(98vw, 1600px) !important;
-  height: min(96vh, 96dvh, 1080px) !important;
-  max-height: 100dvh !important;
+  width: min(1340px, 96vw) !important;
+  height: min(840px, 92vh) !important;
+  max-height: 96dvh !important;
   box-sizing: border-box !important;
-}
-
-.drive-preview-header.is-split-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 4px 12px !important;
-  gap: 8px !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  max-height: 44px !important;
-  flex-shrink: 0 !important;
-  grid-template-columns: none !important;
-  grid-template-rows: none !important;
-  grid-template-areas: none !important;
-}
-
-.drive-preview-header.is-split-header .drive-preview-title {
-  grid-area: unset !important;
-  margin-bottom: 0 !important;
-  max-width: 32% !important;
-  flex-shrink: 1 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-.drive-preview-header.is-split-header .drive-preview-title strong {
-  font-size: 0.82rem !important;
-}
-
-.drive-preview-header.is-split-header .drive-preview-title .drive-muted {
-  display: none !important;
-}
-
-.drive-preview-header.is-split-header .drive-preview-nav {
-  grid-area: unset !important;
-  border-top: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  flex: 1 !important;
-  justify-content: flex-end !important;
-  gap: 4px !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8) !important;
 }
 
 .drive-preview-modal.is-split-compare .drive-preview-body {
@@ -10061,7 +10020,7 @@ body:has(.app-layout-drive-focus),
   width: 100% !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: 0 !important;
+  height: 100% !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
@@ -10082,9 +10041,9 @@ body:has(.app-layout-drive-focus),
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
-  background: #090d16;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 20px;
+  background: #0d1117;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -10133,7 +10092,7 @@ body:has(.app-layout-drive-focus),
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   font-size: 0.78rem;
@@ -10145,7 +10104,7 @@ body:has(.app-layout-drive-focus),
 }
 
 .drive-dup-close-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
@@ -10244,9 +10203,11 @@ body:has(.app-layout-drive-focus),
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: #090d16;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 16px;
+  margin-top: 12px;
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -10257,7 +10218,7 @@ body:has(.app-layout-drive-focus),
   gap: 6px;
   padding: 8px 16px;
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #cbd5e1;
   font-size: 0.78rem;
@@ -10267,7 +10228,7 @@ body:has(.app-layout-drive-focus),
 }
 
 .drive-dup-nav-btn:hover:not(:disabled) {
-  background: rgba(30, 41, 59, 0.95);
+  background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }

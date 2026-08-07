@@ -1,3 +1,12 @@
+## v3.0.4 Direct Reference UI Match & Dedicated Split Compare Modal Engine
+
+### Presisi 100% Acuan Screenshot Pengguna (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Penyembunyian Header Lama pada Split View**: Menyembunyikan `drive-preview-header` single view saat mode perbandingan duplikat aktif.
+- **Top Header Bar Dedikasi**: Menampilkan judul `< Duplicate Group #7 [ 2 files ]` di kiri dan tombol `[ ✕ Close ]` di kanan.
+- **Restrukturisasi Kartu Perbandingan A & B**: Header kartu internal `[ A ] filename` + 3-dots, media canvas `object-fit: contain`, dan footer meta `1.24 MB` + `✓ Keep A/B` & `🗑 Delete`.
+- **Navigasi Grup Bawah**: Navigasi grup di bawah kartu perbandingan (`< Previous Group`, `7 of 24 groups`, `Next Group >`).
+- **Panel Samping `Files in this group (2)`**: Panel kanan bersih dengan daftar file thumbnail + badge A/B, ukuran, dan tombol radio aksi `[ ✓ ]` / `[ ✕ ]`.
+
 ## v3.0.3 Floating Glass Action Pill & Max Canvas Expansion Engine
 
 ### Floating Action Pill Overlay & Maksimasi Panggung Gambar (`DrivePreviewModal/index.tsx`, `App.css`)
