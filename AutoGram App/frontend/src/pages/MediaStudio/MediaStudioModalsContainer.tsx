@@ -8,6 +8,7 @@ import { RemoteUploadModal } from '../../components/drive/Modals/RemoteUploadMod
 import { SessionRelogModal } from '../../components/drive/Modals/SessionRelogModal';
 import type { DriveCredentials } from '../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder } from '../../lib/telegram/driveTypes';
+import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 
 export interface MediaStudioModalsContainerProps {
   relogModalOpen?: boolean;
@@ -16,6 +17,7 @@ export interface MediaStudioModalsContainerProps {
   onNavigateToAccounts?: () => void;
   previewFile: DriveFile | null;
   setPreviewFile: (f: DriveFile | null) => void;
+  duplicateContext?: DuplicateContextInfo | null;
   peerId: number | null;
   creds: DriveCredentials | null;
   folders: DriveFolder[];
@@ -78,6 +80,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
   onNavigateToAccounts,
   previewFile,
   setPreviewFile,
+  duplicateContext,
   peerId,
   creds,
   folders,
@@ -141,6 +144,7 @@ export const MediaStudioModalsContainer: React.FC<MediaStudioModalsContainerProp
           creds={creds}
           folders={folders}
           chats={chats}
+          duplicateContext={duplicateContext}
           onRefreshDrive={() => {
             void refreshFiles();
             void refreshLocations();

@@ -38,6 +38,10 @@ import {
   Copy,
   Printer,
   Repeat,
+  Scale,
+  Columns,
+  ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -90,6 +94,23 @@ import {
 import { isDesktop } from '../../../lib/tauri/platform';
 import { DriveConfirmDialog, type DriveConfirmState } from '../Modals/DriveConfirmDialog';
 
+export type DuplicateContextInfo = {
+  group: {
+    key: string;
+    reason: string;
+    reasonLabel?: string;
+    files: DriveFile[];
+    wasteBytes: number;
+  };
+  markedDelete: Set<number>;
+  onToggleMark: (fileId: number) => void;
+  onKeepOnly: (keepFileId: number) => void;
+  onPrevGroup?: () => void;
+  onNextGroup?: () => void;
+  groupIndex?: number;
+  totalGroups?: number;
+};
+
 type Props = {
   file: DriveFile;
   folderId: number | null;
@@ -103,6 +124,7 @@ type Props = {
   neighborIds?: number[];
   folders?: DriveFolder[];
   chats?: DriveChat[];
+  duplicateContext?: DuplicateContextInfo | null;
   onRefreshDrive?: () => void;
   onOpenTransferManager?: () => void;
   onEnqueueUploadPaths?: (
@@ -419,12 +441,14 @@ export function DrivePreviewModal({
   neighborIds = [],
   folders,
   chats,
+  duplicateContext,
   onRefreshDrive,
   onOpenTransferManager,
   onEnqueueUploadPaths,
   onEnqueueDownloadSingle,
 }: Props) {
   const { t } = useTranslation();
+  const [isSplitCompareMode, setIsSplitCompareMode] = useState<boolean>(() => Boolean(duplicateContext));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -2937,6 +2961,21 @@ export function DrivePreviewModal({
                 </button>
               </>
             )}
+            {duplicateContext && (
+              <button
+                type="button"
+                className={`td-btn-primary ${isSplitCompareMode ? 'is-active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSplitCompareMode((v) => !v);
+                }}
+                style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', gap: '6px', marginRight: '4px' }}
+                title={isSplitCompareMode ? t('speedtest.preview_single_mode') : t('speedtest.preview_split_mode')}
+              >
+                <Columns size={14} />
+                <span>{isSplitCompareMode ? t('speedtest.preview_split_mode') : t('speedtest.preview_single_mode')}</span>
+              </button>
+            )}
             <button
               type="button"
               className="td-icon-btn"
@@ -3343,7 +3382,111 @@ export function DrivePreviewModal({
           onWheel={onWheelStage}
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
-          {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
+          {duplicateContext && isSplitCompareMode ? (
+            <div className="drive-preview-split-stage">
+              {/* LEFT PANE: FILE A (Reference / First in Group) */}
+              {(() => {
+                const fileA = duplicateContext.group.files[0];
+                const isMarkedA = duplicateContext.markedDelete.has(fileA.id);
+                const thumbA = fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                return (
+                  <div className={`drive-preview-split-col ${isMarkedA ? 'is-marked-delete' : 'is-keep'}`}>
+                    <div className="drive-preview-split-badge">
+                      <span className={`td-tools-dup-badge ${isMarkedA ? 'is-del' : 'is-keep'}`}>
+                        {isMarkedA ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
+                      </span>
+                      <span className="drive-preview-split-tag">{t('speedtest.preview_file_a')}</span>
+                    </div>
+
+                    <div className="drive-preview-split-media-wrap">
+                      {isImageDriveFile(fileA) && thumbA ? (
+                        <img
+                          src={thumbA}
+                          alt={fileA.name}
+                          className="drive-preview-split-media"
+                        />
+                      ) : (
+                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex items-center justify-center text-slate-400">
+                          <Film size={36} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="drive-preview-split-meta">
+                      <strong className="drive-preview-split-fname" title={fileA.name}>{fileA.name}</strong>
+                      <div className="drive-preview-split-sub">
+                        <span>#{fileA.id}</span>
+                        <span>{formatDriveBytes(fileA.size)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={`td-btn-primary ${!isMarkedA ? 'is-active-keep' : ''}`}
+                        onClick={() => duplicateContext.onKeepOnly(fileA.id)}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
+                      >
+                        <ShieldCheck size={14} /> {t('speedtest.preview_keep_a')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="drive-preview-split-divider">
+                <Scale size={24} style={{ color: '#38bdf8' }} />
+                <span>VS</span>
+              </div>
+
+              {/* RIGHT PANE: FILE B (Inspected Copy) */}
+              {(() => {
+                const fileB = duplicateContext.group.files.find((f) => f.id === file.id) || duplicateContext.group.files[1] || duplicateContext.group.files[0];
+                const isMarkedB = duplicateContext.markedDelete.has(fileB.id);
+                const thumbB = fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                return (
+                  <div className={`drive-preview-split-col ${isMarkedB ? 'is-marked-delete' : 'is-keep'}`}>
+                    <div className="drive-preview-split-badge">
+                      <span className={`td-tools-dup-badge ${isMarkedB ? 'is-del' : 'is-keep'}`}>
+                        {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
+                      </span>
+                      <span className="drive-preview-split-tag">{t('speedtest.preview_file_b')}</span>
+                    </div>
+
+                    <div className="drive-preview-split-media-wrap">
+                      {isImageDriveFile(fileB) && thumbB ? (
+                        <img
+                          src={thumbB}
+                          alt={fileB.name}
+                          className="drive-preview-split-media"
+                        />
+                      ) : (
+                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex items-center justify-center text-slate-400">
+                          <Film size={36} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="drive-preview-split-meta">
+                      <strong className="drive-preview-split-fname" title={fileB.name}>{fileB.name}</strong>
+                      <div className="drive-preview-split-sub">
+                        <span>#{fileB.id}</span>
+                        <span>{formatDriveBytes(fileB.size)}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={`td-btn-primary ${isMarkedB ? 'is-danger' : ''}`}
+                        onClick={() => duplicateContext.onToggleMark(fileB.id)}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
+                      >
+                        {isMarkedB ? <Trash2 size={14} /> : <ShieldCheck size={14} />}
+                        {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_keep_b')}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <>
+              {loading && !showThumbSkeleton && !mediaSrc && !textBody && !pdfSrc && !isZip && (
             <div className="w-full flex flex-col items-center justify-center min-h-[350px] p-6">
               <DeadCenterProgress
                 isLoading={loading}
@@ -4758,6 +4901,8 @@ export function DrivePreviewModal({
               </div>
             </div>
           )}
+        </>
+      )}
         </div>
       </div>
       <DriveConfirmDialog state={confirmDlg} onClose={() => setConfirmDlg(null)} />

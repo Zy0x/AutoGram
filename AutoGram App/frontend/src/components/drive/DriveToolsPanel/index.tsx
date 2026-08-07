@@ -111,6 +111,8 @@ function ToolTabIntro({
   );
 }
 
+import type { DuplicateContextInfo } from '../DrivePreviewModal';
+
 type Props = {
   open: boolean;
   tab: DriveToolsTab;
@@ -144,7 +146,7 @@ type Props = {
   onTransferSettingsChange?: (next: DriveTransferSettings) => void;
   transferActive?: boolean;
   /** Open full preview (e.g. from duplicate row click) */
-  onPreviewFile?: (file: DriveFile) => void;
+  onPreviewFile?: (file: DriveFile, opts?: { duplicateContext?: DuplicateContextInfo }) => void;
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
   onLoadMoreFiles?: (opts?: { pageSize?: number }) => Promise<void>;
@@ -956,7 +958,7 @@ function DupTab({
   busy?: boolean;
   creds: DriveCredentials | null;
   folderId: number | null;
-  onPreviewFile?: (file: DriveFile) => void;
+  onPreviewFile?: (file: DriveFile, opts?: { duplicateContext?: DuplicateContextInfo }) => void;
   onDeleteIds: (ids: number[]) => void;
   totalFileCount?: number;
   filesHasMore?: boolean;
@@ -1142,8 +1144,8 @@ function DupTab({
     });
   };
 
-  const markGroupExtras = (g: DupGroup) => {
-    const keepId = preferredKeepId(g, keepNewest);
+  const markGroupExtras = (g: DupGroup, overrideKeepId?: number) => {
+    const keepId = overrideKeepId ?? preferredKeepId(g, keepNewest);
     setMarkedDelete((prev) => {
       const next = new Set(prev);
       for (const f of g.files) {
@@ -1564,7 +1566,7 @@ function DupTab({
       {/* 📜 3. DEDICATED SCROLLABLE DUPLICATE GROUPS LIST */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px' }}>
         <ul className="td-tools-dup-groups" style={{ margin: 0, padding: 0 }}>
-          {filteredGroups.slice(0, 60).map((g) => {
+          {filteredGroups.slice(0, 60).map((g, gIdx) => {
             const keepId = preferredKeepId(g, keepNewest);
             const markedInGroup = g.files.filter((f: any) => markedDelete.has(f.id)).length;
             const keepInGroup = g.files.length - markedInGroup;
@@ -1625,7 +1627,27 @@ function DupTab({
                         <button
                           type="button"
                           className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
-                          onClick={() => onPreviewFile?.(f)}
+                          onClick={() => {
+                            if (!onPreviewFile) return;
+                            onPreviewFile(f, {
+                              duplicateContext: {
+                                group: g,
+                                markedDelete,
+                                onToggleMark: (id) => toggleMark(id),
+                                onKeepOnly: (keepId) => markGroupExtras(g, keepId),
+                                onPrevGroup: gIdx > 0 ? () => {
+                                  const prevG = filteredGroups[gIdx - 1];
+                                  if (prevG && prevG.files[0]) onPreviewFile(prevG.files[0]);
+                                } : undefined,
+                                onNextGroup: gIdx < filteredGroups.length - 1 ? () => {
+                                  const nextG = filteredGroups[gIdx + 1];
+                                  if (nextG && nextG.files[0]) onPreviewFile(nextG.files[0]);
+                                } : undefined,
+                                groupIndex: gIdx + 1,
+                                totalGroups: filteredGroups.length,
+                              },
+                            });
+                          }}
                           disabled={!canPreview}
                           title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}
                           aria-label={canPreview ? `Pratinjau ${label}` : label}

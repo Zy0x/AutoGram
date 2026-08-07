@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { MediaStudioOverlays } from './MediaStudioOverlays';
 import { MediaStudioModalsContainer } from './MediaStudioModalsContainer';
+import type { DuplicateContextInfo } from '../../components/drive/DrivePreviewModal';
 import { TransferPreflightDialog } from '../../components/drive/Transfers/TransferPreflightDialog';
 import { DriveTransferSettings } from '../../components/drive/Transfers/DriveTransferSettings';
 import {
@@ -672,6 +673,7 @@ function MediaDriveDesktop({
   }, []);
 
   const [previewFile, setPreviewFile] = useState<DriveFile | null>(null);
+  const [previewDuplicateContext, setPreviewDuplicateContext] = useState<DuplicateContextInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<
     | { kind: 'file'; x: number; y: number; file: DriveFile }
     | { kind: 'canvas'; x: number; y: number }
@@ -7756,8 +7758,9 @@ function MediaDriveDesktop({
               saveTransferSettings(next);
               void setSecureTransferSettings(next);
             }}
-            onPreviewFile={(f) => {
-              // Keep tools open behind preview (z-index above tools) so user can resume dups after Esc
+            onPreviewFile={(f, opts) => {
+              // Keep tools open behind preview so user can resume dups after Esc
+              setPreviewDuplicateContext(opts?.duplicateContext || null);
               setPreviewFile(f);
             }}
             onDeleteIds={(ids) => {
@@ -8003,7 +8006,11 @@ function MediaDriveDesktop({
         sessionName={session}
         onNavigateToAccounts={onNavigateToAccounts}
         previewFile={previewFile}
-        setPreviewFile={setPreviewFile}
+        setPreviewFile={(f) => {
+          setPreviewFile(f);
+          if (!f) setPreviewDuplicateContext(null);
+        }}
+        duplicateContext={previewDuplicateContext}
         peerId={typeof peerId === 'number' ? peerId : null}
         creds={creds}
         folders={folders}
