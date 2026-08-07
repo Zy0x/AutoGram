@@ -537,7 +537,7 @@ function MediaDriveDesktop({
   );
   const [advFilter, setAdvFilter] = useState<DriveAdvFilter>({ ...EMPTY_ADV_FILTER });
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [toolsTab, setToolsTab] = useState<DriveToolsTab>('copy');
+  const [toolsTab, setToolsTab] = useState<DriveToolsTab>('dups');
   const [transferSettingsOpen, setTransferSettingsOpen] = useState(false);
   const [navHist, setNavHist] = useState<DriveNavHistory>(() =>
     createNavHistory({ kind: initial.kind, id: initial.id })
@@ -7535,7 +7535,7 @@ function MediaDriveDesktop({
             }}
             topicsLoading={topicsLoading}
             onOpenTools={() => {
-              setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'copy');
+              setToolsTab(isAdvFilterActive(advFilter) ? 'filter' : 'dups');
               setToolsOpen(true);
             }}
             toolsActive={toolsOpen || isAdvFilterActive(advFilter)}

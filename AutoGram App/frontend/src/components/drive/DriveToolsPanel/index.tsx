@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
-  Copy,
   Trash2,
   Check,
   AlertTriangle,
@@ -27,7 +26,6 @@ import {
   canShowDriveThumb,
   driveFileDisplayName,
   formatDriveBytes,
-  driveItemKind,
   isVideoDriveFile,
 } from '../../../lib/telegram/driveTypes';
 import { getCachedThumb, requestThumb } from '../../../lib/media/thumbBatcher';
@@ -41,7 +39,6 @@ import {
   isAdvFilterActive,
 } from '../../../lib/telegram';
 import { FileTypeIcon } from '../Explorer/FileTypeIcon';
-import { MediaSelect } from '../Navigation/MediaSelect';
 import { TOOL_GROUPS, type DriveToolsTab } from './toolsUtils';
 import { TransferSettingsWorkspace } from '../Transfers/TransferSettingsWorkspace';
 import {
@@ -140,7 +137,7 @@ type Props = {
   onPreviewFile?: (file: DriveFile) => void;
   onDeleteIds: (ids: number[]) => void;
   onBulkRename: (pairs: { id: number; newName: string }[]) => void;
-  onSmartCopy: (opts: {
+  onSmartCopy?: (opts: {
     messageIds: number[];
     toFolderId: number | null;
     targetLabel: string;
@@ -157,8 +154,8 @@ export function DriveToolsPanel({
   selectedFiles,
   advFilter,
   onAdvFilter,
-  folders,
-  chats,
+  folders: _folders,
+  chats: _chats,
   locationKind: _locationKind,
   locationLabel,
   busy,
@@ -178,15 +175,12 @@ export function DriveToolsPanel({
   onPreviewFile,
   onDeleteIds,
   onBulkRename,
-  onSmartCopy,
+  onSmartCopy: _onSmartCopy,
 }: Props) {
   const { t } = useTranslation();
   const [dupMode, setDupMode] = useState<'name_size' | 'both'>('name_size');
   const [pattern, setPattern] = useState('{name}_{n:2}.{ext}');
   const [startAt, setStartAt] = useState(1);
-  const [copyDest, setCopyDest] = useState<string>('me');
-  const [skipDup, setSkipDup] = useState(true);
-  const [copyScope, setCopyScope] = useState<'selected' | 'all'>('selected');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [toolsSearchQuery, setToolsSearchQuery] = useState('');
 
@@ -258,23 +252,6 @@ export function DriveToolsPanel({
     () => applyBulkRenamePattern(renameScope, pattern, startAt).slice(0, 12),
     [renameScope, pattern, startAt]
   );
-
-  const destOptions = useMemo(() => {
-    const opts: { value: string; label: string }[] = [
-      { value: 'me', label: t('speedtest.saved_messages') },
-    ];
-    for (const f of folders) {
-      const kind = driveItemKind(f);
-      opts.push({
-        value: String(f.id),
-        label: `${kind === 'drive' ? t('speedtest.zip_dest_drive') : t('speedtest.folder_label')}: ${f.name}`,
-      });
-    }
-    for (const c of chats.slice(0, 80)) {
-      opts.push({ value: `c:${c.id}`, label: `${t('speedtest.zip_dest_chat')}: ${c.name}` });
-    }
-    return opts;
-  }, [folders, chats]);
 
   const searchRegistry = useMemo(() => buildSearchRegistry(t), [t]);
   const searchResults = useMemo(
@@ -653,83 +630,6 @@ export function DriveToolsPanel({
                   }
                 >
                   <Check size={15} /> {t('speedtest.btn_apply_rename')}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tab === 'copy' && (
-            <div className="td-tools-section">
-              <p className="td-tools-lead">
-                {t('speedtest.smart_copy_desc')}
-              </p>
-              <div className="td-tools-form-stack">
-                <label className="td-tools-field">
-                  {t('speedtest.tools_scope_label')}
-                  <MediaSelect
-                    value={copyScope}
-                    onChange={(value: any) => setCopyScope(value as 'selected' | 'all')}
-                    ariaLabel={t('speedtest.tools_copy_scope_aria')}
-                    options={[
-                      { value: 'selected', label: t('speedtest.selected_count', { count: selectedFiles.length || 0 }) },
-                      { value: 'all', label: t('speedtest.all_in_view_count', { count: files.length }) },
-                    ]}
-                  />
-                </label>
-                <label className="td-tools-field">
-                  {t('speedtest.tools_destination_label')}
-                  <MediaSelect
-                    value={copyDest}
-                    onChange={setCopyDest}
-                    ariaLabel={t('speedtest.tools_copy_destination_aria')}
-                    options={destOptions.map((option) => ({ value: option.value, label: option.label }))}
-                  />
-                </label>
-                <div className="td-tools-card-check">
-                  <label className="td-tools-check">
-                    <input
-                      type="checkbox"
-                      checked={skipDup}
-                      onChange={(e) => setSkipDup(e.target.checked)}
-                    />
-                    <span>{t('speedtest.skip_dup_name_size')}</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="td-tools-action-footer">
-                <button
-                  type="button"
-                  className="btn btn-primary td-tools-btn-submit"
-                  disabled={
-                    busy ||
-                    (copyScope === 'selected' ? selectedFiles.length === 0 : files.length === 0)
-                  }
-                  onClick={() => {
-                    const pool = copyScope === 'selected' ? selectedFiles : files;
-                    const ids = pool.map((f: any) => f.id);
-                    let toFolderId: number | null = null;
-                    let targetLabel = t('speedtest.saved_messages');
-                    if (copyDest === 'me') {
-                      toFolderId = null;
-                    } else if (copyDest.startsWith('c:')) {
-                      toFolderId = Number(copyDest.slice(2));
-                      targetLabel =
-                        chats.find((c) => c.id === toFolderId)?.name || t('speedtest.tools_chat_fallback', { id: toFolderId });
-                    } else {
-                      toFolderId = Number(copyDest);
-                      targetLabel =
-                        folders.find((f: any) => f.id === toFolderId)?.name || t('speedtest.tools_folder_fallback', { id: toFolderId });
-                    }
-                    onSmartCopy({
-                      messageIds: ids,
-                      toFolderId,
-                      targetLabel,
-                      skipDuplicates: skipDup,
-                    });
-                  }}
-                >
-                  <Copy size={15} /> {t('speedtest.btn_start_copy')}
                 </button>
               </div>
             </div>

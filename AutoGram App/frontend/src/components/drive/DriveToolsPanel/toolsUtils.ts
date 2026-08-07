@@ -1,5 +1,4 @@
 import {
-  Copy,
   HardDrive,
   Layers,
   Type,
@@ -19,7 +18,6 @@ export type DriveToolsTab =
   | 'dups'
   | 'space'
   | 'rename'
-  | 'copy'
   | 'filter'
   | 'transfer'
   | 'upload'
@@ -58,7 +56,6 @@ export const TOOL_GROUPS: {
   {
     titleKey: 'speedtest.tools_group_drive',
     tabs: [
-      { id: 'copy', icon: Copy },
       { id: 'dups', icon: Layers },
       { id: 'rename', icon: Type },
       { id: 'space', icon: HardDrive },

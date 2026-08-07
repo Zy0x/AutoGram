@@ -32,16 +32,6 @@ export function buildSearchRegistry(t: TFunction): SearchableSettingItem[] {
   return [
     // DRIVE POWER TOOLS
     {
-      id: 'tool-copy',
-      tab: 'copy',
-      mode: 'basic',
-      sectionId: 'drive-tool-copy',
-      label: 'Batch Copy (Salin Massal)',
-      description: 'Salin media & folder massal ke Saved Messages, Channel, atau Grup Telegram',
-      keywords: ['copy', 'salin', 'duplicate', 'batch copy', 'clone', 'salin massal', 'saved messages', 'channel', 'group'],
-      isDriveTool: true,
-    },
-    {
       id: 'tool-dups',
       tab: 'dups',
       mode: 'basic',
