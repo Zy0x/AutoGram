@@ -1138,33 +1138,93 @@ function DupTab({
   const scanProgressPct = targetTotal > 0 ? Math.min(100, Math.round((loadedCount / targetTotal) * 100)) : 0;
 
   return (
-    <div className="td-tools-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      
-      {/* 🔍 FULL CHANNEL DEEP SCAN CARD */}
+    <div
+      className="td-tools-section"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        maxHeight: '100%',
+        gap: '12px',
+        position: 'relative',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* 🛠️ 1. UNIFIED COMPACT CONTROL HEADER */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
-          borderRadius: '14px',
-          padding: '16px',
+          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
+          borderRadius: '12px',
+          padding: '12px 14px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
+          flexShrink: 0,
         }}
       >
+        {/* ROW 1: HEADER TITLE, STATS BADGES & SCAN BUTTON */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Search size={16} style={{ color: '#38bdf8' }} />
-              <span>Pemindaian Berkas Chat ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} items)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Search size={15} style={{ color: '#38bdf8' }} />
+              <span>Pemindaian Index ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} berkas)</span>
             </h4>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-              {filesHasMore
-                ? `Baru ${loadedCount.toLocaleString('id-ID')} berkas ter-fetch di memori. Klik tombol di kanan untuk memindai seluruh ${targetTotal.toLocaleString('id-ID')} berkas secara otomatis!`
-                : `✓ Seluruh ${loadedCount.toLocaleString('id-ID')} berkas di lokasi ini sudah selesai dipindai.`}
-            </p>
+
+            {/* QUICK STATS BADGES */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  color: '#38bdf8',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Layers size={11} /> {filteredGroups.length} Grup
+              </span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#f87171',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Trash2 size={11} /> {idsToDelete.length} Salinan Dihapus
+              </span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(74, 222, 128, 0.12)',
+                  border: '1px solid rgba(74, 222, 128, 0.25)',
+                  color: '#4ade80',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <HardDrive size={11} /> ~{formatDriveBytes(selectedWaste || wasteTotal)} Terhemat
+              </span>
+            </div>
           </div>
 
+          {/* DEEP SCAN ACTION BUTTON */}
           {filesHasMore && (
             <div>
               {!isScanning ? (
@@ -1175,19 +1235,19 @@ function DupTab({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
                     background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                     color: '#ffffff',
                     border: 'none',
                     fontWeight: 700,
-                    fontSize: '0.82rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+                    boxShadow: '0 3px 10px rgba(56, 189, 248, 0.25)',
                   }}
                 >
-                  <Search size={14} />
+                  <Search size={13} />
                   <span>Pindai Seluruh Chat ({targetTotal.toLocaleString('id-ID')} Items)</span>
                 </button>
               ) : (
@@ -1197,18 +1257,18 @@ function DupTab({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
                     background: 'rgba(239, 68, 68, 0.2)',
                     border: '1px solid rgba(239, 68, 68, 0.5)',
                     color: '#fca5a5',
                     fontWeight: 700,
-                    fontSize: '0.82rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
                   }}
                 >
-                  <Loader2 size={14} className="spin" />
+                  <Loader2 size={13} className="spin" />
                   <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
                 </button>
               )}
@@ -1216,14 +1276,14 @@ function DupTab({
           )}
         </div>
 
-        {/* PROGRESS BAR */}
+        {/* PROGRESS BAR & FLOODWAIT WARNING */}
         {isScanning && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
               <span>Memindai index Telegram...</span>
               <span>{loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} ({scanProgressPct}%)</span>
             </div>
-            <div style={{ width: '100%', height: '6px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${scanProgressPct}%`,
@@ -1237,133 +1297,62 @@ function DupTab({
           </div>
         )}
 
-        {/* ⚠️ FLOODWAIT BADGE INDICATOR */}
         {floodWaitSeconds !== null && (
           <div
             style={{
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.4) 100%)',
+              background: 'rgba(239, 68, 68, 0.2)',
               border: '1px solid #ef4444',
-              borderRadius: '10px',
-              padding: '10px 14px',
+              borderRadius: '8px',
+              padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               color: '#fca5a5',
               fontWeight: 700,
-              fontSize: '0.82rem',
-              boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+              fontSize: '0.78rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={16} style={{ color: '#ef4444' }} />
-              <span>
-                <strong>⚠️ Telegram FloodWait Detected:</strong> Pemindaian otomatis dijeda sementara &amp; akan dilanjutkan secara otomatis saat limit berakhir...
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={14} style={{ color: '#ef4444' }} />
+              <span><strong>⚠️ FloodWait Telegram:</strong> Menjeda sementara &amp; melanjutkan otomatis...</span>
             </div>
-            <div style={{ background: '#ef4444', color: '#ffffff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+            <div style={{ background: '#ef4444', color: '#ffffff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 800 }}>
               {floodWaitSeconds}s
             </div>
           </div>
         )}
-      </div>
 
-      {/* 📊 SUMMARY HERO STATS CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Layers size={18} style={{ color: '#38bdf8' }} />
+        {/* ROW 2: 4-LEVEL MODE PILLS */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {[
+              { id: 'all_levels', label: '✨ Semua Level (1-4)' },
+              { id: 'hash_unique', label: 'L1: Hash & Unique ID' },
+              { id: 'name_size', label: 'L2: Nama + Ukuran' },
+              { id: 'size_only', label: 'L3: Ukuran Byte' },
+              { id: 'message_clone', label: 'L4: Forward Clone' },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onDupMode(m.id as any)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: dupMode === m.id ? 700 : 500,
+                  background: dupMode === m.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                  border: dupMode === m.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  color: dupMode === m.id ? '#38bdf8' : '#cbd5e1',
+                  cursor: 'pointer',
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Grup Duplikat</span>
-            <strong style={{ fontSize: '1.1rem', color: '#f8fafc', fontWeight: 800 }}>{filteredGroups.length}</strong>
-          </div>
-        </div>
 
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Trash2 size={18} style={{ color: '#f87171' }} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Salinan Akan Dihapus</span>
-            <strong style={{ fontSize: '1.1rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} Berkas</strong>
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(74, 222, 128, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <HardDrive size={18} style={{ color: '#4ade80' }} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', fontWeight: 600 }}>Potensi Hemat Ruang</span>
-            <strong style={{ fontSize: '1.1rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* ⚙️ 4-LEVEL DETECTION MODE SELECTOR & PREFERENCE */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(15, 23, 42, 0.4)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>Modus Deteksi 4-Level (AutoGram Rule #5):</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {[
-            { id: 'all_levels', label: '✨ Semua Level (1-4)' },
-            { id: 'hash_unique', label: 'L1: Hash & Unique ID' },
-            { id: 'name_size', label: 'L2: Nama + Ukuran' },
-            { id: 'size_only', label: 'L3: Ukuran Byte Sama' },
-            { id: 'message_clone', label: 'L4: Forward Clone' },
-          ].map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onDupMode(m.id as any)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.78rem',
-                fontWeight: dupMode === m.id ? 700 : 500,
-                background: dupMode === m.id ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                border: dupMode === m.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
-                color: dupMode === m.id ? '#38bdf8' : '#cbd5e1',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
-          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")}>
+          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem' }}>
             <input
               type="checkbox"
               checked={keepNewest}
@@ -1374,9 +1363,9 @@ function DupTab({
         </div>
       </div>
 
-      {/* 📁 MEDIA CATEGORY FILTER TABS & SEARCH INPUT */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', gap: '6px' }}>
+      {/* 📁 2. MEDIA CATEGORY FILTER TABS & SEARCH / QUICK ACTIONS BAR */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
           {[
             { id: 'all', label: 'Semua' },
             { id: 'image', label: '📷 Foto' },
@@ -1389,8 +1378,8 @@ function DupTab({
               type="button"
               onClick={() => setFilterType(tab.id as any)}
               style={{
-                padding: '5px 10px',
-                borderRadius: '7px',
+                padding: '4px 8px',
+                borderRadius: '6px',
                 fontSize: '0.75rem',
                 fontWeight: filterType === tab.id ? 700 : 500,
                 background: filterType === tab.id ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
@@ -1404,139 +1393,75 @@ function DupTab({
           ))}
         </div>
 
-        <div style={{ position: 'relative', width: '200px' }}>
-          <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-          <input
-            type="text"
-            placeholder="Cari file duplikat..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={applySmartAll}
+            title={t('speedtest.per_group_keep_one')}
             style={{
-              width: '100%',
-              padding: '5px 8px 5px 28px',
-              borderRadius: '8px',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#f8fafc',
-              fontSize: '0.78rem',
-              outline: 'none',
-              boxSizing: 'border-box',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              color: '#38bdf8',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
             }}
-          />
+          >
+            <Check size={12} /> {t('speedtest.smart_selection_btn')}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={clearAllMarks}
+            title={t('speedtest.keep_all_groups')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#cbd5e1',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+            }}
+          >
+            {t('speedtest.keep_all_groups')}
+          </button>
+
+          <div style={{ position: 'relative', width: '170px' }}>
+            <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <input
+              type="text"
+              placeholder="Cari duplikat..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 8px 4px 24px',
+                borderRadius: '6px',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#f8fafc',
+                fontSize: '0.75rem',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* DUP TOOLBAR ACTIONS */}
-      {filteredGroups.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            background: 'rgba(15, 23, 42, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '14px',
-            padding: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={applySmartAll}
-                title={t('speedtest.per_group_keep_one')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: '9px',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#38bdf8',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <Check size={14} /> {t('speedtest.smart_selection_btn')}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={clearAllMarks}
-                title={t('speedtest.keep_all_groups')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 14px',
-                  borderRadius: '9px',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#e2e8f0',
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                }}
-              >
-                {t('speedtest.keep_all_groups')}
-              </button>
-            </div>
-
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                background: 'rgba(74, 222, 128, 0.1)',
-                border: '1px solid rgba(74, 222, 128, 0.25)',
-                color: '#4ade80',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-              }}
-            >
-              <ShieldCheck size={14} />
-              <span>Dipertahankan: <strong>{keepCount.toLocaleString('id-ID')}</strong> berkas</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={busy || !idsToDelete.length}
-            onClick={() => onDeleteIds(idsToDelete)}
-            style={{
-              width: '100%',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              padding: '12px 20px',
-              borderRadius: '11px',
-              background: idsToDelete.length
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                : 'rgba(255, 255, 255, 0.05)',
-              border: idsToDelete.length ? '1px solid #f87171' : '1px solid rgba(255, 255, 255, 0.08)',
-              color: idsToDelete.length ? '#ffffff' : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.88rem',
-              letterSpacing: '0.3px',
-              cursor: idsToDelete.length && !busy ? 'pointer' : 'not-allowed',
-              boxShadow: idsToDelete.length ? '0 4px 18px rgba(239, 68, 68, 0.45)' : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Trash2 size={16} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b' }} />
-            <span>Hapus {idsToDelete.length.toLocaleString('id-ID')} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})</span>
-          </button>
-        </div>
-      )}
-
       {groupsWithAllMarked > 0 && (
-        <p className="td-tools-dup-warn" role="status">
+        <p className="td-tools-dup-warn" role="status" style={{ margin: 0 }}>
           <AlertTriangle size={13} /> {t('speedtest.dup_all_marked_warning', { count: groupsWithAllMarked })}
         </p>
       )}
@@ -1547,98 +1472,169 @@ function DupTab({
         </div>
       )}
 
-      {/* DUP GROUPS LIST */}
-      <ul className="td-tools-dup-groups">
-        {filteredGroups.slice(0, 50).map((g) => {
-          const keepId = preferredKeepId(g, keepNewest);
-          const markedInGroup = g.files.filter((f: any) => markedDelete.has(f.id)).length;
-          const keepInGroup = g.files.length - markedInGroup;
-          return (
-            <li key={g.key} className="td-tools-dup-group">
-              <div className="td-tools-dup-head">
-                <AlertTriangle size={12} />
-                <span className="td-tools-dup-head-main">
-                  {g.reasonLabel || g.reason}
-                  {' · '}{t('speedtest.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
-                </span>
-                <span className="td-tools-dup-head-actions">
-                  <button
-                    type="button"
-                    className="td-tools-dup-mini"
-                    disabled={busy}
-                    onClick={() => markGroupExtras(g)}
-                    title={t('speedtest.keep_one_check_rest')}
-                  >
-                    {t('speedtest.smart_selection_btn')}
-                  </button>
-                  <button
-                    type="button"
-                    className="td-tools-dup-mini"
-                    disabled={busy}
-                    onClick={() => clearGroupMarks(g)}
-                    title={t('speedtest.keep_all_in_group')}
-                  >
-                    {t('speedtest.keep_all_in_group')}
-                  </button>
-                </span>
-              </div>
-              <ul className="td-tools-dup-files">
-                {g.files.map((f: any) => {
-                  const canPreview = Boolean(onPreviewFile);
-                  const marked = markedDelete.has(f.id);
-                  const isPreferredKeep = f.id === keepId;
-                  const label = driveFileDisplayName(f);
-                  return (
-                    <li
-                      key={f.id}
-                      className={`td-tools-dup-file${marked ? ' is-marked-delete' : ' is-keep'}${
-                        isPreferredKeep ? ' is-preferred-keep' : ''
-                      }`}
+      {/* 📜 3. DEDICATED SCROLLABLE DUPLICATE GROUPS LIST */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px' }}>
+        <ul className="td-tools-dup-groups" style={{ margin: 0, padding: 0 }}>
+          {filteredGroups.slice(0, 60).map((g) => {
+            const keepId = preferredKeepId(g, keepNewest);
+            const markedInGroup = g.files.filter((f: any) => markedDelete.has(f.id)).length;
+            const keepInGroup = g.files.length - markedInGroup;
+            return (
+              <li key={g.key} className="td-tools-dup-group">
+                <div className="td-tools-dup-head">
+                  <AlertTriangle size={12} />
+                  <span className="td-tools-dup-head-main">
+                    {g.reasonLabel || g.reason}
+                    {' · '}{t('speedtest.dup_group_counts', { files: g.files.length, keep: keepInGroup, delete: markedInGroup })}
+                  </span>
+                  <span className="td-tools-dup-head-actions">
+                    <button
+                      type="button"
+                      className="td-tools-dup-mini"
+                      disabled={busy}
+                      onClick={() => markGroupExtras(g)}
+                      title={t('speedtest.keep_one_check_rest')}
                     >
-                      <label className="td-tools-dup-check" title={t("speedtest.check_delete_tooltip")}>
-                        <input
-                          type="checkbox"
-                          checked={marked}
-                          disabled={busy}
-                          onChange={() => toggleMark(f.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span className="td-tools-dup-check-ui" aria-hidden>
-                          {marked ? <Check size={11} strokeWidth={3} /> : null}
-                        </span>
-                      </label>
-                      <button
-                        type="button"
-                        className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
-                        onClick={() => onPreviewFile?.(f)}
-                        disabled={!canPreview}
-                        title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}
-                        aria-label={canPreview ? `Pratinjau ${label}` : label}
+                      {t('speedtest.smart_selection_btn')}
+                    </button>
+                    <button
+                      type="button"
+                      className="td-tools-dup-mini"
+                      disabled={busy}
+                      onClick={() => clearGroupMarks(g)}
+                      title={t('speedtest.keep_all_in_group')}
+                    >
+                      {t('speedtest.keep_all_in_group')}
+                    </button>
+                  </span>
+                </div>
+                <ul className="td-tools-dup-files">
+                  {g.files.map((f: any) => {
+                    const canPreview = Boolean(onPreviewFile);
+                    const marked = markedDelete.has(f.id);
+                    const isPreferredKeep = f.id === keepId;
+                    const label = driveFileDisplayName(f);
+                    return (
+                      <li
+                        key={f.id}
+                        className={`td-tools-dup-file${marked ? ' is-marked-delete' : ' is-keep'}${
+                          isPreferredKeep ? ' is-preferred-keep' : ''
+                        }`}
                       >
-                        <DupFileThumb file={f} creds={creds} folderId={folderId} />
-                        <div className="td-tools-dup-meta">
-                          <span className="td-tools-fname" title={label}>
-                            {label}
+                        <label className="td-tools-dup-check" title={t("speedtest.check_delete_tooltip")}>
+                          <input
+                            type="checkbox"
+                            checked={marked}
+                            disabled={busy}
+                            onChange={() => toggleMark(f.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="td-tools-dup-check-ui" aria-hidden>
+                            {marked ? <Check size={11} strokeWidth={3} /> : null}
                           </span>
-                          <span className="td-tools-dup-sub">
-                            <span className="muted">#{f.id}</span>
-                            <span>{formatDriveBytes(f.size || 0)}</span>
-                            <span
-                              className={`td-tools-dup-badge${marked ? ' is-del' : ' is-keep'}`}
-                            >
-                              {marked ? t('speedtest.badge_tag_delete') : isPreferredKeep ? t('speedtest.badge_tag_keep_default') : t('speedtest.badge_tag_keep')}
+                        </label>
+                        <button
+                          type="button"
+                          className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
+                          onClick={() => onPreviewFile?.(f)}
+                          disabled={!canPreview}
+                          title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}
+                          aria-label={canPreview ? `Pratinjau ${label}` : label}
+                        >
+                          <DupFileThumb file={f} creds={creds} folderId={folderId} />
+                          <div className="td-tools-dup-meta">
+                            <span className="td-tools-fname" title={label}>
+                              {label}
                             </span>
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          );
-        })}
-      </ul>
+                            <span className="td-tools-dup-sub">
+                              <span className="muted">#{f.id}</span>
+                              <span>{formatDriveBytes(f.size || 0)}</span>
+                              <span
+                                className={`td-tools-dup-badge${marked ? ' is-del' : ' is-keep'}`}
+                              >
+                                {marked ? t('speedtest.badge_tag_delete') : isPreferredKeep ? t('speedtest.badge_tag_keep_default') : t('speedtest.badge_tag_keep')}
+                              </span>
+                            </span>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* 🔴 4. STICKY BOTTOM ACTION DOCK (ALWAYS VISIBLE & NO CUT-OFF) */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10,
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: '10px 14px',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexShrink: 0,
+          marginTop: 'auto',
+          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.4)',
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 10px',
+            borderRadius: '6px',
+            background: 'rgba(74, 222, 128, 0.1)',
+            border: '1px solid rgba(74, 222, 128, 0.25)',
+            color: '#4ade80',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <ShieldCheck size={13} />
+          <span>Dipertahankan: <strong>{keepCount.toLocaleString('id-ID')}</strong> berkas</span>
+        </div>
+
+        <button
+          type="button"
+          disabled={busy || !idsToDelete.length}
+          onClick={() => onDeleteIds(idsToDelete)}
+          style={{
+            flex: 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            borderRadius: '9px',
+            background: idsToDelete.length
+              ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+              : 'rgba(255, 255, 255, 0.05)',
+            border: idsToDelete.length ? '1px solid #f87171' : '1px solid rgba(255, 255, 255, 0.08)',
+            color: idsToDelete.length ? '#ffffff' : '#64748b',
+            fontWeight: 800,
+            fontSize: '0.85rem',
+            letterSpacing: '0.3px',
+            cursor: idsToDelete.length && !busy ? 'pointer' : 'not-allowed',
+            boxShadow: idsToDelete.length ? '0 4px 16px rgba(239, 68, 68, 0.4)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Trash2 size={15} style={{ color: idsToDelete.length ? '#ffffff' : '#64748b' }} />
+          <span>Hapus {idsToDelete.length.toLocaleString('id-ID')} Berkas Duplikat Terpilih (~{formatDriveBytes(selectedWaste)})</span>
+        </button>
+      </div>
     </div>
   );
 }
