@@ -1,6 +1,9 @@
-AutoGram Version: v2.9.1
+AutoGram Version: v2.9.2
 
 Current State:
+v2.9.2 Modern Ultra-Clean Duplicate Comparison Mockup Redesign Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merestrukturisasi tata letak modal perbandingan duplikat 100% presisi sesuai mockup acuan pengguna (`Duplicate Group #7`, Card A lencana biru, Card B lencana ungu, tombol `✓ Keep A/B` hijau emerald & `🗑 Delete` merah crimson, Bottom Group Navigation Bar, dan Sidepanel List dengan aksi `[✓]` & `[✕]`).
+
+Previous:
 v2.9.1 Active Slot Duplicate Overwrite Prevention Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbarui `handleSelectSidepanelItem` untuk mencegah penimpaan/duplikasi berkas yang sedang aktif di-preview. Jika berkas sudah tampil di Preview A (atau Preview B), mengeklik kartu berkas tersebut di sidepanel secara cerdas diabaikan (tidak akan menggantikan Preview B), menjaga lencana A/B di sidepanel tetap 100% konsisten dan presisi.
 
 Previous:

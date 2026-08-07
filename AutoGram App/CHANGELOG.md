@@ -1,3 +1,14 @@
+## v2.9.2 Modern Ultra-Clean Duplicate Comparison Mockup Redesign Engine
+
+### Redesain Presisi Modal Perbandingan Duplikat (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Header Top Bar Minimalis**: Menampilkan ikon kembali `←`, judul `Duplicate Group #<index>`, lencana pill `<count> files`, serta tombol `✕ Close`.
+- **Kartu Preview A (Biru) & Preview B (Ungu)**:
+  - Header kartu ber-lencana bulat Biru `A` & Ungu `B`, nama berkas tebal, dan ikon menu tiga titik `⋮`.
+  - Stage gambar penuh (*full-bleed*) dengan sudut membulat 12px.
+  - Footer kartu dengan ukuran berkas di sisi kiri, serta tombol aksi **`✓ Keep A` / `✓ Keep B`** (hijau emerald) dan **`🗑 Delete`** (merah crimson) di sisi kanan.
+- **Bottom Navigation Bar**: Tombol `< Previous Group`, indikator counter `<index> of <total> groups`, dan tombol `Next Group >`.
+- **Sidepanel List (Files in this group)**: Judul `Files in this group (<count>)`, kartu item thumbnail ber-badge `A`/`B`, serta tombol aksi `[✓]` (hijau) dan `[✕]` (merah) beserta petunjuk `ⓘ Select files to keep.`.
+
 ## v2.9.1 Active Slot Duplicate Overwrite Prevention Engine
 
 ### Proteksi Penimpaan Berkas Aktif & Konsistensi Lencana A/B (`DrivePreviewModal/index.tsx`)
