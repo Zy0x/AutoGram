@@ -7,6 +7,8 @@ import {
   Plus,
   Star,
   Settings,
+  X,
+  Maximize2,
 } from 'lucide-react';
 import {
   loadSelectableSessions,
@@ -34,6 +36,11 @@ export function SessionLauncher({
   const [defaultSession, setDefaultSession] = useState<string>(() => {
     return localStorage.getItem('autogram_default_session') || '';
   });
+  const [previewPhoto, setPreviewPhoto] = useState<{
+    url: string;
+    title: string;
+    subtitle: string;
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -74,6 +81,17 @@ export function SessionLauncher({
       active = false;
     };
   }, [defaultSession]);
+
+  // Handle Esc key to close photo preview modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewPhoto) {
+        setPreviewPhoto(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewPhoto]);
 
   const handleSetDefault = (name: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -278,12 +296,24 @@ export function SessionLauncher({
                 {/* ACCOUNT PROFILE HEADER */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <div
+                    onClick={() => {
+                      if (showAvatar && avatarUrl) {
+                        setPreviewPhoto({
+                          url: avatarUrl,
+                          title: displayName,
+                          subtitle: `Session ID: ${sess.name}`,
+                        });
+                      }
+                    }}
+                    title={showAvatar ? 'Klik untuk melihat foto profil besar' : undefined}
                     style={{
                       width: '52px',
                       height: '52px',
                       borderRadius: '16px',
                       background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      border: showAvatar
+                        ? '1.5px solid rgba(56, 189, 248, 0.5)'
+                        : '1px solid rgba(255,255,255,0.12)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -292,15 +322,49 @@ export function SessionLauncher({
                       color: '#38bdf8',
                       overflow: 'hidden',
                       flexShrink: 0,
+                      cursor: showAvatar ? 'pointer' : 'default',
+                      position: 'relative',
+                      transition: 'transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (showAvatar) {
+                        e.currentTarget.style.transform = 'scale(1.06)';
+                        e.currentTarget.style.borderColor = '#38bdf8';
+                        e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.4)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (showAvatar) {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
                     }}
                   >
                     {showAvatar ? (
-                      <img
-                        src={avatarUrl!}
-                        alt={displayName}
-                        onError={() => setAvatarErrors((prev) => new Set(prev).add(sess.name))}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+                      <>
+                        <img
+                          src={avatarUrl!}
+                          alt={displayName}
+                          onError={() => setAvatarErrors((prev) => new Set(prev).add(sess.name))}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0,
+                            transition: 'opacity 0.18s ease',
+                          }}
+                          className="ag-avatar-zoom-overlay"
+                        >
+                          <Maximize2 size={16} style={{ color: '#ffffff' }} />
+                        </div>
+                      </>
                     ) : (
                       displayName.charAt(0).toUpperCase()
                     )}
@@ -416,6 +480,91 @@ export function SessionLauncher({
           })}
         </div>
       </main>
+
+      {/* PHOTO PREVIEW LIGHTBOX MODAL */}
+      {previewPhoto && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(6, 9, 17, 0.85)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '440px',
+              width: '100%',
+              background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.95) 0%, rgba(11, 16, 26, 0.98) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '24px',
+              padding: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.25)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title="Tutup Preview (Esc)"
+            >
+              <X size={18} />
+            </button>
+
+            <div
+              style={{
+                width: '260px',
+                height: '260px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '3px solid rgba(56, 189, 248, 0.6)',
+                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(56, 189, 248, 0.3)',
+                marginBottom: '20px',
+                background: '#0f172a',
+              }}
+            >
+              <img
+                src={previewPhoto.url}
+                alt={previewPhoto.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', textAlign: 'center' }}>
+              {previewPhoto.title}
+            </h3>
+            <span style={{ fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
+              {previewPhoto.subtitle}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER BAR */}
       <footer
