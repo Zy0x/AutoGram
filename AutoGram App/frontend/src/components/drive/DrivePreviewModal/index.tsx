@@ -3557,21 +3557,21 @@ export function DrivePreviewModal({
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div className="dup-viewer-wrapper flex flex-col w-full h-full overflow-hidden bg-slate-950/80">
               {/* TOP SECTION: SPLIT PREVIEW CARDS (Preview A vs Preview B) */}
-              <div className="dup-viewer-stage flex-1 flex flex-col md:flex-row gap-4 p-4 min-h-0 overflow-y-auto">
+              <div className="dup-viewer-stage flex-1 flex flex-col md:flex-row gap-4 p-3 md:p-4 min-h-0 overflow-hidden">
                 {/* PREVIEW A CARD */}
                 {(() => {
                   const fileA = currentDupGroup.files[0];
                   const thumbA = fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
                   const grpPillStr = `g${duplicateContext.currentGroupIndex + 1}-1`;
                   return (
-                    <div className="dup-viewer-card is-card-a flex-1 flex flex-col rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden min-h-[300px]">
+                    <div className="dup-viewer-card is-card-a flex-1 min-w-0 min-h-0 h-full flex flex-col rounded-xl bg-slate-900/95 border border-slate-800 shadow-xl overflow-hidden">
                       {/* Header */}
-                      <div className="dup-viewer-card-head flex items-center justify-between px-4 py-2.5 bg-slate-900/95 border-b border-slate-800/80">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase">Preview A</span>
+                      <div className="dup-viewer-card-head flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 flex-shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase truncate">Preview A</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-[11px] font-bold text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
                             {grpPillStr}
                           </span>
@@ -3587,12 +3587,12 @@ export function DrivePreviewModal({
                       </div>
 
                       {/* Media Display */}
-                      <div className="dup-viewer-card-media flex-1 flex items-center justify-center p-3 bg-slate-950/50 overflow-hidden relative">
+                      <div className="dup-viewer-card-media flex-1 min-h-0 h-0 flex items-center justify-center p-3 bg-slate-950/60 overflow-hidden relative">
                         {isImageDriveFile(fileA) && thumbA ? (
                           <img
                             src={thumbA}
                             alt={fileA.name}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-md"
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-md"
                           />
                         ) : (
                           <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
@@ -3603,8 +3603,8 @@ export function DrivePreviewModal({
                       </div>
 
                       {/* Footer Meta & Action */}
-                      <div className="dup-viewer-card-foot flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 border-t border-slate-800/80">
-                        <div className="flex flex-col text-xs text-slate-300 min-w-0">
+                      <div className="dup-viewer-card-foot flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800">
+                        <div className="flex flex-col text-xs text-slate-300 min-w-0 flex-1">
                           <div className="truncate">
                             <span className="text-slate-400">Nama: </span>
                             <span className="font-bold text-slate-100">{fileA.name}</span>
@@ -3634,14 +3634,14 @@ export function DrivePreviewModal({
                   const thumbB = fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
                   const grpPillStr = `g${duplicateContext.currentGroupIndex + 1}-2`;
                   return (
-                    <div className="dup-viewer-card is-card-b flex-1 flex flex-col rounded-xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden min-h-[300px]">
+                    <div className="dup-viewer-card is-card-b flex-1 min-w-0 min-h-0 h-full flex flex-col rounded-xl bg-slate-900/95 border border-slate-800 shadow-xl overflow-hidden">
                       {/* Header */}
-                      <div className="dup-viewer-card-head flex items-center justify-between px-4 py-2.5 bg-slate-900/95 border-b border-slate-800/80">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase">Preview B</span>
+                      <div className="dup-viewer-card-head flex-shrink-0 flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                          <span className="text-xs font-extrabold text-slate-100 tracking-wide uppercase truncate">Preview B</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                             {grpPillStr}
                           </span>
@@ -3657,12 +3657,12 @@ export function DrivePreviewModal({
                       </div>
 
                       {/* Media Display */}
-                      <div className="dup-viewer-card-media flex-1 flex items-center justify-center p-3 bg-slate-950/50 overflow-hidden relative">
+                      <div className="dup-viewer-card-media flex-1 min-h-0 h-0 flex items-center justify-center p-3 bg-slate-950/60 overflow-hidden relative">
                         {isImageDriveFile(fileB) && thumbB ? (
                           <img
                             src={thumbB}
                             alt={fileB.name}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-md"
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-md"
                           />
                         ) : (
                           <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-6">
@@ -3673,8 +3673,8 @@ export function DrivePreviewModal({
                       </div>
 
                       {/* Footer Meta & Action */}
-                      <div className="dup-viewer-card-foot flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 border-t border-slate-800/80">
-                        <div className="flex flex-col text-xs text-slate-300 min-w-0">
+                      <div className="dup-viewer-card-foot flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-slate-900 border-t border-slate-800">
+                        <div className="flex flex-col text-xs text-slate-300 min-w-0 flex-1">
                           <div className="truncate">
                             <span className="text-slate-400">Nama: </span>
                             <span className="font-bold text-slate-100">{fileB.name}</span>
@@ -3700,21 +3700,21 @@ export function DrivePreviewModal({
               </div>
 
               {/* BOTTOM SECTION: DAFTAR GRUP DUPLIKAT (KLIK UNTUK ISI SPLIT A / B) */}
-              <div className="dup-viewer-bottom-bar bg-slate-900/95 border-t border-slate-800/90 p-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FolderOpen size={16} className="text-sky-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              <div className="dup-viewer-bottom-bar flex-shrink-0 bg-slate-900 border-t border-slate-800 p-3.5 flex flex-col gap-3.5 z-10">
+                <div className="flex items-center justify-between gap-3 w-full flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FolderOpen size={16} className="text-sky-400 flex-shrink-0" />
+                    <span className="text-xs font-extrabold uppercase tracking-wide text-slate-200 truncate">
                       DAFTAR GRUP DUPLIKAT (KLIK UNTUK ISI SPLIT A / B)
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400 font-semibold">
+                  <span className="text-xs text-slate-400 font-bold flex-shrink-0">
                     Total item di grup ini: {currentDupGroup.files.length}
                   </span>
                 </div>
 
                 {/* HORIZONTAL CAROUSEL OF THUMBNAILS */}
-                <div className="dup-viewer-thumb-row flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
+                <div className="dup-viewer-thumb-row flex items-center gap-3 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-700">
                   {currentDupGroup.files.map((f, idx) => {
                     const isA = idx === 0;
                     const isB = idx === selectedBIndex;
@@ -3726,75 +3726,72 @@ export function DrivePreviewModal({
                       <div
                         key={f.id}
                         onClick={() => setSelectedBIndex(idx)}
-                        className={`dup-viewer-thumb-card flex flex-col w-[170px] flex-shrink-0 rounded-xl bg-slate-950/80 border p-2 cursor-pointer transition-all ${
+                        className={`dup-viewer-thumb-card flex flex-col w-[150px] flex-shrink-0 rounded-xl bg-slate-950/90 border p-2 cursor-pointer transition-all ${
                           isA
-                            ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500/50'
+                            ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.35)] ring-1 ring-rose-500/50'
                             : isB
-                            ? 'border-emerald-500 shadow-[0_0_12px_rgba(52,211,153,0.3)] ring-1 ring-emerald-500/50'
+                            ? 'border-emerald-500 shadow-[0_0_12px_rgba(52,211,153,0.35)] ring-1 ring-emerald-500/50'
                             : 'border-slate-800 hover:border-slate-600'
                         }`}
                       >
                         {/* Thumb Preview Box */}
-                        <div className="relative w-full h-[100px] rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center mb-2">
+                        <div className="relative w-full h-[90px] rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center mb-1.5">
                           {isA && (
-                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-rose-500 px-1.5 py-0.5 rounded shadow">
+                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-rose-600 px-2 py-0.5 rounded shadow-md border border-rose-400/50">
                               A
                             </span>
                           )}
                           {isB && !isA && (
-                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-emerald-500 px-1.5 py-0.5 rounded shadow">
+                            <span className="absolute top-1.5 left-1.5 z-10 text-[10px] font-black text-white bg-emerald-600 px-2 py-0.5 rounded shadow-md border border-emerald-400/50">
                               B
                             </span>
                           )}
 
                           {isImageDriveFile(f) && cardThumb ? (
-                            <img src={cardThumb} alt={f.name} className="w-full h-full object-cover" />
+                            <img src={cardThumb} alt={f.name} className="w-full h-full object-cover rounded-md" />
                           ) : (
                             <Film size={28} className="text-slate-500" />
                           )}
                         </div>
 
-                        {/* Text Info */}
+                        {/* Text Info & Radio controls */}
                         <div className="flex flex-col gap-1 px-1">
-                          <span className="text-xs font-bold text-slate-200 truncate" title={f.name}>
+                          <span className="text-xs font-bold text-slate-200 truncate block" title={f.name}>
                             {f.name}
                           </span>
+                          <span className="text-[11px] font-semibold text-slate-400 block">{sizeStr}</span>
 
-                          <div className="flex items-center justify-between text-[11px] text-slate-400">
-                            <span>{sizeStr}</span>
+                          {/* Radio Options: Simpan / Hapus */}
+                          <div className="flex items-center gap-3 mt-1 text-[11px] font-semibold" onClick={(e) => e.stopPropagation()}>
+                            <label className="inline-flex items-center gap-1 cursor-pointer text-slate-300 hover:text-emerald-400">
+                              <input
+                                type="radio"
+                                name={`dup-act-${f.id}`}
+                                checked={!isDel}
+                                onChange={() => {
+                                  if (duplicateContext.markedDelete.has(f.id)) {
+                                    duplicateContext.onToggleMark(f.id);
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 accent-emerald-500 cursor-pointer"
+                              />
+                              <span>Simpan</span>
+                            </label>
 
-                            {/* Radio Options: Simpan / Hapus */}
-                            <div className="flex items-center gap-2 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                              <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-300">
-                                <input
-                                  type="radio"
-                                  name={`dup-act-${f.id}`}
-                                  checked={!isDel}
-                                  onChange={() => {
-                                    if (duplicateContext.markedDelete.has(f.id)) {
-                                      duplicateContext.onToggleMark(f.id);
-                                    }
-                                  }}
-                                  className="accent-emerald-500"
-                                />
-                                <span>Simpan</span>
-                              </label>
-
-                              <label className="flex items-center gap-1 cursor-pointer hover:text-rose-400">
-                                <input
-                                  type="radio"
-                                  name={`dup-act-${f.id}`}
-                                  checked={isDel}
-                                  onChange={() => {
-                                    if (!duplicateContext.markedDelete.has(f.id)) {
-                                      duplicateContext.onToggleMark(f.id);
-                                    }
-                                  }}
-                                  className="accent-rose-500"
-                                />
-                                <span>Hapus</span>
-                              </label>
-                            </div>
+                            <label className="inline-flex items-center gap-1 cursor-pointer text-slate-300 hover:text-rose-400">
+                              <input
+                                type="radio"
+                                name={`dup-act-${f.id}`}
+                                checked={isDel}
+                                onChange={() => {
+                                  if (!duplicateContext.markedDelete.has(f.id)) {
+                                    duplicateContext.onToggleMark(f.id);
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 accent-rose-500 cursor-pointer"
+                              />
+                              <span>Hapus</span>
+                            </label>
                           </div>
                         </div>
                       </div>

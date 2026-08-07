@@ -10040,21 +10040,27 @@ body:has(.app-layout-drive-focus),
   flex-direction: column;
   width: 100%;
   height: 100%;
+  max-height: 100%;
   overflow: hidden;
   background: #0b0f19;
+  box-sizing: border-box;
 }
 
 .dup-viewer-stage {
   flex: 1;
+  min-height: 0;
   display: flex;
   gap: 16px;
-  padding: 16px;
-  min-height: 0;
-  overflow-y: auto;
+  padding: 12px 16px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .dup-viewer-card {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   border-radius: 14px;
@@ -10062,43 +10068,56 @@ body:has(.app-layout-drive-focus),
   border: 1px solid #1f2937;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  min-height: 320px;
+  box-sizing: border-box;
 }
 
 .dup-viewer-card.is-card-a {
-  border-color: rgba(244, 63, 94, 0.3);
+  border-color: rgba(244, 63, 94, 0.35);
 }
 
 .dup-viewer-card.is-card-b {
-  border-color: rgba(52, 211, 153, 0.3);
+  border-color: rgba(52, 211, 153, 0.35);
 }
 
 .dup-viewer-card-head {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 14px;
   background: #131d31;
   border-bottom: 1px solid #1e293b;
 }
 
 .dup-viewer-card-media {
   flex: 1;
+  min-height: 0;
+  height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 10px;
   background: #070b14;
   position: relative;
   overflow: hidden;
 }
 
+.dup-viewer-card-media img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 .dup-viewer-card-foot {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #111827;
   border-top: 1px solid #1f2937;
 }
@@ -10113,6 +10132,7 @@ body:has(.app-layout-drive-focus),
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .dup-viewer-keep-btn:hover {
@@ -10121,12 +10141,14 @@ body:has(.app-layout-drive-focus),
 }
 
 .dup-viewer-bottom-bar {
+  flex-shrink: 0;
   background: #0e1626;
   border-top: 1px solid #1e293b;
-  padding: 14px 16px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  z-index: 10;
 }
 
 .dup-viewer-thumb-row {
@@ -10138,7 +10160,7 @@ body:has(.app-layout-drive-focus),
 }
 
 .dup-viewer-thumb-card {
-  width: 170px;
+  width: 150px;
   flex-shrink: 0;
   border-radius: 12px;
   background: #0a0f1d;
@@ -10161,6 +10183,12 @@ body:has(.app-layout-drive-focus),
 @media (max-width: 900px) {
   .dup-viewer-stage {
     flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .dup-viewer-card {
+    min-height: 250px;
+    height: auto;
   }
 }
 .td-xfer-settings-foot {
