@@ -20,5 +20,20 @@
   "error_title": "An Error Occurred on This Page",
   "error_fallback_title": "UI Component Error Occurred",
   "error_default_desc": "The application encountered an unexpected issue while loading this section.",
-  "error_retry": "Try Again / Reload"
+  "error_retry": "Try Again / Reload",
+  "launcher_title": "Session Landing Launcher",
+  "launcher_subtitle": "Select a Telegram session and choose which primary workspace mode to launch.",
+  "open_drives": "Open Drives",
+  "open_forwarder": "Open Forwarder",
+  "add_session": "Add Session",
+  "switch_session": "Switch Session / Hub",
+  "set_as_default": "Set as Default",
+  "default_badge": "Default",
+  "mode_drives": "Drives",
+  "mode_forwarder": "Forwarder",
+  "splash_loading": "Loading Telegram Engine & AutoGram Settings…",
+  "tab_jobs_active": "Active Jobs & Runtime",
+  "tab_new_job": "Create New Job",
+  "tab_history": "History & Logs",
+  "tab_forwarder_settings": "Forwarder Settings"
 }

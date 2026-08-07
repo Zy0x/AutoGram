@@ -338,7 +338,12 @@ interface QueueTask {
 
 type LocationKind = 'saved' | 'drive' | 'chat';
 
-export function MediaStudio({ onExitToApp, onNavigateToAccounts }: MediaStudioProps = {}) {
+export function MediaStudio({
+  onExitToApp,
+  onNavigateToAccounts,
+  onSwitchMode,
+  onBackToLauncher,
+}: MediaStudioProps = {}) {
   if (!canUseLocalTelegramWorker()) {
     return (
       <main className="main-content page-stack">
@@ -363,10 +368,22 @@ export function MediaStudio({ onExitToApp, onNavigateToAccounts }: MediaStudioPr
       </main>
     );
   }
-  return <MediaDriveDesktop onExitToApp={onExitToApp} onNavigateToAccounts={onNavigateToAccounts} />;
+  return (
+    <MediaDriveDesktop
+      onExitToApp={onExitToApp}
+      onNavigateToAccounts={onNavigateToAccounts}
+      onSwitchMode={onSwitchMode}
+      onBackToLauncher={onBackToLauncher}
+    />
+  );
 }
 
-function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioProps) {
+function MediaDriveDesktop({
+  onExitToApp,
+  onNavigateToAccounts,
+  onSwitchMode,
+  onBackToLauncher,
+}: MediaStudioProps) {
   const { t } = useTranslation();
   // Instant restore from cache — avoids waiting list-sessions before first paint boot
   const [sessions, setSessions] = useState<string[]>(() => readSessionsCache());
@@ -7489,6 +7506,8 @@ function MediaDriveDesktop({ onExitToApp, onNavigateToAccounts }: MediaStudioPro
               setToolsTab('upload');
               setToolsOpen(true);
             }}
+            onSwitchMode={onSwitchMode}
+            onBackToLauncher={onBackToLauncher}
             onOpenTransferManager={openTransferManager}
             transferHasHistory={
               transfer.active || (transfer.items?.length ?? 0) > 0 || !!transfer.banner

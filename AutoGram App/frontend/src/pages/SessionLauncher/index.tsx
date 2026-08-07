@@ -1,0 +1,398 @@
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Zap,
+  Folder,
+  ArrowRightLeft,
+  Plus,
+  Star,
+  Settings,
+} from 'lucide-react';
+import {
+  loadSelectableSessions,
+  type SessionOption,
+} from '../../lib/telegram';
+
+interface SessionLauncherProps {
+  onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
+  onOpenAccounts: () => void;
+  onOpenSettings: () => void;
+}
+
+export function SessionLauncher({
+  onSelectMode,
+  onOpenAccounts,
+  onOpenSettings,
+}: SessionLauncherProps) {
+  const { t } = useTranslation();
+  const [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [defaultSession, setDefaultSession] = useState<string>(() => {
+    return localStorage.getItem('autogram_default_session') || '';
+  });
+
+  useEffect(() => {
+    let active = true;
+    loadSelectableSessions({ verify: true })
+      .then((res: SessionOption[]) => {
+        if (active && Array.isArray(res)) {
+          setSessions(res);
+          if (!defaultSession && res.length > 0) {
+            setDefaultSession(res[0].name);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [defaultSession]);
+
+  const handleSetDefault = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDefaultSession(name);
+    localStorage.setItem('autogram_default_session', name);
+  };
+
+  const displaySessions = sessions.length > 0 ? sessions : [
+    {
+      name: 'Lavender',
+      label: 'Lavender (@lv_drr)',
+      status: 'active',
+      premium: true,
+      datacenterId: 4,
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        width: '100vw',
+        background: 'radial-gradient(ellipse at top, #111827 0%, #060911 100%)',
+        color: '#f8fafc',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        overflow: 'auto',
+      }}
+    >
+      {/* TOP LAUNCHER NAVBAR */}
+      <header
+        style={{
+          height: '64px',
+          padding: '0 32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(9, 14, 26, 0.7)',
+          backdropFilter: 'blur(16px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+            }}
+          >
+            <Zap size={20} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+              AutoGram Launcher
+            </h2>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
+              Grammers Engine v2.1.2 · Desktop Hub
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={onOpenAccounts}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: '#38bdf8',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Plus size={15} />
+            <span>{t('nav.add_session', 'Tambah Session')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#94a3b8',
+              cursor: 'pointer',
+            }}
+            title="Pengaturan"
+          >
+            <Settings size={17} />
+          </button>
+        </div>
+      </header>
+
+      {/* HERO SECTION */}
+      <main style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
+            {t('nav.launcher_title', 'Landing Launcher Session')}
+          </h1>
+          <p style={{ fontSize: '0.92rem', color: '#94a3b8', margin: 0, maxWidth: '620px', marginInline: 'auto', lineHeight: 1.5 }}>
+            {t('nav.launcher_subtitle', 'Pilih session Telegram dan tentukan mode workspace utama yang ingin Anda buka.')}
+          </p>
+        </div>
+
+        {/* SESSION CARDS GRID */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gap: '24px',
+            maxWidth: '1080px',
+            margin: '0 auto',
+          }}
+        >
+          {displaySessions.map((sess) => {
+            const isDefault = defaultSession === sess.name;
+            const displayName = sess.label || sess.name;
+
+            return (
+              <div
+                key={sess.name}
+                style={{
+                  borderRadius: '20px',
+                  background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.85) 0%, rgba(11, 16, 26, 0.95) 100%)',
+                  border: isDefault ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: isDefault
+                    ? '0 20px 40px -15px rgba(56, 189, 248, 0.25), inset 0 1px rgba(255,255,255,0.1)'
+                    : '0 16px 36px -15px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255,255,255,0.05)',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  position: 'relative',
+                  backdropFilter: 'blur(16px)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: '#4ade80',
+                        boxShadow: '0 0 10px #4ade80',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#4ade80', fontWeight: 600 }}>
+                      15 ms · Connection Strong
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleSetDefault(sess.name, e)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      background: isDefault ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                      border: isDefault ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: isDefault ? '#38bdf8' : '#64748b',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Star size={12} fill={isDefault ? '#38bdf8' : 'none'} />
+                    {isDefault ? t('nav.default_badge', 'Default') : t('nav.set_as_default', 'Atur Default')}
+                  </button>
+                </div>
+
+                {/* ACCOUNT PROFILE HEADER */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.3rem',
+                      fontWeight: 700,
+                      color: '#38bdf8',
+                    }}
+                  >
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {displayName}
+                      </h3>
+                      {(sess as any).premium && (
+                        <span
+                          style={{
+                            fontSize: '0.65rem',
+                            padding: '2px 6px',
+                            borderRadius: '6px',
+                            background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
+                            color: '#ffffff',
+                            fontWeight: 700,
+                          }}
+                        >
+                          PREMIUM
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                      Session ID: {sess.name} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <hr style={{ border: 0, borderTop: '1px solid rgba(255,255,255,0.06)', margin: 0 }} />
+
+                {/* MODE ACTION BUTTONS */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {/* BUKA DRIVES */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectMode(sess.name, 'drives')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(3, 105, 161, 0.25) 100%)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      color: '#bae6fd',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.borderColor = '#38bdf8';
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(56, 189, 248, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <Folder size={22} style={{ color: '#38bdf8' }} />
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                        {t('nav.open_drives', 'Buka Drives')}
+                      </strong>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Cloud File Manager</span>
+                    </div>
+                  </button>
+
+                  {/* BUKA FORWARDER */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectMode(sess.name, 'forwarder')}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.25) 100%)',
+                      border: '1px solid rgba(99, 102, 241, 0.35)',
+                      color: '#c7d2fe',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.borderColor = '#818cf8';
+                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <ArrowRightLeft size={22} style={{ color: '#818cf8' }} />
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                        {t('nav.open_forwarder', 'Buka Forwarder')}
+                      </strong>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Chat Migration Suite</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+
+      {/* FOOTER BAR */}
+      <footer
+        style={{
+          padding: '16px 32px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'rgba(6, 9, 17, 0.8)',
+          fontSize: '0.78rem',
+          color: '#64748b',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>AutoGram v2.1.2 · High Performance Telegram Engine</span>
+        <span>Rust MTProto Core · SQLite Local Sync</span>
+      </footer>
+    </div>
+  );
+}

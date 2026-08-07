@@ -20,5 +20,20 @@
   "error_title": "Terjadi Kesalahan pada Halaman Ini",
   "error_fallback_title": "Terjadi Kesalahan Komponen UI",
   "error_default_desc": "Aplikasi mengalami kendala tak terduga saat memuat bagian ini.",
-  "error_retry": "Coba Lagi / Muat Ulang"
+  "error_retry": "Coba Lagi / Muat Ulang",
+  "launcher_title": "Landing Launcher Session",
+  "launcher_subtitle": "Pilih session Telegram dan tentukan mode workspace utama yang ingin Anda buka.",
+  "open_drives": "Buka Drives",
+  "open_forwarder": "Buka Forwarder",
+  "add_session": "Tambah Session",
+  "switch_session": "Ganti Session / Hub",
+  "set_as_default": "Atur Default",
+  "default_badge": "Default",
+  "mode_drives": "Drives",
+  "mode_forwarder": "Forwarder",
+  "splash_loading": "Memuat Mesin Telegram & Konfigurasi AutoGram…",
+  "tab_jobs_active": "Job Aktif & Runtime",
+  "tab_new_job": "Buat Job Baru",
+  "tab_history": "Riwayat & Log",
+  "tab_forwarder_settings": "Pengaturan Forwarder"
 }
