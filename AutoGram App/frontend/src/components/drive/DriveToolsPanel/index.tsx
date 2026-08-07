@@ -1629,24 +1629,22 @@ function DupTab({
                           className={`td-tools-dup-row${canPreview ? ' is-clickable' : ''}`}
                           onClick={() => {
                             if (!onPreviewFile) return;
-                            onPreviewFile(f, {
-                              duplicateContext: {
-                                group: g,
-                                markedDelete,
-                                onToggleMark: (id) => toggleMark(id),
-                                onKeepOnly: (keepId) => markGroupExtras(g, keepId),
-                                onPrevGroup: gIdx > 0 ? () => {
-                                  const prevG = filteredGroups[gIdx - 1];
-                                  if (prevG && prevG.files[0]) onPreviewFile(prevG.files[0]);
-                                } : undefined,
-                                onNextGroup: gIdx < filteredGroups.length - 1 ? () => {
-                                  const nextG = filteredGroups[gIdx + 1];
-                                  if (nextG && nextG.files[0]) onPreviewFile(nextG.files[0]);
-                                } : undefined,
-                                groupIndex: gIdx + 1,
-                                totalGroups: filteredGroups.length,
-                              },
-                            });
+                            const openGroupPreview = (nextGroupIdx: number, fileToPrev?: DriveFile) => {
+                              const targetGroup = filteredGroups[nextGroupIdx];
+                              if (!targetGroup) return;
+                              const targetFile = fileToPrev || targetGroup.files[0];
+                              onPreviewFile(targetFile, {
+                                duplicateContext: {
+                                  activeFilteredGroups: filteredGroups,
+                                  currentGroupIndex: nextGroupIdx,
+                                  markedDelete,
+                                  onToggleMark: (id) => toggleMark(id),
+                                  onKeepOnly: (group, keepId) => markGroupExtras(group, keepId),
+                                  onNavigateGroup: (newIdx, newFile) => openGroupPreview(newIdx, newFile),
+                                },
+                              });
+                            };
+                            openGroupPreview(gIdx, f);
                           }}
                           disabled={!canPreview}
                           title={canPreview ? t('speedtest.tools_preview_file', { name: label }) : label}

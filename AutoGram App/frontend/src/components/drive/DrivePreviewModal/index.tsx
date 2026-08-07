@@ -95,20 +95,18 @@ import { isDesktop } from '../../../lib/tauri/platform';
 import { DriveConfirmDialog, type DriveConfirmState } from '../Modals/DriveConfirmDialog';
 
 export type DuplicateContextInfo = {
-  group: {
+  activeFilteredGroups: {
     key: string;
     reason: string;
     reasonLabel?: string;
     files: DriveFile[];
     wasteBytes: number;
-  };
+  }[];
+  currentGroupIndex: number;
   markedDelete: Set<number>;
   onToggleMark: (fileId: number) => void;
-  onKeepOnly: (keepFileId: number) => void;
-  onPrevGroup?: () => void;
-  onNextGroup?: () => void;
-  groupIndex?: number;
-  totalGroups?: number;
+  onKeepOnly: (group: any, keepFileId: number) => void;
+  onNavigateGroup?: (nextGroupIndex: number, fileToPreview?: DriveFile) => void;
 };
 
 type Props = {
@@ -449,6 +447,22 @@ export function DrivePreviewModal({
 }: Props) {
   const { t } = useTranslation();
   const [isSplitCompareMode, setIsSplitCompareMode] = useState<boolean>(() => Boolean(duplicateContext));
+
+  const currentDupGroup = useMemo(() => {
+    if (!duplicateContext || !duplicateContext.activeFilteredGroups.length) return null;
+    return (
+      duplicateContext.activeFilteredGroups[duplicateContext.currentGroupIndex] ||
+      duplicateContext.activeFilteredGroups[0]
+    );
+  }, [duplicateContext]);
+
+  const [selectedBIndex, setSelectedBIndex] = useState<number>(1);
+
+  useEffect(() => {
+    if (currentDupGroup) {
+      setSelectedBIndex(currentDupGroup.files.length > 1 ? 1 : 0);
+    }
+  }, [currentDupGroup]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [floodCountdown, setFloodCountdown] = useState<number | null>(null);
@@ -2961,6 +2975,62 @@ export function DrivePreviewModal({
                 </button>
               </>
             )}
+            {duplicateContext && duplicateContext.activeFilteredGroups.length > 0 && (
+              <div className="flex items-center gap-1.5 mr-2">
+                <button
+                  type="button"
+                  className="td-btn-secondary"
+                  disabled={duplicateContext.currentGroupIndex <= 0}
+                  onClick={() => {
+                    const prevIdx = duplicateContext.currentGroupIndex - 1;
+                    const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+                    if (prevGroup && duplicateContext.onNavigateGroup) {
+                      duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+                    }
+                  }}
+                  style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem' }}
+                  title={t('speedtest.preview_prev_group')}
+                >
+                  <ChevronLeft size={14} />
+                  <span>{t('speedtest.preview_prev_group')}</span>
+                </button>
+
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#38bdf8',
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                  }}
+                >
+                  {t('speedtest.preview_group_badge', {
+                    index: duplicateContext.currentGroupIndex + 1,
+                    total: duplicateContext.activeFilteredGroups.length,
+                  })}
+                </span>
+
+                <button
+                  type="button"
+                  className="td-btn-secondary"
+                  disabled={duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1}
+                  onClick={() => {
+                    const nextIdx = duplicateContext.currentGroupIndex + 1;
+                    const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+                    if (nextGroup && duplicateContext.onNavigateGroup) {
+                      duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+                    }
+                  }}
+                  style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem' }}
+                  title={t('speedtest.preview_next_group')}
+                >
+                  <span>{t('speedtest.preview_next_group')}</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
             {duplicateContext && (
               <button
                 type="button"
@@ -3382,11 +3452,11 @@ export function DrivePreviewModal({
           onWheel={onWheelStage}
           style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
         >
-          {duplicateContext && isSplitCompareMode ? (
+          {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div className="drive-preview-split-stage">
-              {/* LEFT PANE: FILE A (Reference / First in Group) */}
+              {/* LEFT PANE: FILE A (Reference / Main kept file) */}
               {(() => {
-                const fileA = duplicateContext.group.files[0];
+                const fileA = currentDupGroup.files[0];
                 const isMarkedA = duplicateContext.markedDelete.has(fileA.id);
                 const thumbA = fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
                 return (
@@ -3406,8 +3476,9 @@ export function DrivePreviewModal({
                           className="drive-preview-split-media"
                         />
                       ) : (
-                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex items-center justify-center text-slate-400">
+                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
                           <Film size={36} />
+                          <span className="text-xs text-slate-400">{fileA.name}</span>
                         </div>
                       )}
                     </div>
@@ -3421,7 +3492,7 @@ export function DrivePreviewModal({
                       <button
                         type="button"
                         className={`td-btn-primary ${!isMarkedA ? 'is-active-keep' : ''}`}
-                        onClick={() => duplicateContext.onKeepOnly(fileA.id)}
+                        onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileA.id)}
                         style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
                       >
                         <ShieldCheck size={14} /> {t('speedtest.preview_keep_a')}
@@ -3436,19 +3507,71 @@ export function DrivePreviewModal({
                 <span>VS</span>
               </div>
 
-              {/* RIGHT PANE: FILE B (Inspected Copy) */}
+              {/* RIGHT PANE: FILE B (Carousel / Slideshow for all group members) */}
               {(() => {
-                const fileB = duplicateContext.group.files.find((f) => f.id === file.id) || duplicateContext.group.files[1] || duplicateContext.group.files[0];
+                const fileB = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0];
                 const isMarkedB = duplicateContext.markedDelete.has(fileB.id);
                 const thumbB = fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
+                const totalB = currentDupGroup.files.length;
                 return (
                   <div className={`drive-preview-split-col ${isMarkedB ? 'is-marked-delete' : 'is-keep'}`}>
                     <div className="drive-preview-split-badge">
                       <span className={`td-tools-dup-badge ${isMarkedB ? 'is-del' : 'is-keep'}`}>
                         {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
                       </span>
-                      <span className="drive-preview-split-tag">{t('speedtest.preview_file_b')}</span>
+
+                      {/* File B Slideshow Controls */}
+                      <div className="flex items-center gap-1.5 bg-slate-950/60 px-2 py-0.5 rounded-lg border border-white/10">
+                        <button
+                          type="button"
+                          className="td-icon-btn text-xs p-1 h-6 w-6 disabled:opacity-30"
+                          disabled={selectedBIndex <= 0}
+                          onClick={() => setSelectedBIndex((i) => Math.max(0, i - 1))}
+                          title={t('speedtest.preview_prev_file_b')}
+                        >
+                          <ChevronLeft size={12} />
+                        </button>
+                        <span className="text-[11px] font-bold text-sky-400">
+                          {t('speedtest.preview_file_b_counter', { index: selectedBIndex + 1, total: totalB })}
+                        </span>
+                        <button
+                          type="button"
+                          className="td-icon-btn text-xs p-1 h-6 w-6 disabled:opacity-30"
+                          disabled={selectedBIndex >= totalB - 1}
+                          onClick={() => setSelectedBIndex((i) => Math.min(totalB - 1, i + 1))}
+                          title={t('speedtest.preview_next_file_b')}
+                        >
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Member Thumbnail Strip if >2 items */}
+                    {totalB > 2 && (
+                      <div className="flex items-center gap-1.5 w-full overflow-x-auto py-1 mb-2">
+                        {currentDupGroup.files.map((f, idx) => {
+                          const isSel = idx === selectedBIndex;
+                          const isDel = duplicateContext.markedDelete.has(f.id);
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setSelectedBIndex(idx)}
+                              className={`h-7 px-2 text-[10px] font-bold rounded-md flex items-center gap-1 transition-all border ${
+                                isSel
+                                  ? 'border-sky-400 bg-sky-500/20 text-white'
+                                  : isDel
+                                  ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                                  : 'border-white/10 bg-slate-800/50 text-slate-400'
+                              }`}
+                            >
+                              <span>#{idx + 1}</span>
+                              <span className="truncate max-w-[60px]">{f.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className="drive-preview-split-media-wrap">
                       {isImageDriveFile(fileB) && thumbB ? (
@@ -3458,8 +3581,9 @@ export function DrivePreviewModal({
                           className="drive-preview-split-media"
                         />
                       ) : (
-                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex items-center justify-center text-slate-400">
+                        <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
                           <Film size={36} />
+                          <span className="text-xs text-slate-400">{fileB.name}</span>
                         </div>
                       )}
                     </div>
@@ -3470,15 +3594,26 @@ export function DrivePreviewModal({
                         <span>#{fileB.id}</span>
                         <span>{formatDriveBytes(fileB.size)}</span>
                       </div>
-                      <button
-                        type="button"
-                        className={`td-btn-primary ${isMarkedB ? 'is-danger' : ''}`}
-                        onClick={() => duplicateContext.onToggleMark(fileB.id)}
-                        style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700 }}
-                      >
-                        {isMarkedB ? <Trash2 size={14} /> : <ShieldCheck size={14} />}
-                        {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_keep_b')}
-                      </button>
+                      <div className="flex gap-2 w-full">
+                        <button
+                          type="button"
+                          className={`td-btn-primary flex-1 ${isMarkedB ? 'is-danger' : ''}`}
+                          onClick={() => duplicateContext.onToggleMark(fileB.id)}
+                          style={{ padding: '8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}
+                        >
+                          {isMarkedB ? <Trash2 size={14} /> : <ShieldCheck size={14} />}
+                          {isMarkedB ? t('speedtest.preview_marked_delete') : t('speedtest.preview_mark_this_del')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`td-btn-primary ${!isMarkedB ? 'is-active-keep' : ''}`}
+                          onClick={() => duplicateContext.onKeepOnly(currentDupGroup, fileB.id)}
+                          style={{ padding: '8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}
+                          title={t('speedtest.preview_keep_this')}
+                        >
+                          <ShieldCheck size={14} /> {t('speedtest.preview_keep_this')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
