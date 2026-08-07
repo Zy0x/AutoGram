@@ -1,3 +1,10 @@
+## v3.0.1 Strict Flex Height & Sidepanel Text Wrap Fix Engine
+
+### Perbaikan Kalkulasi Flex Height & Pembungkusan Teks Sidepanel (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Presisi Kalkulasi Flex Height**: Memperbaiki kalkulasi tinggi `height: 0 !important; flex: 1 1 0% !important; min-height: 0 !important;` pada kontainer `.drive-preview-modal.is-split-compare .drive-preview-body` dan inner split stage di `DrivePreviewModal/index.tsx`.
+- **Garansi Tampilan Utuh Tanpa Terpotong**: Header utama atas, kartu Preview A & B (termasuk tombol `✓ Keep A/B` & `🗑 Delete`), dan footer navigasi bawah kini terisi 100% utuh tanpa terdorong keluar layar atau terpotong pada seluruh resolusi.
+- **Perbaikan Pembungkusan Teks Sidepanel**: Menambahkan `white-space: nowrap` pada `.drive-dup-sidebar-size` dan `max-width: 85px` pada `.drive-dup-sidebar-name` sehingga teks ukuran berkas `306.6 KB` tidak lagi terlipat secara vertikal.
+
 ## v3.0.0 Next-Gen Split View Overhaul & Instant Resolution Engine
 
 ### Rombak Total Split View Duplicate Comparison (`DrivePreviewModal/index.tsx`, `App.css`)

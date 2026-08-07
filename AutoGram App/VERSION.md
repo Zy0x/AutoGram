@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.0
+AutoGram Version: v3.0.1
 
 Current State:
+v3.0.1 Strict Flex Height & Sidepanel Text Wrap Fix Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki kalkulasi tinggi flexbox `height: 0 !important; flex: 1 1 0% !important;` pada kontainer modal `.drive-preview-modal.is-split-compare .drive-preview-body` sehingga header utama atas, kartu Preview A & B (termasuk tombol Keep/Delete), dan footer navigasi bawah terisi 100% utuh tanpa ada yang terdorong keluar atau terpotong. Serta menambahkan `white-space: nowrap` pada `.drive-dup-sidebar-size` untuk menghentikan pemotongan teks ukuran berkas secara vertikal.
+
+Previous:
 v3.0.0 Next-Gen Split View Overhaul & Instant Resolution Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak total tampilan Split View perbandingan duplikat menjadi interface *Deep Slate OLED Glassmorphism* yang ultra-minimalis, fleksibel, dan instan. Menyediakan alur eksekusi instan 1-tap (`handleKeepAndAdvance`), di mana mengeklik `✓ Keep A` atau `✓ Keep B` secara langsung menyimpan berkas pilihan, menandai sisanya untuk dihapus, dan otomatis berpindah ke grup duplikat berikutnya. Serta menambahkan *Collapsible Floating Glass Drawer* yang dapat ditutup/buka dalam 1 klik untuk memperluas area gambar hingga 100% lebar modal.
 
 Previous:

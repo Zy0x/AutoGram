@@ -10010,6 +10010,11 @@ body:has(.app-layout-drive-focus),
   height: 94vh !important;
   max-width: 1600px !important;
   max-height: 1000px !important;
+  box-sizing: border-box !important;
+}
+
+.drive-preview-modal.is-split-compare .drive-preview-header {
+  flex-shrink: 0 !important;
 }
 
 .drive-preview-modal.is-split-compare .drive-preview-body {
@@ -10018,7 +10023,7 @@ body:has(.app-layout-drive-focus),
   width: 100% !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: auto !important;
+  height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
@@ -10384,12 +10389,14 @@ body:has(.app-layout-drive-focus),
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 85px;
 }
 
 .drive-dup-sidebar-size {
   font-size: 0.7rem;
   font-weight: 600;
   color: #94a3b8;
+  white-space: nowrap;
 }
 
 .drive-dup-sidebar-actions {
