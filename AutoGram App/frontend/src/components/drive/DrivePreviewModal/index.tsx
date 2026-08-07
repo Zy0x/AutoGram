@@ -3760,6 +3760,20 @@ export function DrivePreviewModal({
                   </span>
                 </div>
 
+                {/* 1-Click Action: Keep Only Currently Active File */}
+                <button
+                  type="button"
+                  className="drive-preview-dup-quick-keep-btn"
+                  onClick={() => {
+                    const activeBFile = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[0];
+                    if (activeBFile) duplicateContext.onKeepOnly(currentDupGroup, activeBFile.id);
+                  }}
+                  title={t('speedtest.preview_keep_only_active')}
+                >
+                  <ShieldCheck size={14} />
+                  <span>{t('speedtest.preview_keep_only_active')}</span>
+                </button>
+
                 <div className="drive-preview-dup-sidebar-list">
                   {currentDupGroup.files.map((f, idx) => {
                     const isSel = idx === selectedBIndex;
@@ -3801,15 +3815,34 @@ export function DrivePreviewModal({
                           </div>
                         )}
 
-                        {/* Info */}
+                        {/* Info & Badges */}
                         <div className="drive-preview-dup-card-info">
+                          {/* Role Badges */}
+                          <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                            {idx === 0 && (
+                              <span className="drive-preview-dup-role-badge is-file-a">
+                                {t('speedtest.preview_role_file_a')}
+                              </span>
+                            )}
+                            {isSel && (
+                              <span className="drive-preview-dup-role-badge is-previewing">
+                                {t('speedtest.preview_role_previewing')}
+                              </span>
+                            )}
+                          </div>
+
                           <span className="text-xs font-bold text-slate-200 truncate" title={f.name}>
                             {f.name}
                           </span>
-                          <div className="drive-preview-dup-badge-row">
+
+                          <div className="drive-preview-dup-badge-row mt-1">
                             <span className="drive-preview-dup-badge-format">{formatExt}</span>
                             <span className="drive-preview-dup-badge-size">{sizeStr}</span>
+                            <span className={`drive-preview-dup-status-badge ${isDel ? 'is-del' : 'is-keep'}`}>
+                              {isDel ? t('speedtest.preview_marked_delete') : t('speedtest.preview_marked_keep')}
+                            </span>
                           </div>
+
                           <span className="text-[10px] text-slate-400">#{f.id}</span>
                         </div>
                       </div>
