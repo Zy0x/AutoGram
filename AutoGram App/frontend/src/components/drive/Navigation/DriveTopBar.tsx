@@ -23,8 +23,6 @@ import {
   Edit2,
   Globe,
   FolderArchive,
-  ArrowRightLeft,
-  Folder,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
@@ -203,8 +201,8 @@ export function DriveTopBar({
   viewPerspective = 'telegram',
   onViewPerspective,
   totalCount,
-  onSwitchMode,
-  onBackToLauncher,
+  onSwitchMode: _onSwitchMode,
+  onBackToLauncher: _onBackToLauncher,
 }: Props) {
   const { t } = useTranslation();
   const isFinal = Boolean(statsAccurate || (!loading && hasMore === false));
@@ -553,92 +551,6 @@ export function DriveTopBar({
             </div>
           )}
 
-          {/* Dual-Bar Workspace Quick Switcher & Session Hub */}
-          {(onSwitchMode || onBackToLauncher) && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '10px',
-                padding: '2px',
-                gap: '2px',
-                marginRight: '6px',
-              }}
-            >
-              {onBackToLauncher && (
-                <button
-                  type="button"
-                  onClick={onBackToLauncher}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 8px',
-                    borderRadius: '7px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#94a3b8',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginRight: '2px',
-                  }}
-                  title="Kembali ke Landing Launcher Session"
-                >
-                  <span>Launcher</span>
-                </button>
-              )}
-
-              {onSwitchMode && (
-                <>
-                  <button
-                    type="button"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '7px',
-                      background: 'rgba(56, 189, 248, 0.2)',
-                      border: '1px solid rgba(56, 189, 248, 0.35)',
-                      color: '#38bdf8',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: 'default',
-                    }}
-                  >
-                    <Folder size={13} />
-                    <span>Drives</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onSwitchMode('forwarder')}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '7px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#94a3b8',
-                      fontSize: '0.78rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    title="Beralih ke Forwarder Workspace"
-                  >
-                    <ArrowRightLeft size={13} />
-                    <span>Forwarder</span>
-                  </button>
-                </>
-              )}
-            </div>
-          )}
 
           <button
             type="button"

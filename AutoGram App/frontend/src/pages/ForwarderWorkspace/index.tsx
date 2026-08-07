@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRightLeft,
-  Folder,
   Plus,
   Play,
   History,
@@ -13,14 +12,14 @@ import { Jobs } from '../Jobs';
 
 interface ForwarderWorkspaceProps {
   activeSession: string;
-  onSwitchMode: (mode: 'drives' | 'forwarder') => void;
+  onSwitchMode?: (mode: 'drives' | 'forwarder') => void;
   onBackToLauncher: () => void;
   onOpenSettings: () => void;
 }
 
 export function ForwarderWorkspace({
   activeSession,
-  onSwitchMode,
+  onSwitchMode: _onSwitchMode,
   onBackToLauncher,
   onOpenSettings,
 }: ForwarderWorkspaceProps) {
@@ -88,62 +87,6 @@ export function ForwarderWorkspace({
           </span>
         </div>
 
-        {/* CENTER: DUAL-BAR WORKSPACE MODE SWITCHER (1-CLICK TOGGLE) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(15, 23, 42, 0.8)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '3px',
-            gap: '2px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => onSwitchMode('drives')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '9px',
-              background: 'transparent',
-              border: 'none',
-              color: '#94a3b8',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Folder size={15} />
-            <span>{t('nav.mode_drives', 'Drives')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSwitchMode('forwarder')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(67, 56, 202, 0.4) 100%)',
-              border: '1px solid rgba(129, 140, 248, 0.4)',
-              color: '#ffffff',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-            }}
-          >
-            <ArrowRightLeft size={15} style={{ color: '#818cf8' }} />
-            <span>{t('nav.mode_forwarder', 'Forwarder')}</span>
-          </button>
-        </div>
 
         {/* RIGHT: SETTINGS */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
