@@ -1,28 +1,9 @@
-## v2.9.2 Single Unified Header & Complete Stack De-cluttering
+## v2.8.10 Duplicate File Media Preview Resolution Engine & Instant Background Prefetch
 
-### Pembersihan Total Tumpukan Header & Toolbar Modal (`DrivePreviewModal/index.tsx`)
-- **Eliminasi 6 Baris Toolbar Menumpuk**: Memperbaiki bug akar masalah di mana header luar `drive-preview-header` (Row A & Row B) dan toolbar pratinjau `drive-preview-toolbar` tetap terender bersamaan dengan header inner Duplicate Viewer.
-- **Unified Workspace Header**: Ketika `isSplitCompareMode` aktif, seluruh header luar disembunyikan. Header Duplicate Viewer Pro bertindak sebagai satu-satunya navbar utama yang memuat nama file, info hemat penyimpanan, grup navigator, hotkey, tombol `Pratinjau Tunggal`, tombol `Fullscreen`, dan tombol `Tutup Modal (X)`.
-- **Layout Maximize & 100% Height Stage**: Modal komparasi duplikat kini menggunakan 100% tinggi viewport modal secara bersih tanpa penyempitan atau pemotongan area preview media.
-
-## v2.9.1 High-End Visual Design Duplicate Viewer Architecture & Zero Hardcoded Strings i18n
-
-### Perbaikan Visual & Penyempurnaan Tata Letak Modal Komparasi Duplikat (`DrivePreviewModal/index.tsx`, `App.css`, `locales/`)
-- **Konsolidasi Navbar & Eliminasi Dual-Toolbar**: Menyembunyikan toolbar luar pratinjau saat mode split viewer aktif untuk mencegah tumpang-tindih toolbar, serta menyatukan kontrol grup, statistik hemat ruang, hotkey, dan tombol aksi ke dalam 1 baris header terpadu beresolusi responsif.
-- **Double-Bezel Architecture (Doppelrand)**: Menerapkan struktur doppelrand dua lapis (`rounded-[22px]` outer shell + `rounded-[calc(22px-0.375rem)]` inner core) dengan aksen pendaran Obsidian Glow (Rose/Ruby untuk Pratinjau A, Emerald/Teal untuk Pratinjau B).
-- **Framing Media & Tombol Pengosongan Slot (X) Refined**: Mengoptimalkan ukuran gambar pratinjau dengan `object-contain max-h-full max-w-full rounded-xl shadow-2xl`, plus tombol reset slot mengambang berdesain frosted glass pill (`backdrop-blur-md`).
-- **Media Carousel Strip Elevasi**: Menyajikan kartu thumbnail bawah bertaraf agency dengan hover state scale `hover:-translate-y-1`, indikator badge slot A/B beresolusi tinggi, dan frosted crimson overlay untuk file yang akan dihapus.
-- **100% Zero Hardcoded Strings Rule**: Seluruh teks antarmuka Duplicate Viewer kini diekstrak ke dalam berkas i18n `src/locales/id/speedtest.json` dan `src/locales/en/speedtest.json` secara sinkron (100% Key Parity).
-
-## v2.9.0 Speed-Cleaning Duplicate Viewer Pro Architecture & 1-Click Auto-Select Engine
-
-### Implementasi Speed Edition Duplicate Viewer Pro (`DrivePreviewModal/index.tsx`, `App.css`)
-- **Presisi Prototipe HTML Speed Edition**: Mengimplementasikan total struktur, kelas, dan komponen sesuai prototipe HTML Duplicate Viewer Pro.
-- **Header Navbar & Metric Counter**: Menampilkan header berdesain dark-indigo dengan metric counter `Dihemat: X MB` real-time, indicator `Grup: X dari Y`, serta navigasi `Grup Selanjutnya`.
-- **Sub-toolbar Akses Cepat**: Menyediakan tombol `Auto-Pilih File Terbaik (R)` yang secara cerdas memilih file berukuran terbesar dan menandai duplikat lainnya untuk dihapus 1-click, info pintas keyboard, dan tombol `Terapkan Penghapusan`.
-- **Preview Slot A & B dengan Clear Action (X)**: Kartu komparasi Preview A & Preview B dilengkapi tombol reset slot `(X)` di pojok kanan atas untuk mengosongkan slot dan memuat item baru dari carousel bawah.
-- **Bottom Carousel & Visual Overlay Status**: Carousel thumbnail horizontal menyajikan status overlay `AKAN DIHAPUS` / border hijau `SIMPAN`, badge A/B, serta radio pilihan instan `Simpan` / `Hapus`.
-- **Dukungan Full Keyboard Shortcuts**: Mengaktifkan tombol `1` (Simpan A), `2` (Simpan B), `R` (Auto-select terbaik), dan `ArrowRight` (Next group).
+### Perbaikan Resolusi Gambar & Prefetch Otomatis Komparasi Duplikat (`DrivePreviewModal/index.tsx`)
+- **Independensi Resolusi Media per Berkas**: Mengisolasi pemuatan gambar thumbnail/pratinjau untuk `Preview A`, `Preview B`, dan kartu carousel bawah melalui `resolveFileThumbnail(f)`. Menghilangkan ketergantungan pada variabel state file modal tunggal (`gridThumb`/`poster`) yang sebelumnya menyebabkan File B menampilkan thumbnail milik File A (atau terhenti tanpa gambar).
+- **Multi-Source Fallback Resolution**: Meresolusi visual media dari multiple layer: base64 inline (`thumb_data_url`), cache memori/disk `thumbBatcher`, `previewCache`, hingga berkas lokal `convertFileSrc`.
+- **Background Prefetch via `requestThumb`**: Menjadwalkan pengunduhan thumbnail otomatis via MTProto Telegram untuk berkas duplikat yang belum memiliki cache di latar belakang dan merender ulang UI secara langsung begitu thumbnail tiba.
 
 ## v2.8.9 Mockup-Identical Duplicate Viewer Architecture & Bottom Group Carousel
 
