@@ -894,7 +894,10 @@ async fn download_peer_photo(
     client: &Client,
     peer: &grammers_client::peer::Peer,
 ) -> Option<String> {
-    let photo = peer.photo(false).await.ok().flatten()?;
+    let photo = match peer.photo(true).await {
+        Ok(Some(p)) => Some(p),
+        _ => peer.photo(false).await.ok().flatten(),
+    }?;
     let tmp = std::env::temp_dir().join(format!(
         "ag_avatar_{}_{}.jpg",
         peer_id_i64(peer.id()),

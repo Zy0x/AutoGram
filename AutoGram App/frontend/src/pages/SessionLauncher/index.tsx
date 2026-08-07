@@ -500,12 +500,12 @@ export function SessionLauncher({
           <div
             style={{
               position: 'relative',
-              maxWidth: '440px',
+              maxWidth: '520px',
               width: '100%',
               background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.95) 0%, rgba(11, 16, 26, 0.98) 100%)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '24px',
-              padding: '28px',
+              padding: '32px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -539,8 +539,10 @@ export function SessionLauncher({
 
             <div
               style={{
-                width: '260px',
-                height: '260px',
+                width: '320px',
+                height: '320px',
+                maxWidth: '80vw',
+                maxHeight: '80vw',
                 borderRadius: '50%',
                 overflow: 'hidden',
                 border: '3px solid rgba(56, 189, 248, 0.6)',
