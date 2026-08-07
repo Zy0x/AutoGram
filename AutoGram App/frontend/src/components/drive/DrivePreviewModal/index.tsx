@@ -39,9 +39,9 @@ import {
   Printer,
   Repeat,
   Columns,
-  ShieldCheck,
   PanelRightClose,
   PanelRightOpen,
+  Folder,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -3138,34 +3138,35 @@ export function DrivePreviewModal({
               </div>
             )}
             {duplicateContext && (
-              <button
-                type="button"
-                className={`td-btn-primary ${isSplitCompareMode ? 'is-active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSplitCompareMode((v) => !v);
-                }}
-                style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', gap: '6px', marginRight: '4px' }}
-                title={isSplitCompareMode ? t('speedtest.preview_single_mode') : t('speedtest.preview_split_mode')}
-              >
-                <Columns size={14} />
-                <span>{isSplitCompareMode ? t('speedtest.preview_split_mode') : t('speedtest.preview_single_mode')}</span>
-              </button>
-            )}
-            {duplicateContext && isSplitCompareMode && (
-              <button
-                type="button"
-                className={`td-icon-btn ${!isSidebarCollapsed ? 'is-active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSidebarCollapsed((v) => !v);
-                }}
-                style={{ marginRight: '4px' }}
-                title={t('speedtest.preview_toggle_sidebar')}
-                aria-label={t('speedtest.preview_toggle_sidebar')}
-              >
-                {isSidebarCollapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`td-btn-primary ${isSplitCompareMode ? 'is-active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSplitCompareMode((v) => !v);
+                  }}
+                  style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', gap: '6px', marginRight: '4px' }}
+                  title={isSplitCompareMode ? t('speedtest.preview_single_mode') : t('speedtest.preview_split_mode')}
+                >
+                  <Columns size={14} />
+                  <span>{isSplitCompareMode ? t('speedtest.preview_split_mode') : t('speedtest.preview_single_mode')}</span>
+                </button>
+                {isSplitCompareMode && (
+                  <button
+                    type="button"
+                    className={`td-btn-secondary ${isSidebarCollapsed ? 'is-active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSidebarCollapsed((v) => !v);
+                    }}
+                    style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem', gap: '4px', marginRight: '4px' }}
+                    title={isSidebarCollapsed ? 'Tampilkan Sidepanel' : 'Sembunyikan Sidepanel (Full Width)'}
+                  >
+                    {isSidebarCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+                  </button>
+                )}
+              </>
             )}
             <button
               type="button"
@@ -3693,39 +3694,29 @@ export function DrivePreviewModal({
                 })()}
               </div>
 
-              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST (Collapsible & Ultra-Compact) */}
+              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST (COMPACT MOCKUP DESIGN) */}
               <aside className={`drive-preview-dup-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
                 <div className="drive-preview-dup-sidebar-head">
-                  <span className="drive-preview-dup-sidebar-title">
-                    {t('speedtest.preview_sidebar_title')} ({currentDupGroup.files.length})
-                  </span>
+                  <div className="drive-preview-dup-sidebar-title-box">
+                    <Folder size={14} />
+                    <span className="drive-preview-dup-sidebar-title" title={t('speedtest.preview_dup_group_list')}>
+                      {t('speedtest.preview_dup_group_list')}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
                     onClick={() => setIsSidebarCollapsed(true)}
-                    title={t('speedtest.preview_toggle_sidebar')}
+                    title="Sembunyikan Panel (Full Width)"
                   >
                     <PanelRightClose size={14} />
                   </button>
                 </div>
 
-                {/* 1-Click Action: Keep Only Currently Active File */}
-                <button
-                  type="button"
-                  className="drive-preview-dup-quick-keep-btn"
-                  onClick={() => {
-                    const activeBFile = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[0];
-                    if (activeBFile) duplicateContext.onKeepOnly(currentDupGroup, activeBFile.id);
-                  }}
-                  title={t('speedtest.preview_keep_only_active_short')}
-                >
-                  <ShieldCheck size={14} />
-                  <span>{t('speedtest.preview_keep_only_active_short')}</span>
-                </button>
-
                 <div className="drive-preview-dup-sidebar-list">
                   {currentDupGroup.files.map((f, idx) => {
-                    const isSel = idx === selectedBIndex;
+                    const isA = idx === 0;
+                    const isB = idx === selectedBIndex;
                     const isDel = duplicateContext.markedDelete.has(f.id);
                     const sizeStr = formatDriveBytes(f.size || 0);
                     const cardThumb = f.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
@@ -3734,65 +3725,54 @@ export function DrivePreviewModal({
                       <div
                         key={f.id}
                         onClick={() => setSelectedBIndex(idx)}
-                        className={`drive-preview-dup-card ${isSel ? 'is-active' : ''} ${
-                          isDel ? 'is-marked-delete' : ''
+                        className={`drive-preview-dup-card ${isB ? 'is-active' : ''} ${
+                          isDel ? 'is-marked-delete' : 'is-keep'
                         }`}
                       >
-                        {/* Checkbox for quick toggle mark */}
-                        <label
-                          className="td-tools-dup-check flex-shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                          title={t('speedtest.check_delete_tooltip')}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isDel}
-                            onChange={() => duplicateContext.onToggleMark(f.id)}
-                          />
-                          <span className="td-tools-dup-check-ui" aria-hidden>
-                            {isDel ? <Check size={11} strokeWidth={3} /> : null}
-                          </span>
-                        </label>
-
-                        {/* Thumbnail */}
-                        {isImageDriveFile(f) && cardThumb ? (
-                          <img src={cardThumb} alt={f.name} className="drive-preview-dup-card-thumb" />
-                        ) : (
-                          <div className="drive-preview-dup-card-thumb flex items-center justify-center text-slate-400">
-                            <Film size={18} />
-                          </div>
-                        )}
-
-                        {/* Compact Info (Truncated Filename + Size) */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="flex items-center gap-1">
-                            {idx === 0 && (
-                              <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-300 px-1 rounded flex-shrink-0">
-                                A
-                              </span>
-                            )}
-                            {isSel && (
-                              <span className="text-[9px] font-black bg-sky-500/20 text-sky-300 px-1 rounded flex-shrink-0">
-                                B
-                              </span>
-                            )}
-                            <span className="text-xs font-bold text-slate-200 truncate" title={f.name}>
-                              {f.name}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-slate-400 font-semibold">{sizeStr}</span>
+                        {/* Top Thumbnail Container */}
+                        <div className="drive-preview-dup-card-thumb-wrap">
+                          {isA && <span className="drive-preview-dup-card-badge is-a">A</span>}
+                          {!isA && isB && <span className="drive-preview-dup-card-badge is-b">B</span>}
+                          {isImageDriveFile(f) && cardThumb ? (
+                            <img src={cardThumb} alt={f.name} className="drive-preview-dup-card-thumb" />
+                          ) : (
+                            <div className="drive-preview-dup-card-thumb flex items-center justify-center text-slate-400">
+                              <Film size={22} />
+                            </div>
+                          )}
                         </div>
 
-                        {/* Compact Status Pill */}
-                        <span
-                          className={`flex-shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded ${
-                            isDel
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          }`}
-                        >
-                          {isDel ? t('speedtest.preview_status_del') : t('speedtest.preview_status_keep')}
-                        </span>
+                        {/* Bottom Details & Radio Actions */}
+                        <div className="drive-preview-dup-card-bottom">
+                          <strong className="drive-preview-dup-card-name" title={f.name}>{f.name}</strong>
+                          <div className="drive-preview-dup-card-actions">
+                            <span>{sizeStr}</span>
+                            <div className="drive-preview-dup-radio-group">
+                              <span
+                                className="drive-preview-dup-radio-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isDel) duplicateContext.onToggleMark(f.id);
+                                }}
+                                title={t('speedtest.preview_radio_save')}
+                              >
+                                <span className={`drive-preview-dup-radio-dot ${!isDel ? 'is-simpan' : ''}`} />
+                                <span>{t('speedtest.preview_radio_save')}</span>
+                              </span>
+                              <span
+                                className="drive-preview-dup-radio-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isDel) duplicateContext.onToggleMark(f.id);
+                                }}
+                                title={t('speedtest.preview_radio_delete')}
+                              >
+                                <span className={`drive-preview-dup-radio-dot ${isDel ? 'is-hapus' : ''}`} />
+                                <span>{t('speedtest.preview_radio_delete')}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

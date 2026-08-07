@@ -1,10 +1,9 @@
-## v2.8.9 Collapsible Ultra-Compact Duplicate Member Sidepanel & Full-Bleed Preview Engine
+## v2.8.9 Ultra-Compact Collapsible Duplicate Group Sidepanel & Mockup Card Engine
 
-### Sidepanel Collapsible & Ultra-Compact (`DrivePreviewModal/index.tsx`, `App.css`)
-- **Desain Sidepanel Ringkas (~170px)**: Memperkecil lebar sidepanel anggota duplikat dari 280px menjadi ~170px dengan tampilan kartu mini yang ultra-compact dan rapi.
-- **Fitur Collapse/Expand Toggle**: Menambahkan tombol toggle (`PanelRightClose` / `PanelRightOpen`) pada header top-bar dan header sidepanel untuk menyembunyikan atau menampilkan sidepanel.
-- **Area Perbandingan Gambar Maksimal (Full-Bleed)**: Saat sidepanel disembunyikan, kartu perbandingan **Preview A** dan **Preview B** otomatis mengembang memenuhi 100% lebar modal untuk perbandingan gambar yang jauh lebih luas dan imersif.
-- **Perbaikan Spasi Text Metadata**: Memperbaiki spasi titik dua pada teks `Nama: ` dan `Ukuran: ` agar lebih rapi.
+### Redesain Sidepanel Duplikat Mockup & Full-Width Collapse (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Struktur Kartu Sesuai Mockup Pengguna**: Merender kartu anggota grup duplikat dengan thumbnail ber-badge `A` (crimson red) & `B` (emerald green) di pojok kiri atas, nama berkas tebal, ukuran file, serta kontrol radio titik `🟢 Simpan` / `🔴 Hapus`.
+- **Fitur Collapse/Expand Sidepanel**: Menambahkan tombol toggle (`PanelRightClose` / `PanelRightOpen`) di header modal dan sidepanel. Saat disembunyikan, sidepanel menyusut ke 0px dan kartu **Preview A** & **Preview B** otomatis mengembang penuh 100% (*full-bleed width*).
+- **Ukuran Ultra-Compact (~170px)**: Memperkecil lebar sidepanel dari 280px menjadi ~170px sehingga perbandingan gambar Preview A & B selalu mendapat ruang utama yang sangat luas.
 
 ## v2.8.8 DrivePreviewModal Simplified Redesign & Aesthetic Duplicate Comparison Cards Engine
 

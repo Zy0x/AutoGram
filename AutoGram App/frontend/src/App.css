@@ -9951,76 +9951,51 @@ body:has(.app-layout-drive-focus),
 }
 
 .drive-preview-dup-sidebar {
-  width: clamp(155px, 16%, 195px);
+  width: clamp(170px, 18%, 210px);
   height: 100%;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 8px;
+  padding: 10px;
   z-index: 10;
   overflow-x: hidden;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  flex-shrink: 0;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, padding 0.25s ease;
 }
 
 .drive-preview-dup-sidebar.is-collapsed {
   width: 0px !important;
-  min-width: 0px !important;
-  max-width: 0px !important;
   padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border-left: none !important;
 }
 
 .drive-preview-dup-sidebar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.drive-preview-dup-sidebar-title-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #38bdf8;
+}
+
 .drive-preview-dup-sidebar-title {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   color: #cbd5e1;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.drive-preview-dup-quick-keep-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 5px 8px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  cursor: pointer;
-  margin-bottom: 8px;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.drive-preview-dup-quick-keep-btn:hover {
-  background: rgba(16, 185, 129, 0.22);
-  border-color: rgba(16, 185, 129, 0.45);
-  color: #6ee7b7;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
 }
 
 .drive-preview-dup-sidebar-list {
@@ -10029,54 +10004,147 @@ body:has(.app-layout-drive-focus),
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding-right: 2px;
 }
 
+/* Compact Group Member Card (Sesuai Mockup Pengguna) */
 .drive-preview-dup-card {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  padding: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .drive-preview-dup-card:hover {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(56, 189, 248, 0.4);
-}
-
-.drive-preview-dup-card.is-active {
-  background: rgba(56, 189, 248, 0.12);
-  border-color: #38bdf8;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
 .drive-preview-dup-card.is-marked-delete {
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: #f43f5e;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.25);
+}
+
+.drive-preview-dup-card.is-keep {
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.drive-preview-dup-card.is-active {
+  border-color: #38bdf8;
+}
+
+.drive-preview-dup-card-thumb-wrap {
+  position: relative;
+  width: 100%;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drive-preview-dup-card-thumb {
-  width: 34px;
-  height: 34px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  flex-shrink: 0;
+  border-radius: 8px;
 }
 
-.drive-preview-dup-card-info {
-  flex: 1;
+.drive-preview-dup-card-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.drive-preview-dup-card-badge.is-a {
+  background: #e11d48;
+}
+
+.drive-preview-dup-card-badge.is-b {
+  background: #10b981;
+}
+
+.drive-preview-dup-card-bottom {
+  padding: 6px 4px 2px 4px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+}
+
+.drive-preview-dup-card-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-preview-dup-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.drive-preview-dup-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drive-preview-dup-radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  transition: color 0.15s ease;
+}
+
+.drive-preview-dup-radio-item:hover {
+  color: #ffffff;
+}
+
+.drive-preview-dup-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.15s ease;
+}
+
+.drive-preview-dup-radio-dot.is-simpan {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.drive-preview-dup-radio-dot.is-hapus {
+  background: #f43f5e;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.6);
 }
 
 .drive-preview-dup-badge-row {
