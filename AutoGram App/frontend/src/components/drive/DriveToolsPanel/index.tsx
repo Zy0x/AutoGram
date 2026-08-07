@@ -17,9 +17,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Layers,
-  HardDrive,
   ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
 } from 'lucide-react';
 import type { DriveCredentials } from '../../../lib/telegram/driveApi';
 import type { DriveChat, DriveFile, DriveFolder, DriveTransferSettings } from '../../../lib/telegram/driveTypes';
@@ -959,6 +960,7 @@ function DupTab({
   const [markedDelete, setMarkedDelete] = useState<Set<number>>(() => new Set());
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video' | 'document' | 'audio'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showModeSettings, setShowModeSettings] = useState(false);
 
   // DEEP SCAN & FLOODWAIT STATE
   const [isScanning, setIsScanning] = useState(false);
@@ -1150,77 +1152,39 @@ function DupTab({
         boxSizing: 'border-box',
       }}
     >
-      {/* 🛠️ 1. UNIFIED COMPACT CONTROL HEADER */}
+      {/* 📊 1. HERO SUMMARY & SCANNER BANNER (SINGLE UNIFIED TOP CARD) */}
       <div
         style={{
           background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
+          border: '1px solid rgba(56, 189, 248, 0.18)',
           borderRadius: '12px',
-          padding: '12px 14px',
+          padding: '12px 16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
           flexShrink: 0,
         }}
       >
-        {/* ROW 1: HEADER TITLE, STATS BADGES & SCAN BUTTON */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Search size={15} style={{ color: '#38bdf8' }} />
-              <span>Pemindaian Index ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} berkas)</span>
-            </h4>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          {/* KEY METRICS */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Grup Duplikat</span>
+              <strong style={{ fontSize: '1.15rem', color: '#38bdf8', fontWeight: 800 }}>{filteredGroups.length}</strong>
+            </div>
 
-            {/* QUICK STATS BADGES */}
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
-                  color: '#38bdf8',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Layers size={11} /> {filteredGroups.length} Grup
-              </span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#f87171',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Trash2 size={11} /> {idsToDelete.length} Salinan Dihapus
-              </span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(74, 222, 128, 0.12)',
-                  border: '1px solid rgba(74, 222, 128, 0.25)',
-                  color: '#4ade80',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <HardDrive size={11} /> ~{formatDriveBytes(selectedWaste || wasteTotal)} Terhemat
-              </span>
+            <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Salinan Dihapus</span>
+              <strong style={{ fontSize: '1.15rem', color: '#f87171', fontWeight: 800 }}>{idsToDelete.length} Berkas</strong>
+            </div>
+
+            <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.1)' }} />
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Potensi Hemat</span>
+              <strong style={{ fontSize: '1.15rem', color: '#4ade80', fontWeight: 800 }}>~{formatDriveBytes(selectedWaste || wasteTotal)}</strong>
             </div>
           </div>
 
@@ -1236,18 +1200,18 @@ function DupTab({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '9px',
                     background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                     color: '#ffffff',
                     border: 'none',
                     fontWeight: 700,
-                    fontSize: '0.78rem',
+                    fontSize: '0.8rem',
                     cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(56, 189, 248, 0.25)',
+                    boxShadow: '0 3px 12px rgba(56, 189, 248, 0.3)',
                   }}
                 >
-                  <Search size={13} />
+                  <Search size={14} />
                   <span>Pindai Seluruh Chat ({targetTotal.toLocaleString('id-ID')} Items)</span>
                 </button>
               ) : (
@@ -1258,17 +1222,17 @@ function DupTab({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '9px',
                     background: 'rgba(239, 68, 68, 0.2)',
                     border: '1px solid rgba(239, 68, 68, 0.5)',
                     color: '#fca5a5',
                     fontWeight: 700,
-                    fontSize: '0.78rem',
+                    fontSize: '0.8rem',
                     cursor: 'pointer',
                   }}
                 >
-                  <Loader2 size={13} className="spin" />
+                  <Loader2 size={14} className="spin" />
                   <span>Hentikan Pemindaian ({scanProgressPct}%)</span>
                 </button>
               )}
@@ -1276,12 +1240,12 @@ function DupTab({
           )}
         </div>
 
-        {/* PROGRESS BAR & FLOODWAIT WARNING */}
+        {/* PROGRESS BAR & FLOODWAIT INDICATOR */}
         {isScanning && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
-              <span>Memindai index Telegram...</span>
-              <span>{loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')} ({scanProgressPct}%)</span>
+              <span>Memindai index Telegram ({loadedCount.toLocaleString('id-ID')} / {targetTotal.toLocaleString('id-ID')})...</span>
+              <span>{scanProgressPct}%</span>
             </div>
             <div style={{ width: '100%', height: '5px', borderRadius: '3px', background: 'rgba(15, 23, 42, 0.8)', overflow: 'hidden' }}>
               <div
@@ -1303,7 +1267,7 @@ function DupTab({
               background: 'rgba(239, 68, 68, 0.2)',
               border: '1px solid #ef4444',
               borderRadius: '8px',
-              padding: '8px 12px',
+              padding: '6px 12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1314,7 +1278,7 @@ function DupTab({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={14} style={{ color: '#ef4444' }} />
-              <span><strong>⚠️ FloodWait Telegram:</strong> Menjeda sementara &amp; melanjutkan otomatis...</span>
+              <span><strong>⚠️ Telegram FloodWait:</strong> Memuat otomatis saat limit selesai...</span>
             </div>
             <div style={{ background: '#ef4444', color: '#ffffff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 800 }}>
               {floodWaitSeconds}s
@@ -1322,9 +1286,42 @@ function DupTab({
           </div>
         )}
 
-        {/* ROW 2: 4-LEVEL MODE PILLS */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {/* OPTIONAL ADVANCED DETECTION MODE TOGGLE BUTTON */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '8px', marginTop: '2px' }}>
+          <button
+            type="button"
+            onClick={() => setShowModeSettings((prev) => !prev)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: 0,
+            }}
+          >
+            <Settings2 size={13} style={{ color: '#38bdf8' }} />
+            <span>Pengaturan Modus Deteksi (Level 1-4)</span>
+            {showModeSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+
+          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem', margin: 0 }}>
+            <input
+              type="checkbox"
+              checked={keepNewest}
+              onChange={(e) => setKeepNewest(e.target.checked)}
+            />
+            <span>{t('speedtest.default_keep_newest')}</span>
+          </label>
+        </div>
+
+        {/* COLLAPSIBLE DETECTION MODES DRAWER */}
+        {showModeSettings && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '4px' }}>
             {[
               { id: 'all_levels', label: '✨ Semua Level (1-4)' },
               { id: 'hash_unique', label: 'L1: Hash & Unique ID' },
@@ -1351,19 +1348,10 @@ function DupTab({
               </button>
             ))}
           </div>
-
-          <label className="td-tools-check-inline" title={t("speedtest.smart_pref_tooltip")} style={{ fontSize: '0.75rem' }}>
-            <input
-              type="checkbox"
-              checked={keepNewest}
-              onChange={(e) => setKeepNewest(e.target.checked)}
-            />
-            <span>{t('speedtest.default_keep_newest')}</span>
-          </label>
-        </div>
+        )}
       </div>
 
-      {/* 📁 2. MEDIA CATEGORY FILTER TABS & SEARCH / QUICK ACTIONS BAR */}
+      {/* 📁 2. MEDIA CATEGORY TABS & SEARCH BAR */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: '4px' }}>
           {[
@@ -1378,7 +1366,7 @@ function DupTab({
               type="button"
               onClick={() => setFilterType(tab.id as any)}
               style={{
-                padding: '4px 8px',
+                padding: '4px 10px',
                 borderRadius: '6px',
                 fontSize: '0.75rem',
                 fontWeight: filterType === tab.id ? 700 : 500,
@@ -1437,7 +1425,7 @@ function DupTab({
             {t('speedtest.keep_all_groups')}
           </button>
 
-          <div style={{ position: 'relative', width: '170px' }}>
+          <div style={{ position: 'relative', width: '160px' }}>
             <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input
               type="text"
@@ -1495,7 +1483,7 @@ function DupTab({
                       onClick={() => markGroupExtras(g)}
                       title={t('speedtest.keep_one_check_rest')}
                     >
-                      {t('speedtest.smart_selection_btn')}
+                      Pilih 1
                     </button>
                     <button
                       type="button"
@@ -1504,7 +1492,7 @@ function DupTab({
                       onClick={() => clearGroupMarks(g)}
                       title={t('speedtest.keep_all_in_group')}
                     >
-                      {t('speedtest.keep_all_in_group')}
+                      Simpan Semua
                     </button>
                   </span>
                 </div>
@@ -1567,7 +1555,7 @@ function DupTab({
         </ul>
       </div>
 
-      {/* 🔴 4. STICKY BOTTOM ACTION DOCK (ALWAYS VISIBLE & NO CUT-OFF) */}
+      {/* 🔴 4. STICKY BOTTOM ACTION DOCK */}
       <div
         style={{
           position: 'sticky',
