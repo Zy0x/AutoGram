@@ -970,14 +970,27 @@ function DupTab({
     scanStopRef.stop = false;
     setFloodWaitSeconds(null);
 
+    let lastCount = -1;
+    let sameCountStuck = 0;
+
     try {
       while (!scanStopRef.stop && filesHasMore) {
         try {
           // Request Turbo Page Size (250 items per page for 5x-10x faster scan!)
           await onLoadMoreFiles({ pageSize: 250 });
           setFloodWaitSeconds(null);
-          // Zero delay between successful pages for maximum throughput!
-          await new Promise((r) => setTimeout(r, 10));
+          // Wait briefly for React state batching to propagate loadedCount
+          await new Promise((r) => setTimeout(r, 80));
+
+          if (loadedCount === lastCount) {
+            sameCountStuck++;
+            if (sameCountStuck >= 5) {
+              break;
+            }
+          } else {
+            sameCountStuck = 0;
+            lastCount = loadedCount;
+          }
         } catch (err: any) {
           const errMsg = String(err?.message || err || '');
           const match = errMsg.match(/FLOOD_WAIT_?(\d+)/i) || errMsg.match(/wait\s*(\d+)\s*s/i);

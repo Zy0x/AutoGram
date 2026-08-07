@@ -515,6 +515,16 @@ function MediaDriveDesktop({
   const [nextOffsetId, setNextOffsetId] = useState<number | null>(
     () => initialLocationCache?.nextOffsetId ?? null
   );
+
+  const nextOffsetIdRef = useRef<number | null>(nextOffsetId);
+  useEffect(() => {
+    nextOffsetIdRef.current = nextOffsetId;
+  }, [nextOffsetId]);
+
+  const filesHasMoreRef = useRef<boolean>(filesHasMore);
+  useEffect(() => {
+    filesHasMoreRef.current = filesHasMore;
+  }, [filesHasMore]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [loadingChats, setLoadingChats] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -2837,8 +2847,10 @@ function MediaDriveDesktop({
   }, [processPendingActions]);
 
   const loadMoreFiles = useCallback(async (opts?: { pageSize?: number }) => {
-    if (!creds || !filesHasMore || loadingMoreFiles || loadMoreLock.current) return;
-    if (nextOffsetId == null) {
+    const currentOffset = nextOffsetIdRef.current;
+    if (!creds || !filesHasMoreRef.current || loadingMoreFiles || loadMoreLock.current) return;
+    if (currentOffset == null) {
+      filesHasMoreRef.current = false;
       setFilesHasMore(false);
       return;
     }
@@ -2852,7 +2864,7 @@ function MediaDriveDesktop({
     const gen = peerGen.current;
     const tid = topicFilterRef.current;
     const cacheKey = getDriveCacheKey(creds?.session || session, peerId, tid);
-    const offsetAtStart = nextOffsetId;
+    const offsetAtStart = currentOffset;
     const requestedPageSize =
       opts?.pageSize ||
       stagedLoadMorePageSize(
@@ -2881,7 +2893,9 @@ function MediaDriveDesktop({
       }
       // Avoid stuck pagination if API returned empty but claimed has_more
       if (!page.length) {
+        filesHasMoreRef.current = false;
         setFilesHasMore(false);
+        nextOffsetIdRef.current = null;
         setNextOffsetId(null);
         setStatusText('Semua media dimuat');
         scheduleMediaStats({ force: true, delayMs: 200 });
@@ -2920,18 +2934,24 @@ function MediaDriveDesktop({
 
         return merged;
       });
-      setFilesHasMore(!!res.has_more);
       let next = res.next_offset_id ?? null;
       // Guard: if cursor did not advance, decrement by 1 to strictly step past scanned message IDs
       if (next != null && Number(next) === Number(offsetAtStart)) {
         next = Number(next) > 1 ? Number(next) - 1 : null;
       }
+      const hasMoreNext = !!res.has_more && next != null;
+      filesHasMoreRef.current = hasMoreNext;
+      setFilesHasMore(hasMoreNext);
+      nextOffsetIdRef.current = next;
       setNextOffsetId(next);
       if (next == null) {
+        filesHasMoreRef.current = false;
         setFilesHasMore(false);
       }
       // Scrolled to end: loaded length is a lower bound; prefer media_stats if higher
       if (!res.has_more) {
+        filesHasMoreRef.current = false;
+        setFilesHasMore(false);
         setFiles((prev) => {
           const exactBytes = prev.reduce((s, f) => s + (f.size || 0), 0);
           const cacheKey = getDriveCacheKey(creds.session, peerId, tid);
