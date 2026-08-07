@@ -1,6 +1,9 @@
-AutoGram Version: v2.8.8
+AutoGram Version: v2.8.9
 
 Current State:
+v2.8.9 Collapsible Ultra-Compact Duplicate Member Sidepanel & Full-Bleed Preview Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Merestrukturisasi panel samping anggota duplikat (*sidepanel*) menjadi ultra-compact (lebar ~170px) dan menambahkan fitur collapse/expand toggle di header modal dan sidepanel. Saat disembunyikan, kartu perbandingan **Preview A** dan **Preview B** mengembang penuh hingga 100% lebar modal untuk area tampilan yang sangat luas dan nyaman.
+
+Previous:
 v2.8.8 DrivePreviewModal Simplified Redesign & Aesthetic Duplicate Comparison Cards Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Menyederhanakan dan mempercantik antarmuka pratinjau media dan perbandingan duplikat (Split View) sesuai acuan visual minimalis (Preview A vs Preview B). Membersihkan toolbar atas yang bertumpuk, memperbarui kartu perbandingan dengan dot status warna (🟢/🔴), tag ID berkas, latar belakang glassmorphism yang elegan, metadata Nama & Ukuran yang rapi, serta tombol aksi utama 1-klik "✓ Simpan Ini (1)" / "✓ Simpan Ini (2)" yang jelas dan intuitif.
 
 Previous:

@@ -40,6 +40,8 @@ import {
   Repeat,
   Columns,
   ShieldCheck,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -445,6 +447,7 @@ export function DrivePreviewModal({
 }: Props) {
   const { t } = useTranslation();
   const [isSplitCompareMode, setIsSplitCompareMode] = useState<boolean>(() => Boolean(duplicateContext));
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   const currentDupGroup = useMemo(() => {
     if (!duplicateContext || !duplicateContext.activeFilteredGroups.length) return null;
@@ -3149,6 +3152,21 @@ export function DrivePreviewModal({
                 <span>{isSplitCompareMode ? t('speedtest.preview_split_mode') : t('speedtest.preview_single_mode')}</span>
               </button>
             )}
+            {duplicateContext && isSplitCompareMode && (
+              <button
+                type="button"
+                className={`td-icon-btn ${!isSidebarCollapsed ? 'is-active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarCollapsed((v) => !v);
+                }}
+                style={{ marginRight: '4px' }}
+                title={t('speedtest.preview_toggle_sidebar')}
+                aria-label={t('speedtest.preview_toggle_sidebar')}
+              >
+                {isSidebarCollapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
+              </button>
+            )}
             <button
               type="button"
               className="td-icon-btn"
@@ -3675,18 +3693,20 @@ export function DrivePreviewModal({
                 })()}
               </div>
 
-              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST */}
-              <aside className="drive-preview-dup-sidebar">
+              {/* RIGHT SIDEBAR: GROUP MEMBERS LIST (Collapsible & Ultra-Compact) */}
+              <aside className={`drive-preview-dup-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}>
                 <div className="drive-preview-dup-sidebar-head">
                   <span className="drive-preview-dup-sidebar-title">
                     {t('speedtest.preview_sidebar_title')} ({currentDupGroup.files.length})
                   </span>
-                  <span className="text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
-                    {t('speedtest.preview_group_pill', {
-                      index: duplicateContext.currentGroupIndex + 1,
-                      total: duplicateContext.activeFilteredGroups.length,
-                    })}
-                  </span>
+                  <button
+                    type="button"
+                    className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                    onClick={() => setIsSidebarCollapsed(true)}
+                    title={t('speedtest.preview_toggle_sidebar')}
+                  >
+                    <PanelRightClose size={14} />
+                  </button>
                 </div>
 
                 {/* 1-Click Action: Keep Only Currently Active File */}

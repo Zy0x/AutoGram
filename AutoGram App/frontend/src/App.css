@@ -9951,34 +9951,76 @@ body:has(.app-layout-drive-focus),
 }
 
 .drive-preview-dup-sidebar {
-  width: clamp(220px, 24%, 280px);
+  width: clamp(155px, 16%, 195px);
   height: 100%;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 10px;
+  padding: 8px;
   z-index: 10;
   overflow-x: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.drive-preview-dup-sidebar.is-collapsed {
+  width: 0px !important;
+  min-width: 0px !important;
+  max-width: 0px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden !important;
 }
 
 .drive-preview-dup-sidebar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .drive-preview-dup-sidebar-title {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drive-preview-dup-quick-keep-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.drive-preview-dup-quick-keep-btn:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
 }
 
 .drive-preview-dup-sidebar-list {
@@ -9987,16 +10029,16 @@ body:has(.app-layout-drive-focus),
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   padding-right: 2px;
 }
 
 .drive-preview-dup-card {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 8px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
@@ -10021,8 +10063,8 @@ body:has(.app-layout-drive-focus),
 }
 
 .drive-preview-dup-card-thumb {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   object-fit: cover;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.3);
