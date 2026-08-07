@@ -24,60 +24,61 @@ export const PerfSection = memo(function PerfSection() {
     {
       id: 'low',
       icon: '🍃',
-      title: t('settings.perf_tier_low_title', 'Mode Hemat'),
-      desc: t('settings.perf_tier_low_desc', 'Menghemat penggunaan RAM & CPU. Batch thumbnail kecil (20 item per request).'),
+      title: t('settings.perf_tier_low_title', 'Saver Mode'),
+      desc: t('settings.perf_tier_low_desc', 'Saves RAM & CPU usage. Small thumbnail batching (20 items per request).'),
     },
     {
       id: 'mid',
       icon: '⚡',
-      title: t('settings.perf_tier_mid_title', 'Mode Standar'),
+      title: t('settings.perf_tier_mid_title', 'Standard Mode'),
       badge: 'DEFAULT',
-      desc: t('settings.perf_tier_mid_desc', 'Keseimbangan ideal kecepatan transfer MTProto & kelancaran visual (48 batch).'),
+      desc: t('settings.perf_tier_mid_desc', 'Ideal balance of MTProto transfer speed & visual smoothness (48 batch).'),
     },
     {
       id: 'high',
       icon: '🚀',
-      title: t('settings.perf_tier_high_title', 'Mode Turbo'),
-      desc: t('settings.perf_tier_high_desc', 'Throughput maksimal untuk perangkat & jaringan cepat (96 batch, 6 stream paralel).'),
+      title: t('settings.perf_tier_high_title', 'Turbo Mode'),
+      desc: t('settings.perf_tier_high_desc', 'Maximum throughput for fast devices & networks (96 batch, 6 parallel streams).'),
     },
   ];
 
   return (
     <div
       style={{
-        background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.7) 0%, rgba(11, 16, 26, 0.85) 100%)',
+        background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '16px',
-        padding: '20px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+        padding: '24px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
       }}
     >
       {/* SECTION HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
         <div
           style={{
-            width: '32px',
-            height: '32px',
+            width: '34px',
+            height: '34px',
             borderRadius: '10px',
             background: 'rgba(56, 189, 248, 0.12)',
             border: '1px solid rgba(56, 189, 248, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
           <Sliders size={18} style={{ color: '#38bdf8' }} />
         </div>
-        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.01em' }}>
-          {t('settings.perf_section_1_title', '1. Optimasi Performa Perangkat')}
+        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+          {t('settings.perf_section_1_title', '1. Device Performance Optimization')}
         </h3>
       </div>
-      <p style={{ margin: '0 0 16px 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5 }}>
-        {t('settings.perf_subtitle', 'Atur tingkat akselerasi pengunduhan, pemuatan thumbnail, dan kelancaran render list card.')}
+      <p style={{ margin: '0 0 18px 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
+        {t('settings.perf_subtitle', 'Configure acceleration levels for downloading, thumbnail loading, and card list rendering smoothness.')}
       </p>
 
-      {/* OPTIONS GRID */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* OPTIONS LIST */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {options.map((opt) => {
           const isSelected = tier === opt.id;
           return (
@@ -95,30 +96,31 @@ export const PerfSection = memo(function PerfSection() {
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '12px',
-                padding: '14px 16px',
+                gap: '14px',
+                padding: '16px 18px',
                 borderRadius: '14px',
                 cursor: 'pointer',
                 transition: 'all 0.18s ease',
                 border: isSelected
-                  ? '1.5px solid rgba(56, 189, 248, 0.6)'
+                  ? '1.5px solid #00aeef'
                   : '1px solid rgba(255, 255, 255, 0.08)',
                 background: isSelected
-                  ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(3, 105, 161, 0.18) 100%)'
-                  : 'rgba(255, 255, 255, 0.02)',
+                  ? 'rgba(56, 189, 248, 0.07)'
+                  : 'rgba(15, 23, 42, 0.4)',
                 boxShadow: isSelected ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
               }}
             >
               <div
                 style={{
-                  width: '18px',
-                  height: '18px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
-                  border: isSelected ? '5px solid #38bdf8' : '2px solid #64748b',
+                  border: isSelected ? '5px solid #00aeef' : '2px solid #475569',
                   boxSizing: 'border-box',
                   marginTop: '2px',
                   flexShrink: 0,
                   transition: 'all 0.15s ease',
+                  background: isSelected ? '#00aeef' : 'transparent',
                 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -128,8 +130,8 @@ export const PerfSection = memo(function PerfSection() {
                     alignItems: 'center',
                     gap: '8px',
                     fontWeight: 700,
-                    fontSize: '0.92rem',
-                    color: isSelected ? '#38bdf8' : '#f8fafc',
+                    fontSize: '0.95rem',
+                    color: isSelected ? '#00aeef' : '#f8fafc',
                     marginBottom: '4px',
                     flexWrap: 'wrap',
                   }}
@@ -140,10 +142,10 @@ export const PerfSection = memo(function PerfSection() {
                   {opt.badge && (
                     <span
                       style={{
-                        fontSize: '0.62rem',
-                        padding: '2px 7px',
+                        fontSize: '0.65rem',
+                        padding: '2px 8px',
                         borderRadius: '6px',
-                        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                        background: '#0284c7',
                         color: '#ffffff',
                         fontWeight: 700,
                         letterSpacing: '0.5px',
@@ -155,7 +157,7 @@ export const PerfSection = memo(function PerfSection() {
                 </div>
                 <div
                   style={{
-                    fontSize: '0.8rem',
+                    fontSize: '0.82rem',
                     color: '#94a3b8',
                     lineHeight: 1.45,
                   }}
@@ -168,30 +170,30 @@ export const PerfSection = memo(function PerfSection() {
         })}
       </div>
 
-      {/* FOOTER STATUS */}
+      {/* FOOTER ACTIVE STATUS */}
       <div
         style={{
-          marginTop: '14px',
+          marginTop: '16px',
           padding: '10px 14px',
-          background: 'rgba(0, 0, 0, 0.25)',
+          background: 'rgba(0, 0, 0, 0.35)',
           borderRadius: '10px',
-          fontSize: '0.78rem',
+          fontSize: '0.8rem',
           color: '#94a3b8',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '8px',
         }}
       >
-        <Cpu size={14} style={{ color: '#38bdf8' }} />
-        <span>{t('settings.perf_status_active', 'Status Aktif:')}</span>
-        <strong style={{ color: '#38bdf8' }}>
+        <Cpu size={15} style={{ color: '#00aeef' }} />
+        <span>{t('settings.perf_status_active', 'Active Status:')}</span>
+        <strong style={{ color: '#00aeef' }}>
           {tier === 'low'
-            ? t('settings.perf_tier_low_title', 'Mode Hemat')
+            ? t('settings.perf_tier_low_title', 'Saver Mode')
             : tier === 'high'
-            ? t('settings.perf_tier_high_title', 'Mode Turbo')
-            : t('settings.perf_tier_mid_title', 'Mode Standar')}
+            ? t('settings.perf_tier_high_title', 'Turbo Mode')
+            : t('settings.perf_tier_mid_title', 'Standard Mode')}
         </strong>
-        <span>· {t('settings.perf_engine_rust', 'Engine MTProto Rust')}</span>
+        <span>· {t('settings.perf_engine_rust', 'Rust MTProto Engine')}</span>
       </div>
     </div>
   );
