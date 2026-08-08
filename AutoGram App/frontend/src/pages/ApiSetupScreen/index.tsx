@@ -87,7 +87,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     try {
       const checkRes = await verifyTelegramApiCredentials(trimmedId, trimmedHash);
       if (!checkRes.ok) {
-        setError(checkRes.error || t('nav.api_setup_error_telegram'));
+        setError(t(`nav.${checkRes.errorKey || 'api_setup_error_telegram'}`));
         notifyApiError();
         setSaving(false);
         return;

@@ -193,24 +193,24 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
 }
 
 let lastVerifyTime = 0;
-let lastVerifyResult: { ok: boolean; error?: string } | null = null;
+let lastVerifyResult: { ok: boolean; errorKey?: string } | null = null;
 let lastVerifyKey = '';
 
 export async function verifyTelegramApiCredentials(
   apiId: string,
   apiHash: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; errorKey?: string }> {
   const id = String(apiId || '').trim();
   const hash = String(apiHash || '').trim();
 
   if (!id || !hash) {
-    return { ok: false, error: 'API ID dan API Hash wajib diisi.' };
+    return { ok: false, errorKey: 'api_setup_error_empty' };
   }
   if (!/^\d{4,10}$/.test(id)) {
-    return { ok: false, error: 'API ID harus berupa angka unik (4 hingga 10 digit).' };
+    return { ok: false, errorKey: 'api_setup_error_id_invalid' };
   }
   if (!/^[a-fA-F0-9]{32}$/.test(hash)) {
-    return { ok: false, error: 'API Hash harus berupa 32 karakter heksadesimal resmi.' };
+    return { ok: false, errorKey: 'api_setup_error_hash_invalid' };
   }
 
   // Cooldown protection: reuse result if re-submitted within 2.5s to avoid FloodWait
@@ -225,7 +225,7 @@ export async function verifyTelegramApiCredentials(
   // Perform 1-shot background QR code handshake test against Telegram servers
   if (detectTauriRuntime()) {
     const testSessionName = `test_verify_${Date.now()}`;
-    return new Promise<{ ok: boolean; error?: string }>(async (resolve) => {
+    return new Promise<{ ok: boolean; errorKey?: string }>(async (resolve) => {
       let resolved = false;
       let unlistenFn: (() => void) | null = null;
 
@@ -271,7 +271,7 @@ export async function verifyTelegramApiCredentials(
               if (/API_ID_INVALID|400|invalid/i.test(errStr)) {
                 const res = {
                   ok: false,
-                  error: 'Kredensial API tidak diterima oleh Telegram. Mohon periksa kembali API ID & Hash resmi Anda dari my.telegram.org.',
+                  errorKey: 'api_setup_error_telegram',
                 };
                 lastVerifyResult = res;
                 resolve(res);
@@ -298,7 +298,7 @@ export async function verifyTelegramApiCredentials(
           if (/API_ID_INVALID|400|RPC error/i.test(msg)) {
             const res = {
               ok: false,
-              error: 'Kredensial API tidak diterima oleh Telegram. Mohon periksa kembali API ID & Hash resmi Anda dari my.telegram.org.',
+              errorKey: 'api_setup_error_telegram',
             };
             lastVerifyResult = res;
             resolve(res);
