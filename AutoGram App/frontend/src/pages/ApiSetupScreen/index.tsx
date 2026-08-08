@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound,
@@ -31,6 +31,7 @@ interface ApiSetupScreenProps {
 
 export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }: ApiSetupScreenProps) {
   const { t } = useTranslation();
+  const mouseDownOnBackdropRef = useRef(false);
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
   const [showHash, setShowHash] = useState(false);
@@ -280,8 +281,11 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   return isModal ? (
     <div
       className="modal-overlay api-modal-container"
+      onMouseDown={(e) => {
+        mouseDownOnBackdropRef.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !saving && onClose) {
+        if (e.target === e.currentTarget && mouseDownOnBackdropRef.current && !saving && onClose) {
           onClose();
         }
       }}
