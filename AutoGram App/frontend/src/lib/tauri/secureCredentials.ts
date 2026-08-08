@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { detectTauriRuntime } from './platform';
 import type { DriveTransferSettings } from '../telegram/driveTypes';
 
@@ -204,28 +205,82 @@ export async function verifyTelegramApiCredentials(
     return { ok: false, error: 'API Hash harus berupa 32 karakter heksadesimal resmi.' };
   }
 
+  // Perform 1-shot background QR code handshake test against Telegram servers
   if (detectTauriRuntime()) {
-    try {
-      const res = await invoke<any>('verify_telegram_credentials', {
-        apiId: Number(id),
-        apiHash: hash,
-      }).catch((err: any) => {
-        const msg = String(err?.message || err || '');
-        if (/API_ID_INVALID|400|RPC error|invalid/i.test(msg)) {
-          return { ok: false, error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org' };
-        }
-        return { ok: true };
-      });
+    const testSessionName = `test_verify_${Date.now()}`;
+    return new Promise<{ ok: boolean; error?: string }>(async (resolve) => {
+      let resolved = false;
+      let unlistenFn: (() => void) | null = null;
 
-      if (res && res.ok === false) {
-        return res;
+      const cleanup = async () => {
+        if (unlistenFn) {
+          try { unlistenFn(); } catch {}
+        }
+        try {
+          await invoke('delete_session_rust', { session: testSessionName });
+        } catch {}
+      };
+
+      const timer = setTimeout(async () => {
+        if (!resolved) {
+          resolved = true;
+          await cleanup();
+          resolve({ ok: true });
+        }
+      }, 5000);
+
+      try {
+        unlistenFn = await listen<any>('qr-event', async (event) => {
+          const payload = event.payload || {};
+          if (payload.session && payload.session !== testSessionName) return;
+
+          if (payload.status === 'qr_code' || payload.status === 'already_authorized' || payload.status === '2fa_required') {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timer);
+              await cleanup();
+              resolve({ ok: true });
+            }
+          } else if (payload.status === 'error') {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timer);
+              await cleanup();
+              const errStr = String(payload.error || '');
+              if (/API_ID_INVALID|400|invalid/i.test(errStr)) {
+                resolve({
+                  ok: false,
+                  error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
+                });
+              } else {
+                resolve({ ok: true });
+              }
+            }
+          }
+        });
+
+        await invoke('start_rust_qr_login', {
+          session: testSessionName,
+          apiId: Number(id),
+          apiHash: hash,
+        });
+      } catch (err: any) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          await cleanup();
+          const msg = String(err?.message || err || '');
+          if (/API_ID_INVALID|400|RPC error/i.test(msg)) {
+            resolve({
+              ok: false,
+              error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
+            });
+          } else {
+            resolve({ ok: true });
+          }
+        }
       }
-    } catch (e: any) {
-      const msg = String(e?.message || e || '');
-      if (/API_ID_INVALID|400/i.test(msg)) {
-        return { ok: false, error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org' };
-      }
-    }
+    });
   }
 
   return { ok: true };
