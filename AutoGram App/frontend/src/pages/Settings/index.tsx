@@ -732,92 +732,110 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               {cacheBreakdown && (
                 <div
                   style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
                     gap: '8px',
-                    paddingTop: '10px',
+                    paddingTop: '12px',
                     borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
                   }}
                 >
-                  <span
+                  <div
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.25)',
-                      color: '#38bdf8',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      background: 'rgba(56, 189, 248, 0.06)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
                     }}
                   >
-                    📁 {t('settings.cache_breakdown_disk')}: <strong>{formatBytes(cacheBreakdown.cacheBytes)}</strong>
-                  </span>
-                  <span
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      📁 {t('settings.cache_breakdown_disk')}
+                    </span>
+                    <strong style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 600 }}>
+                      {formatBytes(cacheBreakdown.cacheBytes)}
+                    </strong>
+                  </div>
+
+                  <div
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      background: 'rgba(168, 85, 247, 0.1)',
-                      border: '1px solid rgba(168, 85, 247, 0.25)',
-                      color: '#c084fc',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      background: 'rgba(168, 85, 247, 0.06)',
+                      border: '1px solid rgba(168, 85, 247, 0.2)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
                     }}
                   >
-                    🖼️ {t('settings.cache_breakdown_thumbs')}: <strong>{formatBytes(cacheBreakdown.thumbsBytes)}</strong>
-                  </span>
-                  <span
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      🖼️ {t('settings.cache_breakdown_thumbs')}
+                    </span>
+                    <strong style={{ fontSize: '0.9rem', color: '#c084fc', fontWeight: 600 }}>
+                      {formatBytes(cacheBreakdown.thumbsBytes)}
+                    </strong>
+                  </div>
+
+                  <div
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      background: 'rgba(234, 179, 8, 0.1)',
-                      border: '1px solid rgba(234, 179, 8, 0.25)',
-                      color: '#facc15',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      background: 'rgba(234, 179, 8, 0.06)',
+                      border: '1px solid rgba(234, 179, 8, 0.2)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
                     }}
                   >
-                    ⚡ {t('settings.cache_breakdown_temp')}: <strong>{formatBytes(cacheBreakdown.tempBytes)}</strong>
-                  </span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      ⚡ {t('settings.cache_breakdown_temp')}
+                    </span>
+                    <strong style={{ fontSize: '0.9rem', color: '#facc15', fontWeight: 600 }}>
+                      {formatBytes(cacheBreakdown.tempBytes)}
+                    </strong>
+                  </div>
+
                   {cacheBreakdown.localBytes > 0 && (
-                    <span
+                    <div
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        background: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                        color: '#34d399',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
+                        background: 'rgba(16, 185, 129, 0.06)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px',
                       }}
                     >
-                      💾 {t('settings.cache_breakdown_local')}: <strong>{formatBytes(cacheBreakdown.localBytes)}</strong>
-                    </span>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        💾 {t('settings.cache_breakdown_local')}
+                      </span>
+                      <strong style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
+                        {formatBytes(cacheBreakdown.localBytes)}
+                      </strong>
+                    </div>
                   )}
+
                   {cacheBreakdown.staleBytes > 0 && (
-                    <span
+                    <div
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.35)',
-                        color: '#fca5a5',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px',
                       }}
                     >
-                      ⚠️ {t('settings.cache_breakdown_stale')}: <strong>{formatBytes(cacheBreakdown.staleBytes)}</strong>
-                    </span>
+                      <span style={{ fontSize: '0.72rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        ⚠️ {t('settings.cache_breakdown_stale')}
+                      </span>
+                      <strong style={{ fontSize: '0.9rem', color: '#fca5a5', fontWeight: 600 }}>
+                        {formatBytes(cacheBreakdown.staleBytes)}
+                      </strong>
+                    </div>
                   )}
                 </div>
               )}
