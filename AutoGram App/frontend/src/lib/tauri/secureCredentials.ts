@@ -2,9 +2,68 @@
  * Secure API credentials — Tauri encrypted store (P0).
  * Migrates legacy localStorage API_ID / API_HASH once, then removes them.
  */
+import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { detectTauriRuntime } from './platform';
 import type { DriveTransferSettings } from '../telegram/driveTypes';
+
+export function notifyApiCredentialsChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('autogram-api-credentials-changed'));
+  }
+}
+
+export function notifyApiError() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('autogram-api-error'));
+  }
+}
+
+export async function checkApiCredentialsConnected(): Promise<boolean> {
+  if (detectTauriRuntime()) {
+    try {
+      const [rawId, rawHash] = await Promise.all([
+        invokeGet('API_ID'),
+        invokeGet('API_HASH'),
+      ]);
+      if (!rawId || !rawHash || !rawId.trim() || !rawHash.trim()) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const lsId = localStorage.getItem(LS_ID) || '';
+  const lsHash = localStorage.getItem(LS_HASH) || '';
+  return Boolean(lsId.trim() && lsHash.trim());
+}
+
+export function useApiCredentialsStatus() {
+  const [hasError, setHasError] = useState<boolean>(false);
+
+  const checkStatus = useCallback(async () => {
+    const isConnected = await checkApiCredentialsConnected();
+    setHasError(!isConnected);
+  }, []);
+
+  useEffect(() => {
+    void checkStatus();
+
+    const handleChanged = () => { void checkStatus(); };
+    const handleError = () => { setHasError(true); };
+
+    window.addEventListener('autogram-api-credentials-changed', handleChanged);
+    window.addEventListener('autogram-api-error', handleError);
+
+    return () => {
+      window.removeEventListener('autogram-api-credentials-changed', handleChanged);
+      window.removeEventListener('autogram-api-error', handleError);
+    };
+  }, [checkStatus]);
+
+  return { hasError, recheck: checkStatus };
+}
 
 const LS_ID = 'API_ID';
 const LS_HASH = 'API_HASH';
@@ -114,6 +173,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
       } catch {
         /* ignore */
       }
+      notifyApiCredentialsChanged();
       return;
     }
     // Desktop save failed — fall through so user still has a local copy in LS
@@ -124,6 +184,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   localStorage.setItem(LS_ID, id);
   localStorage.setItem(LS_HASH, hash);
   memoryCache = { apiId: id, apiHash: hash };
+  notifyApiCredentialsChanged();
 }
 
 export async function clearApiCredentials(): Promise<void> {
@@ -138,6 +199,7 @@ export async function clearApiCredentials(): Promise<void> {
   }
   localStorage.removeItem(LS_ID);
   localStorage.removeItem(LS_HASH);
+  notifyApiCredentialsChanged();
 }
 
 /** Sync helpers for gradual migration — prefer async getApiCredentials */

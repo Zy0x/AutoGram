@@ -33,6 +33,8 @@ import { SpecificCacheModal } from './SpecificCacheModal';
 import { CACHE_LIMIT_STEPS, PRESET_CACHE_LIMIT_VALUES } from './settingsUtils';
 import './Settings.css';
 
+import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
+
 interface SettingsProps {
   onBackToLauncher?: () => void;
   onOpenApiSetup?: () => void;
@@ -40,6 +42,7 @@ interface SettingsProps {
 
 export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const { t, i18n } = useTranslation();
+  const { hasError: hasApiError } = useApiCredentialsStatus();
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -526,17 +529,21 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           {onOpenApiSetup && (
             <button
               type="button"
-              className="btn btn-secondary"
+              className={hasApiError ? 'api-credentials-btn-error' : 'btn btn-secondary'}
               onClick={onOpenApiSetup}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                borderColor: 'rgba(56, 189, 248, 0.3)',
-                background: 'rgba(56, 189, 248, 0.1)',
-                color: '#38bdf8',
+                ...(hasApiError
+                  ? {}
+                  : {
+                      borderColor: 'rgba(56, 189, 248, 0.3)',
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      color: '#38bdf8',
+                    }),
               }}
-              title={t('settings.api_config')}
+              title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
             >
               <Key size={16} />
               <span>{t('settings.api_config')}</span>

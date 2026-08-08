@@ -17,7 +17,7 @@ import {
 } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 
-import { bootstrapSecureCredentials } from '../../lib/tauri/secureCredentials';
+import { bootstrapSecureCredentials, useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -33,6 +33,7 @@ export function SessionLauncher({
   onOpenApiSetup,
 }: SessionLauncherProps) {
   const { t } = useTranslation();
+  const { hasError: hasApiError } = useApiCredentialsStatus();
   const [sessions, setSessions] = useState<SessionOption[]>([]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
@@ -192,6 +193,7 @@ export function SessionLauncher({
           <button
             type="button"
             onClick={onOpenApiSetup}
+            className={hasApiError ? 'api-credentials-btn-error' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -199,15 +201,19 @@ export function SessionLauncher({
               padding: '0 12px',
               height: '36px',
               borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
               fontSize: '0.82rem',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              ...(hasApiError
+                ? {}
+                : {
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    color: '#38bdf8',
+                  }),
             }}
-            title={t('settings.api_config')}
+            title={hasApiError ? t('ui.generated.api_id_hash_belum_terisi_buka_settings_dan_simpa_9ccf412') : t('settings.api_config')}
             aria-label={t('settings.api_config')}
           >
             <Key size={15} />

@@ -1713,3 +1713,47 @@ html, body {
   animation: guideLinkGlowPulse 2.2s infinite ease-in-out;
 }
 
+/* API Credentials Button Red Glowing Error State */
+@keyframes apiErrorGlowPulse {
+  0% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.55), 0 0 4px rgba(239, 68, 68, 0.35), inset 0 0 6px rgba(239, 68, 68, 0.2);
+    border-color: rgba(248, 113, 113, 0.7);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(225, 29, 72, 0.32));
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.92), 0 0 10px rgba(244, 63, 94, 0.7), inset 0 0 12px rgba(239, 68, 68, 0.45);
+    border-color: rgba(254, 202, 202, 0.95);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.32), rgba(225, 29, 72, 0.42));
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.55), 0 0 4px rgba(239, 68, 68, 0.35), inset 0 0 6px rgba(239, 68, 68, 0.2);
+    border-color: rgba(248, 113, 113, 0.7);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(225, 29, 72, 0.32));
+  }
+}
+
+.api-credentials-btn-error {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(225, 29, 72, 0.32)) !important;
+  border: 1px solid rgba(248, 113, 113, 0.7) !important;
+  color: #fca5a5 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: apiErrorGlowPulse 2.2s infinite ease-in-out !important;
+}
+
+.api-credentials-btn-error:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.38), rgba(225, 29, 72, 0.48)) !important;
+  border-color: rgba(254, 202, 202, 1) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 0 26px rgba(239, 68, 68, 0.95), 0 0 12px rgba(244, 63, 94, 0.8) !important;
+}
+
