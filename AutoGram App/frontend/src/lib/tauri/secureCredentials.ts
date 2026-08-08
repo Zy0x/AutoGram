@@ -41,13 +41,24 @@ export function useApiCredentialsStatus() {
 
     const handleChanged = () => { void checkStatus(); };
     const handleError = () => { setHasError(true); };
+    const handleFocus = () => { void checkStatus(); };
+
+    // Periodic background watchdog: re-verify credentials every 15 seconds
+    const intervalId = setInterval(() => {
+      void checkStatus();
+    }, 15000);
 
     window.addEventListener('autogram-api-credentials-changed', handleChanged);
     window.addEventListener('autogram-api-error', handleError);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleChanged);
 
     return () => {
+      clearInterval(intervalId);
       window.removeEventListener('autogram-api-credentials-changed', handleChanged);
       window.removeEventListener('autogram-api-error', handleError);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleChanged);
     };
   }, [checkStatus]);
 
