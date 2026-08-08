@@ -20,15 +20,14 @@ export function notifyApiError() {
   }
 }
 
-export async function checkApiCredentialsConnected(): Promise<boolean> {
+export async function checkApiCredentialsConnected(force: boolean = false): Promise<boolean> {
   try {
     const creds = await getApiCredentials();
     if (!creds || !creds.apiId || !creds.apiId.trim() || !creds.apiHash || !creds.apiHash.trim()) {
       return false;
     }
-    const id = creds.apiId.trim();
-    const hash = creds.apiHash.trim();
-    return /^\d{4,10}$/.test(id) && /^[a-fA-F0-9]{32}$/.test(hash);
+    const verifyRes = await verifyTelegramApiCredentials(creds.apiId, creds.apiHash, force);
+    return verifyRes.ok;
   } catch {
     return false;
   }
@@ -295,6 +294,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
       if (checkId !== id || checkHash !== hash) { /* backup already saved above */ }
     } catch { /* ignore */ }
 
+    invalidateVerifyCache();
     notifyApiCredentialsChanged();
     return;
   }
@@ -304,6 +304,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   localStorage.setItem(LS_HASH, hash);
   void writeBackup(id, hash);
   memoryCache = { apiId: id, apiHash: hash };
+  invalidateVerifyCache();
   notifyApiCredentialsChanged();
 }
 
@@ -311,9 +312,16 @@ let lastVerifyTime = 0;
 let lastVerifyResult: { ok: boolean; errorKey?: string } | null = null;
 let lastVerifyKey = '';
 
+export function invalidateVerifyCache(): void {
+  lastVerifyTime = 0;
+  lastVerifyResult = null;
+  lastVerifyKey = '';
+}
+
 export async function verifyTelegramApiCredentials(
   apiId: string,
-  apiHash: string
+  apiHash: string,
+  force: boolean = false
 ): Promise<{ ok: boolean; errorKey?: string }> {
   const id = String(apiId || '').trim();
   const hash = String(apiHash || '').trim();
@@ -328,10 +336,11 @@ export async function verifyTelegramApiCredentials(
     return { ok: false, errorKey: 'api_setup_error_hash_invalid' };
   }
 
-  // Cooldown protection: reuse result if re-submitted within 2.5s to avoid FloodWait
+  // 60-second cache TTL for background checks to avoid FloodWait & unnecessary calls
   const now = Date.now();
   const verifyKey = `${id}:${hash}`;
-  if (now - lastVerifyTime < 2500 && lastVerifyKey === verifyKey && lastVerifyResult) {
+  const CACHE_TTL_MS = 60_000;
+  if (!force && now - lastVerifyTime < CACHE_TTL_MS && lastVerifyKey === verifyKey && lastVerifyResult) {
     return lastVerifyResult;
   }
   lastVerifyTime = now;
