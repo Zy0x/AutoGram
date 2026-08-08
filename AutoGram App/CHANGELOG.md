@@ -1,3 +1,9 @@
+## v3.0.7 Standalone Unsquished Full-Canvas Split View Engine
+
+### Penguncian Ukuran Penuh 1400px & Eliminasi Bug Menciut (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Fix Squished Centered Modal Bug**: Memperbaiki bug di mana modal perbandingan ciut menjadi 350px akibat batasan `align-items: center` dari `drive-preview-body`.
+- **Inline Style Alignment & Width Constraints**: Menerapkan inline styles eksplisit (`width: 100%`, `height: 100%`, `align-items: stretch`) pada seluruh pohon DOM modal sehingga Card A (~500px), Card B (~500px), dan Sidepanel (280px) terkuak penuh dan luas memenuhi canvas modal 1400px x 880px.
+
 ## v3.0.6 Strict Horizontal Side-by-Side Flex & Uncropped Aspect Contain Engine
 
 ### Perbaikan Penumpukan Vertikal & Gambar Contain 100% Utuh (`DrivePreviewModal/index.tsx`, `App.css`)

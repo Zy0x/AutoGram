@@ -3639,19 +3639,25 @@ export function DrivePreviewModal({
                 </button>
               ))}
             </div>,
-document.body
+            document.body
           )}
 
         <div
           className={`drive-preview-body${isZip ? ' is-zip-body' : ''}`}
           ref={stageRef}
           onWheel={onWheelStage}
-          style={isZip ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' } : undefined}
+          style={
+            isSplitCompareMode
+              ? { width: '100%', height: '100%', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }
+              : isZip
+              ? { width: '100%', height: '100%', padding: 0, alignItems: 'stretch', justifyContent: 'stretch' }
+              : undefined
+          }
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
-            <div className="flex-1 min-h-0 flex flex-col w-full h-full bg-[#0d1117] text-slate-100 overflow-hidden font-sans">
+            <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
               {/* TOP HEADER BAR */}
-              <header className="drive-dup-header">
+              <header className="drive-dup-header" style={{ width: '100%', height: '52px', minHeight: '52px', maxHeight: '52px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: '#161b22', borderBottom: '1px solid rgba(255,255,255,0.08)', boxSizing: 'border-box' }}>
                 <div className="drive-dup-header-left">
                   <button
                     type="button"
@@ -3681,7 +3687,7 @@ document.body
               </header>
 
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
-              <div style={{ flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+              <div style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: 'calc(100% - 52px)', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
                 {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
                 <div style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}>
                   {/* CARD A (LEFT) */}
@@ -3852,21 +3858,21 @@ document.body
                 </div>
 
                 {/* RIGHT SIDEPANEL (FILES IN THIS GROUP + FOOTER GROUP NAV) */}
-                <aside className="drive-preview-dup-sidebar">
-                  <div className="drive-preview-dup-sidebar-head">
+                <aside className="drive-preview-dup-sidebar" style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#161b22', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px', boxSizing: 'border-box', overflow: 'hidden' }}>
+                  <div className="drive-preview-dup-sidebar-head" style={{ flexShrink: 0, paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <span className="text-xs font-bold text-slate-200">
                       Files in this group ({currentDupGroup.files.length})
                     </span>
                   </div>
 
-                  <div className="drive-preview-dup-sidebar-list">
+                  <div className="drive-preview-dup-sidebar-list" style={{ flex: '1 1 0%', minHeight: 0, overflowY: 'auto', padding: '6px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {currentDupGroup.files.map((f, idx) => {
                       const isA = !isSlotAEmpty && idx === selectedAIndex;
                       const isB = !isSlotBEmpty && idx === selectedBIndex;
                       const isDel = duplicateContext.markedDelete.has(f.id);
                       const sizeStr = formatDriveBytes(f.size || 0);
                       const cardThumb = f.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
-                      const truncatedName = middleTruncateFilename(f.name, 20);
+                      const truncatedName = middleTruncateFilename(f.name, 18);
 
                       return (
                         <div
@@ -3920,11 +3926,12 @@ document.body
                   </div>
 
                   {/* SIDEPANEL FOOTER: GROUP NAV + HINT */}
-                  <div className="drive-preview-dup-sidebar-footer">
-                    <div className="drive-dup-bottom-nav">
+                  <div className="drive-preview-dup-sidebar-footer" style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px', marginTop: 'auto' }}>
+                    <div className="drive-dup-bottom-nav" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', padding: '6px 8px', background: '#0d1117', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', boxSizing: 'border-box' }}>
                       <button
                         type="button"
                         className="drive-dup-nav-btn"
+                        style={{ padding: '6px 8px', fontSize: '0.7rem', flexShrink: 0 }}
                         disabled={duplicateContext.currentGroupIndex <= 0}
                         onClick={() => {
                           const prevIdx = duplicateContext.currentGroupIndex - 1;
@@ -3935,16 +3942,17 @@ document.body
                         }}
                       >
                         <ChevronLeft size={13} />
-                        <span>Previous Group</span>
+                        <span>Prev</span>
                       </button>
 
-                      <span className="drive-dup-nav-counter">
-                        {duplicateContext.currentGroupIndex + 1} of {duplicateContext.activeFilteredGroups.length} Groups
+                      <span className="drive-dup-nav-counter" style={{ fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                        {duplicateContext.currentGroupIndex + 1} of {duplicateContext.activeFilteredGroups.length}
                       </span>
 
                       <button
                         type="button"
                         className="drive-dup-nav-btn"
+                        style={{ padding: '6px 8px', fontSize: '0.7rem', flexShrink: 0 }}
                         disabled={duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1}
                         onClick={() => {
                           const nextIdx = duplicateContext.currentGroupIndex + 1;
@@ -3954,14 +3962,14 @@ document.body
                           }
                         }}
                       >
-                        <span>Next Group</span>
+                        <span>Next</span>
                         <ChevronRight size={13} />
                       </button>
                     </div>
 
-                    <div className="text-slate-400 text-[11px] pt-2 flex items-center gap-1.5 border-t border-slate-800/60 mt-2">
+                    <div className="text-slate-400 text-[11px] pt-1.5 flex items-center gap-1.5 border-t border-slate-800/60 mt-1.5">
                       <Info size={12} className="text-slate-400 flex-shrink-0" />
-                      <span>Pilih file yang ingin disimpan (Keep).</span>
+                      <span className="text-[10px]">Pilih file yang ingin disimpan (Keep).</span>
                     </div>
                   </div>
                 </aside>

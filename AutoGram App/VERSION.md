@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.6
+AutoGram Version: v3.0.7
 
 Current State:
+v3.0.7 Standalone Unsquished Full-Canvas Split View Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana modal perbandingan duplikat ciut/ter-squish menjadi 350px di tengah layar akibat batasan `align-items: center` dari `drive-preview-body`. Mengunci inline styles penuh pada `drive-preview-body` (`align-items: stretch`, `width: 100%`, `height: 100%`) dan seluruh struktur anak, sehingga modal terkuak penuh 1400px x 880px di mana Card A (500px), Card B (500px), dan Sidepanel (280px) berdiri teratur, luas, dan estetik presisi tinggi.
+
+Previous:
 v3.0.6 Strict Horizontal Side-by-Side Flex & Uncropped Aspect Contain Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug penumpukan vertikal (vertical stacking) pada Card A dan Card B. Menerapkan aturan flexbox horizontal yang strictly ter-enforce (`flex-direction: row !important`, `flex: 1 1 0% !important`, `width: 0 !important`, `min-width: 0 !important`), sehingga Card A dan Card B 100% dipaksa sejajar 50%-50% secara horizontal (side-by-side) pada satu baris. Serta menetapkan `object-fit: contain !important` pada gambar sehingga ilustrasi karakter tampil utuh sempurna tanpa terpotong di bagian atas atau bawah.
 
 Previous:
