@@ -95,6 +95,8 @@
   "api_setup_error_telegram": "API_ID_INVALID: API ID or API Hash is rejected by Telegram. Please double check credentials from my.telegram.org.",
   "api_setup_verifying": "Verifying with Telegram…",
   "api_setup_success_verified": "✓ Credentials successfully verified & saved!",
+  "api_error_workspace_lockout": "Telegram API Credentials Error · Please set or fix your API ID & Hash to unlock workspace.",
+  "api_setup_fix_btn": "Fix Credentials",
   "how_to_get_btn": "How to Get",
   "how_to_get_title": "How to Get Telegram API",
   "how_to_get_step1_title": "1. Log in to my.telegram.org",

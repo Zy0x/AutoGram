@@ -15,6 +15,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   loadSelectableSessions,
@@ -297,7 +298,7 @@ export function SessionLauncher({
 
       {/* HERO SECTION */}
       <main style={{ flex: 1, maxWidth: '1120px', width: '100%', margin: '0 auto', padding: '40px 24px 60px', boxSizing: 'border-box' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1 style={{ fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
             {t('nav.launcher_title')}
           </h1>
@@ -305,6 +306,53 @@ export function SessionLauncher({
             {t('nav.launcher_subtitle')}
           </p>
         </div>
+
+        {/* WORKSPACE LOCKOUT ALERT BANNER */}
+        {hasApiError && (
+          <div
+            style={{
+              margin: '0 auto 28px',
+              maxWidth: '680px',
+              padding: '12px 18px',
+              borderRadius: '14px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              color: '#fca5a5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)',
+              backdropFilter: 'blur(12px)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertTriangle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.84rem', fontWeight: 600, lineHeight: 1.4 }}>
+                {t('nav.api_error_workspace_lockout')}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenApiSetup}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              }}
+            >
+              {t('nav.api_setup_fix_btn')}
+            </button>
+          </div>
+        )}
 
         {/* SESSION CARDS GRID */}
         <div
@@ -314,6 +362,17 @@ export function SessionLauncher({
             gap: '24px',
             maxWidth: '1080px',
             margin: '0 auto',
+            ...(hasApiError
+              ? {
+                  opacity: 0.4,
+                  filter: 'grayscale(0.6)',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  transition: 'all 0.3s ease',
+                }
+              : {
+                  transition: 'all 0.3s ease',
+                }),
           }}
         >
           {displaySessions.map((sess) => {

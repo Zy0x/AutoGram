@@ -44,10 +44,10 @@ export function useApiCredentialsStatus() {
     const handleError = () => { setHasError(true); };
     const handleFocus = () => { void checkStatus(); };
 
-    // Periodic background watchdog: re-verify credentials every 15 seconds
+    // Gentle background watchdog: re-verify credentials status every 60 seconds (safe & rate-limit friendly)
     const intervalId = setInterval(() => {
       void checkStatus();
-    }, 15000);
+    }, 60000);
 
     window.addEventListener('autogram-api-credentials-changed', handleChanged);
     window.addEventListener('autogram-api-error', handleError);
