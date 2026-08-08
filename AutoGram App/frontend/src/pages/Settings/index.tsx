@@ -1425,52 +1425,65 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               {pendingNewPath}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
               <button
                 type="button"
-                className="btn btn-secondary"
                 onClick={() => void executeCacheMigration('move')}
                 disabled={isMigrating}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
+                  padding: '14px 16px',
                   textAlign: 'left',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '3px',
-                  borderColor: 'rgba(56, 189, 248, 0.4)',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  color: '#38bdf8',
-                  borderRadius: '10px',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                  gap: '4px',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  borderRadius: '12px',
+                  cursor: isMigrating ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none',
+                  whiteSpace: 'normal',
+                  boxSizing: 'border-box',
                 }}
               >
-                <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#38bdf8', display: 'block', lineHeight: 1.3 }}>
                   📦 {t('settings.custom_cache_migrate_option_move')}
                 </span>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 400 }}>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_migrate_option_move_desc')}
                 </span>
               </button>
 
               <button
                 type="button"
-                className="btn btn-danger"
                 onClick={() => void executeCacheMigration('wipe')}
                 disabled={isMigrating}
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
+                  padding: '14px 16px',
                   textAlign: 'left',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '3px',
-                  borderRadius: '10px',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                  gap: '4px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  borderRadius: '12px',
+                  cursor: isMigrating ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none',
+                  whiteSpace: 'normal',
+                  boxSizing: 'border-box',
                 }}
               >
-                <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
                   🧹 {t('settings.custom_cache_migrate_option_wipe')}
                 </span>
-                <span style={{ fontSize: '0.74rem', color: '#fca5a5', fontWeight: 400 }}>
+                <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_migrate_option_wipe_desc')}
                 </span>
               </button>
@@ -1478,13 +1491,24 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
             <button
               type="button"
-              className="btn btn-secondary"
               onClick={() => {
                 setIsMigrateModalOpen(false);
                 setPendingNewPath(null);
               }}
               disabled={isMigrating}
-              style={{ marginTop: '4px' }}
+              style={{
+                marginTop: '6px',
+                width: '100%',
+                padding: '12px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                color: '#cbd5e1',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                cursor: isMigrating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
             >
               {t('common.cancel')}
             </button>
