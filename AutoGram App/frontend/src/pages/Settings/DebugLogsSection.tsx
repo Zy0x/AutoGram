@@ -137,7 +137,7 @@ export const DebugSection = memo(function DebugSection() {
                       setCopied(ok);
                       window.setTimeout(() => setCopied(false), 2000);
                       if (!ok) {
-                        debugLog('settings', 'clipboard copy failed — use manual select');
+                        debugLog('settings', 'clipboard copy failed; use manual select');
                       }
                     });
                   }}

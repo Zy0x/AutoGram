@@ -144,12 +144,16 @@ function App() {
 
   if (appMode === 'settings') {
     return (
-      <Settings
-        onBackToLauncher={() => {
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-        }}
-      />
+      <div className="app-layout">
+        <div className="app-content" id="app-content">
+          <Settings
+            onBackToLauncher={() => {
+              setAppMode('launcher');
+              localStorage.setItem('autogram_app_mode', 'launcher');
+            }}
+          />
+        </div>
+      </div>
     );
   }
 

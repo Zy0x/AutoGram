@@ -12,6 +12,7 @@ import {
   Loader2,
   Sliders,
   ArrowLeft,
+  Settings2,
 } from 'lucide-react';
 
 import { detectTauriRuntime } from '../../lib/tauri/platform';
@@ -48,6 +49,7 @@ import {
 import { PerfSection } from './PerfSection';
 import { DebugSection } from './DebugLogsSection';
 import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
+import './Settings.css';
 
 interface SettingsProps {
   onBackToLauncher?: () => void;
@@ -391,15 +393,20 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
   };
 
   return (
-    <main className="main-content page-stack">
-      <header className="page-header">
-        <div>
-          <h2 className="title">{t('settings.title')}</h2>
-          <p className="subtitle">{t('settings.subtitle')}</p>
+    <main className="main-content settings-page">
+      <header className="settings-header">
+        <div className="settings-header-copy">
+          <span className="settings-header-icon" aria-hidden>
+            <Settings2 size={22} strokeWidth={2} />
+          </span>
+          <div>
+            <h2 className="title">{t('settings.title')}</h2>
+            <p className="subtitle">{t('settings.subtitle')}</p>
+          </div>
         </div>
         {onBackToLauncher && (
-          <div className="page-header-actions">
-            <button type="button" className="btn btn-secondary" onClick={onBackToLauncher}>
+          <div className="settings-header-actions">
+            <button type="button" className="btn btn-secondary settings-back-button" onClick={onBackToLauncher}>
               <ArrowLeft size={17} />
               {t('nav.back_to_launcher')}
             </button>
@@ -407,21 +414,22 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
         )}
       </header>
 
-      <div className="grid-layout">
-        <div className="glass-panel card">
+      <div className="settings-grid">
+        <div className="glass-panel card settings-section-general">
           <div className="card-header">
             <Globe size={20} color="var(--primary)" />
             <h3>{t('settings.general')}</h3>
           </div>
           
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label title-with-icon">
+            <label className="input-label title-with-icon" htmlFor="settings-language">
               {t('settings.language')}
             </label>
             <p className="field-hint">
               {t('settings.language_desc')}
             </p>
             <select 
+              id="settings-language"
               className="input-field" 
               value={i18n.language} 
               onChange={(e) => changeLanguage(e.target.value)}
@@ -434,7 +442,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
 
         <PerfSection />
 
-        <div className="glass-panel card">
+        <div className="glass-panel card settings-section-api">
           <div className="card-header">
             <ShieldCheck size={20} color="var(--accent)" />
             <h3>{t('settings.api_config')}</h3>
@@ -449,10 +457,11 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
           ) : (
             <div className="page-stack" style={{ gap: '1.25rem' }}>
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label title-with-icon">
+                <label className="input-label title-with-icon" htmlFor="settings-api-id">
                   <Key size={14} /> {t('settings.api_id_label')}
                 </label>
                 <input 
+                  id="settings-api-id"
                   type="text" 
                   value={apiId} 
                   onChange={e => setApiId(e.target.value)} 
@@ -462,10 +471,11 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
               </div>
               
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label title-with-icon">
+                <label className="input-label title-with-icon" htmlFor="settings-api-hash">
                   <Key size={14} /> {t('settings.api_hash_label')}
                 </label>
                 <input 
+                  id="settings-api-hash"
                   type="password" 
                   value={apiHash} 
                   onChange={e => setApiHash(e.target.value)} 
@@ -501,7 +511,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
         </div>
 
         {detectTauriRuntime() && (
-          <div className="glass-panel card">
+          <div className="glass-panel card settings-section-backend">
             <div className="card-header">
               <Terminal size={20} color="var(--primary)" />
               <h3>{t('settings.backend_native_title')}</h3>
@@ -532,7 +542,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
         )}
 
         {detectTauriRuntime() && netCfg && (
-          <div className="glass-panel card">
+          <div className="glass-panel card settings-section-network">
             <div className="card-header">
               <Network size={20} color="var(--primary)" />
               <h3>{t('settings.proxy_title')}</h3>
@@ -715,7 +725,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
 
         <DebugSection />
 
-        <div className="glass-panel card">
+        <div className="glass-panel card settings-section-cache">
           <div className="card-header">
             <Trash2 size={20} color="var(--primary)" />
             <h3>{t('settings.cache_management')}</h3>
@@ -726,7 +736,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
           </p>
 
           <div className="page-stack" style={{ gap: '1.25rem' }}>
-            <div style={{
+            <div className="settings-cache-summary" style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -747,7 +757,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
             </div>
 
             {/* Slider Pembatas Ukuran Cache */}
-            <div style={{
+            <div className="settings-cache-limit" style={{
               background: 'rgba(255, 255, 255, 0.02)',
               padding: '14px 16px',
               borderRadius: '8px',
@@ -759,9 +769,9 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sliders size={16} color="var(--primary)" />
-                  <span className="input-label" style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
+                  <label className="input-label" htmlFor="settings-cache-limit" style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
                     {t('settings.cache_limit_label')}
-                  </span>
+                  </label>
                 </div>
                 <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
                   {cacheLimitMB === 0 ? t('ui.generated.unlimited_b8bef37') : formatBytes(cacheLimitMB * 1024 * 1024)}
@@ -770,6 +780,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
 
               <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
                 <input
+                  id="settings-cache-limit"
                   type="range"
                   min={0}
                   max={CACHE_LIMIT_STEPS.length - 1}
@@ -790,7 +801,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
                   }}
                 />
 
-                <div style={{
+                <div className="settings-cache-labels" style={{
                   position: 'relative',
                   width: '100%',
                   height: '22px',
@@ -805,6 +816,8 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
                     return (
                       <span
                         key={lbl}
+                        className="settings-cache-tick"
+                        data-selected={isSelected ? 'true' : 'false'}
                         style={{
                           position: 'absolute',
                           left: `${pct}%`,
@@ -849,7 +862,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
                 </div>
               )}
 
-              <div style={{
+              <div className="settings-auto-prune" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -877,7 +890,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div className="settings-action-row" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button 
                 type="button" 
                 className="btn btn-secondary" 
@@ -898,9 +911,9 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
               </button>
             </div>
 
-            <hr style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '0.5rem 0' }} />
+            <hr className="settings-divider" style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '0.5rem 0' }} />
 
-            <div>
+            <div className="settings-danger-zone">
               <span className="input-label" style={{ display: 'block', fontSize: '0.9rem' }}>{t('settings.db_clear_title')}</span>
               <p className="field-hint" style={{ marginTop: '2px', marginBottom: '0.75rem', fontSize: '0.75rem', lineHeight: 1.4 }}>
                 {t('settings.db_clear_desc')}
