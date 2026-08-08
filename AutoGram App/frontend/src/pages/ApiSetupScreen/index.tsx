@@ -28,6 +28,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [apiHash, setApiHash] = useState('');
   const [showHash, setShowHash] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [hasInteractedGuide, setHasInteractedGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -385,8 +386,11 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
 
             <button
               type="button"
-              onClick={() => setShowGuide(!showGuide)}
-              className="how-to-get-btn"
+              onClick={() => {
+                setHasInteractedGuide(true);
+                setShowGuide(!showGuide);
+              }}
+              className={`how-to-get-btn ${!hasInteractedGuide && !showGuide ? 'how-to-get-btn-pulse' : ''}`}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -669,8 +673,11 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
 
             <button
               type="button"
-              onClick={() => setShowGuide(!showGuide)}
-              className="how-to-get-btn"
+              onClick={() => {
+                setHasInteractedGuide(true);
+                setShowGuide(!showGuide);
+              }}
+              className={`how-to-get-btn ${!hasInteractedGuide && !showGuide ? 'how-to-get-btn-pulse' : ''}`}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

@@ -1636,6 +1636,28 @@ html, body {
   background: rgba(56, 189, 248, 0.28) !important;
   border-color: rgba(56, 189, 248, 0.55) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+@keyframes howToGetGlowPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45), 0 0 10px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+    background: rgba(56, 189, 248, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0), 0 0 18px rgba(56, 189, 248, 0.6);
+    border-color: rgba(56, 189, 248, 0.85);
+    background: rgba(56, 189, 248, 0.26);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 0 10px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+    background: rgba(56, 189, 248, 0.16);
+  }
+}
+
+.how-to-get-btn-pulse {
+  animation: howToGetGlowPulse 2.2s infinite ease-in-out;
 }
 
