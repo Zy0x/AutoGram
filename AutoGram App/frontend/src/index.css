@@ -1775,19 +1775,26 @@ html, body {
   animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Red error pulse for How to Get button */
-@keyframes errorGlowPulse {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4), inset 0 0 8px rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.6);
+/* Smooth red error pulse for How to Get button matching initial guide glow curve */
+@keyframes howToGetErrorGlowPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45), 0 0 10px rgba(239, 68, 68, 0.25);
+    border-color: rgba(248, 113, 113, 0.5);
+    background: rgba(239, 68, 68, 0.16);
   }
   50% {
-    box-shadow: 0 0 22px rgba(239, 68, 68, 0.85), 0 0 36px rgba(239, 68, 68, 0.4), inset 0 0 14px rgba(239, 68, 68, 0.35);
-    border-color: rgba(248, 113, 113, 1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0), 0 0 18px rgba(239, 68, 68, 0.65);
+    border-color: rgba(248, 113, 113, 0.95);
+    background: rgba(239, 68, 68, 0.28);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 10px rgba(239, 68, 68, 0.25);
+    border-color: rgba(248, 113, 113, 0.5);
+    background: rgba(239, 68, 68, 0.16);
   }
 }
 
 .how-to-get-btn-error-pulse {
-  animation: errorGlowPulse 1.8s ease-in-out infinite !important;
+  animation: howToGetErrorGlowPulse 2.2s infinite ease-in-out !important;
 }
 
