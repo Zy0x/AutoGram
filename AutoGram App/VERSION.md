@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.9
+AutoGram Version: v3.3.0
 
 Current State:
+v3.3.0 Single vs Split Preview Mode Behavior Isolation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memisahkan 100% tata letak Header dan Toolbar antara Mode Preview Biasa (Single) dan Mode Preview Split Compare. Mengembalikan tampilan Header lengkap dengan tombol navigasi file (`ChevronLeft`, `ChevronRight`), `Download`, `Buka`, `Buka dengan`, dan `Fullscreen` pada Mode Preview Biasa, serta menjaga Toolbar kelompok "Lainnya" khusus mode Split untuk `Download` dan `Fullscreen`.
+
+Previous:
 v3.2.9 Magnifier Toolbar Button Removal Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus tombol `Magnifier` dari grup Zoom di Toolbar sesuai permintaan pengguna, menyederhanakan grup Zoom menjadi `Zoom Out`, `Percentage Reset (100%)`, dan `Zoom In` secara bersih.
 
 Previous:

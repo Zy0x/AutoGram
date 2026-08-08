@@ -3159,53 +3159,186 @@ export function DrivePreviewModal({
         {!isZip && (
           <>
             <header className="drive-preview-header font-sans">
-          {/* Row A: title + close — title never shares width with icon cluster */}
-          <div className="drive-preview-title">
-            <strong title={isSplitCompareMode ? (activeSlotFile ? activeSlotFile.name : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1}`) : displayName}>
-              {isSplitCompareMode
-                ? activeSlotFile
-                  ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
-                  : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1} (${currentDupGroup?.files.length || 0} files)`
-                : displayName}
-            </strong>
-            <span className="drive-muted" title={[
-              formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size)),
-              previewWidth && previewHeight ? `${previewWidth}×${previewHeight}px` : '',
-              previewState === 'degraded' ? 'degraded fallback' : '',
-              durationLabel,
-              kindLabel,
-              isVideo && activeQuality ? activeQuality.label : '',
-              fromCache && !loading ? 'cache' : '',
-              previewErrorDetail ? `err: ${previewErrorDetail}` : '',
-            ].filter(Boolean).join(' · ')}>
-              {isHeaderFrozen ? (
-                <span className="text-amber-400/90 font-medium">Klik Card A atau Card B untuk mengaktifkan toolbar</span>
-              ) : (
-                <>
-                  {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
-                  {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
-                  {durationLabel ? ` · ${durationLabel}` : ''}
-                  {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
-                  {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
-                  {fromCache && !loading ? ' · cache' : ''}
-                  {previewState === 'degraded' ? ' · Degraded' : ''}
-                </>
+              {/* Row A: title + close */}
+              <div className="drive-preview-title">
+                <strong title={isSplitCompareMode ? (activeSlotFile ? activeSlotFile.name : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1}`) : displayName}>
+                  {isSplitCompareMode
+                    ? activeSlotFile
+                      ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
+                      : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1} (${currentDupGroup?.files.length || 0} files)`
+                    : displayName}
+                </strong>
+                <span className="drive-muted" title={[
+                  formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size)),
+                  previewWidth && previewHeight ? `${previewWidth}×${previewHeight}px` : '',
+                  previewState === 'degraded' ? 'degraded fallback' : '',
+                  durationLabel,
+                  kindLabel,
+                  isVideo && activeQuality ? activeQuality.label : '',
+                  fromCache && !loading ? 'cache' : '',
+                  previewErrorDetail ? `err: ${previewErrorDetail}` : '',
+                ].filter(Boolean).join(' · ')}>
+                  {isHeaderFrozen ? (
+                    <span className="text-amber-400/90 font-medium">Klik Card A atau Card B untuk mengaktifkan toolbar</span>
+                  ) : (
+                    <>
+                      {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
+                      {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
+                      {durationLabel ? ` · ${durationLabel}` : ''}
+                      {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
+                      {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
+                      {fromCache && !loading ? ' · cache' : ''}
+                      {previewState === 'degraded' ? ' · Degraded' : ''}
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {!isSplitCompareMode && (
+                <div
+                  className="drive-preview-nav"
+                  role="toolbar"
+                  aria-label="Navigasi preview"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    disabled={
+                      duplicateContext
+                        ? duplicateContext.currentGroupIndex <= 0
+                        : !hasPrev
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (duplicateContext) {
+                        const prevIdx = duplicateContext.currentGroupIndex - 1;
+                        const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
+                        if (prevGroup && duplicateContext.onNavigateGroup) {
+                          duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
+                        }
+                      } else {
+                        onPrev?.();
+                      }
+                    }}
+                    aria-label="Previous"
+                    title={
+                      duplicateContext
+                        ? t('speedtest.preview_prev_group')
+                        : hasPrev
+                        ? t('speedtest.preview_prev_file')
+                        : t('speedtest.preview_no_prev')
+                    }
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    disabled={
+                      duplicateContext
+                        ? duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1
+                        : !hasNext
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (duplicateContext) {
+                        const nextIdx = duplicateContext.currentGroupIndex + 1;
+                        const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
+                        if (nextGroup && duplicateContext.onNavigateGroup) {
+                          duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
+                        }
+                      } else {
+                        onNext?.();
+                      }
+                    }}
+                    aria-label="Next"
+                    title={
+                      duplicateContext
+                        ? t('speedtest.preview_next_group')
+                        : hasNext
+                        ? t('speedtest.preview_next_file')
+                        : t('speedtest.preview_no_next')
+                    }
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDownload();
+                    }}
+                    disabled={saving}
+                    title={t('speedtest.download_tooltip')}
+                    aria-label="Download"
+                  >
+                    {saving ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
+                  </button>
+
+                  {isDesktop() && (
+                    <>
+                      <button
+                        type="button"
+                        className="td-icon-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenSystem();
+                        }}
+                        disabled={openingSystem || !creds}
+                        title={t('speedtest.open_default_tooltip')}
+                        aria-label="Buka"
+                      >
+                        {openingSystem ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="td-icon-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleOpenWith();
+                        }}
+                        disabled={openingSystem || !creds}
+                        title={t('speedtest.open_with_tooltip')}
+                        aria-label="Buka dengan"
+                      >
+                        <AppWindow size={16} />
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    className="td-icon-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void toggleFullscreen();
+                    }}
+                    title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                    aria-label="Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
+                </div>
               )}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="td-icon-btn drive-preview-close"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            aria-label="Close"
-            title={t("speedtest.close_esc_tooltip")}
-          >
-            <X size={18} />
-          </button>
-        </header>
+
+              <button
+                type="button"
+                className="td-icon-btn drive-preview-close"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                aria-label="Close"
+                title={t("speedtest.close_esc_tooltip")}
+              >
+                <X size={18} />
+              </button>
+            </header>
 
         {(openingSystem || openProgressMsg) && (
           <div className="drive-open-progress" role="status" aria-live="polite">
@@ -3478,32 +3611,36 @@ export function DrivePreviewModal({
 
             <div className="drive-tool-group" role="group" aria-label="Lainnya">
               <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
-              <button
-                type="button"
-                className="drive-tool-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleDownload();
-                }}
-                disabled={isHeaderFrozen || saving}
-                title={t('speedtest.download_tooltip')}
-                aria-label="Download"
-              >
-                {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-              </button>
-              <button
-                type="button"
-                className="drive-tool-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void toggleFullscreen();
-                }}
-                disabled={isHeaderFrozen}
-                title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-                aria-label="Fullscreen"
-              >
-                {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-              </button>
+              {isSplitCompareMode && (
+                <>
+                  <button
+                    type="button"
+                    className="drive-tool-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDownload();
+                    }}
+                    disabled={isHeaderFrozen || saving}
+                    title={t('speedtest.download_tooltip')}
+                    aria-label="Download"
+                  >
+                    {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="drive-tool-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void toggleFullscreen();
+                    }}
+                    disabled={isHeaderFrozen}
+                    title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                    aria-label="Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className={`drive-tool-btn${loading ? ' is-loading' : ''}`}

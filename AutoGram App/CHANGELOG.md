@@ -1,3 +1,10 @@
+## v3.3.0 Single vs Split Preview Mode Behavior Isolation Engine
+
+### Pemisahan Total Perilaku Header & Toolbar (`DrivePreviewModal/index.tsx`)
+- **Restorasi Header Mode Preview Biasa**: Mengembalikan komponen Header `drive-preview-nav` asli pada Mode Preview Biasa (`!isSplitCompareMode`), lengkap dengan tombol navigasi file (`ChevronLeft`, `ChevronRight`), `Download`, `ExternalLink` (Buka), `AppWindow` (Buka dengan), dan `Fullscreen` (`Maximize2`/`Minimize2`).
+- **Pengisolasian Toolbar Split Compare**: Tombol ikon-saja `Download` dan `Fullscreen` pada kelompok Toolbar "Lainnya" (`MORE`) kini dibatasi hanya dirender ketika Mode Preview Split Compare (`isSplitCompareMode`) aktif.
+- **Transisi Mode yang Bersih**: Memastikan perpindahan antara mode perbandingan dan mode pratinjau tunggal berlangsung mulus tanpa ada efek samping pada tampilan umum antarmuka.
+
 ## v3.2.9 Magnifier Toolbar Button Removal Engine
 
 ### Penghapusan Tombol Magnifier (`DrivePreviewModal/index.tsx`)
