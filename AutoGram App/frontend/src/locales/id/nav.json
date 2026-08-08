@@ -48,14 +48,11 @@
   "tab_new_job": "Buat Job Baru",
   "tab_history": "Riwayat & Log",
   "tab_forwarder_settings": "Pengaturan Forwarder",
-  "api_setup_title": "Setup API Telegram AutoGram",
-  "api_setup_subtitle": "Masukkan API ID dan API Hash akun Telegram Anda untuk mengaktifkan koneksi Grammers & MTProto.",
-  "api_setup_guide_title": "Cara Memperoleh API Credentials:",
-  "api_setup_step1": "1. Buka my.telegram.org di browser dan masuk dengan nomor telepon Telegram Anda.",
-  "api_setup_step2": "2. Pilih menu 'API development tools'.",
-  "api_setup_step3": "3. Buat aplikasi baru (misal: 'AutoGram') untuk memperoleh App api_id dan api_hash.",
-  "api_id_label": "API ID Telegram",
-  "api_hash_label": "API Hash Telegram",
-  "api_setup_submit": "Simpan & Lanjutkan",
-  "api_setup_error_empty": "API ID dan API Hash wajib diisi sebelum melanjutkan."
+  "api_setup_title": "API Credentials Telegram",
+  "api_setup_subtitle": "Kelola API ID dan API Hash untuk mengaktifkan koneksi Telegram MTProto.",
+  "api_setup_guide_title": "Dapatkan API ID & Hash via my.telegram.org",
+  "api_id_label": "API ID",
+  "api_hash_label": "API Hash",
+  "api_setup_submit": "Simpan Credentials",
+  "api_setup_error_empty": "API ID dan API Hash wajib diisi."
 }

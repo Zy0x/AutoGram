@@ -48,14 +48,11 @@
   "tab_new_job": "Create New Job",
   "tab_history": "History & Logs",
   "tab_forwarder_settings": "Forwarder Settings",
-  "api_setup_title": "AutoGram Telegram API Setup",
-  "api_setup_subtitle": "Enter your Telegram API ID and API Hash to activate the Grammers & MTProto connection.",
-  "api_setup_guide_title": "How to Obtain API Credentials:",
-  "api_setup_step1": "1. Open my.telegram.org in your browser and log in with your Telegram phone number.",
-  "api_setup_step2": "2. Select 'API development tools'.",
-  "api_setup_step3": "3. Create a new app (e.g., 'AutoGram') to get your App api_id and api_hash.",
-  "api_id_label": "Telegram API ID",
-  "api_hash_label": "Telegram API Hash",
-  "api_setup_submit": "Save & Continue",
-  "api_setup_error_empty": "API ID and API Hash are required before proceeding."
+  "api_setup_title": "Telegram API Credentials",
+  "api_setup_subtitle": "Manage your API ID and API Hash to enable Telegram MTProto connection.",
+  "api_setup_guide_title": "Obtain API ID & Hash via my.telegram.org",
+  "api_id_label": "API ID",
+  "api_hash_label": "API Hash",
+  "api_setup_submit": "Save Credentials",
+  "api_setup_error_empty": "API ID and API Hash are required."
 }

@@ -56,9 +56,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
 
     if (!trimmedId || !trimmedHash) {
       setError(
-        t(
-          'nav.api_setup_error_empty'
-        )
+        t('nav.api_setup_error_empty')
       );
       return;
     }
@@ -117,13 +115,13 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       >
         <div
           style={{
-            maxWidth: '510px',
+            maxWidth: '450px',
             width: '100%',
-            background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.96) 0%, rgba(11, 16, 26, 0.98) 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
+            background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.96) 0%, rgba(10, 14, 24, 0.98) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '20px',
-            padding: '24px 28px',
-            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.2)',
+            padding: '22px 24px',
+            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.15)',
             backdropFilter: 'blur(16px)',
             display: 'flex',
             flexDirection: 'column',
@@ -145,8 +143,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 position: 'absolute',
                 top: '16px',
                 right: '16px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 color: '#94a3b8',
                 cursor: 'pointer',
                 padding: '4px',
@@ -164,75 +162,75 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </button>
           )}
 
-          {/* LOGO & TITLE */}
-          <div style={{ textAlign: 'center' }}>
+          {/* HEADER: COMPACT ICON & TITLE */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 8px auto',
-                boxShadow: '0 6px 16px rgba(56, 189, 248, 0.35)',
+                flexShrink: 0,
+                color: '#38bdf8',
               }}
             >
-              <KeyRound size={22} style={{ color: '#ffffff' }} />
+              <KeyRound size={20} />
             </div>
-
-            <h2 id="api-modal-title" style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-              {t('nav.api_setup_title')}
-            </h2>
-            <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-              {t('nav.api_setup_subtitle')}
-            </p>
+            <div>
+              <h2 id="api-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+                {t('nav.api_setup_title')}
+              </h2>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+                {t('nav.api_setup_subtitle')}
+              </p>
+            </div>
           </div>
 
-          {/* GUIDE CARD */}
+          {/* STREAMLINED HELPER BAR */}
           <div
             style={{
-              padding: '12px 15px',
-              borderRadius: '12px',
+              padding: '8px 12px',
+              borderRadius: '10px',
               background: 'rgba(56, 189, 248, 0.06)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
-              fontSize: '0.78rem',
+              border: '1px solid rgba(56, 189, 248, 0.18)',
+              fontSize: '0.76rem',
               color: '#cbd5e1',
-              lineHeight: 1.45,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
             }}
           >
-            <strong style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', fontSize: '0.8rem' }}>
-              <ShieldCheck size={15} />
-              {t('nav.api_setup_guide_title')}
-            </strong>
-            <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <li>{t('nav.api_setup_step1')}</li>
-              <li>{t('nav.api_setup_step2')}</li>
-              <li>{t('nav.api_setup_step3')}</li>
-            </ul>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={15} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <span>{t('nav.api_setup_guide_title')}</span>
+            </div>
 
             <button
               type="button"
               onClick={handleOpenTelegramOrg}
               style={{
-                marginTop: '8px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '4px',
                 padding: '4px 10px',
                 borderRadius: '6px',
                 background: 'rgba(56, 189, 248, 0.15)',
                 border: '1px solid rgba(56, 189, 248, 0.3)',
                 color: '#38bdf8',
-                fontSize: '0.75rem',
+                fontSize: '0.74rem',
                 fontWeight: 600,
                 cursor: 'pointer',
+                flexShrink: 0,
                 transition: 'all 0.15s ease',
               }}
             >
               <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
-              <ExternalLink size={12} />
+              <ExternalLink size={11} />
             </button>
           </div>
 
@@ -248,18 +246,18 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 background: 'rgba(239, 68, 68, 0.12)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 color: '#fca5a5',
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
               }}
             >
-              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* FORM */}
+          {/* FORM INPUTS */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
                 {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
@@ -275,7 +273,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   background: 'rgba(15, 23, 42, 0.8)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: '#f8fafc',
-                  fontSize: '0.88rem',
+                  fontSize: '0.86rem',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -283,7 +281,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
                 {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
@@ -295,12 +293,12 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   required
                   style={{
                     width: '100%',
-                    padding: '9px 38px 9px 12px',
+                    padding: '9px 36px 9px 12px',
                     borderRadius: '10px',
                     background: 'rgba(15, 23, 42, 0.8)',
                     border: '1px solid rgba(255, 255, 255, 0.12)',
                     color: '#f8fafc',
-                    fontSize: '0.88rem',
+                    fontSize: '0.86rem',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -321,7 +319,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                     alignItems: 'center',
                   }}
                 >
-                  {showHash ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showHash ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
@@ -331,8 +329,8 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
               disabled={saving}
               style={{
                 marginTop: '4px',
-                padding: '11px',
-                borderRadius: '12px',
+                padding: '10px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
                 border: 'none',
                 color: '#ffffff',
@@ -343,7 +341,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 6px 16px rgba(56, 189, 248, 0.3)',
+                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.25)',
                 transition: 'all 0.18s ease',
               }}
             >
@@ -352,8 +350,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </button>
           </form>
 
-          <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', textAlign: 'center' }}>
-            {t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}
+          <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <ShieldCheck size={12} />
+            <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
           </p>
         </div>
       </div>
@@ -378,12 +377,12 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     >
       <div
         style={{
-          maxWidth: '520px',
+          maxWidth: '460px',
           width: '100%',
-          background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.9) 0%, rgba(11, 16, 26, 0.98) 100%)',
+          background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.9) 0%, rgba(10, 14, 24, 0.98) 100%)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
           borderRadius: '20px',
-          padding: '28px 32px',
+          padding: '24px 28px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15)',
           backdropFilter: 'blur(16px)',
           display: 'flex',
@@ -415,72 +414,71 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             <span>{t('nav.back_to_launcher')}</span>
           </button>
         )}
-        {/* LOGO & TITLE */}
-        <div style={{ textAlign: 'center' }}>
+
+        {/* HEADER: COMPACT ICON & TITLE */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 12px auto',
-              boxShadow: '0 6px 18px rgba(56, 189, 248, 0.35)',
+              flexShrink: 0,
+              color: '#38bdf8',
             }}
           >
-            <KeyRound size={24} style={{ color: '#ffffff' }} />
+            <KeyRound size={22} />
           </div>
-
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-            {t('nav.api_setup_title')}
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-            {t(
-              'nav.api_setup_subtitle'
-            )}
-          </p>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+              {t('nav.api_setup_title')}
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.4 }}>
+              {t('nav.api_setup_subtitle')}
+            </p>
+          </div>
         </div>
 
-        {/* GUIDE CARD */}
+        {/* STREAMLINED HELPER BAR */}
         <div
           style={{
-            padding: '14px 16px',
-            borderRadius: '14px',
+            padding: '10px 14px',
+            borderRadius: '12px',
             background: 'rgba(56, 189, 248, 0.06)',
-            border: '1px solid rgba(56, 189, 248, 0.2)',
-            fontSize: '0.8rem',
+            border: '1px solid rgba(56, 189, 248, 0.18)',
+            fontSize: '0.78rem',
             color: '#cbd5e1',
-            lineHeight: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
           }}
         >
-          <strong style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.82rem' }}>
-            <ShieldCheck size={16} />
-            {t('nav.api_setup_guide_title')}
-          </strong>
-          <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <li>{t('nav.api_setup_step1')}</li>
-            <li>{t('nav.api_setup_step2')}</li>
-            <li>{t('nav.api_setup_step3')}</li>
-          </ul>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldCheck size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            <span>{t('nav.api_setup_guide_title')}</span>
+          </div>
 
           <button
             type="button"
             onClick={handleOpenTelegramOrg}
             style={{
-              marginTop: '10px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               padding: '5px 11px',
-              borderRadius: '8px',
+              borderRadius: '6px',
               background: 'rgba(56, 189, 248, 0.15)',
               border: '1px solid rgba(56, 189, 248, 0.3)',
               color: '#38bdf8',
               fontSize: '0.76rem',
               fontWeight: 600,
               cursor: 'pointer',
+              flexShrink: 0,
               transition: 'all 0.15s ease',
             }}
           >
@@ -603,8 +601,9 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           </button>
         </form>
 
-        <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b', textAlign: 'center' }}>
-          {t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}
+        <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <ShieldCheck size={12} />
+          <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
         </p>
       </div>
     </div>
