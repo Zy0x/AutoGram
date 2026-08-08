@@ -271,7 +271,7 @@ export async function verifyTelegramApiCredentials(
               if (/API_ID_INVALID|400|invalid/i.test(errStr)) {
                 const res = {
                   ok: false,
-                  error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
+                  error: 'Kredensial API tidak diterima oleh Telegram. Mohon periksa kembali API ID & Hash resmi Anda dari my.telegram.org.',
                 };
                 lastVerifyResult = res;
                 resolve(res);
@@ -298,7 +298,7 @@ export async function verifyTelegramApiCredentials(
           if (/API_ID_INVALID|400|RPC error/i.test(msg)) {
             const res = {
               ok: false,
-              error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
+              error: 'Kredensial API tidak diterima oleh Telegram. Mohon periksa kembali API ID & Hash resmi Anda dari my.telegram.org.',
             };
             lastVerifyResult = res;
             resolve(res);
