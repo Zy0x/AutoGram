@@ -484,52 +484,66 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           )}
 
           {/* FORM INPUTS */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form
+            onSubmit={handleSubmit}
+            className={error ? 'ag-shake-error' : undefined}
+            style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#fca5a5' : '#cbd5e1', marginBottom: '4px' }}>
                 {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="text"
                 value={apiId}
-                onChange={(e) => setApiId(e.target.value)}
+                onChange={(e) => {
+                  if (error) setError(null);
+                  setApiId(e.target.value);
+                }}
                 placeholder={t('ui.generated.contoh_1234567_25ccc85')}
                 required
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: '10px',
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  background: error ? 'rgba(239, 68, 68, 0.08)' : 'rgba(15, 23, 42, 0.8)',
+                  border: error ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                  boxShadow: error ? '0 0 14px rgba(239, 68, 68, 0.35)' : 'none',
                   color: '#f8fafc',
                   fontSize: '0.86rem',
                   outline: 'none',
                   boxSizing: 'border-box',
+                  transition: 'all 0.2s ease',
                 }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: error ? '#fca5a5' : '#cbd5e1', marginBottom: '4px' }}>
                 {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type={showHash ? 'text' : 'password'}
                   value={apiHash}
-                  onChange={(e) => setApiHash(e.target.value)}
+                  onChange={(e) => {
+                    if (error) setError(null);
+                    setApiHash(e.target.value);
+                  }}
                   placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
                   required
                   style={{
                     width: '100%',
                     padding: '9px 36px 9px 12px',
                     borderRadius: '10px',
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: error ? 'rgba(239, 68, 68, 0.08)' : 'rgba(15, 23, 42, 0.8)',
+                    border: error ? '1px solid #ef4444' : '1px solid rgba(255, 255, 255, 0.12)',
+                    boxShadow: error ? '0 0 14px rgba(239, 68, 68, 0.35)' : 'none',
                     color: '#f8fafc',
                     fontSize: '0.86rem',
                     outline: 'none',
                     boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
                   }}
                 />
                 <button

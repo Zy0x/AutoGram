@@ -25,6 +25,17 @@
   --fs-3xl: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
 }
 
+/* ---------- Wrong Input Shake Animation ---------- */
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-6px); }
+  30%, 60%, 90% { transform: translateX(6px); }
+}
+
+.ag-shake-error {
+  animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 /* ---------- App shell ----------
    Mobile:  column → [scrollable content] + [bottom nav in flow]
    Desktop: row    → [sidebar] + [scrollable content]
