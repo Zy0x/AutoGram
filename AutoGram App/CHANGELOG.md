@@ -1,3 +1,8 @@
+## v3.1.4 Outer Card Container Glow Enforcer Engine
+
+### Efek Border Glow pada Kotak Pembungkus Card Luar (`App.css` & `DrivePreviewModal/index.tsx`)
+- **Outer Card Glow Enforcer**: Menambahkan class CSS `.is-active-card-a` dan `.is-active-card-b` di `App.css` dengan `border: 2px solid ... !important` dan `box-shadow ... !important` pada elemen pembungkus utama `.drive-preview-split-col`. Efek border glowing berpendar jelas mengelilingi seluruh area kotak Card duplikat A dan B ketika terpilih.
+
 ## v3.1.3 Pure Card Glow Selection Engine
 
 ### Pembersihan Badge Teks di Card Header (`DrivePreviewModal/index.tsx`)

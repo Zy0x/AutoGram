@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.3
+AutoGram Version: v3.1.4
 
 Current State:
+v3.1.4 Outer Card Container Glow Enforcer Engine — membenahi `App.css`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengunci class CSS `.is-active-card-a` dan `.is-active-card-b` dengan `!important` langsung pada pembungkus kotak Card luar (`.drive-preview-split-col`), sehingga saat Card A atau Card B terpilih, efek border glowing (cyan-biru untuk A, ungu untuk B) berpendar jelas pada seluruh batas luar kotak Card duplikat.
+
+Previous:
 v3.1.3 Pure Card Glow Selection Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus badge teks "TERPILIH" di header Card A dan B sesuai instruksi pengguna, sehingga penandaan Card yang sedang aktif tampil super elegan dan bersih hanya mengandalkan aksen efek border glowing (cyan-biru untuk Card A, ungu untuk Card B).
 
 Previous:

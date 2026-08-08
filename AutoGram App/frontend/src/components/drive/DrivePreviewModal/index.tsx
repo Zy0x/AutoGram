@@ -3579,7 +3579,7 @@ export function DrivePreviewModal({
                     const isActiveA = activeSplitSlot === 'A';
                     return (
                       <div
-                        className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-split-card' : ''}`}
+                        className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
                         onClick={() => setActiveSplitSlot('A')}
                         style={{
                           flex: '1 1 0%',
@@ -3592,10 +3592,6 @@ export function DrivePreviewModal({
                           justifyContent: 'space-between',
                           overflow: 'hidden',
                           cursor: 'pointer',
-                          borderRadius: '12px',
-                          border: isActiveA ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,0.08)',
-                          boxShadow: isActiveA ? '0 0 16px rgba(56, 189, 248, 0.35)' : 'none',
-                          transition: 'all 0.2s ease',
                         }}
                       >
                         <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
@@ -3688,7 +3684,7 @@ export function DrivePreviewModal({
                     const isActiveB = activeSplitSlot === 'B';
                     return (
                       <div
-                        className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-split-card' : ''}`}
+                        className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
                         onClick={() => setActiveSplitSlot('B')}
                         style={{
                           flex: '1 1 0%',
@@ -3701,10 +3697,6 @@ export function DrivePreviewModal({
                           justifyContent: 'space-between',
                           overflow: 'hidden',
                           cursor: 'pointer',
-                          borderRadius: '12px',
-                          border: isActiveB ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-                          boxShadow: isActiveB ? '0 0 16px rgba(168, 85, 247, 0.35)' : 'none',
-                          transition: 'all 0.2s ease',
                         }}
                       >
                         <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
