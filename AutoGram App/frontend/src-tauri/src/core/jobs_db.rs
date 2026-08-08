@@ -127,6 +127,10 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
             metadata TEXT,
             FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
         );
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
         "#,
     )
     .map_err(|e| format!("schema: {e}"))?;
@@ -493,9 +497,158 @@ pub fn update_execution_status(
     Ok(())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheDirInfo {
+    pub custom_path: Option<String>,
+    pub active_cache_dir: PathBuf,
+    pub active_temp_dir: PathBuf,
+    pub active_thumbs_dir: PathBuf,
+    pub is_fallback: bool,
+    pub default_cache_dir: PathBuf,
+}
+
+pub fn resolve_active_cache_dirs() -> CacheDirInfo {
+    let sessions = resolve_sessions_dir(None);
+    let default_base = sessions
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
+    let default_cache = default_base.join("cache");
+    let default_temp = default_base.join("temp");
+    let default_thumbs = sessions.join("thumbs");
+
+    let conn = open_db().ok();
+    let custom_path: Option<String> = conn.as_ref().and_then(|c| {
+        c.query_row(
+            "SELECT value FROM settings WHERE key = 'custom_cache_dir'",
+            [],
+            |r| r.get(0),
+        )
+        .ok()
+    });
+
+    if let Some(ref cp) = custom_path {
+        let p = PathBuf::from(cp.trim());
+        if !cp.trim().is_empty() && (p.is_dir() || std::fs::create_dir_all(&p).is_ok()) {
+            let active_cache = p.join("cache");
+            let active_temp = p.join("temp");
+            let active_thumbs = p.join("thumbs");
+            let _ = std::fs::create_dir_all(&active_cache);
+            let _ = std::fs::create_dir_all(&active_temp);
+            let _ = std::fs::create_dir_all(&active_thumbs);
+
+            return CacheDirInfo {
+                custom_path: Some(cp.clone()),
+                active_cache_dir: active_cache,
+                active_temp_dir: active_temp,
+                active_thumbs_dir: active_thumbs,
+                is_fallback: false,
+                default_cache_dir: default_cache,
+            };
+        } else {
+            // Fallback because custom path is inaccessible/unmounted
+            return CacheDirInfo {
+                custom_path: Some(cp.clone()),
+                active_cache_dir: default_cache.clone(),
+                active_temp_dir: default_temp,
+                active_thumbs_dir: default_thumbs,
+                is_fallback: true,
+                default_cache_dir: default_cache,
+            };
+        }
+    }
+
+    CacheDirInfo {
+        custom_path: None,
+        active_cache_dir: default_cache.clone(),
+        active_temp_dir: default_temp,
+        active_thumbs_dir: default_thumbs,
+        is_fallback: false,
+        default_cache_dir: default_cache,
+    }
+}
+
+pub fn get_custom_cache_dir_info() -> Result<serde_json::Value, String> {
+    let info = resolve_active_cache_dirs();
+    Ok(json!({
+        "customPath": info.custom_path,
+        "activePath": info.active_cache_dir.display().to_string(),
+        "isFallback": info.is_fallback,
+        "defaultPath": info.default_cache_dir.display().to_string(),
+    }))
+}
+
+pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::Value, String> {
+    let trimmed = new_path.trim();
+    if trimmed.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+    let p = PathBuf::from(trimmed);
+    std::fs::create_dir_all(&p).map_err(|e| format!("Failed to create custom directory: {e}"))?;
+
+    // Verify write permissions
+    let test_file = p.join(".autogram_write_test");
+    if std::fs::write(&test_file, b"test").is_err() {
+        return Err(format!("Selected directory is not writable: {trimmed}"));
+    }
+    let _ = std::fs::remove_file(&test_file);
+
+    let old_info = resolve_active_cache_dirs();
+    let new_cache = p.join("cache");
+    let new_temp = p.join("temp");
+    let new_thumbs = p.join("thumbs");
+    let _ = std::fs::create_dir_all(&new_cache);
+    let _ = std::fs::create_dir_all(&new_temp);
+    let _ = std::fs::create_dir_all(&new_thumbs);
+
+    fn copy_dir_all(src: &Path, dst: &Path) {
+        if !src.is_dir() { return; }
+        let Ok(rd) = std::fs::read_dir(src) else { return; };
+        for e in rd.flatten() {
+            let path = e.path();
+            let target = dst.join(e.file_name());
+            if path.is_dir() {
+                let _ = std::fs::create_dir_all(&target);
+                copy_dir_all(&path, &target);
+                let _ = std::fs::remove_dir(&path);
+            } else {
+                if std::fs::copy(&path, &target).is_ok() {
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+        }
+    }
+
+    if action == "move" {
+        copy_dir_all(&old_info.active_cache_dir, &new_cache);
+        copy_dir_all(&old_info.active_temp_dir, &new_temp);
+        copy_dir_all(&old_info.active_thumbs_dir, &new_thumbs);
+    } else {
+        // "wipe" option: clear old cache
+        let _ = clear_disk_cache();
+    }
+
+    let conn = open_db()?;
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('custom_cache_dir', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![trimmed],
+    )
+    .map_err(|e| format!("Save settings error: {e}"))?;
+
+    get_custom_cache_dir_info()
+}
+
+pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
+    let conn = open_db()?;
+    conn.execute("DELETE FROM settings WHERE key = 'custom_cache_dir'", [])
+        .map_err(|e| format!("Delete settings error: {e}"))?;
+    get_custom_cache_dir_info()
+}
+
 /// Cache size under worker/cache, worker/temp, sessions/thumbs (pure Rust FS).
 pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
-    let sessions = resolve_sessions_dir(None);
+    let info = resolve_active_cache_dirs();
     let mut total: u64 = 0;
 
     fn walk(dir: &Path, total: &mut u64) {
@@ -512,25 +665,14 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         }
     }
 
-    let cache_dir = sessions
-        .parent()
-        .map(|p| p.join("cache"))
-        .unwrap_or_else(|| PathBuf::from("cache"));
-    if cache_dir.is_dir() {
-        walk(&cache_dir, &mut total);
+    if info.active_cache_dir.is_dir() {
+        walk(&info.active_cache_dir, &mut total);
     }
-
-    let temp_dir = sessions
-        .parent()
-        .map(|p| p.join("temp"))
-        .unwrap_or_else(|| PathBuf::from("temp"));
-    if temp_dir.is_dir() {
-        walk(&temp_dir, &mut total);
+    if info.active_temp_dir.is_dir() {
+        walk(&info.active_temp_dir, &mut total);
     }
-
-    let thumbs_dir = sessions.join("thumbs");
-    if thumbs_dir.is_dir() {
-        walk(&thumbs_dir, &mut total);
+    if info.active_thumbs_dir.is_dir() {
+        walk(&info.active_thumbs_dir, &mut total);
     }
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
@@ -543,7 +685,9 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     Ok(json!({
         "status": "success",
         "bytes": total,
-        "path": cache_dir.display().to_string(),
+        "path": info.active_cache_dir.display().to_string(),
+        "customPath": info.custom_path,
+        "isFallback": info.is_fallback,
         "backend": "rust",
     }))
 }
@@ -612,7 +756,7 @@ pub fn import_jobs_json(json_str: &str) -> Result<usize, String> {
 pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
     super::grammers_media::clear_thumb_mem_cache();
     super::grammers_media::clear_thumb_terminal_cache();
-    let sessions = resolve_sessions_dir(None);
+    let info = resolve_active_cache_dirs();
     let mut removed = 0u64;
 
     fn wipe(dir: &Path, removed: &mut u64) {
@@ -632,25 +776,14 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
         }
     }
 
-    let cache_dir = sessions
-        .parent()
-        .map(|p| p.join("cache"))
-        .unwrap_or_else(|| PathBuf::from("cache"));
-    if cache_dir.is_dir() {
-        wipe(&cache_dir, &mut removed);
+    if info.active_cache_dir.is_dir() {
+        wipe(&info.active_cache_dir, &mut removed);
     }
-
-    let temp_dir = sessions
-        .parent()
-        .map(|p| p.join("temp"))
-        .unwrap_or_else(|| PathBuf::from("temp"));
-    if temp_dir.is_dir() {
-        wipe(&temp_dir, &mut removed);
+    if info.active_temp_dir.is_dir() {
+        wipe(&info.active_temp_dir, &mut removed);
     }
-
-    let thumbs_dir = sessions.join("thumbs");
-    if thumbs_dir.is_dir() {
-        wipe(&thumbs_dir, &mut removed);
+    if info.active_thumbs_dir.is_dir() {
+        wipe(&info.active_thumbs_dir, &mut removed);
     }
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
@@ -662,8 +795,8 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
 
     Ok(json!({
         "status": "success",
-        "removed_files": removed,
-        "backend": "rust",
+        "removedFiles": removed,
+        "backend": "rust"
     }))
 }
 

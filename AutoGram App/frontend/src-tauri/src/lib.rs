@@ -857,6 +857,21 @@ fn get_available_disk_space(path: Option<String>) -> Result<serde_json::Value, S
 }
 
 #[tauri::command]
+fn get_custom_cache_dir() -> Result<serde_json::Value, String> {
+    core::jobs_db::get_custom_cache_dir_info()
+}
+
+#[tauri::command]
+fn set_custom_cache_dir(new_path: String, action: String) -> Result<serde_json::Value, String> {
+    core::jobs_db::set_custom_cache_dir(&new_path, &action)
+}
+
+#[tauri::command]
+fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
+    core::jobs_db::reset_custom_cache_dir()
+}
+
+#[tauri::command]
 fn jobs_fresh_start(job_id: i64) -> Result<(), String> {
     core::jobs_db::fresh_start_job(job_id)
 }
@@ -1739,6 +1754,9 @@ pub fn run() {
             studio_set_transfer_paused,
             quality_preflight,
             get_available_disk_space,
+            get_custom_cache_dir,
+            set_custom_cache_dir,
+            reset_custom_cache_dir,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env

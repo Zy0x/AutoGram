@@ -132,7 +132,10 @@ allow = [
     "studio_set_transfer_paused",
     "quality_preflight",
     "get_hardware_capabilities",
-    "select_best_encoder"
+    "select_best_encoder",
+    "get_custom_cache_dir",
+    "set_custom_cache_dir",
+    "reset_custom_cache_dir"
 ]
 
 

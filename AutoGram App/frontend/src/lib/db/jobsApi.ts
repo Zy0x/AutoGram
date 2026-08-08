@@ -168,6 +168,30 @@ export async function getAvailableDiskSpace(path?: string): Promise<{ free_bytes
   }
 }
 
+export interface CustomCacheDirInfo {
+  customPath: string | null;
+  activePath: string;
+  isFallback: boolean;
+  defaultPath: string;
+}
+
+export async function getCustomCacheDir(): Promise<CustomCacheDirInfo> {
+  if (!detectTauriRuntime()) {
+    return { customPath: null, activePath: '', isFallback: false, defaultPath: '' };
+  }
+  return invoke<CustomCacheDirInfo>('get_custom_cache_dir');
+}
+
+export async function setCustomCacheDir(newPath: string, action: 'move' | 'wipe'): Promise<CustomCacheDirInfo> {
+  if (!detectTauriRuntime()) throw new Error('Fitur ini membutuhkan aplikasi desktop');
+  return invoke<CustomCacheDirInfo>('set_custom_cache_dir', { newPath, action });
+}
+
+export async function resetCustomCacheDir(): Promise<CustomCacheDirInfo> {
+  if (!detectTauriRuntime()) throw new Error('Fitur ini membutuhkan aplikasi desktop');
+  return invoke<CustomCacheDirInfo>('reset_custom_cache_dir');
+}
+
 export async function jobsFreshStart(jobId: number): Promise<void> {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
   await invoke('jobs_fresh_start', { jobId });

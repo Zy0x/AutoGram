@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   RotateCw,
+  Folder,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -48,6 +49,88 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
   // Available disk free space in bytes
   const [freeDiskBytes, setFreeDiskBytes] = useState<number | null>(null);
+
+  // Custom Cache Location state
+  const [customCacheInfo, setCustomCacheInfo] = useState<{
+    customPath: string | null;
+    activePath: string;
+    isFallback: boolean;
+    defaultPath: string;
+  } | null>(null);
+  const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
+  const [pendingNewPath, setPendingNewPath] = useState<string | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const fetchCustomCacheDir = async () => {
+    try {
+      const { getCustomCacheDir, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+      const info = await getCustomCacheDir();
+      setCustomCacheInfo(info);
+      if (info?.activePath) {
+        const ds = await getAvailableDiskSpace(info.activePath);
+        if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch custom cache dir', e);
+    }
+  };
+
+  useEffect(() => {
+    void fetchCustomCacheDir();
+  }, []);
+
+  const handleBrowseCacheFolder = async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: t('settings.custom_cache_location_title'),
+      });
+      if (selected && typeof selected === 'string') {
+        setPendingNewPath(selected);
+        setIsMigrateModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Failed to open directory dialog', err);
+    }
+  };
+
+  const executeCacheMigration = async (action: 'move' | 'wipe') => {
+    if (!pendingNewPath) return;
+    setIsMigrating(true);
+    try {
+      const { setCustomCacheDir, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+      const info = await setCustomCacheDir(pendingNewPath, action);
+      setCustomCacheInfo(info);
+      setIsMigrateModalOpen(false);
+      setPendingNewPath(null);
+      if (info?.activePath) {
+        const ds = await getAvailableDiskSpace(info.activePath);
+        if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
+      }
+      await calculateCacheSize();
+    } catch (err) {
+      console.error('Failed to set custom cache dir', err);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleResetCustomCacheDir = async () => {
+    try {
+      const { resetCustomCacheDir, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+      const info = await resetCustomCacheDir();
+      setCustomCacheInfo(info);
+      if (info?.activePath) {
+        const ds = await getAvailableDiskSpace(info.activePath);
+        if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
+      }
+      await calculateCacheSize();
+    } catch (err) {
+      console.error('Failed to reset custom cache dir', err);
+    }
+  };
 
   // Custom limit modal state
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
@@ -430,6 +513,112 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           </p>
 
           <div className="page-stack" style={{ gap: '1.25rem' }}>
+            {/* LOKASI DIREKTORI CACHE KUSTOM (DI ATAS UKURAN CACHE TERDETEKSI) */}
+            <div
+              className="settings-custom-cache-panel"
+              style={{
+                background: 'rgba(56, 189, 248, 0.04)',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Folder size={18} style={{ color: '#38bdf8' }} />
+                  <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+                    {t('settings.custom_cache_location_title')}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleBrowseCacheFolder}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      color: '#38bdf8',
+                    }}
+                  >
+                    <Folder size={14} />
+                    <span>{t('settings.custom_cache_browse_btn')}</span>
+                  </button>
+
+                  {customCacheInfo?.customPath && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleResetCustomCacheDir}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        color: '#f87171',
+                        borderColor: 'rgba(239, 68, 68, 0.3)',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                      }}
+                    >
+                      <RotateCw size={13} />
+                      <span>{t('settings.custom_cache_reset_btn')}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                {t('settings.custom_cache_location_desc')}
+              </p>
+
+              {customCacheInfo?.isFallback && (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#fca5a5',
+                    fontSize: '0.76rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                  <span>{t('settings.custom_cache_fallback_warning')}</span>
+                </div>
+              )}
+
+              <div
+                style={{
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                  color: customCacheInfo?.customPath ? '#38bdf8' : '#94a3b8',
+                  wordBreak: 'break-all',
+                }}
+              >
+                <span style={{ color: '#64748b', marginRight: '6px', fontFamily: 'sans-serif' }}>
+                  {t('settings.custom_cache_current_path')}
+                </span>
+                {customCacheInfo?.activePath || 'worker/cache (Default)'}
+              </div>
+            </div>
             <div
               className="settings-cache-summary"
               style={{
@@ -925,6 +1114,135 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           </div>
         </div>
       </div>
+
+      {/* MODAL MIGRASI DIREKTORI CACHE KUSTOM */}
+      {isMigrateModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(3, 7, 18, 0.8)',
+            backdropFilter: 'blur(8px)',
+            padding: '16px',
+          }}
+          onClick={() => {
+            if (!isMigrating) {
+              setIsMigrateModalOpen(false);
+              setPendingNewPath(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Folder size={22} style={{ color: '#38bdf8' }} />
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                {t('settings.custom_cache_migrate_modal_title')}
+              </h3>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.5 }}>
+              {t('settings.custom_cache_migrate_modal_msg')}
+            </p>
+
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                wordBreak: 'break-all',
+              }}
+            >
+              {pendingNewPath}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => void executeCacheMigration('move')}
+                disabled={isMigrating}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '3px',
+                  borderColor: 'rgba(56, 189, 248, 0.4)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8',
+                  borderRadius: '10px',
+                }}
+              >
+                <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+                  📦 {t('settings.custom_cache_migrate_option_move')}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 400 }}>
+                  {t('settings.custom_cache_migrate_option_move_desc')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => void executeCacheMigration('wipe')}
+                disabled={isMigrating}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '3px',
+                  borderRadius: '10px',
+                }}
+              >
+                <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+                  🧹 {t('settings.custom_cache_migrate_option_wipe')}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#fca5a5', fontWeight: 400 }}>
+                  {t('settings.custom_cache_migrate_option_wipe_desc')}
+                </span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setIsMigrateModalOpen(false);
+                setPendingNewPath(null);
+              }}
+              disabled={isMigrating}
+              style={{ marginTop: '4px' }}
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* CONFIRMATION MODALS */}
       <ConfirmModal
