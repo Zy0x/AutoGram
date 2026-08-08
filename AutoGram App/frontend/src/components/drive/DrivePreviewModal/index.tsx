@@ -2895,6 +2895,11 @@ export function DrivePreviewModal({
   const onImageDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    try {
+      window.getSelection()?.removeAllRanges();
+    } catch {
+      /* ignore */
+    }
     endPanDrag();
     if (Math.abs(zoomRef.current - 1) > 0.05) {
       resetZoom();
@@ -3701,6 +3706,14 @@ export function DrivePreviewModal({
                     return (
                       <div
                         className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
+                        onMouseDown={(e) => {
+                          if (e.detail > 1) {
+                            e.preventDefault();
+                            try {
+                              window.getSelection()?.removeAllRanges();
+                            } catch {}
+                          }
+                        }}
                         onPointerDown={(e) => {
                           handleCardPointerDown(e, 'A', slotATransform, setSlotATransform);
                         }}
@@ -3864,6 +3877,14 @@ export function DrivePreviewModal({
                     return (
                       <div
                         className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
+                        onMouseDown={(e) => {
+                          if (e.detail > 1) {
+                            e.preventDefault();
+                            try {
+                              window.getSelection()?.removeAllRanges();
+                            } catch {}
+                          }
+                        }}
                         onPointerDown={(e) => {
                           handleCardPointerDown(e, 'B', slotBTransform, setSlotBTransform);
                         }}

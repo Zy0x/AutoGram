@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.7
+AutoGram Version: v3.2.8
 
 Current State:
+v3.2.8 Double-Click Text Block Selection Protection Engine — membenahi `App.css`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mencegah terjadinya sorotan/pemberkasan teks (*text block highlight*) yang tidak disengaja saat melakukan double-click pada area Card A/B, header, stage, maupun modal. Menambahkan aturan CSS `user-select: none !important`, penanganan `e.preventDefault()` pada `onMouseDown` saat `e.detail > 1`, serta pembersihan otomatis range penandaan teks (`window.getSelection()?.removeAllRanges()`).
+
+Previous:
 v3.2.7 Media Hover-Restricted Wheel Zoom & Scrollbar Conflict Isolation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membatalkan pencegatan wheel scroll pada `handleNativeWheel` dan `onWheelStage` jika kursor mouse tidak berada tepat di atas elemen bingkai gambar (`.drive-preview-split-media-wrap`). Menjamin guliran scrollbar pada sidebar, panel daftar duplikat, dan area teks modal tetap berfungsi normal tanpa terganggu atau berkonflik dengan zoom.
 
 Previous:

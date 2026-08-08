@@ -1,3 +1,10 @@
+## v3.2.8 Double-Click Text Block Selection Protection Engine
+
+### Perlindungan Penandaan Teks pada Double Click (`App.css` & `DrivePreviewModal/index.tsx`)
+- **Pencegahan Native Double-Click Text Selection**: Menambahkan penanganan `e.preventDefault()` pada event `onMouseDown` ketika `e.detail > 1` (pemicu native peramban untuk penandaan kata/blok teks) di area Card A & Card B.
+- **Pembersihan Range Teks Otomatis**: Memasang `window.getSelection()?.removeAllRanges()` pada handler `onImageDoubleClick` dan penanganan pointer untuk memastikan tidak ada seleksi teks yang tertinggal.
+- **Isolasi CSS `user-select: none`**: Menambahkan deklarasi aturan CSS `user-select: none !important` pada `.drive-preview-modal`, `.drive-preview-split-col`, `.drive-preview-header`, dan `.drive-preview-toolbar` di `App.css`.
+
 ## v3.2.7 Media Hover-Restricted Wheel Zoom & Scrollbar Conflict Isolation Engine
 
 ### Batasan Wheel Zoom Berbasis Target Media Hover (`DrivePreviewModal/index.tsx`)
