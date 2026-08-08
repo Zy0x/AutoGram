@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Globe,
   Trash2,
@@ -15,6 +15,8 @@ import {
   ExternalLink,
   Zap,
   UserCheck,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -24,6 +26,141 @@ import {
   SESSION_METADATA_EVENT,
   type SessionOption,
 } from '../../lib/telegram';
+
+interface CustomAccountSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: SessionOption[];
+  placeholder?: string;
+}
+
+function CustomAccountSelect({ value, onChange, options, placeholder }: CustomAccountSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => window.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.name === value);
+  const selectedLabel = selectedOption
+    ? selectedOption.label || getSessionDisplayName(selectedOption.name)
+    : placeholder || 'Pilih Akun...';
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+      {/* TRIGGER BUTTON */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderRadius: '10px',
+          background: '#0b1520',
+          border: isOpen ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.25)',
+          boxShadow: isOpen ? '0 0 0 3px rgba(56, 189, 248, 0.25)' : '0 4px 14px rgba(0, 0, 0, 0.25)',
+          color: '#f8fafc',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {selectedLabel}
+        </span>
+        <ChevronDown
+          size={16}
+          color="#38bdf8"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+            flexShrink: 0,
+            marginLeft: '8px',
+          }}
+        />
+      </button>
+
+      {/* DROPDOWN MENU */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            background: '#0b1520',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '12px',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.15)',
+            maxHeight: '240px',
+            overflowY: 'auto',
+            padding: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+          }}
+        >
+          {options.map((sess) => {
+            const displayName = sess.label || getSessionDisplayName(sess.name);
+            const isSelected = sess.name === value;
+            const showSessionBadge = sess.name !== displayName && !displayName.includes(sess.name);
+
+            return (
+              <div
+                key={sess.name}
+                onClick={() => {
+                  onChange(sess.name);
+                  setIsOpen(false);
+                }}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#38bdf8' : '#f8fafc' }}>
+                    {displayName}
+                  </span>
+                  {showSessionBadge && (
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      {sess.name}
+                    </span>
+                  )}
+                </div>
+                {isSelected && <Check size={16} color="#38bdf8" style={{ flexShrink: 0 }} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
@@ -824,18 +961,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <p className="field-hint">{t('settings.default_account_desc')}</p>
 
             {availableSessions.length > 0 ? (
-              <select
-                id="settings-default-account"
-                className="input-field"
+              <CustomAccountSelect
                 value={defaultAccount}
-                onChange={(e) => setDefaultAccount(e.target.value)}
-              >
-                {availableSessions.map((sess) => (
-                  <option key={sess.name} value={sess.name}>
-                    {sess.label || getSessionDisplayName(sess.name)} ({sess.name})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setDefaultAccount(val)}
+                options={availableSessions}
+                placeholder={t('settings.default_account_select_placeholder')}
+              />
             ) : (
               <div
                 style={{
