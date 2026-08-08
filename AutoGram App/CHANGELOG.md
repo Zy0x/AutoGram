@@ -1,3 +1,9 @@
+## v3.1.7 Header Minimalist & Download/Fullscreen Toolbar Relocation Engine
+
+### Header Minimalis & Relokasi Tombol ke Toolbar (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Baris Header Atas**: Menghapus kluster tombol ikon di baris atas header (`.drive-preview-nav`), menjadikan header modal sangat bersih hanya memuat Judul/Submeta dan tombol Tutup (X).
+- **Relokasi Tombol ke Toolbar**: Memindahkan tombol `Download (Unduh)` dan `Fullscreen (Layar Penuh)` ke dalam Labeled Media Toolbar di bawah grup baru `Aksi`, lengkap dengan label teks dan pembekuan otomatis saat Card tidak terpilih (`disabled={isHeaderFrozen}`).
+
 ## v3.1.6 Total Header & Toolbar Lockout Engine
 
 ### Penguncian Total Seluruh Tombol Header & Toolbar (`DrivePreviewModal/index.tsx`)

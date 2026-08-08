@@ -34,7 +34,6 @@ import {
   Info,
   ExternalLink,
   AppWindow,
-  FolderOpen,
   FileText,
   Copy,
   Printer,
@@ -103,7 +102,6 @@ import {
   openDriveFileInSystem,
   openDriveFileWithApp,
   openInSystem,
-  revealInFolder,
 } from '../../../lib/tauri/documentOpen';
 import { isDesktop } from '../../../lib/tauri/platform';
 import { DriveConfirmDialog, type DriveConfirmState } from '../Modals/DriveConfirmDialog';
@@ -2443,17 +2441,6 @@ export function DrivePreviewModal({
     }
   };
 
-  const handleReveal = async () => {
-    if (!path) {
-      setError('File belum diunduh ke cache. Klik Buka dulu.');
-      return;
-    }
-    try {
-      await revealInFolder(path);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-    }
-  };
 
   const handleCopyText = async () => {
     if (!textBody) return;
@@ -3038,154 +3025,6 @@ export function DrivePreviewModal({
           >
             <X size={18} />
           </button>
-
-          {/* Row B: nav — disabled when frozen, above stage */}
-          <div
-            className="drive-preview-nav"
-            role="toolbar"
-            style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', cursor: 'not-allowed', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
-            aria-label="Navigasi preview"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="td-icon-btn"
-              disabled={
-                isHeaderFrozen ||
-                (duplicateContext
-                  ? duplicateContext.currentGroupIndex <= 0
-                  : !hasPrev)
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                if (duplicateContext) {
-                  const prevIdx = duplicateContext.currentGroupIndex - 1;
-                  const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
-                  if (prevGroup && duplicateContext.onNavigateGroup) {
-                    duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
-                  }
-                } else {
-                  onPrev?.();
-                }
-              }}
-              aria-label="Previous"
-              title={
-                duplicateContext
-                  ? t('speedtest.preview_prev_group')
-                  : hasPrev
-                  ? t('speedtest.preview_prev_file')
-                  : t('speedtest.preview_no_prev')
-              }
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              type="button"
-              className="td-icon-btn"
-              disabled={
-                isHeaderFrozen ||
-                (duplicateContext
-                  ? duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1
-                  : !hasNext)
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                if (duplicateContext) {
-                  const nextIdx = duplicateContext.currentGroupIndex + 1;
-                  const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
-                  if (nextGroup && duplicateContext.onNavigateGroup) {
-                    duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
-                  }
-                } else {
-                  onNext?.();
-                }
-              }}
-              aria-label="Next"
-              title={
-                duplicateContext
-                  ? t('speedtest.preview_next_group')
-                  : hasNext
-                  ? t('speedtest.preview_next_file')
-                  : t('speedtest.preview_no_next')
-              }
-            >
-              <ChevronRight size={18} />
-            </button>
-            <button
-              type="button"
-              className="td-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleDownload();
-              }}
-              disabled={isHeaderFrozen || saving}
-              title={t('speedtest.download_tooltip')}
-              aria-label="Download"
-            >
-              {saving ? <Loader2 size={16} className="spin" /> : <Download size={16} />}
-            </button>
-            {isDesktop() && (
-              <>
-                <button
-                  type="button"
-                  className="td-icon-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleOpenSystem();
-                  }}
-                  disabled={isHeaderFrozen || openingSystem || !creds}
-                  title={t('speedtest.open_default_tooltip')}
-                  aria-label="Buka"
-                >
-                  {openingSystem ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
-                </button>
-                <button
-                  type="button"
-                  className="td-icon-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleOpenWith();
-                  }}
-                  disabled={isHeaderFrozen || openingSystem || !creds}
-                  title={t('speedtest.open_with_tooltip')}
-                  aria-label="Buka dengan"
-                >
-                  <AppWindow size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="td-icon-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleReveal();
-                  }}
-                  disabled={isHeaderFrozen || !path}
-                  title={
-                    path
-                      ? 'Tampilkan di folder (File Explorer)'
-                      : 'Folder tersedia setelah file di-cache / dibuka'
-                  }
-                  aria-label="Reveal"
-                >
-                  <FolderOpen size={16} />
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className="td-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                void toggleFullscreen();
-              }}
-              disabled={isHeaderFrozen}
-              title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
-              aria-label="Fullscreen"
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-          </div>
         </header>
 
         {(openingSystem || openProgressMsg) && (
@@ -3438,6 +3277,36 @@ export function DrivePreviewModal({
                 )}
               </div>
             )}
+
+            <div className="drive-tool-group" role="group" aria-label="Aksi">
+              <span className="drive-tool-group-label">{t("speedtest.label_action") || "Aksi"}</span>
+              <button
+                type="button"
+                className="drive-tool-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleDownload();
+                }}
+                disabled={isHeaderFrozen || saving}
+                title={t('speedtest.download_tooltip')}
+              >
+                {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+                <span className="drive-tool-btn-label">{t("speedtest.label_download") || "Unduh"}</span>
+              </button>
+              <button
+                type="button"
+                className="drive-tool-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void toggleFullscreen();
+                }}
+                disabled={isHeaderFrozen}
+                title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+              >
+                {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                <span className="drive-tool-btn-label">{isFullscreen ? "Kecilkan" : "Layar Penuh"}</span>
+              </button>
+            </div>
 
             <div className="drive-tool-group" role="group" aria-label="Lainnya">
               <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>

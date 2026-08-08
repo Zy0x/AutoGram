@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.6
+AutoGram Version: v3.1.7
 
 Current State:
+v3.1.7 Header Minimalist & Download/Fullscreen Toolbar Relocation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus kluster tombol navigasi header atas (`.drive-preview-nav`), memindahkan tombol Download (Unduh) dan Fullscreen (Layar Penuh) ke dalam Labeled Media Toolbar di bawah grup Aksi, membuat baris header atas ultra bersih dan elegan.
+
+Previous:
 v3.1.6 Total Header & Toolbar Lockout Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperketat penguncian total (`disabled={isHeaderFrozen}` dan `pointer-events: none !important`) pada SELURUH tombol di header atas (`< >`, Download, Buka, Reveal, Fullscreen) dan Labeled Media Toolbar (`Zoom`, `Rotate`, `More`), menjamin tidak ada tombol di header yang dapat ditekan saat tidak ada Card yang terpilih.
 
 Previous:
