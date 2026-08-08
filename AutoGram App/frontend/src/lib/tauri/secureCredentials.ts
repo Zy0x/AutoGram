@@ -294,7 +294,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
       if (checkId !== id || checkHash !== hash) { /* backup already saved above */ }
     } catch { /* ignore */ }
 
-    invalidateVerifyCache();
+    markVerifiedCache(id, hash);
     notifyApiCredentialsChanged();
     return;
   }
@@ -304,7 +304,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   localStorage.setItem(LS_HASH, hash);
   void writeBackup(id, hash);
   memoryCache = { apiId: id, apiHash: hash };
-  invalidateVerifyCache();
+  markVerifiedCache(id, hash);
   notifyApiCredentialsChanged();
 }
 
@@ -316,6 +316,12 @@ export function invalidateVerifyCache(): void {
   lastVerifyTime = 0;
   lastVerifyResult = null;
   lastVerifyKey = '';
+}
+
+export function markVerifiedCache(apiId: string, apiHash: string): void {
+  lastVerifyTime = Date.now();
+  lastVerifyKey = `${apiId}:${apiHash}`;
+  lastVerifyResult = { ok: true };
 }
 
 export async function verifyTelegramApiCredentials(
