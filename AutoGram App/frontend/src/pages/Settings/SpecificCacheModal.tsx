@@ -17,6 +17,7 @@ import {
   FolderTree,
   MessageSquare,
   Users,
+  Folder,
 } from 'lucide-react';
 
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
@@ -93,8 +94,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
           key === `autogram_drive_locations_v1_${selectedSession}` ||
           key === `autogram_drive_sidebar_v1_${selectedSession}` ||
           key === `autogram_drive_topics_v1_${selectedSession}` ||
-          key === `autogram_drive_scroll_v1_${selectedSession}` ||
-          key === `autogram_drive_peer_v2_${selectedSession}`)
+          key === `autogram_drive_peer_v2_${selectedSession}` ||
+          key === `autogram_chat_folder_${selectedSession}` ||
+          key === `autogram_drive_scroll_v1_${selectedSession}`)
       ) {
         count++;
       }
@@ -223,6 +225,22 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   };
 
+  const handleClearGlobalChatFolders = () => {
+    setClearingItem('chat_folders_global');
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('autogram_chat_folder_')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      showToast(t('ui.generated.cache_filter_folder_chat_semua_akun_f345a67') + ' dibersihkan!');
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
   const handleClearUploadQueue = async () => {
     setClearingItem('upload');
     try {
@@ -281,6 +299,13 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     triggerCacheRefresh();
   };
 
+  const handleClearSessionChatFolder = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_chat_folder_${selectedSession}`);
+    showToast(t('ui.generated.cache_filter_folder_chat_sesi_a123b45') + ' dibersihkan!');
+    triggerCacheRefresh();
+  };
+
   const handleClearSessionScroll = () => {
     if (!selectedSession) return;
     localStorage.removeItem(`autogram_drive_scroll_v1_${selectedSession}`);
@@ -299,8 +324,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
           key === `autogram_drive_locations_v1_${selectedSession}` ||
           key === `autogram_drive_sidebar_v1_${selectedSession}` ||
           key === `autogram_drive_topics_v1_${selectedSession}` ||
-          key === `autogram_drive_scroll_v1_${selectedSession}` ||
-          key === `autogram_drive_peer_v2_${selectedSession}`)
+          key === `autogram_drive_peer_v2_${selectedSession}` ||
+          key === `autogram_chat_folder_${selectedSession}` ||
+          key === `autogram_drive_scroll_v1_${selectedSession}`)
       ) {
         keysToRemove.push(key);
       }
@@ -332,6 +358,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const hasGlobalPeer = Object.keys(localStorage).some(
     (k) => k.startsWith('autogram_drive_peer_v2_') || k === 'autogram_drive_peer'
   );
+  const hasGlobalChatFolders = Object.keys(localStorage).some((k) => k.startsWith('autogram_chat_folder_'));
   const hasGlobalUpload = localStorage.getItem('autogram_drive_upload_queue') !== null;
   const hasGlobalUi =
     localStorage.getItem('autogram_drive_view_mode') !== null ||
@@ -350,6 +377,9 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     : false;
   const hasSessionPeer = selectedSession
     ? localStorage.getItem(`autogram_drive_peer_v2_${selectedSession}`) !== null
+    : false;
+  const hasSessionChatFolder = selectedSession
+    ? localStorage.getItem(`autogram_chat_folder_${selectedSession}`) !== null
     : false;
   const hasSessionScroll = selectedSession
     ? localStorage.getItem(`autogram_drive_scroll_v1_${selectedSession}`) !== null
@@ -780,7 +810,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 </button>
               </div>
 
-              {/* 5. Sidebar Tree Cache (All Accounts Global) */}
+              {/* 6. Sidebar Tree Cache (All Accounts Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -822,7 +852,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 </button>
               </div>
 
-              {/* 6. Forum Topics Cache (All Accounts Global) */}
+              {/* 7. Forum Topics Cache (All Accounts Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -864,7 +894,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 </button>
               </div>
 
-              {/* 7. Peer Metadata Cache (All Accounts Global) */}
+              {/* 8. Peer Metadata Cache (All Accounts Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -906,7 +936,51 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 </button>
               </div>
 
-              {/* 8. Upload Queue & Staging (Global) */}
+              {/* 9. Chat Folder Filter Cache (All Accounts Global) */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <Folder size={16} style={{ color: '#4ade80' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_filter_folder_chat_semua_akun_f345a67')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_filter_folder_obrolan_aktif_untuk_seluru_d890e12')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearGlobalChatFolders}
+                  disabled={!hasGlobalChatFolders || clearingItem === 'chat_folders_global'}
+                  style={getBtnStyle(
+                    hasGlobalChatFolders,
+                    '#4ade80',
+                    'rgba(34, 197, 94, 0.15)',
+                    '1px solid rgba(34, 197, 94, 0.3)'
+                  )}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'chat_folders_global'
+                      ? '...'
+                      : t('ui.generated.hapus_filter_global_a123b45')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 10. Upload Queue & Staging (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -948,7 +1022,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 </button>
               </div>
 
-              {/* 9. Layout & UI Preferences (Global) */}
+              {/* 11. Layout & UI Preferences (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -992,7 +1066,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             </div>
           )}
 
-          {/* TAB 2: PER-SESSION ACCOUNT CACHE (Symmetrical 6-Card Grid for Selected Account) */}
+          {/* TAB 2: PER-SESSION ACCOUNT CACHE (6 Itemized Cards in 2x3 Grid + Master Action Banner) */}
           {activeTab === 'session' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -1037,238 +1111,264 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
               </div>
 
               {selectedSession && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  {/* 1. Folder Locations (Session) */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <MapPin size={16} style={{ color: '#f87171' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                          {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearSessionLocations}
-                      disabled={!hasSessionLocations}
-                      style={getBtnStyle(
-                        hasSessionLocations,
-                        '#fca5a5',
-                        'rgba(239, 68, 68, 0.15)',
-                        '1px solid rgba(239, 68, 68, 0.3)'
-                      )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* 6 SPECIFIC ITEM CARDS IN 2x3 GRID */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    {/* 1. Folder Locations (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
                     >
-                      <Trash2 size={13} />
-                      <span>{t('ui.generated.hapus_lokasi_e123a45')}</span>
-                    </button>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <MapPin size={16} style={{ color: '#f87171' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionLocations}
+                        disabled={!hasSessionLocations}
+                        style={getBtnStyle(
+                          hasSessionLocations,
+                          '#fca5a5',
+                          'rgba(239, 68, 68, 0.15)',
+                          '1px solid rgba(239, 68, 68, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('ui.generated.hapus_lokasi_e123a45')}</span>
+                      </button>
+                    </div>
+
+                    {/* 2. Sidebar Tree (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionSidebar}
+                        disabled={!hasSessionSidebar}
+                        style={getBtnStyle(
+                          hasSessionSidebar,
+                          '#38bdf8',
+                          'rgba(56, 189, 248, 0.15)',
+                          '1px solid rgba(56, 189, 248, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('ui.generated.hapus_sidebar_d456e78')}</span>
+                      </button>
+                    </div>
+
+                    {/* 3. Forum Topics (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <MessageSquare size={16} style={{ color: '#c084fc' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_topik_forum_sesi_a890f12')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionTopics}
+                        disabled={!hasSessionTopics}
+                        style={getBtnStyle(
+                          hasSessionTopics,
+                          '#c084fc',
+                          'rgba(168, 85, 247, 0.15)',
+                          '1px solid rgba(168, 85, 247, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('ui.generated.hapus_topik_e890f12')}</span>
+                      </button>
+                    </div>
+
+                    {/* 4. Peer Metadata (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <Users size={16} style={{ color: '#60a5fa' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionPeer}
+                        disabled={!hasSessionPeer}
+                        style={getBtnStyle(
+                          hasSessionPeer,
+                          '#60a5fa',
+                          'rgba(96, 165, 250, 0.15)',
+                          '1px solid rgba(96, 165, 240, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('ui.generated.hapus_peer_f123a45')}</span>
+                      </button>
+                    </div>
+
+                    {/* 5. Chat Folder Filter (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <Folder size={16} style={{ color: '#4ade80' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_filter_folder_chat_sesi_a123b45')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_filter_folder_obrolan_aktif_untuk_sesi_ini_c567d89')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionChatFolder}
+                        disabled={!hasSessionChatFolder}
+                        style={getBtnStyle(
+                          hasSessionChatFolder,
+                          '#4ade80',
+                          'rgba(34, 197, 94, 0.15)',
+                          '1px solid rgba(34, 197, 94, 0.3)'
+                        )}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('ui.generated.hapus_filter_folder_e890f12')}</span>
+                      </button>
+                    </div>
+
+                    {/* 6. Scroll & Workspace State (Session) */}
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                          {t('ui.generated.hapus_posisi_scroll_dan_preferensi_tampilan_ter_b456c78')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearSessionScroll}
+                        disabled={!hasSessionScroll}
+                        style={getBtnStyle(
+                          hasSessionScroll,
+                          '#fbbf24',
+                          'rgba(245, 158, 11, 0.15)',
+                          '1px solid rgba(245, 158, 11, 0.3)'
+                        )}
+                      >
+                        <RotateCcw size={13} />
+                        <span>{t('ui.generated.hapus_state_d789e01')}</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* 2. Sidebar Tree (Session) */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <FolderTree size={16} style={{ color: '#38bdf8' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                          {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearSessionSidebar}
-                      disabled={!hasSessionSidebar}
-                      style={getBtnStyle(
-                        hasSessionSidebar,
-                        '#38bdf8',
-                        'rgba(56, 189, 248, 0.15)',
-                        '1px solid rgba(56, 189, 248, 0.3)'
-                      )}
-                    >
-                      <Trash2 size={13} />
-                      <span>{t('ui.generated.hapus_sidebar_d456e78')}</span>
-                    </button>
-                  </div>
-
-                  {/* 3. Forum Topics (Session) */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <MessageSquare size={16} style={{ color: '#c084fc' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                          {t('ui.generated.cache_topik_forum_sesi_a890f12')}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearSessionTopics}
-                      disabled={!hasSessionTopics}
-                      style={getBtnStyle(
-                        hasSessionTopics,
-                        '#c084fc',
-                        'rgba(168, 85, 247, 0.15)',
-                        '1px solid rgba(168, 85, 247, 0.3)'
-                      )}
-                    >
-                      <Trash2 size={13} />
-                      <span>{t('ui.generated.hapus_topik_e890f12')}</span>
-                    </button>
-                  </div>
-
-                  {/* 4. Peer Metadata (Session) */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <Users size={16} style={{ color: '#60a5fa' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                          {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearSessionPeer}
-                      disabled={!hasSessionPeer}
-                      style={getBtnStyle(
-                        hasSessionPeer,
-                        '#60a5fa',
-                        'rgba(96, 165, 250, 0.15)',
-                        '1px solid rgba(96, 165, 240, 0.3)'
-                      )}
-                    >
-                      <Trash2 size={13} />
-                      <span>{t('ui.generated.hapus_peer_f123a45')}</span>
-                    </button>
-                  </div>
-
-                  {/* 5. Scroll & Workspace State (Session) */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
-                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                          {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
-                        </strong>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_posisi_scroll_dan_preferensi_tampilan_ter_b456c78')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearSessionScroll}
-                      disabled={!hasSessionScroll}
-                      style={getBtnStyle(
-                        hasSessionScroll,
-                        '#fbbf24',
-                        'rgba(245, 158, 11, 0.15)',
-                        '1px solid rgba(245, 158, 11, 0.3)'
-                      )}
-                    >
-                      <RotateCcw size={13} />
-                      <span>{t('ui.generated.hapus_state_d789e01')}</span>
-                    </button>
-                  </div>
-
-                  {/* 6. Total Session Cache Reset (Session) */}
+                  {/* MASTER SESSION SUMMARY & CLEAR ALL BANNER */}
                   <div
                     style={{
                       background: 'rgba(239, 68, 68, 0.04)',
                       border: '1px solid rgba(239, 68, 68, 0.18)',
-                      borderRadius: '12px',
-                      padding: '14px',
+                      borderRadius: '14px',
+                      padding: '14px 18px',
                       display: 'flex',
-                      flexDirection: 'column',
+                      alignItems: 'center',
                       justifyContent: 'space-between',
+                      marginTop: '4px',
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Trash2 size={16} style={{ color: '#fca5a5' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.pembersihan_total_cache_sesi_c890f12')}
-                          </strong>
-                        </div>
-                        <span
-                          style={{
-                            padding: '2px 7px',
-                            borderRadius: '6px',
-                            background: 'rgba(239, 68, 68, 0.2)',
-                            color: '#fca5a5',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
-                        {t('ui.generated.hapus_seluruh_entri_cache_sesi_ini_tanpa_log_f123a45')}
-                      </p>
+                      <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                        {t('ui.generated.pembersihan_total_cache_sesi_c890f12')}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')} • {t('ui.generated.menghapus_cache_sesi_ini_tidak_mengeluarkan_akun_b901c23')}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -1281,7 +1381,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                         '1px solid rgba(239, 68, 68, 0.35)'
                       )}
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                       <span>{t('ui.generated.hapus_seluruh_cache_sesi_f456a78')}</span>
                     </button>
                   </div>
