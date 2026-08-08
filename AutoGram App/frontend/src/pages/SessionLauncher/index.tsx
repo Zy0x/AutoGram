@@ -1101,8 +1101,12 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6, textAlign: 'justify', textJustify: 'inter-word' }}>
-              {t('nav.modal_delete_step1_msg', { name: deletingSessionStep1.label || deletingSessionStep1.name })}
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+              {t('nav.modal_delete_step1_msg_prefix')}{' '}
+              <strong style={{ color: '#f8fafc', fontWeight: 600 }}>
+                '{deletingSessionStep1.label || deletingSessionStep1.name}'
+              </strong>{' '}
+              {t('nav.modal_delete_step1_msg_suffix')}
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -1204,8 +1208,12 @@ export function SessionLauncher({
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6, textAlign: 'justify', textJustify: 'inter-word' }}>
-              {t('nav.modal_delete_step2_msg', { name: deletingSessionStep2.label || deletingSessionStep2.name })}
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6 }}>
+              {t('nav.modal_delete_step2_msg_prefix')}{' '}
+              <strong style={{ color: '#f8fafc', fontWeight: 600 }}>
+                '{deletingSessionStep2.label || deletingSessionStep2.name}'
+              </strong>
+              {t('nav.modal_delete_step2_msg_suffix')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
