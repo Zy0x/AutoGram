@@ -1,3 +1,9 @@
+## v3.0.6 Strict Horizontal Side-by-Side Flex & Uncropped Aspect Contain Engine
+
+### Perbaikan Penumpukan Vertikal & Gambar Contain 100% Utuh (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Fix Vertical Stacking (Card A & B Sejajar Horizontal)**: Menerapkan `flex-direction: row !important`, `flex: 1 1 0% !important`, dan `width: 0 !important` pada stage kontainer sehingga Card A dan Card B dipaksa berdiri sejajar 50%-50% secara horizontal pada 1 baris.
+- **Rasio Presisi `object-fit: contain !important`**: Gambar preview dikunci dengan `max-width: 100%`, `max-height: 100%`, dan `object-fit: contain` sehingga ilustrasi media tampil utuh tanpa terpotong atau ter-zoom.
+
 ## v3.0.5 Middle Truncation & 2:3 Sidepanel Portrait Thumbnail Engine
 
 ### Pemotongan Nama File Tengah & Thumbnail 2:3 Sidepanel Ringkas (`DrivePreviewModal/index.tsx`, `App.css`)

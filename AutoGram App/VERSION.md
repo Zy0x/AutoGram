@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.5
+AutoGram Version: v3.0.6
 
 Current State:
+v3.0.6 Strict Horizontal Side-by-Side Flex & Uncropped Aspect Contain Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug penumpukan vertikal (vertical stacking) pada Card A dan Card B. Menerapkan aturan flexbox horizontal yang strictly ter-enforce (`flex-direction: row !important`, `flex: 1 1 0% !important`, `width: 0 !important`, `min-width: 0 !important`), sehingga Card A dan Card B 100% dipaksa sejajar 50%-50% secara horizontal (side-by-side) pada satu baris. Serta menetapkan `object-fit: contain !important` pada gambar sehingga ilustrasi karakter tampil utuh sempurna tanpa terpotong di bagian atas atau bawah.
+
+Previous:
 v3.0.5 Middle Truncation & 2:3 Sidepanel Portrait Thumbnail Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan pemotongan teks nama berkas di bagian tengah (`middleTruncateFilename`) pada Card A/B ("A Gambar ilustra... pendidikan.jpg") dan sidepanel. Merestrukturisasi sidepanel kanan menjadi ringkas dengan thumbnail rasio portrait 2:3 (`aspect-[2/3]`), tombol `[ X ]` pengosong slot di header kartu, footer meta `1.24 MB` + `✓ Simpan` & `🗑 Hapus`, serta menempatkan navigasi grup (`< Previous Group`, `7 of 23 Groups`, `Next Group >`) di footer sidepanel.
 
 Previous:

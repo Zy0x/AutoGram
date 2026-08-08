@@ -3681,18 +3681,21 @@ document.body
               </header>
 
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
-              <div className="flex-1 flex w-full min-h-0 overflow-hidden relative p-4 gap-4 box-border">
-                {/* STAGE SPLIT PREVIEW (CARDS A & B) */}
-                <div className="flex-1 flex items-center justify-center gap-4 min-h-0 overflow-hidden">
+              <div style={{ flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+                {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
+                <div style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}>
                   {/* CARD A (LEFT) */}
                   {(() => {
                     const fileA = currentDupGroup.files[selectedAIndex] || currentDupGroup.files[0];
                     const isMarkedA = fileA ? duplicateContext.markedDelete.has(fileA.id) : false;
                     const thumbA = fileA && fileA.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
-                    const nameA = fileA ? middleTruncateFilename(fileA.name, 30) : t('speedtest.preview_card_title_a');
+                    const nameA = fileA ? middleTruncateFilename(fileA.name, 28) : t('speedtest.preview_card_title_a');
                     return (
-                      <div className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'}`}>
-                        <div className="drive-preview-split-badge">
+                      <div
+                        className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'}`}
+                        style={{ flex: '1 1 0%', minWidth: 0, width: 0, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}
+                      >
+                        <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
                           <div className="drive-preview-badge-left">
                             <span className="drive-dup-badge-a">A</span>
                             <span className="drive-preview-card-title" title={fileA?.name}>{nameA}</span>
@@ -3721,9 +3724,9 @@ document.body
                           </div>
                         ) : (
                           <>
-                            <div className="drive-preview-split-media-wrap">
+                            <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
                               {isImageDriveFile(fileA) && thumbA ? (
-                                <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" />
+                                <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }} />
                               ) : (
                                 <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
                                   <Film size={36} />
@@ -3732,7 +3735,7 @@ document.body
                               )}
                             </div>
 
-                            <div className="drive-preview-split-meta">
+                            <div className="drive-preview-split-meta" style={{ flexShrink: 0 }}>
                               <span className="text-slate-300 text-xs font-semibold">
                                 {formatDriveBytes(fileA.size)}
                               </span>
@@ -3769,10 +3772,13 @@ document.body
                     const fileB = currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0];
                     const isMarkedB = fileB ? duplicateContext.markedDelete.has(fileB.id) : false;
                     const thumbB = fileB && fileB.id === file.id && activeSrc ? activeSrc : gridThumb || poster || '';
-                    const nameB = fileB ? middleTruncateFilename(fileB.name, 30) : t('speedtest.preview_card_title_b');
+                    const nameB = fileB ? middleTruncateFilename(fileB.name, 28) : t('speedtest.preview_card_title_b');
                     return (
-                      <div className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'}`}>
-                        <div className="drive-preview-split-badge">
+                      <div
+                        className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'}`}
+                        style={{ flex: '1 1 0%', minWidth: 0, width: 0, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}
+                      >
+                        <div className="drive-preview-split-badge" style={{ flexShrink: 0 }}>
                           <div className="drive-preview-badge-left">
                             <span className="drive-dup-badge-b">B</span>
                             <span className="drive-preview-card-title" title={fileB?.name}>{nameB}</span>
@@ -3801,9 +3807,9 @@ document.body
                           </div>
                         ) : (
                           <>
-                            <div className="drive-preview-split-media-wrap">
+                            <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
                               {isImageDriveFile(fileB) && thumbB ? (
-                                <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" />
+                                <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }} />
                               ) : (
                                 <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
                                   <Film size={36} />
@@ -3812,7 +3818,7 @@ document.body
                               )}
                             </div>
 
-                            <div className="drive-preview-split-meta">
+                            <div className="drive-preview-split-meta" style={{ flexShrink: 0 }}>
                               <span className="text-slate-300 text-xs font-semibold">
                                 {formatDriveBytes(fileB.size)}
                               </span>
