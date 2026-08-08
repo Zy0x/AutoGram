@@ -1514,6 +1514,36 @@ export function SessionLauncher({
               <Loader2 size={12} className="animate-spin" style={{ color: '#38bdf8' }} />
               {t('nav.updater_checking')}
             </span>
+          ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
+            <button
+              type="button"
+              onClick={() => void recheckUpdate()}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#f59e0b',
+                fontSize: '0.78rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: 0,
+              }}
+              title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f59e0b',
+                  boxShadow: '0 0 8px rgba(245, 158, 11, 0.8)',
+                }}
+              />
+              <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
+            </button>
           ) : (
             <button
               type="button"

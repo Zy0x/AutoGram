@@ -710,6 +710,17 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     <Loader2 size={14} className="animate-spin" />
                     <span>{t('nav.updater_checking')}</span>
                   </button>
+                ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => void recheckUpdate()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                    title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
+                  >
+                    <RotateCw size={14} />
+                    <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
+                  </button>
                 ) : (
                   <button
                     type="button"
