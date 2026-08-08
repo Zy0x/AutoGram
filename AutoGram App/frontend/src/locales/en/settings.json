@@ -1,6 +1,12 @@
 {
   "title": "Settings",
   "subtitle": "Configure your AutoGram application.",
+  "tab_general": "Interface & Language",
+  "tab_startup": "Startup & Default Account",
+  "tab_updates": "Application Updates",
+  "tab_network": "Network & Proxy",
+  "tab_storage": "Storage & Cache",
+  "tab_developer": "API & Debug Logs",
   "general": "General Settings",
   "api_config": "Telegram API Credentials",
   "api_config_hint": "Get API ID & API Hash from my.telegram.org. On desktop, credentials are stored encrypted in the local keychain. Do not share your hash with anyone.",

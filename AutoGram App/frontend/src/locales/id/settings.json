@@ -1,6 +1,12 @@
 {
   "title": "Pengaturan",
-  "subtitle": "Konfigurasikan aplikasi AutoGram Anda.",
+  "subtitle": "Konfigurasi preferensi aplikasi AutoGram Anda.",
+  "tab_general": "Bahasa & Tampilan",
+  "tab_startup": "Tampilan Awal & Akun",
+  "tab_updates": "Pembaruan Aplikasi",
+  "tab_network": "Jaringan & Proxy",
+  "tab_storage": "Penyimpanan & Cache",
+  "tab_developer": "Log Debug & API",
   "general": "Pengaturan Umum",
   "api_config": "Kredensial API Telegram",
   "api_config_hint": "Dapatkan API ID & API Hash dari my.telegram.org. Di desktop, kredensial disimpan terenkripsi di keychain lokal. Jangan bagikan hash ke siapa pun.",

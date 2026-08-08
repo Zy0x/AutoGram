@@ -254,6 +254,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
+  type SettingsTab = 'general' | 'startup' | 'updates' | 'network' | 'storage' | 'developer';
+  const [activeTab, setActiveTab] = useState<SettingsTab>('startup');
+
   const [startupBehavior, setStartupBehaviorState] = useState<string>(() => {
     return localStorage.getItem('autogram_startup_behavior') || 'launcher';
   });
@@ -791,894 +794,949 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         </div>
       </header>
 
-      <div className="settings-grid">
-        {/* 1. INTERFACE LANGUAGE */}
-        <div className="glass-panel card settings-section-general">
-          <div className="card-header">
-            <Globe size={20} color="var(--primary)" />
-            <h3>{t('settings.general')}</h3>
-          </div>
+      <div className="settings-layout-sidebar">
+        {/* LEFT SIDEBAR NAVIGATION */}
+        <nav className="settings-sidebar-nav" aria-label="Settings Navigation">
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'startup' ? 'active' : ''}`}
+            onClick={() => setActiveTab('startup')}
+          >
+            <Zap size={18} />
+            <span>{t('settings.tab_startup')}</span>
+          </button>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="input-label title-with-icon" htmlFor="settings-language">
-              {t('settings.language')}
-            </label>
-            <p className="field-hint">{t('settings.language_desc')}</p>
-            <select
-              id="settings-language"
-              className="input-field"
-              value={i18n.language}
-              onChange={(e) => changeLanguage(e.target.value)}
-            >
-              <option value="en">{t('settings.language_english')}</option>
-              <option value="id">{t('settings.language_indonesian')}</option>
-            </select>
-          </div>
-        </div>
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('general')}
+          >
+            <Globe size={18} />
+            <span>{t('settings.tab_general')}</span>
+          </button>
 
-        {/* 2. STARTUP SCREEN & DEFAULT ACCOUNT */}
-        <div className="glass-panel card settings-section-startup" style={{ position: 'relative', zIndex: isAccountDropdownOpen ? 100 : 1 }}>
-          <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Zap size={20} color="var(--primary)" />
-              <h3>{t('settings.startup_behavior_section')}</h3>
-            </div>
-            {defaultAccount && (
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: '12px',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#38bdf8',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
-              >
-                <UserCheck size={12} />
-                <span>{getSessionDisplayName(defaultAccount)}</span>
-              </span>
-            )}
-          </div>
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'updates' ? 'active' : ''}`}
+            onClick={() => setActiveTab('updates')}
+          >
+            <RotateCw size={18} />
+            <span>{t('settings.tab_updates')}</span>
+          </button>
 
-          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            {t('settings.startup_behavior_section_desc')}
-          </p>
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'network' ? 'active' : ''}`}
+            onClick={() => setActiveTab('network')}
+          >
+            <SlidersHorizontal size={18} />
+            <span>{t('settings.tab_network')}</span>
+          </button>
 
-          {/* STARTUP MODE CARDS GRID */}
-          <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
-              {t('settings.startup_mode_label')}
-            </label>
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
-              {t('settings.startup_mode_desc')}
-            </span>
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'storage' ? 'active' : ''}`}
+            onClick={() => setActiveTab('storage')}
+          >
+            <Trash2 size={18} />
+            <span>{t('settings.tab_storage')}</span>
+          </button>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-              {/* Launcher Hub Option */}
-              <div
-                onClick={() => setStartupBehavior('launcher')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: startupBehavior === 'launcher' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: startupBehavior === 'launcher' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? '#38bdf8' : '#f8fafc' }}>
-                    {t('settings.startup_mode_launcher')}
-                  </strong>
-                  {startupBehavior === 'launcher' && <CheckCircle size={15} color="#38bdf8" />}
+          <button
+            type="button"
+            className={`settings-sidebar-nav-item ${activeTab === 'developer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('developer')}
+          >
+            <Key size={18} />
+            <span>{t('settings.tab_developer')}</span>
+          </button>
+        </nav>
+
+        {/* RIGHT CONTENT PANEL */}
+        <div className="settings-content-panel">
+          {/* TAB 1: STARTUP SCREEN & DEFAULT ACCOUNT */}
+          {activeTab === 'startup' && (
+            <div className="glass-panel card settings-section-startup" style={{ position: 'relative', zIndex: isAccountDropdownOpen ? 100 : 1 }}>
+              <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Zap size={20} color="var(--primary)" />
+                  <h3>{t('settings.startup_behavior_section')}</h3>
                 </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.startup_mode_launcher_desc')}
-                </span>
-              </div>
-
-              {/* Direct Drives Option */}
-              <div
-                onClick={() => setStartupBehavior('drives')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: startupBehavior === 'drives' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: startupBehavior === 'drives' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? '#38bdf8' : '#f8fafc' }}>
-                    {t('settings.startup_mode_drives')}
-                  </strong>
-                  {startupBehavior === 'drives' && <CheckCircle size={15} color="#38bdf8" />}
-                </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.startup_mode_drives_desc')}
-                </span>
-              </div>
-
-              {/* Direct Forwarder Option */}
-              <div
-                onClick={() => setStartupBehavior('forwarder')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: startupBehavior === 'forwarder' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: startupBehavior === 'forwarder' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? '#38bdf8' : '#f8fafc' }}>
-                    {t('settings.startup_mode_forwarder')}
-                  </strong>
-                  {startupBehavior === 'forwarder' && <CheckCircle size={15} color="#38bdf8" />}
-                </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.startup_mode_forwarder_desc')}
-                </span>
-              </div>
-
-              {/* Remember Last Workspace Option */}
-              <div
-                onClick={() => setStartupBehavior('last')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: startupBehavior === 'last' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: startupBehavior === 'last' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? '#38bdf8' : '#f8fafc' }}>
-                    {t('settings.startup_mode_last')}
-                  </strong>
-                  {startupBehavior === 'last' && <CheckCircle size={15} color="#38bdf8" />}
-                </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.startup_mode_last_desc')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* DEFAULT ACCOUNT DROPDOWN (2-WAY SYNCED) */}
-          <div className="input-group" style={{ marginBottom: 0, paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-            <label className="input-label title-with-icon" htmlFor="settings-default-account">
-              {t('settings.default_account_label')}
-            </label>
-            <p className="field-hint">{t('settings.default_account_desc')}</p>
-
-            {availableSessions.length > 0 ? (
-              <CustomAccountSelect
-                value={defaultAccount}
-                onChange={(val) => setDefaultAccount(val)}
-                options={availableSessions}
-                placeholder={t('settings.default_account_select_placeholder')}
-                onOpenChange={(open) => setIsAccountDropdownOpen(open)}
-              />
-            ) : (
-              <div
-                style={{
-                  fontSize: '0.8rem',
-                  color: '#94a3b8',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                }}
-              >
-                {t('settings.no_accounts_available')}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 2. APPLICATION UPDATES & RELEASE CHANNEL */}
-        <div className="glass-panel card settings-section-updates">
-          <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <RotateCw size={20} color="var(--primary)" />
-              <h3>{t('settings.auto_update_section')}</h3>
-            </div>
-            <span
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                border: releaseChannel === 'beta' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                color: releaseChannel === 'beta' ? '#f59e0b' : '#10b981',
-              }}
-            >
-              {releaseChannel === 'beta' ? 'BETA STREAM' : 'STABLE STREAM'}
-            </span>
-          </div>
-
-          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            {t('settings.auto_update_section_desc')}
-          </p>
-
-          {/* RELEASE CHANNEL SELECTOR (SEGMENTED CARDS) */}
-          <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
-              {t('settings.release_channel_label')}
-            </label>
-            <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
-              {t('settings.release_channel_desc')}
-            </span>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-              {/* Stable Channel Pill */}
-              <div
-                onClick={() => setReleaseChannel('stable')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: releaseChannel === 'stable' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: releaseChannel === 'stable' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#38bdf8' : '#f8fafc' }}>
-                    {t('settings.channel_stable')}
-                  </strong>
-                  {releaseChannel === 'stable' && <CheckCircle size={15} color="#38bdf8" />}
-                </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.channel_stable_desc')}
-                </span>
-              </div>
-
-              {/* Beta Channel Pill */}
-              <div
-                onClick={() => setReleaseChannel('beta')}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  border: releaseChannel === 'beta' ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : '#f8fafc' }}>
-                    {t('settings.channel_beta')}
-                  </strong>
-                  {releaseChannel === 'beta' && <CheckCircle size={15} color="#f59e0b" />}
-                </div>
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                  {t('settings.channel_beta_desc')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* TOGGLES LIST (NATIVE AUTOGRAM SETTINGS SWITCHES) */}
-          <div className="td-switches-list">
-            {/* Auto-Check Toggle */}
-            <label className="td-switch-row">
-              <div>
-                <strong>{t('settings.auto_check_updates_label')}</strong>
-                <p>{t('settings.auto_check_updates_desc')}</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={autoCheck}
-                onChange={(e) => setAutoCheck(e.target.checked)}
-              />
-            </label>
-
-            {/* Background Auto-Download Toggle */}
-            <label className="td-switch-row">
-              <div>
-                <strong>{t('settings.auto_download_updates_label')}</strong>
-                <p>{t('settings.auto_download_updates_desc')}</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={autoDownload}
-                onChange={(e) => setAutoDownload(e.target.checked)}
-              />
-            </label>
-
-            {/* Auto-Install on Exit Toggle */}
-            <label className="td-switch-row">
-              <div>
-                <strong>{t('settings.auto_install_exit_label')}</strong>
-                <p>{t('settings.auto_install_exit_desc')}</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={autoInstallOnExit}
-                onChange={(e) => setAutoInstallOnExit(e.target.checked)}
-              />
-            </label>
-
-            {/* Update Notification Toggle */}
-            <label className="td-switch-row">
-              <div>
-                <strong>{t('settings.notify_update_label')}</strong>
-                <p>{t('settings.notify_update_desc')}</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notifyOnUpdate}
-                onChange={(e) => setNotifyOnUpdate(e.target.checked)}
-              />
-            </label>
-          </div>
-
-          {/* FOOTER BAR: Current Version, Last Checked & Action */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.80rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
-                <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
-                <a
-                  href={releaseUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    fontSize: '0.75rem',
-                    color: '#38bdf8',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    marginLeft: '6px',
-                    opacity: 0.85,
-                  }}
-                  title={t('settings.view_release_notes')}
-                >
-                  <span>{t('settings.view_release_notes')}</span>
-                  <ExternalLink size={11} />
-                </a>
-              </div>
-              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                {t('settings.last_checked_label')}:{' '}
-                {lastCheckedAt
-                  ? new Date(lastCheckedAt).toLocaleTimeString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }) +
-                    ' (' +
-                    new Date(lastCheckedAt).toLocaleDateString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
-                      day: 'numeric',
-                      month: 'short',
-                    }) +
-                    ')'
-                  : t('settings.last_checked_never')}
-              </span>
-            </div>
-
-            <div>
-              {updateStatus === 'updateAvailable' ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void startDownload()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
-                >
-                  <RotateCw size={14} />
-                  <span>{t('settings.btn_download_update', { version: latestVersion })}</span>
-                </button>
-              ) : updateStatus === 'downloading' ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: '#0284c7', color: '#38bdf8' }}
-                >
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
-                </button>
-              ) : updateStatus === 'readyToInstall' ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => void installUpdate()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                >
-                  <CheckCircle size={14} />
-                  <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>
-                </button>
-              ) : updateStatus === 'installing' ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
-                >
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>{t('nav.updater_installing')}</span>
-                </button>
-              ) : updateStatus === 'checking' ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
-                >
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>{t('nav.updater_checking')}</span>
-                </button>
-              ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => void recheckUpdate()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b' }}
-                  title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
-                >
-                  <RotateCw size={14} />
-                  <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => void recheckUpdate()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
-                >
-                  <RotateCw size={14} />
-                  <span>{t('settings.btn_check_updates')}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 4. PROXY & VPN OPTIMIZER (UNIFIED COMPONENT SHARED WITH DRIVES SETTINGS) */}
-        <NetworkSection />
-
-        {/* 5. DEBUG MODE (ACCURATE & GLOBAL FOR FORWARDER & DRIVES) */}
-        <DebugSection />
-
-        {/* 6. GLOBAL CACHE CONTROL (TOTAL OVERALL SYSTEM CACHE CONTROL) */}
-        <div className="glass-panel card settings-section-cache">
-          <div className="card-header">
-            <Trash2 size={20} color="var(--primary)" />
-            <h3>{t('settings.cache_management')}</h3>
-          </div>
-
-          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            {t('settings.cache_management_desc')}
-          </p>
-
-          <div className="page-stack" style={{ gap: '1.25rem' }}>
-            {/* LOKASI DIREKTORI CACHE KUSTOM (DI ATAS UKURAN CACHE TERDETEKSI) */}
-            <div
-              className="settings-custom-cache-panel"
-              style={{
-                background: 'rgba(56, 189, 248, 0.04)',
-                padding: '14px 16px',
-                borderRadius: '10px',
-                border: '1px solid rgba(56, 189, 248, 0.2)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Folder size={18} style={{ color: '#38bdf8' }} />
-                  <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
-                    {t('settings.custom_cache_location_title')}
-                  </strong>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleBrowseCacheFolder}
+                {defaultAccount && (
+                  <span
                     style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38bdf8',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      borderColor: 'rgba(56, 189, 248, 0.35)',
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      color: '#38bdf8',
+                      gap: '5px',
                     }}
                   >
-                    <Folder size={14} />
-                    <span>{t('settings.custom_cache_browse_btn')}</span>
-                  </button>
+                    <UserCheck size={12} />
+                    <span>{getSessionDisplayName(defaultAccount)}</span>
+                  </span>
+                )}
+              </div>
 
-                  {customCacheInfo?.customPath && (
+              <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                {t('settings.startup_behavior_section_desc')}
+              </p>
+
+              {/* STARTUP MODE CARDS GRID */}
+              <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+                  {t('settings.startup_mode_label')}
+                </label>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+                  {t('settings.startup_mode_desc')}
+                </span>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                  {/* Launcher Hub Option */}
+                  <div
+                    onClick={() => setStartupBehavior('launcher')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: startupBehavior === 'launcher' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: startupBehavior === 'launcher' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? '#38bdf8' : '#f8fafc' }}>
+                        {t('settings.startup_mode_launcher')}
+                      </strong>
+                      {startupBehavior === 'launcher' && <CheckCircle size={15} color="#38bdf8" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.startup_mode_launcher_desc')}
+                    </span>
+                  </div>
+
+                  {/* Direct Drives Option */}
+                  <div
+                    onClick={() => setStartupBehavior('drives')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: startupBehavior === 'drives' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: startupBehavior === 'drives' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? '#38bdf8' : '#f8fafc' }}>
+                        {t('settings.startup_mode_drives')}
+                      </strong>
+                      {startupBehavior === 'drives' && <CheckCircle size={15} color="#38bdf8" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.startup_mode_drives_desc')}
+                    </span>
+                  </div>
+
+                  {/* Direct Forwarder Option */}
+                  <div
+                    onClick={() => setStartupBehavior('forwarder')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: startupBehavior === 'forwarder' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: startupBehavior === 'forwarder' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? '#38bdf8' : '#f8fafc' }}>
+                        {t('settings.startup_mode_forwarder')}
+                      </strong>
+                      {startupBehavior === 'forwarder' && <CheckCircle size={15} color="#38bdf8" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.startup_mode_forwarder_desc')}
+                    </span>
+                  </div>
+
+                  {/* Remember Last Workspace Option */}
+                  <div
+                    onClick={() => setStartupBehavior('last')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: startupBehavior === 'last' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: startupBehavior === 'last' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? '#38bdf8' : '#f8fafc' }}>
+                        {t('settings.startup_mode_last')}
+                      </strong>
+                      {startupBehavior === 'last' && <CheckCircle size={15} color="#38bdf8" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.startup_mode_last_desc')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* DEFAULT ACCOUNT DROPDOWN (2-WAY SYNCED) */}
+              <div className="input-group" style={{ marginBottom: 0, paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <label className="input-label title-with-icon" htmlFor="settings-default-account">
+                  {t('settings.default_account_label')}
+                </label>
+                <p className="field-hint">{t('settings.default_account_desc')}</p>
+
+                {availableSessions.length > 0 ? (
+                  <CustomAccountSelect
+                    value={defaultAccount}
+                    onChange={(val) => setDefaultAccount(val)}
+                    options={availableSessions}
+                    placeholder={t('settings.default_account_select_placeholder')}
+                    onOpenChange={(open) => setIsAccountDropdownOpen(open)}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      color: '#94a3b8',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
+                    {t('settings.no_accounts_available')}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: INTERFACE & LANGUAGE */}
+          {activeTab === 'general' && (
+            <div className="glass-panel card settings-section-general">
+              <div className="card-header">
+                <Globe size={20} color="var(--primary)" />
+                <h3>{t('settings.general')}</h3>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: 0 }}>
+                <label className="input-label title-with-icon" htmlFor="settings-language">
+                  {t('settings.language')}
+                </label>
+                <p className="field-hint">{t('settings.language_desc')}</p>
+                <select
+                  id="settings-language"
+                  className="input-field"
+                  value={i18n.language}
+                  onChange={(e) => changeLanguage(e.target.value)}
+                >
+                  <option value="en">{t('settings.language_english')}</option>
+                  <option value="id">{t('settings.language_indonesian')}</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: APPLICATION UPDATES & RELEASE CHANNEL */}
+          {activeTab === 'updates' && (
+            <div className="glass-panel card settings-section-updates">
+              <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <RotateCw size={20} color="var(--primary)" />
+                  <h3>{t('settings.auto_update_section')}</h3>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    border: releaseChannel === 'beta' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                    color: releaseChannel === 'beta' ? '#f59e0b' : '#10b981',
+                  }}
+                >
+                  {releaseChannel === 'beta' ? 'BETA STREAM' : 'STABLE STREAM'}
+                </span>
+              </div>
+
+              <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                {t('settings.auto_update_section_desc')}
+              </p>
+
+              {/* RELEASE CHANNEL SELECTOR (SEGMENTED CARDS) */}
+              <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+                  {t('settings.release_channel_label')}
+                </label>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+                  {t('settings.release_channel_desc')}
+                </span>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                  {/* Stable Channel Pill */}
+                  <div
+                    onClick={() => setReleaseChannel('stable')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: releaseChannel === 'stable' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: releaseChannel === 'stable' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#38bdf8' : '#f8fafc' }}>
+                        {t('settings.channel_stable')}
+                      </strong>
+                      {releaseChannel === 'stable' && <CheckCircle size={15} color="#38bdf8" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.channel_stable_desc')}
+                    </span>
+                  </div>
+
+                  {/* Beta Channel Pill */}
+                  <div
+                    onClick={() => setReleaseChannel('beta')}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      border: releaseChannel === 'beta' ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : '#f8fafc' }}>
+                        {t('settings.channel_beta')}
+                      </strong>
+                      {releaseChannel === 'beta' && <CheckCircle size={15} color="#f59e0b" />}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                      {t('settings.channel_beta_desc')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOGGLES LIST (NATIVE AUTOGRAM SETTINGS SWITCHES) */}
+              <div className="td-switches-list">
+                {/* Auto-Check Toggle */}
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('settings.auto_check_updates_label')}</strong>
+                    <p>{t('settings.auto_check_updates_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={autoCheck}
+                    onChange={(e) => setAutoCheck(e.target.checked)}
+                  />
+                </label>
+
+                {/* Background Auto-Download Toggle */}
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('settings.auto_download_updates_label')}</strong>
+                    <p>{t('settings.auto_download_updates_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={autoDownload}
+                    onChange={(e) => setAutoDownload(e.target.checked)}
+                  />
+                </label>
+
+                {/* Auto-Install on Exit Toggle */}
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('settings.auto_install_exit_label')}</strong>
+                    <p>{t('settings.auto_install_exit_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={autoInstallOnExit}
+                    onChange={(e) => setAutoInstallOnExit(e.target.checked)}
+                  />
+                </label>
+
+                {/* Update Notification Toggle */}
+                <label className="td-switch-row">
+                  <div>
+                    <strong>{t('settings.notify_update_label')}</strong>
+                    <p>{t('settings.notify_update_desc')}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyOnUpdate}
+                    onChange={(e) => setNotifyOnUpdate(e.target.checked)}
+                  />
+                </label>
+              </div>
+
+              {/* FOOTER BAR: Current Version, Last Checked & Action */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.80rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
+                    <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
+                    <a
+                      href={releaseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '0.75rem',
+                        color: '#38bdf8',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginLeft: '6px',
+                        opacity: 0.85,
+                      }}
+                      title={t('settings.view_release_notes')}
+                    >
+                      <span>{t('settings.view_release_notes')}</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    {t('settings.last_checked_label')}:{' '}
+                    {lastCheckedAt
+                      ? new Date(lastCheckedAt).toLocaleTimeString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }) +
+                        ' (' +
+                        new Date(lastCheckedAt).toLocaleDateString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
+                          day: 'numeric',
+                          month: 'short',
+                        }) +
+                        ')'
+                      : t('settings.last_checked_never')}
+                  </span>
+                </div>
+
+                <div>
+                  {updateStatus === 'updateAvailable' ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void startDownload()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                    >
+                      <RotateCw size={14} />
+                      <span>{t('settings.btn_download_update', { version: latestVersion })}</span>
+                    </button>
+                  ) : updateStatus === 'downloading' ? (
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => setIsResetModalOpen(true)}
-                      style={{
-                        padding: '6px 12px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: '#f87171',
-                        borderColor: 'rgba(239, 68, 68, 0.3)',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                      }}
+                      disabled
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: '#0284c7', color: '#38bdf8' }}
                     >
-                      <RotateCw size={13} />
-                      <span>{t('settings.custom_cache_reset_btn')}</span>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
+                    </button>
+                  ) : updateStatus === 'readyToInstall' ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void installUpdate()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                    >
+                      <CheckCircle size={14} />
+                      <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>
+                    </button>
+                  ) : updateStatus === 'installing' ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                    >
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>{t('nav.updater_installing')}</span>
+                    </button>
+                  ) : updateStatus === 'checking' ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                    >
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>{t('nav.updater_checking')}</span>
+                    </button>
+                  ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void recheckUpdate()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                      title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
+                    >
+                      <RotateCw size={14} />
+                      <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => void recheckUpdate()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                    >
+                      <RotateCw size={14} />
+                      <span>{t('settings.btn_check_updates')}</span>
                     </button>
                   )}
                 </div>
               </div>
+            </div>
+          )}
 
-              <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.4 }}>
-                {t('settings.custom_cache_location_desc')}
+          {/* TAB 4: NETWORK & PROXY */}
+          {activeTab === 'network' && (
+            <NetworkSection />
+          )}
+
+          {/* TAB 5: STORAGE & CACHE */}
+          {activeTab === 'storage' && (
+            <div className="glass-panel card settings-section-cache">
+              <div className="card-header">
+                <Trash2 size={20} color="var(--primary)" />
+                <h3>{t('settings.cache_management')}</h3>
+              </div>
+
+              <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                {t('settings.cache_management_desc')}
               </p>
 
-              {customCacheInfo?.isFallback && (
+              <div className="page-stack" style={{ gap: '1.25rem' }}>
+                {/* LOKASI DIREKTORI CACHE KUSTOM */}
                 <div
+                  className="settings-custom-cache-panel"
                   style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#fca5a5',
-                    fontSize: '0.76rem',
+                    background: 'rgba(56, 189, 248, 0.04)',
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
+                    flexDirection: 'column',
+                    gap: '10px',
                   }}
                 >
-                  <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                  <span>{t('settings.custom_cache_fallback_warning')}</span>
-                </div>
-              )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Folder size={18} style={{ color: '#38bdf8' }} />
+                      <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+                        {t('settings.custom_cache_location_title')}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleBrowseCacheFolder}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          color: '#38bdf8',
+                        }}
+                      >
+                        <Folder size={14} />
+                        <span>{t('settings.custom_cache_browse_btn')}</span>
+                      </button>
 
-              <div
-                style={{
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  fontFamily: 'monospace',
-                  fontSize: '0.78rem',
-                  color: customCacheInfo?.customPath ? '#38bdf8' : '#94a3b8',
-                  wordBreak: 'break-all',
-                }}
-              >
-                <span style={{ color: '#64748b', marginRight: '6px', fontFamily: 'sans-serif' }}>
-                  {t('settings.custom_cache_current_path')}
-                </span>
-                {customCacheInfo?.activePath || 'worker/cache (Default)'}
-              </div>
-            </div>
-            <div
-              className="settings-cache-summary"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                padding: '14px 16px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-              }}
-            >
-              {/* Header Row: Title on Left, Total Size + Recalculate Button on Top Right */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  alignItems: 'center',
-                  gap: '12px',
-                  width: '100%',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <span className="input-label" style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, display: 'block' }}>
-                    {t('settings.cache_detected_size')}
-                  </span>
-                  <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                    {t('settings.cache_storage_sources')}
+                      {customCacheInfo?.customPath && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setIsResetModalOpen(true)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#f87171',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                          }}
+                        >
+                          <RotateCw size={13} />
+                          <span>{t('settings.custom_cache_reset_btn')}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                    {t('settings.custom_cache_location_desc')}
                   </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
-                  <strong style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary)' }}>
-                    {isCalculating ? '...' : formattedSize}
-                  </strong>
-                  <button
-                    type="button"
-                    onClick={calculateCacheSize}
-                    disabled={isCalculating}
-                    title={t('settings.recalculate')}
+
+                  {customCacheInfo?.isFallback && (
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#fca5a5',
+                        fontSize: '0.76rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                      <span>{t('settings.custom_cache_fallback_warning')}</span>
+                    </div>
+                  )}
+
+                  <div
                     style={{
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
-                      color: '#38bdf8',
-                      borderRadius: '8px',
-                      width: '32px',
-                      height: '32px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: isCalculating ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease',
-                      flexShrink: 0,
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      fontFamily: 'monospace',
+                      fontSize: '0.78rem',
+                      color: customCacheInfo?.customPath ? '#38bdf8' : '#94a3b8',
+                      wordBreak: 'break-all',
                     }}
                   >
-                    <RotateCw size={15} className={isCalculating ? 'settings-reload-spin' : ''} />
-                  </button>
+                    <span style={{ color: '#64748b', marginRight: '6px', fontFamily: 'sans-serif' }}>
+                      {t('settings.custom_cache_current_path')}
+                    </span>
+                    {customCacheInfo?.activePath || 'worker/cache (Default)'}
+                  </div>
                 </div>
-              </div>
 
-              {/* Bento Grid Breakdown Badges */}
-              {cacheBreakdown && (
                 <div
+                  className="settings-cache-summary"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
-                    gap: '8px',
-                    paddingTop: '12px',
-                    borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
                   }}
                 >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '0.9rem', color: '#f8fafc' }}>
+                        {t('settings.cache_size_label')}
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {isCalculating ? t('settings.calculating_cache') : t('settings.cache_size_desc')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => void calculateCacheSize()}
+                        disabled={isCalculating}
+                        style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                        title={t('settings.refresh_cache_btn')}
+                      >
+                        <RotateCw size={13} className={isCalculating ? 'spin' : ''} />
+                      </button>
+
+                      <div
+                        className="settings-cache-badge"
+                        style={{
+                          fontSize: '1rem',
+                          fontWeight: 700,
+                          color: '#38bdf8',
+                          padding: '4px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                        }}
+                      >
+                        {formattedSize}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cache Breakdown Pills */}
+                  {cacheBreakdown && (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                        gap: '8px',
+                        paddingTop: '6px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.06)',
+                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '3px',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          📦 {t('settings.cache_breakdown_download')}
+                        </span>
+                        <strong style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 600 }}>
+                          {formatBytes(cacheBreakdown.cacheBytes)}
+                        </strong>
+                      </div>
+
+                      <div
+                        style={{
+                          background: 'rgba(168, 85, 247, 0.06)',
+                          border: '1px solid rgba(168, 85, 247, 0.2)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '3px',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          🖼️ {t('settings.cache_breakdown_thumbs')}
+                        </span>
+                        <strong style={{ fontSize: '0.9rem', color: '#c084fc', fontWeight: 600 }}>
+                          {formatBytes(cacheBreakdown.thumbsBytes)}
+                        </strong>
+                      </div>
+
+                      <div
+                        style={{
+                          background: 'rgba(234, 179, 8, 0.06)',
+                          border: '1px solid rgba(234, 179, 8, 0.2)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '3px',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          ⚡ {t('settings.cache_breakdown_temp')}
+                        </span>
+                        <strong style={{ fontSize: '0.9rem', color: '#facc15', fontWeight: 600 }}>
+                          {formatBytes(cacheBreakdown.tempBytes)}
+                        </strong>
+                      </div>
+
+                      {cacheBreakdown.localBytes > 0 && (
+                        <div
+                          style={{
+                            background: 'rgba(16, 185, 129, 0.06)',
+                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            💾 {t('settings.cache_breakdown_local')}
+                          </span>
+                          <strong style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
+                            {formatBytes(cacheBreakdown.localBytes)}
+                          </strong>
+                        </div>
+                      )}
+
+                      {cacheBreakdown.staleBytes > 0 && (
+                        <div
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '3px',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.72rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            ⚠️ {t('settings.cache_breakdown_stale')}
+                          </span>
+                          <strong style={{ fontSize: '0.9rem', color: '#fca5a5', fontWeight: 600 }}>
+                            {formatBytes(cacheBreakdown.staleBytes)}
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Slider Pembatas Ukuran Cache */}
+                <div
+                  className="settings-cache-limit"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    padding: '14px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sliders size={16} color="var(--primary)" />
+                      <label
+                        className="input-label"
+                        htmlFor="settings-cache-limit"
+                        style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}
+                      >
+                        {t('settings.cache_limit_label')}
+                      </label>
+                    </div>
+                    <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
+                      {cacheLimitMB === 0
+                        ? t('ui.generated.unlimited_tanpa_batas_b567c89')
+                        : formatBytes(cacheLimitMB * 1024 * 1024)}
+                    </strong>
+                  </div>
+
+                  <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
+                    <input
+                      id="settings-cache-limit"
+                      type="range"
+                      min={0}
+                      max={CACHE_LIMIT_STEPS.length - 1}
+                      step={1}
+                      value={currentStepIndex}
+                      onChange={(e) => handleSliderIndexChange(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        accentColor: 'var(--primary)',
+                        cursor: 'pointer',
+                        height: '6px',
+                        borderRadius: '4px',
+                        margin: 0,
+                        display: 'block',
+                      }}
+                    />
+
+                    <div
+                      className="settings-cache-labels"
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '22px',
+                        marginTop: '10px',
+                      }}
+                    >
+                      {CACHE_LIMIT_STEPS.map((stepVal, idx) => {
+                        const isSelected = idx === currentStepIndex;
+                        const pct = (idx / (CACHE_LIMIT_STEPS.length - 1)) * 100;
+                        const transform =
+                          idx === 0
+                            ? 'none'
+                            : idx === CACHE_LIMIT_STEPS.length - 1
+                            ? 'translateX(-100%)'
+                            : 'translateX(-50%)';
+
+                        let displayLabel = '';
+                        if (stepVal === -1) {
+                          displayLabel = t('ui.generated.custom_kustom_f123a45');
+                        } else if (stepVal === 0) {
+                          displayLabel = t('ui.generated.unlimited_tanpa_batas_b567c89');
+                        } else {
+                          displayLabel = stepVal >= 1024 ? `${stepVal / 1024} GB` : `${stepVal} MB`;
+                        }
+
+                        return (
+                          <span
+                            key={idx}
+                            className="settings-cache-tick"
+                            data-selected={isSelected ? 'true' : 'false'}
+                            style={{
+                              position: 'absolute',
+                              left: `${pct}%`,
+                              transform,
+                              fontSize: '0.68rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              color: isSelected ? '#38bdf8' : '#64748b',
+                              transition: 'all 0.15s ease',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                            onClick={() => handleSliderIndexChange(idx)}
+                          >
+                            {displayLabel}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                {/* CUSTOM CACHE LIMIT PANEL */}
+                {isCustomModalOpen && (
                   <div
                     style={{
                       background: 'rgba(56, 189, 248, 0.06)',
-                      border: '1px solid rgba(56, 189, 248, 0.2)',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      marginTop: '8px',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '3px',
+                      alignItems: 'center',
+                      gap: '10px',
+                      animation: 'apiBackdropFadeIn 0.2s ease',
                     }}
                   >
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      📁 {t('settings.cache_breakdown_disk')}
-                    </span>
-                    <strong style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 600 }}>
-                      {formatBytes(cacheBreakdown.cacheBytes)}
-                    </strong>
-                  </div>
-
-                  <div
-                    style={{
-                      background: 'rgba(168, 85, 247, 0.06)',
-                      border: '1px solid rgba(168, 85, 247, 0.2)',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '3px',
-                    }}
-                  >
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      🖼️ {t('settings.cache_breakdown_thumbs')}
-                    </span>
-                    <strong style={{ fontSize: '0.9rem', color: '#c084fc', fontWeight: 600 }}>
-                      {formatBytes(cacheBreakdown.thumbsBytes)}
-                    </strong>
-                  </div>
-
-                  <div
-                    style={{
-                      background: 'rgba(234, 179, 8, 0.06)',
-                      border: '1px solid rgba(234, 179, 8, 0.2)',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '3px',
-                    }}
-                  >
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      ⚡ {t('settings.cache_breakdown_temp')}
-                    </span>
-                    <strong style={{ fontSize: '0.9rem', color: '#facc15', fontWeight: 600 }}>
-                      {formatBytes(cacheBreakdown.tempBytes)}
-                    </strong>
-                  </div>
-
-                  {cacheBreakdown.localBytes > 0 && (
-                    <div
-                      style={{
-                        background: 'rgba(16, 185, 129, 0.06)',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
-                        borderRadius: '8px',
-                        padding: '8px 12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '3px',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        💾 {t('settings.cache_breakdown_local')}
-                      </span>
-                      <strong style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
-                        {formatBytes(cacheBreakdown.localBytes)}
-                      </strong>
-                    </div>
-                  )}
-
-                  {cacheBreakdown.staleBytes > 0 && (
-                    <div
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        borderRadius: '8px',
-                        padding: '8px 12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '3px',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.72rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        ⚠️ {t('settings.cache_breakdown_stale')}
-                      </span>
-                      <strong style={{ fontSize: '0.9rem', color: '#fca5a5', fontWeight: 600 }}>
-                        {formatBytes(cacheBreakdown.staleBytes)}
-                      </strong>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Slider Pembatas Ukuran Cache (dengan Custom, Unlimited & Disk Free Warning) */}
-            <div
-              className="settings-cache-limit"
-              style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                padding: '14px 16px',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sliders size={16} color="var(--primary)" />
-                  <label
-                    className="input-label"
-                    htmlFor="settings-cache-limit"
-                    style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}
-                  >
-                    {t('settings.cache_limit_label')}
-                  </label>
-                </div>
-                <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
-                  {cacheLimitMB === 0
-                    ? t('ui.generated.unlimited_tanpa_batas_b567c89')
-                    : formatBytes(cacheLimitMB * 1024 * 1024)}
-                </strong>
-              </div>
-
-              {/* SLIDER COMPONENT */}
-              <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
-                <input
-                  id="settings-cache-limit"
-                  type="range"
-                  min={0}
-                  max={CACHE_LIMIT_STEPS.length - 1}
-                  step={1}
-                  value={currentStepIndex}
-                  onChange={(e) => handleSliderIndexChange(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    accentColor: 'var(--primary)',
-                    cursor: 'pointer',
-                    height: '6px',
-                    borderRadius: '4px',
-                    margin: 0,
-                    display: 'block',
-                  }}
-                />
-
-                <div
-                  className="settings-cache-labels"
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '22px',
-                    marginTop: '10px',
-                  }}
-                >
-                  {CACHE_LIMIT_STEPS.map((stepVal, idx) => {
-                    const isSelected = idx === currentStepIndex;
-                    const pct = (idx / (CACHE_LIMIT_STEPS.length - 1)) * 100;
-                    const transform =
-                      idx === 0
-                        ? 'none'
-                        : idx === CACHE_LIMIT_STEPS.length - 1
-                        ? 'translateX(-100%)'
-                        : 'translateX(-50%)';
-
-                    let displayLabel = '';
-                    if (stepVal === -1) {
-                      displayLabel = t('ui.generated.custom_kustom_f123a45');
-                    } else if (stepVal === 0) {
-                      displayLabel = t('ui.generated.unlimited_tanpa_batas_b567c89');
-                    } else {
-                      displayLabel = stepVal >= 1024 ? `${stepVal / 1024} GB` : `${stepVal} MB`;
-                    }
-
-                    return (
-                      <span
-                        key={idx}
-                        className="settings-cache-tick"
-                        data-selected={isSelected ? 'true' : 'false'}
-                        style={{
-                          position: 'absolute',
-                          left: `${pct}%`,
-                          transform,
-                          fontSize: '0.73rem',
-                          color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
-                          fontWeight: isSelected ? 700 : 400,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          transition: 'color 0.2s ease, font-weight 0.2s ease',
-                        }}
-                        onClick={() => handleSliderIndexChange(idx)}
-                      >
-                        {displayLabel}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* INLINE CUSTOM INPUT MODAL / PANEL */}
-              {isCustomModalOpen && (
-                <div
-                  style={{
-                    background: 'rgba(56, 189, 248, 0.06)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
-                    borderRadius: '10px',
-                    padding: '12px 14px',
-                    marginTop: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    animation: 'apiBackdropFadeIn 0.2s ease',
-                  }}
-                >
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
                       {t('ui.generated.masukkan_batas_cache_kustom_e890f12')}
@@ -2079,7 +2137,53 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* TAB 6: DEVELOPER & LOGS */}
+      {activeTab === 'developer' && (
+        <>
+          {/* Telegram API Credentials Card */}
+          <div className="glass-panel card">
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Key size={20} color="var(--primary)" />
+                <h3>{t('settings.api_config')}</h3>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  background: hasApiError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  border: hasApiError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                  color: hasApiError ? '#f87171' : '#10b981',
+                }}
+              >
+                {hasApiError ? 'Belum Dikonfigurasi' : 'Aktif & Tersimpan'}
+              </span>
+            </div>
+            <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              {t('settings.api_config_hint')}
+            </p>
+            {onOpenApiSetup && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onOpenApiSetup}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+              >
+                <Key size={16} />
+                <span>{t('settings.api_config')}</span>
+              </button>
+            )}
+          </div>
+
+          <DebugSection />
+        </>
+      )}
+    </div>
+  </div>
 
       {/* MODAL MIGRASI DIREKTORI CACHE KUSTOM */}
       {isMigrateModalOpen && (
