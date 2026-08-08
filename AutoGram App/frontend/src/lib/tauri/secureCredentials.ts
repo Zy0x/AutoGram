@@ -128,30 +128,84 @@ export async function migrateLegacyLocalStorageCredentials(): Promise<void> {
   }
 }
 
-export const DEFAULT_API_ID = '2040';
-export const DEFAULT_API_HASH = 'b18441a1ed607e10a39a6b584d3034f9';
+// ── Backup storage keys (obfuscated to avoid accidental tampering) ──────────────
+const LS_BACKUP_KEY = '__ag_cred_v2__';
+
+/** Simple reversible obfuscation (NOT encryption — just anti-casual-read). */
+function obfuscate(raw: string): string {
+  return btoa(unescape(encodeURIComponent(raw)));
+}
+function deobfuscate(encoded: string): string {
+  try { return decodeURIComponent(escape(atob(encoded))); } catch { return ''; }
+}
+
+function readBackup(): { apiId: string; apiHash: string } | null {
+  try {
+    const raw = localStorage.getItem(LS_BACKUP_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(deobfuscate(raw));
+    if (parsed?.i && parsed?.h) return { apiId: parsed.i, apiHash: parsed.h };
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeBackup(apiId: string, apiHash: string): void {
+  try {
+    localStorage.setItem(LS_BACKUP_KEY, obfuscate(JSON.stringify({ i: apiId, h: apiHash, ts: Date.now() })));
+  } catch { /* ignore */ }
+}
+
+function clearBackup(): void {
+  try { localStorage.removeItem(LS_BACKUP_KEY); } catch { /* ignore */ }
+}
 
 export async function getApiCredentials(): Promise<ApiCredentials> {
   await migrateLegacyLocalStorageCredentials();
 
-  if (memoryCache && (memoryCache.apiId || memoryCache.apiHash)) {
+  // P2: memory cache
+  if (memoryCache && memoryCache.apiId && memoryCache.apiHash) {
     return memoryCache;
   }
 
   if (detectTauriRuntime()) {
+    // P0: Tauri encrypted keystore (primary)
     const [apiIdRaw, apiHashRaw] = await Promise.all([
       invokeGet('API_ID'),
       invokeGet('API_HASH'),
     ]);
-    const apiId = apiIdRaw || DEFAULT_API_ID;
-    const apiHash = apiHashRaw || DEFAULT_API_HASH;
-    memoryCache = { apiId, apiHash };
+
+    if (apiIdRaw && apiHashRaw) {
+      memoryCache = { apiId: apiIdRaw, apiHash: apiHashRaw };
+      // Keep backup in sync
+      writeBackup(apiIdRaw, apiHashRaw);
+      return memoryCache;
+    }
+
+    // P1: Tauri store failed (e.g., after update / OS keychain issue) → recover from backup
+    const backup = readBackup();
+    if (backup && backup.apiId && backup.apiHash) {
+      // Attempt to re-seed Tauri store from backup silently
+      try {
+        await invokeSet('API_ID', backup.apiId);
+        await invokeSet('API_HASH', backup.apiHash);
+      } catch { /* best-effort */ }
+      memoryCache = backup;
+      return memoryCache;
+    }
+
+    // Nothing stored yet — return empty (no dangerous default)
+    memoryCache = { apiId: '', apiHash: '' };
     return memoryCache;
   }
 
-  // Web / offline fallback
-  const apiId = localStorage.getItem(LS_ID) || DEFAULT_API_ID;
-  const apiHash = localStorage.getItem(LS_HASH) || DEFAULT_API_HASH;
+  // Web / offline fallback: use backup or legacy LS
+  const backup = readBackup();
+  if (backup && backup.apiId && backup.apiHash) {
+    memoryCache = backup;
+    return memoryCache;
+  }
+  const apiId = localStorage.getItem(LS_ID) || '';
+  const apiHash = localStorage.getItem(LS_HASH) || '';
   memoryCache = { apiId, apiHash };
   return memoryCache;
 }
@@ -161,33 +215,38 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   const hash = String(apiHash || '').trim();
 
   if (detectTauriRuntime()) {
-    const okId = await invokeSet('API_ID', id);
-    const okHash = await invokeSet('API_HASH', hash);
-    if (okId && okHash) {
-      // Keep a non-secret-looking cache only in memory; wipe legacy plaintext LS
-      localStorage.removeItem(LS_ID);
-      localStorage.removeItem(LS_HASH);
-      memoryCache = { apiId: id, apiHash: hash };
-      // Confirm round-trip so rebuild issues surface at save time
-      try {
-        const checkId = (await invokeGet('API_ID')) || '';
-        const checkHash = (await invokeGet('API_HASH')) || '';
-        if (checkId !== id || checkHash !== hash) {
-          console.warn('credential save verification mismatch — re-seed may be needed');
-        }
-      } catch {
-        /* ignore */
-      }
-      notifyApiCredentialsChanged();
-      return;
+    // Save to Tauri store — retry once if first attempt fails
+    let okId = await invokeSet('API_ID', id);
+    let okHash = await invokeSet('API_HASH', hash);
+    if (!okId || !okHash) {
+      await new Promise(r => setTimeout(r, 300));
+      okId = await invokeSet('API_ID', id);
+      okHash = await invokeSet('API_HASH', hash);
     }
-    // Desktop save failed — fall through so user still has a local copy in LS
-    console.warn('secure set_credential failed; using localStorage fallback');
+
+    // Always update backup and memory cache regardless of Tauri store result
+    writeBackup(id, hash);
+    localStorage.removeItem(LS_ID);
+    localStorage.removeItem(LS_HASH);
+    memoryCache = { apiId: id, apiHash: hash };
+
+    // Post-save read-back verification
+    try {
+      const checkId = (await invokeGet('API_ID')) || '';
+      const checkHash = (await invokeGet('API_HASH')) || '';
+      if (checkId !== id || checkHash !== hash) {
+        console.warn('[AutoGram] Tauri store verify mismatch — backup preserved');
+      }
+    } catch { /* ignore */ }
+
+    notifyApiCredentialsChanged();
+    return;
   }
 
   // Fallback (web or if Rust store unavailable)
   localStorage.setItem(LS_ID, id);
   localStorage.setItem(LS_HASH, hash);
+  writeBackup(id, hash);
   memoryCache = { apiId: id, apiHash: hash };
   notifyApiCredentialsChanged();
 }
@@ -327,6 +386,7 @@ export async function clearApiCredentials(): Promise<void> {
   }
   localStorage.removeItem(LS_ID);
   localStorage.removeItem(LS_HASH);
+  clearBackup();
   notifyApiCredentialsChanged();
 }
 
