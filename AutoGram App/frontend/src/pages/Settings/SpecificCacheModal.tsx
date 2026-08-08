@@ -1272,15 +1272,27 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       width: '100%',
                       padding: '10px 14px',
                       borderRadius: '10px',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      background: '#0f172a',
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
                       color: '#f8fafc',
                       fontSize: '0.85rem',
+                      fontWeight: 600,
                       outline: 'none',
+                      colorScheme: 'dark',
+                      cursor: 'pointer',
                     }}
                   >
                     {sessions.map((s) => (
-                      <option key={s.name} value={s.name}>
+                      <option
+                        key={s.name}
+                        value={s.name}
+                        style={{
+                          backgroundColor: '#0b1520',
+                          color: '#f8fafc',
+                          padding: '10px 14px',
+                          fontWeight: 600,
+                        }}
+                      >
                         {s.userFullName} ({s.name}) {s.phone ? `• ${s.phone}` : ''}
                       </option>
                     ))}
