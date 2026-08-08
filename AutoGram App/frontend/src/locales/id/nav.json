@@ -92,6 +92,8 @@
   "api_setup_error_empty": "API ID dan API Hash wajib diisi.",
   "api_setup_error_id_invalid": "API ID harus berupa angka unik (4 hingga 10 digit).",
   "api_setup_error_hash_invalid": "API Hash harus berupa 32 karakter heksadesimal resmi.",
+  "api_setup_error_telegram": "API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali kredensial dari my.telegram.org.",
+  "api_setup_verifying": "Memvalidasi dengan Telegram…",
   "api_setup_success_verified": "✓ Kredensial berhasil divalidasi & tersimpan!",
   "how_to_get_btn": "How to Get",
   "how_to_get_title": "Panduan Mendapatkan API",

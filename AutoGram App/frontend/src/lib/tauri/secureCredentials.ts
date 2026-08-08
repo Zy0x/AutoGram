@@ -176,6 +176,50 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   notifyApiCredentialsChanged();
 }
 
+export async function verifyTelegramApiCredentials(
+  apiId: string,
+  apiHash: string
+): Promise<{ ok: boolean; error?: string }> {
+  const id = String(apiId || '').trim();
+  const hash = String(apiHash || '').trim();
+
+  if (!id || !hash) {
+    return { ok: false, error: 'API ID dan API Hash wajib diisi.' };
+  }
+  if (!/^\d{4,10}$/.test(id)) {
+    return { ok: false, error: 'API ID harus berupa angka unik (4 hingga 10 digit).' };
+  }
+  if (!/^[a-fA-F0-9]{32}$/.test(hash)) {
+    return { ok: false, error: 'API Hash harus berupa 32 karakter heksadesimal resmi.' };
+  }
+
+  if (detectTauriRuntime()) {
+    try {
+      const res = await invoke<any>('verify_telegram_credentials', {
+        apiId: Number(id),
+        apiHash: hash,
+      }).catch((err: any) => {
+        const msg = String(err?.message || err || '');
+        if (/API_ID_INVALID|400|RPC error|invalid/i.test(msg)) {
+          return { ok: false, error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org' };
+        }
+        return { ok: true };
+      });
+
+      if (res && res.ok === false) {
+        return res;
+      }
+    } catch (e: any) {
+      const msg = String(e?.message || e || '');
+      if (/API_ID_INVALID|400/i.test(msg)) {
+        return { ok: false, error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org' };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
 export async function clearApiCredentials(): Promise<void> {
   memoryCache = null;
   if (detectTauriRuntime()) {

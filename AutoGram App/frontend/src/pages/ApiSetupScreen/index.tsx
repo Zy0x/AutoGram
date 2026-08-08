@@ -12,8 +12,14 @@ import {
   X,
   HelpCircle,
   BookOpen,
+  Loader2,
 } from 'lucide-react';
-import { bootstrapSecureCredentials, setApiCredentials } from '../../lib/tauri/secureCredentials';
+import {
+  bootstrapSecureCredentials,
+  setApiCredentials,
+  verifyTelegramApiCredentials,
+  notifyApiError,
+} from '../../lib/tauri/secureCredentials';
 
 interface ApiSetupScreenProps {
   onComplete: () => void;
@@ -76,10 +82,19 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
 
     setSaving(true);
     try {
+      const checkRes = await verifyTelegramApiCredentials(trimmedId, trimmedHash);
+      if (!checkRes.ok) {
+        setError(checkRes.error || t('nav.api_setup_error_telegram'));
+        notifyApiError();
+        return;
+      }
+
       await setApiCredentials(trimmedId, trimmedHash);
       onComplete();
     } catch (err: any) {
-      setError(err?.message || t('ui.generated.gagal_menyimpan_api_credentials_silakan_coba_lag_4907244'));
+      const msg = String(err?.message || err || '');
+      setError(msg || t('ui.generated.gagal_menyimpan_api_credentials_silakan_coba_lag_4907244'));
+      notifyApiError();
     } finally {
       setSaving(false);
     }
@@ -515,9 +530,11 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 marginTop: '4px',
                 padding: '10px',
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
-                border: 'none',
-                color: '#ffffff',
+                background: saving
+                  ? 'rgba(56, 189, 248, 0.2)'
+                  : 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                border: saving ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
+                color: saving ? '#38bdf8' : '#ffffff',
                 fontSize: '0.88rem',
                 fontWeight: 700,
                 cursor: saving ? 'wait' : 'pointer',
@@ -525,12 +542,21 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.25)',
+                boxShadow: saving ? 'none' : '0 4px 14px rgba(56, 189, 248, 0.25)',
                 transition: 'all 0.18s ease',
               }}
             >
-              <span>{t('nav.api_setup_submit')}</span>
-              <ArrowRight size={16} />
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{t('nav.api_setup_verifying')}</span>
+                </>
+              ) : (
+                <>
+                  <span>{t('nav.api_setup_submit')}</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
 
