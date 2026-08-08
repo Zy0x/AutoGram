@@ -452,10 +452,12 @@ export function SessionLauncher({
                   <div
                     onClick={() => {
                       if (showAvatar && avatarUrl) {
+                        const meta = getSessionMetadata(sess.name);
+                        const displayId = meta?.telegramUserId ? String(meta.telegramUserId) : sess.name.replace(/^session_/, '');
                         setPreviewPhoto({
                           url: avatarUrl,
                           title: displayName,
-                          subtitle: t('nav.session_id_value', { session: sess.name }),
+                          subtitle: t('nav.session_id_value', { session: displayId }),
                         });
                       }
                     }}
