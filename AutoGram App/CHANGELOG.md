@@ -1,3 +1,8 @@
+## v3.1.0 Media Preview Labeled Toolbar Everywhere Engine
+
+### Toolbar Preview Media Berlabel di Semua Mode (`DrivePreviewModal/index.tsx`)
+- **Labeled Media Preview Toolbar Everywhere**: Menampilkan Toolbar Alat Preview Media Berlabel (`ZOOM Out 100% In Magnifier`, `ROTATE Left Right Flip FlipV`, `MORE Reload Info`) pada header di semua mode pratinjau, termasuk mode perbandingan duplikat Split View.
+
 ## v3.0.9 Standard Media Preview Header Integration Engine
 
 ### Pemulihan Header Preview Media Standar Lengkap (`DrivePreviewModal/index.tsx`)

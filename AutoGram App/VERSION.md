@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.9
+AutoGram Version: v3.1.0
 
 Current State:
+v3.1.0 Media Preview Labeled Toolbar Everywhere Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengaktifkan kembali Toolbar Preview Media Berlabel (`ZOOM Out 100% In Magnifier`, `ROTATE Left Right Flip FlipV`, `MORE Reload Info`) pada mode Split View perbandingan duplikat, sehingga seluruh alat manipulasi media gambar dan video dapat diakses lengkap di header modal.
+
+Previous:
 v3.0.9 Standard Media Preview Header Integration Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengembalikan header preview media standar lengkap (`drive-preview-header`) pada mode perbandingan duplikat Split View, menyediakan tombol navigasi lengkap (`< > download open openwith reveal fullscreen`), toolbar Zoom & Rotate, serta tombol More/Info/Close X standar.
 
 Previous:

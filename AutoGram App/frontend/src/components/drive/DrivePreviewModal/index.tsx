@@ -3287,19 +3287,18 @@ export function DrivePreviewModal({
           </div>
         )}
 
-        {/* Adaptive labeled toolbar — hidden in split compare mode for clean layout */}
-        {!isSplitCompareMode && (
-          <div
-            className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
-            role="toolbar"
-            aria-label={
-              isImage ? 'Alat preview gambar' : isVideo ? 'Alat preview video' : 'Alat preview'
-            }
-            data-media-kind={mediaKind}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
-          >
+        {/* Adaptive labeled toolbar — always rendered for full media tools */}
+        <div
+          className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
+          role="toolbar"
+          aria-label={
+            isImage ? 'Alat preview gambar' : isVideo ? 'Alat preview video' : 'Alat preview'
+          }
+          data-media-kind={mediaKind}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+        >
           <div className="drive-preview-tools">
             {(isImage || isVideo) && (
               <div className="drive-tool-group" role="group" aria-label="Zoom">
@@ -3533,7 +3532,6 @@ export function DrivePreviewModal({
             </div>
           </div>
         </div>
-        )}
           </>
         )}
 
