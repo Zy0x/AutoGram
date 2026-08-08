@@ -671,7 +671,16 @@ export function SessionLauncher({
               }}
               title={t('nav.updater_up_to_date')}
             >
-              <span style={{ color: '#10b981', fontSize: '0.9rem' }}>●</span>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  boxShadow: '0 0 8px rgba(16, 185, 129, 0.75), 0 0 3px rgba(16, 185, 129, 0.4)',
+                }}
+              />
               <span>{t('nav.updater_up_to_date')}</span>
             </button>
           )}
