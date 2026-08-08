@@ -65,6 +65,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     defaultPath: string;
   } | null>(null);
   const [isMigrateModalOpen, setIsMigrateModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [pendingNewPath, setPendingNewPath] = useState<string | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
 
@@ -124,11 +125,18 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     }
   };
 
-  const handleResetCustomCacheDir = async () => {
+  const executeResetToDefault = async (action: 'move' | 'wipe') => {
+    setIsMigrating(true);
     try {
-      const { resetCustomCacheDir, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+      const { setCustomCacheDir, resetCustomCacheDir, cacheClearDisk, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+      if (action === 'move' && customCacheInfo?.defaultPath) {
+        await setCustomCacheDir(customCacheInfo.defaultPath, 'move');
+      } else if (action === 'wipe') {
+        await cacheClearDisk();
+      }
       const info = await resetCustomCacheDir();
       setCustomCacheInfo(info);
+      setIsResetModalOpen(false);
       if (info?.activePath) {
         const ds = await getAvailableDiskSpace(info.activePath);
         if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
@@ -136,6 +144,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       await calculateCacheSize();
     } catch (err) {
       console.error('Failed to reset custom cache dir', err);
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -608,7 +618,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={handleResetCustomCacheDir}
+                      onClick={() => setIsResetModalOpen(true)}
                       style={{
                         padding: '6px 12px',
                         fontSize: '0.78rem',
@@ -1495,6 +1505,153 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 setIsMigrateModalOpen(false);
                 setPendingNewPath(null);
               }}
+              disabled={isMigrating}
+              style={{
+                marginTop: '6px',
+                width: '100%',
+                padding: '12px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                color: '#cbd5e1',
+                fontWeight: 600,
+                fontSize: '0.88rem',
+                cursor: isMigrating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* RESET TO DEFAULT CONFIRMATION MODAL */}
+      {isResetModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => {
+            if (!isMigrating) setIsResetModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <RotateCw size={22} style={{ color: '#38bdf8' }} />
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
+                {t('settings.custom_cache_reset_modal_title')}
+              </h3>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.5 }}>
+              {t('settings.custom_cache_reset_modal_msg')}
+            </p>
+
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                wordBreak: 'break-all',
+              }}
+            >
+              {customCacheInfo?.defaultPath || 'worker/cache (Default)'}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => void executeResetToDefault('move')}
+                disabled={isMigrating}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                  gap: '4px',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  borderRadius: '12px',
+                  cursor: isMigrating ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none',
+                  whiteSpace: 'normal',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#38bdf8', display: 'block', lineHeight: 1.3 }}>
+                  📦 {t('settings.custom_cache_reset_option_move')}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
+                  {t('settings.custom_cache_reset_option_move_desc')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void executeResetToDefault('wipe')}
+                disabled={isMigrating}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                  gap: '4px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  borderRadius: '12px',
+                  cursor: isMigrating ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none',
+                  whiteSpace: 'normal',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
+                  🧹 {t('settings.custom_cache_reset_option_wipe')}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
+                  {t('settings.custom_cache_reset_option_wipe_desc')}
+                </span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsResetModalOpen(false)}
               disabled={isMigrating}
               style={{
                 marginTop: '6px',
