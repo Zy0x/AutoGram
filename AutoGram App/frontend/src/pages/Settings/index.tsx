@@ -121,7 +121,6 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
           {options.map((sess) => {
             const displayName = sess.label || getSessionDisplayName(sess.name);
             const isSelected = sess.name === value;
-            const showSessionBadge = sess.name !== displayName && !displayName.includes(sess.name);
 
             return (
               <div
@@ -152,11 +151,9 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
                   <span style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#38bdf8' : '#f8fafc' }}>
                     {displayName}
                   </span>
-                  {showSessionBadge && (
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                      {sess.name}
-                    </span>
-                  )}
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    {sess.name}
+                  </span>
                 </div>
                 {isSelected && <Check size={16} color="#38bdf8" style={{ flexShrink: 0 }} />}
               </div>
