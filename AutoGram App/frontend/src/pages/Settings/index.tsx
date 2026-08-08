@@ -8,6 +8,7 @@ import {
   Key,
   SlidersHorizontal,
   AlertTriangle,
+  RotateCw,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -449,10 +450,32 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   {t('settings.cache_storage_sources')}
                 </p>
               </div>
-              <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
                 <strong style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>
                   {isCalculating ? '...' : formattedSize}
                 </strong>
+                <button
+                  type="button"
+                  onClick={calculateCacheSize}
+                  disabled={isCalculating}
+                  title={t('settings.recalculate')}
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    color: '#38bdf8',
+                    borderRadius: '8px',
+                    width: '32px',
+                    height: '32px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: isCalculating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  <RotateCw size={15} className={isCalculating ? 'settings-reload-spin' : ''} />
+                </button>
               </div>
             </div>
 
@@ -774,56 +797,31 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Tombol aksi pembersihan utama (100% Responsif & Non-Overlapping) */}
+            {/* Tombol aksi pembersihan utama */}
             <div className="settings-cache-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={calculateCacheSize}
-                  disabled={isCalculating}
-                  style={{
-                    flex: '1 1 130px',
-                    padding: '10px 14px',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    minHeight: '2.6rem',
-                  }}
-                >
-                  {isCalculating ? t('settings.calculating') : t('settings.recalculate')}
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setIsSpecificModalOpen(true)}
-                  style={{
-                    flex: '1 1 200px',
-                    padding: '10px 14px',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    borderColor: 'rgba(56, 189, 248, 0.35)',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    color: '#38bdf8',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    minHeight: '2.6rem',
-                  }}
-                >
-                  <SlidersHorizontal size={15} style={{ flexShrink: 0 }} />
-                  <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsSpecificModalOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '11px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderColor: 'rgba(56, 189, 248, 0.35)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8',
+                  textAlign: 'center',
+                  minHeight: '2.7rem',
+                }}
+              >
+                <SlidersHorizontal size={16} style={{ flexShrink: 0 }} />
+                <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
+              </button>
 
               <button
                 type="button"
@@ -840,7 +838,6 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   justifyContent: 'center',
                   gap: '6px',
                   textAlign: 'center',
-                  whiteSpace: 'nowrap',
                   minHeight: '2.7rem',
                 }}
               >
