@@ -978,55 +978,60 @@ pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value
 
     let p = PathBuf::from(&target);
 
-    // Helper: find the first ancestor that actually exists on disk
-    fn first_existing(p: &Path) -> PathBuf {
-        let mut cur = p.to_path_buf();
-        loop {
-            if cur.exists() {
-                return cur;
-            }
-            if !cur.pop() {
-                // Absolute last resort: drive root on Windows (e.g. "C:\"), cwd on others
-                #[cfg(target_os = "windows")]
-                {
-                    // Extract drive letter prefix like "C:\"
-                    if let Some(s) = p.to_str() {
-                        if s.len() >= 2 && s.as_bytes()[1] == b':' {
-                            return PathBuf::from(&s[..3]);
-                        }
-                    }
-                }
-                return std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-            }
-        }
-    }
-
-    let query_path = first_existing(&p);
-
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::ffi::OsStrExt;
-        let mut wide: Vec<u16> = query_path.as_os_str().encode_wide().collect();
-        wide.push(0);
 
-        let mut free_avail: u64 = 0;
-        let mut total_bytes: u64 = 0;
-        let mut total_free: u64 = 0;
+        let mut candidates = Vec::new();
 
-        unsafe {
-            let res = winapi_get_disk_free_space(
-                wide.as_ptr(),
-                &mut free_avail,
-                &mut total_bytes,
-                &mut total_free,
-            );
-            if res != 0 {
-                return Ok(json!({
-                    "status": "success",
-                    "free_bytes": total_free,
-                    "total_bytes": total_bytes,
-                    "path": query_path.display().to_string()
-                }));
+        if let Ok(canon) = p.canonicalize() {
+            candidates.push(canon);
+        }
+        candidates.push(p.clone());
+
+        // Extract drive root prefix e.g. "F:\"
+        let path_s = p.to_string_lossy();
+        if path_s.len() >= 2 && path_s.as_bytes()[1] == b':' {
+            let drive_root = format!("{}\\", &path_s[..2]);
+            candidates.push(PathBuf::from(drive_root));
+        }
+        if let Ok(cwd) = std::env::current_dir() {
+            let cwd_s = cwd.to_string_lossy();
+            if cwd_s.len() >= 2 && cwd_s.as_bytes()[1] == b':' {
+                let drive_root = format!("{}\\", &cwd_s[..2]);
+                candidates.push(PathBuf::from(drive_root));
+            }
+        }
+
+        for cand in candidates {
+            let cand_str = cand.to_string_lossy();
+            let mut wide_vec: Vec<u16> = cand.as_os_str().encode_wide().collect();
+            // Ensure trailing backslash for drive root e.g. "F:\"
+            if cand_str.len() == 2 && cand_str.as_bytes()[1] == b':' {
+                wide_vec.push(b'\\' as u16);
+            }
+            wide_vec.push(0);
+
+            let mut free_avail: u64 = 0;
+            let mut total_bytes: u64 = 0;
+            let mut total_free: u64 = 0;
+
+            unsafe {
+                let res = winapi_get_disk_free_space(
+                    wide_vec.as_ptr(),
+                    &mut free_avail,
+                    &mut total_bytes,
+                    &mut total_free,
+                );
+                if res != 0 && total_bytes > 0 {
+                    let bytes_free = if total_free > 0 { total_free } else { free_avail };
+                    return Ok(json!({
+                        "status": "success",
+                        "free_bytes": bytes_free,
+                        "total_bytes": total_bytes,
+                        "path": cand.display().to_string()
+                    }));
+                }
             }
         }
     }
@@ -1035,6 +1040,6 @@ pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value
         "status": "error",
         "free_bytes": 0u64,
         "total_bytes": 0u64,
-        "path": query_path.display().to_string()
+        "path": target
     }))
 }
