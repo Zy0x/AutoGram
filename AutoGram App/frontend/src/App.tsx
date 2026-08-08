@@ -9,7 +9,7 @@ import { Settings } from './pages/Settings';
 import { Accounts } from './pages/Accounts';
 
 import { isMediaStudioAvailable } from './lib/tauri/capabilities';
-import { bootstrapSecureCredentials } from './lib/tauri/secureCredentials';
+import { bootstrapSecureCredentials, notifyApiCredentialsChanged, notifyApiError } from './lib/tauri/secureCredentials';
 import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -68,12 +68,18 @@ function App() {
           const valid = Boolean(apiId && apiHash && String(apiId).trim() && String(apiHash).trim());
           setApiValid(valid);
           setApiChecked(true);
+          if (valid) {
+            notifyApiCredentialsChanged();
+          } else {
+            notifyApiError();
+          }
         }
       })
       .catch(() => {
         if (active) {
           setApiValid(false);
           setApiChecked(true);
+          notifyApiError();
         }
       });
 
