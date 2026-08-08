@@ -1,3 +1,9 @@
+## v3.2.7 Media Hover-Restricted Wheel Zoom & Scrollbar Conflict Isolation Engine
+
+### Batasan Wheel Zoom Berbasis Target Media Hover (`DrivePreviewModal/index.tsx`)
+- **Penapisan Target Media Hover**: Pada mode Split Compare, listener `handleNativeWheel` dan `onWheelStage` kini memeriksa lokasi kursor mouse secara ketat (`target.closest('.drive-preview-split-media-wrap')`).
+- **Isolasi Scrollbar**: Menggulirkan roda mouse (*scrollwheel*) saat kursor berada di luar bingkai media gambar (seperti di atas sidebar daftar duplikat, panel metadata, atau area latar luar) tidak akan lagi memicu zoom dan mengizinkan scrollbar berjalan normal tanpa konflik.
+
 ## v3.2.6 GPU Hardware Accelerated 0-Rerender Drag & Zero-Jank Engine
 
 ### 0-Re-render Dragging & Akselerasi GPU (`DrivePreviewModal/index.tsx`)

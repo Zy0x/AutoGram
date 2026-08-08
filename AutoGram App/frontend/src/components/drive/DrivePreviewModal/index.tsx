@@ -2780,6 +2780,14 @@ export function DrivePreviewModal({
       const backdrop = target.closest('.drive-preview-backdrop');
       if (!backdrop) return;
 
+      // In Split Compare mode, only zoom if target is directly hovering over media container
+      if (isSplitCompareMode) {
+        const isOverMedia = target.closest('.drive-preview-split-media-wrap, .drive-preview-split-media');
+        if (!isOverMedia) {
+          return;
+        }
+      }
+
       // Skip controls bar, text box, or toolbar
       if (target.closest('.drive-preview-video-controls-bar, .drive-preview-text-box, .drive-preview-toolbar')) {
         return;
@@ -2820,6 +2828,7 @@ export function DrivePreviewModal({
   }, [showImage, showVideo, applyZoomAt, zoomBy]);
 
   const onWheelStage = (e: React.WheelEvent) => {
+    if (isSplitCompareMode) return;
     if (!showImage && !showVideo) return;
     e.preventDefault();
     e.stopPropagation();

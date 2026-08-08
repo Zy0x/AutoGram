@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.6
+AutoGram Version: v3.2.7
 
 Current State:
+v3.2.7 Media Hover-Restricted Wheel Zoom & Scrollbar Conflict Isolation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membatalkan pencegatan wheel scroll pada `handleNativeWheel` dan `onWheelStage` jika kursor mouse tidak berada tepat di atas elemen bingkai gambar (`.drive-preview-split-media-wrap`). Menjamin guliran scrollbar pada sidebar, panel daftar duplikat, dan area teks modal tetap berfungsi normal tanpa terganggu atau berkonflik dengan zoom.
+
+Previous:
 v3.2.6 GPU Hardware Accelerated 0-Rerender Drag & Zero-Jank Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi penuh fenomena patah-patah/lag pada penggeseran gambar dengan menghapus pemanggilan `setTransform` React state dari loop `onPointerMove`. Penggeseran kini berjalan 100% pada layer GPU Hardware Acceleration (`translate3d` + `will-change: transform`) tanpa satupun React re-render selama drag berlangsung, dan merilis sinkronisasi state hanya 1x saat tombol mouse dilepas (`onPointerUp`).
 
 Previous:
