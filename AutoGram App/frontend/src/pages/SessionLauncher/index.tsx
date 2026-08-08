@@ -18,6 +18,8 @@ import {
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 
 import { bootstrapSecureCredentials, useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
+import { useGitHubUpdater } from '../../lib/tauri/githubUpdater';
+import { Loader2 } from 'lucide-react';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -34,6 +36,7 @@ export function SessionLauncher({
 }: SessionLauncherProps) {
   const { t } = useTranslation();
   const { hasError: hasApiError } = useApiCredentialsStatus();
+  const { status: updateStatus, latestVersion, releaseUrl, checkNow: recheckUpdate } = useGitHubUpdater();
   const [sessions, setSessions] = useState<SessionOption[]>([]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
@@ -620,7 +623,59 @@ export function SessionLauncher({
         }}
       >
         <span>{t('nav.launcher_footer_engine')}</span>
-        <span>{t('nav.launcher_footer_storage')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {updateStatus === 'updateAvailable' ? (
+            <a
+              href={releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))',
+                border: '1px solid rgba(16, 185, 129, 0.5)',
+                color: '#6ee7b7',
+                fontWeight: 600,
+                fontSize: '0.76rem',
+                textDecoration: 'none',
+                boxShadow: '0 0 12px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.15s ease',
+              }}
+              title={t('nav.updater_available', { version: latestVersion })}
+            >
+              <span>{t('nav.updater_available', { version: latestVersion })}</span>
+            </a>
+          ) : updateStatus === 'checking' ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
+              <Loader2 size={12} className="animate-spin" />
+              {t('nav.updater_checking')}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void recheckUpdate()}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.78rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: 0,
+              }}
+              title={t('nav.updater_up_to_date')}
+            >
+              <span style={{ color: '#10b981', fontSize: '0.9rem' }}>●</span>
+              <span>{t('nav.updater_up_to_date')}</span>
+            </button>
+          )}
+        </div>
       </footer>
     </div>
   );
