@@ -956,9 +956,14 @@ export function SessionLauncher({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Pencil size={20} style={{ color: '#38bdf8' }} />
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
-                  {t('nav.modal_edit_title')}
-                </h3>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                    {t('nav.modal_edit_title')}
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    {t('nav.modal_edit_subtitle')}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -970,9 +975,6 @@ export function SessionLauncher({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 500 }}>
-                Nama Alias / Label Sesi
-              </label>
               <input
                 type="text"
                 value={aliasInput}
@@ -981,8 +983,8 @@ export function SessionLauncher({
                 autoFocus
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
                   background: 'rgba(0, 0, 0, 0.35)',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
                   color: '#ffffff',
@@ -1094,7 +1096,7 @@ export function SessionLauncher({
                   {t('nav.modal_delete_step1_title')}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
-                  Langkah 1 dari 2 · Konfirmasi Utama
+                  {t('nav.modal_delete_step1_step_badge')}
                 </span>
               </div>
             </div>
@@ -1165,7 +1167,7 @@ export function SessionLauncher({
           <div
             style={{
               width: '100%',
-              maxWidth: '460px',
+              maxWidth: '470px',
               background: 'linear-gradient(150deg, #1e1b2e 0%, #0f172a 100%)',
               border: '1px solid rgba(239, 68, 68, 0.4)',
               borderRadius: '20px',
@@ -1197,7 +1199,7 @@ export function SessionLauncher({
                   {t('nav.modal_delete_step2_title')}
                 </h3>
                 <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
-                  Langkah 2 dari 2 · Opsi Pembersihan Cache
+                  {t('nav.modal_delete_step2_step_badge')}
                 </span>
               </div>
             </div>
@@ -1239,13 +1241,20 @@ export function SessionLauncher({
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
+                  gap: '10px',
                   transition: 'all 0.15s ease',
+                  textAlign: 'left',
                 }}
               >
                 {isDeleting && <Loader2 size={16} className="animate-spin" />}
-                {t('nav.modal_delete_session_only')}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e2e8f0' }}>
+                    {t('nav.modal_delete_session_only')}
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 400 }}>
+                    {t('nav.modal_delete_session_only_sub')}
+                  </span>
+                </div>
               </button>
 
               <button
@@ -1280,14 +1289,21 @@ export function SessionLauncher({
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
+                  gap: '10px',
                   boxShadow: '0 4px 14px rgba(239, 68, 68, 0.25)',
                   transition: 'all 0.15s ease',
+                  textAlign: 'left',
                 }}
               >
                 {isDeleting && <Loader2 size={16} className="animate-spin" />}
-                {t('nav.modal_delete_with_cache')}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fca5a5' }}>
+                    {t('nav.modal_delete_with_cache')}
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: '#f87171', fontWeight: 400, opacity: 0.9 }}>
+                    {t('nav.modal_delete_with_cache_sub')}
+                  </span>
+                </div>
               </button>
             </div>
           </div>
