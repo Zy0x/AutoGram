@@ -264,25 +264,41 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       }
 
       // 3. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
-      let diskSize = 0;
+      let diskCacheBytes = 0;
+      let diskTempBytes = 0;
+      let diskThumbsBytes = 0;
+      let diskStaleBytes = 0;
       try {
         const { cacheCalculateSize } = await import('../../lib/db/jobsApi');
         const out: any = await cacheCalculateSize();
-        diskSize = Number(out?.bytes || 0);
         if (out) {
-          setCacheBreakdown({
-            cacheBytes: Number(out.cacheBytes || 0),
-            tempBytes: Number(out.tempBytes || 0) + Number(out.sysTempBytes || 0),
-            thumbsBytes: Number(out.thumbsBytes || 0) + idbSize,
-            staleBytes: Number(out.staleBytes || 0),
-            localBytes: localSize,
-          });
+          diskCacheBytes = Number(out.cacheBytes || 0);
+          diskTempBytes  = Number(out.tempBytes  || 0) + Number(out.sysTempBytes || 0);
+          diskThumbsBytes = Number(out.thumbsBytes || 0);
+          diskStaleBytes  = Number(out.staleBytes  || 0);
         }
       } catch (e) {
         console.warn('Failed to calculate disk cache size', e);
       }
 
-      setCacheSize(idbSize + localSize + diskSize);
+      // Build breakdown — thumbs merges disk thumbs + IDB
+      const breakdown = {
+        cacheBytes:  diskCacheBytes,
+        tempBytes:   diskTempBytes,
+        thumbsBytes: diskThumbsBytes + idbSize,
+        staleBytes:  diskStaleBytes,
+        localBytes:  localSize,
+      };
+      setCacheBreakdown(breakdown);
+
+      // ⚠️ Total is DERIVED from breakdown so it always matches badge sum
+      // staleBytes is a subset of tempBytes (informational only) — not added again
+      setCacheSize(
+        breakdown.cacheBytes +
+        breakdown.tempBytes  +
+        breakdown.thumbsBytes +
+        breakdown.localBytes
+      );
     } catch (err) {
       console.error('Failed to calculate cache size', err);
     } finally {
