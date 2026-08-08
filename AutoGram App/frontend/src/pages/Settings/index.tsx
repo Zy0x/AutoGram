@@ -5,32 +5,18 @@ import {
   ShieldCheck,
   Globe,
   Trash2,
-  Terminal,
-  Network,
-  Zap,
-  Wifi,
-  Loader2,
   Sliders,
   ArrowLeft,
   Settings2,
 } from 'lucide-react';
 
-import { detectTauriRuntime } from '../../lib/tauri/platform';
-import {
-  networkApplyAll,
-  networkDetectVpn,
-  networkGetConfig,
-  networkIsAvailable,
-  networkTestProxy,
-  type NetworkConfigSnapshot,
-  type ProxyStatus,
-} from '../../lib/tauri/rustBackend';
 import { useTranslation } from 'react-i18next';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
 import { clearAvatarCache } from '../../lib/media/avatarBatcher';
 import { clearPreviewCache } from '../../lib/media/previewCache';
+import { clearZipBrowserCache } from '../../components/drive/DriveZipBrowser/zipUtils';
 import {
   clearPersistentThumbs,
   getPersistentThumbsSize,
@@ -40,13 +26,9 @@ import {
   bootstrapSecureCredentials,
   setApiCredentials,
 } from '../../lib/tauri/secureCredentials';
-import {
-  tgBackendStatus,
-  type TgBackendStatus,
-} from '../../lib/telegram';
-
 
 import { PerfSection } from './PerfSection';
+import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
 import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
 import './Settings.css';
@@ -62,7 +44,6 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [isLoading, setIsLoading] = useState(true);
-  const [tgBackend, setTgBackend] = useState<TgBackendStatus | null>(null);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -74,7 +55,6 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
     if (saved !== null) {
       const val = Number(saved);
       if (!isNaN(val)) {
-        // Migration for legacy non-binary 5000/10000 MB
         if (val === 5000) return 5120;
         if (val === 1000) return 1024;
         if (val === 2000) return 2048;
@@ -109,6 +89,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
       clearThumbCache();
       clearAvatarCache();
       clearPreviewCache();
+      clearZipBrowserCache();
       try {
         const { cacheTrimDisk } = await import('../../lib/db/jobsApi');
         await cacheTrimDisk(limitBytes);
@@ -136,14 +117,6 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
 
   const [isConfirmClearCacheOpen, setIsConfirmClearCacheOpen] = useState(false);
   const [isConfirmClearDbOpen, setIsConfirmClearDbOpen] = useState(false);
-
-  // Proxy / VPN (Rust-owned; applied to Telethon via worker env)
-  const [netCfg, setNetCfg] = useState<NetworkConfigSnapshot | null>(null);
-  const [netBusy, setNetBusy] = useState(false);
-  const [netMsg, setNetMsg] = useState<string | null>(null);
-  const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
-  const [netAvail, setNetAvail] = useState<boolean | null>(null);
-  const [vpnHint, setVpnHint] = useState<boolean | null>(null);
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -180,7 +153,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
         }
       }
 
-      // 3. Disk Cache Backend (Rust FS)
+      // 3. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
       let diskSize = 0;
       try {
         const { cacheCalculateSize } = await import('../../lib/db/jobsApi');
@@ -211,12 +184,13 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
       clearThumbCache();
       clearAvatarCache();
       clearPreviewCache();
+      clearZipBrowserCache();
 
-      // 2. IndexedDB
+      // 2. IndexedDB Caches
       await clearPersistentThumbs();
       await clearMediaCache();
 
-      // 3. LocalStorage
+      // 3. LocalStorage & SessionStorage Caches
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -241,7 +215,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
       }
       for (const key of sessionKeysToRemove) sessionStorage.removeItem(key);
 
-      // 4. Disk Cache Backend (Rust)
+      // 4. Disk Cache Backend (Rust FS: Chunk, Part, Previews, Temp)
       try {
         const { cacheClearDisk } = await import('../../lib/db/jobsApi');
         await cacheClearDisk();
@@ -311,68 +285,6 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
     };
   }, []);
 
-  // Load network (proxy/VPN) from Rust
-  useEffect(() => {
-    if (!detectTauriRuntime()) return;
-    let cancelled = false;
-    (async () => {
-      const cfg = await networkGetConfig();
-      if (!cancelled && cfg) setNetCfg(cfg);
-      const avail = await networkIsAvailable();
-      if (!cancelled) setNetAvail(avail);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Telegram MTProto backend (Grammers / Telethon dual-path)
-  useEffect(() => {
-    if (!detectTauriRuntime()) return;
-    let cancelled = false;
-    (async () => {
-      const st = await tgBackendStatus();
-      if (!cancelled && st) setTgBackend(st);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-
-  const saveNetwork = async () => {
-    if (!netCfg) return;
-    setNetBusy(true);
-    setNetMsg(null);
-    try {
-      const ok = await networkApplyAll(netCfg);
-      setNetMsg(
-        ok
-          ? t('settings.network_saved_reconnect')
-          : t('settings.network_save_failed')
-      );
-    } finally {
-      setNetBusy(false);
-    }
-  };
-
-  const testProxy = async () => {
-    setNetBusy(true);
-    try {
-      if (netCfg) await networkApplyAll(netCfg);
-      const st = await networkTestProxy();
-      setProxyStatus(st);
-      const hint = await networkDetectVpn();
-      setVpnHint(hint);
-      const avail = await networkIsAvailable();
-      setNetAvail(avail);
-    } finally {
-      setNetBusy(false);
-    }
-  };
-
-
-
   const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus('idle');
@@ -415,6 +327,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
       </header>
 
       <div className="settings-grid">
+        {/* 1. INTERFACE LANGUAGE */}
         <div className="glass-panel card settings-section-general">
           <div className="card-header">
             <Globe size={20} color="var(--primary)" />
@@ -440,8 +353,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
           </div>
         </div>
 
-        <PerfSection />
-
+        {/* 2. API CREDENTIALS (MANDATORY RIGHT AFTER LANGUAGE) */}
         <div className="glass-panel card settings-section-api">
           <div className="card-header">
             <ShieldCheck size={20} color="var(--accent)" />
@@ -510,221 +422,16 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
           )}
         </div>
 
-        {detectTauriRuntime() && (
-          <div className="glass-panel card settings-section-backend">
-            <div className="card-header">
-              <Terminal size={20} color="var(--primary)" />
-              <h3>{t('settings.backend_native_title')}</h3>
-            </div>
-            <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
-              {t('settings.backend_native_desc')}
-            </p>
-            <div className="page-stack" style={{ gap: '0.75rem' }}>
-              <p className="field-hint" style={{ margin: 0 }}>
-                {t('settings.backend_active_label')}{' '}
-                <strong style={{ color: 'var(--primary)' }}>
-                  {tgBackend?.activeLabel || tgBackend?.active || '…'}
-                </strong>
-                {tgBackend?.grammersCompiled ? t('ui.generated.grammers_compiled_57780b8') : ''}
-              </p>
-              <p className="field-hint" style={{ margin: 0 }}>
-                {t('settings.backend_ownership_desc')}
-              </p>
-              {tgBackend?.notes?.length ? (
-                <ul className="field-hint" style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.45 }}>
-                  {tgBackend.notes.slice(0, 4).map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </div>
-        )}
+        {/* 3. DEVICE PERFORMANCE OPTIMIZATION */}
+        <PerfSection />
 
-        {detectTauriRuntime() && netCfg && (
-          <div className="glass-panel card settings-section-network">
-            <div className="card-header">
-              <Network size={20} color="var(--primary)" />
-              <h3>{t('settings.proxy_title')}</h3>
-            </div>
-            <p className="field-hint" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
-              {t('settings.proxy_subtitle')}
-            </p>
+        {/* 4. PROXY & VPN OPTIMIZER (UNIFIED COMPONENT SHARED WITH DRIVES SETTINGS) */}
+        <NetworkSection />
 
-            <div className="page-stack" style={{ gap: '1rem' }}>
-              <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={netCfg.proxy.enabled}
-                  onChange={(e) =>
-                    setNetCfg({
-                      ...netCfg,
-                      proxy: { ...netCfg.proxy, enabled: e.target.checked },
-                    })
-                  }
-                />
-                {t('settings.enable_proxy')}
-              </label>
-
-              {netCfg.proxy.enabled && (
-                <>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('settings.proxy_type_label')}</label>
-                    <select
-                      className="input-field"
-                      value={netCfg.proxy.proxyType}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          proxy: { ...netCfg.proxy, proxyType: e.target.value },
-                        })
-                      }
-                    >
-                      <option value="socks5">{t('settings.proxy_type_socks5')}</option>
-                      <option value="http">{t('settings.proxy_type_http')}</option>
-                      <option value="https">{t('settings.proxy_type_https')}</option>
-                      <option value="mtproto">{t('settings.proxy_type_mtproto')}</option>
-                    </select>
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('settings.proxy_host_label')}</label>
-                    <input
-                      className="input-field"
-                      value={netCfg.proxy.host}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          proxy: { ...netCfg.proxy, host: e.target.value },
-                        })
-                      }
-                      placeholder="127.0.0.1"
-                    />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('settings.proxy_port_label')}</label>
-                    <input
-                      className="input-field"
-                      type="number"
-                      value={netCfg.proxy.port}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          proxy: {
-                            ...netCfg.proxy,
-                            port: Math.max(1, Math.min(65535, Number(e.target.value) || 1080)),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('settings.proxy_username_label')}</label>
-                    <input
-                      className="input-field"
-                      value={netCfg.proxy.username}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          proxy: { ...netCfg.proxy, username: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: 0 }}>
-                    <label className="input-label">{t('settings.proxy_password_label')}</label>
-                    <input
-                      className="input-field"
-                      type="password"
-                      value={netCfg.proxy.password}
-                      onChange={(e) =>
-                        setNetCfg({
-                          ...netCfg,
-                          proxy: { ...netCfg.proxy, password: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  {netCfg.proxy.proxyType === 'mtproto' && (
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">{t('settings.proxy_secret_label')}</label>
-                      <input
-                        className="input-field"
-                        value={netCfg.proxy.secret || ''}
-                        onChange={(e) =>
-                          setNetCfg({
-                            ...netCfg,
-                            proxy: { ...netCfg.proxy, secret: e.target.value },
-                          })
-                        }
-                        placeholder={t('settings.proxy_secret_placeholder')}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              <hr style={{ border: 0, borderTop: '1px solid var(--border)', margin: '0.25rem 0' }} />
-
-              <label className="title-with-icon" style={{ gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={netCfg.vpn.enabled}
-                  onChange={(e) =>
-                    setNetCfg({
-                      ...netCfg,
-                      vpn: { ...netCfg.vpn, enabled: e.target.checked },
-                    })
-                  }
-                />
-                <Zap size={16} /> {t('settings.vpn_optimizer')}
-              </label>
-
-              <div className="page-header-actions" style={{ flexWrap: 'wrap', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={netBusy}
-                  onClick={() => void saveNetwork()}
-                >
-                  {netBusy ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                  {t('settings.save_network')}
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={netBusy}
-                  onClick={() => void testProxy()}
-                >
-                  <Wifi size={16} /> {t('settings.test_proxy')}
-                </button>
-              </div>
-
-              {netMsg && <p className="field-hint">{netMsg}</p>}
-              {proxyStatus && (
-                <p className="field-hint">
-                  {t('settings.proxy_tcp_label')}{' '}
-                  <strong style={{ color: proxyStatus.reachable ? 'var(--success)' : 'var(--danger)' }}>
-                    {proxyStatus.reachable ? t('ui.generated.ok_9ce3bd4') : t('jobs.status_failed')}
-                  </strong>
-                  {proxyStatus.latencyMs >= 0 ? ` · ${proxyStatus.latencyMs} ms` : ''} · {proxyStatus.detail}
-                </p>
-              )}
-              {netAvail != null && (
-                <p className="field-hint">
-                  {t('settings.proxy_reachability')} <strong>{netAvail ? t('settings.proxy_available') : t('settings.proxy_unavailable')}</strong>
-                </p>
-              )}
-              {vpnHint != null && vpnHint && (
-                <p className="field-hint">
-                  {t('settings.proxy_unreachable_hint')}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
+        {/* 5. DEBUG MODE (ACCURATE & GLOBAL FOR FORWARDER & DRIVES) */}
         <DebugSection />
 
+        {/* 6. GLOBAL CACHE CONTROL (TOTAL OVERALL SYSTEM CACHE CONTROL) */}
         <div className="glass-panel card settings-section-cache">
           <div className="card-header">
             <Trash2 size={20} color="var(--primary)" />
