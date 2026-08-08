@@ -496,3 +496,51 @@ export async function getSyncState(chatId: number): Promise<SyncState | null> {
     return null;
   }
 }
+
+export async function getMediaStudioCacheSize(): Promise<number> {
+  try {
+    const db = await initDb();
+    let total = 0;
+    const storeNames = Array.from(db.objectStoreNames);
+    if (storeNames.length === 0) return 0;
+
+    const tx = db.transaction(storeNames, 'readonly');
+    for (const name of storeNames) {
+      const store = tx.objectStore(name);
+      await new Promise<void>((resolve) => {
+        const req = store.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (cursor) {
+            try {
+              const str = JSON.stringify(cursor.value);
+              total += str ? str.length * 2 : 0;
+            } catch {}
+            cursor.continue();
+          } else {
+            resolve();
+          }
+        };
+        req.onerror = () => resolve();
+      });
+    }
+    return total;
+  } catch {
+    return 0;
+  }
+}
+
+export async function clearMediaStudioCache(): Promise<void> {
+  try {
+    const db = await initDb();
+    const storeNames = Array.from(db.objectStoreNames);
+    if (storeNames.length === 0) return;
+    const tx = db.transaction(storeNames, 'readwrite');
+    for (const name of storeNames) {
+      try {
+        tx.objectStore(name).clear();
+      } catch {}
+    }
+  } catch {}
+}
+

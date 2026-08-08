@@ -20,7 +20,7 @@ import {
   clearPersistentThumbs,
   getPersistentThumbsSize,
 } from '../../lib/media/thumbPersistentCache';
-import { clearMediaCache } from '../../lib/db/mediaStudioDb';
+import { clearMediaStudioCache, getMediaStudioCacheSize } from '../../lib/db/mediaStudioDb';
 
 import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
@@ -123,25 +123,30 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const calculateCacheSize = async () => {
     setIsCalculating(true);
     try {
-      // 1. IndexedDB Persistent Thumbs
+      // 1. IndexedDB Persistent Thumbs & Media Studio Caches
       let idbSize = 0;
       try {
-        idbSize = await getPersistentThumbsSize();
+        const thumbSize = await getPersistentThumbsSize();
+        const studioSize = await getMediaStudioCacheSize();
+        idbSize = thumbSize + studioSize;
       } catch (e) {
         console.warn('Failed to calculate IDB size', e);
       }
 
-      // 2. LocalStorage (Locations, sidebar, topics caches)
+      // 2. LocalStorage & SessionStorage Caches (Exhaustive Scan)
       let localSize = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('autogram_drive_locations_v1_') ||
-          key.startsWith('autogram_drive_sidebar_v1_') ||
-          key.startsWith('autogram_drive_topics_v1_')
-        )) {
+        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
           const val = localStorage.getItem(key) || '';
-          localSize += (key.length + val.length) * 2; // UTF-16 bytes approx
+          localSize += (key.length + val.length) * 2;
+        }
+      }
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
+          const val = sessionStorage.getItem(key) || '';
+          localSize += (key.length + val.length) * 2;
         }
       }
 
@@ -180,20 +185,13 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
       // 2. IndexedDB Caches
       await clearPersistentThumbs();
-      await clearMediaCache();
+      await clearMediaStudioCache();
 
-      // 3. LocalStorage & SessionStorage Caches
+      // 3. LocalStorage & SessionStorage Caches (100% Exhaustive Purge)
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('autogram_drive_locations_v1_') ||
-          key.startsWith('autogram_drive_sidebar_v1_') ||
-          key.startsWith('autogram_drive_topics_v1_') ||
-          key.startsWith('autogram_drive_scroll_v1_') ||
-          key.startsWith('autogram_drive_peer_v2_') ||
-          key === 'autogram_drive_peer'
-        )) {
+        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
           keysToRemove.push(key);
         }
       }
@@ -203,7 +201,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       const sessionKeysToRemove: string[] = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
-        if (key?.startsWith('drive_root_files_')) sessionKeysToRemove.push(key);
+        if (key && (key.startsWith('autogram_') || key.startsWith('drive_') || key.includes('session'))) {
+          sessionKeysToRemove.push(key);
+        }
       }
       for (const key of sessionKeysToRemove) sessionStorage.removeItem(key);
 

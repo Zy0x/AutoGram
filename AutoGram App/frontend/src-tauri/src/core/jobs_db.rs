@@ -493,14 +493,11 @@ pub fn update_execution_status(
     Ok(())
 }
 
-/// Cache size under worker/cache (pure Rust FS).
+/// Cache size under worker/cache, worker/temp, sessions/thumbs (pure Rust FS).
 pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     let sessions = resolve_sessions_dir(None);
-    let cache = sessions
-        .parent()
-        .map(|p| p.join("cache"))
-        .unwrap_or_else(|| PathBuf::from("cache"));
     let mut total: u64 = 0;
+
     fn walk(dir: &Path, total: &mut u64) {
         let Ok(rd) = std::fs::read_dir(dir) else {
             return;
@@ -514,13 +511,39 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
             }
         }
     }
-    if cache.is_dir() {
-        walk(&cache, &mut total);
+
+    let cache_dir = sessions
+        .parent()
+        .map(|p| p.join("cache"))
+        .unwrap_or_else(|| PathBuf::from("cache"));
+    if cache_dir.is_dir() {
+        walk(&cache_dir, &mut total);
     }
+
+    let temp_dir = sessions
+        .parent()
+        .map(|p| p.join("temp"))
+        .unwrap_or_else(|| PathBuf::from("temp"));
+    if temp_dir.is_dir() {
+        walk(&temp_dir, &mut total);
+    }
+
+    let thumbs_dir = sessions.join("thumbs");
+    if thumbs_dir.is_dir() {
+        walk(&thumbs_dir, &mut total);
+    }
+
+    if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
+        let autogram_temp = sys_temp.join("autogram");
+        if autogram_temp.is_dir() {
+            walk(&autogram_temp, &mut total);
+        }
+    }
+
     Ok(json!({
         "status": "success",
         "bytes": total,
-        "path": cache.display().to_string(),
+        "path": cache_dir.display().to_string(),
         "backend": "rust",
     }))
 }
@@ -590,11 +613,8 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
     super::grammers_media::clear_thumb_mem_cache();
     super::grammers_media::clear_thumb_terminal_cache();
     let sessions = resolve_sessions_dir(None);
-    let cache = sessions
-        .parent()
-        .map(|p| p.join("cache"))
-        .unwrap_or_else(|| PathBuf::from("cache"));
     let mut removed = 0u64;
+
     fn wipe(dir: &Path, removed: &mut u64) {
         let Ok(rd) = std::fs::read_dir(dir) else {
             return;
@@ -611,13 +631,35 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
             }
         }
     }
-    if cache.is_dir() {
-        wipe(&cache, &mut removed);
+
+    let cache_dir = sessions
+        .parent()
+        .map(|p| p.join("cache"))
+        .unwrap_or_else(|| PathBuf::from("cache"));
+    if cache_dir.is_dir() {
+        wipe(&cache_dir, &mut removed);
     }
+
+    let temp_dir = sessions
+        .parent()
+        .map(|p| p.join("temp"))
+        .unwrap_or_else(|| PathBuf::from("temp"));
+    if temp_dir.is_dir() {
+        wipe(&temp_dir, &mut removed);
+    }
+
     let thumbs_dir = sessions.join("thumbs");
     if thumbs_dir.is_dir() {
         wipe(&thumbs_dir, &mut removed);
     }
+
+    if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
+        let autogram_temp = sys_temp.join("autogram");
+        if autogram_temp.is_dir() {
+            wipe(&autogram_temp, &mut removed);
+        }
+    }
+
     Ok(json!({
         "status": "success",
         "removed_files": removed,

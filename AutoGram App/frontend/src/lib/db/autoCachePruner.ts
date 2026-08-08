@@ -1,4 +1,5 @@
 import { getPersistentThumbsSize, prunePersistentThumbsToSize } from '../media/thumbPersistentCache';
+import { getMediaStudioCacheSize } from '../db/mediaStudioDb';
 import { clearThumbCache } from '../media/thumbBatcher';
 import { clearAvatarCache } from '../media/avatarBatcher';
 import { clearPreviewCache } from '../media/previewCache';
@@ -29,10 +30,10 @@ export async function checkAndAutoPruneCache(): Promise<{ pruned: boolean; freed
 
   isPruning = true;
   try {
-    // 1. Calculate IDB Persistent Thumbs
+    // 1. Calculate IDB Persistent Thumbs & Media Studio
     let idbSize = 0;
     try {
-      idbSize = await getPersistentThumbsSize();
+      idbSize = (await getPersistentThumbsSize()) + (await getMediaStudioCacheSize());
     } catch {
       /* best effort */
     }
