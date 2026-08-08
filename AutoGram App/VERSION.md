@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.4
+AutoGram Version: v3.1.5
 
 Current State:
+v3.1.5 Instant Selection, Click Outside Reset & Frozen Toolbar Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan respon instant 0ms `onPointerDown` saat Card A atau B ditekan, pembatalan status terpilih (`activeSplitSlot: null`) saat menekan area di luar Card, serta pembekuan visual otomatis pada Toolbar Preview & Header saat tidak ada Card yang aktif.
+
+Previous:
 v3.1.4 Outer Card Container Glow Enforcer Engine — membenahi `App.css`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengunci class CSS `.is-active-card-a` dan `.is-active-card-b` dengan `!important` langsung pada pembungkus kotak Card luar (`.drive-preview-split-col`), sehingga saat Card A atau Card B terpilih, efek border glowing (cyan-biru untuk A, ungu untuk B) berpendar jelas pada seluruh batas luar kotak Card duplikat.
 
 Previous:

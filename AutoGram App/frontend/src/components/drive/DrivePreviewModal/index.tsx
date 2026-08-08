@@ -484,14 +484,18 @@ export function DrivePreviewModal({
     }
   }, [currentDupGroup]);
 
-  const [activeSplitSlot, setActiveSplitSlot] = useState<'A' | 'B'>('A');
+  const [activeSplitSlot, setActiveSplitSlot] = useState<'A' | 'B' | null>(null);
+
+  const isHeaderFrozen = isSplitCompareMode && activeSplitSlot === null;
 
   const activeSlotFile = useMemo(() => {
     if (isSplitCompareMode && currentDupGroup) {
       if (activeSplitSlot === 'A') {
         return currentDupGroup.files[selectedAIndex] || currentDupGroup.files[0] || file;
-      } else {
+      } else if (activeSplitSlot === 'B') {
         return currentDupGroup.files[selectedBIndex] || currentDupGroup.files[1] || currentDupGroup.files[0] || file;
+      } else {
+        return null;
       }
     }
     return file;
@@ -501,9 +505,14 @@ export function DrivePreviewModal({
     if (activeSplitSlot === 'A') {
       setSelectedAIndex(idx);
       setIsSlotAEmpty(false);
-    } else {
+    } else if (activeSplitSlot === 'B') {
       setSelectedBIndex(idx);
       setIsSlotBEmpty(false);
+    } else {
+      // Default to Card A if none active yet
+      setActiveSplitSlot('A');
+      setSelectedAIndex(idx);
+      setIsSlotAEmpty(false);
     }
   }, [activeSplitSlot]);
 
@@ -2985,9 +2994,11 @@ export function DrivePreviewModal({
             <header className="drive-preview-header font-sans">
           {/* Row A: title + close — title never shares width with icon cluster */}
           <div className="drive-preview-title">
-            <strong title={isSplitCompareMode && activeSlotFile ? activeSlotFile.name : displayName}>
-              {isSplitCompareMode && activeSlotFile
-                ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
+            <strong title={isSplitCompareMode ? (activeSlotFile ? activeSlotFile.name : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1}`) : displayName}>
+              {isSplitCompareMode
+                ? activeSlotFile
+                  ? `${activeSlotFile.name} (Slot ${activeSplitSlot})`
+                  : `Duplicate Group #${duplicateContext ? duplicateContext.currentGroupIndex + 1 : 1} (${currentDupGroup?.files.length || 0} files)`
                 : displayName}
             </strong>
             <span className="drive-muted" title={[
@@ -3000,13 +3011,19 @@ export function DrivePreviewModal({
               fromCache && !loading ? 'cache' : '',
               previewErrorDetail ? `err: ${previewErrorDetail}` : '',
             ].filter(Boolean).join(' · ')}>
-              {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
-              {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
-              {durationLabel ? ` · ${durationLabel}` : ''}
-              {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
-              {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
-              {fromCache && !loading ? ' · cache' : ''}
-              {previewState === 'degraded' ? ' · Degraded' : ''}
+              {isHeaderFrozen ? (
+                <span className="text-amber-400/90 font-medium">Klik Card A atau Card B untuk mengaktifkan toolbar</span>
+              ) : (
+                <>
+                  {formatDriveBytes(isSplitCompareMode && activeSlotFile ? activeSlotFile.size : (previewByteSize || file.size))}
+                  {previewWidth && previewHeight ? ` · ${previewWidth}×${previewHeight}px` : ''}
+                  {durationLabel ? ` · ${durationLabel}` : ''}
+                  {isVideo ? (file.as_document ? ` · ${t('speedtest.doc_file_badge')}` : ` · ${t('speedtest.video_media_badge')}`) : kindLabel ? ` · ${kindLabel}` : ''}
+                  {isVideo && activeQuality ? ` · ${activeQuality.label}` : ''}
+                  {fromCache && !loading ? ' · cache' : ''}
+                  {previewState === 'degraded' ? ' · Degraded' : ''}
+                </>
+              )}
             </span>
           </div>
           <button
@@ -3199,6 +3216,7 @@ export function DrivePreviewModal({
         <div
           className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
           role="toolbar"
+          style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
           aria-label={
             isImage ? 'Alat preview gambar' : isVideo ? 'Alat preview video' : 'Alat preview'
           }
@@ -3567,7 +3585,10 @@ export function DrivePreviewModal({
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
-              <div style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+              <div
+                onPointerDown={() => setActiveSplitSlot(null)}
+                style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}
+              >
                 {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
                 <div style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}>
                   {/* CARD A (LEFT) */}
@@ -3580,7 +3601,14 @@ export function DrivePreviewModal({
                     return (
                       <div
                         className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
-                        onClick={() => setActiveSplitSlot('A')}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          setActiveSplitSlot('A');
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSplitSlot('A');
+                        }}
                         style={{
                           flex: '1 1 0%',
                           minWidth: 0,
@@ -3685,7 +3713,14 @@ export function DrivePreviewModal({
                     return (
                       <div
                         className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
-                        onClick={() => setActiveSplitSlot('B')}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          setActiveSplitSlot('B');
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSplitSlot('B');
+                        }}
                         style={{
                           flex: '1 1 0%',
                           minWidth: 0,

@@ -1,3 +1,10 @@
+## v3.1.5 Instant Selection, Click Outside Reset & Frozen Toolbar Engine
+
+### Selection Instant, Reset Luar Card & Pembekuan Toolbar (`DrivePreviewModal/index.tsx`)
+- **Instant Response (`onPointerDown`)**: Pemilihan Card A atau B merespon secara instant tanpa latensi saat sentuhan/klik tombol tetikus pertama kali menekan Card.
+- **Click Outside Reset**: Menekan area di luar Card A dan B (background stage/gap) secara otomatis membatalkan penandaan aktif (`activeSplitSlot: null`).
+- **Frozen Toolbar & Header**: Saat tidak ada Card yang aktif, Toolbar Preview dan Header secara otomatis dibekukan (`opacity: 0.35`, `pointer-events: none`, `grayscale`), dan petunjuk visual "Klik Card A atau Card B untuk mengaktifkan toolbar" ditampilkan.
+
 ## v3.1.4 Outer Card Container Glow Enforcer Engine
 
 ### Efek Border Glow pada Kotak Pembungkus Card Luar (`App.css` & `DrivePreviewModal/index.tsx`)
