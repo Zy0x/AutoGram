@@ -64,8 +64,13 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       return;
     }
 
-    if (!/^\d+$/.test(trimmedId)) {
-      setError(t('ui.generated.api_id_harus_berupa_karakter_angka_contoh_123456_2ca721a'));
+    if (!/^\d{4,10}$/.test(trimmedId)) {
+      setError(t('nav.api_setup_error_id_invalid'));
+      return;
+    }
+
+    if (!/^[a-fA-F0-9]{32}$/.test(trimmedHash)) {
+      setError(t('nav.api_setup_error_hash_invalid'));
       return;
     }
 
