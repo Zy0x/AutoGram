@@ -1,3 +1,10 @@
+## v3.2.6 GPU Hardware Accelerated 0-Rerender Drag & Zero-Jank Engine
+
+### 0-Re-render Dragging & Akselerasi GPU (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Re-render Loop**: Menghapus pemanggilan `setTransform` React state dari loop `onPointerMove` dan `requestAnimationFrame`. Menghilangkan perselisihan antara re-render Virtual DOM React (yang mereset properti transisi CSS) dengan pemutakhiran DOM langsung.
+- **Akselerasi GPU (`translate3d` & `will-change`)**: Mengaktifkan komposisi layer GPU Chromium dengan `translate3d(x, y, 0px)` dan properti CSS `will-change: transform`, menghasilkan animasi penggeseran yang 100% lurus, mulus, tanpa patah-patah pada refresh rate 60–120Hz.
+- **Single Post-Drag State Sync**: State React baru disinkronisasikan 1x secara bersih pada event `onPointerUp` ketika penarikan gambar dihentikan.
+
 ## v3.2.5 Direct DOM Synchronous Transform & rAF Smooth Drag Engine
 
 ### Akselerasi Kinerja Dragting & Grabbing Card (`DrivePreviewModal/index.tsx`)

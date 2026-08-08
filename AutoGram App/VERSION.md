@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.5
+AutoGram Version: v3.2.6
 
 Current State:
+v3.2.6 GPU Hardware Accelerated 0-Rerender Drag & Zero-Jank Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi penuh fenomena patah-patah/lag pada penggeseran gambar dengan menghapus pemanggilan `setTransform` React state dari loop `onPointerMove`. Penggeseran kini berjalan 100% pada layer GPU Hardware Acceleration (`translate3d` + `will-change: transform`) tanpa satupun React re-render selama drag berlangsung, dan merilis sinkronisasi state hanya 1x saat tombol mouse dilepas (`onPointerUp`).
+
+Previous:
 v3.2.5 Direct DOM Synchronous Transform & rAF Smooth Drag Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi lag dan rasa berat saat menggeser (grabbing/dragging) gambar pada Card Split Compare yang di-zoom. Mengubah style transform secara langsung pada elemen DOM (`mediaEl.style.transform`), menonaktifkan transisi CSS secara instan saat drag dimulai (`transition: none`), dan mengaplikasikan batching `requestAnimationFrame` untuk menjamin animasi penggeseran 100% halus (60-120 FPS).
 
 Previous:

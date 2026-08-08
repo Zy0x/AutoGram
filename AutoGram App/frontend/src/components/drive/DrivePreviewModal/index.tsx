@@ -800,7 +800,6 @@ export function DrivePreviewModal({
 
     const setIsDragging = slot === 'A' ? setIsDraggingSlotA : setIsDraggingSlotB;
     let pendingPan = { x: startPanX, y: startPanY };
-    let rafId: number | null = null;
 
     if (isZoomed && mediaEl) {
       mediaEl.style.transition = 'none';
@@ -819,18 +818,8 @@ export function DrivePreviewModal({
         pendingPan = { x: nextX, y: nextY };
 
         if (mediaEl) {
-          const transformStr = `translate(${nextX}px, ${nextY}px) rotate(${currentTransform.rotation}deg) scale(${(currentTransform.flipH ? -1 : 1) * currentTransform.zoom}, ${(currentTransform.flipV ? -1 : 1) * currentTransform.zoom})`;
+          const transformStr = `translate3d(${nextX}px, ${nextY}px, 0px) rotate(${currentTransform.rotation}deg) scale(${(currentTransform.flipH ? -1 : 1) * currentTransform.zoom}, ${(currentTransform.flipV ? -1 : 1) * currentTransform.zoom})`;
           mediaEl.style.transform = transformStr;
-        }
-
-        if (rafId === null) {
-          rafId = requestAnimationFrame(() => {
-            rafId = null;
-            setTransform((prev) => ({
-              ...prev,
-              pan: pendingPan,
-            }));
-          });
         }
       }
     };
@@ -839,11 +828,6 @@ export function DrivePreviewModal({
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
-
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
 
       setIsDragging(false);
 
@@ -3777,7 +3761,7 @@ export function DrivePreviewModal({
                               style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
                             >
                               {(() => {
-                                const transformStrA = `translate(${slotATransform.pan.x}px, ${slotATransform.pan.y}px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
+                                const transformStrA = `translate3d(${slotATransform.pan.x}px, ${slotATransform.pan.y}px, 0px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
                                 const cursorA = isActiveA
                                   ? slotATransform.zoom > 1.01
                                     ? isDraggingSlotA
@@ -3800,6 +3784,7 @@ export function DrivePreviewModal({
                                       objectFit: 'contain',
                                       userSelect: 'none',
                                       WebkitUserSelect: 'none',
+                                      willChange: isDraggingSlotA ? 'transform' : 'auto',
                                       transform: transformStrA,
                                       transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
                                       cursor: cursorA,
@@ -3809,6 +3794,7 @@ export function DrivePreviewModal({
                                   <div
                                     className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
                                     style={{
+                                      willChange: isDraggingSlotA ? 'transform' : 'auto',
                                       transform: transformStrA,
                                       transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
                                       cursor: cursorA,
@@ -3938,7 +3924,7 @@ export function DrivePreviewModal({
                               style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
                             >
                               {(() => {
-                                const transformStrB = `translate(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
+                                const transformStrB = `translate3d(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px, 0px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
                                 const cursorB = isActiveB
                                   ? slotBTransform.zoom > 1.01
                                     ? isDraggingSlotB
@@ -3961,6 +3947,7 @@ export function DrivePreviewModal({
                                       objectFit: 'contain',
                                       userSelect: 'none',
                                       WebkitUserSelect: 'none',
+                                      willChange: isDraggingSlotB ? 'transform' : 'auto',
                                       transform: transformStrB,
                                       transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
                                       cursor: cursorB,
@@ -3970,6 +3957,7 @@ export function DrivePreviewModal({
                                   <div
                                     className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
                                     style={{
+                                      willChange: isDraggingSlotB ? 'transform' : 'auto',
                                       transform: transformStrB,
                                       transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
                                       cursor: cursorB,
