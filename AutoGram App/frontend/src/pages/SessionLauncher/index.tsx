@@ -310,33 +310,17 @@ export function SessionLauncher({
                 }}
               >
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '26px' }}>
                   <div
                     onClick={(e) => handlePingSession(sess.name, e)}
                     title={t('nav.ping_tooltip', { defaultValue: 'Klik untuk uji ping koneksi real-time' })}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '7px',
                       cursor: 'pointer',
-                      padding: '5px 12px',
-                      borderRadius: '12px',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      backdropFilter: 'blur(12px)',
-                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      padding: '2px 0',
+                      userSelect: 'none',
                     }}
                   >
                     {sess.status === 'expired' || sess.status === 'unauthorized' ? (
@@ -344,14 +328,14 @@ export function SessionLauncher({
                         <span
                           className="ag-status-dot-pulse"
                           style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '7px',
+                            height: '7px',
                             borderRadius: '50%',
                             backgroundColor: '#ef4444',
                             color: '#ef4444',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#fca5a5', fontWeight: 600, letterSpacing: '0.01em' }}>
+                        <span style={{ fontSize: '0.76rem', color: '#fca5a5', fontWeight: 600 }}>
                           {t('nav.connection_expired')}
                         </span>
                       </>
@@ -360,14 +344,14 @@ export function SessionLauncher({
                         <span
                           className="ag-status-dot-pulse"
                           style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '7px',
+                            height: '7px',
                             borderRadius: '50%',
                             backgroundColor: '#38bdf8',
                             color: '#38bdf8',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.01em' }}>
+                        <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600 }}>
                           {t('nav.connection_checking')}
                         </span>
                       </>
@@ -376,14 +360,14 @@ export function SessionLauncher({
                         <span
                           className="ag-status-dot-pulse"
                           style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '7px',
+                            height: '7px',
                             borderRadius: '50%',
                             backgroundColor: '#f59e0b',
                             color: '#f59e0b',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600, letterSpacing: '0.01em' }}>
+                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600 }}>
                           {t('nav.connection_error')}
                         </span>
                       </>
@@ -392,14 +376,14 @@ export function SessionLauncher({
                         <span
                           className="ag-status-dot-pulse"
                           style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '7px',
+                            height: '7px',
                             borderRadius: '50%',
                             backgroundColor: '#10b981',
                             color: '#10b981',
                           }}
                         />
-                        <span style={{ fontSize: '0.76rem', color: '#34d399', fontWeight: 600, letterSpacing: '0.01em' }}>
+                        <span style={{ fontSize: '0.76rem', color: '#34d399', fontWeight: 600 }}>
                           {t('nav.connection_strong', { latency: sess.latencyMs || 15 })}
                         </span>
                       </>
@@ -412,87 +396,52 @@ export function SessionLauncher({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '5px 13px',
-                      borderRadius: '12px',
-                      background: isDefault
-                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%)'
-                        : 'rgba(255, 255, 255, 0.04)',
-                      border: isDefault
-                        ? '1px solid rgba(56, 189, 248, 0.5)'
-                        : '1px solid rgba(255, 255, 255, 0.09)',
-                      color: isDefault ? '#38bdf8' : '#94a3b8',
-                      fontSize: '0.74rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.01em',
+                      gap: '5px',
+                      padding: isDefault ? '3px 10px' : '3px 6px',
+                      borderRadius: '10px',
+                      background: isDefault ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                      border: isDefault ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
+                      color: isDefault ? '#38bdf8' : '#64748b',
+                      fontSize: '0.73rem',
+                      fontWeight: isDefault ? 600 : 500,
                       cursor: 'pointer',
-                      backdropFilter: 'blur(12px)',
-                      boxShadow: isDefault
-                        ? '0 0 12px rgba(56, 189, 248, 0.3), inset 0 1px rgba(255, 255, 255, 0.2)'
-                        : 'none',
-                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transition: 'all 0.18s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
                       const starIcon = e.currentTarget.querySelector('svg');
                       if (isDefault) {
-                        e.currentTarget.style.background =
-                          'linear-gradient(135deg, rgba(56, 189, 248, 0.34) 0%, rgba(14, 165, 233, 0.22) 100%)';
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
                         e.currentTarget.style.borderColor = '#38bdf8';
-                        e.currentTarget.style.color = '#ffffff';
-                        e.currentTarget.style.boxShadow =
-                          '0 0 20px rgba(56, 189, 248, 0.6), inset 0 1px rgba(255, 255, 255, 0.3)';
-                        if (starIcon) {
-                          starIcon.style.transform = 'rotate(22deg) scale(1.2)';
-                          starIcon.style.fill = '#ffffff';
-                        }
+                        e.currentTarget.style.color = '#e0f2fe';
+                        e.currentTarget.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.35)';
+                        if (starIcon) starIcon.style.transform = 'rotate(15deg) scale(1.15)';
                       } else {
-                        e.currentTarget.style.background =
-                          'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%)';
-                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.45)';
                         e.currentTarget.style.color = '#38bdf8';
-                        e.currentTarget.style.boxShadow = '0 4px 16px -2px rgba(56, 189, 248, 0.35)';
-                        if (starIcon) {
-                          starIcon.style.transform = 'rotate(18deg) scale(1.18)';
-                          starIcon.style.fill = 'rgba(56, 189, 248, 0.35)';
-                          starIcon.style.color = '#38bdf8';
-                        }
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.2)';
+                        if (starIcon) starIcon.style.transform = 'rotate(15deg)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
                       const starIcon = e.currentTarget.querySelector('svg');
                       if (isDefault) {
-                        e.currentTarget.style.background =
-                          'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%)';
-                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
                         e.currentTarget.style.color = '#38bdf8';
-                        e.currentTarget.style.boxShadow =
-                          '0 0 12px rgba(56, 189, 248, 0.3), inset 0 1px rgba(255, 255, 255, 0.2)';
-                        if (starIcon) {
-                          starIcon.style.transform = 'rotate(0deg) scale(1)';
-                          starIcon.style.fill = '#38bdf8';
-                          starIcon.style.color = '#38bdf8';
-                        }
-                      } else {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.09)';
-                        e.currentTarget.style.color = '#94a3b8';
                         e.currentTarget.style.boxShadow = 'none';
-                        if (starIcon) {
-                          starIcon.style.transform = 'rotate(0deg) scale(1)';
-                          starIcon.style.fill = 'none';
-                          starIcon.style.color = '#94a3b8';
-                        }
+                        if (starIcon) starIcon.style.transform = 'rotate(0deg) scale(1)';
+                      } else {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'transparent';
+                        e.currentTarget.style.color = '#64748b';
+                        if (starIcon) starIcon.style.transform = 'rotate(0deg)';
                       }
                     }}
                   >
                     <Star
-                      size={13}
+                      size={12}
                       fill={isDefault ? '#38bdf8' : 'none'}
-                      style={{
-                        transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), fill 0.25s ease, color 0.25s ease',
-                      }}
+                      style={{ transition: 'transform 0.18s ease, fill 0.18s ease, color 0.18s ease' }}
                     />
                     <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
                   </button>
