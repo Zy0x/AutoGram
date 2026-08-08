@@ -26,8 +26,9 @@ export async function checkApiCredentialsConnected(): Promise<boolean> {
     if (!creds || !creds.apiId || !creds.apiId.trim() || !creds.apiHash || !creds.apiHash.trim()) {
       return false;
     }
-    const verifyRes = await verifyTelegramApiCredentials(creds.apiId, creds.apiHash);
-    return verifyRes.ok;
+    const id = creds.apiId.trim();
+    const hash = creds.apiHash.trim();
+    return /^\d{4,10}$/.test(id) && /^[a-fA-F0-9]{32}$/.test(hash);
   } catch {
     return false;
   }
@@ -136,7 +137,6 @@ export async function migrateLegacyLocalStorageCredentials(): Promise<void> {
 // is cryptographically opaque ciphertext.
 const LS_BACKUP_KEY = 'ag_s'; // deliberately non-descriptive
 const ENC_KEY_STORE_ID = 'CRED_ENC_KEY_V1';
-const KDF_SALT = 'autogram-backup-kdf-salt-2026';
 
 // Cache the derived CryptoKey in memory (never serialised anywhere)
 let _backupCryptoKey: CryptoKey | null = null;
@@ -155,17 +155,7 @@ async function getBackupCryptoKey(): Promise<CryptoKey | null> {
     }
 
     const keyBytes = new Uint8Array(keyHex.match(/.{2}/g)!.map(h => parseInt(h, 16)));
-    const encoder = new TextEncoder();
-
-    // PBKDF2 → AES-GCM-256 (adds extra KDF hardening over raw key bytes)
-    const baseKey = await crypto.subtle.importKey('raw', keyBytes, 'PBKDF2', false, ['deriveKey']);
-    const derived = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: encoder.encode(KDF_SALT), iterations: 100_000, hash: 'SHA-256' },
-      baseKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt']
-    );
+    const derived = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
     _backupCryptoKey = derived;
     return derived;
   } catch {
@@ -293,7 +283,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
     }
 
     // Always update backup and memory cache regardless of Tauri store result
-    await writeBackup(id, hash);
+    void writeBackup(id, hash);
     localStorage.removeItem(LS_ID);
     localStorage.removeItem(LS_HASH);
     memoryCache = { apiId: id, apiHash: hash };
@@ -312,7 +302,7 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   // Fallback (web or if Rust store unavailable)
   localStorage.setItem(LS_ID, id);
   localStorage.setItem(LS_HASH, hash);
-  await writeBackup(id, hash);
+  void writeBackup(id, hash);
   memoryCache = { apiId: id, apiHash: hash };
   notifyApiCredentialsChanged();
 }
@@ -357,7 +347,11 @@ export async function verifyTelegramApiCredentials(
       const cleanup = async () => {
         if (unlistenFn) {
           try { unlistenFn(); } catch {}
+          unlistenFn = null;
         }
+        try {
+          await invoke('cancel_rust_qr_login', { session: testSessionName });
+        } catch {}
         try {
           await invoke('delete_session_rust', { session: testSessionName });
         } catch {}
@@ -371,7 +365,7 @@ export async function verifyTelegramApiCredentials(
           lastVerifyResult = res;
           resolve(res);
         }
-      }, 5000);
+      }, 3500);
 
       try {
         unlistenFn = await listen<any>('qr-event', async (event) => {
