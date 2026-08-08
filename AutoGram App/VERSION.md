@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.8
+AutoGram Version: v3.0.9
 
 Current State:
+v3.0.9 Standard Media Preview Header Integration Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengembalikan header preview media standar lengkap (`drive-preview-header`) pada mode perbandingan duplikat Split View, menyediakan tombol navigasi lengkap (`< > download open openwith reveal fullscreen`), toolbar Zoom & Rotate, serta tombol More/Info/Close X standar.
+
+Previous:
 v3.0.8 Footer Hint Cleanup Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus elemen teks petunjuk bawah ("ⓘ Pilih file yang ingin disimpan (Keep).") di footer sidepanel sesuai permintaan pengguna untuk menjaga tampilan footer sidepanel tetap bersih dan super ringkas.
 
 Previous:

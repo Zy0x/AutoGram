@@ -2985,12 +2985,16 @@ export function DrivePreviewModal({
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {!isZip && !isSplitCompareMode && (
+        {!isZip && (
           <>
             <header className="drive-preview-header font-sans">
           {/* Row A: title + close — title never shares width with icon cluster */}
           <div className="drive-preview-title">
-            <strong title={displayName}>{displayName}</strong>
+            <strong title={isSplitCompareMode && duplicateContext ? `Duplicate Group #${duplicateContext.currentGroupIndex + 1}` : displayName}>
+              {isSplitCompareMode && duplicateContext && currentDupGroup
+                ? `Duplicate Group #${duplicateContext.currentGroupIndex + 1} (${currentDupGroup.files.length} files)`
+                : displayName}
+            </strong>
             <span className="drive-muted" title={[
               formatDriveBytes(previewByteSize || file.size),
               previewWidth && previewHeight ? `${previewWidth}×${previewHeight}px` : '',
@@ -3656,38 +3660,8 @@ export function DrivePreviewModal({
         >
           {duplicateContext && currentDupGroup && isSplitCompareMode ? (
             <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
-              {/* TOP HEADER BAR */}
-              <header className="drive-dup-header" style={{ width: '100%', height: '52px', minHeight: '52px', maxHeight: '52px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: '#161b22', borderBottom: '1px solid rgba(255,255,255,0.08)', boxSizing: 'border-box' }}>
-                <div className="drive-dup-header-left">
-                  <button
-                    type="button"
-                    className="drive-dup-back-btn"
-                    onClick={() => setIsSplitCompareMode(false)}
-                    title="Tutup Mode Perbandingan"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <h2 className="drive-dup-header-title">
-                    {t('speedtest.preview_dup_header_title', { index: duplicateContext.currentGroupIndex + 1 })}
-                  </h2>
-                  <span className="drive-dup-files-badge">
-                    {t('speedtest.preview_files_badge', { count: currentDupGroup.files.length })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="drive-dup-close-btn"
-                    onClick={onClose}
-                  >
-                    <X size={14} />
-                    <span>{t('speedtest.preview_close_btn')}</span>
-                  </button>
-                </div>
-              </header>
-
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
-              <div style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: 'calc(100% - 52px)', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+              <div style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
                 {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
                 <div style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}>
                   {/* CARD A (LEFT) */}

@@ -1,3 +1,9 @@
+## v3.0.9 Standard Media Preview Header Integration Engine
+
+### Pemulihan Header Preview Media Standar Lengkap (`DrivePreviewModal/index.tsx`)
+- **Standard Media Preview Header**: Menggunakan header preview media standar lengkap (`drive-preview-header`) di semua mode termasuk Split View perbandingan duplikat.
+- **Navigasi & Tools Lengkap**: Menyajikan tombol navigasi berkas (`< >`), tombol aksi (`Download`, `Open Default`, `Open With`, `Reveal Explorer`, `Fullscreen`), toolbar Zoom & Rotate, `Duplicate Group #X` badge, tombol `Split View` / `Single View`, serta tombol `More`, `Info`, dan `Close X`.
+
 ## v3.0.8 Footer Hint Cleanup Engine
 
 ### Penghapusan Teks Petunjuk Bawah (`DrivePreviewModal/index.tsx`)
