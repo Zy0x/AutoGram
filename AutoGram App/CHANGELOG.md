@@ -1,3 +1,10 @@
+## v3.2.4 Zoom-Constrained Clamped Drag-Pan & Grab Cursor Engine
+
+### Penggeseran Terbatas & Indikator Grab pada Zoom Card (`DrivePreviewModal/index.tsx`)
+- **Drag-Pan Hanya Saat Zoom > 100%**: Sesuai kesepakatan interaksi, penarikan/penggeseran gambar (`pan.x`, `pan.y`) hanya aktif saat Card sedang terpilih DAN skala zoom di atas 100%. Pada skala 100%, drag tidak akan menggeser gambar.
+- **Clamped Pan Bounds (Batas Gambar)**: Mengkalkulasi batas maksimal penggeseran berdasarkan dimensi bingkai media (`maxPanX`, `maxPanY`) sehingga media tidak akan pernah terlepas atau keluar dari area bingkai Card.
+- **Indikator Visual Grab & Drag Suppression**: Menambahkan `draggable={false}` dan `onDragStart` preventDefault pada tag `<img>` untuk menonaktifkan fitur drag bawaan peramban, serta menampilkan kursor `grab` (tangan terbuka) dan `grabbing` (menggenggam saat ditarik).
+
 ## v3.2.3 Card Pan-Drag vs Selection Click Resolver Engine
 
 ### Pemisahan Aksi Tangkap-Geser (Drag Pan) vs Selection Click (`DrivePreviewModal/index.tsx`)

@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.3
+AutoGram Version: v3.2.4
 
 Current State:
+v3.2.4 Zoom-Constrained Clamped Drag-Pan & Grab Cursor Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan alur interaksi drag/pan gambar pada Split Card sesuai spesifikasi grill-me: penarikan media hanya aktif saat Card aktif & Zoom > 100% dengan batas penggeseran ketat (*clamped pan bounds*) agar media tidak keluar bingkai. Menambahkan indikator kursor `grab` & `grabbing`, menonaktifkan drag bawaan browser (`draggable={false}`), serta memisahkan klik pemilihan Card dengan 100% presisi.
+
+Previous:
 v3.2.3 Card Pan-Drag vs Selection Click Resolver Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengintegrasikan `handleCardPointerDown` pada Card A & B yang dapat membedakan aksi klik biasa (toggle card selection) dengan aksi geser/drag media (`pan: { x, y }`). Saat pengguna menggeser/drag gambar pada Card yang di-zoom, posisi media bergeser secara halus dan status penandaan Card tetap aktif tanpa tertutup atau konflik.
 
 Previous:

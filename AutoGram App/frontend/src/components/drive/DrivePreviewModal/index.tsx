@@ -766,6 +766,9 @@ export function DrivePreviewModal({
     }
   };
 
+  const [isDraggingSlotA, setIsDraggingSlotA] = useState(false);
+  const [isDraggingSlotB, setIsDraggingSlotB] = useState(false);
+
   const handleCardPointerDown = (
     e: React.PointerEvent,
     slot: 'A' | 'B',
@@ -775,26 +778,39 @@ export function DrivePreviewModal({
     e.stopPropagation();
     if (e.button !== 0) return;
 
+    if (activeSplitSlot !== slot) {
+      setActiveSplitSlot(slot);
+      return;
+    }
+
+    const isZoomed = currentTransform.zoom > 1.01;
     const startX = e.clientX;
     const startY = e.clientY;
     const startPanX = currentTransform.pan.x;
     const startPanY = currentTransform.pan.y;
     let hasMoved = false;
 
+    const containerEl = (e.currentTarget as HTMLElement).querySelector('.drive-preview-split-media-wrap');
+    const containerWidth = containerEl ? containerEl.clientWidth : 300;
+    const containerHeight = containerEl ? containerEl.clientHeight : 300;
+    const maxPanX = Math.max(0, (containerWidth * (currentTransform.zoom - 1)) / 2);
+    const maxPanY = Math.max(0, (containerHeight * (currentTransform.zoom - 1)) / 2);
+
+    const setIsDragging = slot === 'A' ? setIsDraggingSlotA : setIsDraggingSlotB;
+
     const onPointerMove = (moveEv: PointerEvent) => {
       const dx = moveEv.clientX - startX;
       const dy = moveEv.clientY - startY;
       if (!hasMoved && Math.hypot(dx, dy) > 4) {
         hasMoved = true;
-        setActiveSplitSlot(slot);
+        if (isZoomed) setIsDragging(true);
       }
-      if (hasMoved) {
+      if (hasMoved && isZoomed) {
+        const nextX = clamp(startPanX + dx, -maxPanX, maxPanX);
+        const nextY = clamp(startPanY + dy, -maxPanY, maxPanY);
         setTransform((prev) => ({
           ...prev,
-          pan: {
-            x: startPanX + dx,
-            y: startPanY + dy,
-          },
+          pan: { x: nextX, y: nextY },
         }));
       }
     };
@@ -804,8 +820,10 @@ export function DrivePreviewModal({
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
 
+      setIsDragging(false);
+
       if (!hasMoved) {
-        setActiveSplitSlot((prev) => (prev === slot ? null : slot));
+        setActiveSplitSlot(null);
       }
     };
 
@@ -3726,10 +3744,42 @@ export function DrivePreviewModal({
                             >
                               {(() => {
                                 const transformStrA = `translate(${slotATransform.pan.x}px, ${slotATransform.pan.y}px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
+                                const cursorA = isActiveA
+                                  ? slotATransform.zoom > 1.01
+                                    ? isDraggingSlotA
+                                      ? 'grabbing'
+                                      : 'grab'
+                                    : 'pointer'
+                                  : 'pointer';
                                 return isImageDriveFile(fileA) && thumbA ? (
-                                  <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transform: transformStrA, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }} />
+                                  <img
+                                    src={thumbA}
+                                    alt={fileA.name}
+                                    draggable={false}
+                                    onDragStart={(e) => e.preventDefault()}
+                                    className="drive-preview-split-media"
+                                    style={{
+                                      maxWidth: '100%',
+                                      maxHeight: '100%',
+                                      width: 'auto',
+                                      height: 'auto',
+                                      objectFit: 'contain',
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none',
+                                      transform: transformStrA,
+                                      transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
+                                      cursor: cursorA,
+                                    }}
+                                  />
                                 ) : (
-                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2" style={{ transform: transformStrA, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }}>
+                                  <div
+                                    className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
+                                    style={{
+                                      transform: transformStrA,
+                                      transition: isDraggingSlotA ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
+                                      cursor: cursorA,
+                                    }}
+                                  >
                                     <Film size={36} />
                                     <span className="text-xs text-slate-400">{fileA.name}</span>
                                   </div>
@@ -3855,10 +3905,42 @@ export function DrivePreviewModal({
                             >
                               {(() => {
                                 const transformStrB = `translate(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
+                                const cursorB = isActiveB
+                                  ? slotBTransform.zoom > 1.01
+                                    ? isDraggingSlotB
+                                      ? 'grabbing'
+                                      : 'grab'
+                                    : 'pointer'
+                                  : 'pointer';
                                 return isImageDriveFile(fileB) && thumbB ? (
-                                  <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transform: transformStrB, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }} />
+                                  <img
+                                    src={thumbB}
+                                    alt={fileB.name}
+                                    draggable={false}
+                                    onDragStart={(e) => e.preventDefault()}
+                                    className="drive-preview-split-media"
+                                    style={{
+                                      maxWidth: '100%',
+                                      maxHeight: '100%',
+                                      width: 'auto',
+                                      height: 'auto',
+                                      objectFit: 'contain',
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none',
+                                      transform: transformStrB,
+                                      transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
+                                      cursor: cursorB,
+                                    }}
+                                  />
                                 ) : (
-                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2" style={{ transform: transformStrB, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }}>
+                                  <div
+                                    className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2"
+                                    style={{
+                                      transform: transformStrB,
+                                      transition: isDraggingSlotB ? 'none' : 'transform 0.15s cubic-bezier(0.2,0,0,1)',
+                                      cursor: cursorB,
+                                    }}
+                                  >
                                     <Film size={36} />
                                     <span className="text-xs text-slate-400">{fileB.name}</span>
                                   </div>
