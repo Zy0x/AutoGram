@@ -1771,7 +1771,23 @@ html, body {
   }
 }
 
-.ag-status-dot-pulse {
-  animation: statusDotBlink 2.2s ease-in-out infinite;
+.ag-shake-error {
+  animation: shakeError 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Red error pulse for How to Get button */
+@keyframes errorGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4), inset 0 0 8px rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.85), 0 0 36px rgba(239, 68, 68, 0.4), inset 0 0 14px rgba(239, 68, 68, 0.35);
+    border-color: rgba(248, 113, 113, 1);
+  }
+}
+
+.how-to-get-btn-error-pulse {
+  animation: errorGlowPulse 1.8s ease-in-out infinite !important;
 }
 

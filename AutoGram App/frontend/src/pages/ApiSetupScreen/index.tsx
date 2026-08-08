@@ -420,20 +420,33 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                 setHasInteractedGuide(true);
                 setShowGuide(!showGuide);
               }}
-              className={`how-to-get-btn ${!hasInteractedGuide && !showGuide ? 'how-to-get-btn-pulse' : ''}`}
+              className={`how-to-get-btn ${
+                error
+                  ? 'how-to-get-btn-error-pulse'
+                  : !hasInteractedGuide && !showGuide
+                  ? 'how-to-get-btn-pulse'
+                  : ''
+              }`}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
                 padding: '5px 11px',
                 borderRadius: '7px',
-                background: showGuide ? 'rgba(56, 189, 248, 0.3)' : 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.38)',
-                color: '#38bdf8',
+                background: error
+                  ? 'rgba(239, 68, 68, 0.22)'
+                  : showGuide
+                  ? 'rgba(56, 189, 248, 0.3)'
+                  : 'rgba(56, 189, 248, 0.15)',
+                border: error
+                  ? '1px solid rgba(248, 113, 113, 0.7)'
+                  : '1px solid rgba(56, 189, 248, 0.38)',
+                color: error ? '#fca5a5' : '#38bdf8',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 flexShrink: 0,
+                transition: 'all 0.2s ease',
               }}
             >
               <HelpCircle size={13} />
