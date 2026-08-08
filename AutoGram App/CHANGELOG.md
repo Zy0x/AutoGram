@@ -1,3 +1,9 @@
+## v3.3.3 Flip Y & Flip X Axis Orientation Correction Engine
+
+### Koreksi Pemetaan Sumbu Flip (`id/speedtest.json` & `en/speedtest.json`)
+- **Koreksi Sumbu**: Menukar pasangan label `label_flip` menjadi `Flip Y` (balikan cermin horizontal pada sumbu Y) dan `label_flip_v` menjadi `Flip X` (balikan vertikal pada sumbu X).
+- **Integritas Visual**: Menjamin kesesuaian antara ikon visual Lucide (`FlipHorizontal` / `FlipVertical`) dengan teks label di Toolbar.
+
 ## v3.3.2 Flip X & Flip Y Toolbar Label Rename
 
 ### Penyesuaian Label Teks Flip (`id/speedtest.json` & `en/speedtest.json`)

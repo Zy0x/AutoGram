@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.2
+AutoGram Version: v3.3.3
 
 Current State:
+v3.3.3 Flip Y & Flip X Axis Orientation Correction Engine — membenahi `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki pemetaan sumbu balikan visual agar presisi: ikon balikan horizontal (`FlipHorizontal`) dipetakan ke `Flip Y` dan ikon balikan vertikal (`FlipVertical`) dipetakan ke `Flip X` secara konsisten pada seluruh mode preview media.
+
+Previous:
 v3.3.2 Flip X & Flip Y Toolbar Label Rename — membenahi `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah label teks tombol balikan visual pada kelompok Rotate di Toolbar dari `Flip` (Cermin) dan `Flip V` (Balik) menjadi `Flip X` dan `Flip Y` secara menyeluruh untuk Mode Preview Biasa maupun Mode Split Compare.
 
 Previous:
