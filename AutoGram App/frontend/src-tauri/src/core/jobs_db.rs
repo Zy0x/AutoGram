@@ -515,7 +515,8 @@ pub fn resolve_active_cache_dirs() -> CacheDirInfo {
         .unwrap_or_else(|| PathBuf::from("."));
     let default_cache = default_base.join("cache");
     let default_temp = default_base.join("temp");
-    let default_thumbs = sessions.join("thumbs");
+    // Thumbs live under worker/cache/thumbs (same base as cache, not under sessions)
+    let default_thumbs = default_cache.join("thumbs");
 
     let conn = open_db().ok();
     let custom_path: Option<String> = conn.as_ref().and_then(|c| {
@@ -681,8 +682,28 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     }
 
     if info.active_cache_dir.is_dir() {
-        let mut dummy_stale = 0u64;
-        walk_detailed(&info.active_cache_dir, &mut cache_bytes, &mut dummy_stale, now, one_day);
+        // Walk each child of active_cache_dir, explicitly skipping the thumbs subdir
+        // (thumbs are counted separately in thumbs_bytes to avoid double-counting)
+        let thumbs_name = info.active_thumbs_dir
+            .file_name()
+            .map(|n| n.to_os_string());
+        if let Ok(rd) = std::fs::read_dir(&info.active_cache_dir) {
+            for entry in rd.flatten() {
+                let child = entry.path();
+                // Skip the thumbs subdirectory — it is walked separately below
+                if child.is_dir() {
+                    if let Some(ref tname) = thumbs_name {
+                        if entry.file_name() == *tname {
+                            continue;
+                        }
+                    }
+                    let mut dummy = 0u64;
+                    walk_detailed(&child, &mut cache_bytes, &mut dummy, now, one_day);
+                } else if let Ok(m) = entry.metadata() {
+                    cache_bytes = cache_bytes.saturating_add(m.len());
+                }
+            }
+        }
     }
     if info.active_temp_dir.is_dir() {
         walk_detailed(&info.active_temp_dir, &mut temp_bytes, &mut stale_bytes, now, one_day);
@@ -691,6 +712,7 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         let mut dummy_stale = 0u64;
         walk_detailed(&info.active_thumbs_dir, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
     }
+
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
         let autogram_temp = sys_temp.join("autogram");
@@ -943,10 +965,35 @@ pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value
 
     let p = PathBuf::from(&target);
 
+    // Helper: find the first ancestor that actually exists on disk
+    fn first_existing(p: &Path) -> PathBuf {
+        let mut cur = p.to_path_buf();
+        loop {
+            if cur.exists() {
+                return cur;
+            }
+            if !cur.pop() {
+                // Absolute last resort: drive root on Windows (e.g. "C:\"), cwd on others
+                #[cfg(target_os = "windows")]
+                {
+                    // Extract drive letter prefix like "C:\"
+                    if let Some(s) = p.to_str() {
+                        if s.len() >= 2 && s.as_bytes()[1] == b':' {
+                            return PathBuf::from(&s[..3]);
+                        }
+                    }
+                }
+                return std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            }
+        }
+    }
+
+    let query_path = first_existing(&p);
+
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::ffi::OsStrExt;
-        let mut wide: Vec<u16> = p.as_os_str().encode_wide().collect();
+        let mut wide: Vec<u16> = query_path.as_os_str().encode_wide().collect();
         wide.push(0);
 
         let mut free_avail: u64 = 0;
@@ -963,19 +1010,18 @@ pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value
             if res != 0 {
                 return Ok(json!({
                     "status": "success",
-                    "free_bytes": free_avail,
+                    "free_bytes": total_free,
                     "total_bytes": total_bytes,
-                    "path": target
+                    "path": query_path.display().to_string()
                 }));
             }
         }
     }
 
     Ok(json!({
-        "status": "success",
+        "status": "error",
         "free_bytes": 0u64,
         "total_bytes": 0u64,
-        "path": target
+        "path": query_path.display().to_string()
     }))
 }
-
