@@ -621,18 +621,19 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
     }
 
     fn cleanup_empty_custom_dir(old_info: &CacheDirInfo) {
-        if !old_info.is_custom {
-            return;
-        }
-        let _ = std::fs::remove_dir(&old_info.active_cache_dir);
-        let _ = std::fs::remove_dir(&old_info.active_temp_dir);
-        let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
+        if let Some(ref cp) = old_info.custom_path {
+            if !old_info.is_fallback {
+                let _ = std::fs::remove_dir(&old_info.active_cache_dir);
+                let _ = std::fs::remove_dir(&old_info.active_temp_dir);
+                let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
 
-        let custom_base = &old_info.custom_dir;
-        if custom_base.is_dir() {
-            if let Ok(mut rd) = std::fs::read_dir(custom_base) {
-                if rd.next().is_none() {
-                    let _ = std::fs::remove_dir(custom_base);
+                let custom_base = PathBuf::from(cp.trim());
+                if custom_base.is_dir() {
+                    if let Ok(mut rd) = std::fs::read_dir(&custom_base) {
+                        if rd.next().is_none() {
+                            let _ = std::fs::remove_dir(&custom_base);
+                        }
+                    }
                 }
             }
         }
@@ -667,19 +668,7 @@ pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
         .map_err(|e| format!("Delete settings error: {e}"))?;
     
     // Clean up empty custom directories if old path was custom
-    if old_info.is_custom {
-        let _ = std::fs::remove_dir(&old_info.active_cache_dir);
-        let _ = std::fs::remove_dir(&old_info.active_temp_dir);
-        let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
-        let custom_base = &old_info.custom_dir;
-        if custom_base.is_dir() {
-            if let Ok(mut rd) = std::fs::read_dir(custom_base) {
-                if rd.next().is_none() {
-                    let _ = std::fs::remove_dir(custom_base);
-                }
-            }
-        }
-    }
+    cleanup_empty_custom_dir(&old_info);
 
     get_custom_cache_dir_info()
 }
