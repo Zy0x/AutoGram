@@ -188,6 +188,10 @@ export async function setApiCredentials(apiId: string, apiHash: string): Promise
   notifyApiCredentialsChanged();
 }
 
+let lastVerifyTime = 0;
+let lastVerifyResult: { ok: boolean; error?: string } | null = null;
+let lastVerifyKey = '';
+
 export async function verifyTelegramApiCredentials(
   apiId: string,
   apiHash: string
@@ -204,6 +208,15 @@ export async function verifyTelegramApiCredentials(
   if (!/^[a-fA-F0-9]{32}$/.test(hash)) {
     return { ok: false, error: 'API Hash harus berupa 32 karakter heksadesimal resmi.' };
   }
+
+  // Cooldown protection: reuse result if re-submitted within 2.5s to avoid FloodWait
+  const now = Date.now();
+  const verifyKey = `${id}:${hash}`;
+  if (now - lastVerifyTime < 2500 && lastVerifyKey === verifyKey && lastVerifyResult) {
+    return lastVerifyResult;
+  }
+  lastVerifyTime = now;
+  lastVerifyKey = verifyKey;
 
   // Perform 1-shot background QR code handshake test against Telegram servers
   if (detectTauriRuntime()) {
@@ -225,7 +238,9 @@ export async function verifyTelegramApiCredentials(
         if (!resolved) {
           resolved = true;
           await cleanup();
-          resolve({ ok: true });
+          const res = { ok: true };
+          lastVerifyResult = res;
+          resolve(res);
         }
       }, 5000);
 
@@ -239,7 +254,9 @@ export async function verifyTelegramApiCredentials(
               resolved = true;
               clearTimeout(timer);
               await cleanup();
-              resolve({ ok: true });
+              const res = { ok: true };
+              lastVerifyResult = res;
+              resolve(res);
             }
           } else if (payload.status === 'error') {
             if (!resolved) {
@@ -248,12 +265,16 @@ export async function verifyTelegramApiCredentials(
               await cleanup();
               const errStr = String(payload.error || '');
               if (/API_ID_INVALID|400|invalid/i.test(errStr)) {
-                resolve({
+                const res = {
                   ok: false,
                   error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
-                });
+                };
+                lastVerifyResult = res;
+                resolve(res);
               } else {
-                resolve({ ok: true });
+                const res = { ok: true };
+                lastVerifyResult = res;
+                resolve(res);
               }
             }
           }
@@ -271,12 +292,16 @@ export async function verifyTelegramApiCredentials(
           await cleanup();
           const msg = String(err?.message || err || '');
           if (/API_ID_INVALID|400|RPC error/i.test(msg)) {
-            resolve({
+            const res = {
               ok: false,
               error: 'API_ID_INVALID: API ID atau API Hash ditolak oleh Telegram. Silakan periksa kembali dari my.telegram.org',
-            });
+            };
+            lastVerifyResult = res;
+            resolve(res);
           } else {
-            resolve({ ok: true });
+            const res = { ok: true };
+            lastVerifyResult = res;
+            resolve(res);
           }
         }
       }
