@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.7
+AutoGram Version: v3.0.8
 
 Current State:
+v3.0.8 Footer Hint Cleanup Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus elemen teks petunjuk bawah ("ⓘ Pilih file yang ingin disimpan (Keep).") di footer sidepanel sesuai permintaan pengguna untuk menjaga tampilan footer sidepanel tetap bersih dan super ringkas.
+
+Previous:
 v3.0.7 Standalone Unsquished Full-Canvas Split View Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki bug di mana modal perbandingan duplikat ciut/ter-squish menjadi 350px di tengah layar akibat batasan `align-items: center` dari `drive-preview-body`. Mengunci inline styles penuh pada `drive-preview-body` (`align-items: stretch`, `width: 100%`, `height: 100%`) dan seluruh struktur anak, sehingga modal terkuak penuh 1400px x 880px di mana Card A (500px), Card B (500px), dan Sidepanel (280px) berdiri teratur, luas, dan estetik presisi tinggi.
 
 Previous:

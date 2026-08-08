@@ -1,3 +1,8 @@
+## v3.0.8 Footer Hint Cleanup Engine
+
+### Penghapusan Teks Petunjuk Bawah (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Footer Sidepanel**: Menghapus teks petunjuk `"ⓘ Pilih file yang ingin disimpan (Keep)."` dari bagian footer sidepanel kanan agar tata letak navigasi grup di footer sidepanel tampil bersih dan tidak bising.
+
 ## v3.0.7 Standalone Unsquished Full-Canvas Split View Engine
 
 ### Penguncian Ukuran Penuh 1400px & Eliminasi Bug Menciut (`DrivePreviewModal/index.tsx`, `App.css`)

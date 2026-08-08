@@ -3966,11 +3966,6 @@ export function DrivePreviewModal({
                         <ChevronRight size={13} />
                       </button>
                     </div>
-
-                    <div className="text-slate-400 text-[11px] pt-1.5 flex items-center gap-1.5 border-t border-slate-800/60 mt-1.5">
-                      <Info size={12} className="text-slate-400 flex-shrink-0" />
-                      <span className="text-[10px]">Pilih file yang ingin disimpan (Keep).</span>
-                    </div>
                   </div>
                 </aside>
               </div>
