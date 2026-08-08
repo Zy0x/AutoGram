@@ -14,6 +14,8 @@ import { bootstrapDebugMode, debugLog } from './lib/utils/debugMode';
 import { checkAndAutoPruneCache } from './lib/db/autoCachePruner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
+import { loadSelectableSessions } from './lib/telegram';
+
 function lazyWithRetry<T extends React.ComponentType<any>>(
   componentImport: () => Promise<{ default: T }>
 ) {
@@ -47,9 +49,8 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [apiChecked, setApiChecked] = useState(false);
   const [apiValid, setApiValid] = useState(true);
-  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder' | 'settings' | 'api'>(() => {
-    return (localStorage.getItem('autogram_app_mode') as any) || 'launcher';
-  });
+  const [fallbackNotice, setFallbackNotice] = useState<boolean>(false);
+  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder' | 'settings' | 'api'>('launcher');
 
   const [currentSession, setCurrentSession] = useState<string>(() => {
     return (
@@ -59,7 +60,7 @@ function App() {
     );
   });
 
-  // Check Telegram API Credentials on boot
+  // Check Telegram API Credentials & Startup Behavior on boot
   useEffect(() => {
     let active = true;
     bootstrapSecureCredentials()
@@ -70,6 +71,40 @@ function App() {
           setApiChecked(true);
           if (valid) {
             notifyApiCredentialsChanged();
+
+            // Evaluate Startup Screen & Default Account pre-flight
+            const behavior = localStorage.getItem('autogram_startup_behavior') || 'launcher';
+            let targetMode = 'launcher';
+            if (behavior === 'drives') targetMode = 'drives';
+            else if (behavior === 'forwarder') targetMode = 'forwarder';
+            else if (behavior === 'last') targetMode = localStorage.getItem('autogram_app_mode') || 'launcher';
+
+            if (targetMode === 'drives' || targetMode === 'forwarder') {
+              const defSess = localStorage.getItem('autogram_default_session') || localStorage.getItem('autogram_drive_session') || '';
+              loadSelectableSessions({ verify: false })
+                .then((usable) => {
+                  if (!active) return;
+                  const match = usable.find((s) => s.name === defSess || (!defSess && s.name));
+                  if (match) {
+                    setCurrentSession(match.name);
+                    localStorage.setItem('autogram_drive_session', match.name);
+                    setAppMode(targetMode as any);
+                    localStorage.setItem('autogram_app_mode', targetMode);
+                  } else {
+                    setAppMode('launcher');
+                    localStorage.setItem('autogram_app_mode', 'launcher');
+                    setFallbackNotice(true);
+                  }
+                })
+                .catch(() => {
+                  if (active) {
+                    setAppMode('launcher');
+                    setFallbackNotice(true);
+                  }
+                });
+            } else {
+              setAppMode(targetMode as any);
+            }
           } else {
             notifyApiError();
           }
@@ -141,19 +176,55 @@ function App() {
     // 3. LANDING LAUNCHER SESSION HUB
     if (appMode === 'launcher') {
       return (
-        <SessionLauncher
-          onSelectMode={handleSelectMode}
-          onOpenAccounts={() => {
-            setAccountModalOpen(true);
-          }}
-          onOpenSettings={() => {
-            setAppMode('settings');
-            localStorage.setItem('autogram_app_mode', 'settings');
-          }}
-          onOpenApiSetup={() => {
-            setApiModalOpen(true);
-          }}
-        />
+        <>
+          {fallbackNotice && (
+            <div
+              style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                borderBottom: '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#f59e0b',
+                padding: '10px 20px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                zIndex: 9999,
+              }}
+            >
+              <span>{t('nav.startup_fallback_notice')}</span>
+              <button
+                type="button"
+                onClick={() => setFallbackNotice(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#f59e0b',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <SessionLauncher
+            onSelectMode={handleSelectMode}
+            onOpenAccounts={() => {
+              setAccountModalOpen(true);
+            }}
+            onOpenSettings={() => {
+              setAppMode('settings');
+              localStorage.setItem('autogram_app_mode', 'settings');
+            }}
+            onOpenApiSetup={() => {
+              setApiModalOpen(true);
+            }}
+          />
+        </>
       );
     }
 

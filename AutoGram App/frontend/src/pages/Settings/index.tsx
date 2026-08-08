@@ -13,9 +13,17 @@ import {
   Loader2,
   CheckCircle,
   ExternalLink,
+  Zap,
+  UserCheck,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
+import {
+  loadSelectableSessions,
+  getSessionDisplayName,
+  SESSION_METADATA_EVENT,
+  type SessionOption,
+} from '../../lib/telegram';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { runDaemonOnce } from '../../lib/tauri/workerBridge';
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
@@ -97,6 +105,61 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [isMigrating, setIsMigrating] = useState(false);
   const [activeMigrationAction, setActiveMigrationAction] = useState<'move' | 'wipe' | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [startupBehavior, setStartupBehaviorState] = useState<string>(() => {
+    return localStorage.getItem('autogram_startup_behavior') || 'launcher';
+  });
+
+  const setStartupBehavior = (mode: string) => {
+    setStartupBehaviorState(mode);
+    localStorage.setItem('autogram_startup_behavior', mode);
+  };
+
+  const [defaultAccount, setDefaultAccountState] = useState<string>(() => {
+    return localStorage.getItem('autogram_default_session') || '';
+  });
+
+  const setDefaultAccount = (sessionName: string) => {
+    setDefaultAccountState(sessionName);
+    localStorage.setItem('autogram_default_session', sessionName);
+    window.dispatchEvent(new CustomEvent('autogram-default-session-changed'));
+  };
+
+  const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
+
+  useEffect(() => {
+    const syncDefault = () => {
+      const s = localStorage.getItem('autogram_default_session') || '';
+      setDefaultAccountState(s);
+    };
+
+    const loadSessions = () => {
+      syncDefault();
+      loadSelectableSessions({ verify: false })
+        .then((res) => {
+          if (Array.isArray(res)) {
+            setAvailableSessions(res);
+            const currentDef = localStorage.getItem('autogram_default_session') || '';
+            if (!currentDef && res.length > 0) {
+              setDefaultAccountState(res[0].name);
+              localStorage.setItem('autogram_default_session', res[0].name);
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadSessions();
+    window.addEventListener('autogram-default-session-changed', syncDefault);
+    window.addEventListener('storage', syncDefault);
+    window.addEventListener(SESSION_METADATA_EVENT, loadSessions);
+
+    return () => {
+      window.removeEventListener('autogram-default-session-changed', syncDefault);
+      window.removeEventListener('storage', syncDefault);
+      window.removeEventListener(SESSION_METADATA_EVENT, loadSessions);
+    };
+  }, []);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -602,6 +665,191 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               <option value="en">{t('settings.language_english')}</option>
               <option value="id">{t('settings.language_indonesian')}</option>
             </select>
+          </div>
+        </div>
+
+        {/* 2. STARTUP SCREEN & DEFAULT ACCOUNT */}
+        <div className="glass-panel card settings-section-startup">
+          <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Zap size={20} color="var(--primary)" />
+              <h3>{t('settings.startup_behavior_section')}</h3>
+            </div>
+            {defaultAccount && (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: '#38bdf8',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <UserCheck size={12} />
+                <span>{getSessionDisplayName(defaultAccount)}</span>
+              </span>
+            )}
+          </div>
+
+          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
+            {t('settings.startup_behavior_section_desc')}
+          </p>
+
+          {/* STARTUP MODE CARDS GRID */}
+          <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+              {t('settings.startup_mode_label')}
+            </label>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+              {t('settings.startup_mode_desc')}
+            </span>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              {/* Launcher Hub Option */}
+              <div
+                onClick={() => setStartupBehavior('launcher')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: startupBehavior === 'launcher' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: startupBehavior === 'launcher' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'launcher' ? '#38bdf8' : '#f8fafc' }}>
+                    {t('settings.startup_mode_launcher')}
+                  </strong>
+                  {startupBehavior === 'launcher' && <CheckCircle size={15} color="#38bdf8" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.startup_mode_launcher_desc')}
+                </span>
+              </div>
+
+              {/* Direct Drives Option */}
+              <div
+                onClick={() => setStartupBehavior('drives')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: startupBehavior === 'drives' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: startupBehavior === 'drives' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'drives' ? '#38bdf8' : '#f8fafc' }}>
+                    {t('settings.startup_mode_drives')}
+                  </strong>
+                  {startupBehavior === 'drives' && <CheckCircle size={15} color="#38bdf8" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.startup_mode_drives_desc')}
+                </span>
+              </div>
+
+              {/* Direct Forwarder Option */}
+              <div
+                onClick={() => setStartupBehavior('forwarder')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: startupBehavior === 'forwarder' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: startupBehavior === 'forwarder' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'forwarder' ? '#38bdf8' : '#f8fafc' }}>
+                    {t('settings.startup_mode_forwarder')}
+                  </strong>
+                  {startupBehavior === 'forwarder' && <CheckCircle size={15} color="#38bdf8" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.startup_mode_forwarder_desc')}
+                </span>
+              </div>
+
+              {/* Remember Last Workspace Option */}
+              <div
+                onClick={() => setStartupBehavior('last')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: startupBehavior === 'last' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: startupBehavior === 'last' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: startupBehavior === 'last' ? '#38bdf8' : '#f8fafc' }}>
+                    {t('settings.startup_mode_last')}
+                  </strong>
+                  {startupBehavior === 'last' && <CheckCircle size={15} color="#38bdf8" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.startup_mode_last_desc')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* DEFAULT ACCOUNT DROPDOWN (2-WAY SYNCED) */}
+          <div className="input-group" style={{ marginBottom: 0, paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <label className="input-label title-with-icon" htmlFor="settings-default-account">
+              {t('settings.default_account_label')}
+            </label>
+            <p className="field-hint">{t('settings.default_account_desc')}</p>
+
+            {availableSessions.length > 0 ? (
+              <select
+                id="settings-default-account"
+                className="input-field"
+                value={defaultAccount}
+                onChange={(e) => setDefaultAccount(e.target.value)}
+              >
+                {availableSessions.map((sess) => (
+                  <option key={sess.name} value={sess.name}>
+                    {sess.label || getSessionDisplayName(sess.name)} ({sess.name})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  color: '#94a3b8',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                {t('settings.no_accounts_available')}
+              </div>
+            )}
           </div>
         </div>
 

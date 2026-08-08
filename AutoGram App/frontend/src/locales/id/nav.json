@@ -61,6 +61,7 @@
   "updater_network_error": "⚠ Tidak ada koneksi · Menampilkan info terakhir",
   "updater_check_cooldown": "Tunggu {{seconds}}s sebelum memeriksa kembali",
   "updater_last_checked": "Terakhir diperiksa {{time}}",
+  "startup_fallback_notice": "⚠ Akun default belum siap atau belum sah. Diarahkan ke Pusat Session Launcher.",
   "subtitle": "Forwarder Berkas · Drives",
   "engine_tag": "Rust · Grammers",
   "expand_sidebar": "Perluas Sidebar",

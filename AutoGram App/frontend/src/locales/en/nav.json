@@ -61,6 +61,7 @@
   "updater_network_error": "⚠ No connection · Showing cached info",
   "updater_check_cooldown": "Please wait {{seconds}}s before checking again",
   "updater_last_checked": "Last checked {{time}}",
+  "startup_fallback_notice": "⚠ Default account is not ready or valid. Redirected to Session Launcher.",
   "subtitle": "File Forwarder · Drives",
   "engine_tag": "Rust · Grammers",
   "expand_sidebar": "Expand Sidebar",

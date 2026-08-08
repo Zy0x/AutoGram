@@ -149,7 +149,21 @@ export function SessionLauncher({
     e.stopPropagation();
     setDefaultSession(name);
     localStorage.setItem('autogram_default_session', name);
+    window.dispatchEvent(new CustomEvent('autogram-default-session-changed'));
   };
+
+  useEffect(() => {
+    const handleDefaultChanged = () => {
+      const s = localStorage.getItem('autogram_default_session') || '';
+      setDefaultSession(s);
+    };
+    window.addEventListener('autogram-default-session-changed', handleDefaultChanged);
+    window.addEventListener('storage', handleDefaultChanged);
+    return () => {
+      window.removeEventListener('autogram-default-session-changed', handleDefaultChanged);
+      window.removeEventListener('storage', handleDefaultChanged);
+    };
+  }, []);
 
   const displaySessions: SessionOption[] = sessions.length > 0 ? sessions : [
     {
