@@ -1,3 +1,9 @@
+## v3.1.2 Active Card Selection & Toolbar Binding Engine
+
+### Pemilihan Card Aktif & Penyambungan Toolbar Preview (`DrivePreviewModal/index.tsx`)
+- **Card Selection Engine**: Pengguna dapat mengeklik Card A (slot kiri) atau Card B (slot kanan) untuk memilih berkas yang sedang terfokus pada mode Split View. Card aktif ditandai dengan border glowing (biru untuk A, ungu untuk B) dan badge `TERPILIH`.
+- **Toolbar Focus Binding**: Seluruh elemen header atas (Judul Berkas, Ukuran, Dimensi) dan tombol toolbar (Download, Buka Default, Buka Dengan, Reveal Explorer, Zoom, Rotate, Info) secara dinamis mengeksekusi aksi pada Card yang sedang dipilih. Pemilihan item dari sidepanel kanan juga secara cerdas memuat berkas ke Card yang sedang aktif.
+
 ## v3.1.1 Header Redundant Cluster Removal Engine
 
 ### Pembersihan Tombol Navigasi Berulang di Toolbar Header (`DrivePreviewModal/index.tsx`)

@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.1
+AutoGram Version: v3.1.2
 
 Current State:
+v3.1.2 Active Card Selection & Toolbar Binding Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memungkinkan pengguna mengeklik Card A (kiri) atau Card B (kanan) untuk memilih berkas yang aktif dalam mode Split View. Header modal dan toolbar preview (Judul, Meta Ukuran, Download, Buka, Zoom, Rotate, Info) secara terpusat menyambung dan mengeksekusi aksi pada Card yang sedang dipilih (ditandai dengan border glowing & badge TERPILIH).
+
+Previous:
 v3.1.1 Header Redundant Cluster Removal Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus kluster tombol navigasi grup duplikat berulang (`< Previous Group`, `Group 1 of 5`, `Next Group >`) dan tombol `Compare Duplicates (Split View)` dari toolbar header atas sesuai permintaan pengguna. Navigasi grup dan kontrol duplikat tetap tersedia bersih dan terpusat di footer sidepanel kanan.
 
 Previous:
