@@ -432,7 +432,7 @@ export function SessionLauncher({
                       )}
                     </div>
                     <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      {t('nav.session_id_value', { session: sess.name })} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
+                      {t('nav.session_id_value', { session: sess.name.replace(/^session_/, '') })} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
                     </span>
                   </div>
                 </div>
