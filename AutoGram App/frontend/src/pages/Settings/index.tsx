@@ -47,6 +47,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     tempBytes: number;
     thumbsBytes: number;
     staleBytes: number;
+    localBytes: number;
   } | null>(null);
   const [clearStatus, setClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -274,6 +275,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             tempBytes: Number(out.tempBytes || 0) + Number(out.sysTempBytes || 0),
             thumbsBytes: Number(out.thumbsBytes || 0) + idbSize,
             staleBytes: Number(out.staleBytes || 0),
+            localBytes: localSize,
           });
         }
       } catch (e) {
@@ -447,6 +449,13 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
   const isCacheExceedingDiskSpace =
     cacheSize !== null && freeDiskBytes !== null && freeDiskBytes > 0 && cacheSize > freeDiskBytes;
+
+  // Warn when the configured limit is larger than the physical disk (impossible to ever reach)
+  const isLimitExceedsDisk =
+    cacheLimitMB > 0 &&
+    freeDiskBytes !== null &&
+    freeDiskBytes > 0 &&
+    cacheLimitMB * 1024 * 1024 > freeDiskBytes;
 
   const isDiskLow =
     freeDiskBytes !== null &&
@@ -701,6 +710,20 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                     >
                       ⚡ {t('settings.cache_breakdown_temp')}: {formatBytes(cacheBreakdown.tempBytes)}
                     </span>
+                    {cacheBreakdown.localBytes > 0 && (
+                      <span
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontSize: '0.71rem',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          color: '#34d399',
+                        }}
+                      >
+                        💾 {t('settings.cache_breakdown_local')}: {formatBytes(cacheBreakdown.localBytes)}
+                      </span>
+                    )}
                     {cacheBreakdown.staleBytes > 0 && (
                       <span
                         style={{
@@ -1032,6 +1055,31 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   <AlertTriangle size={16} style={{ color: '#f97316', flexShrink: 0 }} />
                   <span>
                     {t('settings.cache_warning_low_disk', {
+                      freeDisk: formatBytes(freeDiskBytes!),
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {isLimitExceedsDisk && !isCacheExceedingDiskSpace && (
+                <div
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    border: '1px solid rgba(99, 102, 241, 0.35)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: '#a5b4fc',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '6px',
+                  }}
+                >
+                  <AlertTriangle size={16} style={{ color: '#6366f1', flexShrink: 0 }} />
+                  <span>
+                    {t('settings.cache_warning_limit_exceeds_disk', {
+                      limit: formatBytes(cacheLimitMB * 1024 * 1024),
                       freeDisk: formatBytes(freeDiskBytes!),
                     })}
                   </span>
