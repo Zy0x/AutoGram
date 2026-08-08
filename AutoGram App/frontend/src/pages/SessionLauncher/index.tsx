@@ -623,7 +623,7 @@ export function SessionLauncher({
         }}
       >
         <span>{t('nav.launcher_footer_engine')}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {updateStatus === 'updateAvailable' ? (
             <a
               href={releaseUrl}
@@ -632,25 +632,35 @@ export function SessionLauncher({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '4px 10px',
+                gap: '8px',
+                padding: '4px 12px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3))',
-                border: '1px solid rgba(16, 185, 129, 0.5)',
-                color: '#6ee7b7',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.28))',
+                border: '1px solid rgba(245, 158, 11, 0.55)',
+                color: '#fef08a',
                 fontWeight: 600,
-                fontSize: '0.76rem',
+                fontSize: '0.78rem',
                 textDecoration: 'none',
-                boxShadow: '0 0 12px rgba(16, 185, 129, 0.3)',
+                boxShadow: '0 0 14px rgba(245, 158, 11, 0.35)',
                 transition: 'all 0.15s ease',
               }}
               title={t('nav.updater_available', { version: latestVersion })}
             >
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f59e0b',
+                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.95), 0 0 18px rgba(245, 158, 11, 0.6), 0 0 4px #f59e0b',
+                }}
+              />
               <span>{t('nav.updater_available', { version: latestVersion })}</span>
             </a>
           ) : updateStatus === 'checking' ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={12} className="animate-spin" style={{ color: '#38bdf8' }} />
               {t('nav.updater_checking')}
             </span>
           ) : (
@@ -660,13 +670,13 @@ export function SessionLauncher({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#64748b',
+                color: '#94a3b8',
                 fontSize: '0.78rem',
                 fontWeight: 500,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 padding: 0,
               }}
               title={t('nav.updater_up_to_date')}
@@ -678,7 +688,7 @@ export function SessionLauncher({
                   height: '7px',
                   borderRadius: '50%',
                   backgroundColor: '#10b981',
-                  boxShadow: '0 0 8px rgba(16, 185, 129, 0.75), 0 0 3px rgba(16, 185, 129, 0.4)',
+                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.95), 0 0 18px rgba(16, 185, 129, 0.6), 0 0 4px #10b981',
                 }}
               />
               <span>{t('nav.updater_up_to_date')}</span>
