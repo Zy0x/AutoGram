@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -47,6 +47,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'system' | 'session'>('system');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
 
   // System Cache state
   const [clearingItem, setClearingItem] = useState<string | null>(null);
@@ -57,6 +58,13 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
 
   // LocalStorage keys existence trigger to re-evaluate empty states
   const [cacheVersion, setCacheVersion] = useState<number>(0);
+
+  // Auto-reset scroll position to top whenever modal opens, tab switches, or selected session changes
+  useEffect(() => {
+    if (isOpen && modalBodyRef.current) {
+      modalBodyRef.current.scrollTop = 0;
+    }
+  }, [isOpen, activeTab, selectedSession]);
 
   const triggerCacheRefresh = () => {
     setCacheVersion((v) => v + 1);
@@ -625,7 +633,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         </div>
 
         {/* MODAL BODY */}
-        <div style={{ padding: '20px 24px', maxHeight: '480px', overflowY: 'auto' }}>
+        <div ref={modalBodyRef} style={{ padding: '20px 24px', maxHeight: '480px', overflowY: 'auto' }}>
           {/* TOAST BANNER */}
           {toastMessage && (
             <div
