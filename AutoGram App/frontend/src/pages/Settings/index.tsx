@@ -5,6 +5,7 @@ import {
   Sliders,
   ArrowLeft,
   Settings2,
+  Key,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -28,9 +29,10 @@ import './Settings.css';
 
 interface SettingsProps {
   onBackToLauncher?: () => void;
+  onOpenApiSetup?: () => void;
 }
 
-export function Settings({ onBackToLauncher }: SettingsProps) {
+export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const { t, i18n } = useTranslation();
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -270,14 +272,33 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
             <p className="subtitle">{t('settings.subtitle')}</p>
           </div>
         </div>
-        {onBackToLauncher && (
-          <div className="settings-header-actions">
+        <div className="settings-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onOpenApiSetup && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onOpenApiSetup}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderColor: 'rgba(56, 189, 248, 0.3)',
+                background: 'rgba(56, 189, 248, 0.1)',
+                color: '#38bdf8',
+              }}
+              title={t('settings.api_config')}
+            >
+              <Key size={16} />
+              <span>{t('settings.api_config')}</span>
+            </button>
+          )}
+          {onBackToLauncher && (
             <button type="button" className="btn btn-secondary settings-back-button" onClick={onBackToLauncher}>
               <ArrowLeft size={17} />
               {t('nav.back_to_launcher')}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       <div className="settings-grid">

@@ -109,137 +109,142 @@ function App() {
     localStorage.setItem('autogram_app_mode', mode);
   };
 
-  // 1. ANIMATED SPLASH SCREEN (Shown once on boot)
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
+  const [apiModalOpen, setApiModalOpen] = useState(false);
 
-  // 2. TELEGRAM API CREDENTIALS ONBOARDING (If API ID / Hash missing)
-  if (apiChecked && !apiValid) {
-    return (
-      <ApiSetupScreen
-        onComplete={() => {
-          setApiValid(true);
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-        }}
-      />
-    );
-  }
+  const renderAppContent = () => {
+    // 1. ANIMATED SPLASH SCREEN (Shown once on boot)
+    if (showSplash) {
+      return <SplashScreen onFinish={() => setShowSplash(false)} />;
+    }
 
-  // 3. LANDING LAUNCHER SESSION HUB
-  if (appMode === 'launcher') {
-    return (
-      <SessionLauncher
-        onSelectMode={handleSelectMode}
-        onOpenAccounts={() => {
-          setAppMode('drives');
-        }}
-        onOpenSettings={() => {
-          setAppMode('settings');
-          localStorage.setItem('autogram_app_mode', 'settings');
-        }}
-        onOpenApiSetup={() => {
-          setAppMode('api');
-          localStorage.setItem('autogram_app_mode', 'api');
-        }}
-      />
-    );
-  }
-
-  if (appMode === 'api') {
-    return (
-      <ApiSetupScreen
-        onComplete={() => {
-          setApiValid(true);
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-        }}
-        onBack={() => {
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-        }}
-      />
-    );
-  }
-
-  if (appMode === 'settings') {
-    return (
-      <div className="app-layout">
-        <div className="app-content" id="app-content">
-          <Settings
-            onBackToLauncher={() => {
-              setAppMode('launcher');
-              localStorage.setItem('autogram_app_mode', 'launcher');
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // 4. DEDICATED FORWARDER WORKSPACE SUITE
-  if (appMode === 'forwarder') {
-    return (
-      <ForwarderWorkspace
-        activeSession={currentSession}
-        onSwitchMode={handleSwitchMode}
-        onBackToLauncher={() => {
-          setAppMode('launcher');
-          localStorage.setItem('autogram_app_mode', 'launcher');
-        }}
-        onOpenSettings={() => {
-          setAppMode('settings');
-          localStorage.setItem('autogram_app_mode', 'settings');
-        }}
-        onOpenApiSetup={() => {
-          setAppMode('api');
-          localStorage.setItem('autogram_app_mode', 'api');
-        }}
-      />
-    );
-  }
-
-  // 5. DRIVES WORKSPACE (MEDIA STUDIO)
-  return (
-    <div className="app-layout app-layout-drive-focus">
-      <div className="app-content app-content-drive" id="app-content">
-        <ErrorBoundary
-          fallbackTitle={t('nav.error_title')}
-          onReset={() => {
+    // 2. TELEGRAM API CREDENTIALS ONBOARDING (If API ID / Hash missing)
+    if (apiChecked && !apiValid) {
+      return (
+        <ApiSetupScreen
+          onComplete={() => {
+            setApiValid(true);
             setAppMode('launcher');
             localStorage.setItem('autogram_app_mode', 'launcher');
           }}
-        >
-          {isMediaStudioAvailable() && (
-            <Suspense
-              fallback={
-                <main className="main-content main-content-fill td-page">
-                  <div className="td-boot-fallback" role="status">
-                    {t('ui.generated.memuat_drives_780fc8f')}
-                  </div>
-                </main>
-              }
-            >
-              <MediaStudio
-                onExitToApp={() => {
-                  setAppMode('launcher');
-                  localStorage.setItem('autogram_app_mode', 'launcher');
-                }}
-                onNavigateToAccounts={() => {
-                  setAppMode('drives');
-                }}
-                onSwitchMode={handleSwitchMode}
-                onBackToLauncher={() => {
-                  setAppMode('launcher');
-                  localStorage.setItem('autogram_app_mode', 'launcher');
-                }}
-              />
-            </Suspense>
-          )}
-        </ErrorBoundary>
+        />
+      );
+    }
+
+    // 3. LANDING LAUNCHER SESSION HUB
+    if (appMode === 'launcher') {
+      return (
+        <SessionLauncher
+          onSelectMode={handleSelectMode}
+          onOpenAccounts={() => {
+            setAppMode('drives');
+          }}
+          onOpenSettings={() => {
+            setAppMode('settings');
+            localStorage.setItem('autogram_app_mode', 'settings');
+          }}
+          onOpenApiSetup={() => {
+            setApiModalOpen(true);
+          }}
+        />
+      );
+    }
+
+    if (appMode === 'settings') {
+      return (
+        <div className="app-layout">
+          <div className="app-content" id="app-content">
+            <Settings
+              onBackToLauncher={() => {
+                setAppMode('launcher');
+                localStorage.setItem('autogram_app_mode', 'launcher');
+              }}
+              onOpenApiSetup={() => {
+                setApiModalOpen(true);
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // 4. DEDICATED FORWARDER WORKSPACE SUITE
+    if (appMode === 'forwarder') {
+      return (
+        <ForwarderWorkspace
+          activeSession={currentSession}
+          onSwitchMode={handleSwitchMode}
+          onBackToLauncher={() => {
+            setAppMode('launcher');
+            localStorage.setItem('autogram_app_mode', 'launcher');
+          }}
+          onOpenSettings={() => {
+            setAppMode('settings');
+            localStorage.setItem('autogram_app_mode', 'settings');
+          }}
+          onOpenApiSetup={() => {
+            setApiModalOpen(true);
+          }}
+        />
+      );
+    }
+
+    // 5. DRIVES WORKSPACE (MEDIA STUDIO)
+    return (
+      <div className="app-layout app-layout-drive-focus">
+        <div className="app-content app-content-drive" id="app-content">
+          <ErrorBoundary
+            fallbackTitle={t('nav.error_title')}
+            onReset={() => {
+              setAppMode('launcher');
+              localStorage.setItem('autogram_app_mode', 'launcher');
+            }}
+          >
+            {isMediaStudioAvailable() && (
+              <Suspense
+                fallback={
+                  <main className="main-content main-content-fill td-page">
+                    <div className="td-boot-fallback" role="status">
+                      {t('ui.generated.memuat_drives_780fc8f')}
+                    </div>
+                  </main>
+                }
+              >
+                <MediaStudio
+                  onExitToApp={() => {
+                    setAppMode('launcher');
+                    localStorage.setItem('autogram_app_mode', 'launcher');
+                  }}
+                  onNavigateToAccounts={() => {
+                    setAppMode('drives');
+                  }}
+                  onSwitchMode={handleSwitchMode}
+                  onBackToLauncher={() => {
+                    setAppMode('launcher');
+                    localStorage.setItem('autogram_app_mode', 'launcher');
+                  }}
+                />
+              </Suspense>
+            )}
+          </ErrorBoundary>
+        </div>
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <>
+      {renderAppContent()}
+      {apiModalOpen && (
+        <ApiSetupScreen
+          isModal
+          onClose={() => setApiModalOpen(false)}
+          onComplete={() => {
+            setApiValid(true);
+            setApiModalOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 

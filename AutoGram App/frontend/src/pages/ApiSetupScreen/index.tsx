@@ -9,15 +9,18 @@ import {
   ArrowRight,
   ShieldCheck,
   ArrowLeft,
+  X,
 } from 'lucide-react';
 import { bootstrapSecureCredentials, setApiCredentials } from '../../lib/tauri/secureCredentials';
 
 interface ApiSetupScreenProps {
   onComplete: () => void;
+  onClose?: () => void;
   onBack?: () => void;
+  isModal?: boolean;
 }
 
-export function ApiSetupScreen({ onComplete, onBack }: ApiSetupScreenProps) {
+export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }: ApiSetupScreenProps) {
   const { t } = useTranslation();
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
@@ -33,6 +36,16 @@ export function ApiSetupScreen({ onComplete, onBack }: ApiSetupScreenProps) {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isModal && onClose && !saving) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModal, onClose, saving]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +88,273 @@ export function ApiSetupScreen({ onComplete, onBack }: ApiSetupScreenProps) {
       window.open('https://my.telegram.org', '_blank');
     }
   };
+
+  if (isModal) {
+    return (
+      <div
+        className="modal-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !saving && onClose) {
+            onClose();
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="api-modal-title"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.72)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          padding: '24px',
+          boxSizing: 'border-box',
+          overflowY: 'auto',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '540px',
+            width: '100%',
+            background: 'linear-gradient(150deg, rgba(20, 26, 38, 0.96) 0%, rgba(11, 16, 26, 0.98) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            borderRadius: '24px',
+            padding: '32px',
+            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.2)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            position: 'relative',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}
+        >
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '34px',
+                height: '34px',
+                zIndex: 10,
+              }}
+              aria-label={t('speedtest.preview_close_btn')}
+            >
+              <X size={18} />
+            </button>
+          )}
+
+          {/* LOGO & TITLE */}
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 14px auto',
+                boxShadow: '0 8px 20px rgba(56, 189, 248, 0.35)',
+              }}
+            >
+              <KeyRound size={26} style={{ color: '#ffffff' }} />
+            </div>
+
+            <h2 id="api-modal-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+              {t('nav.api_setup_title')}
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              {t('nav.api_setup_subtitle')}
+            </p>
+          </div>
+
+          {/* GUIDE CARD */}
+          <div
+            style={{
+              padding: '16px 18px',
+              borderRadius: '14px',
+              background: 'rgba(56, 189, 248, 0.06)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              fontSize: '0.8rem',
+              color: '#cbd5e1',
+              lineHeight: 1.6,
+            }}
+          >
+            <strong style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.83rem' }}>
+              <ShieldCheck size={16} />
+              {t('nav.api_setup_guide_title')}
+            </strong>
+            <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <li>{t('nav.api_setup_step1')}</li>
+              <li>{t('nav.api_setup_step2')}</li>
+              <li>{t('nav.api_setup_step3')}</li>
+            </ul>
+
+            <button
+              type="button"
+              onClick={handleOpenTelegramOrg}
+              style={{
+                marginTop: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
+              <ExternalLink size={13} />
+            </button>
+          </div>
+
+          {/* ERROR ALERT */}
+          {error && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#fca5a5',
+                fontSize: '0.82rem',
+              }}
+            >
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* FORM */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={apiId}
+                onChange={(e) => setApiId(e.target.value)}
+                placeholder={t('ui.generated.contoh_1234567_25ccc85')}
+                required
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showHash ? 'text' : 'password'}
+                  value={apiHash}
+                  onChange={(e) => setApiHash(e.target.value)}
+                  placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '11px 42px 11px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#f8fafc',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowHash(!showHash)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showHash ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                marginTop: '6px',
+                padding: '13px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                cursor: saving ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 8px 20px rgba(56, 189, 248, 0.3)',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span>{t('nav.api_setup_submit')}</span>
+              <ArrowRight size={18} />
+            </button>
+          </form>
+
+          <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b', textAlign: 'center' }}>
+            {t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
