@@ -860,6 +860,7 @@
     "forwarder_drives_share_the_same_mtproto_connecti_2556304": "Forwarder & Drives share the same MTProto connection.",
     "session_utama_6c6254e": "Main Session",
     "gagal_menyimpan_api_credentials_silakan_coba_lag_4907244": "Failed to save API Credentials. Please try again.",
+    "credentials_anda_disimpan_secara_terenkripsi_ama_b24611b": "Your credentials are stored securely encrypted on local device via Encrypted Store",
     "api_id_hash_belum_terisi_buka_settings_untuk_men_d015fa3": "API ID / Hash has not been filled in. Open Settings to save credentials — session files remain safe on disk."
   }
 }

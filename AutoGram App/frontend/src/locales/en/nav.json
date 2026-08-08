@@ -50,7 +50,7 @@
   "tab_history": "History & Logs",
   "tab_forwarder_settings": "Forwarder Settings",
   "api_setup_title": "Telegram API Credentials",
-  "api_setup_subtitle": "Manage your API ID and API Hash to enable Telegram MTProto connection.",
+  "api_setup_subtitle": "Manage your API ID and API Hash",
   "api_setup_guide_title": "Obtain API ID & Hash via my.telegram.org",
   "api_id_label": "API ID",
   "api_hash_label": "API Hash",

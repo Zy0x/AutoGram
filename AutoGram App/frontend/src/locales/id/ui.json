@@ -860,6 +860,7 @@
     "forwarder_drives_share_the_same_mtproto_connecti_2556304": "Forwarder & Drive berbagi koneksi MTProto yang sama.",
     "session_utama_6c6254e": "Session Utama",
     "gagal_menyimpan_api_credentials_silakan_coba_lag_4907244": "Gagal menyimpan API Credentials. Silakan coba lagi.",
+    "credentials_anda_disimpan_secara_terenkripsi_ama_b24611b": "Credentials Anda disimpan secara terenkripsi di perangkat lokal melalui Encrypted Store",
     "api_id_hash_belum_terisi_buka_settings_untuk_men_d015fa3": "API ID / Hash belum terisi. Buka Settings untuk menyimpan credentials — session file tetap aman di disk."
   }
 }

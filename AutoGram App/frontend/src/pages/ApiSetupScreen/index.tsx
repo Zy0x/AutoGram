@@ -350,10 +350,22 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             </button>
           </form>
 
-          <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-            <ShieldCheck size={12} />
+          <div
+            style={{
+              margin: 0,
+              fontSize: '0.74rem',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              textAlign: 'center',
+              lineHeight: 1.3,
+            }}
+          >
+            <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
             <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
-          </p>
+          </div>
         </div>
       </div>
     );
@@ -601,10 +613,22 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           </button>
         </form>
 
-        <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748b', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-          <ShieldCheck size={12} />
+        <div
+          style={{
+            margin: 0,
+            fontSize: '0.74rem',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            textAlign: 'center',
+            lineHeight: 1.3,
+          }}
+        >
+          <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
           <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
-        </p>
+        </div>
       </div>
     </div>
   );
