@@ -114,8 +114,12 @@ export function SessionLauncher({
     return () => clearInterval(interval);
   }, [refreshSessions]);
 
-  const handlePingSession = (sessionName: string, e: React.MouseEvent) => {
+  const handlePingSession = (sessionName: string, sessStatus: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (sessStatus === 'expired' || sessStatus === 'unauthorized') {
+      onOpenAccounts();
+      return;
+    }
     setSessions((prev) =>
       prev.map((s) => (s.name === sessionName ? { ...s, status: 'checking' } : s))
     );
@@ -333,8 +337,12 @@ export function SessionLauncher({
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '26px' }}>
                   <div
-                    onClick={(e) => handlePingSession(sess.name, e)}
-                    title={t('nav.ping_tooltip', { defaultValue: 'Klik untuk uji ping koneksi real-time' })}
+                    onClick={(e) => handlePingSession(sess.name, sess.status, e)}
+                    title={
+                      sess.status === 'expired' || sess.status === 'unauthorized'
+                        ? t('nav.relogin_button')
+                        : t('nav.ping_tooltip', { defaultValue: 'Klik untuk uji ping koneksi real-time' })
+                    }
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
