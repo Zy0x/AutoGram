@@ -3625,6 +3625,7 @@ export function DrivePreviewModal({
                     aria-label="Download"
                   >
                     {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+                    <span className="drive-tool-btn-label">{t("speedtest.label_download")}</span>
                   </button>
                   <button
                     type="button"
@@ -3638,6 +3639,7 @@ export function DrivePreviewModal({
                     aria-label="Fullscreen"
                   >
                     {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                    <span className="drive-tool-btn-label">{t("speedtest.label_fullscreen")}</span>
                   </button>
                 </>
               )}

@@ -323,6 +323,8 @@
   "label_with": "With…",
   "label_print": "Print",
   "label_copy": "Copy",
+  "label_download": "Download",
+  "label_fullscreen": "Fullscreen",
   "label_other": "More",
   "label_load": "Reload",
   "label_info": "Info",

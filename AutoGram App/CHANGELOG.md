@@ -1,3 +1,10 @@
+## v3.3.1 Labeled Toolbar Download & Fullscreen Buttons in Split Mode
+
+### Label Teks Toolbar Mode Split (`DrivePreviewModal/index.tsx` & Locales)
+- **Label Teks i18n**: Menambahkan elemen `<span className="drive-tool-btn-label">` pada tombol `Download` dan `Fullscreen` di kelompok "MORE" Toolbar saat mode Split Compare aktif.
+- **Konsistensi Visual**: Tombol `Download` dan `Fullscreen` kini menampilkan teks pendamping yang estetik dan seragam dengan tombol `Reload` dan `Info`.
+- **Zero Hardcoded Strings**: Key `label_download` dan `label_fullscreen` telah ditambahkan secara sinkron pada file locale `id/speedtest.json` dan `en/speedtest.json` (100% key parity).
+
 ## v3.3.0 Single vs Split Preview Mode Behavior Isolation Engine
 
 ### Pemisahan Total Perilaku Header & Toolbar (`DrivePreviewModal/index.tsx`)

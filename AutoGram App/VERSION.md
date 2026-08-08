@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.0
+AutoGram Version: v3.3.1
 
 Current State:
+v3.3.1 Labeled Toolbar Download & Fullscreen Buttons in Split Mode — membenahi `id/speedtest.json`, `en/speedtest.json`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan label teks i18n (`label_download` & `label_fullscreen`) pada tombol `Download` dan `Fullscreen` di kelompok "MORE" Toolbar pada mode Split Compare, menyamakan estetikanya secara presisi dengan tombol `Reload` dan `Info`.
+
+Previous:
 v3.3.0 Single vs Split Preview Mode Behavior Isolation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memisahkan 100% tata letak Header dan Toolbar antara Mode Preview Biasa (Single) dan Mode Preview Split Compare. Mengembalikan tampilan Header lengkap dengan tombol navigasi file (`ChevronLeft`, `ChevronRight`), `Download`, `Buka`, `Buka dengan`, dan `Fullscreen` pada Mode Preview Biasa, serta menjaga Toolbar kelompok "Lainnya" khusus mode Split untuk `Download` dan `Fullscreen`.
 
 Previous:
