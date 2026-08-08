@@ -620,6 +620,24 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
         }
     }
 
+    fn cleanup_empty_custom_dir(old_info: &CacheDirInfo) {
+        if !old_info.is_custom {
+            return;
+        }
+        let _ = std::fs::remove_dir(&old_info.active_cache_dir);
+        let _ = std::fs::remove_dir(&old_info.active_temp_dir);
+        let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
+
+        let custom_base = &old_info.custom_dir;
+        if custom_base.is_dir() {
+            if let Ok(mut rd) = std::fs::read_dir(custom_base) {
+                if rd.next().is_none() {
+                    let _ = std::fs::remove_dir(custom_base);
+                }
+            }
+        }
+    }
+
     if action == "move" {
         copy_dir_all(&old_info.active_cache_dir, &new_cache);
         copy_dir_all(&old_info.active_temp_dir, &new_temp);
@@ -628,6 +646,8 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
         // "wipe" option: clear old cache
         let _ = clear_disk_cache();
     }
+
+    cleanup_empty_custom_dir(&old_info);
 
     let conn = open_db()?;
     conn.execute(
@@ -641,9 +661,26 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
 }
 
 pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
+    let old_info = resolve_active_cache_dirs();
     let conn = open_db()?;
     conn.execute("DELETE FROM settings WHERE key = 'custom_cache_dir'", [])
         .map_err(|e| format!("Delete settings error: {e}"))?;
+    
+    // Clean up empty custom directories if old path was custom
+    if old_info.is_custom {
+        let _ = std::fs::remove_dir(&old_info.active_cache_dir);
+        let _ = std::fs::remove_dir(&old_info.active_temp_dir);
+        let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
+        let custom_base = &old_info.custom_dir;
+        if custom_base.is_dir() {
+            if let Ok(mut rd) = std::fs::read_dir(custom_base) {
+                if rd.next().is_none() {
+                    let _ = std::fs::remove_dir(custom_base);
+                }
+            }
+        }
+    }
+
     get_custom_cache_dir_info()
 }
 
