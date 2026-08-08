@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import {
   loadSelectableSessions,
   getSessionDisplayName,
+  getSessionMetadata,
   SESSION_METADATA_EVENT,
   type SessionOption,
 } from '../../lib/telegram';
@@ -121,6 +122,11 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
           {options.map((sess) => {
             const displayName = sess.label || getSessionDisplayName(sess.name);
             const isSelected = sess.name === value;
+            const meta = getSessionMetadata(sess.name);
+            const telegramIdText = meta?.telegramUserId ? `ID Telegram: ${meta.telegramUserId}` : null;
+            const subtitleText = telegramIdText
+              ? `${telegramIdText} · Sesi: ${sess.name}`
+              : `Sesi: ${sess.name}`;
 
             return (
               <div
@@ -152,7 +158,7 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
                     {displayName}
                   </span>
                   <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                    {sess.name}
+                    {subtitleText}
                   </span>
                 </div>
                 {isSelected && <Check size={16} color="#38bdf8" style={{ flexShrink: 0 }} />}
