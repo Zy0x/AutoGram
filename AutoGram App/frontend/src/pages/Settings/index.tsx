@@ -12,6 +12,7 @@ import {
   Folder,
   Loader2,
   CheckCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -50,11 +51,19 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     downloadProgress,
     autoCheck,
     autoDownload,
+    autoInstallOnExit,
+    notifyOnUpdate,
+    releaseChannel,
+    lastCheckedAt,
+    releaseUrl,
     checkNow: recheckUpdate,
     startDownload,
     installUpdate,
     setAutoCheck,
     setAutoDownload,
+    setAutoInstallOnExit,
+    setNotifyOnUpdate,
+    setReleaseChannel,
   } = useGitHubUpdater();
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -598,23 +607,105 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
         {/* 2. APPLICATION UPDATES & RELEASE CHANNEL */}
         <div className="glass-panel card settings-section-updates">
-          <div className="card-header">
-            <RotateCw size={20} color="var(--primary)" />
-            <h3>{t('settings.auto_update_section')}</h3>
+          <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <RotateCw size={20} color="var(--primary)" />
+              <h3>{t('settings.auto_update_section')}</h3>
+            </div>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                border: releaseChannel === 'beta' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                color: releaseChannel === 'beta' ? '#f59e0b' : '#10b981',
+              }}
+            >
+              {releaseChannel === 'beta' ? 'BETA STREAM' : 'STABLE STREAM'}
+            </span>
           </div>
 
-          <p className="field-hint" style={{ marginBottom: '1.2rem', lineHeight: 1.5 }}>
+          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
             {t('settings.auto_update_section_desc')}
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* RELEASE CHANNEL SELECTOR (SEGMENTED CARDS) */}
+          <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>
+              {t('settings.release_channel_label')}
+            </label>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '4px' }}>
+              {t('settings.release_channel_desc')}
+            </span>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              {/* Stable Channel Pill */}
+              <div
+                onClick={() => setReleaseChannel('stable')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: releaseChannel === 'stable' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: releaseChannel === 'stable' ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'stable' ? '#38bdf8' : '#f8fafc' }}>
+                    {t('settings.channel_stable')}
+                  </strong>
+                  {releaseChannel === 'stable' && <CheckCircle size={15} color="#38bdf8" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.channel_stable_desc')}
+                </span>
+              </div>
+
+              {/* Beta Channel Pill */}
+              <div
+                onClick={() => setReleaseChannel('beta')}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: releaseChannel === 'beta' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  border: releaseChannel === 'beta' ? '1.5px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '0.85rem', color: releaseChannel === 'beta' ? '#f59e0b' : '#f8fafc' }}>
+                    {t('settings.channel_beta')}
+                  </strong>
+                  {releaseChannel === 'beta' && <CheckCircle size={15} color="#f59e0b" />}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', lineHeight: 1.35 }}>
+                  {t('settings.channel_beta_desc')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* TOGGLES LIST */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
             {/* Auto-Check Toggle */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
                   {t('settings.auto_check_updates_label')}
                 </strong>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
                   {t('settings.auto_check_updates_desc')}
                 </span>
               </div>
@@ -631,12 +722,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </div>
 
             {/* Background Auto-Download Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
               <div>
-                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
                   {t('settings.auto_download_updates_label')}
                 </strong>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
                   {t('settings.auto_download_updates_desc')}
                 </span>
               </div>
@@ -652,87 +743,167 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Current Version & Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
-                <strong style={{ fontSize: '0.88rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
-              </div>
-
+            {/* Auto-Install on Exit Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
               <div>
-                {updateStatus === 'updateAvailable' ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => void startDownload()}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
-                  >
-                    <RotateCw size={14} />
-                    <span>{t('settings.btn_download_update', { version: latestVersion })}</span>
-                  </button>
-                ) : updateStatus === 'downloading' ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', borderColor: '#0284c7', color: '#38bdf8' }}
-                  >
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
-                  </button>
-                ) : updateStatus === 'readyToInstall' ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => void installUpdate()}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-                  >
-                    <CheckCircle size={14} />
-                    <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>
-                  </button>
-                ) : updateStatus === 'installing' ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
-                  >
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>{t('nav.updater_installing')}</span>
-                  </button>
-                ) : updateStatus === 'checking' ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
-                  >
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>{t('nav.updater_checking')}</span>
-                  </button>
-                ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => void recheckUpdate()}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b' }}
-                    title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
-                  >
-                    <RotateCw size={14} />
-                    <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => void recheckUpdate()}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
-                  >
-                    <RotateCw size={14} />
-                    <span>{t('settings.btn_check_updates')}</span>
-                  </button>
-                )}
+                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
+                  {t('settings.auto_install_exit_label')}
+                </strong>
+                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                  {t('settings.auto_install_exit_desc')}
+                </span>
               </div>
+              <div
+                role="switch"
+                aria-checked={autoInstallOnExit}
+                tabIndex={0}
+                onClick={() => setAutoInstallOnExit(!autoInstallOnExit)}
+                className={`switch-container ${autoInstallOnExit ? 'active' : ''}`}
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div className="switch-thumb" />
+              </div>
+            </div>
+
+            {/* Update Notification Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              <div>
+                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
+                  {t('settings.notify_update_label')}
+                </strong>
+                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                  {t('settings.notify_update_desc')}
+                </span>
+              </div>
+              <div
+                role="switch"
+                aria-checked={notifyOnUpdate}
+                tabIndex={0}
+                onClick={() => setNotifyOnUpdate(!notifyOnUpdate)}
+                className={`switch-container ${notifyOnUpdate ? 'active' : ''}`}
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div className="switch-thumb" />
+              </div>
+            </div>
+          </div>
+
+          {/* FOOTER BAR: Current Version, Last Checked & Action */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.80rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
+                <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
+                <a
+                  href={releaseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#38bdf8',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginLeft: '6px',
+                    opacity: 0.85,
+                  }}
+                  title={t('settings.view_release_notes')}
+                >
+                  <span>{t('settings.view_release_notes')}</span>
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                {t('settings.last_checked_label')}:{' '}
+                {lastCheckedAt
+                  ? new Date(lastCheckedAt).toLocaleTimeString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }) +
+                    ' (' +
+                    new Date(lastCheckedAt).toLocaleDateString(i18n.language === 'id' ? 'id-ID' : 'en-US', {
+                      day: 'numeric',
+                      month: 'short',
+                    }) +
+                    ')'
+                  : t('settings.last_checked_never')}
+              </span>
+            </div>
+
+            <div>
+              {updateStatus === 'updateAvailable' ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void startDownload()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                >
+                  <RotateCw size={14} />
+                  <span>{t('settings.btn_download_update', { version: latestVersion })}</span>
+                </button>
+              ) : updateStatus === 'downloading' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: '#0284c7', color: '#38bdf8' }}
+                >
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
+                </button>
+              ) : updateStatus === 'readyToInstall' ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void installUpdate()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                >
+                  <CheckCircle size={14} />
+                  <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>
+                </button>
+              ) : updateStatus === 'installing' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                >
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t('nav.updater_installing')}</span>
+                </button>
+              ) : updateStatus === 'checking' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                >
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t('nav.updater_checking')}</span>
+                </button>
+              ) : updateStatus === 'rateLimited' || updateStatus === 'networkError' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void recheckUpdate()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px', borderColor: 'rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                  title={updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}
+                >
+                  <RotateCw size={14} />
+                  <span>{updateStatus === 'rateLimited' ? t('nav.updater_rate_limited') : t('nav.updater_network_error')}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => void recheckUpdate()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 14px' }}
+                >
+                  <RotateCw size={14} />
+                  <span>{t('settings.btn_check_updates')}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
