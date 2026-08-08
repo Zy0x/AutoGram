@@ -123,15 +123,10 @@ function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChan
             const displayName = sess.label || getSessionDisplayName(sess.name);
             const isSelected = sess.name === value;
             const meta = getSessionMetadata(sess.name);
-            const telegramIdText = meta?.telegramUserId ? `ID Telegram: ${meta.telegramUserId}` : null;
-            const isAutoTimestampSession = sess.name.startsWith('session_');
-            const subtitleText = telegramIdText
-              ? isAutoTimestampSession
-                ? telegramIdText
-                : `${telegramIdText} · Sesi: ${sess.name}`
-              : isAutoTimestampSession
-              ? `Sesi #${sess.name.replace(/^session_/, '')}`
-              : `Sesi: ${sess.name}`;
+            const displayId = meta?.telegramUserId
+              ? String(meta.telegramUserId)
+              : sess.name.replace(/^session_/, '');
+            const subtitleText = `ID Telegram: ${displayId}`;
 
             return (
               <div
