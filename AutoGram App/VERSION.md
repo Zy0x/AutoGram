@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.1
+AutoGram Version: v3.2.2
 
 Current State:
+v3.2.2 Outside Click Event Propagation Isolation & Direct Card Zoom Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki konflik event listener `onPointerDown` pada kontainer modal dan stage dengan menambahkan guard `e.target === e.currentTarget` agar klik pada Card A/B tidak lagi terpengaruh oleh pembatalan penandaan modal. Menambahkan listener `onWheel` langsung pada media Card A & B untuk zoom langsung serta auto-selecting Card.
+
+Previous:
 v3.2.1 Per-Card Independent Media Transform & Focused Toolbar Control Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan state transform mandiri (`slotATransform` dan `slotBTransform`) untuk Card A dan Card B. Saat Card terpilih (slot A/B), Labeled Media Toolbar (`Zoom Out/In/Reset`, `Rotate`, `Flip H/V`, `Magnifier`) langsung mengendalikan dan memanipulasi preview media pada Card yang sedang terpilih secara real-time.
 
 Previous:

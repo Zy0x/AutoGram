@@ -3057,9 +3057,6 @@ export function DrivePreviewModal({
         aria-modal="true"
         aria-label="Preview"
         onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={() => {
-          if (isSplitCompareMode) setActiveSplitSlot(null);
-        }}
         onClick={(e) => e.stopPropagation()}
       >
         {!isZip && (
@@ -3585,11 +3582,22 @@ export function DrivePreviewModal({
             <div style={{ width: '100%', height: '100%', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'stretch', overflow: 'hidden', background: '#0d1117', color: '#f8fafc' }} className="font-sans">
               {/* MAIN CONTENT AREA: PREVIEW STAGE + SIDEBAR */}
               <div
-                onPointerDown={() => setActiveSplitSlot(null)}
+                onPointerDown={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setActiveSplitSlot(null);
+                  }
+                }}
                 style={{ flex: '1 1 0%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden', padding: '16px', gap: '16px', boxSizing: 'border-box' }}
               >
                 {/* STAGE SPLIT PREVIEW (CARDS A & B SIDE-BY-SIDE HORIZONTAL) */}
-                <div style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}>
+                <div
+                  onPointerDown={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setActiveSplitSlot(null);
+                    }
+                  }}
+                  style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', gap: '16px', overflow: 'hidden' }}
+                >
                   {/* CARD A (LEFT) */}
                   {(() => {
                     const fileA = currentDupGroup.files[selectedAIndex] || currentDupGroup.files[0];
@@ -3652,7 +3660,23 @@ export function DrivePreviewModal({
                           </div>
                         ) : (
                           <>
-                            <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
+                            <div
+                              className="drive-preview-split-media-wrap"
+                              onWheel={(e) => {
+                                e.stopPropagation();
+                                const dir = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+                                setSlotATransform((prev) => {
+                                  const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom + dir));
+                                  return {
+                                    ...prev,
+                                    zoom: next,
+                                    pan: next <= 1 ? { x: 0, y: 0 } : prev.pan,
+                                  };
+                                });
+                                if (activeSplitSlot !== 'A') setActiveSplitSlot('A');
+                              }}
+                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
+                            >
                               {(() => {
                                 const transformStrA = `translate(${slotATransform.pan.x}px, ${slotATransform.pan.y}px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
                                 return isImageDriveFile(fileA) && thumbA ? (
@@ -3766,7 +3790,23 @@ export function DrivePreviewModal({
                           </div>
                         ) : (
                           <>
-                            <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
+                            <div
+                              className="drive-preview-split-media-wrap"
+                              onWheel={(e) => {
+                                e.stopPropagation();
+                                const dir = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+                                setSlotBTransform((prev) => {
+                                  const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom + dir));
+                                  return {
+                                    ...prev,
+                                    zoom: next,
+                                    pan: next <= 1 ? { x: 0, y: 0 } : prev.pan,
+                                  };
+                                });
+                                if (activeSplitSlot !== 'B') setActiveSplitSlot('B');
+                              }}
+                              style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}
+                            >
                               {(() => {
                                 const transformStrB = `translate(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
                                 return isImageDriveFile(fileB) && thumbB ? (

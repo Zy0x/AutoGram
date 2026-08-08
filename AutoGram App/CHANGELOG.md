@@ -1,3 +1,9 @@
+## v3.2.2 Outside Click Event Propagation Isolation & Direct Card Zoom Engine
+
+### Isolai Event Click Outside & Direct Card Zoom (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Handler Pembatalan Modal**: Menghapus listener `onPointerDown` global tanpa filter pada `.drive-preview-modal` dan menambahkan filter ketat `e.target === e.currentTarget` pada kontainer stage background. Hal ini memastikan klik pada elemen Card A/B maupun isinya tidak memicu reset `activeSplitSlot` menjadi `null`.
+- **Direct Card Wheel Zoom & Auto-Select**: Menambahkan listener `onWheel` pada pembungkus media Card A dan Card B. Menggulirkan wheel mouse langsung di atas Card A atau Card B akan langsung memperbesar/memperkecil media card tersebut sekaligus mengaktifkan status terpilihnya Card.
+
 ## v3.2.1 Per-Card Independent Media Transform & Focused Toolbar Control Engine
 
 ### Kontrol Toolbar Terpusat pada Card Terpilih (`DrivePreviewModal/index.tsx`)
