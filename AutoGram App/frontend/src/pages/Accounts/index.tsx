@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil } from 'lucide-react';
+import { Users, Phone, Key, Plus, RefreshCcw, Lock, Trash2, ArrowLeft, QrCode, Smartphone, Pencil, X } from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import PhoneInput, { getCountryCallingCode } from 'react-phone-number-input';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,12 @@ import { invalidateSessionListCache } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 import { getSessionMetadata } from '../../lib/telegram/core/sessionPicker';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
+
+export interface AccountsProps {
+  isModal?: boolean;
+  onClose?: () => void;
+  onAccountAdded?: () => void;
+}
 
 const safeGetCallingCode = (val: string) => {
   if (!val) return '';
@@ -115,7 +121,7 @@ const CustomCountrySelect = ({ value, onChange, options, iconComponent: Icon }: 
   )
 }
 
-export function Accounts() {
+export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsProps = {}) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<{
     name: string;
@@ -408,7 +414,10 @@ export function Accounts() {
 
   useEffect(() => {
     loadSessions();
-  }, []);
+    if (isModal) {
+      openWizard();
+    }
+  }, [isModal]);
 
   const closeWizard = async () => {
     if (isProcessing) return;
@@ -429,6 +438,9 @@ export function Accounts() {
     }
     setIsWizardOpen(false);
     loadSessions();
+    if (isModal) {
+      onClose?.();
+    }
   };
 
   const openWizard = () => {
@@ -491,6 +503,10 @@ export function Accounts() {
     setIsWizardOpen(false);
     setIsProcessing(false);
     await loadSessions();
+    if (isModal) {
+      onAccountAdded?.();
+      onClose?.();
+    }
     return true;
   };
 
@@ -765,6 +781,252 @@ export function Accounts() {
     }
   };
 
+  if (isModal) {
+    return isWizardOpen ? (
+      <div className="modal-overlay" onClick={closeWizard}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {step > 1 && (
+                <button 
+                  onClick={() => setStep(step === 3 ? 2 : 1)} 
+                  disabled={isProcessing}
+                  style={{ 
+                    background: 'transparent', 
+                    border: 'none', 
+                    color: 'var(--text-muted)', 
+                    cursor: 'pointer', 
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  title={t('accounts.go_back')}
+                >
+                  <ArrowLeft size={20} />
+                </button>
+              )}
+              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                {step === 1
+                  ? t('accounts.step_connect')
+                  : step === 2
+                    ? t('accounts.step_verify')
+                    : t('accounts.step_2fa')}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={closeWizard}
+              disabled={isProcessing}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted, #94a3b8)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                transition: 'all 0.2s',
+              }}
+              title={t('nav.modal_cancel', { defaultValue: 'Batal' })}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          
+          <div className="modal-body" style={{ padding: '24px' }}>
+            {errorMsg && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem' }}>
+                {errorMsg}
+              </div>
+            )}
+            
+            {step === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Method Tabs */}
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod('qr'); }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: loginMethod === 'qr' ? 'var(--primary)' : 'transparent',
+                      color: loginMethod === 'qr' ? '#fff' : 'var(--text-muted)',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <QrCode size={16} /> {t('accounts.tab_qr')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod('phone'); }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: loginMethod === 'phone' ? 'var(--primary)' : 'transparent',
+                      color: loginMethod === 'phone' ? '#fff' : 'var(--text-muted)',
+                      fontWeight: '600',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <Phone size={16} /> {t('accounts.tab_phone')}
+                  </button>
+                </div>
+
+                {loginMethod === 'qr' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px', width: '100%' }}>
+                    {!qrDataUrl ? (
+                      isProcessing ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '12px', width: '100%' }}>
+                          <RefreshCcw className="spin" size={32} color="var(--primary)" />
+                          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                            {t('accounts.qr_generating')}
+                          </span>
+                        </div>
+                      ) : (
+                        <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
+                          <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                        </button>
+                      )
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
+                        <div style={{ background: '#ffffff', padding: '12px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '200px', height: '200px', display: 'block' }} />
+                          {qrExpiresIn > 0 ? (
+                            <span style={{ fontSize: '0.75rem', color: '#333', fontWeight: '600', marginTop: '6px' }}>
+                              {t('accounts.valid_for', { seconds: qrExpiresIn })}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: '600', marginTop: '6px' }}>
+                              {t('accounts.status_expired')}
+                            </span>
+                          )}
+                        </div>
+
+                        {qrExpiresIn === 0 && (
+                          <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
+                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                          </button>
+                        )}
+
+                        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', fontSize: '0.85rem', color: 'var(--text-muted)', width: '100%' }}>
+                          <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Smartphone size={16} color="var(--primary)" /> {t('accounts.qr_instructions_title')}
+                          </div>
+                          <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.5' }}>
+                            <li>{t('accounts.qr_step_1')}</li>
+                            <li>{t('accounts.qr_step_2')}</li>
+                            <li>{t('accounts.qr_step_3')}</li>
+                            <li>{t('accounts.qr_step_4')}</li>
+                          </ol>
+                        </div>
+
+                        <div className="field-hint" role="status" style={{ textAlign: 'center' }}>
+                          {t('accounts.qr_auto_refresh_hint')}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="input-group" style={{ marginBottom: 0 }}>
+                      <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Phone size={14} /> {t('accounts.phone_number')}
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <PhoneInput
+                          id="phone-input"
+                          countrySelectComponent={CustomCountrySelect}
+                          placeholder={t('accounts.ph_phone_short')}
+                          value={phone}
+                          onChange={setPhone}
+                          onKeyDown={(e: any) => { 
+                            if (e.key === 'Enter') {
+                              if (sessionName && phone && !isProcessing) handleSendCode();
+                              else if (!sessionName) document.getElementById('session-name-input')?.focus();
+                            }
+                          }}
+                          autoComplete="off"
+                          international
+                          withCountryCallingCode
+                          className="input-field phone-input-container"
+                          disabled={isProcessing}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                    </div>
+                    <button className="btn btn-primary" onClick={handleSendCode} disabled={isProcessing || !sessionName || !phone}>
+                      {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.send_code')}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {t('accounts.verify_desc')}
+                </p>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Key size={14} /> {t('accounts.otp_code')}
+                  </label>
+                  <input type="text" className="input-field" placeholder="12345" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code && !isProcessing) handleSignIn() }} disabled={isProcessing} />
+                </div>
+                <button className="btn btn-primary" onClick={handleSignIn} disabled={isProcessing || !code}>
+                  {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.verify_code')}
+                </button>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {t('accounts.2fa_desc')}
+                  {passwordHint ? ` Hint: ${passwordHint}` : ''}
+                </p>
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Lock size={14} /> {t('accounts.2fa_password')}
+                  </label>
+                  <input type="password" className="input-field" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && password && !isProcessing) handleSignIn2FA() }} disabled={isProcessing} />
+                </div>
+                <button className="btn btn-primary" onClick={handleSignIn2FA} disabled={isProcessing || !password}>
+                  {isProcessing ? <RefreshCcw className="spin" size={18} /> : t('accounts.submit_password')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    ) : null;
+  }
+
   return (
     <main className="main-content page-stack">
       <header className="page-header">
@@ -973,37 +1235,59 @@ export function Accounts() {
       {isWizardOpen && (
         <div className="modal-overlay" onClick={closeWizard}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {step > 1 && (
-                <button 
-                  onClick={() => setStep(step === 3 ? 2 : 1)} 
-                  disabled={isProcessing}
-                  style={{ 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'var(--text-muted)', 
-                    cursor: 'pointer', 
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '6px',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  title={t('accounts.go_back')}
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              )}
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
-                {step === 1
-                  ? t('accounts.step_connect')
-                  : step === 2
-                    ? t('accounts.step_verify')
-                    : t('accounts.step_2fa')}
-              </h3>
+            <div className="modal-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {step > 1 && (
+                  <button 
+                    onClick={() => setStep(step === 3 ? 2 : 1)} 
+                    disabled={isProcessing}
+                    style={{ 
+                      background: 'transparent', 
+                      border: 'none', 
+                      color: 'var(--text-muted)', 
+                      cursor: 'pointer', 
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    title={t('accounts.go_back')}
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                )}
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>
+                  {step === 1
+                    ? t('accounts.step_connect')
+                    : step === 2
+                      ? t('accounts.step_verify')
+                      : t('accounts.step_2fa')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeWizard}
+                disabled={isProcessing}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted, #94a3b8)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+                }}
+                title={t('nav.modal_cancel', { defaultValue: 'Batal' })}
+              >
+                <X size={18} />
+              </button>
             </div>
             
             <div className="modal-body" style={{ padding: '24px' }}>

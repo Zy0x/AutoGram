@@ -6,6 +6,7 @@ import { ApiSetupScreen } from './pages/ApiSetupScreen';
 import { SessionLauncher } from './pages/SessionLauncher';
 import { ForwarderWorkspace } from './pages/ForwarderWorkspace';
 import { Settings } from './pages/Settings';
+import { Accounts } from './pages/Accounts';
 
 import { isMediaStudioAvailable } from './lib/tauri/capabilities';
 import { bootstrapSecureCredentials } from './lib/tauri/secureCredentials';
@@ -110,6 +111,7 @@ function App() {
   };
 
   const [apiModalOpen, setApiModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
 
   const renderAppContent = () => {
     // 1. ANIMATED SPLASH SCREEN (Shown once on boot)
@@ -136,7 +138,7 @@ function App() {
         <SessionLauncher
           onSelectMode={handleSelectMode}
           onOpenAccounts={() => {
-            setAppMode('drives');
+            setAccountModalOpen(true);
           }}
           onOpenSettings={() => {
             setAppMode('settings');
@@ -215,7 +217,7 @@ function App() {
                     localStorage.setItem('autogram_app_mode', 'launcher');
                   }}
                   onNavigateToAccounts={() => {
-                    setAppMode('drives');
+                    setAccountModalOpen(true);
                   }}
                   onSwitchMode={handleSwitchMode}
                   onBackToLauncher={() => {
@@ -241,6 +243,15 @@ function App() {
           onComplete={() => {
             setApiValid(true);
             setApiModalOpen(false);
+          }}
+        />
+      )}
+      {accountModalOpen && (
+        <Accounts
+          isModal
+          onClose={() => setAccountModalOpen(false)}
+          onAccountAdded={() => {
+            setAccountModalOpen(false);
           }}
         />
       )}
