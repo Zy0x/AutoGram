@@ -20,23 +20,12 @@ export function notifyApiError() {
 }
 
 export async function checkApiCredentialsConnected(): Promise<boolean> {
-  if (detectTauriRuntime()) {
-    try {
-      const [rawId, rawHash] = await Promise.all([
-        invokeGet('API_ID'),
-        invokeGet('API_HASH'),
-      ]);
-      if (!rawId || !rawHash || !rawId.trim() || !rawHash.trim()) {
-        return false;
-      }
-      return true;
-    } catch {
-      return false;
-    }
+  try {
+    const creds = await getApiCredentials();
+    return Boolean(creds && creds.apiId && creds.apiId.trim().length > 0 && creds.apiHash && creds.apiHash.trim().length > 0);
+  } catch {
+    return false;
   }
-  const lsId = localStorage.getItem(LS_ID) || '';
-  const lsHash = localStorage.getItem(LS_HASH) || '';
-  return Boolean(lsId.trim() && lsHash.trim());
 }
 
 export function useApiCredentialsStatus() {
