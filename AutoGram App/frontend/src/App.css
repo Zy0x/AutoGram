@@ -1721,16 +1721,17 @@
 
 /* UNIVERSAL LUXURY MODERN DARK DROPDOWN THEME */
 select,
+select.input-field,
+.input-field select,
 .td-select,
 .td-sort,
-.input-field select,
 .td-input-field select,
 .job-editor-tools .profile-select-wrap select {
   color-scheme: dark !important;
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
-  background-color: #0f172a !important;
+  background-color: #0b1520 !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 12px center !important;
@@ -1750,19 +1751,21 @@ select,
 }
 
 select:hover,
+select.input-field:hover,
 .td-select:hover,
 .td-sort:hover {
   border-color: rgba(56, 189, 248, 0.55) !important;
-  background-color: #1e293b !important;
+  background-color: #152232 !important;
   box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18) !important;
 }
 
 select:focus,
 select:focus-visible,
+select.input-field:focus,
 .td-select:focus,
 .td-sort:focus {
   border-color: #38bdf8 !important;
-  background-color: #0f172a !important;
+  background-color: #0b1520 !important;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
@@ -1776,9 +1779,12 @@ select:disabled {
 /* UNIVERSAL LUXURY OPTION LIST STYLING (POPUP ITEMS RE-STYLED FOR MODERN ELEGANCE) */
 option,
 select option,
+select.input-field option,
+.input-field option,
 .td-select option,
 .td-sort option {
-  background-color: #0f172a !important;
+  color-scheme: dark !important;
+  background-color: #0b1520 !important;
   color: #f8fafc !important;
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -1792,10 +1798,13 @@ option:active,
 option:checked,
 select option:checked,
 select option:selected,
+select.input-field option:checked,
+.input-field option:checked,
 .td-select option:checked,
 .td-sort option:checked {
+  color-scheme: dark !important;
   background-color: #0284c7 !important;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  background: #0284c7 !important;
   color: #ffffff !important;
   font-weight: 700 !important;
 }

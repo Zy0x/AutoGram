@@ -203,6 +203,30 @@
   border-color: var(--settings-border);
   border-radius: 10px;
   background-color: rgba(4, 12, 22, 0.72);
+  color-scheme: dark !important;
+  color: #f8fafc;
+}
+
+.settings-page select.input-field option,
+.settings-page .input-field option {
+  color-scheme: dark !important;
+  background-color: #0b1520 !important;
+  color: #f8fafc !important;
+  padding: 10px 14px !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+}
+
+.settings-page select.input-field option:checked,
+.settings-page select.input-field option:selected,
+.settings-page select.input-field option:hover,
+.settings-page .input-field option:checked,
+.settings-page .input-field option:selected {
+  color-scheme: dark !important;
+  background-color: #0284c7 !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .settings-page .input-field:hover {

@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+html,
+body,
 :root {
+  color-scheme: dark !important;
   /* Color Palette: Deep Dark Glassmorphism (Aligned with Media Studio) */
   --bg-dark: #0e1621;
   --bg-panel: rgba(23, 33, 43, 0.65);
@@ -507,25 +510,52 @@ input.warning-toggle:checked + .toggle-slider {
   box-sizing: border-box;
 }
 
-select.input-field {
+select.input-field,
+.input-field select,
+select {
+  color-scheme: dark !important;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  background-size: 16px;
-  padding-right: 40px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #0b1520 !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px !important;
+  padding-right: 40px !important;
+  color: #f8fafc !important;
 }
 
 .input-field:focus {
   border-color: var(--primary);
 }
 
-.input-field option {
-  background-color: var(--surface-light);
-  color: var(--text-main);
-  padding: 12px;
-  font-size: 0.95rem;
+.input-field option,
+select option,
+select.input-field option,
+optgroup option {
+  color-scheme: dark !important;
+  background-color: #0b1520 !important;
+  color: #f8fafc !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+}
+
+.input-field option:checked,
+.input-field option:hover,
+.input-field option:focus,
+.input-field option:selected,
+select option:checked,
+select option:hover,
+select option:focus,
+select option:selected {
+  color-scheme: dark !important;
+  background-color: #0284c7 !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .input-field::placeholder {
