@@ -23,7 +23,11 @@ export function notifyApiError() {
 export async function checkApiCredentialsConnected(): Promise<boolean> {
   try {
     const creds = await getApiCredentials();
-    return Boolean(creds && creds.apiId && creds.apiId.trim().length > 0 && creds.apiHash && creds.apiHash.trim().length > 0);
+    if (!creds || !creds.apiId || !creds.apiId.trim() || !creds.apiHash || !creds.apiHash.trim()) {
+      return false;
+    }
+    const verifyRes = await verifyTelegramApiCredentials(creds.apiId, creds.apiHash);
+    return verifyRes.ok;
   } catch {
     return false;
   }
