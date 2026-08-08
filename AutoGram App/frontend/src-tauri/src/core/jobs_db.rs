@@ -579,6 +579,25 @@ pub fn get_custom_cache_dir_info() -> Result<serde_json::Value, String> {
     }))
 }
 
+fn cleanup_empty_custom_dir(old_info: &CacheDirInfo) {
+    if let Some(ref cp) = old_info.custom_path {
+        if !old_info.is_fallback {
+            let _ = std::fs::remove_dir(&old_info.active_cache_dir);
+            let _ = std::fs::remove_dir(&old_info.active_temp_dir);
+            let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
+
+            let custom_base = PathBuf::from(cp.trim());
+            if custom_base.is_dir() {
+                if let Ok(mut rd) = std::fs::read_dir(&custom_base) {
+                    if rd.next().is_none() {
+                        let _ = std::fs::remove_dir(&custom_base);
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::Value, String> {
     let trimmed = new_path.trim();
     if trimmed.is_empty() {
@@ -615,25 +634,6 @@ pub fn set_custom_cache_dir(new_path: &str, action: &str) -> Result<serde_json::
             } else {
                 if std::fs::copy(&path, &target).is_ok() {
                     let _ = std::fs::remove_file(&path);
-                }
-            }
-        }
-    }
-
-    fn cleanup_empty_custom_dir(old_info: &CacheDirInfo) {
-        if let Some(ref cp) = old_info.custom_path {
-            if !old_info.is_fallback {
-                let _ = std::fs::remove_dir(&old_info.active_cache_dir);
-                let _ = std::fs::remove_dir(&old_info.active_temp_dir);
-                let _ = std::fs::remove_dir(&old_info.active_thumbs_dir);
-
-                let custom_base = PathBuf::from(cp.trim());
-                if custom_base.is_dir() {
-                    if let Ok(mut rd) = std::fs::read_dir(&custom_base) {
-                        if rd.next().is_none() {
-                            let _ = std::fs::remove_dir(&custom_base);
-                        }
-                    }
                 }
             }
         }
