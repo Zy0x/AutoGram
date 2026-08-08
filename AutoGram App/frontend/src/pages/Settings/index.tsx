@@ -32,21 +32,27 @@ interface CustomAccountSelectProps {
   onChange: (value: string) => void;
   options: SessionOption[];
   placeholder?: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
-function CustomAccountSelect({ value, onChange, options, placeholder }: CustomAccountSelectProps) {
+function CustomAccountSelect({ value, onChange, options, placeholder, onOpenChange }: CustomAccountSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleOpen = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+        toggleOpen(false);
       }
     };
     window.addEventListener('mousedown', handleOutsideClick);
     return () => window.removeEventListener('mousedown', handleOutsideClick);
-  }, []);
+  }, [onOpenChange]);
 
   const selectedOption = options.find((opt) => opt.name === value);
   const selectedLabel = selectedOption
@@ -54,11 +60,11 @@ function CustomAccountSelect({ value, onChange, options, placeholder }: CustomAc
     : placeholder || 'Pilih Akun...';
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%', zIndex: isOpen ? 1000 : 1 }}>
       {/* TRIGGER BUTTON */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => toggleOpen(!isOpen)}
         style={{
           width: '100%',
           display: 'flex',
@@ -122,7 +128,7 @@ function CustomAccountSelect({ value, onChange, options, placeholder }: CustomAc
                 key={sess.name}
                 onClick={() => {
                   onChange(sess.name);
-                  setIsOpen(false);
+                  toggleOpen(false);
                 }}
                 style={{
                   padding: '10px 12px',
@@ -242,6 +248,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [isMigrating, setIsMigrating] = useState(false);
   const [activeMigrationAction, setActiveMigrationAction] = useState<'move' | 'wipe' | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
 
   const [startupBehavior, setStartupBehaviorState] = useState<string>(() => {
     return localStorage.getItem('autogram_startup_behavior') || 'launcher';
@@ -806,7 +814,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         </div>
 
         {/* 2. STARTUP SCREEN & DEFAULT ACCOUNT */}
-        <div className="glass-panel card settings-section-startup">
+        <div className="glass-panel card settings-section-startup" style={{ position: 'relative', zIndex: isAccountDropdownOpen ? 100 : 1 }}>
           <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Zap size={20} color="var(--primary)" />
@@ -966,6 +974,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 onChange={(val) => setDefaultAccount(val)}
                 options={availableSessions}
                 placeholder={t('settings.default_account_select_placeholder')}
+                onOpenChange={(open) => setIsAccountDropdownOpen(open)}
               />
             ) : (
               <div
