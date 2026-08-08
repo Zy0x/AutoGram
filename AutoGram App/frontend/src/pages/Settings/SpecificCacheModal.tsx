@@ -329,6 +329,41 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   };
 
+  const handleClearAllSystemCaches = async () => {
+    setClearingItem('all_system');
+    try {
+      clearAvatarCache();
+      try {
+        const { cacheClearDisk } = await import('../../lib/db/jobsApi');
+        await cacheClearDisk();
+      } catch {}
+      clearThumbCache();
+      clearPreviewCache();
+      await clearPersistentThumbs();
+      clearZipBrowserCache();
+      handleClearGlobalLocations();
+      handleClearGlobalSidebar();
+      handleClearGlobalTopics();
+      handleClearGlobalPeer();
+      handleClearGlobalChatFolders();
+      handleClearGlobalScroll();
+      localStorage.removeItem('autogram_drive_upload_queue');
+      const uiKeys = [
+        'autogram_drive_view_mode',
+        'autogram_drive_grid_zoom',
+        'autogram_drive_sort_mode',
+        'autogram_drive_thumb_quality',
+        'autogram_drive_task_manager_minimized',
+      ];
+      for (const k of uiKeys) localStorage.removeItem(k);
+
+      showToast(t('ui.generated.pembersihan_total_cache_sistem_a123f45') + ' berhasil!');
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
   // --- TAB 2: ITEMISED PER-SESSION CACHE HANDLERS ---
   const handleClearBucket = (bucketKeys: string[], title: string) => {
     if (!selectedSession || bucketKeys.length === 0) return;
@@ -1158,6 +1193,45 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* MASTER SYSTEM SUMMARY & CLEAR ALL BANNER */}
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.04)',
+                  border: '1px solid rgba(239, 68, 68, 0.18)',
+                  borderRadius: '14px',
+                  padding: '14px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '4px',
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                    {t('ui.generated.pembersihan_total_cache_sistem_a123f45')}
+                  </strong>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    {t('ui.generated.hapus_seluruh_cache_spesifik_sistem_memori_a_b456c78')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearAllSystemCaches}
+                  disabled={clearingItem === 'all_system'}
+                  style={getBtnStyle(
+                    true,
+                    '#fca5a5',
+                    'rgba(239, 68, 68, 0.18)',
+                    '1px solid rgba(239, 68, 68, 0.35)'
+                  )}
+                >
+                  <Trash2 size={14} />
+                  <span>
+                    {clearingItem === 'all_system' ? '...' : t('ui.generated.hapus_seluruh_cache_sistem_d901e23')}
+                  </span>
+                </button>
               </div>
             </div>
           )}
