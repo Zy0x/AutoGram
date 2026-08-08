@@ -772,3 +772,27 @@
 .cache-modal-cancel-btn:active:not(:disabled) {
   transform: translateY(0px) scale(0.99);
 }
+
+/* Progress & Shimmer Bar Animations */
+@keyframes cacheSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cacheShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.cache-progress-spin {
+  animation: cacheSpin 1s linear infinite;
+}
+
+.cache-progress-bar-indeterminate {
+  height: 4px;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #38bdf8 100%);
+  background-size: 200% 100%;
+  animation: cacheShimmer 1.5s infinite linear;
+}

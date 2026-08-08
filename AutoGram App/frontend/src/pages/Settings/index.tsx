@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   RotateCw,
   Folder,
+  Loader2,
+  CheckCircle,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -68,6 +70,13 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [pendingNewPath, setPendingNewPath] = useState<string | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [activeMigrationAction, setActiveMigrationAction] = useState<'move' | 'wipe' | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const fetchCustomCacheDir = async () => {
     try {
@@ -107,26 +116,31 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const executeCacheMigration = async (action: 'move' | 'wipe') => {
     if (!pendingNewPath) return;
     setIsMigrating(true);
+    setActiveMigrationAction(action);
     try {
       const { setCustomCacheDir, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
       const info = await setCustomCacheDir(pendingNewPath, action);
       setCustomCacheInfo(info);
-      setIsMigrateModalOpen(false);
-      setPendingNewPath(null);
       if (info?.activePath) {
         const ds = await getAvailableDiskSpace(info.activePath);
         if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
       }
       await calculateCacheSize();
+      setIsMigrateModalOpen(false);
+      setPendingNewPath(null);
+      showToast('success', t('settings.custom_cache_success_move'));
     } catch (err) {
       console.error('Failed to set custom cache dir', err);
+      showToast('error', t('settings.custom_cache_error_action'));
     } finally {
       setIsMigrating(false);
+      setActiveMigrationAction(null);
     }
   };
 
   const executeResetToDefault = async (action: 'move' | 'wipe') => {
     setIsMigrating(true);
+    setActiveMigrationAction(action);
     try {
       const { setCustomCacheDir, resetCustomCacheDir, cacheClearDisk, getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
       if (action === 'move' && customCacheInfo?.defaultPath) {
@@ -136,16 +150,19 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       }
       const info = await resetCustomCacheDir();
       setCustomCacheInfo(info);
-      setIsResetModalOpen(false);
       if (info?.activePath) {
         const ds = await getAvailableDiskSpace(info.activePath);
         if (ds && ds.free_bytes > 0) setFreeDiskBytes(ds.free_bytes);
       }
       await calculateCacheSize();
+      setIsResetModalOpen(false);
+      showToast('success', t('settings.custom_cache_success_reset'));
     } catch (err) {
       console.error('Failed to reset custom cache dir', err);
+      showToast('error', t('settings.custom_cache_error_action'));
     } finally {
       setIsMigrating(false);
+      setActiveMigrationAction(null);
     }
   };
 
@@ -1463,8 +1480,33 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_migrate_option_wipe_desc')}
                 </span>
-              </button>
-            </div>
+                         {isMigrating && (
+              <div
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  marginTop: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Loader2 size={18} style={{ color: '#38bdf8' }} className="cache-progress-spin" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>
+                    {activeMigrationAction === 'move'
+                      ? t('settings.custom_cache_progress_moving')
+                      : t('settings.custom_cache_progress_wiping')}
+                  </span>
+                </div>
+                <div className="cache-progress-bar-indeterminate" />
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {t('settings.custom_cache_progress_wait')}
+                </span>
+              </div>
+            )}
 
             <button
               type="button"
@@ -1571,6 +1613,34 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </button>
             </div>
 
+            {isMigrating && (
+              <div
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  marginTop: '4px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Loader2 size={18} style={{ color: '#38bdf8' }} className="cache-progress-spin" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc' }}>
+                    {activeMigrationAction === 'move'
+                      ? t('settings.custom_cache_progress_moving')
+                      : t('settings.custom_cache_progress_wiping')}
+                  </span>
+                </div>
+                <div className="cache-progress-bar-indeterminate" />
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {t('settings.custom_cache_progress_wait')}
+                </span>
+              </div>
+            )}
+
             <button
               type="button"
               className="cache-modal-cancel-btn"
@@ -1612,6 +1682,33 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
         onClose={() => setIsSpecificModalOpen(false)}
         onRefreshGlobalSize={calculateCacheSize}
       />
+
+      {/* FLOATING TOAST NOTIFICATION BANNER */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 10000,
+            padding: '12px 18px',
+            borderRadius: '12px',
+            background: toastMessage.type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            backdropFilter: 'blur(10px)',
+            color: '#ffffff',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            animation: 'cacheModalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          }}
+        >
+          {toastMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
     </main>
   );
 }
