@@ -29,6 +29,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [showHash, setShowHash] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [hasInteractedGuide, setHasInteractedGuide] = useState(false);
+  const [hasClickedTelegramLink, setHasClickedTelegramLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -80,6 +81,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   };
 
   const handleOpenTelegramOrg = () => {
+    setHasClickedTelegramLink(true);
     if ((window as any).__TAURI_INTERNALS__) {
       import('@tauri-apps/plugin-shell')
         .then(({ open }) => open('https://my.telegram.org'))
@@ -143,7 +145,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           <button
             type="button"
             onClick={handleOpenTelegramOrg}
-            className="guide-link-btn"
+            className={`guide-link-btn ${!hasClickedTelegramLink ? 'guide-link-btn-pulse' : ''}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
