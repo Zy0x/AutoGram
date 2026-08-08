@@ -3602,11 +3602,6 @@ export function DrivePreviewModal({
                           <div className="drive-preview-badge-left">
                             <span className="drive-dup-badge-a">A</span>
                             <span className="drive-preview-card-title" title={fileA?.name}>{nameA}</span>
-                            {isActiveA && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.4)', padding: '1px 6px', borderRadius: '4px', marginLeft: '6px' }}>
-                                TERPILIH
-                              </span>
-                            )}
                           </div>
                           <div className="drive-preview-badge-right">
                             {!isSlotAEmpty && (
@@ -3716,11 +3711,6 @@ export function DrivePreviewModal({
                           <div className="drive-preview-badge-left">
                             <span className="drive-dup-badge-b">B</span>
                             <span className="drive-preview-card-title" title={fileB?.name}>{nameB}</span>
-                            {isActiveB && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#c084fc', background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.4)', padding: '1px 6px', borderRadius: '4px', marginLeft: '6px' }}>
-                                TERPILIH
-                              </span>
-                            )}
                           </div>
                           <div className="drive-preview-badge-right">
                             {!isSlotBEmpty && (

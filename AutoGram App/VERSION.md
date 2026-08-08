@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.2
+AutoGram Version: v3.1.3
 
 Current State:
+v3.1.3 Pure Card Glow Selection Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus badge teks "TERPILIH" di header Card A dan B sesuai instruksi pengguna, sehingga penandaan Card yang sedang aktif tampil super elegan dan bersih hanya mengandalkan aksen efek border glowing (cyan-biru untuk Card A, ungu untuk Card B).
+
+Previous:
 v3.1.2 Active Card Selection & Toolbar Binding Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memungkinkan pengguna mengeklik Card A (kiri) atau Card B (kanan) untuk memilih berkas yang aktif dalam mode Split View. Header modal dan toolbar preview (Judul, Meta Ukuran, Download, Buka, Zoom, Rotate, Info) secara terpusat menyambung dan mengeksekusi aksi pada Card yang sedang dipilih (ditandai dengan border glowing & badge TERPILIH).
 
 Previous:

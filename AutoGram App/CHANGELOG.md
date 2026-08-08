@@ -1,3 +1,8 @@
+## v3.1.3 Pure Card Glow Selection Engine
+
+### Pembersihan Badge Teks di Card Header (`DrivePreviewModal/index.tsx`)
+- **Pure Glow Active Card**: Menghapus elemen badge teks `TERPILIH` dari Card A dan Card B. Indikasi Card aktif sepenuhnya menggunakan aksen border glowing yang bersih, elegan, dan estetik (cyan-biru untuk A, ungu untuk B).
+
 ## v3.1.2 Active Card Selection & Toolbar Binding Engine
 
 ### Pemilihan Card Aktif & Penyambungan Toolbar Preview (`DrivePreviewModal/index.tsx`)
