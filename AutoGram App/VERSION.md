@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.0
+AutoGram Version: v3.2.1
 
 Current State:
+v3.2.1 Per-Card Independent Media Transform & Focused Toolbar Control Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan state transform mandiri (`slotATransform` dan `slotBTransform`) untuk Card A dan Card B. Saat Card terpilih (slot A/B), Labeled Media Toolbar (`Zoom Out/In/Reset`, `Rotate`, `Flip H/V`, `Magnifier`) langsung mengendalikan dan memanipulasi preview media pada Card yang sedang terpilih secara real-time.
+
+Previous:
 v3.2.0 Double-Event Selection Conflict Resolver Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki konflik perselisihan event ganda (`onPointerDown` vs `onClick`) yang menyebabkan Card membatalkan pemilihannya sendiri secara instan. Pemilihan Card dan toggle selection off kini berjalan sangat mulus dan presisi.
 
 Previous:

@@ -1,3 +1,9 @@
+## v3.2.1 Per-Card Independent Media Transform & Focused Toolbar Control Engine
+
+### Kontrol Toolbar Terpusat pada Card Terpilih (`DrivePreviewModal/index.tsx`)
+- **Per-Slot Transform State**: Card A dan Card B kini masing-masing memiliki state manipulasi media mandiri (`slotATransform` dan `slotBTransform`), mencakup tingkat Zoom, Sudut Rotasi, Flip Horisontal/Vertikal, Paning, dan Kaca Pembesar.
+- **Focused Toolbar Binding**: Begitu pengguna memilih Card A atau Card B, Labeled Media Toolbar (`Zoom Out/In/Reset`, `Rotate Left/Right`, `Flip H/V`, `Magnifier`) langsung membaca dan memanipulasi preview media dari Card yang terpilih secara real-time.
+
 ## v3.2.0 Double-Event Selection Conflict Resolver Engine
 
 ### Penyelesaian Konflik Event Pemilihan Card (`DrivePreviewModal/index.tsx`)

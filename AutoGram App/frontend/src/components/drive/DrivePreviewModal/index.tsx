@@ -691,6 +691,42 @@ export function DrivePreviewModal({
   const [flipH, setFlipH] = useState(false);
   const [flipV, setFlipV] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Split Compare per-slot transform state
+  const [slotATransform, setSlotATransform] = useState<{
+    zoom: number;
+    rotation: number;
+    flipH: boolean;
+    flipV: boolean;
+    pan: { x: number; y: number };
+    isMagnifierMode: boolean;
+  }>({
+    zoom: 1,
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+    pan: { x: 0, y: 0 },
+    isMagnifierMode: false,
+  });
+
+  const [slotBTransform, setSlotBTransform] = useState<{
+    zoom: number;
+    rotation: number;
+    flipH: boolean;
+    flipV: boolean;
+    pan: { x: number; y: number };
+    isMagnifierMode: boolean;
+  }>({
+    zoom: 1,
+    rotation: 0,
+    flipH: false,
+    flipV: false,
+    pan: { x: 0, y: 0 },
+    isMagnifierMode: false,
+  });
+
+  const [hasVideoFrame, setHasVideoFrame] = useState(false);
+  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
@@ -710,8 +746,25 @@ export function DrivePreviewModal({
       return false;
     }
   });
-  const [hasVideoFrame, setHasVideoFrame] = useState(false);
-  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
+
+  const curTransform = isSplitCompareMode
+    ? activeSplitSlot === 'A'
+      ? slotATransform
+      : activeSplitSlot === 'B'
+      ? slotBTransform
+      : { zoom: 1, rotation: 0, flipH: false, flipV: false, pan: { x: 0, y: 0 }, isMagnifierMode: false }
+    : { zoom, rotation, flipH, flipV, pan, isMagnifierMode };
+
+  const updateActiveTransform = (
+    updater: (prev: typeof slotATransform) => typeof slotATransform
+  ) => {
+    if (!isSplitCompareMode) return;
+    if (activeSplitSlot === 'A') {
+      setSlotATransform(updater);
+    } else if (activeSplitSlot === 'B') {
+      setSlotBTransform(updater);
+    }
+  };
   const [videoBufferedPercent, setVideoBufferedPercent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [rippleOverlay, setRippleOverlay] = useState<{ type: 'play' | 'pause'; key: number } | null>(null);
@@ -929,19 +982,30 @@ export function DrivePreviewModal({
   }, [qualities, quality]);
 
   const resetViewTools = useCallback(() => {
-    setZoom(1);
-    setRotation(0);
-    setFlipH(false);
-    setFlipV(false);
-    setPan({ x: 0, y: 0 });
-    zoomRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
-    setIsDragging(false);
-    dragRef.current = null;
-    setShowInfo(false);
-    setPlaybackRate(1);
-    setMuted(false);
-  }, []);
+    if (isSplitCompareMode) {
+      updateActiveTransform(() => ({
+        zoom: 1,
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        pan: { x: 0, y: 0 },
+        isMagnifierMode: false,
+      }));
+    } else {
+      setZoom(1);
+      setRotation(0);
+      setFlipH(false);
+      setFlipV(false);
+      setPan({ x: 0, y: 0 });
+      zoomRef.current = 1;
+      panRef.current = { x: 0, y: 0 };
+      setIsDragging(false);
+      dragRef.current = null;
+      setShowInfo(false);
+      setPlaybackRate(1);
+      setMuted(false);
+    }
+  }, [isSplitCompareMode, activeSplitSlot]);
 
   // Sync refs whenever zoom/pan state changes
   useEffect(() => {
@@ -2517,17 +2581,36 @@ export function DrivePreviewModal({
   );
 
   const zoomBy = (delta: number, focalClient?: { x: number; y: number } | null) => {
-    applyZoomAt(zoomRef.current + delta, focalClient ?? null);
+    if (isSplitCompareMode) {
+      updateActiveTransform((prev) => {
+        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom + delta));
+        return {
+          ...prev,
+          zoom: next,
+          pan: next <= 1 ? { x: 0, y: 0 } : prev.pan,
+        };
+      });
+    } else {
+      applyZoomAt(zoomRef.current + delta, focalClient ?? null);
+    }
   };
 
   const resetZoom = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    zoomRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
-    setIsDragging(false);
-    dragRef.current = null;
-  }, []);
+    if (isSplitCompareMode) {
+      updateActiveTransform((prev) => ({
+        ...prev,
+        zoom: 1,
+        pan: { x: 0, y: 0 },
+      }));
+    } else {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      zoomRef.current = 1;
+      panRef.current = { x: 0, y: 0 };
+      setIsDragging(false);
+      dragRef.current = null;
+    }
+  }, [isSplitCompareMode, activeSplitSlot]);
 
   const flushPan = useCallback(() => {
     panRaf.current = null;
@@ -3079,7 +3162,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={`Perkecil (min ${Math.round(MIN_ZOOM * 100)}%) — gulir ke bawah atau -`}
-                  disabled={isHeaderFrozen || zoom <= MIN_ZOOM + 0.001}
+                  disabled={isHeaderFrozen || curTransform.zoom <= MIN_ZOOM + 0.001}
                   onClick={() => zoomBy(-ZOOM_STEP)}
                 >
                   <ZoomOut size={15} />
@@ -3093,13 +3176,13 @@ export function DrivePreviewModal({
                   onClick={resetZoom}
                 >
                   <Shrink size={14} />
-                  <span className="drive-tool-btn-label strong">{Math.round(zoom * 100)}%</span>
+                  <span className="drive-tool-btn-label strong">{Math.round(curTransform.zoom * 100)}%</span>
                 </button>
                 <button
                   type="button"
                   className="drive-tool-btn"
                   title={`Perbesar (maks ${Math.round(MAX_ZOOM * 100)}%) — gulir ke atas atau +`}
-                  disabled={isHeaderFrozen || zoom >= MAX_ZOOM - 0.001}
+                  disabled={isHeaderFrozen || curTransform.zoom >= MAX_ZOOM - 0.001}
                   onClick={() => zoomBy(ZOOM_STEP)}
                 >
                   <ZoomIn size={15} />
@@ -3107,10 +3190,16 @@ export function DrivePreviewModal({
                 </button>
                 <button
                   type="button"
-                  className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
+                  className={`drive-tool-btn${curTransform.isMagnifierMode ? ' is-on' : ''}`}
                   title={t("speedtest.tooltip_magnifier")}
                   disabled={isHeaderFrozen}
-                  onClick={() => setIsMagnifierMode((v) => !v)}
+                  onClick={() => {
+                    if (isSplitCompareMode) {
+                      updateActiveTransform((p) => ({ ...p, isMagnifierMode: !p.isMagnifierMode }));
+                    } else {
+                      setIsMagnifierMode((v) => !v);
+                    }
+                  }}
                 >
                   <Search size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_magnifier")}</span>
@@ -3126,7 +3215,13 @@ export function DrivePreviewModal({
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_left")}
                   disabled={isHeaderFrozen}
-                  onClick={() => setRotation((r) => (r + 270) % 360)}
+                  onClick={() => {
+                    if (isSplitCompareMode) {
+                      updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 270) % 360 }));
+                    } else {
+                      setRotation((r) => (r + 270) % 360);
+                    }
+                  }}
                 >
                   <RotateCcw size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_left")}</span>
@@ -3136,7 +3231,13 @@ export function DrivePreviewModal({
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_right")}
                   disabled={isHeaderFrozen}
-                  onClick={() => setRotation((r) => (r + 90) % 360)}
+                  onClick={() => {
+                    if (isSplitCompareMode) {
+                      updateActiveTransform((p) => ({ ...p, rotation: (p.rotation + 90) % 360 }));
+                    } else {
+                      setRotation((r) => (r + 90) % 360);
+                    }
+                  }}
                 >
                   <RotateCw size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_right")}</span>
@@ -3146,7 +3247,13 @@ export function DrivePreviewModal({
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_h")}
                   disabled={isHeaderFrozen}
-                  onClick={() => setFlipH((v) => !v)}
+                  onClick={() => {
+                    if (isSplitCompareMode) {
+                      updateActiveTransform((p) => ({ ...p, flipH: !p.flipH }));
+                    } else {
+                      setFlipH((v) => !v);
+                    }
+                  }}
                 >
                   <FlipHorizontal size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_flip")}</span>
@@ -3156,21 +3263,31 @@ export function DrivePreviewModal({
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_v")}
                   disabled={isHeaderFrozen}
-                  onClick={() => setFlipV((v) => !v)}
+                  onClick={() => {
+                    if (isSplitCompareMode) {
+                      updateActiveTransform((p) => ({ ...p, flipV: !p.flipV }));
+                    } else {
+                      setFlipV((v) => !v);
+                    }
+                  }}
                 >
                   <FlipVertical size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_flip_v")}</span>
                 </button>
-                {(rotation !== 0 || flipH || flipV) && (
+                {(curTransform.rotation !== 0 || curTransform.flipH || curTransform.flipV) && (
                   <button
                     type="button"
                     className="drive-tool-btn"
                     title={t("speedtest.tooltip_rotate_reset")}
                     disabled={isHeaderFrozen}
                     onClick={() => {
-                      setRotation(0);
-                      setFlipH(false);
-                      setFlipV(false);
+                      if (isSplitCompareMode) {
+                        updateActiveTransform((p) => ({ ...p, rotation: 0, flipH: false, flipV: false }));
+                      } else {
+                        setRotation(0);
+                        setFlipH(false);
+                        setFlipV(false);
+                      }
                     }}
                   >
                     <RefreshCw size={15} />
@@ -3536,14 +3653,17 @@ export function DrivePreviewModal({
                         ) : (
                           <>
                             <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
-                              {isImageDriveFile(fileA) && thumbA ? (
-                                <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }} />
-                              ) : (
-                                <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                                  <Film size={36} />
-                                  <span className="text-xs text-slate-400">{fileA.name}</span>
-                                </div>
-                              )}
+                              {(() => {
+                                const transformStrA = `translate(${slotATransform.pan.x}px, ${slotATransform.pan.y}px) rotate(${slotATransform.rotation}deg) scale(${(slotATransform.flipH ? -1 : 1) * slotATransform.zoom}, ${(slotATransform.flipV ? -1 : 1) * slotATransform.zoom})`;
+                                return isImageDriveFile(fileA) && thumbA ? (
+                                  <img src={thumbA} alt={fileA.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transform: transformStrA, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }} />
+                                ) : (
+                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2" style={{ transform: transformStrA, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }}>
+                                    <Film size={36} />
+                                    <span className="text-xs text-slate-400">{fileA.name}</span>
+                                  </div>
+                                );
+                              })()}
                             </div>
 
                             <div className="drive-preview-split-meta" style={{ flexShrink: 0 }}>
@@ -3647,14 +3767,17 @@ export function DrivePreviewModal({
                         ) : (
                           <>
                             <div className="drive-preview-split-media-wrap" style={{ flex: '1 1 0%', minHeight: 0, height: 0, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#0d1117', borderRadius: '8px', margin: '8px 0' }}>
-                              {isImageDriveFile(fileB) && thumbB ? (
-                                <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }} />
-                              ) : (
-                                <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2">
-                                  <Film size={36} />
-                                  <span className="text-xs text-slate-400">{fileB.name}</span>
-                                </div>
-                              )}
+                              {(() => {
+                                const transformStrB = `translate(${slotBTransform.pan.x}px, ${slotBTransform.pan.y}px) rotate(${slotBTransform.rotation}deg) scale(${(slotBTransform.flipH ? -1 : 1) * slotBTransform.zoom}, ${(slotBTransform.flipV ? -1 : 1) * slotBTransform.zoom})`;
+                                return isImageDriveFile(fileB) && thumbB ? (
+                                  <img src={thumbB} alt={fileB.name} className="drive-preview-split-media" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', transform: transformStrB, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }} />
+                                ) : (
+                                  <div className="drive-preview-media drive-preview-skeleton-img is-blank flex flex-col items-center justify-center text-slate-400 gap-2" style={{ transform: transformStrB, transition: 'transform 0.15s cubic-bezier(0.2,0,0,1)' }}>
+                                    <Film size={36} />
+                                    <span className="text-xs text-slate-400">{fileB.name}</span>
+                                  </div>
+                                );
+                              })()}
                             </div>
 
                             <div className="drive-preview-split-meta" style={{ flexShrink: 0 }}>
