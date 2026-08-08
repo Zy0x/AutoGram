@@ -1,6 +1,9 @@
-AutoGram Version: v3.0.4
+AutoGram Version: v3.0.5
 
 Current State:
+v3.0.5 Middle Truncation & 2:3 Sidepanel Portrait Thumbnail Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan pemotongan teks nama berkas di bagian tengah (`middleTruncateFilename`) pada Card A/B ("A Gambar ilustra... pendidikan.jpg") dan sidepanel. Merestrukturisasi sidepanel kanan menjadi ringkas dengan thumbnail rasio portrait 2:3 (`aspect-[2/3]`), tombol `[ X ]` pengosong slot di header kartu, footer meta `1.24 MB` + `✓ Simpan` & `🗑 Hapus`, serta menempatkan navigasi grup (`< Previous Group`, `7 of 23 Groups`, `Next Group >`) di footer sidepanel.
+
+Previous:
 v3.0.4 Direct Reference UI Match & Dedicated Split Compare Modal Engine — membenahi `DrivePreviewModal/index.tsx`, `App.css`, `VERSION.md`, dan `CHANGELOG.md`. Merombak modal perbandingan duplikat secara 100% presisi sesuai screenshot acuan pengguna. Menyembunyikan header preview media tunggal saat mode Split View aktif, menyediakan topbar dedikasi `Duplicate Group #7`, kartu perbandingan A & B dengan header badge 3-dots dan meta footer `1.24 MB` + `✓ Keep A/B` & `🗑 Delete`, footer navigasi grup bawah (`< Previous Group`, `7 of 24 groups`, `Next Group >`), serta panel samping `Files in this group (2)` dengan item list dan indikator radio aksi.
 
 Previous:

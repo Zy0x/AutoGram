@@ -1,3 +1,11 @@
+## v3.0.5 Middle Truncation & 2:3 Sidepanel Portrait Thumbnail Engine
+
+### Pemotongan Nama File Tengah & Thumbnail 2:3 Sidepanel Ringkas (`DrivePreviewModal/index.tsx`, `App.css`)
+- **Middle Truncation (`middleTruncateFilename`)**: Nama berkas panjang yang melebihi 75% lebar kartu dipotong di bagian tengah (contoh: `"A Gambar ilustra... pendidikan.jpg"`).
+- **Tombol Pengosong Slot `[ X ]`**: Tombol silang di pojok kanan header Card A & B untuk mengosongkan gambar di slot preview.
+- **Thumbnail Portrait Rasio 2:3**: Thumbnail berkas di sidepanel disajikan dalam rasio portrait 2:3 (`aspect-[2/3]`, 44px x 66px).
+- **Navigasi Grup di Footer Sidepanel**: Tombol `[ < Previous Group ]`, counter `7 of 23 Groups`, dan `[ Next Group > ]` beserta petunjuk disimpan di footer sidepanel kanan.
+
 ## v3.0.4 Direct Reference UI Match & Dedicated Split Compare Modal Engine
 
 ### Presisi 100% Acuan Screenshot Pengguna (`DrivePreviewModal/index.tsx`, `App.css`)
