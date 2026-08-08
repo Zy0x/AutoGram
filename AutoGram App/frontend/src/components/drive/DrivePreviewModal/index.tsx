@@ -3278,8 +3278,8 @@ export function DrivePreviewModal({
               </div>
             )}
 
-            <div className="drive-tool-group" role="group" aria-label="Aksi">
-              <span className="drive-tool-group-label">{t("speedtest.label_action") || "Aksi"}</span>
+            <div className="drive-tool-group" role="group" aria-label="Lainnya">
+              <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
               <button
                 type="button"
                 className="drive-tool-btn"
@@ -3289,9 +3289,9 @@ export function DrivePreviewModal({
                 }}
                 disabled={isHeaderFrozen || saving}
                 title={t('speedtest.download_tooltip')}
+                aria-label="Download"
               >
                 {saving ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
-                <span className="drive-tool-btn-label">{t("speedtest.label_download") || "Unduh"}</span>
               </button>
               <button
                 type="button"
@@ -3302,14 +3302,10 @@ export function DrivePreviewModal({
                 }}
                 disabled={isHeaderFrozen}
                 title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
+                aria-label="Fullscreen"
               >
                 {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                <span className="drive-tool-btn-label">{isFullscreen ? "Kecilkan" : "Layar Penuh"}</span>
               </button>
-            </div>
-
-            <div className="drive-tool-group" role="group" aria-label="Lainnya">
-              <span className="drive-tool-group-label">{t("speedtest.label_other")}</span>
               <button
                 type="button"
                 className={`drive-tool-btn${loading ? ' is-loading' : ''}`}

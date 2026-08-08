@@ -1,3 +1,9 @@
+## v3.1.8 Icon-Only Download & Fullscreen in More Group Engine
+
+### Tombol Ikon Ringkas di Grup "Lainnya" (`DrivePreviewModal/index.tsx`)
+- **Penghapusan Grup Aksi Standalone**: Menghapus pembungkus grup "Aksi" terpisah untuk menghemat ruang horizontal toolbar.
+- **Relokasi Icon-Only ke Grup "Lainnya"**: Memindahkan tombol `Download` dan `Fullscreen` ke dalam grup `Lainnya` (`More`) dalam format ikon ringkas (icon-only), sehingga toolbar menjadi jauh lebih padat, efisien, dan estetis.
+
 ## v3.1.7 Header Minimalist & Download/Fullscreen Toolbar Relocation Engine
 
 ### Header Minimalis & Relokasi Tombol ke Toolbar (`DrivePreviewModal/index.tsx`)

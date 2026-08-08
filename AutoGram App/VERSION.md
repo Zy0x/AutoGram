@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.7
+AutoGram Version: v3.1.8
 
 Current State:
+v3.1.8 Icon-Only Download & Fullscreen in More Group Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus grup tersendiri "Aksi", memindahkan tombol Download dan Fullscreen sebagai tombol ikon ringkas (icon-only) ke dalam grup "Lainnya" (More) di Labeled Media Toolbar untuk menghemat ruang antarmuka.
+
+Previous:
 v3.1.7 Header Minimalist & Download/Fullscreen Toolbar Relocation Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus kluster tombol navigasi header atas (`.drive-preview-nav`), memindahkan tombol Download (Unduh) dan Fullscreen (Layar Penuh) ke dalam Labeled Media Toolbar di bawah grup Aksi, membuat baris header atas ultra bersih dan elegan.
 
 Previous:
