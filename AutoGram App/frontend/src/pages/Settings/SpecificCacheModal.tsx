@@ -11,6 +11,8 @@ import {
   HardDrive,
   User,
   SlidersHorizontal,
+  Upload,
+  Sliders,
 } from 'lucide-react';
 
 import { clearThumbCache } from '../../lib/media/thumbBatcher';
@@ -138,6 +140,35 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     try {
       clearZipBrowserCache();
       showToast(t('ui.generated.cache_zip_navigasi_berhasil_dibersihkan_d012f34'));
+      onRefreshGlobalSize?.();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleClearUploadQueue = async () => {
+    setClearingItem('upload');
+    try {
+      localStorage.removeItem('autogram_drive_upload_queue');
+      showToast(t('ui.generated.cache_antrean_upload_berhasil_dibersihkan_f901a23'));
+      onRefreshGlobalSize?.();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleResetUiPreferences = async () => {
+    setClearingItem('ui');
+    try {
+      const keys = [
+        'autogram_drive_view_mode',
+        'autogram_drive_grid_zoom',
+        'autogram_drive_sort_mode',
+        'autogram_drive_thumb_quality',
+        'autogram_drive_task_manager_minimized',
+      ];
+      for (const k of keys) localStorage.removeItem(k);
+      showToast(t('ui.generated.preferensi_ui_berhasil_direset_b123c45'));
       onRefreshGlobalSize?.();
     } finally {
       setClearingItem(null);
@@ -564,6 +595,112 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                     {clearingItem === 'zip'
                       ? '...'
                       : t('ui.generated.bersihkan_cache_zip_b8901cd')}
+                  </span>
+                </button>
+              </div>
+
+              {/* Upload Queue & Staging */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <Upload size={16} style={{ color: '#4ade80' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_antrean_upload_staging_f123a45')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_antrean_upload_tertunda_dan_staging_b678c90')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearUploadQueue}
+                  disabled={clearingItem === 'upload'}
+                  style={{
+                    marginTop: '14px',
+                    alignSelf: 'flex-start',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: '#4ade80',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'upload'
+                      ? '...'
+                      : t('ui.generated.bersihkan_antrean_upload_d901e23')}
+                  </span>
+                </button>
+              </div>
+
+              {/* Layout & UI Preferences */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <Sliders size={16} style={{ color: '#fbbf24' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_tampilan_preferensi_ui_a234b56')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.reset_pengaturan_zoom_grid_modus_tampilan_sortir_c789d01')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResetUiPreferences}
+                  disabled={clearingItem === 'ui'}
+                  style={{
+                    marginTop: '14px',
+                    alignSelf: 'flex-start',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    color: '#fbbf24',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <RotateCcw size={13} />
+                  <span>
+                    {clearingItem === 'ui'
+                      ? '...'
+                      : t('ui.generated.reset_preferensi_ui_e123f45')}
                   </span>
                 </button>
               </div>
