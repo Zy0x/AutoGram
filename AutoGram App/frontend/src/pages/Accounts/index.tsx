@@ -1199,7 +1199,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                     <div style={{ minWidth: 0 }}>
                       {(() => {
                         const customAlias = sessionAliases[s.name];
-                        const displayTitle = customAlias || s.userFullName || s.name;
+                        const displayTitle = customAlias || s.userFullName || (s.name.startsWith('session_') ? `Sesi #${s.name.replace(/^session_/, '')}` : s.name);
                         return (
                           <h4 style={{ margin: 0, opacity: s.status === 'expired' ? 0.7 : 1, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-main)' }}>

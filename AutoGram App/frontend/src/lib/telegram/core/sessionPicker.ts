@@ -145,7 +145,11 @@ export function getSessionDisplayName(sessionName: string): string {
     if (userPart) return userPart;
   }
 
-  // 3. Fallback to raw sessionName
+  // 3. Fallback to clean sessionName or formatted session timestamp
+  if (sessionName.startsWith('session_')) {
+    return `Sesi #${sessionName.replace(/^session_/, '')}`;
+  }
+
   return sessionName;
 }
 
