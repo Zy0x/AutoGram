@@ -13,6 +13,7 @@ export type SessionOption = {
   source?: string;
   userFullName?: string;
   username?: string;
+  latencyMs?: number;
 };
 
 export type SessionMetadata = {
@@ -188,11 +189,13 @@ export async function loadSelectableSessions(opts?: {
   if (verify && apiId && apiHash) {
     const checked = await Promise.all(
       all.map(async (session) => {
+        const start = performance.now();
         const result = await tgAuthStatus({
           session: session.name,
           apiId: Number(apiId),
           apiHash,
         });
+        const latencyMs = Math.max(1, Math.round(performance.now() - start));
         const isConn = !!(result?.ok && result.data?.authorized);
         if (isConn && result?.data?.user) {
           const u = result.data.user;
@@ -209,6 +212,7 @@ export async function loadSelectableSessions(opts?: {
           ...session,
           label: getSessionDisplayName(session.name),
           status: isConn ? 'connected' : 'expired',
+          latencyMs: isConn ? latencyMs : undefined,
         };
       })
     );

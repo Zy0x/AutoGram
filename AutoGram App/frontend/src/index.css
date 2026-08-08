@@ -1757,3 +1757,21 @@ html, body {
   box-shadow: 0 0 26px rgba(239, 68, 68, 0.95), 0 0 12px rgba(244, 63, 94, 0.8) !important;
 }
 
+/* Elegant breathing blink glow animation for session connection dot */
+@keyframes statusDotBlink {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.65;
+    box-shadow: 0 0 14px currentColor, 0 0 24px currentColor;
+  }
+}
+
+.ag-status-dot-pulse {
+  animation: statusDotBlink 2.2s ease-in-out infinite;
+}
+

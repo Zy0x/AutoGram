@@ -107,14 +107,15 @@ export function SessionLauncher({
     localStorage.setItem('autogram_default_session', name);
   };
 
-  const displaySessions = sessions.length > 0 ? sessions : [
+  const displaySessions: SessionOption[] = sessions.length > 0 ? sessions : [
     {
       name: 'Lavender',
       label: 'Lavender (@lv_drr)',
       status: 'active',
-      premium: true,
+      latencyMs: 15,
+      isPremium: true,
       datacenterId: 4,
-    },
+    } as SessionOption,
   ];
 
   return (
@@ -300,18 +301,71 @@ export function SessionLauncher({
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span
-                      style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: '#4ade80',
-                        boxShadow: '0 0 10px #4ade80',
-                      }}
-                    />
-                    <span style={{ fontSize: '0.78rem', color: '#4ade80', fontWeight: 600 }}>
-                      {t('nav.connection_strong', { latency: 15 })}
-                    </span>
+                    {sess.status === 'expired' || sess.status === 'unauthorized' ? (
+                      <>
+                        <span
+                          className="ag-status-dot-pulse"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: '#ef4444',
+                            color: '#ef4444',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.78rem', color: '#fca5a5', fontWeight: 600 }}>
+                          {t('nav.connection_expired')}
+                        </span>
+                      </>
+                    ) : sess.status === 'checking' ? (
+                      <>
+                        <span
+                          className="ag-status-dot-pulse"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: '#38bdf8',
+                            color: '#38bdf8',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>
+                          {t('nav.connection_checking')}
+                        </span>
+                      </>
+                    ) : sess.status === 'error' || sess.status === 'offline' ? (
+                      <>
+                        <span
+                          className="ag-status-dot-pulse"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: '#f59e0b',
+                            color: '#f59e0b',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 600 }}>
+                          {t('nav.connection_error')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          className="ag-status-dot-pulse"
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: '#10b981',
+                            color: '#10b981',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600 }}>
+                          {t('nav.connection_strong', { latency: sess.latencyMs || 15 })}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   <button
@@ -444,84 +498,125 @@ export function SessionLauncher({
 
                 <hr style={{ border: 0, borderTop: '1px solid rgba(255,255,255,0.06)', margin: 0 }} />
 
-                {/* MODE ACTION BUTTONS */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {/* BUKA DRIVES */}
-                  <button
-                    type="button"
-                    onClick={() => onSelectMode(sess.name, 'drives')}
+                {sess.status === 'expired' || sess.status === 'unauthorized' ? (
+                  <div
                     style={{
                       padding: '14px 16px',
                       borderRadius: '14px',
-                      background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(3, 105, 161, 0.25) 100%)',
-                      border: '1px solid rgba(56, 189, 248, 0.35)',
-                      color: '#bae6fd',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                      textAlign: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.borderColor = '#38bdf8';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(56, 189, 248, 0.25)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      justifyContent: 'space-between',
+                      gap: '12px',
                     }}
                   >
-                    <Folder size={22} style={{ color: '#38bdf8' }} />
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
-                        {t('nav.open_drives')}
-                      </strong>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.drives_workspace_desc')}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <X size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.78rem', color: '#fca5a5', fontWeight: 500 }}>
+                        {t('nav.session_expired_desc')}
+                      </span>
                     </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={onOpenAccounts}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(225, 29, 72, 0.4))',
+                        border: '1px solid rgba(248, 113, 113, 0.6)',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {t('nav.relogin_button')}
+                    </button>
+                  </div>
+                ) : (
+                  /* MODE ACTION BUTTONS */
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {/* BUKA DRIVES */}
+                    <button
+                      type="button"
+                      onClick={() => onSelectMode(sess.name, 'drives')}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '14px',
+                        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(3, 105, 161, 0.25) 100%)',
+                        border: '1px solid rgba(56, 189, 248, 0.35)',
+                        color: '#bae6fd',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.18s ease',
+                        textAlign: 'center',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.borderColor = '#38bdf8';
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(56, 189, 248, 0.25)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <Folder size={22} style={{ color: '#38bdf8' }} />
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                          {t('nav.open_drives')}
+                        </strong>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.drives_workspace_desc')}</span>
+                      </div>
+                    </button>
 
-                  {/* BUKA FORWARDER */}
-                  <button
-                    type="button"
-                    onClick={() => onSelectMode(sess.name, 'forwarder')}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: '14px',
-                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.25) 100%)',
-                      border: '1px solid rgba(99, 102, 241, 0.35)',
-                      color: '#c7d2fe',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                      textAlign: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.borderColor = '#818cf8';
-                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.25)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <ArrowRightLeft size={22} style={{ color: '#818cf8' }} />
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
-                        {t('nav.open_forwarder')}
-                      </strong>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.forwarder_workspace_desc')}</span>
-                    </div>
-                  </button>
-                </div>
+                    {/* BUKA FORWARDER */}
+                    <button
+                      type="button"
+                      onClick={() => onSelectMode(sess.name, 'forwarder')}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '14px',
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(67, 56, 202, 0.25) 100%)',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        color: '#c7d2fe',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.18s ease',
+                        textAlign: 'center',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.borderColor = '#818cf8';
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.25)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <ArrowRightLeft size={22} style={{ color: '#818cf8' }} />
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '0.92rem', color: '#f8fafc' }}>
+                          {t('nav.open_forwarder')}
+                        </strong>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('nav.forwarder_workspace_desc')}</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
