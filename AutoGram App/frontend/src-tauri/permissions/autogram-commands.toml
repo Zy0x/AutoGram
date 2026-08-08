@@ -135,7 +135,8 @@ allow = [
     "select_best_encoder",
     "get_custom_cache_dir",
     "set_custom_cache_dir",
-    "reset_custom_cache_dir"
+    "reset_custom_cache_dir",
+    "get_available_disk_space"
 ]
 
 

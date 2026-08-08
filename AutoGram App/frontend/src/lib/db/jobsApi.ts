@@ -197,7 +197,8 @@ export async function getAvailableDiskSpace(path?: string): Promise<{ free_bytes
       free_bytes: Number(r?.free_bytes || 0),
       total_bytes: Number(r?.total_bytes || 0),
     };
-  } catch {
+  } catch (err) {
+    console.warn('Failed to get available disk space', err);
     return { free_bytes: 0, total_bytes: 0 };
   }
 }
