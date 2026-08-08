@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Settings2,
   Key,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ import { clearMediaCache } from '../../lib/db/mediaStudioDb';
 
 import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
+import { SpecificCacheModal } from './SpecificCacheModal';
 import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
 import './Settings.css';
 
@@ -37,6 +39,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isTrimming, setIsTrimming] = useState(false);
+  const [isSpecificCacheModalOpen, setIsSpecificCacheModalOpen] = useState(false);
   const [cacheSize, setCacheSize] = useState<number | null>(null);
   const [clearStatus, setClearStatus] = useState<"idle" | "success" | "error">("idle");
   const [cacheLimitMB, setCacheLimitMB] = useState<number>(() => {
@@ -509,6 +512,25 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               >
                 {t('settings.calc_size_btn')}
               </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  minHeight: '44px',
+                  flex: '1 1 auto',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+                onClick={() => setIsSpecificCacheModalOpen(true)}
+              >
+                <SlidersHorizontal size={16} />
+                <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
+              </button>
               <button 
                 type="button" 
                 className="btn btn-primary" 
@@ -561,6 +583,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           </div>
         </div>
       </div>
+
+      <SpecificCacheModal
+        isOpen={isSpecificCacheModalOpen}
+        onClose={() => setIsSpecificCacheModalOpen(false)}
+        onRefreshGlobalSize={calculateCacheSize}
+      />
 
       <ConfirmModal
         isOpen={isConfirmClearCacheOpen}

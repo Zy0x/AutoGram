@@ -54,7 +54,6 @@ import {
   loadTransferSettingsProfiles,
   saveTransferSettingsProfiles,
 } from '../../../lib/telegram/driveTypes';
-import { clearAvatarCache } from '../../../lib/media/avatarBatcher';
 import {
   loadSelectableSessions,
   getSessionMetadata,
@@ -3078,83 +3077,6 @@ export function TransferSettingsWorkspace({
                     onChange={(e) => patch({ smartRateControlEnabled: e.target.checked })}
                   />
                 </label>
-              </div>
-            </div>
-
-            {/* 2. PEMELIHARAAN CACHE & PENYIMPANAN */}
-            <div
-              className="td-settings-card"
-              style={{
-                background: 'linear-gradient(150deg, rgba(15, 22, 36, 0.8) 0%, rgba(8, 12, 22, 0.95) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '16px',
-                padding: '24px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-                <div
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    background: 'rgba(56, 189, 248, 0.12)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Trash2 size={18} style={{ color: '#38bdf8' }} />
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-                    {t('ui.generated.2_pemeliharaan_cache_penyimpanan_190e56f')}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#94a3b8' }}>
-                    {t('ui.generated.bersihkan_memori_sementara_dan_file_cache_lokal__1ab953f')}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>{t('ui.generated.cache_avatar_foto_profil_fd75268')}</strong>
-                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.hapus_seluruh_cache_foto_profil_lokal_dari_memor_6b0ce9a')}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="td-chip-btn"
-                    onClick={() => {
-                      clearAvatarCache();
-                      triggerCaptionToast('✨ Cache avatar berhasil dibersihkan!');
-                    }}
-                    style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '6px 12px', fontSize: '12px' }}
-                  >
-                    <RotateCcw size={14} />
-                    <span>{t('ui.generated.bersihkan_cache_avatar_b8c07e0')}</span>
-                  </button>
-                </div>
-
-                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>{t('ui.generated.file_temporary_chunk_split_794ad52')}</strong>
-                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>{t('ui.generated.hapus_berkas_sementara_tmp_dan_part_volume_split_63d7fed')}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="td-chip-btn"
-                    onClick={() => {
-                      triggerCaptionToast('🧹 File temporary berhasil dibersihkan!');
-                    }}
-                    style={{ marginTop: '14px', alignSelf: 'flex-start', background: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '6px 12px', fontSize: '12px' }}
-                  >
-                    <Trash2 size={14} />
-                    <span>{t('ui.generated.bersihkan_file_temporary_c6cb410')}</span>
-                  </button>
-                </div>
               </div>
             </div>
 
