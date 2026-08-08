@@ -852,6 +852,11 @@ fn cache_trim_disk(target_bytes: u64) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
+fn get_available_disk_space(path: Option<String>) -> Result<serde_json::Value, String> {
+    core::jobs_db::get_disk_free_space(path)
+}
+
+#[tauri::command]
 fn jobs_fresh_start(job_id: i64) -> Result<(), String> {
     core::jobs_db::fresh_start_job(job_id)
 }
@@ -1733,6 +1738,7 @@ pub fn run() {
             studio_cancel_transfer,
             studio_set_transfer_paused,
             quality_preflight,
+            get_available_disk_space,
         ])
         .setup(|app| {
             // Best-effort: create sessions/cache/temp + tighten ACLs + seed API from .env

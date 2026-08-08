@@ -7,6 +7,7 @@ import {
   Settings2,
   Key,
   SlidersHorizontal,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -25,7 +26,7 @@ import { clearMediaStudioCache, getMediaStudioCacheSize } from '../../lib/db/med
 import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
 import { SpecificCacheModal } from './SpecificCacheModal';
-import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
+import { CACHE_LIMIT_STEPS } from './settingsUtils';
 import './Settings.css';
 
 interface SettingsProps {
@@ -38,10 +39,21 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isTrimming, setIsTrimming] = useState(false);
-  const [isSpecificCacheModalOpen, setIsSpecificCacheModalOpen] = useState(false);
   const [cacheSize, setCacheSize] = useState<number | null>(null);
-  const [clearStatus, setClearStatus] = useState<"idle" | "success" | "error">("idle");
+  const [clearStatus, setClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const [isSpecificModalOpen, setIsSpecificModalOpen] = useState(false);
+  const [isTrimming, setIsTrimming] = useState(false);
+
+  // Available disk free space in bytes
+  const [freeDiskBytes, setFreeDiskBytes] = useState<number | null>(null);
+
+  // Custom limit modal state
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [customInputValue, setCustomInputValue] = useState<string>('7.5');
+  const [customUnit, setCustomUnit] = useState<'MB' | 'GB'>('GB');
+
+  // Load cache limit (default 5 GB = 5120 MB)
   const [cacheLimitMB, setCacheLimitMB] = useState<number>(() => {
     const saved = localStorage.getItem('autogram_cache_limit_mb');
     if (saved !== null) {
@@ -85,7 +97,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       try {
         const { cacheTrimDisk } = await import('../../lib/db/jobsApi');
         await cacheTrimDisk(limitBytes);
-      } catch { /* best effort */ }
+      } catch {
+        /* best effort */
+      }
       await calculateCacheSize();
       setClearStatus('success');
       setTimeout(() => setClearStatus('idle'), 4000);
@@ -104,8 +118,16 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     }
   };
 
+  const handleSaveCustomLimit = () => {
+    const parsed = parseFloat(customInputValue);
+    if (isNaN(parsed) || parsed <= 0) return;
+    const mbValue = customUnit === 'GB' ? Math.round(parsed * 1024) : Math.round(parsed);
+    handleCacheLimitChange(mbValue);
+    setIsCustomModalOpen(false);
+  };
+
   const [isClearingDb, setIsClearingDb] = useState(false);
-  const [dbClearStatus, setDbClearStatus] = useState<"idle" | "success" | "error">("idle");
+  const [dbClearStatus, setDbClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const [isConfirmClearCacheOpen, setIsConfirmClearCacheOpen] = useState(false);
   const [isConfirmClearDbOpen, setIsConfirmClearDbOpen] = useState(false);
@@ -113,7 +135,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
@@ -253,14 +275,46 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     }
   };
 
-  // Auto-calculate on mount
+  // Auto-calculate & fetch free disk space on mount
   useEffect(() => {
     void calculateCacheSize();
+    void (async () => {
+      try {
+        const { getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
+        const res = await getAvailableDiskSpace();
+        if (res?.free_bytes) {
+          setFreeDiskBytes(res.free_bytes);
+        }
+      } catch {}
+    })();
   }, []);
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
+
+  // Current slider step index calculation
+  const currentStepIndex = (() => {
+    if (cacheLimitMB === 0) return 8; // Unlimited
+    const idx = CACHE_LIMIT_STEPS.indexOf(cacheLimitMB);
+    if (idx !== -1) return idx;
+    return 0; // Custom
+  })();
+
+  const handleSliderIndexChange = (idx: number) => {
+    if (idx === 0) {
+      setIsCustomModalOpen(true);
+    } else {
+      const mb = CACHE_LIMIT_STEPS[idx];
+      if (mb !== undefined) {
+        handleCacheLimitChange(mb);
+      }
+    }
+  };
+
+  const selectedLimitBytes = cacheLimitMB * 1024 * 1024;
+  const isExceedingDisk =
+    freeDiskBytes !== null && freeDiskBytes > 0 && cacheLimitMB > 0 && selectedLimitBytes > freeDiskBytes;
 
   return (
     <main className="main-content settings-page">
@@ -310,18 +364,16 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <Globe size={20} color="var(--primary)" />
             <h3>{t('settings.general')}</h3>
           </div>
-          
+
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="input-label title-with-icon" htmlFor="settings-language">
               {t('settings.language')}
             </label>
-            <p className="field-hint">
-              {t('settings.language_desc')}
-            </p>
-            <select 
+            <p className="field-hint">{t('settings.language_desc')}</p>
+            <select
               id="settings-language"
-              className="input-field" 
-              value={i18n.language} 
+              className="input-field"
+              value={i18n.language}
               onChange={(e) => changeLanguage(e.target.value)}
             >
               <option value="en">{t('settings.language_english')}</option>
@@ -342,24 +394,31 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <Trash2 size={20} color="var(--primary)" />
             <h3>{t('settings.cache_management')}</h3>
           </div>
-          
+
           <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
             {t('settings.cache_management_desc')}
           </p>
 
           <div className="page-stack" style={{ gap: '1.25rem' }}>
-            <div className="settings-cache-summary" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'rgba(255, 255, 255, 0.03)',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.05)'
-            }}>
+            <div
+              className="settings-cache-summary"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.03)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+              }}
+            >
               <div>
-                <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>{t('settings.cache_detected_size')}</span>
-                <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>{t('settings.cache_storage_sources')}</p>
+                <span className="input-label" style={{ margin: 0, fontSize: '0.9rem' }}>
+                  {t('settings.cache_detected_size')}
+                </span>
+                <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem' }}>
+                  {t('settings.cache_storage_sources')}
+                </p>
               </div>
               <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
                 <strong style={{ fontSize: '1.1rem', color: 'var(--primary)' }}>
@@ -368,28 +427,38 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Slider Pembatas Ukuran Cache */}
-            <div className="settings-cache-limit" style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              padding: '14px 16px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px'
-            }}>
+            {/* Slider Pembatas Ukuran Cache (dengan Custom, Unlimited & Disk Free Warning) */}
+            <div
+              className="settings-cache-limit"
+              style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sliders size={16} color="var(--primary)" />
-                  <label className="input-label" htmlFor="settings-cache-limit" style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}>
+                  <label
+                    className="input-label"
+                    htmlFor="settings-cache-limit"
+                    style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600 }}
+                  >
                     {t('settings.cache_limit_label')}
                   </label>
                 </div>
                 <strong style={{ fontSize: '0.95rem', color: cacheLimitMB === 0 ? 'var(--text-muted)' : 'var(--primary)' }}>
-                  {cacheLimitMB === 0 ? t('ui.generated.unlimited_b8bef37') : formatBytes(cacheLimitMB * 1024 * 1024)}
+                  {cacheLimitMB === 0
+                    ? t('ui.generated.unlimited_tanpa_batas_b567c89')
+                    : formatBytes(cacheLimitMB * 1024 * 1024)}
                 </strong>
               </div>
 
+              {/* SLIDER COMPONENT */}
               <div style={{ position: 'relative', marginTop: '4px', marginBottom: '8px' }}>
                 <input
                   id="settings-cache-limit"
@@ -397,11 +466,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   min={0}
                   max={CACHE_LIMIT_STEPS.length - 1}
                   step={1}
-                  value={CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) !== -1 ? CACHE_LIMIT_STEPS.indexOf(cacheLimitMB) : 3}
-                  onChange={(e) => {
-                    const idx = Number(e.target.value);
-                    handleCacheLimitChange(CACHE_LIMIT_STEPS[idx] ?? 5120);
-                  }}
+                  value={currentStepIndex}
+                  onChange={(e) => handleSliderIndexChange(Number(e.target.value))}
                   style={{
                     width: '100%',
                     accentColor: 'var(--primary)',
@@ -413,21 +479,37 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   }}
                 />
 
-                <div className="settings-cache-labels" style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '22px',
-                  marginTop: '10px',
-                }}>
-                  {CACHE_LIMIT_LABELS.map((lbl, idx) => {
-                    const val = CACHE_LIMIT_STEPS[idx];
-                    const isSelected = val === cacheLimitMB;
+                <div
+                  className="settings-cache-labels"
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '22px',
+                    marginTop: '10px',
+                  }}
+                >
+                  {CACHE_LIMIT_STEPS.map((stepVal, idx) => {
+                    const isSelected = idx === currentStepIndex;
                     const pct = (idx / (CACHE_LIMIT_STEPS.length - 1)) * 100;
-                    const transform = idx === 0 ? 'none' : idx === CACHE_LIMIT_STEPS.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)';
+                    const transform =
+                      idx === 0
+                        ? 'none'
+                        : idx === CACHE_LIMIT_STEPS.length - 1
+                        ? 'translateX(-100%)'
+                        : 'translateX(-50%)';
+
+                    let displayLabel = '';
+                    if (stepVal === -1) {
+                      displayLabel = t('ui.generated.custom_kustom_f123a45');
+                    } else if (stepVal === 0) {
+                      displayLabel = t('ui.generated.unlimited_tanpa_batas_b567c89');
+                    } else {
+                      displayLabel = stepVal >= 1024 ? `${stepVal / 1024} GB` : `${stepVal} MB`;
+                    }
 
                     return (
                       <span
-                        key={lbl}
+                        key={idx}
                         className="settings-cache-tick"
                         data-selected={isSelected ? 'true' : 'false'}
                         style={{
@@ -441,177 +523,371 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                           whiteSpace: 'nowrap',
                           transition: 'color 0.2s ease, font-weight 0.2s ease',
                         }}
-                        onClick={() => handleCacheLimitChange(val)}
+                        onClick={() => handleSliderIndexChange(idx)}
                       >
-                        {lbl}
+                        {displayLabel}
                       </span>
                     );
                   })}
                 </div>
               </div>
 
-              {cacheSize !== null && cacheLimitMB > 0 && (
-                <div style={{ marginTop: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.cache_usage_label')}</span>
-                    <span style={{ color: cacheSize > cacheLimitMB * 1024 * 1024 ? '#ef4444' : 'var(--text-bright)', fontWeight: 600 }}>
-                      {formattedSize} / {formatBytes(cacheLimitMB * 1024 * 1024)} ({Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100)}%)
-                    </span>
+              {/* INLINE CUSTOM INPUT MODAL / PANEL */}
+              {isCustomModalOpen && (
+                <div
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.06)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    marginTop: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    animation: 'apiBackdropFadeIn 0.2s ease',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+                      {t('ui.generated.masukkan_batas_cache_kustom_e890f12')}
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        value={customInputValue}
+                        onChange={(e) => setCustomInputValue(e.target.value)}
+                        placeholder={t('ui.generated.contoh_75_a123f45')}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(15, 23, 42, 0.8)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 10px',
+                          color: '#f8fafc',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                        }}
+                      />
+                      <select
+                        value={customUnit}
+                        onChange={(e) => setCustomUnit(e.target.value as 'MB' | 'GB')}
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.8)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 10px',
+                          color: '#f8fafc',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                        }}
+                      >
+                        <option value="GB">GB</option>
+                        <option value="MB">MB</option>
+                      </select>
+                    </div>
                   </div>
-                  <div style={{ height: '6px', width: '100%', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${Math.min(100, Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100))}%`,
-                      background: cacheSize > cacheLimitMB * 1024 * 1024
-                        ? 'linear-gradient(90deg, #f97316, #ef4444)'
-                        : (cacheSize / (cacheLimitMB * 1024 * 1024)) > 0.75
-                          ? 'linear-gradient(90deg, #eab308, #f97316)'
-                          : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
-                      borderRadius: '4px',
-                      transition: 'width 0.3s ease',
-                    }} />
+
+                  <div style={{ display: 'flex', gap: '6px', alignSelf: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={handleSaveCustomLimit}
+                      style={{
+                        background: 'rgba(56, 189, 248, 0.2)',
+                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                        color: '#38bdf8',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('ui.generated.simpan_limit_kustom_a123c45')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomModalOpen(false)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#94a3b8',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('ui.generated.batal_kustom_b567c89')}
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div className="settings-auto-prune" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: '10px',
-                marginTop: '4px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                fontSize: '0.8rem',
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--text-bright)' }}>
-                    {t('settings.auto_prune_title')}
+              {/* DISK FREE SPACE INDICATOR */}
+              {freeDiskBytes !== null && freeDiskBytes > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '0.76rem',
+                    color: '#94a3b8',
+                    marginTop: '4px',
+                  }}
+                >
+                  <span>{t('ui.generated.ruang_disk_tersedia_a123b45')}</span>
+                  <strong style={{ color: '#38bdf8' }}>{formatBytes(freeDiskBytes)}</strong>
+                </div>
+              )}
+
+              {/* EXCEED DISK WARNING BADGE */}
+              {isExceedingDisk && (
+                <div
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: '#fca5a5',
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '6px',
+                  }}
+                >
+                  <AlertTriangle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span>
+                    {t('ui.generated.peringatan_batas_cache_melebihi_disk_c456d78', {
+                      limit: formatBytes(selectedLimitBytes),
+                      disk: formatBytes(freeDiskBytes!),
+                    })}
                   </span>
-                  <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                </div>
+              )}
+
+              {cacheSize !== null && cacheLimitMB > 0 && (
+                <div style={{ marginTop: '6px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>{t('settings.cache_usage_label')}</span>
+                    <span
+                      style={{
+                        color: cacheSize > cacheLimitMB * 1024 * 1024 ? '#ef4444' : 'var(--text-bright)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {formattedSize} / {formatBytes(cacheLimitMB * 1024 * 1024)} (
+                      {Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100)}%)
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: '6px',
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.round((cacheSize / (cacheLimitMB * 1024 * 1024)) * 100))}%`,
+                        background:
+                          cacheSize > cacheLimitMB * 1024 * 1024
+                            ? 'linear-gradient(90deg, #f97316, #ef4444)'
+                            : cacheSize / (cacheLimitMB * 1024 * 1024) > 0.75
+                            ? 'linear-gradient(90deg, #eab308, #f97316)'
+                            : 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+                        borderRadius: '4px',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div
+                className="settings-auto-prune"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '6px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-bright)', display: 'block' }}>
+                    {t('settings.auto_prune_title')}
+                  </strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {t('settings.auto_prune_desc')}
                   </span>
                 </div>
-                <label className="toggle-switch" style={{ marginLeft: '12px', flexShrink: 0, cursor: 'pointer' }}>
+                <label className="settings-switch" style={{ cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={autoPruneEnabled}
                     onChange={(e) => handleToggleAutoPrune(e.target.checked)}
                   />
-                  <span className="toggle-slider" />
+                  <span className="settings-slider round" />
                 </label>
               </div>
             </div>
 
-            <div className="settings-action-row" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={calculateCacheSize} 
-                disabled={isCalculating || isClearing || isTrimming}
-                style={{ minHeight: '44px', flex: '1 1 auto' }}
-              >
-                {t('settings.calc_size_btn')}
-              </button>
+            {/* Tombol aksi pembersihan utama */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
+                onClick={calculateCacheSize}
+                disabled={isCalculating}
+                style={{ flex: 1 }}
+              >
+                {isCalculating ? t('settings.calculating') : t('settings.recalculate')}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsSpecificModalOpen(true)}
                 style={{
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  minHeight: '44px',
-                  flex: '1 1 auto',
+                  flex: 1.5,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
+                  borderColor: 'rgba(56, 189, 248, 0.3)',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  color: '#38bdf8',
                 }}
-                onClick={() => setIsSpecificCacheModalOpen(true)}
               >
-                <SlidersHorizontal size={16} />
+                <SlidersHorizontal size={15} />
                 <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
               </button>
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', minHeight: '44px', flex: '1 1 auto' }}
-                onClick={handleClearCache} 
-                disabled={isCalculating || isClearing || isTrimming}
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleClearCache}
+                disabled={isClearing || isTrimming}
+                style={{ flex: 1 }}
               >
-                {isClearing ? '...' : t('settings.clear_cache_btn')}
+                {isClearing
+                  ? t('settings.clearing')
+                  : isTrimming
+                  ? t('settings.trimming')
+                  : t('settings.clear_cache_btn')}
               </button>
             </div>
 
-            <hr className="settings-divider" style={{ border: 0, borderTop: '1px solid rgba(255, 255, 255, 0.05)', margin: '0.5rem 0' }} />
+            {clearStatus === 'success' && (
+              <div className="settings-status success">{t('settings.cache_clear_success')}</div>
+            )}
+            {clearStatus === 'error' && (
+              <div className="settings-status error">{t('settings.cache_clear_error')}</div>
+            )}
 
-            <div className="settings-danger-zone">
-              <span className="input-label" style={{ display: 'block', fontSize: '0.9rem' }}>{t('settings.db_clear_title')}</span>
-              <p className="field-hint" style={{ marginTop: '2px', marginBottom: '0.75rem', fontSize: '0.75rem', lineHeight: 1.4 }}>
-                {t('settings.db_clear_desc')}
-              </p>
-              <button 
-                type="button" 
-                className="btn" 
-                style={{ background: 'rgba(249, 115, 22, 0.15)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.35)', minHeight: '44px', width: '100%' }}
-                onClick={handleClearDatabase} 
-                disabled={isCalculating || isClearing || isClearingDb}
+            {/* Transfer Database & Deduplication Clean */}
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '14px 16px',
+                background: 'rgba(239, 68, 68, 0.03)',
+                borderRadius: '10px',
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                  {t('ui.generated.transfer_database_deduplication_a123f45')}
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                  {t('ui.generated.wipes_all_uploaded_file_history_resume_state_audi_b678c90')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearDatabase}
+                disabled={isClearingDb}
+                style={{
+                  alignSelf: 'flex-start',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: isClearingDb ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
               >
-                {isClearingDb ? '...' : t('settings.clear_db_btn')}
+                <Trash2 size={13} />
+                <span>
+                  {isClearingDb
+                    ? t('settings.clearing')
+                    : t('ui.generated.clear_transfer_database_c901d23')}
+                </span>
               </button>
-              {clearStatus === 'success' && (
-                <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  {t('settings.cache_clear_success')}
-                </span>
-              )}
-              {clearStatus === 'error' && (
-                <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  {t('settings.cache_clear_error')}
-                </span>
-              )}
-
               {dbClearStatus === 'success' && (
-                <span className="status-msg success" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  {t('settings.database_clear_success')}
-                </span>
+                <div style={{ fontSize: '0.75rem', color: '#4ade80' }}>
+                  {t('ui.generated.database_transfer_berhasil_dibersihkan_e123f45')}
+                </div>
               )}
               {dbClearStatus === 'error' && (
-                <span className="status-msg error" style={{ display: 'block', marginTop: '0.5rem' }}>
-                  {t('settings.database_clear_error')}
-                </span>
+                <div style={{ fontSize: '0.75rem', color: '#f87171' }}>
+                  {t('ui.generated.gagal_membersihkan_database_transfer_f678a90')}
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      <SpecificCacheModal
-        isOpen={isSpecificCacheModalOpen}
-        onClose={() => setIsSpecificCacheModalOpen(false)}
-        onRefreshGlobalSize={calculateCacheSize}
-      />
-
+      {/* CONFIRMATION MODALS */}
       <ConfirmModal
         isOpen={isConfirmClearCacheOpen}
-        title={t('settings.confirm_clear_cache_title')}
-        description={t('settings.confirm_clear_cache_msg')}
-        variant="warning"
-        confirmText={t('settings.clear_cache')}
+        title={t('settings.clear_cache_modal_title')}
+        description={t('settings.clear_cache_modal_msg')}
+        confirmText={t('settings.clear_cache_confirm')}
         cancelText={t('common.cancel')}
-        isLoading={isClearing}
+        variant="danger"
         onConfirm={executeClearCache}
         onCancel={() => setIsConfirmClearCacheOpen(false)}
       />
 
       <ConfirmModal
         isOpen={isConfirmClearDbOpen}
-        title={t('settings.confirm_clear_db_title')}
-        description={t('settings.confirm_clear_db_msg')}
-        variant="danger"
-        confirmText={t('settings.clear_db_btn')}
+        title={t('ui.generated.konfirmasi_clear_transfer_database_a123f45')}
+        description={t('ui.generated.apakah_anda_yakin_ingin_menghapus_seluruh_riway_b567c89')}
+        confirmText={t('ui.generated.ya_hapus_database_c890d12')}
         cancelText={t('common.cancel')}
-        isLoading={isClearingDb}
+        variant="danger"
         onConfirm={executeClearDatabase}
         onCancel={() => setIsConfirmClearDbOpen(false)}
+      />
+
+      {/* SPECIFIC & PER-SESSION CACHE OVERLAY */}
+      <SpecificCacheModal
+        isOpen={isSpecificModalOpen}
+        onClose={() => setIsSpecificModalOpen(false)}
+        onRefreshGlobalSize={calculateCacheSize}
       />
     </main>
   );

@@ -769,3 +769,59 @@ pub fn is_execution_cancelled(exec_id: i64) -> bool {
         Some("CANCELLED") | Some("PAUSED") | Some("STOPPED")
     )
 }
+
+#[cfg(target_os = "windows")]
+extern "system" {
+    #[link_name = "GetDiskFreeSpaceExW"]
+    fn winapi_get_disk_free_space(
+        directory_name: *const u16,
+        free_bytes_available_to_caller: *mut u64,
+        total_number_of_bytes: *mut u64,
+        total_number_of_free_bytes: *mut u64,
+    ) -> i32;
+}
+
+pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value, String> {
+    let target = path_str.unwrap_or_else(|| {
+        let sessions = resolve_sessions_dir(None);
+        sessions.display().to_string()
+    });
+
+    let p = PathBuf::from(&target);
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        let mut wide: Vec<u16> = p.as_os_str().encode_wide().collect();
+        wide.push(0);
+
+        let mut free_avail: u64 = 0;
+        let mut total_bytes: u64 = 0;
+        let mut total_free: u64 = 0;
+
+        unsafe {
+            let res = winapi_get_disk_free_space(
+                wide.as_ptr(),
+                &mut free_avail,
+                &mut total_bytes,
+                &mut total_free,
+            );
+            if res != 0 {
+                return Ok(json!({
+                    "status": "success",
+                    "free_bytes": free_avail,
+                    "total_bytes": total_bytes,
+                    "path": target
+                }));
+            }
+        }
+    }
+
+    Ok(json!({
+        "status": "success",
+        "free_bytes": 0u64,
+        "total_bytes": 0u64,
+        "path": target
+    }))
+}
+

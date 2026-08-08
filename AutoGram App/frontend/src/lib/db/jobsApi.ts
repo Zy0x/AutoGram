@@ -155,6 +155,19 @@ export async function cacheTrimDisk(targetBytes: number): Promise<{ removed_file
   };
 }
 
+export async function getAvailableDiskSpace(path?: string): Promise<{ free_bytes: number; total_bytes: number }> {
+  if (!detectTauriRuntime()) return { free_bytes: 0, total_bytes: 0 };
+  try {
+    const r = await invoke<{ free_bytes?: number; total_bytes?: number }>('get_available_disk_space', { path });
+    return {
+      free_bytes: Number(r?.free_bytes || 0),
+      total_bytes: Number(r?.total_bytes || 0),
+    };
+  } catch {
+    return { free_bytes: 0, total_bytes: 0 };
+  }
+}
+
 export async function jobsFreshStart(jobId: number): Promise<void> {
   if (!detectTauriRuntime()) throw new Error('Jobs membutuhkan desktop app');
   await invoke('jobs_fresh_start', { jobId });
