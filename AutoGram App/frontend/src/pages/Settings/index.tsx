@@ -797,30 +797,38 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Tombol aksi pembersihan utama */}
-            <div className="settings-cache-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+            {/* Tombol aksi pembersihan utama (Dua Tombol Berdampingan di 1 Baris, Responsif Down-Stack) */}
+            <div
+              className="settings-cache-actions"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '10px',
+                marginTop: '6px',
+              }}
+            >
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setIsSpecificModalOpen(true)}
                 style={{
-                  width: '100%',
-                  padding: '11px 16px',
-                  fontSize: '0.85rem',
+                  padding: '11px 14px',
+                  fontSize: '0.84rem',
                   fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   borderColor: 'rgba(56, 189, 248, 0.35)',
                   background: 'rgba(56, 189, 248, 0.12)',
                   color: '#38bdf8',
                   textAlign: 'center',
+                  whiteSpace: 'nowrap',
                   minHeight: '2.7rem',
                 }}
               >
                 <SlidersHorizontal size={16} style={{ flexShrink: 0 }} />
-                <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
+                <span>{t('settings.manage_cache')}</span>
               </button>
 
               <button
@@ -829,8 +837,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 onClick={handleClearCache}
                 disabled={isClearing || isTrimming}
                 style={{
-                  width: '100%',
-                  padding: '11px 16px',
+                  padding: '11px 14px',
                   fontSize: '0.85rem',
                   fontWeight: 700,
                   display: 'inline-flex',
@@ -838,6 +845,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                   justifyContent: 'center',
                   gap: '6px',
                   textAlign: 'center',
+                  whiteSpace: 'nowrap',
                   minHeight: '2.7rem',
                 }}
               >

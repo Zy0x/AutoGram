@@ -22,6 +22,7 @@
   "auto_prune_desc": "Automatically prunes old cache periodically when exceeding limit (protects active files & transfers).",
   "calc_size_btn": "Calculate Size",
   "clear_cache_btn": "Clear All Cache",
+  "manage_cache": "Manage Cache",
   "calculating": "Calculating...",
   "clearing": "Clearing...",
   "trimming": "Trimming...",

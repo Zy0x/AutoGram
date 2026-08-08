@@ -22,6 +22,7 @@
   "auto_prune_desc": "Otomatis memangkas cache lama secara berkala saat melebihi batas (melindungi berkas aktif & transfer).",
   "calc_size_btn": "Hitung Ukuran",
   "clear_cache_btn": "Hapus Semua Cache",
+  "manage_cache": "Kelola Cache",
   "calculating": "Menghitung...",
   "clearing": "Membersihkan...",
   "trimming": "Memangkas...",
