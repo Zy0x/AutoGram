@@ -1395,6 +1395,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           }}
         >
           <div
+            className="cache-migrate-modal-content"
             style={{
               width: '100%',
               maxWidth: '520px',
@@ -1438,26 +1439,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
               <button
                 type="button"
+                className="cache-option-card-move"
                 onClick={() => void executeCacheMigration('move')}
                 disabled={isMigrating}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  gap: '4px',
-                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                  background: 'rgba(56, 189, 248, 0.08)',
-                  borderRadius: '12px',
-                  cursor: isMigrating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  whiteSpace: 'normal',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#38bdf8', display: 'block', lineHeight: 1.3 }}>
                   📦 {t('settings.custom_cache_migrate_option_move')}
@@ -1469,26 +1453,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
               <button
                 type="button"
+                className="cache-option-card-wipe"
                 onClick={() => void executeCacheMigration('wipe')}
                 disabled={isMigrating}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  gap: '4px',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  borderRadius: '12px',
-                  cursor: isMigrating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  whiteSpace: 'normal',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
                   🧹 {t('settings.custom_cache_migrate_option_wipe')}
@@ -1501,24 +1468,12 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
             <button
               type="button"
+              className="cache-modal-cancel-btn"
               onClick={() => {
                 setIsMigrateModalOpen(false);
                 setPendingNewPath(null);
               }}
               disabled={isMigrating}
-              style={{
-                marginTop: '6px',
-                width: '100%',
-                padding: '12px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '10px',
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                cursor: isMigrating ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-              }}
             >
               {t('common.cancel')}
             </button>
@@ -1545,6 +1500,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
           }}
         >
           <div
+            className="cache-migrate-modal-content"
             style={{
               width: '100%',
               maxWidth: '520px',
@@ -1588,26 +1544,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
               <button
                 type="button"
+                className="cache-option-card-move"
                 onClick={() => void executeResetToDefault('move')}
                 disabled={isMigrating}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  gap: '4px',
-                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                  background: 'rgba(56, 189, 248, 0.08)',
-                  borderRadius: '12px',
-                  cursor: isMigrating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  whiteSpace: 'normal',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#38bdf8', display: 'block', lineHeight: 1.3 }}>
                   📦 {t('settings.custom_cache_reset_option_move')}
@@ -1619,26 +1558,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
               <button
                 type="button"
+                className="cache-option-card-wipe"
                 onClick={() => void executeResetToDefault('wipe')}
                 disabled={isMigrating}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                  gap: '4px',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  borderRadius: '12px',
-                  cursor: isMigrating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  whiteSpace: 'normal',
-                  boxSizing: 'border-box',
-                }}
               >
                 <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5', display: 'block', lineHeight: 1.3 }}>
                   🧹 {t('settings.custom_cache_reset_option_wipe')}
@@ -1651,21 +1573,9 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
 
             <button
               type="button"
+              className="cache-modal-cancel-btn"
               onClick={() => setIsResetModalOpen(false)}
               disabled={isMigrating}
-              style={{
-                marginTop: '6px',
-                width: '100%',
-                padding: '12px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '10px',
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                cursor: isMigrating ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-              }}
             >
               {t('common.cancel')}
             </button>
