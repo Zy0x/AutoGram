@@ -839,30 +839,29 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
               <X size={18} />
             </button>
           </div>
-          
-          <div className="modal-body" style={{ padding: '24px' }}>
+                    <div className="modal-body" style={{ padding: '16px 20px' }}>
             {errorMsg && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.9rem' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.85rem' }}>
                 {errorMsg}
               </div>
             )}
             
             {step === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Method Tabs */}
-                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', padding: '5px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', padding: '4px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                   <button
                     type="button"
                     onClick={() => { setLoginMethod('qr'); }}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
+                      padding: '8px 12px',
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'qr' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
                       color: loginMethod === 'qr' ? '#ffffff' : '#94a3b8',
                       fontWeight: '600',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -872,20 +871,20 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <QrCode size={16} /> {t('accounts.tab_qr')}
+                    <QrCode size={15} /> {t('accounts.tab_qr')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setLoginMethod('phone'); }}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
+                      padding: '8px 12px',
                       borderRadius: '8px',
                       border: 'none',
                       background: loginMethod === 'phone' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'transparent',
                       color: loginMethod === 'phone' ? '#ffffff' : '#94a3b8',
                       fontWeight: '600',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -895,35 +894,35 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <Phone size={16} /> {t('accounts.tab_phone')}
+                    <Phone size={15} /> {t('accounts.tab_phone')}
                   </button>
                 </div>
 
                 {loginMethod === 'qr' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px', width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '2px', width: '100%' }}>
                     {!qrDataUrl ? (
                       isProcessing ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '12px', width: '100%' }}>
-                          <RefreshCcw className="spin" size={32} color="var(--primary)" />
-                          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', gap: '10px', width: '100%' }}>
+                          <RefreshCcw className="spin" size={28} color="var(--primary)" />
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                             {t('accounts.qr_generating')}
                           </span>
                         </div>
                       ) : (
                         <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                          <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                          <RefreshCcw size={16} /> {t('accounts.btn_reload_qr')}
                         </button>
                       )
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
-                        <div style={{ background: '#ffffff', padding: '14px', borderRadius: '16px', boxShadow: '0 12px 32px rgba(0,0,0,0.5), 0 0 20px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '190px', height: '190px', display: 'block', borderRadius: '6px' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
+                        <div style={{ background: '#ffffff', padding: '10px', borderRadius: '14px', boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 16px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '165px', height: '165px', display: 'block', borderRadius: '4px' }} />
                           {qrExpiresIn > 0 ? (
-                            <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, marginTop: '8px', padding: '3px 10px', borderRadius: '20px', background: 'rgba(2, 132, 199, 0.1)' }}>
+                            <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(2, 132, 199, 0.1)' }}>
                               {t('accounts.valid_for', { seconds: qrExpiresIn })}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, marginTop: '8px', padding: '3px 10px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.1)' }}>
+                            <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.1)' }}>
                               {t('accounts.status_expired')}
                             </span>
                           )}
@@ -931,28 +930,28 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
 
                         {qrExpiresIn === 0 && (
                           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                            <RefreshCcw size={16} /> {t('accounts.btn_reload_qr')}
                           </button>
                         )}
 
                         <div
                           style={{
                             width: '100%',
-                            padding: '16px 18px',
-                            borderRadius: '16px',
+                            padding: '12px 14px',
+                            borderRadius: '14px',
                             background: 'rgba(255, 255, 255, 0.025)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
                             boxSizing: 'border-box',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '12px',
+                            gap: '8px',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Smartphone size={16} style={{ color: '#38bdf8' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Smartphone size={15} style={{ color: '#38bdf8' }} />
                             <span
                               style={{
-                                fontSize: '0.75rem',
+                                fontSize: '0.72rem',
                                 fontWeight: 700,
                                 color: '#38bdf8',
                                 letterSpacing: '0.05em',
@@ -963,7 +962,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {[
                               t('accounts.qr_step_1'),
                               t('accounts.qr_step_2'),
@@ -975,22 +974,22 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '12px',
-                                  padding: '8px 12px',
-                                  borderRadius: '10px',
+                                  gap: '10px',
+                                  padding: '5px 10px',
+                                  borderRadius: '8px',
                                   background: 'rgba(255, 255, 255, 0.02)',
                                   border: '1px solid rgba(255, 255, 255, 0.04)',
                                 }}
                               >
                                 <span
                                   style={{
-                                    width: '22px',
-                                    height: '22px',
+                                    width: '20px',
+                                    height: '20px',
                                     borderRadius: '50%',
                                     background: 'rgba(56, 189, 248, 0.15)',
                                     border: '1px solid rgba(56, 189, 248, 0.3)',
                                     color: '#38bdf8',
-                                    fontSize: '0.72rem',
+                                    fontSize: '0.7rem',
                                     fontWeight: 700,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1000,7 +999,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                 >
                                   {index + 1}
                                 </span>
-                                <span style={{ fontSize: '0.83rem', color: '#e2e8f0', lineHeight: 1.45, fontWeight: 500 }}>
+                                <span style={{ fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.35, fontWeight: 500 }}>
                                   {stepText}
                                 </span>
                               </div>
@@ -1008,7 +1007,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                           </div>
                         </div>
 
-                        <div style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4, marginTop: '2px' }}>
                           {t('accounts.qr_auto_refresh_hint')}
                         </div>
                       </div>
@@ -1413,30 +1412,30 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                   </div>
 
                   {loginMethod === 'qr' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '4px', width: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '2px', width: '100%' }}>
                       {!qrDataUrl ? (
                         isProcessing ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '12px', width: '100%' }}>
-                            <RefreshCcw className="spin" size={32} color="var(--primary)" />
-                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', gap: '10px', width: '100%' }}>
+                            <RefreshCcw className="spin" size={28} color="var(--primary)" />
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                               {t('accounts.qr_generating')}
                             </span>
                           </div>
                         ) : (
                           <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                            <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                            <RefreshCcw size={16} /> {t('accounts.btn_reload_qr')}
                           </button>
                         )
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', width: '100%' }}>
-                          <div style={{ background: '#ffffff', padding: '14px', borderRadius: '16px', boxShadow: '0 12px 32px rgba(0,0,0,0.5), 0 0 20px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '190px', height: '190px', display: 'block', borderRadius: '6px' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
+                          <div style={{ background: '#ffffff', padding: '10px', borderRadius: '14px', boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 16px rgba(56, 189, 248, 0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <img src={qrDataUrl} alt={t('ui.generated.telegram_login_qr_code_3f083b9')} style={{ width: '165px', height: '165px', display: 'block', borderRadius: '4px' }} />
                             {qrExpiresIn > 0 ? (
-                              <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, marginTop: '8px', padding: '3px 10px', borderRadius: '20px', background: 'rgba(2, 132, 199, 0.1)' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(2, 132, 199, 0.1)' }}>
                                 {t('accounts.valid_for', { seconds: qrExpiresIn })}
                               </span>
                             ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, marginTop: '8px', padding: '3px 10px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.1)' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 700, marginTop: '6px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.1)' }}>
                                 {t('accounts.status_expired')}
                               </span>
                             )}
@@ -1444,28 +1443,28 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
 
                           {qrExpiresIn === 0 && (
                             <button className="btn btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleStartQrLogin(true)}>
-                              <RefreshCcw size={18} /> {t('accounts.btn_reload_qr')}
+                              <RefreshCcw size={16} /> {t('accounts.btn_reload_qr')}
                             </button>
                           )}
 
                           <div
                             style={{
                               width: '100%',
-                              padding: '16px 18px',
-                              borderRadius: '16px',
+                              padding: '12px 14px',
+                              borderRadius: '14px',
                               background: 'rgba(255, 255, 255, 0.025)',
                               border: '1px solid rgba(255, 255, 255, 0.08)',
                               boxSizing: 'border-box',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '12px',
+                              gap: '8px',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Smartphone size={16} style={{ color: '#38bdf8' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Smartphone size={15} style={{ color: '#38bdf8' }} />
                               <span
                                 style={{
-                                  fontSize: '0.75rem',
+                                  fontSize: '0.72rem',
                                   fontWeight: 700,
                                   color: '#38bdf8',
                                   letterSpacing: '0.05em',
@@ -1476,7 +1475,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                               </span>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               {[
                                 t('accounts.qr_step_1'),
                                 t('accounts.qr_step_2'),
@@ -1488,22 +1487,22 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '8px 12px',
-                                    borderRadius: '10px',
+                                    gap: '10px',
+                                    padding: '5px 10px',
+                                    borderRadius: '8px',
                                     background: 'rgba(255, 255, 255, 0.02)',
                                     border: '1px solid rgba(255, 255, 255, 0.04)',
                                   }}
                                 >
                                   <span
                                     style={{
-                                      width: '22px',
-                                      height: '22px',
+                                      width: '20px',
+                                      height: '20px',
                                       borderRadius: '50%',
                                       background: 'rgba(56, 189, 248, 0.15)',
                                       border: '1px solid rgba(56, 189, 248, 0.3)',
                                       color: '#38bdf8',
-                                      fontSize: '0.72rem',
+                                      fontSize: '0.7rem',
                                       fontWeight: 700,
                                       display: 'flex',
                                       alignItems: 'center',
@@ -1513,7 +1512,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                                   >
                                     {index + 1}
                                   </span>
-                                  <span style={{ fontSize: '0.83rem', color: '#e2e8f0', lineHeight: 1.45, fontWeight: 500 }}>
+                                  <span style={{ fontSize: '0.8rem', color: '#e2e8f0', lineHeight: 1.35, fontWeight: 500 }}>
                                     {stepText}
                                   </span>
                                 </div>
@@ -1521,7 +1520,7 @@ export function Accounts({ isModal = false, onClose, onAccountAdded }: AccountsP
                             </div>
                           </div>
 
-                          <div style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', lineHeight: 1.4, marginTop: '2px' }}>
                             {t('accounts.qr_auto_refresh_hint')}
                           </div>
                         </div>
