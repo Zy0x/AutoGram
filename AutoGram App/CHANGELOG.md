@@ -1,3 +1,9 @@
+## v3.3.2 Flip X & Flip Y Toolbar Label Rename
+
+### Penyesuaian Label Teks Flip (`id/speedtest.json` & `en/speedtest.json`)
+- **Pembaruan Label Sumbu**: Mengubah teks `label_flip` menjadi `Flip X` dan `label_flip_v` menjadi `Flip Y`.
+- **Cakupan Universal**: Perubahan berlaku otomatis untuk seluruh preview media di kedua mode (Mode Preview Biasa dan Mode Split Compare).
+
 ## v3.3.1 Labeled Toolbar Download & Fullscreen Buttons in Split Mode
 
 ### Label Teks Toolbar Mode Split (`DrivePreviewModal/index.tsx` & Locales)

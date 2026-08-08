@@ -1,6 +1,9 @@
-AutoGram Version: v3.3.1
+AutoGram Version: v3.3.2
 
 Current State:
+v3.3.2 Flip X & Flip Y Toolbar Label Rename — membenahi `id/speedtest.json`, `en/speedtest.json`, `VERSION.md`, dan `CHANGELOG.md`. Mengubah label teks tombol balikan visual pada kelompok Rotate di Toolbar dari `Flip` (Cermin) dan `Flip V` (Balik) menjadi `Flip X` dan `Flip Y` secara menyeluruh untuk Mode Preview Biasa maupun Mode Split Compare.
+
+Previous:
 v3.3.1 Labeled Toolbar Download & Fullscreen Buttons in Split Mode — membenahi `id/speedtest.json`, `en/speedtest.json`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan label teks i18n (`label_download` & `label_fullscreen`) pada tombol `Download` dan `Fullscreen` di kelompok "MORE" Toolbar pada mode Split Compare, menyamakan estetikanya secara presisi dengan tombol `Reload` dan `Info`.
 
 Previous:
