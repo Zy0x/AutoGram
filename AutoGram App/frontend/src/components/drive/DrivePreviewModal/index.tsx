@@ -3489,7 +3489,6 @@ export function DrivePreviewModal({
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot((prev) => (prev === 'A' ? null : 'A'));
                         }}
                         style={{
                           flex: '1 1 0%',
@@ -3601,7 +3600,6 @@ export function DrivePreviewModal({
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot((prev) => (prev === 'B' ? null : 'B'));
                         }}
                         style={{
                           flex: '1 1 0%',

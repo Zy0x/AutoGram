@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.9
+AutoGram Version: v3.2.0
 
 Current State:
+v3.2.0 Double-Event Selection Conflict Resolver Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki konflik perselisihan event ganda (`onPointerDown` vs `onClick`) yang menyebabkan Card membatalkan pemilihannya sendiri secara instan. Pemilihan Card dan toggle selection off kini berjalan sangat mulus dan presisi.
+
+Previous:
 v3.1.9 Universal Outside Deselect & Active Card Toggle Off Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan logika toggle selection off (`prev === slot ? null : slot`) saat Card yang sedang aktif ditekan kembali, serta mendeteksi tekanan di mana pun di luar area Card (seluruh elemen modal shell backdrop/header/background) untuk membatalkan penandaan Card seketika (`activeSplitSlot: null`).
 
 Previous:

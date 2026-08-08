@@ -1,3 +1,9 @@
+## v3.2.0 Double-Event Selection Conflict Resolver Engine
+
+### Penyelesaian Konflik Event Pemilihan Card (`DrivePreviewModal/index.tsx`)
+- **Fix Dual Event Race Condition**: Menghapus eksekusi setter `setActiveSplitSlot` dari handler `onClick` pada Card A & B, menyerahkan seluruh kontrol instant ke `onPointerDown`. Hal ini mengeliminasi konflik ganda di mana `onPointerDown` mengaktifkan Card dan `onClick` beberapa milidetik setelahnya membatalkan Card tersebut secara tidak sengaja.
+- **Smooth Toggle & Deselect**: Pemilihan Card, pergantian Card, deselect di luar Card, dan toggle off Card aktif kini bekerja dengan mulus dan responsif.
+
 ## v3.1.9 Universal Outside Deselect & Active Card Toggle Off Engine
 
 ### Toggle Card Aktif & Deselect Menyeluruh di Luar Card (`DrivePreviewModal/index.tsx`)
