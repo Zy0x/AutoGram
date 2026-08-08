@@ -310,28 +310,33 @@ export function SessionLauncher({
                 }}
               >
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: '30px' }}>
                   <div
                     onClick={(e) => handlePingSession(sess.name, e)}
                     title={t('nav.ping_tooltip', { defaultValue: 'Klik untuk uji ping koneksi real-time' })}
                     style={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: '8px',
                       cursor: 'pointer',
-                      padding: '3px 8px',
-                      borderRadius: '8px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
-                      transition: 'all 0.15s ease',
+                      padding: '5px 12px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      backdropFilter: 'blur(12px)',
+                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
                     {sess.status === 'expired' || sess.status === 'unauthorized' ? (
@@ -346,7 +351,7 @@ export function SessionLauncher({
                             color: '#ef4444',
                           }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#fca5a5', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: '#fca5a5', fontWeight: 600, letterSpacing: '0.01em' }}>
                           {t('nav.connection_expired')}
                         </span>
                       </>
@@ -362,7 +367,7 @@ export function SessionLauncher({
                             color: '#38bdf8',
                           }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.01em' }}>
                           {t('nav.connection_checking')}
                         </span>
                       </>
@@ -378,7 +383,7 @@ export function SessionLauncher({
                             color: '#f59e0b',
                           }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: '#fbbf24', fontWeight: 600, letterSpacing: '0.01em' }}>
                           {t('nav.connection_error')}
                         </span>
                       </>
@@ -394,7 +399,7 @@ export function SessionLauncher({
                             color: '#10b981',
                           }}
                         />
-                        <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.76rem', color: '#34d399', fontWeight: 600, letterSpacing: '0.01em' }}>
                           {t('nav.connection_strong', { latency: sess.latencyMs || 15 })}
                         </span>
                       </>
@@ -407,58 +412,86 @@ export function SessionLauncher({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 11px',
+                      gap: '6px',
+                      padding: '5px 13px',
                       borderRadius: '12px',
                       background: isDefault
-                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.14))'
+                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%)'
                         : 'rgba(255, 255, 255, 0.04)',
                       border: isDefault
-                        ? '1px solid rgba(56, 189, 248, 0.55)'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
+                        ? '1px solid rgba(56, 189, 248, 0.5)'
+                        : '1px solid rgba(255, 255, 255, 0.09)',
                       color: isDefault ? '#38bdf8' : '#94a3b8',
-                      fontSize: '0.72rem',
+                      fontSize: '0.74rem',
                       fontWeight: 600,
+                      letterSpacing: '0.01em',
                       cursor: 'pointer',
-                      boxShadow: isDefault ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      backdropFilter: 'blur(12px)',
+                      boxShadow: isDefault
+                        ? '0 0 12px rgba(56, 189, 248, 0.3), inset 0 1px rgba(255, 255, 255, 0.2)'
+                        : 'none',
+                      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px) scale(1.04)';
+                      e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
+                      const starIcon = e.currentTarget.querySelector('svg');
                       if (isDefault) {
                         e.currentTarget.style.background =
-                          'linear-gradient(135deg, rgba(56, 189, 248, 0.32), rgba(14, 165, 233, 0.22))';
+                          'linear-gradient(135deg, rgba(56, 189, 248, 0.34) 0%, rgba(14, 165, 233, 0.22) 100%)';
                         e.currentTarget.style.borderColor = '#38bdf8';
-                        e.currentTarget.style.color = '#e0f2fe';
-                        e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.45)';
+                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.boxShadow =
+                          '0 0 20px rgba(56, 189, 248, 0.6), inset 0 1px rgba(255, 255, 255, 0.3)';
+                        if (starIcon) {
+                          starIcon.style.transform = 'rotate(22deg) scale(1.2)';
+                          starIcon.style.fill = '#ffffff';
+                        }
                       } else {
-                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                        e.currentTarget.style.background =
+                          'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%)';
                         e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.45)';
                         e.currentTarget.style.color = '#38bdf8';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.2)';
+                        e.currentTarget.style.boxShadow = '0 4px 16px -2px rgba(56, 189, 248, 0.35)';
+                        if (starIcon) {
+                          starIcon.style.transform = 'rotate(18deg) scale(1.18)';
+                          starIcon.style.fill = 'rgba(56, 189, 248, 0.35)';
+                          starIcon.style.color = '#38bdf8';
+                        }
                       }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      const starIcon = e.currentTarget.querySelector('svg');
                       if (isDefault) {
                         e.currentTarget.style.background =
-                          'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.14))';
-                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.55)';
+                          'linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.12) 100%)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
                         e.currentTarget.style.color = '#38bdf8';
-                        e.currentTarget.style.boxShadow = '0 0 10px rgba(56, 189, 248, 0.25)';
+                        e.currentTarget.style.boxShadow =
+                          '0 0 12px rgba(56, 189, 248, 0.3), inset 0 1px rgba(255, 255, 255, 0.2)';
+                        if (starIcon) {
+                          starIcon.style.transform = 'rotate(0deg) scale(1)';
+                          starIcon.style.fill = '#38bdf8';
+                          starIcon.style.color = '#38bdf8';
+                        }
                       } else {
                         e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.09)';
                         e.currentTarget.style.color = '#94a3b8';
                         e.currentTarget.style.boxShadow = 'none';
+                        if (starIcon) {
+                          starIcon.style.transform = 'rotate(0deg) scale(1)';
+                          starIcon.style.fill = 'none';
+                          starIcon.style.color = '#94a3b8';
+                        }
                       }
                     }}
                   >
                     <Star
-                      size={12}
+                      size={13}
                       fill={isDefault ? '#38bdf8' : 'none'}
                       style={{
-                        transition: 'transform 0.2s ease, fill 0.2s ease',
+                        transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), fill 0.25s ease, color 0.25s ease',
                       }}
                     />
                     <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
