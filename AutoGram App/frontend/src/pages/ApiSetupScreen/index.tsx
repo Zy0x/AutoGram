@@ -13,6 +13,7 @@ import {
   HelpCircle,
   BookOpen,
   Loader2,
+  CheckCircle,
 } from 'lucide-react';
 import {
   bootstrapSecureCredentials,
@@ -37,6 +38,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [hasInteractedGuide, setHasInteractedGuide] = useState(false);
   const [hasClickedTelegramLink, setHasClickedTelegramLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMsg(null);
 
     const trimmedId = apiId.trim();
     const trimmedHash = apiHash.trim();
@@ -86,16 +89,21 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
       if (!checkRes.ok) {
         setError(checkRes.error || t('nav.api_setup_error_telegram'));
         notifyApiError();
+        setSaving(false);
         return;
       }
 
       await setApiCredentials(trimmedId, trimmedHash);
-      onComplete();
+      setSuccessMsg(t('nav.api_setup_success_verified'));
+
+      setTimeout(() => {
+        setSaving(false);
+        onComplete();
+      }, 750);
     } catch (err: any) {
       const msg = String(err?.message || err || '');
       setError(msg || t('ui.generated.gagal_menyimpan_api_credentials_silakan_coba_lag_4907244'));
       notifyApiError();
-    } finally {
       setSaving(false);
     }
   };
@@ -450,6 +458,28 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
             >
               <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* SUCCESS ALERT */}
+          {successMsg && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 12px',
+                borderRadius: '10px',
+                background: 'rgba(16, 185, 129, 0.14)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: '#34d399',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
+              }}
+            >
+              <CheckCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{successMsg}</span>
             </div>
           )}
 
