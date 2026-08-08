@@ -407,19 +407,61 @@ export function SessionLauncher({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      padding: '3px 10px',
+                      gap: '5px',
+                      padding: '4px 11px',
                       borderRadius: '12px',
-                      background: isDefault ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      border: isDefault ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
-                      color: isDefault ? '#38bdf8' : '#64748b',
+                      background: isDefault
+                        ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.14))'
+                        : 'rgba(255, 255, 255, 0.04)',
+                      border: isDefault
+                        ? '1px solid rgba(56, 189, 248, 0.55)'
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: isDefault ? '#38bdf8' : '#94a3b8',
                       fontSize: '0.72rem',
                       fontWeight: 600,
                       cursor: 'pointer',
+                      boxShadow: isDefault ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px) scale(1.04)';
+                      if (isDefault) {
+                        e.currentTarget.style.background =
+                          'linear-gradient(135deg, rgba(56, 189, 248, 0.32), rgba(14, 165, 233, 0.22))';
+                        e.currentTarget.style.borderColor = '#38bdf8';
+                        e.currentTarget.style.color = '#e0f2fe';
+                        e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.45)';
+                      } else {
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.45)';
+                        e.currentTarget.style.color = '#38bdf8';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.2)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      if (isDefault) {
+                        e.currentTarget.style.background =
+                          'linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.14))';
+                        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.55)';
+                        e.currentTarget.style.color = '#38bdf8';
+                        e.currentTarget.style.boxShadow = '0 0 10px rgba(56, 189, 248, 0.25)';
+                      } else {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
                     }}
                   >
-                    <Star size={12} fill={isDefault ? '#38bdf8' : 'none'} />
-                    {isDefault ? t('nav.default_badge') : t('nav.set_as_default')}
+                    <Star
+                      size={12}
+                      fill={isDefault ? '#38bdf8' : 'none'}
+                      style={{
+                        transition: 'transform 0.2s ease, fill 0.2s ease',
+                      }}
+                    />
+                    <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
                   </button>
                 </div>
 
