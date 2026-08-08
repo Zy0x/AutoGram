@@ -36,6 +36,8 @@
   "cache_breakdown_thumbs": "Thumbnail",
   "cache_breakdown_stale": "Lapuk/Bermasalah",
   "cache_limit_label": "Batas Maksimum Ukuran Cache:",
+  "custom_limit_exceeds_disk_note": "Catatan: Kuota batas auto-prune disetel ke {{limit}}. Fitur auto-prune latar belakang siap memangkas otomatis saat cache bertambah mendekati batas atau kapasitas disk.",
+  "custom_modal_disk_info": "Sisa Ruang Disk Fisik Tersedia: {{freeDisk}}",
   "cache_usage_label": "Penggunaan dari Batas:",
   "auto_prune_title": "Auto-Prune Latar Belakang",
   "auto_prune_desc": "Otomatis memangkas cache lama secara berkala saat melebihi batas (melindungi berkas aktif & transfer).",

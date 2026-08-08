@@ -825,11 +825,8 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
 }
 
 pub fn trim_disk_cache(target_bytes: u64) -> Result<serde_json::Value, String> {
-    let sessions = resolve_sessions_dir(None);
-    let cache = sessions
-        .parent()
-        .map(|p| p.join("cache"))
-        .unwrap_or_else(|| PathBuf::from("cache"));
+    let info = resolve_active_cache_dirs();
+    let cache = info.active_cache_dir.clone();
 
     struct FileEntry {
         path: PathBuf,

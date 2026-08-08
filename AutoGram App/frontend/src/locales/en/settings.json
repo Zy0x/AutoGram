@@ -36,6 +36,8 @@
   "cache_breakdown_thumbs": "Thumbnails",
   "cache_breakdown_stale": "Stale/Problematic",
   "cache_limit_label": "Maximum Cache Size Limit:",
+  "custom_limit_exceeds_disk_note": "Note: Auto-prune quota limit is set to {{limit}}. Background auto-prune will run flexibly as cache grows toward the limit or physical disk capacity.",
+  "custom_modal_disk_info": "Available Physical Disk Space: {{freeDisk}}",
   "cache_usage_label": "Usage from Limit:",
   "auto_prune_title": "Background Auto-Prune",
   "auto_prune_desc": "Automatically prunes old cache periodically when exceeding limit (protects active files & transfers).",

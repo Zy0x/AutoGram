@@ -135,10 +135,44 @@ export async function jobsRunMigration(args: {
   });
 }
 
-export async function cacheCalculateSize(): Promise<{ bytes: number }> {
-  if (!detectTauriRuntime()) return { bytes: 0 };
-  const r = await invoke<{ bytes?: number }>('cache_calculate_size');
-  return { bytes: Number(r?.bytes || 0) };
+export interface CacheSizeResult {
+  bytes: number;
+  cacheBytes: number;
+  tempBytes: number;
+  thumbsBytes: number;
+  sysTempBytes: number;
+  staleBytes: number;
+  path: string;
+  customPath: string | null;
+  isFallback: boolean;
+}
+
+export async function cacheCalculateSize(): Promise<CacheSizeResult> {
+  if (!detectTauriRuntime()) {
+    return {
+      bytes: 0,
+      cacheBytes: 0,
+      tempBytes: 0,
+      thumbsBytes: 0,
+      sysTempBytes: 0,
+      staleBytes: 0,
+      path: '',
+      customPath: null,
+      isFallback: false,
+    };
+  }
+  const r = await invoke<any>('cache_calculate_size');
+  return {
+    bytes: Number(r?.bytes || 0),
+    cacheBytes: Number(r?.cacheBytes || 0),
+    tempBytes: Number(r?.tempBytes || 0),
+    thumbsBytes: Number(r?.thumbsBytes || 0),
+    sysTempBytes: Number(r?.sysTempBytes || 0),
+    staleBytes: Number(r?.staleBytes || 0),
+    path: String(r?.path || ''),
+    customPath: r?.customPath ? String(r.customPath) : null,
+    isFallback: Boolean(r?.isFallback),
+  };
 }
 
 export async function cacheClearDisk(): Promise<void> {
