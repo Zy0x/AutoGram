@@ -2974,6 +2974,9 @@ export function DrivePreviewModal({
         aria-modal="true"
         aria-label="Preview"
         onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={() => {
+          if (isSplitCompareMode) setActiveSplitSlot(null);
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {!isZip && (
@@ -3482,11 +3485,11 @@ export function DrivePreviewModal({
                         className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
                         onPointerDown={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot('A');
+                          setActiveSplitSlot((prev) => (prev === 'A' ? null : 'A'));
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot('A');
+                          setActiveSplitSlot((prev) => (prev === 'A' ? null : 'A'));
                         }}
                         style={{
                           flex: '1 1 0%',
@@ -3594,11 +3597,11 @@ export function DrivePreviewModal({
                         className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
                         onPointerDown={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot('B');
+                          setActiveSplitSlot((prev) => (prev === 'B' ? null : 'B'));
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveSplitSlot('B');
+                          setActiveSplitSlot((prev) => (prev === 'B' ? null : 'B'));
                         }}
                         style={{
                           flex: '1 1 0%',

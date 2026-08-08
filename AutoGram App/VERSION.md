@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.8
+AutoGram Version: v3.1.9
 
 Current State:
+v3.1.9 Universal Outside Deselect & Active Card Toggle Off Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menambahkan logika toggle selection off (`prev === slot ? null : slot`) saat Card yang sedang aktif ditekan kembali, serta mendeteksi tekanan di mana pun di luar area Card (seluruh elemen modal shell backdrop/header/background) untuk membatalkan penandaan Card seketika (`activeSplitSlot: null`).
+
+Previous:
 v3.1.8 Icon-Only Download & Fullscreen in More Group Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus grup tersendiri "Aksi", memindahkan tombol Download dan Fullscreen sebagai tombol ikon ringkas (icon-only) ke dalam grup "Lainnya" (More) di Labeled Media Toolbar untuk menghemat ruang antarmuka.
 
 Previous:

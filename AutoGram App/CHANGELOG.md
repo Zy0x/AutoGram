@@ -1,3 +1,9 @@
+## v3.1.9 Universal Outside Deselect & Active Card Toggle Off Engine
+
+### Toggle Card Aktif & Deselect Menyeluruh di Luar Card (`DrivePreviewModal/index.tsx`)
+- **Active Card Toggle Off**: Menekan Card A atau Card B yang sedang terpilih aktif akan membatalkan pilihan Card tersebut (`activeSplitSlot: null`).
+- **Universal Outside Deselect**: Menerapkan handler `onPointerDown deselect` pada kontainer modal shell utama (`.drive-preview-modal`), menjamin tekanan di area mana pun di luar kotak Card A & B (header backdrop, stage background, gap) secara instant membatalkan penandaan aktif dan membekukan toolbar.
+
 ## v3.1.8 Icon-Only Download & Fullscreen in More Group Engine
 
 ### Tombol Ikon Ringkas di Grup "Lainnya" (`DrivePreviewModal/index.tsx`)
