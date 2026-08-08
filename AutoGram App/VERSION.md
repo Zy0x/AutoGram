@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.8
+AutoGram Version: v3.2.9
 
 Current State:
+v3.2.9 Magnifier Toolbar Button Removal Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus tombol `Magnifier` dari grup Zoom di Toolbar sesuai permintaan pengguna, menyederhanakan grup Zoom menjadi `Zoom Out`, `Percentage Reset (100%)`, dan `Zoom In` secara bersih.
+
+Previous:
 v3.2.8 Double-Click Text Block Selection Protection Engine — membenahi `App.css`, `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mencegah terjadinya sorotan/pemberkasan teks (*text block highlight*) yang tidak disengaja saat melakukan double-click pada area Card A/B, header, stage, maupun modal. Menambahkan aturan CSS `user-select: none !important`, penanganan `e.preventDefault()` pada `onMouseDown` saat `e.detail > 1`, serta pembersihan otomatis range penandaan teks (`window.getSelection()?.removeAllRanges()`).
 
 Previous:

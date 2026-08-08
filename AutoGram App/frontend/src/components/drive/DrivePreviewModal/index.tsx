@@ -27,7 +27,6 @@ import {
   VolumeX,
   Play,
   Pause,
-  Search,
   FastForward,
   PictureInPicture2,
   RefreshCw,
@@ -726,7 +725,7 @@ export function DrivePreviewModal({
   });
 
   const [hasVideoFrame, setHasVideoFrame] = useState(false);
-  const [isMagnifierMode, setIsMagnifierMode] = useState(false);
+  const [isMagnifierMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [mediaWidth, setMediaWidth] = useState<number | null>(null);
@@ -3282,22 +3281,6 @@ export function DrivePreviewModal({
                 >
                   <ZoomIn size={15} />
                   <span className="drive-tool-btn-label">{t("speedtest.label_zoom_in")}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`drive-tool-btn${curTransform.isMagnifierMode ? ' is-on' : ''}`}
-                  title={t("speedtest.tooltip_magnifier")}
-                  disabled={isHeaderFrozen}
-                  onClick={() => {
-                    if (isSplitCompareMode) {
-                      updateActiveTransform((p) => ({ ...p, isMagnifierMode: !p.isMagnifierMode }));
-                    } else {
-                      setIsMagnifierMode((v) => !v);
-                    }
-                  }}
-                >
-                  <Search size={15} />
-                  <span className="drive-tool-btn-label">{t("speedtest.label_magnifier")}</span>
                 </button>
               </div>
             )}

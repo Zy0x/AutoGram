@@ -1,3 +1,9 @@
+## v3.2.9 Magnifier Toolbar Button Removal Engine
+
+### Penghapusan Tombol Magnifier (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Grup Zoom**: Menghapus tombol `Magnifier` (Lupa/Search icon) yang tidak digunakan dari grup Toolbar `Zoom`.
+- **Simplifikasi UI Toolbar**: Memastikan grup `Zoom` hanya menyajikan kontrol inti yang bersih: `Out` (`-`), Reset Persentase (`100%`), dan `In` (`+`).
+
 ## v3.2.8 Double-Click Text Block Selection Protection Engine
 
 ### Perlindungan Penandaan Teks pada Double Click (`App.css` & `DrivePreviewModal/index.tsx`)
