@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -34,6 +34,15 @@ interface SpecificCacheModalProps {
   onRefreshGlobalSize?: () => void;
 }
 
+interface SessionBuckets {
+  locations: string[];
+  sidebar: string[];
+  topics: string[];
+  peer: string[];
+  chatFolder: string[];
+  state: string[];
+}
+
 export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: SpecificCacheModalProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'system' | 'session'>('system');
@@ -45,7 +54,6 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   // Per-Session state
   const [sessions, setSessions] = useState<Array<{ name: string; userFullName?: string; phone?: string }>>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
-  const [sessionKeysCount, setSessionKeysCount] = useState<number>(0);
 
   // LocalStorage keys existence trigger to re-evaluate empty states
   const [cacheVersion, setCacheVersion] = useState<number>(0);
@@ -79,30 +87,65 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       .catch(() => {});
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!selectedSession) {
-      setSessionKeysCount(0);
-      return;
-    }
-    // Calculate localStorage keys belonging to this session
-    let count = 0;
+  // Dynamic Bucket Classification for 100% Complete & Leak-Proof Session Cache Categorization
+  const sessionBuckets = useMemo<SessionBuckets>(() => {
+    const buckets: SessionBuckets = {
+      locations: [],
+      sidebar: [],
+      topics: [],
+      peer: [],
+      chatFolder: [],
+      state: [],
+    };
+
+    if (!selectedSession) return buckets;
+
+    const classifyKey = (key: string) => {
+      if (!key) return;
+
+      const lower = key.toLowerCase();
+      if (lower.includes('location') || lower.includes('root') || lower.includes('path')) {
+        buckets.locations.push(key);
+      } else if (lower.includes('sidebar') || lower.includes('tree') || lower.includes('expanded')) {
+        buckets.sidebar.push(key);
+      } else if (lower.includes('topic') || lower.includes('thread') || lower.includes('forum')) {
+        buckets.topics.push(key);
+      } else if (lower.includes('peer') || lower.includes('access_hash') || lower.includes('entity')) {
+        buckets.peer.push(key);
+      } else if (lower.includes('chat_folder') || lower.includes('filter') || lower.includes('folder_id')) {
+        buckets.chatFolder.push(key);
+      } else {
+        // Guaranteed fallback for any other session key (scroll, view state, etc.)
+        buckets.state.push(key);
+      }
+    };
+
+    // Scan localStorage for selectedSession
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (
-        key &&
-        (key.includes(selectedSession) ||
-          key === `autogram_drive_locations_v1_${selectedSession}` ||
-          key === `autogram_drive_sidebar_v1_${selectedSession}` ||
-          key === `autogram_drive_topics_v1_${selectedSession}` ||
-          key === `autogram_drive_peer_v2_${selectedSession}` ||
-          key === `autogram_chat_folder_${selectedSession}` ||
-          key === `autogram_drive_scroll_v1_${selectedSession}`)
-      ) {
-        count++;
+      if (key && key.includes(selectedSession)) {
+        classifyKey(key);
       }
     }
-    setSessionKeysCount(count);
+
+    // Scan sessionStorage for selectedSession
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.includes(selectedSession)) {
+        classifyKey(key);
+      }
+    }
+
+    return buckets;
   }, [selectedSession, cacheVersion]);
+
+  const sessionKeysCount =
+    sessionBuckets.locations.length +
+    sessionBuckets.sidebar.length +
+    sessionBuckets.topics.length +
+    sessionBuckets.peer.length +
+    sessionBuckets.chatFolder.length +
+    sessionBuckets.state.length;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -111,7 +154,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
 
   if (!isOpen) return null;
 
-  // --- TAB 1: SYSTEM GLOBAL CACHE HANDLERS (Master Global for all accounts) ---
+  // --- TAB 1: SYSTEM GLOBAL CACHE HANDLERS ---
   const handleClearAvatar = async () => {
     setClearingItem('avatar');
     try {
@@ -270,83 +313,51 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     }
   };
 
-  // --- TAB 2: PER-SESSION CACHE HANDLERS ---
-  const handleClearSessionLocations = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_drive_locations_v1_${selectedSession}`);
-    showToast(t('ui.generated.cache_lokasi_folder_sesi_a901b23') + ' dibersihkan!');
+  // --- TAB 2: ITEMISED PER-SESSION CACHE HANDLERS (Purges Exact Bucket Keys) ---
+  const handleClearBucket = (bucketKeys: string[], title: string) => {
+    if (!selectedSession || bucketKeys.length === 0) return;
+    bucketKeys.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    showToast(`${title} dibersihkan!`);
     triggerCacheRefresh();
   };
 
-  const handleClearSessionSidebar = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_drive_sidebar_v1_${selectedSession}`);
-    showToast(t('ui.generated.cache_pohon_sidebar_sesi_f678b90') + ' dibersihkan!');
-    triggerCacheRefresh();
-  };
+  const handleClearSessionLocations = () =>
+    handleClearBucket(sessionBuckets.locations, t('ui.generated.cache_lokasi_folder_sesi_a901b23'));
 
-  const handleClearSessionTopics = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_drive_topics_v1_${selectedSession}`);
-    showToast(t('ui.generated.cache_topik_forum_sesi_a890f12') + ' dibersihkan!');
-    triggerCacheRefresh();
-  };
+  const handleClearSessionSidebar = () =>
+    handleClearBucket(sessionBuckets.sidebar, t('ui.generated.cache_pohon_sidebar_sesi_f678b90'));
 
-  const handleClearSessionPeer = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_drive_peer_v2_${selectedSession}`);
-    showToast(t('ui.generated.metadata_peer_channel_sesi_b345c67') + ' dibersihkan!');
-    triggerCacheRefresh();
-  };
+  const handleClearSessionTopics = () =>
+    handleClearBucket(sessionBuckets.topics, t('ui.generated.cache_topik_forum_sesi_a890f12'));
 
-  const handleClearSessionChatFolder = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_chat_folder_${selectedSession}`);
-    showToast(t('ui.generated.cache_filter_folder_chat_sesi_a123b45') + ' dibersihkan!');
-    triggerCacheRefresh();
-  };
+  const handleClearSessionPeer = () =>
+    handleClearBucket(sessionBuckets.peer, t('ui.generated.metadata_peer_channel_sesi_b345c67'));
 
-  const handleClearSessionScroll = () => {
-    if (!selectedSession) return;
-    localStorage.removeItem(`autogram_drive_scroll_v1_${selectedSession}`);
-    showToast(t('ui.generated.cache_scroll_state_workspace_sesi_e123a45') + ' dibersihkan!');
-    triggerCacheRefresh();
-  };
+  const handleClearSessionChatFolder = () =>
+    handleClearBucket(sessionBuckets.chatFolder, t('ui.generated.cache_filter_folder_chat_sesi_a123b45'));
+
+  const handleClearSessionScroll = () =>
+    handleClearBucket(sessionBuckets.state, t('ui.generated.cache_scroll_state_workspace_sesi_e123a45'));
 
   const handleClearSessionCache = () => {
     if (!selectedSession) return;
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (
-        key &&
-        (key.includes(selectedSession) ||
-          key === `autogram_drive_locations_v1_${selectedSession}` ||
-          key === `autogram_drive_sidebar_v1_${selectedSession}` ||
-          key === `autogram_drive_topics_v1_${selectedSession}` ||
-          key === `autogram_drive_peer_v2_${selectedSession}` ||
-          key === `autogram_chat_folder_${selectedSession}` ||
-          key === `autogram_drive_scroll_v1_${selectedSession}`)
-      ) {
-        keysToRemove.push(key);
-      }
-    }
-    for (const key of keysToRemove) {
+    const allBucketKeys = [
+      ...sessionBuckets.locations,
+      ...sessionBuckets.sidebar,
+      ...sessionBuckets.topics,
+      ...sessionBuckets.peer,
+      ...sessionBuckets.chatFolder,
+      ...sessionBuckets.state,
+    ];
+
+    allBucketKeys.forEach((key) => {
       localStorage.removeItem(key);
-    }
-
-    const sessionStoreKeys: string[] = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key && key.includes(selectedSession)) {
-        sessionStoreKeys.push(key);
-      }
-    }
-    for (const key of sessionStoreKeys) {
       sessionStorage.removeItem(key);
-    }
+    });
 
-    setSessionKeysCount(0);
     showToast(t('ui.generated.cache_sesi_berhasil_dibersihkan_e567a89'));
     triggerCacheRefresh();
   };
@@ -366,24 +377,12 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     localStorage.getItem('autogram_drive_sort_mode') !== null;
 
   // --- DYNAMIC CACHE PRESENCE CHECKS (TAB 2 SESSION) ---
-  const hasSessionLocations = selectedSession
-    ? localStorage.getItem(`autogram_drive_locations_v1_${selectedSession}`) !== null
-    : false;
-  const hasSessionSidebar = selectedSession
-    ? localStorage.getItem(`autogram_drive_sidebar_v1_${selectedSession}`) !== null
-    : false;
-  const hasSessionTopics = selectedSession
-    ? localStorage.getItem(`autogram_drive_topics_v1_${selectedSession}`) !== null
-    : false;
-  const hasSessionPeer = selectedSession
-    ? localStorage.getItem(`autogram_drive_peer_v2_${selectedSession}`) !== null
-    : false;
-  const hasSessionChatFolder = selectedSession
-    ? localStorage.getItem(`autogram_chat_folder_${selectedSession}`) !== null
-    : false;
-  const hasSessionScroll = selectedSession
-    ? localStorage.getItem(`autogram_drive_scroll_v1_${selectedSession}`) !== null
-    : false;
+  const hasSessionLocations = sessionBuckets.locations.length > 0;
+  const hasSessionSidebar = sessionBuckets.sidebar.length > 0;
+  const hasSessionTopics = sessionBuckets.topics.length > 0;
+  const hasSessionPeer = sessionBuckets.peer.length > 0;
+  const hasSessionChatFolder = sessionBuckets.chatFolder.length > 0;
+  const hasSessionScroll = sessionBuckets.state.length > 0;
   const hasSessionTotal = sessionKeysCount > 0;
 
   // Reusable button styling for active vs darkened/disabled states
@@ -597,7 +596,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             </div>
           )}
 
-          {/* TAB 1: SYSTEM SPECIFIC CACHES (Indukkan Master untuk Seluruh Akun) */}
+          {/* TAB 1: SYSTEM SPECIFIC CACHES */}
           {activeTab === 'system' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               {/* 1. Avatar Cache (Global) */}
@@ -1066,7 +1065,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             </div>
           )}
 
-          {/* TAB 2: PER-SESSION ACCOUNT CACHE (6 Itemized Cards in 2x3 Grid + Master Action Banner) */}
+          {/* TAB 2: PER-SESSION ACCOUNT CACHE (100% Mathematically Exhaustive Dynamic Bucket Architecture) */}
           {activeTab === 'session' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -1127,11 +1126,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <MapPin size={16} style={{ color: '#f87171' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <MapPin size={16} style={{ color: '#f87171' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionLocations ? '#fca5a5' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.locations.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
@@ -1166,11 +1170,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <FolderTree size={16} style={{ color: '#38bdf8' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionSidebar ? '#38bdf8' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.sidebar.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
@@ -1205,11 +1214,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <MessageSquare size={16} style={{ color: '#c084fc' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_topik_forum_sesi_a890f12')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <MessageSquare size={16} style={{ color: '#c084fc' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.cache_topik_forum_sesi_a890f12')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionTopics ? '#c084fc' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.topics.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
@@ -1244,11 +1258,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <Users size={16} style={{ color: '#60a5fa' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Users size={16} style={{ color: '#60a5fa' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionPeer ? '#60a5fa' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.peer.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
@@ -1283,11 +1302,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <Folder size={16} style={{ color: '#4ade80' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_filter_folder_chat_sesi_a123b45')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Folder size={16} style={{ color: '#4ade80' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.cache_filter_folder_chat_sesi_a123b45')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionChatFolder ? '#4ade80' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.chatFolder.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_filter_folder_obrolan_aktif_untuk_sesi_ini_c567d89')}
@@ -1322,11 +1346,16 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
-                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
-                          </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                              {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
+                            </strong>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: hasSessionScroll ? '#fbbf24' : '#64748b', fontWeight: 600 }}>
+                            {sessionBuckets.state.length} {t('ui.generated.entri_terdeteksi_c123d45')}
+                          </span>
                         </div>
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
                           {t('ui.generated.hapus_posisi_scroll_dan_preferensi_tampilan_ter_b456c78')}
