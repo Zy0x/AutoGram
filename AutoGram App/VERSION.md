@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.5
+AutoGram Version: v3.1.6
 
 Current State:
+v3.1.6 Total Header & Toolbar Lockout Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperketat penguncian total (`disabled={isHeaderFrozen}` dan `pointer-events: none !important`) pada SELURUH tombol di header atas (`< >`, Download, Buka, Reveal, Fullscreen) dan Labeled Media Toolbar (`Zoom`, `Rotate`, `More`), menjamin tidak ada tombol di header yang dapat ditekan saat tidak ada Card yang terpilih.
+
+Previous:
 v3.1.5 Instant Selection, Click Outside Reset & Frozen Toolbar Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengimplementasikan respon instant 0ms `onPointerDown` saat Card A atau B ditekan, pembatalan status terpilih (`activeSplitSlot: null`) saat menekan area di luar Card, serta pembekuan visual otomatis pada Toolbar Preview & Header saat tidak ada Card yang aktif.
 
 Previous:

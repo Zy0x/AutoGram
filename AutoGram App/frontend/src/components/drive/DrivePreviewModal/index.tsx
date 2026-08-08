@@ -3039,10 +3039,11 @@ export function DrivePreviewModal({
             <X size={18} />
           </button>
 
-          {/* Row B: nav — always interactive, above stage */}
+          {/* Row B: nav — disabled when frozen, above stage */}
           <div
             className="drive-preview-nav"
             role="toolbar"
+            style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', cursor: 'not-allowed', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
             aria-label="Navigasi preview"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -3051,9 +3052,10 @@ export function DrivePreviewModal({
               type="button"
               className="td-icon-btn"
               disabled={
-                duplicateContext
+                isHeaderFrozen ||
+                (duplicateContext
                   ? duplicateContext.currentGroupIndex <= 0
-                  : !hasPrev
+                  : !hasPrev)
               }
               onClick={(e) => {
                 e.stopPropagation();
@@ -3082,9 +3084,10 @@ export function DrivePreviewModal({
               type="button"
               className="td-icon-btn"
               disabled={
-                duplicateContext
+                isHeaderFrozen ||
+                (duplicateContext
                   ? duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1
-                  : !hasNext
+                  : !hasNext)
               }
               onClick={(e) => {
                 e.stopPropagation();
@@ -3116,7 +3119,7 @@ export function DrivePreviewModal({
                 e.stopPropagation();
                 void handleDownload();
               }}
-              disabled={saving}
+              disabled={isHeaderFrozen || saving}
               title={t('speedtest.download_tooltip')}
               aria-label="Download"
             >
@@ -3131,7 +3134,7 @@ export function DrivePreviewModal({
                     e.stopPropagation();
                     void handleOpenSystem();
                   }}
-                  disabled={openingSystem || !creds}
+                  disabled={isHeaderFrozen || openingSystem || !creds}
                   title={t('speedtest.open_default_tooltip')}
                   aria-label="Buka"
                 >
@@ -3144,7 +3147,7 @@ export function DrivePreviewModal({
                     e.stopPropagation();
                     void handleOpenWith();
                   }}
-                  disabled={openingSystem || !creds}
+                  disabled={isHeaderFrozen || openingSystem || !creds}
                   title={t('speedtest.open_with_tooltip')}
                   aria-label="Buka dengan"
                 >
@@ -3157,7 +3160,7 @@ export function DrivePreviewModal({
                     e.stopPropagation();
                     void handleReveal();
                   }}
-                  disabled={!path}
+                  disabled={isHeaderFrozen || !path}
                   title={
                     path
                       ? 'Tampilkan di folder (File Explorer)'
@@ -3176,6 +3179,7 @@ export function DrivePreviewModal({
                 e.stopPropagation();
                 void toggleFullscreen();
               }}
+              disabled={isHeaderFrozen}
               title={isFullscreen ? t('speedtest.preview_fullscreen_exit') : t('speedtest.preview_fullscreen_enter')}
               aria-label="Fullscreen"
             >
@@ -3216,7 +3220,7 @@ export function DrivePreviewModal({
         <div
           className={`drive-preview-toolbar is-${mediaKind}${qualityOpen || rateOpen ? ' has-menu' : ''}`}
           role="toolbar"
-          style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
+          style={isHeaderFrozen ? { opacity: 0.35, pointerEvents: 'none', filter: 'grayscale(0.6)', cursor: 'not-allowed', transition: 'all 0.2s ease' } : { transition: 'all 0.2s ease' }}
           aria-label={
             isImage ? 'Alat preview gambar' : isVideo ? 'Alat preview video' : 'Alat preview'
           }
@@ -3233,7 +3237,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={`Perkecil (min ${Math.round(MIN_ZOOM * 100)}%) — gulir ke bawah atau -`}
-                  disabled={zoom <= MIN_ZOOM + 0.001}
+                  disabled={isHeaderFrozen || zoom <= MIN_ZOOM + 0.001}
                   onClick={() => zoomBy(-ZOOM_STEP)}
                 >
                   <ZoomOut size={15} />
@@ -3243,6 +3247,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn drive-tool-btn-value"
                   title={t("speedtest.tooltip_zoom_reset")}
+                  disabled={isHeaderFrozen}
                   onClick={resetZoom}
                 >
                   <Shrink size={14} />
@@ -3252,7 +3257,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={`Perbesar (maks ${Math.round(MAX_ZOOM * 100)}%) — gulir ke atas atau +`}
-                  disabled={zoom >= MAX_ZOOM - 0.001}
+                  disabled={isHeaderFrozen || zoom >= MAX_ZOOM - 0.001}
                   onClick={() => zoomBy(ZOOM_STEP)}
                 >
                   <ZoomIn size={15} />
@@ -3262,6 +3267,7 @@ export function DrivePreviewModal({
                   type="button"
                   className={`drive-tool-btn${isMagnifierMode ? ' is-on' : ''}`}
                   title={t("speedtest.tooltip_magnifier")}
+                  disabled={isHeaderFrozen}
                   onClick={() => setIsMagnifierMode((v) => !v)}
                 >
                   <Search size={15} />
@@ -3277,6 +3283,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_left")}
+                  disabled={isHeaderFrozen}
                   onClick={() => setRotation((r) => (r + 270) % 360)}
                 >
                   <RotateCcw size={15} />
@@ -3286,6 +3293,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_rotate_right")}
+                  disabled={isHeaderFrozen}
                   onClick={() => setRotation((r) => (r + 90) % 360)}
                 >
                   <RotateCw size={15} />
@@ -3295,6 +3303,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_h")}
+                  disabled={isHeaderFrozen}
                   onClick={() => setFlipH((v) => !v)}
                 >
                   <FlipHorizontal size={15} />
@@ -3304,6 +3313,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={t("speedtest.tooltip_flip_v")}
+                  disabled={isHeaderFrozen}
                   onClick={() => setFlipV((v) => !v)}
                 >
                   <FlipVertical size={15} />
@@ -3314,6 +3324,7 @@ export function DrivePreviewModal({
                     type="button"
                     className="drive-tool-btn"
                     title={t("speedtest.tooltip_rotate_reset")}
+                    disabled={isHeaderFrozen}
                     onClick={() => {
                       setRotation(0);
                       setFlipH(false);
@@ -3347,7 +3358,7 @@ export function DrivePreviewModal({
                           return next;
                         });
                       }}
-                      disabled={switchingQuality}
+                      disabled={isHeaderFrozen || switchingQuality}
                       aria-expanded={qualityOpen}
                       aria-haspopup="menu"
                       aria-label="Resolusi video"
@@ -3368,6 +3379,7 @@ export function DrivePreviewModal({
                     type="button"
                     className="drive-tool-btn"
                     title={t('speedtest.preview_pip_hint')}
+                    disabled={isHeaderFrozen}
                     onClick={() => void togglePip()}
                   >
                     <PictureInPicture2 size={15} />
@@ -3384,7 +3396,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn drive-tool-btn-accent"
                   title={t('speedtest.open_default_app')}
-                  disabled={openingSystem || !creds}
+                  disabled={isHeaderFrozen || openingSystem || !creds}
                   onClick={() => void handleOpenSystem()}
                 >
                   {openingSystem ? <Loader2 size={15} className="spin" /> : <ExternalLink size={15} />}
@@ -3394,7 +3406,7 @@ export function DrivePreviewModal({
                   type="button"
                   className="drive-tool-btn"
                   title={t('speedtest.open_with_other')}
-                  disabled={openingSystem || !creds}
+                  disabled={isHeaderFrozen || openingSystem || !creds}
                   onClick={() => void handleOpenWith()}
                 >
                   <AppWindow size={15} />
@@ -3405,7 +3417,7 @@ export function DrivePreviewModal({
                     type="button"
                     className="drive-tool-btn"
                     title={t('speedtest.print_pdf_tooltip')}
-                    disabled={openingSystem || !creds}
+                    disabled={isHeaderFrozen || openingSystem || !creds}
                     onClick={() => void handlePrintPdf()}
                   >
                     <Printer size={15} />
@@ -3417,6 +3429,7 @@ export function DrivePreviewModal({
                     type="button"
                     className="drive-tool-btn"
                     title={t('speedtest.copy_text')}
+                    disabled={isHeaderFrozen}
                     onClick={() => void handleCopyText()}
                   >
                     <Copy size={15} />
@@ -3432,7 +3445,7 @@ export function DrivePreviewModal({
                 type="button"
                 className={`drive-tool-btn${loading ? ' is-loading' : ''}`}
                 title={t('speedtest.reload_preview')}
-                disabled={loading}
+                disabled={isHeaderFrozen || loading}
                 onClick={() => {
                   resetViewTools();
                   invalidatePreview(folderId, file.id);
@@ -3450,6 +3463,7 @@ export function DrivePreviewModal({
                 type="button"
                 className={`drive-tool-btn${showInfo ? ' is-on' : ''}`}
                 title={t('speedtest.file_detail_tooltip')}
+                disabled={isHeaderFrozen}
                 onClick={() => setShowInfo((v) => !v)}
               >
                 <Info size={15} />

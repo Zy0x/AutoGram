@@ -1,3 +1,8 @@
+## v3.1.6 Total Header & Toolbar Lockout Engine
+
+### Penguncian Total Seluruh Tombol Header & Toolbar (`DrivePreviewModal/index.tsx`)
+- **Total Lockout Engine**: Menerapkan atribut `disabled={isHeaderFrozen}` dan style `pointer-events: none` pada seluruh tombol di baris navigasi header atas (`< >`, Download, Buka Default, Buka Dengan, Reveal Explorer, Fullscreen) serta seluruh tombol di Labeled Toolbar (`Zoom Out/Reset/In/Magnifier`, `Rotate Left/Right/Flip`, `Quality`, `PIP`, `Open App`, `Copy Text`, `Reload`, `Info`). Saat tidak ada Card yang dipilih (`activeSplitSlot === null`), 100% tombol di header terkunci total dan tidak dapat diklik.
+
 ## v3.1.5 Instant Selection, Click Outside Reset & Frozen Toolbar Engine
 
 ### Selection Instant, Reset Luar Card & Pembekuan Toolbar (`DrivePreviewModal/index.tsx`)
