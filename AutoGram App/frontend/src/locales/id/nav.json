@@ -55,5 +55,18 @@
   "api_id_label": "API ID",
   "api_hash_label": "API Hash",
   "api_setup_submit": "Simpan Credentials",
-  "api_setup_error_empty": "API ID dan API Hash wajib diisi."
+  "api_setup_error_empty": "API ID dan API Hash wajib diisi.",
+  "how_to_get_btn": "How to Get",
+  "how_to_get_title": "Panduan Mendapatkan API",
+  "how_to_get_step1_title": "1. Masuk ke my.telegram.org",
+  "how_to_get_step1_desc": "Buka portal resmi Telegram dan masuk menggunakan nomor telepon akun Telegram Anda.",
+  "how_to_get_step2_title": "2. Masukkan Kode Verifikasi",
+  "how_to_get_step2_desc": "Telegram akan mengirimkan kode konfirmasi ke aplikasi Telegram Anda (pada chat resmi Telegram, bukan via SMS).",
+  "how_to_get_step3_title": "3. Pilih 'API development tools'",
+  "how_to_get_step3_desc": "Setelah berhasil masuk, klik menu 'API development tools' pada dashboard akun.",
+  "how_to_get_step4_title": "4. Buat Aplikasi Baru",
+  "how_to_get_step4_desc": "Isi App title (misal: AutoGram) dan Short name (misal: autogram), lalu klik tombol 'Create application'.",
+  "how_to_get_step5_title": "5. Salin API ID & API Hash",
+  "how_to_get_step5_desc": "Salin App api_id (angka) dan App api_hash (32 karakter) lalu tempel ke form di samping.",
+  "how_to_get_tip": "API Credentials disimpan secara aman dan terenkripsi pada perangkat lokal Anda via Encrypted Store."
 }

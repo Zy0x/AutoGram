@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   ArrowLeft,
   X,
+  HelpCircle,
+  BookOpen,
 } from 'lucide-react';
 import { bootstrapSecureCredentials, setApiCredentials } from '../../lib/tauri/secureCredentials';
 
@@ -25,6 +27,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
   const [showHash, setShowHash] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -55,9 +58,7 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     const trimmedHash = apiHash.trim();
 
     if (!trimmedId || !trimmedHash) {
-      setError(
-        t('nav.api_setup_error_empty')
-      );
+      setError(t('nav.api_setup_error_empty'));
       return;
     }
 
@@ -87,6 +88,156 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     }
   };
 
+  const renderGuideCard = (onCloseGuide?: () => void) => (
+    <div
+      style={{
+        flex: '1 1 420px',
+        maxWidth: '460px',
+        width: '100%',
+        background: 'linear-gradient(150deg, rgba(16, 26, 44, 0.98) 0%, rgba(10, 16, 30, 0.98) 100%)',
+        border: '1px solid rgba(56, 189, 248, 0.28)',
+        borderRadius: '20px',
+        padding: '20px 22px',
+        boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.15)',
+        backdropFilter: 'blur(16px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        position: 'relative',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* GUIDE HEADER */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#38bdf8',
+              flexShrink: 0,
+            }}
+          >
+            <BookOpen size={17} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' }}>
+              {t('nav.how_to_get_title')}
+            </h3>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={handleOpenTelegramOrg}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(56, 189, 248, 0.16)',
+              border: '1px solid rgba(56, 189, 248, 0.32)',
+              color: '#38bdf8',
+              fontSize: '0.74rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
+            <ExternalLink size={11} />
+          </button>
+          {onCloseGuide && (
+            <button
+              type="button"
+              onClick={onCloseGuide}
+              style={{
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '26px',
+                height: '26px',
+              }}
+              aria-label={t('speedtest.preview_close_btn')}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* STEPS LIST */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+        <div style={{ padding: '8px 10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+            {t('nav.how_to_get_step1_title')}
+          </strong>
+          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step1_desc')}</span>
+        </div>
+
+        <div style={{ padding: '8px 10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+            {t('nav.how_to_get_step2_title')}
+          </strong>
+          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step2_desc')}</span>
+        </div>
+
+        <div style={{ padding: '8px 10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+            {t('nav.how_to_get_step3_title')}
+          </strong>
+          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step3_desc')}</span>
+        </div>
+
+        <div style={{ padding: '8px 10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+            {t('nav.how_to_get_step4_title')}
+          </strong>
+          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step4_desc')}</span>
+        </div>
+
+        <div style={{ padding: '8px 10px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '2px', fontSize: '0.78rem' }}>
+            {t('nav.how_to_get_step5_title')}
+          </strong>
+          <span style={{ color: '#94a3b8', lineHeight: 1.35 }}>{t('nav.how_to_get_step5_desc')}</span>
+        </div>
+      </div>
+
+      {/* FOOTER TIP */}
+      <div
+        style={{
+          padding: '6px 10px',
+          borderRadius: '8px',
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
+          fontSize: '0.72rem',
+          color: '#cbd5e1',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        <ShieldCheck size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
+        <span>{t('nav.how_to_get_tip')}</span>
+      </div>
+    </div>
+  );
+
   if (isModal) {
     return (
       <div
@@ -106,194 +257,181 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(0, 0, 0, 0.72)',
+          background: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           padding: '16px',
           boxSizing: 'border-box',
+          overflowY: 'auto',
         }}
       >
         <div
           style={{
-            maxWidth: '450px',
-            width: '100%',
-            background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.96) 0%, rgba(10, 14, 24, 0.98) 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '20px',
-            padding: '22px 24px',
-            boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.15)',
-            backdropFilter: 'blur(16px)',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            position: 'relative',
-            maxHeight: '96vh',
-            overflowY: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            boxSizing: 'border-box',
+            flexDirection: 'row',
+            alignItems: 'stretch',
+            justifyContent: 'center',
+            gap: '16px',
+            maxWidth: showGuide ? '930px' : '450px',
+            width: '100%',
+            transition: 'max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            flexWrap: 'wrap',
           }}
         >
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '30px',
-                height: '30px',
-                zIndex: 10,
-              }}
-              aria-label={t('speedtest.preview_close_btn')}
-            >
-              <X size={16} />
-            </button>
-          )}
-
-          {/* HEADER: COMPACT ICON & TITLE */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                color: '#38bdf8',
-              }}
-            >
-              <KeyRound size={20} />
-            </div>
-            <div>
-              <h2 id="api-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
-                {t('nav.api_setup_title')}
-              </h2>
-              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.35 }}>
-                {t('nav.api_setup_subtitle')}
-              </p>
-            </div>
-          </div>
-
-          {/* STREAMLINED HELPER BAR */}
+          {/* MAIN CREDENTIALS FORM CARD */}
           <div
             style={{
-              padding: '8px 12px',
-              borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.06)',
-              border: '1px solid rgba(56, 189, 248, 0.18)',
-              fontSize: '0.76rem',
-              color: '#cbd5e1',
+              flex: '1 1 420px',
+              maxWidth: '450px',
+              width: '100%',
+              background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.96) 0%, rgba(10, 14, 24, 0.98) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '20px',
+              padding: '22px 24px',
+              boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.15)',
+              backdropFilter: 'blur(16px)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
+              flexDirection: 'column',
+              gap: '14px',
+              position: 'relative',
+              boxSizing: 'border-box',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={15} style={{ color: '#38bdf8', flexShrink: 0 }} />
-              <span>{t('nav.api_setup_guide_title')}</span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '30px',
+                  height: '30px',
+                  zIndex: 10,
+                }}
+                aria-label={t('speedtest.preview_close_btn')}
+              >
+                <X size={16} />
+              </button>
+            )}
+
+            {/* HEADER: COMPACT ICON & TITLE */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: '#38bdf8',
+                }}
+              >
+                <KeyRound size={20} />
+              </div>
+              <div>
+                <h2 id="api-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+                  {t('nav.api_setup_title')}
+                </h2>
+                <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+                  {t('nav.api_setup_subtitle')}
+                </p>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenTelegramOrg}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                color: '#38bdf8',
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
-              <ExternalLink size={11} />
-            </button>
-          </div>
-
-          {/* ERROR ALERT */}
-          {error && (
+            {/* ACTION BAR: HOW TO GET GUIDE TRIGGER */}
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
                 padding: '8px 12px',
                 borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#fca5a5',
-                fontSize: '0.78rem',
+                background: 'rgba(56, 189, 248, 0.06)',
+                border: '1px solid rgba(56, 189, 248, 0.18)',
+                fontSize: '0.76rem',
+                color: '#cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
               }}
             >
-              <AlertCircle size={15} style={{ flexShrink: 0 }} />
-              <span>{error}</span>
-            </div>
-          )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={15} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                <span>{t('nav.api_setup_guide_title')}</span>
+              </div>
 
-          {/* FORM INPUTS */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
-                {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={apiId}
-                onChange={(e) => setApiId(e.target.value)}
-                placeholder={t('ui.generated.contoh_1234567_25ccc85')}
-                required
+              <button
+                type="button"
+                onClick={() => setShowGuide(!showGuide)}
                 style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: '10px',
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
-                  fontSize: '0.86rem',
-                  outline: 'none',
-                  boxSizing: 'border-box',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: showGuide ? 'rgba(56, 189, 248, 0.28)' : 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  color: '#38bdf8',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
                 }}
-              />
+              >
+                <HelpCircle size={13} />
+                <span>{t('nav.how_to_get_btn')}</span>
+              </button>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
-                {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <div style={{ position: 'relative' }}>
+            {/* ERROR ALERT */}
+            {error && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#fca5a5',
+                  fontSize: '0.78rem',
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* FORM INPUTS */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+                  {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
+                </label>
                 <input
-                  type={showHash ? 'text' : 'password'}
-                  value={apiHash}
-                  onChange={(e) => setApiHash(e.target.value)}
-                  placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
+                  type="text"
+                  value={apiId}
+                  onChange={(e) => setApiId(e.target.value)}
+                  placeholder={t('ui.generated.contoh_1234567_25ccc85')}
                   required
                   style={{
                     width: '100%',
-                    padding: '9px 36px 9px 12px',
+                    padding: '9px 12px',
                     borderRadius: '10px',
                     background: 'rgba(15, 23, 42, 0.8)',
                     border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -303,69 +441,98 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                     boxSizing: 'border-box',
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowHash(!showHash)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {showHash ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={saving}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+                  {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showHash ? 'text' : 'password'}
+                    value={apiHash}
+                    onChange={(e) => setApiHash(e.target.value)}
+                    placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '9px 36px 9px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#f8fafc',
+                      fontSize: '0.86rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowHash(!showHash)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {showHash ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  marginTop: '4px',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  cursor: saving ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(56, 189, 248, 0.25)',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                <span>{t('nav.api_setup_submit')}</span>
+                <ArrowRight size={16} />
+              </button>
+            </form>
+
+            <div
               style={{
-                marginTop: '4px',
-                padding: '10px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
-                border: 'none',
-                color: '#ffffff',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                cursor: saving ? 'wait' : 'pointer',
+                margin: 0,
+                fontSize: '0.74rem',
+                color: '#64748b',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.25)',
-                transition: 'all 0.18s ease',
+                gap: '6px',
+                textAlign: 'center',
+                lineHeight: 1.3,
               }}
             >
-              <span>{t('nav.api_setup_submit')}</span>
-              <ArrowRight size={16} />
-            </button>
-          </form>
-
-          <div
-            style={{
-              margin: 0,
-              fontSize: '0.74rem',
-              color: '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              textAlign: 'center',
-              lineHeight: 1.3,
-            }}
-          >
-            <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
-            <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
+              <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
+              <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
+            </div>
           </div>
+
+          {/* SIDE CARD: HOW TO GET GUIDE MODAL */}
+          {showGuide && renderGuideCard(() => setShowGuide(false))}
         </div>
       </div>
     );
@@ -389,176 +556,166 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
     >
       <div
         style={{
-          maxWidth: '460px',
-          width: '100%',
-          background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.9) 0%, rgba(10, 14, 24, 0.98) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '20px',
-          padding: '24px 28px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15)',
-          backdropFilter: 'blur(16px)',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          justifyContent: 'center',
           gap: '16px',
+          maxWidth: showGuide ? '960px' : '460px',
+          width: '100%',
+          transition: 'max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          flexWrap: 'wrap',
         }}
       >
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              marginBottom: '-4px',
-            }}
-          >
-            <ArrowLeft size={15} />
-            <span>{t('nav.back_to_launcher')}</span>
-          </button>
-        )}
-
-        {/* HEADER: COMPACT ICON & TITLE */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              color: '#38bdf8',
-            }}
-          >
-            <KeyRound size={22} />
-          </div>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
-              {t('nav.api_setup_title')}
-            </h2>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.4 }}>
-              {t('nav.api_setup_subtitle')}
-            </p>
-          </div>
-        </div>
-
-        {/* STREAMLINED HELPER BAR */}
         <div
           style={{
-            padding: '10px 14px',
-            borderRadius: '12px',
-            background: 'rgba(56, 189, 248, 0.06)',
-            border: '1px solid rgba(56, 189, 248, 0.18)',
-            fontSize: '0.78rem',
-            color: '#cbd5e1',
+            flex: '1 1 420px',
+            maxWidth: '460px',
+            width: '100%',
+            background: 'linear-gradient(150deg, rgba(18, 24, 38, 0.9) 0%, rgba(10, 14, 24, 0.98) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15)',
+            backdropFilter: 'blur(16px)',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
+            flexDirection: 'column',
+            gap: '16px',
+            boxSizing: 'border-box',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldCheck size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
-            <span>{t('nav.api_setup_guide_title')}</span>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                alignSelf: 'flex-start',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#94a3b8',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: '-4px',
+              }}
+            >
+              <ArrowLeft size={15} />
+              <span>{t('nav.back_to_launcher')}</span>
+            </button>
+          )}
+
+          {/* HEADER: COMPACT ICON & TITLE */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                color: '#38bdf8',
+              }}
+            >
+              <KeyRound size={22} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, letterSpacing: '-0.01em', color: '#ffffff' }}>
+                {t('nav.api_setup_title')}
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '2px 0 0 0', lineHeight: 1.4 }}>
+                {t('nav.api_setup_subtitle')}
+              </p>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleOpenTelegramOrg}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '5px 11px',
-              borderRadius: '6px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
-              fontSize: '0.76rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>{t('ui.generated.buka_my_telegram_org_ba7df45')}</span>
-            <ExternalLink size={12} />
-          </button>
-        </div>
-
-        {/* ERROR ALERT */}
-        {error && (
+          {/* ACTION BAR: HOW TO GET GUIDE TRIGGER */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
               padding: '10px 14px',
               borderRadius: '12px',
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#fca5a5',
-              fontSize: '0.82rem',
+              background: 'rgba(56, 189, 248, 0.06)',
+              border: '1px solid rgba(56, 189, 248, 0.18)',
+              fontSize: '0.78rem',
+              color: '#cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
             }}
           >
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
-          </div>
-        )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <span>{t('nav.api_setup_guide_title')}</span>
+            </div>
 
-        {/* FORM */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
-              {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={apiId}
-              onChange={(e) => setApiId(e.target.value)}
-              placeholder={t('ui.generated.contoh_1234567_25ccc85')}
-              required
+            <button
+              type="button"
+              onClick={() => setShowGuide(!showGuide)}
               style={{
-                width: '100%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 11px',
+                borderRadius: '6px',
+                background: showGuide ? 'rgba(56, 189, 248, 0.28)' : 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                fontSize: '0.76rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <HelpCircle size={13} />
+              <span>{t('nav.how_to_get_btn')}</span>
+            </button>
+          </div>
+
+          {/* ERROR ALERT */}
+          {error && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
                 padding: '10px 14px',
                 borderRadius: '12px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#f8fafc',
-                fontSize: '0.9rem',
-                outline: 'none',
-                boxSizing: 'border-box',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#fca5a5',
+                fontSize: '0.82rem',
               }}
-            />
-          </div>
+            >
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
-              {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <div style={{ position: 'relative' }}>
+          {/* FORM */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+                {t('nav.api_id_label')} <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <input
-                type={showHash ? 'text' : 'password'}
-                value={apiHash}
-                onChange={(e) => setApiHash(e.target.value)}
-                placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
+                type="text"
+                value={apiId}
+                onChange={(e) => setApiId(e.target.value)}
+                placeholder={t('ui.generated.contoh_1234567_25ccc85')}
                 required
                 style={{
                   width: '100%',
-                  padding: '10px 42px 10px 14px',
+                  padding: '10px 14px',
                   borderRadius: '12px',
                   background: 'rgba(15, 23, 42, 0.8)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -568,67 +725,96 @@ export function ApiSetupScreen({ onComplete, onClose, onBack, isModal = false }:
                   boxSizing: 'border-box',
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowHash(!showHash)}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                }}
-              >
-                {showHash ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={saving}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '4px' }}>
+                {t('nav.api_hash_label')} <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showHash ? 'text' : 'password'}
+                  value={apiHash}
+                  onChange={(e) => setApiHash(e.target.value)}
+                  placeholder={t('ui.generated.contoh_0123456789abcdef0123456789abcdef_ece8eb0')}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 42px 10px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    color: '#f8fafc',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowHash(!showHash)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showHash ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                marginTop: '6px',
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                cursor: saving ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 8px 20px rgba(56, 189, 248, 0.3)',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span>{t('nav.api_setup_submit')}</span>
+              <ArrowRight size={18} />
+            </button>
+          </form>
+
+          <div
             style={{
-              marginTop: '6px',
-              padding: '12px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
-              border: 'none',
-              color: '#ffffff',
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              cursor: saving ? 'wait' : 'pointer',
+              margin: 0,
+              fontSize: '0.74rem',
+              color: '#64748b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 8px 20px rgba(56, 189, 248, 0.3)',
-              transition: 'all 0.18s ease',
+              gap: '6px',
+              textAlign: 'center',
+              lineHeight: 1.3,
             }}
           >
-            <span>{t('nav.api_setup_submit')}</span>
-            <ArrowRight size={18} />
-          </button>
-        </form>
-
-        <div
-          style={{
-            margin: 0,
-            fontSize: '0.74rem',
-            color: '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            textAlign: 'center',
-            lineHeight: 1.3,
-          }}
-        >
-          <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
-          <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
+            <ShieldCheck size={15} style={{ flexShrink: 0, color: '#64748b' }} />
+            <span>{t('ui.generated.credentials_anda_disimpan_secara_terenkripsi_ama_b24611b')}</span>
+          </div>
         </div>
+
+        {/* SIDE CARD GUIDE */}
+        {showGuide && renderGuideCard(() => setShowGuide(false))}
       </div>
     </div>
   );

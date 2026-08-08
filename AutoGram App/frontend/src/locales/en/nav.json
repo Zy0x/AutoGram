@@ -55,5 +55,18 @@
   "api_id_label": "API ID",
   "api_hash_label": "API Hash",
   "api_setup_submit": "Save Credentials",
-  "api_setup_error_empty": "API ID and API Hash are required."
+  "api_setup_error_empty": "API ID and API Hash are required.",
+  "how_to_get_btn": "How to Get",
+  "how_to_get_title": "How to Get Telegram API",
+  "how_to_get_step1_title": "1. Log in to my.telegram.org",
+  "how_to_get_step1_desc": "Open the official Telegram portal and sign in with your Telegram account phone number.",
+  "how_to_get_step2_title": "2. Enter Confirmation Code",
+  "how_to_get_step2_desc": "Telegram will send the verification code to your Telegram app (in the official service chat, not via SMS).",
+  "how_to_get_step3_title": "3. Select 'API development tools'",
+  "how_to_get_step3_desc": "Once logged in, click the 'API development tools' section on your account dashboard.",
+  "how_to_get_step4_title": "4. Create New Application",
+  "how_to_get_step4_desc": "Fill in the App title (e.g. AutoGram) and Short name (e.g. autogram), then click 'Create application'.",
+  "how_to_get_step5_title": "5. Copy API ID & API Hash",
+  "how_to_get_step5_desc": "Copy your App api_id (number) and App api_hash (32-character string) into the input fields beside.",
+  "how_to_get_tip": "Your credentials are stored securely encrypted on your local device via Encrypted Store."
 }
