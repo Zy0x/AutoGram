@@ -21,7 +21,6 @@ import {
 } from '../../lib/media/thumbPersistentCache';
 import { clearMediaCache } from '../../lib/db/mediaStudioDb';
 
-import { PerfSection } from './PerfSection';
 import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
 import { CACHE_LIMIT_STEPS, CACHE_LIMIT_LABELS } from './settingsUtils';
@@ -327,9 +326,6 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </select>
           </div>
         </div>
-
-        {/* 2. DEVICE PERFORMANCE OPTIMIZATION */}
-        <PerfSection />
 
         {/* 4. PROXY & VPN OPTIMIZER (UNIFIED COMPONENT SHARED WITH DRIVES SETTINGS) */}
         <NetworkSection />
