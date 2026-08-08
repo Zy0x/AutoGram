@@ -1557,3 +1557,85 @@ html, body {
   }
 }
 
+/* Api Setup & Guide animations */
+@keyframes apiBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes apiCardPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes guideSlideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.api-modal-container {
+  animation: apiBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.api-card-enter {
+  animation: apiCardPopIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.guide-card-enter {
+  animation: guideSlideFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.guide-step-item {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.guide-step-item:hover {
+  background: rgba(56, 189, 248, 0.07) !important;
+  border-color: rgba(56, 189, 248, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+.guide-link-btn {
+  transition: all 0.18s ease;
+}
+
+.guide-link-btn:hover {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+.guide-close-btn {
+  transition: all 0.18s ease;
+}
+
+.guide-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.how-to-get-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.how-to-get-btn:hover {
+  background: rgba(56, 189, 248, 0.28) !important;
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+}
+
