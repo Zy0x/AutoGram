@@ -765,6 +765,54 @@ export function DrivePreviewModal({
       setSlotBTransform(updater);
     }
   };
+
+  const handleCardPointerDown = (
+    e: React.PointerEvent,
+    slot: 'A' | 'B',
+    currentTransform: typeof slotATransform,
+    setTransform: React.Dispatch<React.SetStateAction<typeof slotATransform>>
+  ) => {
+    e.stopPropagation();
+    if (e.button !== 0) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startPanX = currentTransform.pan.x;
+    const startPanY = currentTransform.pan.y;
+    let hasMoved = false;
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const dx = moveEv.clientX - startX;
+      const dy = moveEv.clientY - startY;
+      if (!hasMoved && Math.hypot(dx, dy) > 4) {
+        hasMoved = true;
+        setActiveSplitSlot(slot);
+      }
+      if (hasMoved) {
+        setTransform((prev) => ({
+          ...prev,
+          pan: {
+            x: startPanX + dx,
+            y: startPanY + dy,
+          },
+        }));
+      }
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      if (!hasMoved) {
+        setActiveSplitSlot((prev) => (prev === slot ? null : slot));
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { once: true });
+    window.addEventListener('pointercancel', onPointerUp, { once: true });
+  };
   const [videoBufferedPercent, setVideoBufferedPercent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [rippleOverlay, setRippleOverlay] = useState<{ type: 'play' | 'pause'; key: number } | null>(null);
@@ -3609,8 +3657,7 @@ export function DrivePreviewModal({
                       <div
                         className={`drive-preview-split-col ${isSlotAEmpty ? '' : isMarkedA ? 'is-marked-delete' : 'is-keep'} ${isActiveA ? 'is-active-card-a' : ''}`}
                         onPointerDown={(e) => {
-                          e.stopPropagation();
-                          setActiveSplitSlot((prev) => (prev === 'A' ? null : 'A'));
+                          handleCardPointerDown(e, 'A', slotATransform, setSlotATransform);
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3739,8 +3786,7 @@ export function DrivePreviewModal({
                       <div
                         className={`drive-preview-split-col ${isSlotBEmpty ? '' : isMarkedB ? 'is-marked-delete' : 'is-keep'} ${isActiveB ? 'is-active-card-b' : ''}`}
                         onPointerDown={(e) => {
-                          e.stopPropagation();
-                          setActiveSplitSlot((prev) => (prev === 'B' ? null : 'B'));
+                          handleCardPointerDown(e, 'B', slotBTransform, setSlotBTransform);
                         }}
                         onClick={(e) => {
                           e.stopPropagation();

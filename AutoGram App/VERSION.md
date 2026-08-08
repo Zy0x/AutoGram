@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.2
+AutoGram Version: v3.2.3
 
 Current State:
+v3.2.3 Card Pan-Drag vs Selection Click Resolver Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengintegrasikan `handleCardPointerDown` pada Card A & B yang dapat membedakan aksi klik biasa (toggle card selection) dengan aksi geser/drag media (`pan: { x, y }`). Saat pengguna menggeser/drag gambar pada Card yang di-zoom, posisi media bergeser secara halus dan status penandaan Card tetap aktif tanpa tertutup atau konflik.
+
+Previous:
 v3.2.2 Outside Click Event Propagation Isolation & Direct Card Zoom Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Memperbaiki konflik event listener `onPointerDown` pada kontainer modal dan stage dengan menambahkan guard `e.target === e.currentTarget` agar klik pada Card A/B tidak lagi terpengaruh oleh pembatalan penandaan modal. Menambahkan listener `onWheel` langsung pada media Card A & B untuk zoom langsung serta auto-selecting Card.
 
 Previous:

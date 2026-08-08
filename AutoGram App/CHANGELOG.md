@@ -1,3 +1,9 @@
+## v3.2.3 Card Pan-Drag vs Selection Click Resolver Engine
+
+### Pemisahan Aksi Tangkap-Geser (Drag Pan) vs Selection Click (`DrivePreviewModal/index.tsx`)
+- **Penanganan Pointer Move & Threshold Drag**: Menambahkan `handleCardPointerDown` pada Card A & Card B. Ketika pergerakan pointer melebihi threshold 4px (`hasMoved === true`), sistem mendeteksi aksi sebagai penarikan/penggeseran media (*drag pan*), memperbarui koordinat `pan.x` dan `pan.y` secara real-time, dan membatalkan pergantian status selection.
+- **Respon Klik Tanpa Geser**: Jika pelepasan pointer terjadi tanpa penggeseran (`hasMoved === false`), aksi secara presisi diproses sebagai klik biasa untuk menyalakan/mematikan status terpilih (*active selection*) pada Card.
+
 ## v3.2.2 Outside Click Event Propagation Isolation & Direct Card Zoom Engine
 
 ### Isolai Event Click Outside & Direct Card Zoom (`DrivePreviewModal/index.tsx`)
