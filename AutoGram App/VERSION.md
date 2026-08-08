@@ -1,6 +1,9 @@
-AutoGram Version: v3.2.4
+AutoGram Version: v3.2.5
 
 Current State:
+v3.2.5 Direct DOM Synchronous Transform & rAF Smooth Drag Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Membasmi lag dan rasa berat saat menggeser (grabbing/dragging) gambar pada Card Split Compare yang di-zoom. Mengubah style transform secara langsung pada elemen DOM (`mediaEl.style.transform`), menonaktifkan transisi CSS secara instan saat drag dimulai (`transition: none`), dan mengaplikasikan batching `requestAnimationFrame` untuk menjamin animasi penggeseran 100% halus (60-120 FPS).
+
+Previous:
 v3.2.4 Zoom-Constrained Clamped Drag-Pan & Grab Cursor Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menyempurnakan alur interaksi drag/pan gambar pada Split Card sesuai spesifikasi grill-me: penarikan media hanya aktif saat Card aktif & Zoom > 100% dengan batas penggeseran ketat (*clamped pan bounds*) agar media tidak keluar bingkai. Menambahkan indikator kursor `grab` & `grabbing`, menonaktifkan drag bawaan browser (`draggable={false}`), serta memisahkan klik pemilihan Card dengan 100% presisi.
 
 Previous:

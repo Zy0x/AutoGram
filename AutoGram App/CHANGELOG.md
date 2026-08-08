@@ -1,3 +1,10 @@
+## v3.2.5 Direct DOM Synchronous Transform & rAF Smooth Drag Engine
+
+### Akselerasi Kinerja Dragting & Grabbing Card (`DrivePreviewModal/index.tsx`)
+- **Direct DOM Manipulation**: Mengeliminasi bottleneck re-render React berlebih pada event `pointermove` dengan mengubah style transform elemen gambar secara langsung (`mediaEl.style.transform`).
+- **Penghapusan Transisi Laggy**: Menonaktifkan transisi CSS (`transition = 'none'`) seketika saat pointer ditekan, menghentikan efek tunda animasi 150ms yang sebelumnya membuat proses geser terasa berat.
+- **rAF State Throttling**: Menggunakan batching `requestAnimationFrame` untuk melakukan sinkronisasi state React secara berkala tanpa memblokir thread utama proses penggeseran gambar.
+
 ## v3.2.4 Zoom-Constrained Clamped Drag-Pan & Grab Cursor Engine
 
 ### Penggeseran Terbatas & Indikator Grab pada Zoom Card (`DrivePreviewModal/index.tsx`)

@@ -791,27 +791,47 @@ export function DrivePreviewModal({
     let hasMoved = false;
 
     const containerEl = (e.currentTarget as HTMLElement).querySelector('.drive-preview-split-media-wrap');
+    const mediaEl = (e.currentTarget as HTMLElement).querySelector('.drive-preview-split-media') as HTMLElement | null;
+
     const containerWidth = containerEl ? containerEl.clientWidth : 300;
     const containerHeight = containerEl ? containerEl.clientHeight : 300;
     const maxPanX = Math.max(0, (containerWidth * (currentTransform.zoom - 1)) / 2);
     const maxPanY = Math.max(0, (containerHeight * (currentTransform.zoom - 1)) / 2);
 
     const setIsDragging = slot === 'A' ? setIsDraggingSlotA : setIsDraggingSlotB;
+    let pendingPan = { x: startPanX, y: startPanY };
+    let rafId: number | null = null;
+
+    if (isZoomed && mediaEl) {
+      mediaEl.style.transition = 'none';
+    }
 
     const onPointerMove = (moveEv: PointerEvent) => {
       const dx = moveEv.clientX - startX;
       const dy = moveEv.clientY - startY;
-      if (!hasMoved && Math.hypot(dx, dy) > 4) {
+      if (!hasMoved && Math.hypot(dx, dy) > 3) {
         hasMoved = true;
         if (isZoomed) setIsDragging(true);
       }
       if (hasMoved && isZoomed) {
         const nextX = clamp(startPanX + dx, -maxPanX, maxPanX);
         const nextY = clamp(startPanY + dy, -maxPanY, maxPanY);
-        setTransform((prev) => ({
-          ...prev,
-          pan: { x: nextX, y: nextY },
-        }));
+        pendingPan = { x: nextX, y: nextY };
+
+        if (mediaEl) {
+          const transformStr = `translate(${nextX}px, ${nextY}px) rotate(${currentTransform.rotation}deg) scale(${(currentTransform.flipH ? -1 : 1) * currentTransform.zoom}, ${(currentTransform.flipV ? -1 : 1) * currentTransform.zoom})`;
+          mediaEl.style.transform = transformStr;
+        }
+
+        if (rafId === null) {
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            setTransform((prev) => ({
+              ...prev,
+              pan: pendingPan,
+            }));
+          });
+        }
       }
     };
 
@@ -820,9 +840,23 @@ export function DrivePreviewModal({
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
 
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
       setIsDragging(false);
 
-      if (!hasMoved) {
+      if (mediaEl) {
+        mediaEl.style.transition = 'transform 0.15s cubic-bezier(0.2,0,0,1)';
+      }
+
+      if (hasMoved && isZoomed) {
+        setTransform((prev) => ({
+          ...prev,
+          pan: pendingPan,
+        }));
+      } else if (!hasMoved) {
         setActiveSplitSlot(null);
       }
     };
