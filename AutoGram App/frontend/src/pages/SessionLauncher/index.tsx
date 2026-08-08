@@ -148,23 +148,24 @@ export function SessionLauncher({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               background: 'linear-gradient(135deg, #0284c7 0%, #4f46e5 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+              flexShrink: 0,
             }}
           >
             <Zap size={20} style={{ color: '#ffffff' }} />
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '38px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
               {t('nav.launcher_brand')}
             </h2>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500, lineHeight: 1.15, display: 'block', marginTop: '2px' }}>
               {t('nav.launcher_engine')}
             </span>
           </div>
