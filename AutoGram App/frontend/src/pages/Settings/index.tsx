@@ -697,95 +697,59 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
             </div>
           </div>
 
-          {/* TOGGLES LIST */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255, 255, 255, 0.02)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          {/* TOGGLES LIST (NATIVE AUTOGRAM SETTINGS SWITCHES) */}
+          <div className="td-switches-list">
             {/* Auto-Check Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <label className="td-switch-row">
               <div>
-                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
-                  {t('settings.auto_check_updates_label')}
-                </strong>
-                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                  {t('settings.auto_check_updates_desc')}
-                </span>
+                <strong>{t('settings.auto_check_updates_label')}</strong>
+                <p>{t('settings.auto_check_updates_desc')}</p>
               </div>
-              <div
-                role="switch"
-                aria-checked={autoCheck}
-                tabIndex={0}
-                onClick={() => setAutoCheck(!autoCheck)}
-                className={`switch-container ${autoCheck ? 'active' : ''}`}
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-              >
-                <div className="switch-thumb" />
-              </div>
-            </div>
+              <input
+                type="checkbox"
+                checked={autoCheck}
+                onChange={(e) => setAutoCheck(e.target.checked)}
+              />
+            </label>
 
             {/* Background Auto-Download Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <label className="td-switch-row">
               <div>
-                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
-                  {t('settings.auto_download_updates_label')}
-                </strong>
-                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                  {t('settings.auto_download_updates_desc')}
-                </span>
+                <strong>{t('settings.auto_download_updates_label')}</strong>
+                <p>{t('settings.auto_download_updates_desc')}</p>
               </div>
-              <div
-                role="switch"
-                aria-checked={autoDownload}
-                tabIndex={0}
-                onClick={() => setAutoDownload(!autoDownload)}
-                className={`switch-container ${autoDownload ? 'active' : ''}`}
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-              >
-                <div className="switch-thumb" />
-              </div>
-            </div>
+              <input
+                type="checkbox"
+                checked={autoDownload}
+                onChange={(e) => setAutoDownload(e.target.checked)}
+              />
+            </label>
 
             {/* Auto-Install on Exit Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <label className="td-switch-row">
               <div>
-                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
-                  {t('settings.auto_install_exit_label')}
-                </strong>
-                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                  {t('settings.auto_install_exit_desc')}
-                </span>
+                <strong>{t('settings.auto_install_exit_label')}</strong>
+                <p>{t('settings.auto_install_exit_desc')}</p>
               </div>
-              <div
-                role="switch"
-                aria-checked={autoInstallOnExit}
-                tabIndex={0}
-                onClick={() => setAutoInstallOnExit(!autoInstallOnExit)}
-                className={`switch-container ${autoInstallOnExit ? 'active' : ''}`}
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-              >
-                <div className="switch-thumb" />
-              </div>
-            </div>
+              <input
+                type="checkbox"
+                checked={autoInstallOnExit}
+                onChange={(e) => setAutoInstallOnExit(e.target.checked)}
+              />
+            </label>
 
             {/* Update Notification Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <label className="td-switch-row">
               <div>
-                <strong style={{ fontSize: '0.85rem', color: '#f8fafc', display: 'block' }}>
-                  {t('settings.notify_update_label')}
-                </strong>
-                <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                  {t('settings.notify_update_desc')}
-                </span>
+                <strong>{t('settings.notify_update_label')}</strong>
+                <p>{t('settings.notify_update_desc')}</p>
               </div>
-              <div
-                role="switch"
-                aria-checked={notifyOnUpdate}
-                tabIndex={0}
-                onClick={() => setNotifyOnUpdate(!notifyOnUpdate)}
-                className={`switch-container ${notifyOnUpdate ? 'active' : ''}`}
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-              >
-                <div className="switch-thumb" />
-              </div>
-            </div>
+              <input
+                type="checkbox"
+                checked={notifyOnUpdate}
+                onChange={(e) => setNotifyOnUpdate(e.target.checked)}
+              />
+            </label>
           </div>
 
           {/* FOOTER BAR: Current Version, Last Checked & Action */}
