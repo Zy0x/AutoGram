@@ -119,7 +119,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   };
 
   const handleSaveCustomLimit = () => {
-    const parsed = parseFloat(customInputValue);
+    const sanitized = customInputValue.replace(',', '.');
+    const parsed = parseFloat(sanitized);
     if (isNaN(parsed) || parsed <= 0) return;
     const mbValue = customUnit === 'GB' ? Math.round(parsed * 1024) : Math.round(parsed);
     handleCacheLimitChange(mbValue);
@@ -127,7 +128,6 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   };
 
   const [isClearingDb, setIsClearingDb] = useState(false);
-  const [dbClearStatus, setDbClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const [isConfirmClearCacheOpen, setIsConfirmClearCacheOpen] = useState(false);
   const [isConfirmClearDbOpen, setIsConfirmClearDbOpen] = useState(false);
@@ -249,6 +249,8 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     }
   };
 
+  const [dbClearStatus, setDbClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
   const handleClearDatabase = () => {
     setIsConfirmClearDbOpen(true);
   };
@@ -282,10 +284,20 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
       try {
         const { getAvailableDiskSpace } = await import('../../lib/db/jobsApi');
         const res = await getAvailableDiskSpace();
-        if (res?.free_bytes) {
+        if (res?.free_bytes && res.free_bytes > 0) {
           setFreeDiskBytes(res.free_bytes);
+          return;
         }
       } catch {}
+
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          const estimate = await navigator.storage.estimate();
+          if (estimate.quota && estimate.usage !== undefined) {
+            setFreeDiskBytes(estimate.quota - estimate.usage);
+          }
+        } catch {}
+      }
     })();
   }, []);
 
@@ -305,6 +317,7 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     if (idx === 0) {
       setIsCustomModalOpen(true);
     } else {
+      setIsCustomModalOpen(false); // Close custom modal when selecting a preset
       const mb = CACHE_LIMIT_STEPS[idx];
       if (mb !== undefined) {
         handleCacheLimitChange(mb);
@@ -745,14 +758,32 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Tombol aksi pembersihan utama */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            {/* Tombol aksi pembersihan utama (Responsive Grid, 100% Bebas Overlap) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                gap: '10px',
+                marginTop: '6px',
+              }}
+            >
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={calculateCacheSize}
                 disabled={isCalculating}
-                style={{ flex: 1 }}
+                style={{
+                  padding: '9px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  textAlign: 'center',
+                  whiteSpace: 'normal',
+                  minHeight: '2.5rem',
+                }}
               >
                 {isCalculating ? t('settings.calculating') : t('settings.recalculate')}
               </button>
@@ -762,17 +793,22 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 className="btn btn-secondary"
                 onClick={() => setIsSpecificModalOpen(true)}
                 style={{
-                  flex: 1.5,
+                  padding: '9px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  borderColor: 'rgba(56, 189, 248, 0.3)',
-                  background: 'rgba(56, 189, 248, 0.1)',
+                  borderColor: 'rgba(56, 189, 248, 0.35)',
+                  background: 'rgba(56, 189, 248, 0.12)',
                   color: '#38bdf8',
+                  textAlign: 'center',
+                  whiteSpace: 'normal',
+                  minHeight: '2.5rem',
                 }}
               >
-                <SlidersHorizontal size={15} />
+                <SlidersHorizontal size={15} style={{ flexShrink: 0 }} />
                 <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
               </button>
 
@@ -781,7 +817,19 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 className="btn btn-danger"
                 onClick={handleClearCache}
                 disabled={isClearing || isTrimming}
-                style={{ flex: 1 }}
+                style={{
+                  padding: '9px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  textAlign: 'center',
+                  whiteSpace: 'normal',
+                  minHeight: '2.5rem',
+                  gridColumn: '1 / -1',
+                }}
               >
                 {isClearing
                   ? t('settings.clearing')
