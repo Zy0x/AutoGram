@@ -1,6 +1,9 @@
-AutoGram Version: v3.1.0
+AutoGram Version: v3.1.1
 
 Current State:
+v3.1.1 Header Redundant Cluster Removal Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Menghapus kluster tombol navigasi grup duplikat berulang (`< Previous Group`, `Group 1 of 5`, `Next Group >`) dan tombol `Compare Duplicates (Split View)` dari toolbar header atas sesuai permintaan pengguna. Navigasi grup dan kontrol duplikat tetap tersedia bersih dan terpusat di footer sidepanel kanan.
+
+Previous:
 v3.1.0 Media Preview Labeled Toolbar Everywhere Engine — membenahi `DrivePreviewModal/index.tsx`, `VERSION.md`, dan `CHANGELOG.md`. Mengaktifkan kembali Toolbar Preview Media Berlabel (`ZOOM Out 100% In Magnifier`, `ROTATE Left Right Flip FlipV`, `MORE Reload Info`) pada mode Split View perbandingan duplikat, sehingga seluruh alat manipulasi media gambar dan video dapat diakses lengkap di header modal.
 
 Previous:

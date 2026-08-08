@@ -1,3 +1,8 @@
+## v3.1.1 Header Redundant Cluster Removal Engine
+
+### Pembersihan Tombol Navigasi Berulang di Toolbar Header (`DrivePreviewModal/index.tsx`)
+- **Pembersihan Toolbar Header Atas**: Menghapus kluster tombol navigasi grup duplikat berulang (`< Previous Group`, `Group 1 of 5`, `Next Group >`) serta tombol `[ Compare Duplicates (Split View) ]` dari toolbar header atas. Navigasi antar grup duplikat terpusat rapi pada footer sidepanel kanan.
+
 ## v3.1.0 Media Preview Labeled Toolbar Everywhere Engine
 
 ### Toolbar Preview Media Berlabel di Semua Mode (`DrivePreviewModal/index.tsx`)

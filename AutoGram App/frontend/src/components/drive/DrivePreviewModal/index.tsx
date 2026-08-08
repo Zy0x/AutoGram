@@ -39,9 +39,6 @@ import {
   Copy,
   Printer,
   Repeat,
-  Columns,
-  PanelRightClose,
-  PanelRightOpen,
 } from 'lucide-react';
 import { DeadCenterProgress } from '../Explorer/DriveSkeleton';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -463,8 +460,7 @@ export function DrivePreviewModal({
   onEnqueueDownloadSingle,
 }: Props) {
   const { t } = useTranslation();
-  const [isSplitCompareMode, setIsSplitCompareMode] = useState<boolean>(() => Boolean(duplicateContext));
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const isSplitCompareMode = Boolean(duplicateContext);
 
   const currentDupGroup = useMemo(() => {
     if (!duplicateContext || !duplicateContext.activeFilteredGroups.length) return null;
@@ -3155,93 +3151,6 @@ export function DrivePreviewModal({
                 >
                   <FolderOpen size={16} />
                 </button>
-              </>
-            )}
-            {duplicateContext && duplicateContext.activeFilteredGroups.length > 0 && (
-              <div className="flex items-center gap-1.5 mr-2">
-                <button
-                  type="button"
-                  className="td-btn-secondary"
-                  disabled={duplicateContext.currentGroupIndex <= 0}
-                  onClick={() => {
-                    const prevIdx = duplicateContext.currentGroupIndex - 1;
-                    const prevGroup = duplicateContext.activeFilteredGroups[prevIdx];
-                    if (prevGroup && duplicateContext.onNavigateGroup) {
-                      duplicateContext.onNavigateGroup(prevIdx, prevGroup.files[0]);
-                    }
-                  }}
-                  style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem' }}
-                  title={t('speedtest.preview_prev_group')}
-                >
-                  <ChevronLeft size={14} />
-                  <span>{t('speedtest.preview_prev_group')}</span>
-                </button>
-
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: '#38bdf8',
-                    background: 'rgba(56, 189, 248, 0.1)',
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(56, 189, 248, 0.2)',
-                  }}
-                >
-                  {t('speedtest.preview_group_badge', {
-                    index: duplicateContext.currentGroupIndex + 1,
-                    total: duplicateContext.activeFilteredGroups.length,
-                  })}
-                </span>
-
-                <button
-                  type="button"
-                  className="td-btn-secondary"
-                  disabled={duplicateContext.currentGroupIndex >= duplicateContext.activeFilteredGroups.length - 1}
-                  onClick={() => {
-                    const nextIdx = duplicateContext.currentGroupIndex + 1;
-                    const nextGroup = duplicateContext.activeFilteredGroups[nextIdx];
-                    if (nextGroup && duplicateContext.onNavigateGroup) {
-                      duplicateContext.onNavigateGroup(nextIdx, nextGroup.files[0]);
-                    }
-                  }}
-                  style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem' }}
-                  title={t('speedtest.preview_next_group')}
-                >
-                  <span>{t('speedtest.preview_next_group')}</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-            {duplicateContext && (
-              <>
-                <button
-                  type="button"
-                  className={`td-btn-primary ${isSplitCompareMode ? 'is-active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsSplitCompareMode((v) => !v);
-                  }}
-                  style={{ height: '32px', padding: '0 10px', fontSize: '0.75rem', gap: '6px', marginRight: '4px' }}
-                  title={isSplitCompareMode ? t('speedtest.preview_single_mode') : t('speedtest.preview_split_mode')}
-                >
-                  <Columns size={14} />
-                  <span>{isSplitCompareMode ? t('speedtest.preview_split_mode') : t('speedtest.preview_single_mode')}</span>
-                </button>
-                {isSplitCompareMode && (
-                  <button
-                    type="button"
-                    className={`td-btn-secondary ${isSidebarCollapsed ? 'is-active' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsSidebarCollapsed((v) => !v);
-                    }}
-                    style={{ height: '32px', padding: '0 8px', fontSize: '0.75rem', gap: '4px', marginRight: '4px' }}
-                    title={isSidebarCollapsed ? 'Tampilkan Sidepanel' : 'Sembunyikan Sidepanel (Full Width)'}
-                  >
-                    {isSidebarCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
-                  </button>
-                )}
               </>
             )}
             <button
