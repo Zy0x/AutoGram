@@ -649,42 +649,66 @@ pub fn reset_custom_cache_dir() -> Result<serde_json::Value, String> {
 /// Cache size under worker/cache, worker/temp, sessions/thumbs (pure Rust FS).
 pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
     let info = resolve_active_cache_dirs();
-    let mut total: u64 = 0;
+    let mut cache_bytes: u64 = 0;
+    let mut temp_bytes: u64 = 0;
+    let mut thumbs_bytes: u64 = 0;
+    let mut sys_temp_bytes: u64 = 0;
+    let mut stale_bytes: u64 = 0;
 
-    fn walk(dir: &Path, total: &mut u64) {
+    let now = std::time::SystemTime::now();
+    let one_day = std::time::Duration::from_secs(86400);
+
+    fn walk_detailed(dir: &Path, sum: &mut u64, stale: &mut u64, now: std::time::SystemTime, one_day: std::time::Duration) {
         let Ok(rd) = std::fs::read_dir(dir) else {
             return;
         };
         for e in rd.flatten() {
             let p = e.path();
             if p.is_dir() {
-                walk(&p, total);
+                walk_detailed(&p, sum, stale, now, one_day);
             } else if let Ok(m) = e.metadata() {
-                *total = total.saturating_add(m.len());
+                let len = m.len();
+                *sum = sum.saturating_add(len);
+                if let Ok(mod_time) = m.modified() {
+                    if let Ok(elapsed) = now.duration_since(mod_time) {
+                        if elapsed > one_day {
+                            *stale = stale.saturating_add(len);
+                        }
+                    }
+                }
             }
         }
     }
 
     if info.active_cache_dir.is_dir() {
-        walk(&info.active_cache_dir, &mut total);
+        let mut dummy_stale = 0u64;
+        walk_detailed(&info.active_cache_dir, &mut cache_bytes, &mut dummy_stale, now, one_day);
     }
     if info.active_temp_dir.is_dir() {
-        walk(&info.active_temp_dir, &mut total);
+        walk_detailed(&info.active_temp_dir, &mut temp_bytes, &mut stale_bytes, now, one_day);
     }
     if info.active_thumbs_dir.is_dir() {
-        walk(&info.active_thumbs_dir, &mut total);
+        let mut dummy_stale = 0u64;
+        walk_detailed(&info.active_thumbs_dir, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
     }
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
         let autogram_temp = sys_temp.join("autogram");
         if autogram_temp.is_dir() {
-            walk(&autogram_temp, &mut total);
+            walk_detailed(&autogram_temp, &mut sys_temp_bytes, &mut stale_bytes, now, one_day);
         }
     }
+
+    let total = cache_bytes.saturating_add(temp_bytes).saturating_add(thumbs_bytes).saturating_add(sys_temp_bytes);
 
     Ok(json!({
         "status": "success",
         "bytes": total,
+        "cacheBytes": cache_bytes,
+        "tempBytes": temp_bytes,
+        "thumbsBytes": thumbs_bytes,
+        "sysTempBytes": sys_temp_bytes,
+        "staleBytes": stale_bytes,
         "path": info.active_cache_dir.display().to_string(),
         "customPath": info.custom_path,
         "isFallback": info.is_fallback,
@@ -916,8 +940,8 @@ extern "system" {
 
 pub fn get_disk_free_space(path_str: Option<String>) -> Result<serde_json::Value, String> {
     let target = path_str.unwrap_or_else(|| {
-        let sessions = resolve_sessions_dir(None);
-        sessions.display().to_string()
+        let active = resolve_active_cache_dirs();
+        active.active_cache_dir.display().to_string()
     });
 
     let p = PathBuf::from(&target);
