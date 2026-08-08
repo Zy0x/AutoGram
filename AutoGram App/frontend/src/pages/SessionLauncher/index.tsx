@@ -195,20 +195,23 @@ export function SessionLauncher({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
+              gap: '6px',
+              padding: '0 12px',
               height: '36px',
               borderRadius: '10px',
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1px solid rgba(56, 189, 248, 0.3)',
               color: '#38bdf8',
+              fontSize: '0.82rem',
+              fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
             title={t('settings.api_config')}
             aria-label={t('settings.api_config')}
           >
-            <Key size={17} />
+            <Key size={15} />
+            <span>{t('nav.api_credentials_btn')}</span>
           </button>
 
           <button
@@ -217,19 +220,22 @@ export function SessionLauncher({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
+              gap: '6px',
+              padding: '0 12px',
               height: '36px',
               borderRadius: '10px',
               background: 'rgba(255, 255, 255, 0.05)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               color: '#94a3b8',
+              fontSize: '0.82rem',
+              fontWeight: 500,
               cursor: 'pointer',
             }}
             title={t('nav.general_settings')}
             aria-label={t('nav.general_settings')}
           >
-            <Settings size={17} />
+            <Settings size={15} />
+            <span>{t('nav.settings')}</span>
           </button>
         </div>
       </header>
