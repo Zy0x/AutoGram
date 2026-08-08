@@ -466,6 +466,135 @@ export function SessionLauncher({
                     />
                     <span>{isDefault ? t('nav.default_badge') : t('nav.set_as_default')}</span>
                   </button>
+
+                  {/* THREE-DOT MENU BUTTON & DROPDOWN */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuSession(activeMenuSession === sess.name ? null : sess.name);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        padding: '4px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                        e.currentTarget.style.color = '#f8fafc';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94a3b8';
+                      }}
+                      title="Menu Akun"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {/* DROPDOWN MENU */}
+                    {activeMenuSession === sess.name && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '6px',
+                          width: '160px',
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255,255,255,0.2)',
+                          backdropFilter: 'blur(16px)',
+                          zIndex: 100,
+                          padding: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuSession(null);
+                            setEditingSession(sess);
+                            setAliasInput(sess.label || sess.name);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#e2e8f0',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)';
+                            e.currentTarget.style.color = '#38bdf8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#e2e8f0';
+                          }}
+                        >
+                          <Pencil size={14} style={{ color: '#38bdf8' }} />
+                          {t('nav.menu_edit_account')}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuSession(null);
+                            setDeletingSessionStep1(sess);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fca5a5',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                            e.currentTarget.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#fca5a5';
+                          }}
+                        >
+                          <Trash2 size={14} style={{ color: '#ef4444' }} />
+                          {t('nav.menu_delete_account')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* ACCOUNT PROFILE HEADER */}
@@ -573,135 +702,6 @@ export function SessionLauncher({
                         return t('nav.session_id_value', { session: displayId });
                       })()} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
                     </span>
-                  </div>
-
-                  {/* THREE-DOT MENU BUTTON & DROPDOWN */}
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuSession(activeMenuSession === sess.name ? null : sess.name);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94a3b8',
-                        padding: '6px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                        e.currentTarget.style.color = '#f8fafc';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
-                      }}
-                      title="Menu Akun"
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-
-                    {/* DROPDOWN MENU */}
-                    {activeMenuSession === sess.name && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          right: 0,
-                          marginTop: '6px',
-                          width: '160px',
-                          background: 'rgba(15, 23, 42, 0.95)',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255,255,255,0.2)',
-                          backdropFilter: 'blur(16px)',
-                          zIndex: 100,
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveMenuSession(null);
-                            setEditingSession(sess);
-                            setAliasInput(sess.label || sess.name);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            width: '100%',
-                            padding: '8px 10px',
-                            background: 'transparent',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#e2e8f0',
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            textAlign: 'left',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)';
-                            e.currentTarget.style.color = '#38bdf8';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#e2e8f0';
-                          }}
-                        >
-                          <Pencil size={14} style={{ color: '#38bdf8' }} />
-                          {t('nav.menu_edit_account')}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveMenuSession(null);
-                            setDeletingSessionStep1(sess);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            width: '100%',
-                            padding: '8px 10px',
-                            background: 'transparent',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#fca5a5',
-                            fontSize: '0.8rem',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                            textAlign: 'left',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
-                            e.currentTarget.style.color = '#ef4444';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#fca5a5';
-                          }}
-                        >
-                          <Trash2 size={14} style={{ color: '#ef4444' }} />
-                          {t('nav.menu_delete_account')}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
 
