@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Zap,
@@ -50,11 +50,10 @@ export function SessionLauncher({
     subtitle: string;
   } | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    loadSelectableSessions({ verify: true })
+  const refreshSessions = useCallback((force = false) => {
+    loadSelectableSessions({ verify: true, force })
       .then((res: SessionOption[]) => {
-        if (active && Array.isArray(res)) {
+        if (Array.isArray(res)) {
           setSessions(res);
           if (!defaultSession && res.length > 0) {
             setDefaultSession(res[0].name);
@@ -73,7 +72,7 @@ export function SessionLauncher({
                   0
                 )
                   .then((url) => {
-                    if (active && url) {
+                    if (url) {
                       setAvatars((prev) => ({ ...prev, [sess.name]: url }));
                     }
                   })
@@ -84,11 +83,23 @@ export function SessionLauncher({
         }
       })
       .catch(() => {});
-
-    return () => {
-      active = false;
-    };
   }, [defaultSession]);
+
+  useEffect(() => {
+    refreshSessions(true);
+    const interval = setInterval(() => {
+      refreshSessions(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [refreshSessions]);
+
+  const handlePingSession = (sessionName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSessions((prev) =>
+      prev.map((s) => (s.name === sessionName ? { ...s, status: 'checking' } : s))
+    );
+    refreshSessions(true);
+  };
 
   // Handle Esc key to close photo preview modal
   useEffect(() => {
@@ -300,7 +311,29 @@ export function SessionLauncher({
               >
                 {/* DEFAULT BADGE / SET DEFAULT BUTTON */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    onClick={(e) => handlePingSession(sess.name, e)}
+                    title={t('nav.ping_tooltip', { defaultValue: 'Klik untuk uji ping koneksi real-time' })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                    }}
+                  >
                     {sess.status === 'expired' || sess.status === 'unauthorized' ? (
                       <>
                         <span

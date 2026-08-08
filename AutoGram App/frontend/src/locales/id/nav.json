@@ -21,6 +21,7 @@
   "connection_error": "Offline / Gangguan API",
   "session_expired_desc": "Sesi Telegram ini telah kadaluarsa atau terputus.",
   "relogin_button": "Hub Akun / Login Ulang",
+  "ping_tooltip": "Klik untuk uji ping koneksi real-time",
   "session_id_value": "ID: {{session}}",
   "view_profile_photo": "Klik untuk melihat foto profil besar",
   "drives_workspace_desc": "Kelola & Streaming Berkas",

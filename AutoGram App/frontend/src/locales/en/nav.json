@@ -21,6 +21,7 @@
   "connection_error": "Offline / API Error",
   "session_expired_desc": "This Telegram session has expired or unlinked.",
   "relogin_button": "Accounts Hub / Relogin",
+  "ping_tooltip": "Click to test real-time connection ping",
   "session_id_value": "ID: {{session}}",
   "view_profile_photo": "Click to view the full-size profile photo",
   "drives_workspace_desc": "Storage & Media Manager",
