@@ -1480,7 +1480,10 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 <span style={{ fontSize: '0.78rem', color: '#f87171', opacity: 0.9, fontWeight: 400, display: 'block', lineHeight: 1.45, whiteSpace: 'normal' }}>
                   {t('settings.custom_cache_migrate_option_wipe_desc')}
                 </span>
-                         {isMigrating && (
+              </button>
+            </div>
+
+            {isMigrating && (
               <div
                 style={{
                   padding: '14px 16px',
