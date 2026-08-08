@@ -46,6 +46,14 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
   const [selectedSession, setSelectedSession] = useState<string>('');
   const [sessionKeysCount, setSessionKeysCount] = useState<number>(0);
 
+  // LocalStorage keys existence trigger to re-evaluate empty states
+  const [cacheVersion, setCacheVersion] = useState<number>(0);
+
+  const triggerCacheRefresh = () => {
+    setCacheVersion((v) => v + 1);
+    onRefreshGlobalSize?.();
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -92,7 +100,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       }
     }
     setSessionKeysCount(count);
-  }, [selectedSession]);
+  }, [selectedSession, cacheVersion]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -101,12 +109,13 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
 
   if (!isOpen) return null;
 
+  // --- TAB 1: SYSTEM GLOBAL CACHE HANDLERS (Master Global for all accounts) ---
   const handleClearAvatar = async () => {
     setClearingItem('avatar');
     try {
       clearAvatarCache();
       showToast(t('ui.generated.cache_avatar_berhasil_dibersihkan_a12b34c'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
@@ -120,7 +129,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         await cacheClearDisk();
       } catch {}
       showToast(t('ui.generated.file_temporary_chunk_berhasil_dibersihkan_b567d89'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
@@ -133,7 +142,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       clearPreviewCache();
       await clearPersistentThumbs();
       showToast(t('ui.generated.cache_thumbnail_pratinjau_berhasil_dibersihkan_c789e01'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
@@ -144,7 +153,71 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     try {
       clearZipBrowserCache();
       showToast(t('ui.generated.cache_zip_navigasi_berhasil_dibersihkan_d012f34'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleClearGlobalLocations = () => {
+    setClearingItem('locs_global');
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('autogram_drive_locations_v1_')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      showToast(t('ui.generated.cache_navigasi_lokasi_semua_akun_b123a45') + ' dibersihkan!');
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleClearGlobalSidebar = () => {
+    setClearingItem('sidebar_global');
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('autogram_drive_sidebar_v1_')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      showToast(t('ui.generated.cache_pohon_sidebar_semua_akun_f345a67') + ' dibersihkan!');
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleClearGlobalTopics = () => {
+    setClearingItem('topics_global');
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('autogram_drive_topics_v1_')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      showToast(t('ui.generated.cache_topik_forum_semua_akun_c678d90') + ' dibersihkan!');
+      triggerCacheRefresh();
+    } finally {
+      setClearingItem(null);
+    }
+  };
+
+  const handleClearGlobalPeer = () => {
+    setClearingItem('peer_global');
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('autogram_drive_peer_v2_') || k === 'autogram_drive_peer')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      showToast(t('ui.generated.metadata_peer_channel_semua_akun_d901e23') + ' dibersihkan!');
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
@@ -155,7 +228,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
     try {
       localStorage.removeItem('autogram_drive_upload_queue');
       showToast(t('ui.generated.cache_antrean_upload_berhasil_dibersihkan_f901a23'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
@@ -173,40 +246,46 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       ];
       for (const k of keys) localStorage.removeItem(k);
       showToast(t('ui.generated.preferensi_ui_berhasil_direset_b123c45'));
-      onRefreshGlobalSize?.();
+      triggerCacheRefresh();
     } finally {
       setClearingItem(null);
     }
   };
 
+  // --- TAB 2: PER-SESSION CACHE HANDLERS ---
   const handleClearSessionLocations = () => {
     if (!selectedSession) return;
     localStorage.removeItem(`autogram_drive_locations_v1_${selectedSession}`);
-    localStorage.removeItem(`autogram_drive_scroll_v1_${selectedSession}`);
     showToast(t('ui.generated.cache_lokasi_folder_sesi_a901b23') + ' dibersihkan!');
-    onRefreshGlobalSize?.();
+    triggerCacheRefresh();
   };
 
   const handleClearSessionSidebar = () => {
     if (!selectedSession) return;
     localStorage.removeItem(`autogram_drive_sidebar_v1_${selectedSession}`);
     showToast(t('ui.generated.cache_pohon_sidebar_sesi_f678b90') + ' dibersihkan!');
-    onRefreshGlobalSize?.();
+    triggerCacheRefresh();
   };
 
   const handleClearSessionTopics = () => {
     if (!selectedSession) return;
     localStorage.removeItem(`autogram_drive_topics_v1_${selectedSession}`);
     showToast(t('ui.generated.cache_topik_forum_sesi_a890f12') + ' dibersihkan!');
-    onRefreshGlobalSize?.();
+    triggerCacheRefresh();
   };
 
   const handleClearSessionPeer = () => {
     if (!selectedSession) return;
     localStorage.removeItem(`autogram_drive_peer_v2_${selectedSession}`);
-    localStorage.removeItem('autogram_drive_peer');
     showToast(t('ui.generated.metadata_peer_channel_sesi_b345c67') + ' dibersihkan!');
-    onRefreshGlobalSize?.();
+    triggerCacheRefresh();
+  };
+
+  const handleClearSessionScroll = () => {
+    if (!selectedSession) return;
+    localStorage.removeItem(`autogram_drive_scroll_v1_${selectedSession}`);
+    showToast(t('ui.generated.cache_scroll_state_workspace_sesi_e123a45') + ' dibersihkan!');
+    triggerCacheRefresh();
   };
 
   const handleClearSessionCache = () => {
@@ -230,7 +309,6 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       localStorage.removeItem(key);
     }
 
-    // SessionStorage
     const sessionStoreKeys: string[] = [];
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i);
@@ -244,7 +322,78 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
 
     setSessionKeysCount(0);
     showToast(t('ui.generated.cache_sesi_berhasil_dibersihkan_e567a89'));
-    onRefreshGlobalSize?.();
+    triggerCacheRefresh();
+  };
+
+  // --- DYNAMIC CACHE PRESENCE CHECKS (TAB 1 GLOBAL) ---
+  const hasGlobalLocations = Object.keys(localStorage).some((k) => k.startsWith('autogram_drive_locations_v1_'));
+  const hasGlobalSidebar = Object.keys(localStorage).some((k) => k.startsWith('autogram_drive_sidebar_v1_'));
+  const hasGlobalTopics = Object.keys(localStorage).some((k) => k.startsWith('autogram_drive_topics_v1_'));
+  const hasGlobalPeer = Object.keys(localStorage).some(
+    (k) => k.startsWith('autogram_drive_peer_v2_') || k === 'autogram_drive_peer'
+  );
+  const hasGlobalUpload = localStorage.getItem('autogram_drive_upload_queue') !== null;
+  const hasGlobalUi =
+    localStorage.getItem('autogram_drive_view_mode') !== null ||
+    localStorage.getItem('autogram_drive_grid_zoom') !== null ||
+    localStorage.getItem('autogram_drive_sort_mode') !== null;
+
+  // --- DYNAMIC CACHE PRESENCE CHECKS (TAB 2 SESSION) ---
+  const hasSessionLocations = selectedSession
+    ? localStorage.getItem(`autogram_drive_locations_v1_${selectedSession}`) !== null
+    : false;
+  const hasSessionSidebar = selectedSession
+    ? localStorage.getItem(`autogram_drive_sidebar_v1_${selectedSession}`) !== null
+    : false;
+  const hasSessionTopics = selectedSession
+    ? localStorage.getItem(`autogram_drive_topics_v1_${selectedSession}`) !== null
+    : false;
+  const hasSessionPeer = selectedSession
+    ? localStorage.getItem(`autogram_drive_peer_v2_${selectedSession}`) !== null
+    : false;
+  const hasSessionScroll = selectedSession
+    ? localStorage.getItem(`autogram_drive_scroll_v1_${selectedSession}`) !== null
+    : false;
+  const hasSessionTotal = sessionKeysCount > 0;
+
+  // Reusable button styling for active vs darkened/disabled states
+  const getBtnStyle = (hasData: boolean, activeColor: string, activeBg: string, activeBorder: string) => {
+    if (!hasData) {
+      return {
+        marginTop: '14px',
+        alignSelf: 'flex-start' as const,
+        background: 'rgba(255, 255, 255, 0.03)',
+        color: '#475569',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '8px',
+        padding: '6px 12px',
+        fontSize: '0.76rem',
+        fontWeight: 600,
+        cursor: 'not-allowed' as const,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        opacity: 0.45,
+        transition: 'all 0.18s ease',
+      };
+    }
+    return {
+      marginTop: '14px',
+      alignSelf: 'flex-start' as const,
+      background: activeBg,
+      color: activeColor,
+      border: activeBorder,
+      borderRadius: '8px',
+      padding: '6px 12px',
+      fontSize: '0.76rem',
+      fontWeight: 600,
+      cursor: 'pointer' as const,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      opacity: 1,
+      transition: 'all 0.18s ease',
+    };
   };
 
   return (
@@ -256,7 +405,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(3, 7, 18, 0.75)',
+        background: 'rgba(3, 7, 18, 0.78)',
         backdropFilter: 'blur(8px)',
         animation: 'apiBackdropFadeIn 0.22s ease-out',
         padding: '16px',
@@ -266,7 +415,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
       <div
         style={{
           width: '100%',
-          maxWidth: '640px',
+          maxWidth: '700px',
           background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.96) 0%, rgba(10, 15, 30, 0.98) 100%)',
           border: '1px solid rgba(56, 189, 248, 0.25)',
           borderRadius: '20px',
@@ -395,7 +544,7 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
         </div>
 
         {/* MODAL BODY */}
-        <div style={{ padding: '20px 24px', maxHeight: '440px', overflowY: 'auto' }}>
+        <div style={{ padding: '20px 24px', maxHeight: '480px', overflowY: 'auto' }}>
           {/* TOAST BANNER */}
           {toastMessage && (
             <div
@@ -418,10 +567,10 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
             </div>
           )}
 
-          {/* TAB 1: SYSTEM SPECIFIC CACHES */}
+          {/* TAB 1: SYSTEM SPECIFIC CACHES (Indukkan Master untuk Seluruh Akun) */}
           {activeTab === 'system' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              {/* Avatar Cache */}
+              {/* 1. Avatar Cache (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -449,32 +598,21 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   type="button"
                   onClick={handleClearAvatar}
                   disabled={clearingItem === 'avatar'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#fca5a5',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  style={getBtnStyle(
+                    true,
+                    '#fca5a5',
+                    'rgba(239, 68, 68, 0.15)',
+                    '1px solid rgba(239, 68, 68, 0.3)'
+                  )}
                 >
                   <RotateCcw size={13} />
                   <span>
-                    {clearingItem === 'avatar'
-                      ? '...'
-                      : t('ui.generated.bersihkan_cache_avatar_b8c07e0')}
+                    {clearingItem === 'avatar' ? '...' : t('ui.generated.bersihkan_cache_avatar_b8c07e0')}
                   </span>
                 </button>
               </div>
 
-              {/* Temporary Files */}
+              {/* 2. Temporary Files (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -502,32 +640,21 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   type="button"
                   onClick={handleClearTempFiles}
                   disabled={clearingItem === 'temp'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(245, 158, 11, 0.15)',
-                    color: '#fcd34d',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  style={getBtnStyle(
+                    true,
+                    '#fcd34d',
+                    'rgba(245, 158, 11, 0.15)',
+                    '1px solid rgba(245, 158, 11, 0.3)'
+                  )}
                 >
                   <Trash2 size={13} />
                   <span>
-                    {clearingItem === 'temp'
-                      ? '...'
-                      : t('ui.generated.bersihkan_file_temporary_c6cb410')}
+                    {clearingItem === 'temp' ? '...' : t('ui.generated.bersihkan_file_temporary_c6cb410')}
                   </span>
                 </button>
               </div>
 
-              {/* Thumbnails & Previews */}
+              {/* 3. Thumbnails & Previews (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -555,32 +682,21 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   type="button"
                   onClick={handleClearThumbnails}
                   disabled={clearingItem === 'thumbs'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(56, 189, 248, 0.15)',
-                    color: '#38bdf8',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  style={getBtnStyle(
+                    true,
+                    '#38bdf8',
+                    'rgba(56, 189, 248, 0.15)',
+                    '1px solid rgba(56, 189, 248, 0.3)'
+                  )}
                 >
                   <RotateCcw size={13} />
                   <span>
-                    {clearingItem === 'thumbs'
-                      ? '...'
-                      : t('ui.generated.bersihkan_cache_thumbnail_a8712bc')}
+                    {clearingItem === 'thumbs' ? '...' : t('ui.generated.bersihkan_cache_thumbnail_a8712bc')}
                   </span>
                 </button>
               </div>
 
-              {/* ZIP & Nav History */}
+              {/* 4. ZIP & Folder Archive Cache (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -608,32 +724,189 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                   type="button"
                   onClick={handleClearZipNav}
                   disabled={clearingItem === 'zip'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(168, 85, 247, 0.15)',
-                    color: '#c084fc',
-                    border: '1px solid rgba(168, 85, 247, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  style={getBtnStyle(
+                    true,
+                    '#c084fc',
+                    'rgba(168, 85, 247, 0.15)',
+                    '1px solid rgba(168, 85, 247, 0.3)'
+                  )}
                 >
                   <RotateCcw size={13} />
                   <span>
-                    {clearingItem === 'zip'
-                      ? '...'
-                      : t('ui.generated.bersihkan_cache_zip_b8901cd')}
+                    {clearingItem === 'zip' ? '...' : t('ui.generated.bersihkan_cache_zip_b8901cd')}
                   </span>
                 </button>
               </div>
 
-              {/* Upload Queue & Staging */}
+              {/* 5. Folder Locations Cache (All Accounts Global) */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <MapPin size={16} style={{ color: '#f87171' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_navigasi_lokasi_semua_akun_b123a45')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_seluruh_riwayat_navigasi_folder_semua_ak_c567d89')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearGlobalLocations}
+                  disabled={!hasGlobalLocations || clearingItem === 'locs_global'}
+                  style={getBtnStyle(
+                    hasGlobalLocations,
+                    '#fca5a5',
+                    'rgba(239, 68, 68, 0.15)',
+                    '1px solid rgba(239, 68, 68, 0.3)'
+                  )}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'locs_global' ? '...' : t('ui.generated.hapus_lokasi_global_e890f12')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 5. Sidebar Tree Cache (All Accounts Global) */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_pohon_sidebar_semua_akun_f345a67')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_status_buka_tutup_folder_sidebar_semua_a_d890e12')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearGlobalSidebar}
+                  disabled={!hasGlobalSidebar || clearingItem === 'sidebar_global'}
+                  style={getBtnStyle(
+                    hasGlobalSidebar,
+                    '#38bdf8',
+                    'rgba(56, 189, 248, 0.15)',
+                    '1px solid rgba(56, 189, 248, 0.3)'
+                  )}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'sidebar_global' ? '...' : t('ui.generated.hapus_sidebar_global_a123b45')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 6. Forum Topics Cache (All Accounts Global) */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <MessageSquare size={16} style={{ color: '#c084fc' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.cache_topik_forum_semua_akun_c678d90')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_seluruh_daftar_topik_obrolan_semua_akun_e123f45')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearGlobalTopics}
+                  disabled={!hasGlobalTopics || clearingItem === 'topics_global'}
+                  style={getBtnStyle(
+                    hasGlobalTopics,
+                    '#c084fc',
+                    'rgba(168, 85, 247, 0.15)',
+                    '1px solid rgba(168, 85, 247, 0.3)'
+                  )}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'topics_global' ? '...' : t('ui.generated.hapus_topik_global_b567c89')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 7. Peer Metadata Cache (All Accounts Global) */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <Users size={16} style={{ color: '#60a5fa' }} />
+                    <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                      {t('ui.generated.metadata_peer_channel_semua_akun_d901e23')}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                    {t('ui.generated.hapus_cache_nama_channel_dan_metadata_semua_a_f456a78')}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClearGlobalPeer}
+                  disabled={!hasGlobalPeer || clearingItem === 'peer_global'}
+                  style={getBtnStyle(
+                    hasGlobalPeer,
+                    '#60a5fa',
+                    'rgba(96, 165, 250, 0.15)',
+                    '1px solid rgba(96, 165, 250, 0.3)'
+                  )}
+                >
+                  <Trash2 size={13} />
+                  <span>
+                    {clearingItem === 'peer_global' ? '...' : t('ui.generated.hapus_peer_global_c890d12')}
+                  </span>
+                </button>
+              </div>
+
+              {/* 8. Upload Queue & Staging (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -660,33 +933,22 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 <button
                   type="button"
                   onClick={handleClearUploadQueue}
-                  disabled={clearingItem === 'upload'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(34, 197, 94, 0.15)',
-                    color: '#4ade80',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  disabled={!hasGlobalUpload || clearingItem === 'upload'}
+                  style={getBtnStyle(
+                    hasGlobalUpload,
+                    '#4ade80',
+                    'rgba(34, 197, 94, 0.15)',
+                    '1px solid rgba(34, 197, 94, 0.3)'
+                  )}
                 >
                   <Trash2 size={13} />
                   <span>
-                    {clearingItem === 'upload'
-                      ? '...'
-                      : t('ui.generated.bersihkan_antrean_upload_d901e23')}
+                    {clearingItem === 'upload' ? '...' : t('ui.generated.bersihkan_antrean_upload_d901e23')}
                   </span>
                 </button>
               </div>
 
-              {/* Layout & UI Preferences */}
+              {/* 9. Layout & UI Preferences (Global) */}
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.03)',
@@ -713,35 +975,24 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
                 <button
                   type="button"
                   onClick={handleResetUiPreferences}
-                  disabled={clearingItem === 'ui'}
-                  style={{
-                    marginTop: '14px',
-                    alignSelf: 'flex-start',
-                    background: 'rgba(245, 158, 11, 0.15)',
-                    color: '#fbbf24',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  disabled={!hasGlobalUi || clearingItem === 'ui'}
+                  style={getBtnStyle(
+                    hasGlobalUi,
+                    '#fbbf24',
+                    'rgba(245, 158, 11, 0.15)',
+                    '1px solid rgba(245, 158, 11, 0.3)'
+                  )}
                 >
                   <RotateCcw size={13} />
                   <span>
-                    {clearingItem === 'ui'
-                      ? '...'
-                      : t('ui.generated.reset_preferensi_ui_e123f45')}
+                    {clearingItem === 'ui' ? '...' : t('ui.generated.reset_preferensi_ui_e123f45')}
                   </span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* TAB 2: PER-SESSION ACCOUNT CACHE */}
+          {/* TAB 2: PER-SESSION ACCOUNT CACHE (Symmetrical 6-Card Grid for Selected Account) */}
           {activeTab === 'session' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
@@ -786,240 +1037,252 @@ export function SpecificCacheModal({ isOpen, onClose, onRefreshGlobalSize }: Spe
               </div>
 
               {selectedSession && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* GRANULAR SESSION CARDS GRID (2x2) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {/* 1. Folder Locations */}
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.07)',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <MapPin size={15} style={{ color: '#f87171' }} />
-                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
-                          </strong>
-                        </div>
-                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClearSessionLocations}
-                        style={{
-                          marginTop: '12px',
-                          alignSelf: 'flex-start',
-                          background: 'rgba(239, 68, 68, 0.15)',
-                          color: '#fca5a5',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>{t('ui.generated.hapus_lokasi_e123a45')}</span>
-                      </button>
-                    </div>
-
-                    {/* 2. Sidebar Tree */}
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.07)',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <FolderTree size={15} style={{ color: '#38bdf8' }} />
-                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
-                          </strong>
-                        </div>
-                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClearSessionSidebar}
-                        style={{
-                          marginTop: '12px',
-                          alignSelf: 'flex-start',
-                          background: 'rgba(56, 189, 248, 0.15)',
-                          color: '#38bdf8',
-                          border: '1px solid rgba(56, 189, 248, 0.3)',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>{t('ui.generated.hapus_sidebar_d456e78')}</span>
-                      </button>
-                    </div>
-
-                    {/* 3. Forum Topics */}
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.07)',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <MessageSquare size={15} style={{ color: '#c084fc' }} />
-                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
-                            {t('ui.generated.cache_topik_forum_sesi_a890f12')}
-                          </strong>
-                        </div>
-                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClearSessionTopics}
-                        style={{
-                          marginTop: '12px',
-                          alignSelf: 'flex-start',
-                          background: 'rgba(168, 85, 247, 0.15)',
-                          color: '#c084fc',
-                          border: '1px solid rgba(168, 85, 247, 0.3)',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>{t('ui.generated.hapus_topik_e890f12')}</span>
-                      </button>
-                    </div>
-
-                    {/* 4. Peer & Channel Metadata */}
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.07)',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <Users size={15} style={{ color: '#60a5fa' }} />
-                          <strong style={{ fontSize: '0.84rem', color: '#f8fafc' }}>
-                            {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
-                          </strong>
-                        </div>
-                        <p style={{ fontSize: '0.73rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClearSessionPeer}
-                        style={{
-                          marginTop: '12px',
-                          alignSelf: 'flex-start',
-                          background: 'rgba(96, 165, 250, 0.15)',
-                          color: '#60a5fa',
-                          border: '1px solid rgba(96, 165, 240, 0.3)',
-                          borderRadius: '8px',
-                          padding: '5px 10px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>{t('ui.generated.hapus_peer_f123a45')}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* MASTER SESSION SUMMARY & CLEAR ALL BUTTON */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  {/* 1. Folder Locations (Session) */}
                   <div
                     style={{
-                      background: 'rgba(255, 255, 255, 0.025)',
+                      background: 'rgba(255, 255, 255, 0.03)',
                       border: '1px solid rgba(255, 255, 255, 0.07)',
-                      borderRadius: '14px',
-                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      padding: '14px',
                       display: 'flex',
-                      alignItems: 'center',
+                      flexDirection: 'column',
                       justifyContent: 'space-between',
                     }}
                   >
                     <div>
-                      <strong style={{ fontSize: '0.86rem', color: '#f8fafc', display: 'block' }}>
-                        {t('ui.generated.ringkasan_cache_sesi_e567f89')}
-                      </strong>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')} • {t('ui.generated.menghapus_cache_sesi_ini_tidak_mengeluarkan_akun_b901c23')}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <MapPin size={16} style={{ color: '#f87171' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('ui.generated.cache_lokasi_folder_sesi_a901b23')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_riwayat_navigasi_folder_dan_lokasi_aktif_s_c456d78')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSessionLocations}
+                      disabled={!hasSessionLocations}
+                      style={getBtnStyle(
+                        hasSessionLocations,
+                        '#fca5a5',
+                        'rgba(239, 68, 68, 0.15)',
+                        '1px solid rgba(239, 68, 68, 0.3)'
+                      )}
+                    >
+                      <Trash2 size={13} />
+                      <span>{t('ui.generated.hapus_lokasi_e123a45')}</span>
+                    </button>
+                  </div>
+
+                  {/* 2. Sidebar Tree (Session) */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <FolderTree size={16} style={{ color: '#38bdf8' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('ui.generated.cache_pohon_sidebar_sesi_f678b90')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_status_buka_tutup_folder_pada_sidebar_sesi_b123c45')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSessionSidebar}
+                      disabled={!hasSessionSidebar}
+                      style={getBtnStyle(
+                        hasSessionSidebar,
+                        '#38bdf8',
+                        'rgba(56, 189, 248, 0.15)',
+                        '1px solid rgba(56, 189, 248, 0.3)'
+                      )}
+                    >
+                      <Trash2 size={13} />
+                      <span>{t('ui.generated.hapus_sidebar_d456e78')}</span>
+                    </button>
+                  </div>
+
+                  {/* 3. Forum Topics (Session) */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <MessageSquare size={16} style={{ color: '#c084fc' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('ui.generated.cache_topik_forum_sesi_a890f12')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_daftar_topik_dan_utas_obrolan_sesi_ini_c345d67')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSessionTopics}
+                      disabled={!hasSessionTopics}
+                      style={getBtnStyle(
+                        hasSessionTopics,
+                        '#c084fc',
+                        'rgba(168, 85, 247, 0.15)',
+                        '1px solid rgba(168, 85, 247, 0.3)'
+                      )}
+                    >
+                      <Trash2 size={13} />
+                      <span>{t('ui.generated.hapus_topik_e890f12')}</span>
+                    </button>
+                  </div>
+
+                  {/* 4. Peer Metadata (Session) */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <Users size={16} style={{ color: '#60a5fa' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('ui.generated.metadata_peer_channel_sesi_b345c67')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_cache_nama_channel_dan_metadata_entitas_s_d890e12')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSessionPeer}
+                      disabled={!hasSessionPeer}
+                      style={getBtnStyle(
+                        hasSessionPeer,
+                        '#60a5fa',
+                        'rgba(96, 165, 250, 0.15)',
+                        '1px solid rgba(96, 165, 240, 0.3)'
+                      )}
+                    >
+                      <Trash2 size={13} />
+                      <span>{t('ui.generated.hapus_peer_f123a45')}</span>
+                    </button>
+                  </div>
+
+                  {/* 5. Scroll & Workspace State (Session) */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.07)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <SlidersHorizontal size={16} style={{ color: '#fbbf24' }} />
+                        <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                          {t('ui.generated.cache_scroll_state_workspace_sesi_e123a45')}
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_posisi_scroll_dan_preferensi_tampilan_ter_b456c78')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSessionScroll}
+                      disabled={!hasSessionScroll}
+                      style={getBtnStyle(
+                        hasSessionScroll,
+                        '#fbbf24',
+                        'rgba(245, 158, 11, 0.15)',
+                        '1px solid rgba(245, 158, 11, 0.3)'
+                      )}
+                    >
+                      <RotateCcw size={13} />
+                      <span>{t('ui.generated.hapus_state_d789e01')}</span>
+                    </button>
+                  </div>
+
+                  {/* 6. Total Session Cache Reset (Session) */}
+                  <div
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.04)',
+                      border: '1px solid rgba(239, 68, 68, 0.18)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Trash2 size={16} style={{ color: '#fca5a5' }} />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+                            {t('ui.generated.pembersihan_total_cache_sesi_c890f12')}
+                          </strong>
+                        </div>
+                        <span
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#fca5a5',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {sessionKeysCount} {t('ui.generated.entri_terdeteksi_c123d45')}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>
+                        {t('ui.generated.hapus_seluruh_entri_cache_sesi_ini_tanpa_log_f123a45')}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={handleClearSessionCache}
-                      disabled={sessionKeysCount === 0}
-                      style={{
-                        padding: '7px 14px',
-                        borderRadius: '8px',
-                        background: sessionKeysCount > 0 ? 'rgba(239, 68, 68, 0.18)' : 'rgba(255, 255, 255, 0.05)',
-                        border: sessionKeysCount > 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid transparent',
-                        color: sessionKeysCount > 0 ? '#fca5a5' : '#64748b',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: sessionKeysCount > 0 ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        flexShrink: 0,
-                        marginLeft: '12px',
-                      }}
+                      disabled={!hasSessionTotal}
+                      style={getBtnStyle(
+                        hasSessionTotal,
+                        '#fca5a5',
+                        'rgba(239, 68, 68, 0.18)',
+                        '1px solid rgba(239, 68, 68, 0.35)'
+                      )}
                     >
-                      <Trash2 size={14} />
-                      <span>{t('ui.generated.hapus_cache_sesi_ini_f456a78')}</span>
+                      <Trash2 size={13} />
+                      <span>{t('ui.generated.hapus_seluruh_cache_sesi_f456a78')}</span>
                     </button>
                   </div>
                 </div>
