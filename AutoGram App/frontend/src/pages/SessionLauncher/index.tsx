@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import {
   Zap,
   Folder,
@@ -10,17 +11,22 @@ import {
   Key,
   X,
   Maximize2,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import {
   loadSelectableSessions,
   getSessionMetadata,
+  setSessionAlias,
+  deleteSessionLocalData,
   type SessionOption,
 } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
 
 import { bootstrapSecureCredentials, useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
 import { useGitHubUpdater } from '../../lib/tauri/githubUpdater';
-import { Loader2 } from 'lucide-react';
 
 interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
@@ -49,6 +55,21 @@ export function SessionLauncher({
     title: string;
     subtitle: string;
   } | null>(null);
+
+  const [activeMenuSession, setActiveMenuSession] = useState<string | null>(null);
+  const [editingSession, setEditingSession] = useState<SessionOption | null>(null);
+  const [aliasInput, setAliasInput] = useState<string>('');
+  const [deletingSessionStep1, setDeletingSessionStep1] = useState<SessionOption | null>(null);
+  const [deletingSessionStep2, setDeletingSessionStep2] = useState<SessionOption | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuSession(null);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   const refreshSessions = useCallback((force = false) => {
     loadSelectableSessions({ verify: true, force })
@@ -553,6 +574,135 @@ export function SessionLauncher({
                       })()} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
                     </span>
                   </div>
+
+                  {/* THREE-DOT MENU BUTTON & DROPDOWN */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuSession(activeMenuSession === sess.name ? null : sess.name);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        padding: '6px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                        e.currentTarget.style.color = '#f8fafc';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94a3b8';
+                      }}
+                      title="Menu Akun"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+
+                    {/* DROPDOWN MENU */}
+                    {activeMenuSession === sess.name && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '6px',
+                          width: '160px',
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255,255,255,0.2)',
+                          backdropFilter: 'blur(16px)',
+                          zIndex: 100,
+                          padding: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '2px',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuSession(null);
+                            setEditingSession(sess);
+                            setAliasInput(sess.label || sess.name);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#e2e8f0',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)';
+                            e.currentTarget.style.color = '#38bdf8';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#e2e8f0';
+                          }}
+                        >
+                          <Pencil size={14} style={{ color: '#38bdf8' }} />
+                          {t('nav.menu_edit_account')}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuSession(null);
+                            setDeletingSessionStep1(sess);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fca5a5',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                            e.currentTarget.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#fca5a5';
+                          }}
+                        >
+                          <Trash2 size={14} style={{ color: '#ef4444' }} />
+                          {t('nav.menu_delete_account')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <hr style={{ border: 0, borderTop: '1px solid rgba(255,255,255,0.06)', margin: 0 }} />
@@ -765,6 +915,378 @@ export function SessionLauncher({
             <span style={{ fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
               {previewPhoto.subtitle}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT ACCOUNT MODAL */}
+      {editingSession && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+          }}
+          onClick={() => setEditingSession(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Pencil size={20} style={{ color: '#38bdf8' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                  {t('nav.modal_edit_title')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSession(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', fontWeight: 500 }}>
+                Nama Alias / Label Sesi
+              </label>
+              <input
+                type="text"
+                value={aliasInput}
+                onChange={(e) => setAliasInput(e.target.value)}
+                placeholder={t('nav.modal_edit_placeholder')}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setSessionAlias(editingSession.name, aliasInput);
+                    setEditingSession(null);
+                    refreshSessions(true);
+                  }
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingSession(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('nav.modal_cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionAlias(editingSession.name, aliasInput);
+                  setEditingSession(null);
+                  refreshSessions(true);
+                }}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
+                }}
+              >
+                {t('nav.modal_save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE STEP 1 CONFIRMATION MODAL */}
+      {deletingSessionStep1 && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+          }}
+          onClick={() => setDeletingSessionStep1(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              background: 'linear-gradient(150deg, #1e1b2e 0%, #0f172a 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Trash2 size={20} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                  {t('nav.modal_delete_step1_title')}
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
+                  Langkah 1 dari 2 · Konfirmasi Utama
+                </span>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+              {t('nav.modal_delete_step1_msg', { name: deletingSessionStep1.label || deletingSessionStep1.name })}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setDeletingSessionStep1(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('nav.modal_cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = deletingSessionStep1;
+                  setDeletingSessionStep1(null);
+                  setDeletingSessionStep2(target);
+                }}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
+                }}
+              >
+                {t('nav.modal_delete_step1_proceed')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE STEP 2 PURGE OPTIONS MODAL */}
+      {deletingSessionStep2 && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+          }}
+          onClick={() => !isDeleting && setDeletingSessionStep2(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              background: 'linear-gradient(150deg, #1e1b2e 0%, #0f172a 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Folder size={20} style={{ color: '#f87171' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+                  {t('nav.modal_delete_step2_title')}
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
+                  Langkah 2 dari 2 · Opsi Pembersihan Cache
+                </span>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+              {t('nav.modal_delete_step2_msg', { name: deletingSessionStep2.label || deletingSessionStep2.name })}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    const targetName = deletingSessionStep2.name;
+                    await invoke('delete_session_rust', { session: targetName });
+                    deleteSessionLocalData(targetName, false);
+                    if (defaultSession === targetName) {
+                      localStorage.removeItem('autogram_default_session');
+                      setDefaultSession('');
+                    }
+                    setDeletingSessionStep2(null);
+                    refreshSessions(true);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#e2e8f0',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {isDeleting && <Loader2 size={16} className="animate-spin" />}
+                {t('nav.modal_delete_session_only')}
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    const targetName = deletingSessionStep2.name;
+                    await invoke('delete_session_rust', { session: targetName });
+                    deleteSessionLocalData(targetName, true);
+                    if (defaultSession === targetName) {
+                      localStorage.removeItem('autogram_default_session');
+                      setDefaultSession('');
+                    }
+                    setDeletingSessionStep2(null);
+                    refreshSessions(true);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.35) 100%)',
+                  border: '1px solid rgba(248, 113, 113, 0.6)',
+                  color: '#fca5a5',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.25)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {isDeleting && <Loader2 size={16} className="animate-spin" />}
+                {t('nav.modal_delete_with_cache')}
+              </button>
+            </div>
           </div>
         </div>
       )}

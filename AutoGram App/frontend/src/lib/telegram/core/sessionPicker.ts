@@ -74,6 +74,53 @@ export function saveSessionMetadata(
   }
 }
 
+export function setSessionAlias(sessionName: string, alias: string): void {
+  if (!sessionName) return;
+  try {
+    const rawAliases = localStorage.getItem(ALIASES_KEY);
+    const aliases = rawAliases ? JSON.parse(rawAliases) : {};
+    const trimmed = alias.trim();
+    if (trimmed) {
+      aliases[sessionName] = trimmed;
+    } else {
+      delete aliases[sessionName];
+    }
+    localStorage.setItem(ALIASES_KEY, JSON.stringify(aliases));
+    notifySessionMetadataChanged();
+  } catch {}
+}
+
+export function deleteSessionLocalData(sessionName: string, purgeCache = false): void {
+  if (!sessionName) return;
+  try {
+    const rawMeta = localStorage.getItem(METADATA_KEY);
+    if (rawMeta) {
+      const store = JSON.parse(rawMeta);
+      delete store[sessionName];
+      localStorage.setItem(METADATA_KEY, JSON.stringify(store));
+    }
+
+    const rawAliases = localStorage.getItem(ALIASES_KEY);
+    if (rawAliases) {
+      const aliases = JSON.parse(rawAliases);
+      delete aliases[sessionName];
+      localStorage.setItem(ALIASES_KEY, JSON.stringify(aliases));
+    }
+
+    const targets = readActiveTargets();
+    const nextTargets = targets.filter((t) => t !== sessionName);
+    setActiveSessionTargets(nextTargets);
+
+    if (purgeCache) {
+      localStorage.removeItem(`autogram_recents_${sessionName}`);
+      localStorage.removeItem(`autogram_sidebar_${sessionName}`);
+      localStorage.removeItem(`autogram_totals_${sessionName}`);
+    }
+
+    notifySessionMetadataChanged();
+  } catch {}
+}
+
 export function getSessionDisplayName(sessionName: string): string {
   if (!sessionName) return '';
 
