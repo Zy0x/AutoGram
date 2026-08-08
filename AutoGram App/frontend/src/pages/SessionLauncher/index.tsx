@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import {
   loadSelectableSessions,
+  getSessionMetadata,
   type SessionOption,
 } from '../../lib/telegram';
 import { getCachedAvatar, requestAvatar } from '../../lib/media/avatarBatcher';
@@ -432,7 +433,11 @@ export function SessionLauncher({
                       )}
                     </div>
                     <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                      {t('nav.session_id_value', { session: sess.name.replace(/^session_/, '') })} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
+                      {(() => {
+                        const meta = getSessionMetadata(sess.name);
+                        const displayId = meta?.telegramUserId ? String(meta.telegramUserId) : sess.name.replace(/^session_/, '');
+                        return t('nav.session_id_value', { session: displayId });
+                      })()} {(sess as any).datacenterId ? `· DC${(sess as any).datacenterId}` : ''}
                     </span>
                   </div>
                 </div>
