@@ -46,9 +46,10 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [apiChecked, setApiChecked] = useState(false);
   const [apiValid, setApiValid] = useState(true);
-  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder' | 'settings'>(() => {
+  const [appMode, setAppMode] = useState<'launcher' | 'drives' | 'forwarder' | 'settings' | 'api'>(() => {
     return (localStorage.getItem('autogram_app_mode') as any) || 'launcher';
   });
+
   const [currentSession, setCurrentSession] = useState<string>(() => {
     return (
       localStorage.getItem('autogram_drive_session') ||
@@ -138,6 +139,26 @@ function App() {
           setAppMode('settings');
           localStorage.setItem('autogram_app_mode', 'settings');
         }}
+        onOpenApiSetup={() => {
+          setAppMode('api');
+          localStorage.setItem('autogram_app_mode', 'api');
+        }}
+      />
+    );
+  }
+
+  if (appMode === 'api') {
+    return (
+      <ApiSetupScreen
+        onComplete={() => {
+          setApiValid(true);
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
+        }}
+        onBack={() => {
+          setAppMode('launcher');
+          localStorage.setItem('autogram_app_mode', 'launcher');
+        }}
       />
     );
   }
@@ -170,6 +191,10 @@ function App() {
         onOpenSettings={() => {
           setAppMode('settings');
           localStorage.setItem('autogram_app_mode', 'settings');
+        }}
+        onOpenApiSetup={() => {
+          setAppMode('api');
+          localStorage.setItem('autogram_app_mode', 'api');
         }}
       />
     );

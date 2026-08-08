@@ -7,6 +7,7 @@ import {
   Plus,
   Star,
   Settings,
+  Key,
   X,
   Maximize2,
 } from 'lucide-react';
@@ -22,12 +23,14 @@ interface SessionLauncherProps {
   onSelectMode: (sessionName: string, mode: 'drives' | 'forwarder') => void;
   onOpenAccounts: () => void;
   onOpenSettings: () => void;
+  onOpenApiSetup: () => void;
 }
 
 export function SessionLauncher({
   onSelectMode,
   onOpenAccounts,
   onOpenSettings,
+  onOpenApiSetup,
 }: SessionLauncherProps) {
   const { t } = useTranslation();
   const [sessions, setSessions] = useState<SessionOption[]>([]);
@@ -184,6 +187,28 @@ export function SessionLauncher({
           >
             <Plus size={15} />
             <span>{t('nav.add_session')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenApiSetup}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: '#38bdf8',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title={t('settings.api_config')}
+            aria-label={t('settings.api_config')}
+          >
+            <Key size={17} />
           </button>
 
           <button

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyRound,
@@ -8,20 +8,31 @@ import {
   AlertCircle,
   ArrowRight,
   ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
-import { setApiCredentials } from '../../lib/tauri/secureCredentials';
+import { bootstrapSecureCredentials, setApiCredentials } from '../../lib/tauri/secureCredentials';
 
 interface ApiSetupScreenProps {
   onComplete: () => void;
+  onBack?: () => void;
 }
 
-export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
+export function ApiSetupScreen({ onComplete, onBack }: ApiSetupScreenProps) {
   const { t } = useTranslation();
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
   const [showHash, setShowHash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    bootstrapSecureCredentials()
+      .then(({ apiId: savedId, apiHash: savedHash }) => {
+        if (savedId) setApiId(savedId);
+        if (savedHash) setApiHash(savedHash);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +107,30 @@ export function ApiSetupScreen({ onComplete }: ApiSetupScreenProps) {
           gap: '24px',
         }}
       >
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              alignSelf: 'flex-start',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#94a3b8',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              marginBottom: '-8px',
+            }}
+          >
+            <ArrowLeft size={15} />
+            <span>{t('nav.back_to_launcher')}</span>
+          </button>
+        )}
         {/* LOGO & TITLE */}
         <div style={{ textAlign: 'center' }}>
           <div

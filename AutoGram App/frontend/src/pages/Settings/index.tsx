@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  Save,
-  Key,
-  ShieldCheck,
   Globe,
   Trash2,
   Sliders,
@@ -22,10 +19,6 @@ import {
   getPersistentThumbsSize,
 } from '../../lib/media/thumbPersistentCache';
 import { clearMediaCache } from '../../lib/db/mediaStudioDb';
-import {
-  bootstrapSecureCredentials,
-  setApiCredentials,
-} from '../../lib/tauri/secureCredentials';
 
 import { PerfSection } from './PerfSection';
 import { NetworkSection } from './NetworkSection';
@@ -39,11 +32,6 @@ interface SettingsProps {
 
 export function Settings({ onBackToLauncher }: SettingsProps) {
   const { t, i18n } = useTranslation();
-  const [apiId, setApiId] = useState("");
-  const [apiHash, setApiHash] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [isLoading, setIsLoading] = useState(true);
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -266,40 +254,6 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
     void calculateCacheSize();
   }, []);
 
-  // Load from encrypted store (migrates legacy localStorage once)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const c = await bootstrapSecureCredentials();
-        if (!cancelled) {
-          setApiId(c.apiId);
-          setApiHash(c.apiHash);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveStatus('idle');
-    try {
-      await setApiCredentials(apiId, apiHash);
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (err) {
-      console.error(err);
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
@@ -353,76 +307,7 @@ export function Settings({ onBackToLauncher }: SettingsProps) {
           </div>
         </div>
 
-        {/* 2. API CREDENTIALS (MANDATORY RIGHT AFTER LANGUAGE) */}
-        <div className="glass-panel card settings-section-api">
-          <div className="card-header">
-            <ShieldCheck size={20} color="var(--accent)" />
-            <h3>{t('settings.api_config')}</h3>
-          </div>
-          
-          <p className="field-hint" style={{ marginBottom: '1.25rem', lineHeight: 1.5 }}>
-            {t('settings.api_config_hint')}
-          </p>
-          
-          {isLoading ? (
-            <div style={{ color: 'var(--text-muted)' }}>{t('settings.loading_credentials')}</div>
-          ) : (
-            <div className="page-stack" style={{ gap: '1.25rem' }}>
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label title-with-icon" htmlFor="settings-api-id">
-                  <Key size={14} /> {t('settings.api_id_label')}
-                </label>
-                <input 
-                  id="settings-api-id"
-                  type="text" 
-                  value={apiId} 
-                  onChange={e => setApiId(e.target.value)} 
-                  className="input-field" 
-                  placeholder={t("settings.api_id_ph")}
-                />
-              </div>
-              
-              <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="input-label title-with-icon" htmlFor="settings-api-hash">
-                  <Key size={14} /> {t('settings.api_hash_label')}
-                </label>
-                <input 
-                  id="settings-api-hash"
-                  type="password" 
-                  value={apiHash} 
-                  onChange={e => setApiHash(e.target.value)} 
-                  className="input-field" 
-                  placeholder={t("settings.api_hash_ph")} 
-                />
-              </div>
-              
-              <div className="page-header-actions" style={{ marginTop: '0.25rem' }}>
-                <button 
-                  type="button"
-                  className="btn btn-primary" 
-                  onClick={handleSave}
-                  disabled={isSaving || !apiId || !apiHash}
-                >
-                  <Save size={18} />
-                  {isSaving ? '...' : t('settings.save_credentials')}
-                </button>
-                
-                {saveStatus === 'success' && (
-                  <span className="status-msg success">
-                    ✓ {t('settings.credentials_saved')}
-                  </span>
-                )}
-                {saveStatus === 'error' && (
-                  <span className="status-msg error">
-                    {t('settings.credentials_error')}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 3. DEVICE PERFORMANCE OPTIMIZATION */}
+        {/* 2. DEVICE PERFORMANCE OPTIMIZATION */}
         <PerfSection />
 
         {/* 4. PROXY & VPN OPTIMIZER (UNIFIED COMPONENT SHARED WITH DRIVES SETTINGS) */}
