@@ -47,23 +47,39 @@ pub fn resolve_sessions_dir(daemon_hint: Option<&Path>) -> PathBuf {
             return parent.join("sessions");
         }
     }
-    // Walk from cwd
+    // Walk from cwd looking for worker or sessions dir
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let mut dir = cwd.clone();
     for _ in 0..8 {
-        let candidate = dir.join("worker").join("sessions");
-        if candidate.is_dir() {
-            return candidate;
+        let worker_dir = dir.join("worker");
+        if worker_dir.is_dir() {
+            let s = worker_dir.join("sessions");
+            let _ = std::fs::create_dir_all(&s);
+            return s;
         }
-        let candidate2 = dir.join("sessions");
-        if candidate2.is_dir() {
-            return candidate2;
+        let sessions_dir = dir.join("sessions");
+        if sessions_dir.is_dir() {
+            return sessions_dir;
         }
         if !dir.pop() {
             break;
         }
     }
-    cwd.join("worker").join("sessions")
+    // Fallback: search if cwd parent chain contains "AutoGram App"
+    let mut fallback_dir = cwd.clone();
+    for _ in 0..4 {
+        if fallback_dir.file_name().and_then(|n| n.to_str()) == Some("AutoGram App") {
+            let s = fallback_dir.join("worker").join("sessions");
+            let _ = std::fs::create_dir_all(&s);
+            return s;
+        }
+        if !fallback_dir.pop() {
+            break;
+        }
+    }
+    let default_s = cwd.join("worker").join("sessions");
+    let _ = std::fs::create_dir_all(&default_s);
+    default_s
 }
 
 pub fn runtime() -> Result<&'static Runtime, TgError> {

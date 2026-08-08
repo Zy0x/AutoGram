@@ -713,6 +713,13 @@ pub fn calculate_cache_size() -> Result<serde_json::Value, String> {
         walk_detailed(&info.active_thumbs_dir, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
     }
 
+    // Also scan legacy worker/sessions/thumbs if distinct from active_thumbs_dir
+    let sessions_dir = resolve_sessions_dir(None);
+    let legacy_thumbs = sessions_dir.join("thumbs");
+    if legacy_thumbs.is_dir() && legacy_thumbs != info.active_thumbs_dir {
+        let mut dummy_stale = 0u64;
+        walk_detailed(&legacy_thumbs, &mut thumbs_bytes, &mut dummy_stale, now, one_day);
+    }
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
         let autogram_temp = sys_temp.join("autogram");
@@ -830,6 +837,12 @@ pub fn clear_disk_cache() -> Result<serde_json::Value, String> {
     }
     if info.active_thumbs_dir.is_dir() {
         wipe(&info.active_thumbs_dir, &mut removed);
+    }
+
+    let sessions_dir = resolve_sessions_dir(None);
+    let legacy_thumbs = sessions_dir.join("thumbs");
+    if legacy_thumbs.is_dir() && legacy_thumbs != info.active_thumbs_dir {
+        wipe(&legacy_thumbs, &mut removed);
     }
 
     if let Ok(sys_temp) = std::env::temp_dir().canonicalize() {
