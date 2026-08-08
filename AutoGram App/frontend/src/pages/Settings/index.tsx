@@ -26,7 +26,7 @@ import { clearMediaStudioCache, getMediaStudioCacheSize } from '../../lib/db/med
 import { NetworkSection } from './NetworkSection';
 import { DebugSection } from './DebugLogsSection';
 import { SpecificCacheModal } from './SpecificCacheModal';
-import { CACHE_LIMIT_STEPS } from './settingsUtils';
+import { CACHE_LIMIT_STEPS, PRESET_CACHE_LIMIT_VALUES } from './settingsUtils';
 import './Settings.css';
 
 interface SettingsProps {
@@ -305,21 +305,37 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
     i18n.changeLanguage(lng);
   };
 
+  // Sync custom input field with custom limit value if active
+  useEffect(() => {
+    if (cacheLimitMB > 0 && !PRESET_CACHE_LIMIT_VALUES.includes(cacheLimitMB)) {
+      if (cacheLimitMB >= 1024 && cacheLimitMB % 1024 === 0) {
+        setCustomInputValue(String(cacheLimitMB / 1024));
+        setCustomUnit('GB');
+      } else {
+        setCustomInputValue(String(cacheLimitMB));
+        setCustomUnit('MB');
+      }
+    }
+  }, [cacheLimitMB]);
+
+  // Is custom mode active?
+  const isCustomMode = isCustomModalOpen || (cacheLimitMB > 0 && !PRESET_CACHE_LIMIT_VALUES.includes(cacheLimitMB));
+
   // Current slider step index calculation
   const currentStepIndex = (() => {
-    if (cacheLimitMB === 0) return 8; // Unlimited
+    if (isCustomMode) return 0; // Custom (index 0)
+    if (cacheLimitMB === 0) return 8; // Unlimited (index 8)
     const idx = CACHE_LIMIT_STEPS.indexOf(cacheLimitMB);
-    if (idx !== -1) return idx;
-    return 0; // Custom
+    return idx !== -1 ? idx : 0;
   })();
 
   const handleSliderIndexChange = (idx: number) => {
     if (idx === 0) {
       setIsCustomModalOpen(true);
     } else {
-      setIsCustomModalOpen(false); // Close custom modal when selecting a preset
+      setIsCustomModalOpen(false); // Close custom panel when preset step is selected
       const mb = CACHE_LIMIT_STEPS[idx];
-      if (mb !== undefined) {
+      if (mb !== undefined && mb >= 0) {
         handleCacheLimitChange(mb);
       }
     }
@@ -758,59 +774,56 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               </div>
             </div>
 
-            {/* Tombol aksi pembersihan utama (Responsive Grid, 100% Bebas Overlap) */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                gap: '10px',
-                marginTop: '6px',
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={calculateCacheSize}
-                disabled={isCalculating}
-                style={{
-                  padding: '9px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  textAlign: 'center',
-                  whiteSpace: 'normal',
-                  minHeight: '2.5rem',
-                }}
-              >
-                {isCalculating ? t('settings.calculating') : t('settings.recalculate')}
-              </button>
+            {/* Tombol aksi pembersihan utama (100% Responsif & Non-Overlapping) */}
+            <div className="settings-cache-actions" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={calculateCacheSize}
+                  disabled={isCalculating}
+                  style={{
+                    flex: '1 1 130px',
+                    padding: '10px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    minHeight: '2.6rem',
+                  }}
+                >
+                  {isCalculating ? t('settings.calculating') : t('settings.recalculate')}
+                </button>
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setIsSpecificModalOpen(true)}
-                style={{
-                  padding: '9px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  borderColor: 'rgba(56, 189, 248, 0.35)',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  color: '#38bdf8',
-                  textAlign: 'center',
-                  whiteSpace: 'normal',
-                  minHeight: '2.5rem',
-                }}
-              >
-                <SlidersHorizontal size={15} style={{ flexShrink: 0 }} />
-                <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
-              </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsSpecificModalOpen(true)}
+                  style={{
+                    flex: '1 1 200px',
+                    padding: '10px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    borderColor: 'rgba(56, 189, 248, 0.35)',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    color: '#38bdf8',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                    minHeight: '2.6rem',
+                  }}
+                >
+                  <SlidersHorizontal size={15} style={{ flexShrink: 0 }} />
+                  <span>{t('ui.generated.kelola_cache_spesifik_per_sesi_98a71b2')}</span>
+                </button>
+              </div>
 
               <button
                 type="button"
@@ -818,17 +831,17 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 onClick={handleClearCache}
                 disabled={isClearing || isTrimming}
                 style={{
-                  padding: '9px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
+                  width: '100%',
+                  padding: '11px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
                   textAlign: 'center',
-                  whiteSpace: 'normal',
-                  minHeight: '2.5rem',
-                  gridColumn: '1 / -1',
+                  whiteSpace: 'nowrap',
+                  minHeight: '2.7rem',
                 }}
               >
                 {isClearing
