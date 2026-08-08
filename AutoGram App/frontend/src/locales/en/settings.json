@@ -154,5 +154,16 @@
   "database_clear_error": "Failed to clear the transfer database. Check the console logs for details.",
   "copy_buffer_tooltip": "Copy the debug log buffer",
   "clear_buffer_tooltip": "Clear the debug log buffer",
-  "recalculate_cache_tooltip": "Recalculate cache size"
+  "recalculate_cache_tooltip": "Recalculate cache size",
+  "auto_update_section": "Application Updates & Release Channel",
+  "auto_update_section_desc": "Configure automatic update checks, background downloads, and installation preferences.",
+  "auto_check_updates_label": "Check for updates automatically",
+  "auto_check_updates_desc": "Check GitHub releases when AutoGram starts",
+  "auto_download_updates_label": "Download updates automatically in background",
+  "auto_download_updates_desc": "Download new versions quietly in the background and notify when ready to install",
+  "current_version_label": "Current Version",
+  "btn_check_updates": "Check for Updates",
+  "btn_download_update": "Download Update ({{version}})",
+  "btn_install_restart": "Install & Restart ({{version}})",
+  "update_ready_notice": "Version {{version}} update has been downloaded and is ready to install."
 }

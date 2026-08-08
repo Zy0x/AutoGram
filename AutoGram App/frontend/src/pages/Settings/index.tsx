@@ -34,6 +34,7 @@ import { CACHE_LIMIT_STEPS, PRESET_CACHE_LIMIT_VALUES } from './settingsUtils';
 import './Settings.css';
 
 import { useApiCredentialsStatus } from '../../lib/tauri/secureCredentials';
+import { useGitHubUpdater, CURRENT_APP_VERSION } from '../../lib/tauri/githubUpdater';
 
 interface SettingsProps {
   onBackToLauncher?: () => void;
@@ -43,6 +44,18 @@ interface SettingsProps {
 export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const { hasError: hasApiError } = useApiCredentialsStatus();
+  const {
+    status: updateStatus,
+    latestVersion,
+    downloadProgress,
+    autoCheck,
+    autoDownload,
+    checkNow: recheckUpdate,
+    startDownload,
+    installUpdate,
+    setAutoCheck,
+    setAutoDownload,
+  } = useGitHubUpdater();
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -580,6 +593,136 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
               <option value="en">{t('settings.language_english')}</option>
               <option value="id">{t('settings.language_indonesian')}</option>
             </select>
+          </div>
+        </div>
+
+        {/* 2. APPLICATION UPDATES & RELEASE CHANNEL */}
+        <div className="glass-panel card settings-section-updates">
+          <div className="card-header">
+            <RotateCw size={20} color="var(--primary)" />
+            <h3>{t('settings.auto_update_section')}</h3>
+          </div>
+
+          <p className="field-hint" style={{ marginBottom: '1.2rem', lineHeight: 1.5 }}>
+            {t('settings.auto_update_section_desc')}
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Auto-Check Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                  {t('settings.auto_check_updates_label')}
+                </strong>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                  {t('settings.auto_check_updates_desc')}
+                </span>
+              </div>
+              <div
+                role="switch"
+                aria-checked={autoCheck}
+                tabIndex={0}
+                onClick={() => setAutoCheck(!autoCheck)}
+                className={`switch-container ${autoCheck ? 'active' : ''}`}
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div className="switch-thumb" />
+              </div>
+            </div>
+
+            {/* Background Auto-Download Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div>
+                <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                  {t('settings.auto_download_updates_label')}
+                </strong>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                  {t('settings.auto_download_updates_desc')}
+                </span>
+              </div>
+              <div
+                role="switch"
+                aria-checked={autoDownload}
+                tabIndex={0}
+                onClick={() => setAutoDownload(!autoDownload)}
+                className={`switch-container ${autoDownload ? 'active' : ''}`}
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div className="switch-thumb" />
+              </div>
+            </div>
+
+            {/* Current Version & Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>{t('settings.current_version_label')}:</span>
+                <strong style={{ fontSize: '0.88rem', color: '#38bdf8' }}>v{CURRENT_APP_VERSION}</strong>
+              </div>
+
+              <div>
+                {updateStatus === 'updateAvailable' ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void startDownload()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                  >
+                    <RotateCw size={14} />
+                    <span>{t('settings.btn_download_update', { version: latestVersion })}</span>
+                  </button>
+                ) : updateStatus === 'downloading' ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', borderColor: '#0284c7', color: '#38bdf8' }}
+                  >
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
+                  </button>
+                ) : updateStatus === 'readyToInstall' ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void installUpdate()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                  >
+                    <CheckCircle size={14} />
+                    <span>{t('settings.btn_install_restart', { version: latestVersion })}</span>
+                  </button>
+                ) : updateStatus === 'installing' ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                  >
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>{t('nav.updater_installing')}</span>
+                  </button>
+                ) : updateStatus === 'checking' ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                  >
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>{t('nav.updater_checking')}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => void recheckUpdate()}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                  >
+                    <RotateCw size={14} />
+                    <span>{t('settings.btn_check_updates')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

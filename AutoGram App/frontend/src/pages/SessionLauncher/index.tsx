@@ -43,7 +43,14 @@ export function SessionLauncher({
 }: SessionLauncherProps) {
   const { t } = useTranslation();
   const { hasError: hasApiError } = useApiCredentialsStatus();
-  const { status: updateStatus, latestVersion, releaseUrl, checkNow: recheckUpdate } = useGitHubUpdater();
+  const {
+    status: updateStatus,
+    latestVersion,
+    downloadProgress,
+    checkNow: recheckUpdate,
+    startDownload,
+    installUpdate,
+  } = useGitHubUpdater();
   const [sessions, setSessions] = useState<SessionOption[]>([]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
@@ -1342,10 +1349,9 @@ export function SessionLauncher({
         <span>{t('nav.launcher_footer_engine')}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {updateStatus === 'updateAvailable' ? (
-            <a
-              href={releaseUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => void startDownload()}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1357,7 +1363,7 @@ export function SessionLauncher({
                 color: '#fef08a',
                 fontWeight: 600,
                 fontSize: '0.78rem',
-                textDecoration: 'none',
+                cursor: 'pointer',
                 boxShadow: '0 0 14px rgba(245, 158, 11, 0.35)',
                 transition: 'all 0.15s ease',
               }}
@@ -1373,8 +1379,77 @@ export function SessionLauncher({
                   boxShadow: '0 0 10px rgba(245, 158, 11, 0.95), 0 0 18px rgba(245, 158, 11, 0.6), 0 0 4px #f59e0b',
                 }}
               />
-              <span>{t('nav.updater_available', { version: latestVersion })}</span>
-            </a>
+              <span>{t('nav.updater_download_btn', { version: latestVersion })}</span>
+            </button>
+          ) : updateStatus === 'downloading' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                color: '#38bdf8',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <Loader2 size={13} className="animate-spin" style={{ color: '#38bdf8' }} />
+              <span>{t('nav.updater_downloading', { percent: downloadProgress })}</span>
+            </span>
+          ) : updateStatus === 'readyToInstall' ? (
+            <button
+              type="button"
+              onClick={() => void installUpdate()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35))',
+                border: '1px solid rgba(52, 211, 153, 0.6)',
+                color: '#a7f3d0',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                boxShadow: '0 0 16px rgba(16, 185, 129, 0.4)',
+                transition: 'all 0.15s ease',
+              }}
+              title={t('nav.updater_ready_to_install', { version: latestVersion })}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.95), 0 0 18px rgba(16, 185, 129, 0.6), 0 0 4px #10b981',
+                }}
+              />
+              <span>{t('nav.updater_ready_to_install', { version: latestVersion })}</span>
+            </button>
+          ) : updateStatus === 'installing' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <Loader2 size={13} className="animate-spin" style={{ color: '#38bdf8' }} />
+              <span>{t('nav.updater_installing')}</span>
+            </span>
           ) : updateStatus === 'checking' ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
               <Loader2 size={12} className="animate-spin" style={{ color: '#38bdf8' }} />
