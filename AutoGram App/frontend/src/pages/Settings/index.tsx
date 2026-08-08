@@ -681,20 +681,21 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 border: '1px solid rgba(255, 255, 255, 0.06)',
               }}
             >
-              {/* Header Row: Title on Left, Total Size + Recalculate Button on Top Right (Grid prevents squishing on narrow windows) */}
+              {/* Header Row: Title on Left, Total Size + Recalculate Button on Top Right */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr auto',
                   alignItems: 'center',
                   gap: '12px',
+                  width: '100%',
                 }}
               >
                 <div style={{ minWidth: 0 }}>
-                  <span className="input-label" style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600 }}>
+                  <span className="input-label" style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, display: 'block' }}>
                     {t('settings.cache_detected_size')}
                   </span>
-                  <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  <p className="field-hint" style={{ margin: 0, marginTop: '2px', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
                     {t('settings.cache_storage_sources')}
                   </p>
                 </div>
@@ -727,110 +728,96 @@ export function Settings({ onBackToLauncher, onOpenApiSetup }: SettingsProps) {
                 </div>
               </div>
 
-              {/* Structured Bento Grid Breakdown Badges */}
+              {/* Bento Grid Breakdown Badges */}
               {cacheBreakdown && (
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     gap: '8px',
                     paddingTop: '10px',
                     borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
                   }}
                 >
-                  <div
+                  <span
                     style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      fontSize: '0.74rem',
-                      background: 'rgba(56, 189, 248, 0.08)',
-                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
                       color: '#38bdf8',
-                      display: 'flex',
-                      justifyContent: 'space-between',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '4px',
                     }}
                   >
-                    <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>📁 {t('settings.cache_breakdown_disk')}</span>
-                    <strong style={{ color: '#38bdf8', fontWeight: 600 }}>{formatBytes(cacheBreakdown.cacheBytes)}</strong>
-                  </div>
-
-                  <div
+                    📁 {t('settings.cache_breakdown_disk')}: <strong>{formatBytes(cacheBreakdown.cacheBytes)}</strong>
+                  </span>
+                  <span
                     style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      fontSize: '0.74rem',
-                      background: 'rgba(168, 85, 247, 0.08)',
-                      border: '1px solid rgba(168, 85, 247, 0.2)',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      background: 'rgba(168, 85, 247, 0.1)',
+                      border: '1px solid rgba(168, 85, 247, 0.25)',
                       color: '#c084fc',
-                      display: 'flex',
-                      justifyContent: 'space-between',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '4px',
                     }}
                   >
-                    <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>🖼️ {t('settings.cache_breakdown_thumbs')}</span>
-                    <strong style={{ color: '#c084fc', fontWeight: 600 }}>{formatBytes(cacheBreakdown.thumbsBytes)}</strong>
-                  </div>
-
-                  <div
+                    🖼️ {t('settings.cache_breakdown_thumbs')}: <strong>{formatBytes(cacheBreakdown.thumbsBytes)}</strong>
+                  </span>
+                  <span
                     style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      fontSize: '0.74rem',
-                      background: 'rgba(234, 179, 8, 0.08)',
-                      border: '1px solid rgba(234, 179, 8, 0.2)',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      background: 'rgba(234, 179, 8, 0.1)',
+                      border: '1px solid rgba(234, 179, 8, 0.25)',
                       color: '#facc15',
-                      display: 'flex',
-                      justifyContent: 'space-between',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '4px',
                     }}
                   >
-                    <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>⚡ {t('settings.cache_breakdown_temp')}</span>
-                    <strong style={{ color: '#facc15', fontWeight: 600 }}>{formatBytes(cacheBreakdown.tempBytes)}</strong>
-                  </div>
-
+                    ⚡ {t('settings.cache_breakdown_temp')}: <strong>{formatBytes(cacheBreakdown.tempBytes)}</strong>
+                  </span>
                   {cacheBreakdown.localBytes > 0 && (
-                    <div
+                    <span
                       style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.74rem',
-                        background: 'rgba(16, 185, 129, 0.08)',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        background: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
                         color: '#34d399',
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '4px',
                       }}
                     >
-                      <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>💾 {t('settings.cache_breakdown_local')}</span>
-                      <strong style={{ color: '#34d399', fontWeight: 600 }}>{formatBytes(cacheBreakdown.localBytes)}</strong>
-                    </div>
+                      💾 {t('settings.cache_breakdown_local')}: <strong>{formatBytes(cacheBreakdown.localBytes)}</strong>
+                    </span>
                   )}
-
                   {cacheBreakdown.staleBytes > 0 && (
-                    <div
+                    <span
                       style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.74rem',
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.35)',
                         color: '#fca5a5',
                         fontWeight: 600,
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '4px',
                       }}
                     >
-                      <span style={{ color: '#fca5a5', fontSize: '0.72rem' }}>⚠️ {t('settings.cache_breakdown_stale')}</span>
-                      <strong style={{ color: '#fca5a5', fontWeight: 600 }}>{formatBytes(cacheBreakdown.staleBytes)}</strong>
-                    </div>
+                      ⚠️ {t('settings.cache_breakdown_stale')}: <strong>{formatBytes(cacheBreakdown.staleBytes)}</strong>
+                    </span>
                   )}
                 </div>
               )}
